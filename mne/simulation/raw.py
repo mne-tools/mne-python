@@ -32,17 +32,18 @@ from mne.simulation import simulate_noise_evoked
 
 
 @verbose
-def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
-                 ecg=False, chpi=False, head_pos=None, mindist=1.0,
-                 interp='linear', n_jobs=1, random_state=None, verbose=None):
+def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
+                 blink=False, ecg=False, chpi=False, head_pos=None,
+                 mindist=1.0, interp='linear', n_jobs=1, random_state=None,
+                 verbose=None):
     """Simulate raw data with head movements
 
     Parameters
     ----------
-    raw : instance of Raw | str
-        The raw instance to use. If string, should be a raw object filename.
-        The measurement info, including the head positions, will be used to
-        simulate data. # XXX: TODO: Change to info eventually
+    info_template : instance of mne.io.meas_info.Info | str
+        If str, then it should be a filename to a Raw, Epochs, or Evoked
+        file with measurement information. If dict, should be an info
+        dict (such as one from Raw, Epochs, or Evoked).
     stc : instance of SourceEstimate
         The source estimate to use to simulate data. Must have the same
         sample rate as the raw data.
@@ -60,6 +61,8 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
     bem : str | dict
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
+    times : array
+        Time array
     cov : instance of Covariance | 'simple' | None
         The sensor covariance matrix used to generate noise. If None,
         no noise will be added. If 'simple', a basic (diagonal) ad-hoc
@@ -75,7 +78,7 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
         the files produced by maxfilter-produced. If dict, keys should
         be the time points and entries should be 4x3 ``dev_head_t``
         matrices. If None, the original head position (from
-        ``raw.info['dev_head_t']``) will be used.
+        ``info['dev_head_t']``) will be used.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -104,6 +107,8 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
     covariance, and the amplitudes of the SourceEstimate. Note that this
     will vary as a function of position.
     """
+    info = deepcopy(info_template)
+
     # Check for common flag errors and try to override
     if not isinstance(stc, _BaseSourceEstimate):
         raise TypeError('stc must be a SourceEstimate')
@@ -157,13 +162,12 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
         offsets = raw.time_as_index(ts)
         offsets[-1] = raw.n_times  # fix for roundoff error
         assert offsets[-2] != offsets[-1]
-        #del ts
+        # del ts
 
     if isinstance(src, string_types):
         src = read_source_spaces(src, verbose=verbose)
     if isinstance(bem, string_types):
         bem = read_bem_solution(bem, verbose)
-    import pdb; pdb.set_trace()
     if isinstance(cov, string_types):
         assert cov == 'simple'
         cov = make_ad_hoc_cov(info, verbose=False)
@@ -193,7 +197,6 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
     fwd_info['projs'] = []  # Ensure no 'projs' applied
     logger.info('Setting up raw data simulation using %s head position%s'
                 % (len(dev_head_ts), 's' if len(dev_head_ts) != 1 else ''))
-    # raw.preload_data(verbose=False)
 
     if isinstance(stc, VolSourceEstimate):
         verts = [stc.vertices]
@@ -337,7 +340,7 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
         assert simulated.data.shape[0] == len(picks)
         assert simulated.data.shape[1] == len(stc_idxs)
 
-        raw_data = np.array((len(info['ch_names']), len(times)))
+        raw_data = np.zeros((len(info['ch_names']), len(times)))
         raw_data[picks, time_slice] = simulated.data
 
         # Add ECG, Blink, and CHPI traces
@@ -346,11 +349,11 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
             # Create cardiac artifact, add to MEG channels
             ecg_noise = _interp(last_fwd_ecg, fwd_ecg, ecg_data[:, time_slice],
                                 interp)
-            raw._data[meg_picks, time_slice] += ecg_noise
+            raw_data[meg_picks, time_slice] += ecg_noise
 
             # Rescale ECG channels
-            ecg_chs = pick_types(raw.info, meg=False, ecg=True)
-            raw._data[ecg_chs, :] *= 5e-4
+            ecg_chs = pick_types(info, meg=False, ecg=True)
+            raw_data[ecg_chs, :] *= 5e-4
 
             last_fwd_ecg = fwd_ecg
 
@@ -358,11 +361,11 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
             # Create blink artifacts, add to all MEG/EEG channels
             blink_noise = _interp(last_fwd_blink, fwd_blink,
                                   blink_data[:, time_slice], interp)
-            raw._data[picks, time_slice] += blink_noise
+            raw_data[picks, time_slice] += blink_noise
 
             # Rescale EOG channels
-            eog_chs = pick_types(raw.info, meg=False, eog=True)
-            raw._data[eog_chs, :] *= 1e-3
+            eog_chs = pick_types(info, meg=False, eog=True)
+            raw_data[eog_chs, :] *= 1e-3
 
             last_fwd_blink = fwd_blink
 
@@ -386,7 +389,8 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
     assert used.all()
     logger.info('Done')
 
-    return RawArray(raw_data, info)
+    raw = RawArray(raw_data, info)
+    return raw
 
 
 def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
