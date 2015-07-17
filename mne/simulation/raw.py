@@ -153,13 +153,17 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
         if ts[-1] < tend:
             dev_head_ts.append(dev_head_ts[-1])
             ts = np.r_[ts, [tend]]
-        offsets = np.where(times == ts)  # XXX raw.time_as_index(ts)
-        offsets[-1] = len(times)  # fix for roundoff error
+        import pdb; pdb.set_trace()
+        offsets = raw.time_as_index(ts)
+        offsets[-1] = raw.n_times  # fix for roundoff error
         assert offsets[-2] != offsets[-1]
-        del ts
+        #del ts
 
+    if isinstance(src, string_types):
+        src = read_source_spaces(src, verbose=verbose)
     if isinstance(bem, string_types):
         bem = read_bem_solution(bem, verbose)
+    import pdb; pdb.set_trace()
     if isinstance(cov, string_types):
         assert cov == 'simple'
         cov = make_ad_hoc_cov(info, verbose=False)
@@ -259,22 +263,6 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
         ecg_data *= 3e-4
         del cardiac_data
 
-    # TODO: This is just scaling to correct physiological scale, correct?
-    #       Can we just roll the scaling into above funcs if statements
-    #       and handle the data assignment there?
-    #       We should also check that the correct channels exist
-
-    # Add to data file, then rescale for simulation
-    '''
-    for data, scale, exg_ch in zip([blink_data, ecg_data],
-                                   [1e-3, 5e-4],
-                                   ['EOG062', 'ECG063']):
-        ch = pick_channels(raw.ch_names, [exg_ch])
-        if len(ch) == 1:
-            raw._data[ch[0], :] = data
-        data *= scale
-    '''
-
     evoked = EvokedArray(np.zeros((len(picks), len(stc.times))), fwd_info,
                          stc.tmin, verbose=False)
     stc_event_idx = np.argmin(np.abs(stc.times))
@@ -355,14 +343,27 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
         # Add ECG, Blink, and CHPI traces
         # TODO: Should conditionals depend on fwds or param bool flags?
         if ecg:
-            raw_data[meg_picks, time_slice] += \
-                _interp(last_fwd_ecg, fwd_ecg, ecg_data[:, time_slice], interp)
+            # Create cardiac artifact, add to MEG channels
+            ecg_noise = _interp(last_fwd_ecg, fwd_ecg, ecg_data[:, time_slice],
+                                interp)
+            raw._data[meg_picks, time_slice] += ecg_noise
+
+            # Rescale ECG channels
+            ecg_chs = pick_types(raw.info, meg=False, ecg=True)
+            raw._data[ecg_chs, :] *= 5e-4
+
             last_fwd_ecg = fwd_ecg
 
         if blink:
-            raw_data[picks, time_slice] += \
-                _interp(last_fwd_blink, fwd_blink, blink_data[:, time_slice],
-                        interp)
+            # Create blink artifacts, add to all MEG/EEG channels
+            blink_noise = _interp(last_fwd_blink, fwd_blink,
+                                  blink_data[:, time_slice], interp)
+            raw._data[picks, time_slice] += blink_noise
+
+            # Rescale EOG channels
+            eog_chs = pick_types(raw.info, meg=False, eog=True)
+            raw._data[eog_chs, :] *= 1e-3
+
             last_fwd_blink = fwd_blink
 
         if chpi:
