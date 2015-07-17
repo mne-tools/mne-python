@@ -443,15 +443,17 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                      cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None):
+                     image_interp='bilinear', average=None, head_pos=None,
+                     axes=None):
         """Plot topographic maps of specific time points
 
         Parameters
         ----------
         times : float | array of floats | None.
-            The time point(s) to plot. If None, 10 topographies will be shown
-            will a regular time spacing between the first and last time
-            instant.
+            The time point(s) to plot. If None, the number of ``axes``
+            determines the amount of time point(s). If ``axes`` is also None,
+            10 topographies will be shown with a regular time spacing between
+            the first and last time instant.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are collec-
             ted in pairs and the RMS for each pair is plotted.
@@ -544,6 +546,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             the head circle. If dict, can have entries 'center' (tuple) and
             'scale' (tuple) for what the center and scale of the head should be
             relative to the electrode locations.
+        axes : instance of Axes | list | None
+            The axes to plot to. If list, the list must be a list of Axes of
+            the same length as ``times`` (unless ``times`` is None). If
+            instance of Axes, ``times`` must be a float or a list of one float.
+            Defaults to None.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
@@ -557,7 +564,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                    mask_params=mask_params,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
-                                   average=average, head_pos=head_pos)
+                                   average=average, head_pos=head_pos,
+                                   axes=axes)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):

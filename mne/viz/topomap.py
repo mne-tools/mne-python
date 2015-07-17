@@ -931,7 +931,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
-                        image_interp='bilinear', average=None, head_pos=None):
+                        image_interp='bilinear', average=None, head_pos=None,
+                        axes=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -939,8 +940,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
     evoked : Evoked
         The Evoked object.
     times : float | array of floats | None.
-        The time point(s) to plot. If None, 10 topographies will be shown
-        will a regular time spacing between the first and last time instant.
+        The time point(s) to plot. If None, the number of ``axes`` determines
+        the amount of time point(s). If ``axes`` is also None, 10 topographies
+        will be shown with a regular time spacing between the first and last
+        time instant.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.
@@ -1032,6 +1035,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
+    axes : instance of Axes | list | None
+        The axes to plot to. If list, the list must be a list of Axes of the
+        same length as ``times`` (unless ``times`` is None). If instance of
+        Axes, ``times`` must be a float or a list of one float.
+        Defaults to None.
     """
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(evoked, ch_type)
@@ -1042,8 +1050,13 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
 
+    if isinstance(axes, plt.Axes):
+        axes = [axes]
     if times is None:
-        times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+        if axes is None:
+            times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+        else:
+            times = np.linspace(evoked.times[0], evoked.times[-1], len(axes))
     elif np.isscalar(times):
         times = [times]
     times = np.array(times)
@@ -1052,6 +1065,18 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
     if len(times) > 20:
         raise RuntimeError('Too many plots requested. Please pass fewer '
                            'than 20 time instants.')
+    n_times = len(times)
+    nax = n_times + bool(colorbar)
+    width = size * nax
+    height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
+    fig = plt.figure(figsize=(width, height))
+    if axes is None:
+        axes = list()
+        for ax_idx in range(len(times)):
+            axes.append(plt.subplot(1, n_times, ax_idx + 1))
+
+    if len(axes) != n_times:
+        raise RuntimeError('Axes and times must be equal in sizes.')
     tmin, tmax = evoked.times[[0, -1]]
     _time_comp = _time_mask(times=times, tmin=tmin,  tmax=tmax)
     if not np.all(_time_comp):
@@ -1074,11 +1099,6 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
     if not show_names:
         names = None
 
-    n = len(times)
-    nax = n + bool(colorbar)
-    width = size * nax
-    height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
-    fig = plt.figure(figsize=(width, height))
     w_frame = plt.rcParams['figure.subplot.wspace'] / (2 * nax)
     top_frame = max((0.05 if title is None else 0.25), .2 / size)
     fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0,
@@ -1128,12 +1148,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         image_mask = None
 
     for i, t in enumerate(times):
-        ax = plt.subplot(1, nax, i + 1)
         tp, cn = plot_topomap(data[:, i], pos, vmin=vmin, vmax=vmax,
                               sensors=sensors, res=res, names=names,
                               show_names=show_names, cmap=cmap,
                               mask=mask_[:, i] if mask is not None else None,
-                              mask_params=mask_params, axis=ax,
+                              mask_params=mask_params, axis=axes[i],
                               outlines=outlines, image_mask=image_mask,
                               contours=contours, image_interp=image_interp,
                               show=False)
@@ -1148,7 +1167,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         tight_layout(pad=size, fig=fig)
 
     if colorbar:
-        cax = plt.subplot(1, n + 1, n + 1)
+        cax = plt.subplot(1, n_times + 1, n_times + 1)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         if size <= 1:
