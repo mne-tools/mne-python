@@ -20,11 +20,11 @@ from matplotlib import pyplot as plt
 # The most common way to load continuous data is from a .fif file. For more
 # information on :ref:`loading data from other formats <ch_raw>`, or creating
 # it :ref:`from scratch <tut_creating_data_structures>`.
-#
-# -----------------------
+
+
+###############################################################################
 # Loading continuous data
 # -----------------------
-#
 
 # Load an example dataset, the preload flag loads the data into memory now
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG',
@@ -41,8 +41,9 @@ print('channels x samples:', raw._data.shape)
 # object is contained in the :class:`Info <mne.io.meas_info.Info>` attribute.
 # This is essentially a dictionary with a number of relevant fields (see
 # :ref:`tut_info_objects`).
-#
-# -------------
+
+
+###############################################################################
 # Indexing data
 # -------------
 #
