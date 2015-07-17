@@ -23,6 +23,7 @@ import math
 import os
 import os.path as op
 import glob
+import shutil
 
 import mne
 from mne.utils import (logger, get_subjects_dir, run_subprocess)
@@ -106,14 +107,31 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         run_subprocess(cmd, env=env, stdout=sys.stdout)
     #
     os.chdir(op.join(mri_dir, "flash"))
+    files = glob.glob("mef*.mgz")
     if unwarp:
         logger.info("--- Unwarp mgz data sets")
-        files = glob.glob("mef*.mgz")
         for infile in files:
             outfile = infile.replace(".mgz", "u.mgz")
             cmd = ['grad_unwarp', '-i', infile, '-o', outfile, '-unwarp',
                    unwarp]
             run_subprocess(cmd, env=env, stdout=sys.stdout)
+    # Step 2 : Create the parameter maps
+    # (Clear everything if some of the data were reconverted)
+    if not noconvert and op.exists("parameter_maps"):
+            shutil.rmtree("parameter_maps")
+            logger.info("Parameter maps directory cleared")
+    if not op.exists("parameter_maps"):
+        os.makedirs("parameter_maps")
+    if unwarp:
+        for i in range(len(files)):
+            files[i] = files[i].replace(".mgz", "u.mgz")
+    if len(os.listdir('parameter_maps')) == 0:
+        logger.info("--- Creating the parameter maps")
+        cmd = ['mri_ms_fitparms'] + files + ['parameter_maps']
+        run_subprocess(cmd, env=env, stdout=sys.stdout)
+    else:
+        logger.info("Parameter maps were already computed")
+    #
     #
     print("--- Running mne_flash_bem")
     os.system('mne_flash_bem --noconvert')
