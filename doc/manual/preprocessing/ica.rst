@@ -8,10 +8,6 @@ Independent Component Analysis (ICA)
 Many M/EEG signals including biological artifacts reflect non-Gaussian processes.
 Therefore PCA based artifact rejection will perform worse at separating signal and noise
 MNE-Python supports identifying artifacts and latent components using temporal ICA.
-
-MNE-Python ICA: Implementation and API
---------------------------------------
-
 MNE-Python implements the :class:`mne.preprocessing.ICA` class that facilitates applying ICA
 to MEG and EEG data. It supports FastICA, the infomax, and the extended informax algorithm.
 It allows whitening the data using a fast randomized PCA algorithmd. Furthermore,
@@ -112,7 +108,7 @@ Now try to recover the sources
 
 
 
-.. image:: output_6_0.png
+.. image:: ../pics/ICA_primer.png
 
 
 :math:`\rightarrow` PCA fails at recovering our "instruments" since the
