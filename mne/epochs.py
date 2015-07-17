@@ -17,7 +17,7 @@ import numpy as np
 
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float_matrix, write_float,
-                       write_id, write_string)
+                       write_id, write_string, _get_split_size)
 from .io.meas_info import read_meas_info, write_meas_info, _merge_info
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
@@ -1431,23 +1431,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         Bad epochs will be dropped before saving the epochs to disk.
         """
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
-
-        if isinstance(split_size, string_types):
-            exp = dict(MB=20, GB=30).get(split_size[-2:], None)
-            if exp is None:
-                raise ValueError('split_size has to end with either'
-                                 '"MB" or "GB"')
-            split_size = int(float(split_size[:-2]) * 2 ** exp)
-
-        if split_size > 2147483648:
-            raise ValueError('split_size cannot be larger than 2GB')
+        split_size = _get_split_size(split_size)
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
         self.drop_bad_epochs()
         total_size = self[0].get_data().nbytes * len(self)
         n_parts = int(np.ceil(total_size / float(split_size)))
-        epoch_idxs = np.array_split(range(len(self)), n_parts)
+        epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
         for part_idx, epoch_idx in enumerate(epoch_idxs):
             this_epochs = self[epoch_idx]

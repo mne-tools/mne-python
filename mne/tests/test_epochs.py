@@ -490,7 +490,6 @@ def test_read_write_epochs():
     assert_allclose(epochs.get_data(), epochs_read.get_data())
     assert_array_equal(epochs.events, epochs_read.events)
     assert_array_equal(epochs.selection, epochs_read.selection)
-    # this should pass too
     assert_equal(epochs.drop_log, epochs_read.drop_log)
 
 

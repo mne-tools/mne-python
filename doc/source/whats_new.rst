@@ -33,7 +33,7 @@ Changelog
 
     - Add command ``mne freeview_bem_surfaces`` to quickly check BEM surfaces with Freeview by `Alex Gramfort`_.
 
-    - Add support for splitting epochs into multiple files while saving by `Mainak Jas`_ and `Alexandre Gramfort`_
+    - Add support for splitting epochs into multiple files in :func:`mne.Epochs.save` by `Mainak Jas`_ and `Alexandre Gramfort`_
 
 BUG
 ~~~
