@@ -18,7 +18,7 @@ from scipy import linalg
 from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import pick_types
-from ..utils import _clean_names, _time_mask, verbose
+from ..utils import _clean_names, _time_mask, verbose, logger
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox)
 from ..time_frequency import compute_epochs_psd
@@ -1069,12 +1069,15 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
     nax = n_times + bool(colorbar)
     width = size * nax
     height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
-    fig = plt.figure(figsize=(width, height))
     if axes is None:
+        plt.figure(figsize=(width, height))
         axes = list()
         for ax_idx in range(len(times)):
             axes.append(plt.subplot(1, n_times, ax_idx + 1))
-
+    elif colorbar:
+        logger.warning('Colorbar is drawn to the rightmost column of the '
+                       'figure.\nBe sure to provide enough space for it '
+                       'or turn it off with colorbar=False.')
     if len(axes) != n_times:
         raise RuntimeError('Axes and times must be equal in sizes.')
     tmin, tmax = evoked.times[[0, -1]]
@@ -1101,6 +1104,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
 
     w_frame = plt.rcParams['figure.subplot.wspace'] / (2 * nax)
     top_frame = max((0.05 if title is None else 0.25), .2 / size)
+    fig = axes[0].get_figure()
     fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0,
                         top=1 - top_frame)
     time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
@@ -1147,12 +1151,12 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
     else:
         image_mask = None
 
-    for i, t in enumerate(times):
-        tp, cn = plot_topomap(data[:, i], pos, vmin=vmin, vmax=vmax,
+    for idx, time in enumerate(times):
+        tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
                               sensors=sensors, res=res, names=names,
                               show_names=show_names, cmap=cmap,
-                              mask=mask_[:, i] if mask is not None else None,
-                              mask_params=mask_params, axis=axes[i],
+                              mask=mask_[:, idx] if mask is not None else None,
+                              mask_params=mask_params, axis=axes[idx],
                               outlines=outlines, image_mask=image_mask,
                               contours=contours, image_interp=image_interp,
                               show=False)
@@ -1160,7 +1164,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         if cn is not None:
             contours_.append(cn)
         if time_format is not None:
-            plt.title(time_format % (t * scale_time))
+            axes[idx].set_title(time_format % (time * scale_time))
 
     if title is not None:
         plt.suptitle(title, verticalalignment='top', size='x-large')
