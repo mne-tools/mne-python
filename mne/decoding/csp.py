@@ -226,7 +226,7 @@ class CSP(TransformerMixin):
                       mask_params=None, outlines='head', contours=6,
                       image_interp='bilinear', average=None, head_pos=None):
         """Plot topographic patterns of CSP components
-        
+
         Parameters
         ----------
         info : instance of Info
@@ -235,14 +235,14 @@ class CSP(TransformerMixin):
         components : float | array of floats | None.
            The CSP patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-            The channel type to plot. For 'grad', the gradiometers are collected 
-            in pairs and the RMS for each pair is plotted.
+            The channel type to plot. For 'grad', the gradiometers are
+            collected in pairs and the RMS for each pair is plotted.
             If None, then channels are chosen in the order given above.
         layout : None | Layout
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct layout 
-            file is inferred from the data; if no appropriate layout file was 
-            found, the layout is automatically generated from the sensor locations.
+            Layout instance specifying sensor positions (does not need to be
+            specified for Neuromag data). If possible, the correct layout file
+            is inferred from the data; if no appropriate layout file was found
+            the layout is automatically generated from the sensor locations.
         vmin : float | callable
             The value specfying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -256,8 +256,8 @@ class CSP(TransformerMixin):
             Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
             'Reds'.
         sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib 
-            plot format string (e.g., 'r+' for red plusses). If True, 
+            Add markers for sensor locations to the plot. Accepts matplotlib
+            plot format string (e.g., 'r+' for red plusses). If True,
             a circle will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
@@ -278,16 +278,16 @@ class CSP(TransformerMixin):
         name_format : str
             String format for topomap values. Defaults to "CSP%01d"
         proj : bool | 'interactive'
-            If true SSP projections are applied before display. 
-            If 'interactive', a check box for reversible selection 
+            If true SSP projections are applied before display.
+            If 'interactive', a check box for reversible selection
             of SSP projection vectors will be show.
         show : bool
             Show figure if True.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g., 
-            to delete the prefix 'MEG ' from all channel names, pass the 
-            function lambda x: x.replace('MEG ', ''). If `mask` is not None, 
+            passed, channel names will be formatted using the callable; e.g.,
+            to delete the prefix 'MEG ' from all channel names, pass the
+            function lambda x: x.replace('MEG ', ''). If `mask` is not None,
             only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
@@ -302,39 +302,41 @@ class CSP(TransformerMixin):
                      linewidth=0, markersize=4)
 
         outlines : 'head' | dict | None
-            The outlines to be drawn. If 'head', a head scheme will be drawn. If
-            dict, each key refers to a tuple of x and y positions. The values in
-            'mask_pos' will serve as image mask. If None, nothing will be drawn.
-            Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside 
-            the outline. Moreover, a matplotlib patch object can be passed for
-            advanced masking options, either directly or as a function that 
+            The outlines to be drawn. If 'head', a head scheme will be drawn.
+            If dict, each key refers to a tuple of x and y positions.
+            The values in 'mask_pos' will serve as image mask.
+            If None, nothing will be drawn. Defaults to 'head'.
+            If dict, the 'autoshrink' (bool) field will trigger automated
+            shrinking of the positions due to points outside the outline.
+            Moreover, a matplotlib patch object can be passed for
+            advanced masking options, either directly or as a function that
             returns patches (required for multi-axis plots).
         contours : int | False | None
-            The number of contour lines to draw. If 0, no contours will be drawn.
+            The number of contour lines to draw.
+            If 0, no contours will be drawn.
         image_interp : str
-            The image interpolation to be used. All matplotlib options are
-            accepted.
+            The image interpolation to be used. 
+            All matplotlib options are accepted.
         average : float | None
-            The time window around a given time to be used for averaging (seconds)
-            For example, 0.01 would translate into window that starts 5 ms before
-            and ends 5 ms after a given time point. Defaults to None, which means
-            no averaging.
+            The time window around a given time to be used for averaging
+            (seconds). For example, 0.01 would translate into window that
+            starts 5 ms before and ends 5 ms after a given time point.
+            Defaults to None, which means no averaging.
         head_pos : dict | None
             If None (default), the sensors are positioned such that they span
             the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head should be
-            relative to the electrode locations.
+            'scale' (tuple) for what the center and scale of the head
+            should be relative to the electrode locations.
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        
+
         if components is None:
             components = np.arange(self.n_components)
-        
+
         # set sampling frequency to have 1 component per time point
         info['sfreq'] = 1
         # create an evoked 
@@ -342,13 +344,13 @@ class CSP(TransformerMixin):
         # the call plot_topomap
         return patterns.plot_topomap(times=components, ch_type=ch_type,
                                      layout=layout, vmin=vmin, vmax=vmax,
-                                     cmap=cmap, colorbar=colorbar, res=res, 
-                                     cbar_fmt=cbar_fmt, sensors=sensors, 
+                                     cmap=cmap, colorbar=colorbar, res=res,
+                                     cbar_fmt=cbar_fmt, sensors=sensors,
                                      scale=1, scale_time=1, unit='a.u.',
-                                     time_format=name_format, size=size, 
-                                     show_names=show_names, mask_params=mask_params, 
-                                     mask=mask, outlines=outlines, contours=contours, 
-                                     image_interp=image_interp, show=show, 
+                                     time_format=name_format, size=size,
+                                     show_names=show_names,
+                                     mask_params=mask_params,
+                                     mask=mask, outlines=outlines,
+                                     contours=contours,
+                                     image_interp=image_interp, show=show,
                                      head_pos=head_pos)
-        
-
