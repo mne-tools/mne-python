@@ -65,7 +65,7 @@ class CSP(TransformerMixin):
         ----------
         epochs_data : array, shape=(n_epochs, n_channels, n_times)
             The data to estimate the CSP on.
-        y : array
+        y : array, shape=(n_epochs)
             The class for each epoch.
 
         Returns
@@ -77,6 +77,10 @@ class CSP(TransformerMixin):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
         epochs_data = np.atleast_3d(epochs_data)
+        # check number of epochs
+        if epochs_data.shape[0] != len(y):
+            raise ValueError("n_epochs must be the same for epochs_data and y")
+        # check number of classes
         classes = np.unique(y)
         if len(classes) != 2:
             raise ValueError("More than two different classes in the data.")
