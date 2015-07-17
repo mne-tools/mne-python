@@ -29,8 +29,7 @@ def source_estimate_quantification(stc1, stc2, metric='rms', src=None):
     stc2 : SourceEstimate
         First source estimate for comparison
     metric : str
-        Metric to calculate. 'rms', 'rms_normed', 'corr', 'distance_err',
-        'weighted_distance_err', ...
+        Metric to calculate. 'rms' or 'cosine'.
     src : None | list of dict
         The source space. The default value is None. It must be provided when
         using those metrics: "distance_err", "weighted_distance_err"
@@ -45,20 +44,11 @@ def source_estimate_quantification(stc1, stc2, metric='rms', src=None):
     Metric calculation has multiple options:
         rms: Root mean square of difference between stc data matrices.
         cosine: Normalized correlation of all elements in stc data matrices.
-        distance_err: Distance between most active dipoles.
-        weighted_distance_err: Distance between most active dipoles weighted by
-            difference in activity.
     """
-    known_metrics = ['rms', 'cosine', 'distance_err',
-                     'weighted_distance_err']
+    known_metrics = ['rms', 'cosine']
     if metric not in known_metrics:
         raise ValueError('metric must be a str from the known metrics: '
-                         '"rms", "cosine", "distance_err", '
-                         '"weighted_distance_err" or "..."')
-
-    if metric in ['distance_err', 'weighted_distance_err'] and src is None:
-        raise ValueError('The source space src is needed when using '
-                         '"distance_err" or "weighted_distance_err"')
+                         '"rms" or "cosine"')
 
     # This is checking that the datas are having the same size meaning
     # no comparison between distributed and sparse can be done so far.

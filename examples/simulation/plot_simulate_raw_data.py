@@ -45,4 +45,5 @@ stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=raw.times,
 
 trans = fwd['mri_head_t']
 src = fwd['src']
-raw_sim = simulate_raw(raw.info, stc, trans, src, bem_fname, raw.times)
+raw_sim = simulate_raw(info_template=raw.info, stc=stc, trans=trans, src=src,
+                       bem=bem_fname, times=raw.times)
