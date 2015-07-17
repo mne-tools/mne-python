@@ -11,6 +11,7 @@ import warnings
 import six
 import numpy as np
 
+
 class BaseEstimator(object):
     """Base class for all estimators in scikit-learn
     Notes
@@ -48,11 +49,13 @@ class BaseEstimator(object):
 
     def get_params(self, deep=True):
         """Get parameters for this estimator.
+
         Parameters
         ----------
         deep : boolean, optional
             If True, will return the parameters for this estimator and
             contained subobjects that are estimators.
+
         Returns
         -------
         params : mapping of string to any
@@ -125,6 +128,7 @@ class BaseEstimator(object):
 ###############################################################################
 def _pprint(params, offset=0, printer=repr):
     """Pretty print the dictionary 'params'
+
     Parameters
     ----------
     params: dict
@@ -134,6 +138,7 @@ def _pprint(params, offset=0, printer=repr):
     printer:
         The function to convert entries to strings, typically
         the builtin str or repr
+
     """
     # Do a multi-line justified repr:
     options = np.get_printoptions()

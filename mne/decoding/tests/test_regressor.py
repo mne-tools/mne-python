@@ -7,16 +7,12 @@ import warnings
 import os.path as op
 import numpy as np
 
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_true
 from numpy.testing import assert_equal
 
 from mne import io, read_events, Epochs, pick_types
 from mne.decoding import LinearRegressor
-
-from sklearn.linear_model import Ridge
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from mne.utils import requires_sklearn
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -29,9 +25,15 @@ raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
 
+@requires_sklearn
 def test_linear_regressor():
     """Test methods of LinearRegressor
     """
+    from sklearn.linear_model import Ridge
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -50,9 +52,9 @@ def test_linear_regressor():
     reg.fit(epochs_data, labels)
     
     # test patterns have been computed
-    assert reg.patterns_ is not None
+    assert_true(reg.patterns_ is not None)
     # test filters have been computed
-    assert reg.filters_ is not None
+    assert_true(reg.filters_ is not None)
 
     # test predict
     y = reg.predict(epochs_data)

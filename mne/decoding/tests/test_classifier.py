@@ -7,16 +7,12 @@ import warnings
 import os.path as op
 import numpy as np
 
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_true
 from numpy.testing import assert_equal
 
 from mne import io, read_events, Epochs, pick_types
 from mne.decoding import LinearClassifier
-
-from sklearn.svm import LinearSVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from mne.utils import requires_sklearn
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -28,9 +24,16 @@ data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
+
+@requires_sklearn
 def test_linear_classifier():
     """Test methods of LinearClassifier
     """
+    from sklearn.svm import LinearSVC
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+    
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -47,9 +50,9 @@ def test_linear_classifier():
     clf.fit(epochs_data, labels)
     
     # test patterns have been computed
-    assert clf.patterns_ is not None
+    assert_true(clf.patterns_ is not None)
     # test filters have been computed
-    assert clf.filters_ is not None
+    assert_true(clf.filters_ is not None)
     
     # test classifier without a coef_ attribute
     clf = LinearClassifier(RandomForestClassifier())
