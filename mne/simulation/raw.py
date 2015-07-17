@@ -158,9 +158,8 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
         if ts[-1] < tend:
             dev_head_ts.append(dev_head_ts[-1])
             ts = np.r_[ts, [tend]]
-        import pdb; pdb.set_trace()
-        offsets = raw.time_as_index(ts)
-        offsets[-1] = raw.n_times  # fix for roundoff error
+        offsets = np.where(times == ts)  # raw.time_as_index(ts)
+        offsets[-1] = len(times)  # fix for roundoff error
         assert offsets[-2] != offsets[-1]
         # del ts
 
@@ -340,7 +339,7 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
         assert simulated.data.shape[0] == len(picks)
         assert simulated.data.shape[1] == len(stc_idxs)
 
-        raw_data = np.zeros((len(info['ch_names']), len(times)))
+        raw_data = np.zeros((len(info['ch_names']), len(times)))  # XXX
         raw_data[picks, time_slice] = simulated.data
 
         # Add ECG, Blink, and CHPI traces
