@@ -143,10 +143,10 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     # Step 4 : Register with MPRAGE
     logger.info("Registering flash 5 with MPRAGE...")
     if not op.exists('flash5_reg.mgz'):
-        if op.exists(op.join(mri_dir,'T1.mgz')):
-            ref_volume = op.join(mri_dir,'T1.mgz')
+        if op.exists(op.join(mri_dir, 'T1.mgz')):
+            ref_volume = op.join(mri_dir, 'T1.mgz')
         else:
-            ref_volume = op.join(mri_dir,'T1')
+            ref_volume = op.join(mri_dir, 'T1')
         cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', 'flash5.mgz',
                '-o', 'flash5_reg.mgz']
         run_subprocess(cmd, env=env, stdout=sys.stdout)
