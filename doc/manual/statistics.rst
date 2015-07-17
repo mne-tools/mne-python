@@ -42,7 +42,7 @@ compute various F-contrasts. It is used by default for contrast enhancement in
 Multiple comparisons
 ^^^^^^^^^^^^^^^^^^^^
 
-In MEG and EEG analyses typically invole multiple measurements
+In MEG and EEG analyses typically involve multiple measurements
 (sensors, time points) for each sample. In a mass-univariate analysis fitting
  statistical models for each of these observations a multiple comparison problem
 occurs (MCPP). MNE-Python provides the following functions to control for
@@ -72,25 +72,25 @@ permutation clustering statistics which implement a spatiotemporal priors
 and typically allow for clusterwise inference.
 These tests can be applied over a wide range of situations inclduing single subject and group analyses
 in time, space and frequency. The only requirement is that the scientific hypothesis can be mapped
-onto an exchangeability nullhypothesis in which two or more conditions can be compared and exchanged
+onto an exchangeability null hypothesis in which two or more conditions can be compared and exchanged
 across permutations to generate an empirical distribution.
 
 The clustering permutation API in MNE-Python is grouped according to different contrasts of interest
 and clustering connectivity prior, i.e., assumptions about the grouping and neighborhood of the observations.
 
-- :func:`mne.stats.permutation_cluster_1samp_test` supports paired contrasts without spatial prior.
+- :func:`mne.stats.permutation_cluster_1samp_test` supports paired contrasts with spatial prior.
 
-- :func:`mne.stats.permutation_cluster_test` supports F-contrasts without spatial prior.
+- :func:`mne.stats.permutation_cluster_test` supports F-contrasts with spatial prior.
 
-- :func:`mne.stats.spatio_temporal_permutation_cluster_1samp_test` supports paired contrasts with spatial prior.
+- :func:`mne.stats.spatio_temporal_permutation_cluster_1samp_test` supports paired contrasts without spatial prior.
 
-- :func:`mne.stats.spatio_temporal_permutation_cluster_test` supports F-contrasts with spatial prior.
+- :func:`mne.stats.spatio_temporal_permutation_cluster_test` supports F-contrasts without spatial prior.
 
 Using the TFCE option observation- instead of cluster-wise hypothesis testing can be realized.
 
 
 .. note:: Note that the permutation clustering functions do not constitute thresholding to paramterical tests.
-    Allthough using F-tests and t-tests internally for contrast enhancment, the actual test statistic is
+    Although using F-tests and t-tests internally for contrast enhancement, the actual test statistic is
     the cluster size.
-.. note:: Unless TFCE is used, the hypotheses tested are clusterwise. This means that no inference is provided
+.. note:: Unless TFCE is used, the hypotheses tested are cluster-wise. This means that no inference is provided
 for individual time points, sensors, dipole locations or frequencies in such a cluster.
