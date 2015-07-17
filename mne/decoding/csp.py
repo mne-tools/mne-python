@@ -63,9 +63,9 @@ class CSP(TransformerMixin):
 
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data to estimate the CSP on.
-        y : array, shape=(n_epochs)
+        y : array, shape (n_epochs,)
             The class for each epoch.
 
         Returns
@@ -223,7 +223,7 @@ class CSP(TransformerMixin):
 
     def plot_patterns(self, info, components=None, ch_type=None, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                      colorbar=True, scale=None, scale_time=1e3, unit=None,
+                      colorbar=True, scale=None, scale_time=1, unit=None,
                       res=64, size=1, cbar_fmt='%3.1f',
                       name_format='CSP%01d', proj=False, show=True,
                       show_names=False, title=None, mask=None,
@@ -269,7 +269,7 @@ class CSP(TransformerMixin):
             Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
             for grad and 1e15 for mag.
         scale_time : float | None
-            Scale the time labels. Defaults to 1e3 (ms).
+            Scale the time labels. Defaults to 1.
         unit : dict | str | None
             The unit of the channel type used for colorbar label. If
             scale is None the unit is automatically determined.
