@@ -44,11 +44,11 @@ def source_estimate_quantification(stc1, stc2, metric='rms', src=None):
     Notes
     -----
     Metric calculation has multiple options:
-        rms: Root mean square of difference between stc data matrices
-    cosine: Normalized correlation of all elements in stc data matrices
-        distance_err: Distance between most active dipoles
+        rms: Root mean square of difference between stc data matrices.
+        cosine: Normalized correlation of all elements in stc data matrices.
+        distance_err: Distance between most active dipoles.
         weighted_distance_err: Distance between most active dipoles weighted by
-            difference in activity
+            difference in activity.
     """
     known_metrics = ['rms', 'cosine', 'distance_err',
                      'weighted_distance_err']

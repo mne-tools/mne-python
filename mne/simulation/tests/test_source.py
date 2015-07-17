@@ -7,7 +7,7 @@ from nose.tools import assert_true
 from mne.datasets import testing
 from mne import read_label, read_forward_solution, pick_types_forward
 from mne.label import Label
-from mne.simulation.source import generate_stc, generate_sparse_stc
+from mne.simulation.source import generate_stc, simulate_sparse_stc
 
 
 data_path = testing.data_path(download=False)
@@ -25,7 +25,7 @@ def read_forward_solution_meg(*args, **kwargs):
 
 
 @testing.requires_testing_data
-def test_generate_stc():
+def test_simulate_stc():
     """ Test generation of source estimate """
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
@@ -85,7 +85,7 @@ def test_generate_stc():
 
 
 @testing.requires_testing_data
-def test_generate_sparse_stc():
+def test_simulate_sparse_stc():
     """ Test generation of sparse source estimate """
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
@@ -94,30 +94,17 @@ def test_generate_sparse_stc():
     n_times = 10
     tmin = 0
     tstep = 1e-3
+    times = np.arange(n_times, dtype=np.float) * tstep + tmin
 
-    stc_data = (np.ones((len(labels), n_times)) *
-                np.arange(len(labels))[:, None])
-    stc_1 = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep, 0)
-
-    for i, label in enumerate(labels):
-        if label.hemi == 'lh':
-            hemi_idx = 0
-        else:
-            hemi_idx = 1
-
-        idx = np.intersect1d(stc_1.vertices[hemi_idx], label.vertices)
-        idx = np.searchsorted(stc_1.vertices[hemi_idx], idx)
-
-        if hemi_idx == 1:
-            idx += len(stc_1.vertices[0])
-
-        assert_true(np.all(stc_1.data[idx] == float(i)))
+    stc_1 = simulate_sparse_stc(fwd['src'], len(labels), times,
+                                labels=labels, random_state=0)
 
     assert_true(stc_1.data.shape[0] == len(labels))
     assert_true(stc_1.data.shape[1] == n_times)
 
     # make sure we get the same result when using the same seed
-    stc_2 = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep, 0)
+    stc_2 = simulate_sparse_stc(fwd['src'], len(labels), times,
+                                labels=labels, random_state=0)
 
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
@@ -185,41 +172,27 @@ def test_generate_stc_single_hemi():
 
 
 @testing.requires_testing_data
-def test_generate_sparse_stc_single_hemi():
+def test_simulate_sparse_stc_single_hemi():
     """ Test generation of sparse source estimate """
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     n_times = 10
     tmin = 0
     tstep = 1e-3
+    times = np.arange(n_times, dtype=np.float) * tstep + tmin
+
     labels_single_hemi = [read_label(op.join(data_path, 'MEG', 'sample',
                                              'labels', '%s.label' % label))
                           for label in label_names_single_hemi]
 
-    stc_data = (np.ones((len(labels_single_hemi), n_times)) *
-                np.arange(len(labels_single_hemi))[:, None])
-    stc_1 = generate_sparse_stc(fwd['src'], labels_single_hemi, stc_data,
-                                tmin, tstep, 0)
-
-    for i, label in enumerate(labels_single_hemi):
-        if label.hemi == 'lh':
-            hemi_idx = 0
-        else:
-            hemi_idx = 1
-
-        idx = np.intersect1d(stc_1.vertices[hemi_idx], label.vertices)
-        idx = np.searchsorted(stc_1.vertices[hemi_idx], idx)
-
-        if hemi_idx == 1:
-            idx += len(stc_1.vertices[0])
-
-        assert_true(np.all(stc_1.data[idx] == float(i)))
+    stc_1 = simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
+                                labels=labels_single_hemi, random_state=0)
 
     assert_true(stc_1.data.shape[0] == len(labels_single_hemi))
     assert_true(stc_1.data.shape[1] == n_times)
 
     # make sure we get the same result when using the same seed
-    stc_2 = generate_sparse_stc(fwd['src'], labels_single_hemi, stc_data,
-                                tmin, tstep, 0)
+    stc_2 = simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
+                                labels=labels_single_hemi, random_state=0)
 
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)

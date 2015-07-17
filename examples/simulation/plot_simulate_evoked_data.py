@@ -18,7 +18,7 @@ from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import fit_iir_model_raw
 from mne.viz import plot_sparse_source_estimates
-from mne.simulation import simulate_sparse_stc, generate_evoked
+from mne.simulation import simulate_sparse_stc, simulate_evoked
 
 print(__doc__)
 
@@ -60,12 +60,13 @@ times = np.arange(n_samples, dtype=np.float) * tstep + tmin
 # Generate times series for 2 dipoles
 stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
                           random_state=42, labels=labels)
+stc._data *= 100 * 1e-9  # use nAm as unit
 
 ###############################################################################
 # Generate noisy evoked data
 picks = pick_types(raw.info, meg=True, exclude='bads')
 iir_filter = fit_iir_model_raw(raw, order=5, picks=picks, tmin=60, tmax=180)[1]
-evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
+evoked = simulate_evoked(fwd, stc, evoked_template, cov, snr,
                          tmin=0.0, tmax=0.2, iir_filter=iir_filter)
 
 ###############################################################################

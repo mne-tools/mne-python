@@ -1,7 +1,8 @@
 """Data simulation code
 """
 
-from .evoked import generate_evoked, generate_noise_evoked, add_noise_evoked
+from .evoked import (generate_evoked, generate_noise_evoked, add_noise_evoked,
+					 simulate_evoked, simulate_noise_evoked)
 
 from .raw import simulate_raw
 
