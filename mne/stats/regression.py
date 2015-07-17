@@ -314,7 +314,7 @@ def linear_regression_raw(raw, events, event_id=None,
                           for line in big_arr.T])
 
     # additionally, reject positions based on extreme steps in the data
-    if reject is not None:
+    if reject is not False:
         from ..utils import _reject_data_segments
         if not isinstance(reject, dict):
             reject = dict(grad=4000e-12,  # T / m (gradiometers)
