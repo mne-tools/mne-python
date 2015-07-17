@@ -1204,7 +1204,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
                            exclude='bads')
     picks = np.atleast_1d(picks)
 
-    data = data[picks]
+    data = data[:, picks, :]
     info = pick_info(info, picks)
 
     power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
@@ -1357,7 +1357,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                            exclude='bads')
     picks = np.atleast_1d(picks)
 
-    data = data[picks]
+    data = data[:, picks, :]
     info = pick_info(info, picks)
     power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
                                     frequencies=freqs, n_cycles=n_cycles,
