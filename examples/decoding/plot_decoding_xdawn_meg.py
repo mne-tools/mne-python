@@ -35,6 +35,7 @@ from mne import io, pick_types, read_events, Epochs
 from mne.datasets import sample
 from mne.preprocessing import Xdawn
 from mne.decoding import ConcatenateChannels
+from mne.viz import tight_layout
 
 
 print(__doc__)
@@ -86,7 +87,7 @@ print(report)
 
 # Normalized confusion matrix
 cm = confusion_matrix(labels, preds)
-cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
 
 # Plot confusion matrix
 plt.imshow(cm_normalized, interpolation='nearest', cmap=plt.cm.Blues)
@@ -95,7 +96,7 @@ plt.colorbar()
 tick_marks = np.arange(len(target_names))
 plt.xticks(tick_marks, target_names, rotation=45)
 plt.yticks(tick_marks, target_names)
-plt.tight_layout()
+tight_layout()
 plt.ylabel('True label')
 plt.xlabel('Predicted label')
 plt.show()

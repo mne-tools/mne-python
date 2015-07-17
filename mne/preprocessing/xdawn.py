@@ -25,14 +25,14 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
 
     Parameters
     ----------
-    data : array, shape=(n_channels, n_times)
+    data : array, shape (n_channels, n_times)
         The data to estimates evoked
     events : array, shape (n_events, 3)
         The events typically returned by the read_events function.
         If some events don't match the events of interest as specified
         by event_id, they will be ignored.
     event_id : dict
-        The id of the event to consider
+        The id of the events to consider
     tmin : float
         Start time before event.
     tmax : float
@@ -87,7 +87,7 @@ def _regularized_covariance(data, reg=None):
 
     Parameters
     ----------
-    data : array, shape=(n_channels x n_times)
+    data : array, shape (n_channels x n_times)
         Data for covariance estimation.
     reg : float, str, None
         If not None, allow regularization for covariance estimation
@@ -183,12 +183,12 @@ def _construct_signal_from_epochs(epochs):
 
 
 def least_square_evoked(epochs, return_toeplitz=False):
-    """Least square estimation of evoked response from a epoch instance.
+    """Least square estimation of evoked response from a Epochs instance.
 
     Parameters
     ----------
-    epochs : Epoch object
-        An instance of Epoch.
+    epochs : Epochs instance
+        An instance of Epochs.
     return_toeplitz : bool
         If true, compute the toeplitz matrix.
 
@@ -305,8 +305,8 @@ class Xdawn(TransformerMixin, ContainsMixin):
         ----------
         epochs : Epoch object
             An instance of Epoch on which Xdawn filters will be trained.
-        y : None
-            Compatibility with decoding.
+        y : array
+            Not used, here for compatibility with decoding API.
 
         Returns
         -------
@@ -381,12 +381,12 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
         Parameters
         ----------
-        epochs : Epoch or array, shape=(n_trial x n_channels x n_times)
+        epochs : Epoch or array, shape (n_trial x n_channels x n_times)
             Data on which Xdawn filters will be applied.
 
         Returns
         -------
-        X : array, shape(n_trials x n_components * event_types x n_times)
+        X : array, shape (n_trials x n_components * event_types x n_times)
             Spatially filtered signals.
         """
         if isinstance(epochs, _BaseEpochs):

@@ -62,7 +62,7 @@ def test_xdawn_fit():
 
     # test xdawn with overlapp correction
     xd = Xdawn(n_components=2, correct_overlap=True,
-               signal_cov=None, reg=None)
+               signal_cov=None, reg=0.1)
     xd.fit(epochs)
 
     # ========== with signal cov provided ====================
