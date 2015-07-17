@@ -139,9 +139,22 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         run_subprocess(cmd, env=env, stdout=sys.stdout)
         os.remove('flash5_reg.mgz')
     else:
-        logger.info('Synthesized flash 5 volume is already there')
+        logger.info("Synthesized flash 5 volume is already there")
+    # Step 4 : Register with MPRAGE
+    logger.info("Registering flash 5 with MPRAGE...")
+    if not op.exists('flash5_reg.mgz'):
+        if op.exists(op.join(mri_dir,'T1.mgz')):
+            ref_volume = op.join(mri_dir,'T1.mgz')
+        else:
+            ref_volume = op.join(mri_dir,'T1')
+        cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', 'flash5.mgz',
+               '-o', 'flash5_reg.mgz']
+        run_subprocess(cmd, env=env, stdout=sys.stdout)
+    else:
+        logger.info("Registered flash 5 image is already there")
     #
     #
+    '''
     print("--- Running mne_flash_bem")
     os.system('mne_flash_bem --noconvert')
     os.chdir(bem_dir)
@@ -149,6 +162,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         os.mkdir("flash")
     os.chdir("flash")
     print("[done]")
+    '''
 
     if show:
         fnames = ['outer_skin.surf', 'outer_skull.surf', 'inner_skull.surf']
