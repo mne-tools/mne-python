@@ -60,11 +60,34 @@ X = [epochs[k].get_data() for k in condition_names]  # as 3D matrix
 X = [np.transpose(x, (0, 2, 1)) for x in X]  # transpose for clustering
 
 
+###############################################################################
 # load FieldTrip neighbor definition to setup sensor connectivity
 connectivity, ch_names = read_ch_connectivity('neuromag306mag')
 
+print(type(connectivity))  # it's a sparse matrix!
+
+plt.imshow(connectivity.toarray(), cmap='gray', origin='lower',
+           interpolation='nearest')
+plt.xlabel('{} Magnetometers'.format(len(ch_names)))
+plt.ylabel('{} Magnetometers'.format(len(ch_names)))
+plt.title('Between-sensor adjacency')
+
 ###############################################################################
-# Compute statistic
+# Compute permutation statistic
+#
+# How does it work? We use clustering to `bind` together features which are
+# similar. Our features are the magnetic fields measured over our sensor
+# array at different times. This reduces the multiple comparison problem.
+# To compute the actual test-statistic, we first sum all F-values in all
+# clusters. We end up with one statistic for each cluster.
+# Then we genereate a distribution from the data by shuffling our conditions
+# between our samples and recomputing our clusters and the test statistics.
+# We test for the signficance of a given cluster by computing the probability
+# of observing a cluster of that size. For more background read:
+# Maris/Oostenveld (2007), "Nonparametric statistical testing of EEG- and
+# MEG-data" Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
+# doi:10.1016/j.jneumeth.2007.03.024
+
 
 # set cluster threshold
 threshold = 50.0  # very high, but the test is quite sensitive on this data
@@ -78,6 +101,10 @@ cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
 
 T_obs, clusters, p_values, _ = cluster_stats
 good_cluster_inds = np.where(p_values < p_accept)[0]
+
+# Note. The same functions works with source estimate. The only differences
+# are the origin of the data, the size, and the connectivity definition.
+# It can be used for single trials or for groups of subjects.
 
 ###############################################################################
 # Visualize clusters
@@ -154,3 +181,13 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     mne.viz.tight_layout(fig=fig)
     fig.subplots_adjust(bottom=.05)
     plt.show()
+
+"""
+Excercises
+----------
+
+- What is the smallest p-value you can obtain, given the finite number of
+   permutations?
+- use an F distribution to compute the threshold by tradition significance
+   levels. Hint: take a look at ```scipy.stats.distributions.f```
+"""
