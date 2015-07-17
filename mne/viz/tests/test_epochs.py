@@ -165,6 +165,7 @@ def test_plot_drop_log():
     """
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
+    assert_raises(ValueError, epochs.plot_drop_log)
     epochs.drop_bad_epochs()
 
     warnings.simplefilter('always', UserWarning)

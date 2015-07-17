@@ -27,7 +27,7 @@ from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id, write_string)
+                    write_id, write_string, _get_split_size)
 
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
@@ -1138,15 +1138,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                    'raw.fif.gz', 'raw_sss.fif.gz',
                                    'raw_tsss.fif.gz'))
 
-        if isinstance(split_size, string_types):
-            exp = dict(MB=20, GB=30).get(split_size[-2:], None)
-            if exp is None:
-                raise ValueError('split_size has to end with either'
-                                 '"MB" or "GB"')
-            split_size = int(float(split_size[:-2]) * 2 ** exp)
-
-        if split_size > 2147483648:
-            raise ValueError('split_size cannot be larger than 2GB')
+        split_size = _get_split_size(split_size)
 
         fname = op.realpath(fname)
         if not self.preload and fname in self._filenames:

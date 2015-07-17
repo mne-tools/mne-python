@@ -484,6 +484,14 @@ def test_read_write_epochs():
     assert_equal(set(epochs.event_id.keys()),
                  set(text_type(x) for x in epochs_read.event_id.keys()))
 
+    # test saving split epoch files
+    epochs.save(temp_fname, split_size='7MB')
+    epochs_read = read_epochs(temp_fname)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
+    assert_array_equal(epochs.events, epochs_read.events)
+    assert_array_equal(epochs.selection, epochs_read.selection)
+    assert_equal(epochs.drop_log, epochs_read.drop_log)
+
 
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
@@ -1584,5 +1592,8 @@ def test_concatenate_epochs():
 
     assert_equal(epochs_conc._raw, None)
 
+    # check if baseline is same for all epochs
+    epochs2.baseline = (-0.1, None)
+    assert_raises(ValueError, concatenate_epochs, [epochs, epochs2])
 
 run_tests_if_main()

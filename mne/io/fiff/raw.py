@@ -14,7 +14,7 @@ import os.path as op
 import numpy as np
 
 from ..constants import FIFF
-from ..open import fiff_open, _fiff_get_fid
+from ..open import fiff_open, _fiff_get_fid, _get_next_fname
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
@@ -268,43 +268,7 @@ class RawFIF(_BaseRaw):
                                            nsamp=nsamp))
                     first_samp += nsamp
 
-            # Try to get the next filename tag for split files
-            nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
-            next_fname = None
-            for nodes in nodes_list:
-                next_fname = None
-                for ent in nodes['directory']:
-                    if ent.kind == FIFF.FIFF_REF_ROLE:
-                        tag = read_tag(fid, ent.pos)
-                        role = int(tag.data)
-                        if role != FIFF.FIFFV_ROLE_NEXT_FILE:
-                            next_fname = None
-                            break
-                    if ent.kind == FIFF.FIFF_REF_FILE_NAME:
-                        tag = read_tag(fid, ent.pos)
-                        next_fname = op.join(op.dirname(fname), tag.data)
-                    if ent.kind == FIFF.FIFF_REF_FILE_NUM:
-                        # Some files don't have the name, just the number. So
-                        # we construct the name from the current name.
-                        if next_fname is not None:
-                            continue
-                        next_num = read_tag(fid, ent.pos).data
-                        path, base = op.split(fname)
-                        idx = base.find('.')
-                        idx2 = base.rfind('-')
-                        if idx2 < 0 and next_num == 1:
-                            # this is the first file, which may not be numbered
-                            next_fname = op.join(
-                                path, '%s-%d.%s' % (base[:idx], next_num,
-                                                    base[idx + 1:]))
-                            continue
-                        num_str = base[idx2 + 1:idx]
-                        if not num_str.isdigit():
-                            continue
-                        next_fname = op.join(path, '%s-%d.%s' % (base[:idx2],
-                                             next_num, base[idx + 1:]))
-                if next_fname is not None:
-                    break
+            next_fname = _get_next_fname(fid, fname, tree)
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
