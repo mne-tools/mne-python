@@ -30,7 +30,7 @@ def _get_data():
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=False, eeg=True, stim=False,
                        ecg=False, eog=False,
-                       exclude='bads')
+                       exclude='bads')[::8]
     return raw, events, picks
 
 

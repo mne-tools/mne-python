@@ -72,5 +72,4 @@ xd.fit(epochs)
 epochs_denoised = xd.apply(epochs)
 
 # Plot image epoch after xdawn
-plot_image_epochs(epochs_denoised['vis_r'],
-                  picks=[230], vmin=-500, vmax=500)
+plot_image_epochs(epochs_denoised['vis_r'], picks=[230], vmin=-500, vmax=500)

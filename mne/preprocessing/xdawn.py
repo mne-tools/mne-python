@@ -272,7 +272,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
     2011 19th European (pp. 1382-1386). IEEE.
     """
 
-    def __init__(self, n_components=2, correct_overlap='auto', signal_cov=None,
+    def __init__(self, n_components=2, signal_cov=None, correct_overlap='auto',
                  reg=None):
         """init xdawn."""
         self.n_components = n_components
@@ -325,7 +325,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
             self.signal_cov_ = _regularized_covariance(sig_data, self.reg)
 
         # estimates evoked covariance
-        self.evokeds_cov_ = {}
+        self.evokeds_cov_ = dict()
         if self.correct_overlap:
             if epochs.baseline is not None:
                 raise ValueError('Baseline correction must be None if overlap '
@@ -360,7 +360,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
             # Create and add projectors
             ch_names = self.evokeds_[eid].ch_names
-            projs = []
+            projs = list()
             for j in range(self.n_components):
                 proj_data = dict(col_names=ch_names, row_names=None,
                                  data=evecs[:, j].T, nrow=1,
@@ -398,13 +398,13 @@ class Xdawn(TransformerMixin, ContainsMixin):
                              'type or numpy array')
 
         # create full matrix of spatial filter
-        V = []
+        full_filters = list()
         for f in self.filters_.values():
-            V.append(f[:, 0:self.n_components])
-        V = np.concatenate(V, axis=1)
+            full_filters.append(f[:, 0:self.n_components])
+        full_filters = np.concatenate(full_filters, axis=1)
 
         # Apply spatial filters
-        X = np.dot(V.T, data)
+        X = np.dot(full_filters.T, data)
         X = X.transpose((1, 0, 2))
         return X
 
@@ -465,7 +465,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
         picks = pick_types(raw.info, meg=False, include=self.ch_names,
                            exclude='bads')
-        raws = {}
+        raws = dict()
         for eid in event_id:
             data = raw[picks, :][0]
 
@@ -494,7 +494,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
                                'xdawn.ch_names' % (len(self.ch_names),
                                                    len(picks)))
 
-        epochs_dict = {}
+        epochs_dict = dict()
         data = np.hstack(epochs.get_data()[:, picks])
 
         for eid in event_id:
@@ -524,7 +524,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
                                                         len(picks)))
 
         data = evoked.data[picks]
-        evokeds = {}
+        evokeds = dict()
 
         for eid in event_id:
 

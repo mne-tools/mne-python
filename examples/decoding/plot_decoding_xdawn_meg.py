@@ -62,7 +62,7 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
                 add_eeg_ref=False, verbose=False)
 
 # Create classification pipeline
-clf = make_pipeline(Xdawn(3),
+clf = make_pipeline(Xdawn(n_components=3),
                     ConcatenateChannels(),
                     MinMaxScaler(),
                     LogisticRegression(penalty='l1'))
@@ -71,7 +71,7 @@ clf = make_pipeline(Xdawn(3),
 labels = epochs.events[:, -1]
 
 # Cross validator
-cv = StratifiedKFold(labels, 10, shuffle=True, random_state=42)
+cv = StratifiedKFold(y=labels, n_folds=10, shuffle=True, random_state=42)
 
 # Do cross-validation
 preds = np.empty(len(labels))
