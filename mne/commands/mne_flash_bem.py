@@ -131,6 +131,15 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         run_subprocess(cmd, env=env, stdout=sys.stdout)
     else:
         logger.info("Parameter maps were already computed")
+    # Step 3 : Synthesize the flash 5 images
+    logger.info("Synthesizing flash 5 images...")
+    os.chdir('parameter_maps')
+    if not op.exists('flash5.mgz'):
+        cmd = ['mri_synthesize', '20 5 5', 'T1.mgz', 'PD.mgz', 'flash5.mgz']
+        run_subprocess(cmd, env=env, stdout=sys.stdout)
+        os.remove('flash5_reg.mgz')
+    else:
+        logger.info('Synthesized flash 5 volume is already there')
     #
     #
     print("--- Running mne_flash_bem")
