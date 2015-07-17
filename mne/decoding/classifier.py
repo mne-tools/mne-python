@@ -453,3 +453,41 @@ class FilterEstimator(TransformerMixin):
                                      picks=self.picks, n_jobs=self.n_jobs,
                                      copy=False, verbose=False)
         return epochs_data
+
+
+def compute_patterns(epochs, linear_model):
+    """
+    This function computes the patterns of a linear model
+    based on a set of epochs.
+
+    Parameters
+    ----------
+    epochs : instance of Epoch
+        The data from which the patterns are computed
+    linear_model : an Estimator from scikit-learn
+        The linear model should have a coef_ attribute.
+        If not fit, the model is fit on the epochs before
+        computing the patterns.
+
+    Returns
+    -------
+    patterns : instance of Evoked
+        Patterns as an evoked array
+    """
+    from sklearn.preprocessing import StandardScaler
+    from mne import EvokedArray
+    # concatenate channel x time data
+    X = epochs.get_data().reshape(len(epochs), -1)
+    # normalize the data
+    sc = StandardScaler()
+    X = sc.fit_transform(X)
+    # check the model has been fit
+    if not hasattr(linear_model, 'coef_'):
+        # if not, fit it
+        labels = epochs.events[:, -1]
+        linear_model.fit(X, labels)
+    # computes the patterns and reshape it
+    patterns = np.dot(X.T, np.dot(X, linear_model.coef_.T))
+    patterns = patterns.reshape(len(epochs.ch_names), len(epochs.times))
+    # return an Evoked object
+    return EvokedArray(patterns, epochs.info, tmin=epochs.tmin)
