@@ -158,10 +158,11 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
         if ts[-1] < tend:
             dev_head_ts.append(dev_head_ts[-1])
             ts = np.r_[ts, [tend]]
-        offsets = np.where(times == ts)  # raw.time_as_index(ts)
+
+        offsets = np.where(np.in1d(times, ts))[0]
         offsets[-1] = len(times)  # fix for roundoff error
         assert offsets[-2] != offsets[-1]
-        # del ts
+        del ts
 
     if isinstance(src, string_types):
         src = read_source_spaces(src, verbose=verbose)
@@ -278,7 +279,6 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
 
     used = np.zeros(len(times), bool)
     stc_indices = np.arange(len(times)) % len(stc.times)
-    # raw._data[event_ch, ].fill(0) XXX
     hpi_mag = 25e-9
     last_fwd = last_fwd_chpi = last_fwd_blink = last_fwd_ecg = src_sel = None
 
@@ -352,7 +352,8 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
 
             # Rescale ECG channels
             ecg_chs = pick_types(info, meg=False, ecg=True)
-            raw_data[ecg_chs, :] *= 5e-4
+
+            raw_data[ecg_chs, time_slice] = 5e-4 * ecg_data[:, time_slice]
 
             last_fwd_ecg = fwd_ecg
 
@@ -364,7 +365,8 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
 
             # Rescale EOG channels
             eog_chs = pick_types(info, meg=False, eog=True)
-            raw_data[eog_chs, :] *= 1e-3
+
+            raw_data[eog_chs, time_slice] = 1e-3 * blink_data[:, time_slice]
 
             last_fwd_blink = fwd_blink
 
