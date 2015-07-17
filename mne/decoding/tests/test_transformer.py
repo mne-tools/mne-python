@@ -150,7 +150,7 @@ def test_concatenatechannels():
     assert_true(Xi.shape[0] == epochs_data.shape[0])
     assert_true(Xi.shape[1] == epochs_data.shape[1])
     assert_array_equal(epochs_data[0, 0, 0:n_times], Xi[0, 0, 0:n_times])
-    
+
     # Test init exception
     assert_raises(ValueError, concat.fit, epochs, y)
     assert_raises(ValueError, concat.transform, epochs, y)
