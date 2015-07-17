@@ -5,10 +5,11 @@
 
 import os.path as op
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
-# from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 
 from mne import (read_forward_solution, read_source_spaces,
                  read_bem_solution, pick_types_forward, read_trans)
@@ -41,6 +42,7 @@ def test_simulate_raw():
     """ Test simulation of raw data """
     # Create object necessary to simulate raw
     raw_template = Raw(raw_fname)
+    info = raw_template.info
     fwd = read_forward_solution(fwd_fname, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True, eeg=True,
                              exclude=raw_template.info['bads'])
@@ -49,49 +51,64 @@ def test_simulate_raw():
     src = read_source_spaces(src_fname)
     trans = read_trans(trans_fname)
 
-    tmin = -0.1
+    tmin = 0.0
     sfreq = raw_template.info['sfreq']  # Hz
     tstep = 1. / sfreq
-    n_samples = 100.
+    n_samples = 100
     times = np.arange(tmin, tmin + tstep * n_samples, tstep)
 
     # Simulate STC
     stc = simulate_sparse_stc(fwd['src'], 1, times)
 
-    raw = simulate_raw(raw_template.info, stc, trans, src, bem, times)
-    assert_array_almost_equal(raw_template.info['sfreq'], 1. / stc.tstep,
-                              err_msg='Raw and STC tstep must be equal')
+    raw_times = stc.times - stc.times[0]
 
-    # Test raw generation with parameters as filename where possible
-    raw = simulate_raw(raw_template.info, stc, trans_fname, src_fname,
-                       bem_fname, times)
+    # Test raw simulation with basic parameters
+    raw_sim = simulate_raw(info, stc, trans, src, bem, raw_times)
+    assert_array_almost_equal(raw_sim.info['sfreq'], 1. / stc.tstep,
+                            err_msg='Raw and STC tstep must be equal')
+
+    # Test raw simulation with parameters as filename where possible
+    raw_sim_2 = simulate_raw(info, stc, trans_fname, src_fname, bem_fname,
+                            raw_times)
+    assert_equal(raw_sim_2._data, raw_sim._data)
 
     # Test all simulated artifacts (after simulating head positions)
     # TODO: Make head positions that are more reasonable than randomly changing
     #       position at every time point
-    '''
-    TODO
+
     head_pos_sim = dict()
+    shifts = [[0.001, 0., -0.001], [-0.001, 0.001, 0.], [0., -0.001, 0.001]]
 
-    for time_key in raw_template.times:
+    for time_key, shift in zip(raw_times[0:len(shifts)], shifts):
         # Create 4x4 matrix transform and normalize
-        temp_trans = np.zeros((4, 4))
-        temp_trans[:3, :3] = np.random.rand(3, 3)
-        temp_trans[:3, :3] /= np.linalg.norm(temp_trans[:3, :3], axis=0)
-        temp_trans[-1, -1] = 1.
-        head_pos_sim[time_key] = temp_trans
+        temp_trans = deepcopy(info['dev_head_t'])
+        temp_trans['trans'][:3, 3] += shift
+        head_pos_sim[time_key] = temp_trans['trans']
 
-    raw = simulate_raw(raw_template.info, stc, trans, src, bem, times,
-                       ecg=True, blink=True, head_pos=head_pos_sim)
-    # Check that EOG and ECG channels exist and are not zero
-    eog_noise = raw._data[raw.ch_names.index('EOG 061'), :]
+    raw_sim_3 = simulate_raw(info, stc, trans, src, bem, raw_times, ecg=True,
+                            blink=True, head_pos=head_pos_sim)
+
+    # Check that EOG channels exist and are not zero
+    eog_noise = raw_sim_3._data[raw_sim_3.ch_names.index('EOG 061'), :]
+
     assert_true(np.any(eog_noise != np.zeros_like(eog_noise)))
-    '''
 
-    # Test io on processed data
+    # TODO: Eventually, add ECG channels. Testing data raw file doesn't contain
+    #       ECG channels yet.
+
+    # Make overly-large transform and make sure tests fail
+    head_pos_sim_err = deepcopy(head_pos_sim)
+    head_pos_sim_err[0.0][:, 3] = 1.  # 1m translation at time 0.0
+    assert_raises(simulate_raw(info, stc, trans, src, bem, raw_times,
+                               ecg=False, blink=True,
+                               head_pos=head_pos_sim_err))
+
+    # Test IO on processed data
     tempdir = _TempDir()
-    test_outname = op.join(tempdir, 'test_raw_sim.fif')
-    raw.save(test_outname)
+
+    test_outname = op.join(tempdir, 'sim_test_raw.fif')
+    raw_sim.save(test_outname)
+
     raw_sim_loaded = Raw(test_outname, preload=True, proj=False,
                          allow_maxshield=True)
 
