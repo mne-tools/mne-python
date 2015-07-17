@@ -144,11 +144,18 @@ def _fit_lm(data, design_matrix, names):
     return beta, stderr, t_val, p_val, mlog10_p_val
 
 
+def _default_solver(X, Y):
+    fast_dot = get_fast_dot()
+    # note: inv is slightly (~10%) faster, but pinv seemingly more stable
+    return fast_dot(linalg.pinv(fast_dot(X.T, X)), fast_dot(X.T, Y.T)).T
+
+
 def linear_regression_raw(raw, events, event_id=None,
                           tmin=-.1, tmax=1,
                           covariates=None,
                           reject=True, tstep=1.,
-                          decim=1, picks=None):
+                          decim=1, picks=None,
+                          solver=_default_solver):
     """Estimate regression-based evoked potentials/fields by linear modelling
     of the full M/EEG time course, including correction for overlapping
     potentials and allowing for continuous/scalar predictors. Internally, this
@@ -212,6 +219,10 @@ def linear_regression_raw(raw, events, event_id=None,
     picks : None | list
         List of indices of channels to be included. If None, defaults to all
         MEG and EEG channels.
+    solver : function
+        A function which takes as its inputs the predictor matrix X and the
+        observation matrix Y, and returns the coefficient matrix b. Defaults
+        to dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T.
 
     Returns
     -------
@@ -220,8 +231,6 @@ def linear_regression_raw(raw, events, event_id=None,
         Evoked objects with the rE[R/F]Ps. These can be used exactly like any
         other Evoked object, including e.g. plotting or statistics.
     """
-
-    fast_dot = get_fast_dot()
 
     # prepare raw and events
     if picks is None:
@@ -321,8 +330,7 @@ def linear_regression_raw(raw, events, event_id=None,
     Y = data[:, has_val]
 
     # solve linear system
-    # note: inv is slightly (~10%) faster, but pinv seemingly more stable
-    coefs = fast_dot(linalg.pinv(fast_dot(X.T, X)), fast_dot(X.T, Y.T)).T
+    coefs = solver(X,Y)
 
     # construct Evoked objects to be returned from output
     ev_dict = {}
