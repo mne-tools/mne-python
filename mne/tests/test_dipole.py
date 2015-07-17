@@ -8,7 +8,7 @@ from mne import (read_dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
                  SourceEstimate, write_evokeds, fit_dipole,
                  transform_surface_to, make_sphere_model, pick_types,
-                 pick_info, EvokedArray)
+                 pick_info, EvokedArray, pick_types_forward)
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
@@ -75,7 +75,11 @@ def test_dipole_fitting():
     fname_sim = op.join(tempdir, 'test-ave.fif')
     fwd = convert_forward_solution(read_forward_solution(fname_fwd),
                                    surf_ori=False, force_fixed=True)
+    fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude='bads')
+
     evoked = read_evokeds(fname_evo)[0]
+    evoked.pick_types(meg=True, eeg=True, exclude='bads')
+
     cov = read_cov(fname_cov)
     n_per_hemi = 5
     vertices = [np.sort(rng.permutation(s['vertno'])[:n_per_hemi])
