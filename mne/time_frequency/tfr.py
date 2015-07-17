@@ -680,7 +680,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         if isinstance(axes, plt.Axes):
             axes = [axes]
         if isinstance(axes, list) and len(axes) != len(picks):
-            raise RuntimeError('There must be an axes for each picked ' +
+            raise RuntimeError('There must be an axes for each picked '
                                'channel.')
             if colorbar:
                 logger.warning('Cannot draw colorbar for user defined axes.')
