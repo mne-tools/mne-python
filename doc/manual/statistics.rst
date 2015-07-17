@@ -28,13 +28,15 @@ this set of functions was previously called `mne.stats.f_twoway_rm` and
 `mne.stats.f_threshold_twoway_rm`, respectively, only supporting 2-way factorial designs.
 
 - :func:`mne.stats.ttest_1samp_no_p` is an optimized version of the one sample
-t-test provided by scipy. It can be used in the context of non-paramteric
-permutation tests to enhance paired-contrasts.
+t-test provided by scipy. It is used by default for contrast enhancement in
+:func:`mne.stats.permutation_cluster_1samp_test` and
+:func:`mne.stats.spatio_temporal_permutation_cluster_1samp_test`.
 
 - :func:`mne.stats.parametric.f_oneway` is an optimized version of the F-test
 for independent samples provided by scipy.
 It can be used in the context of non-paramteric permutation tests to
-compute various F-contrasts.
+compute various F-contrasts. It is used by default for contrast enhancement in
+:func:`mne.stats.spatio_temporal_permutation_cluster_test` and :func:`mne.stats.permutation_cluster_test`.
 
 
 Multiple comparisons
@@ -85,3 +87,10 @@ and clustering connectivity prior, i.e., assumptions about the grouping and neig
 - :func:`mne.stats.spatio_temporal_permutation_cluster_test` supports F-contrasts with spatial prior.
 
 Using the TFCE option observation- instead of cluster-wise hypothesis testing can be realized.
+
+
+.. note:: Note that the permutation clustering functions do not constitute thresholding to paramterical tests.
+    Allthough using F-tests and t-tests internally for contrast enhancment, the actual test statistic is
+    the cluster size.
+.. note:: Unless TFCE is used, the hypotheses tested are clusterwise. This means that no inference is provided
+for individual time points, sensors, dipole locations or frequencies in such a cluster.
