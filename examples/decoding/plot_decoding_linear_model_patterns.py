@@ -6,9 +6,9 @@ Decoding in sensor space data using the linear models
 Decoding applied to MEG data in sensor space using a linear classifier
 Here the model coefficient are interpreted using [1].
 
-[1] Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J.-D., 
-Blankertz, B., & Bießmann, F. (2014). On the interpretation of 
-weight vectors of linear models in multivariate neuroimaging. 
+[1] Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J.-D.,
+Blankertz, B., & Bießmann, F. (2014). On the interpretation of
+weight vectors of linear models in multivariate neuroimaging.
 NeuroImage, 87, 96–110. doi:10.1016/j.neuroimage.2013.10.067
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>

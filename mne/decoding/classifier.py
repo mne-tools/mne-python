@@ -456,13 +456,13 @@ class FilterEstimator(TransformerMixin):
 
 
 def compute_patterns(epochs, linear_model):
-    """ 
+    """
     This function computes the patterns of a linear model
     based on a set of epochs.
 
     Parameters
     ----------
-    epochs_data : instance of Epoch
+    epochs : instance of Epoch
         The data from which the patterns are computed
     linear_model : an Estimator from scikit-learn
         The linear model should have a coef_ attribute.
