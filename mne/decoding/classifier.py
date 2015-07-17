@@ -452,5 +452,3 @@ class FilterEstimator(TransformerMixin):
                                      picks=self.picks, n_jobs=self.n_jobs,
                                      copy=False, verbose=False)
         return epochs_data
-
-    

@@ -315,7 +315,7 @@ class CSP(TransformerMixin):
             The number of contour lines to draw.
             If 0, no contours will be drawn.
         image_interp : str
-            The image interpolation to be used. 
+            The image interpolation to be used.
             All matplotlib options are accepted.
         average : float | None
             The time window around a given time to be used for averaging
@@ -339,7 +339,7 @@ class CSP(TransformerMixin):
 
         # set sampling frequency to have 1 component per time point
         info['sfreq'] = 1
-        # create an evoked 
+        # create an evoked
         patterns = EvokedArray(self.patterns_.T, info, tmin=0)
         # the call plot_topomap
         return patterns.plot_topomap(times=components, ch_type=ch_type,
