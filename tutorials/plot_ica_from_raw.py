@@ -1,5 +1,5 @@
 """
-.. _tut_preprocessing_ica_tutorial:
+.. _tut_preprocessing_ica:
 
 Compute ICA on MEG data and remove artifacts
 ============================================

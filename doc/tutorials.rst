@@ -31,6 +31,15 @@ Preprocessing
 
    auto_tutorials/plot_ica_from_raw.rst
 
+Source localization
+-------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   auto_tutorials/plot_source_localization_basics.rst
+
+
 Statistics
 ----------
 
