@@ -8,12 +8,12 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_almost_equal
-from nose.tools import assert_true  # , assert_raises
+from nose.tools import assert_true
 import warnings
 
 from mne.datasets import testing
 from mne import read_forward_solution
-from mne.simulation import simulate_sparse_stc, generate_evoked
+from mne.simulation import simulate_sparse_stc, simulate_evoked
 from mne import read_cov
 from mne.io import Raw
 from mne import pick_types_forward, read_evokeds
@@ -39,7 +39,7 @@ lambda2 = 1.0 / snr ** 2
 
 
 @testing.requires_testing_data
-def simulate_evoked():
+def generate_evoked():
     """ Simulate evoked data """
 
     raw = Raw(raw_fname)
@@ -63,14 +63,14 @@ def simulate_evoked():
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
-    evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
+    evoked = simulate_evoked(fwd, stc, evoked_template.info, cov, snr,
                              tmin=0.0, tmax=0.2, iir_filter=iir_filter)
 
     return evoked, stc
 
 
-def test_simulation_metrics():
-    evoked, stc = simulate_evoked()
+def test_metrics():
+    evoked, stc = generate_evoked()
     inverse_operator = read_inverse_operator(inv_fname)
     fwd = read_forward_solution(fwd_fname, force_fixed=True)
     src = fwd['src']

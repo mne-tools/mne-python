@@ -14,7 +14,7 @@ from mne import (pick_types, pick_info, pick_channels, VolSourceEstimate,
                  convert_forward_solution, get_chpi_positions, EvokedArray,
                  make_ad_hoc_cov, read_bem_solution)
 from mne.bem import fit_sphere_to_headshape, make_sphere_model
-from mne.io import read_info, Raw
+from mne.io import read_info, RawArray
 from mne.externals.six import string_types
 from mne.forward.forward import _merge_meg_eeg_fwds, _stc_src_sel
 from mne.forward._make_forward import (_prep_channels, _setup_bem,
@@ -28,22 +28,21 @@ from mne.io.constants import FIFF
 from mne.io.meas_info import Info
 from mne.source_estimate import _BaseSourceEstimate
 from mne.utils import logger, verbose, check_random_state
-from mne.simulation import generate_noise_evoked
+from mne.simulation import simulate_noise_evoked
 
 
 @verbose
-def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
+def simulate_raw(info, stc, trans, src, bem, times, cov='simple', blink=False,
                  ecg=False, chpi=False, head_pos=None, mindist=1.0,
                  interp='linear', n_jobs=1, random_state=None, verbose=None):
     """Simulate raw data with head movements
 
     Parameters
     ----------
-    # TODO: Change to info eventually
     raw : instance of Raw | str
         The raw instance to use. If string, should be a raw object filename.
         The measurement info, including the head positions, will be used to
-        simulate data.
+        simulate data. # XXX: TODO: Change to info eventually
     stc : instance of SourceEstimate
         The source estimate to use to simulate data. Must have the same
         sample rate as the raw data.
@@ -106,29 +105,23 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
     will vary as a function of position.
     """
     # Check for common flag errors and try to override
-    if isinstance(raw, string_types):
-        with warnings.catch_warnings(record=True):
-            raw = Raw(raw, allow_maxshield=True, preload=True, verbose=False)
-    else:
-        raw = raw.copy()
-
     if not isinstance(stc, _BaseSourceEstimate):
         raise TypeError('stc must be a SourceEstimate')
-    if not np.allclose(raw.info['sfreq'], 1. / stc.tstep):
-        raise ValueError('stc and raw must have same sample rate')
+    if not np.allclose(info['sfreq'], 1. / stc.tstep):
+        raise ValueError('stc and info must have same sample rate')
     # Only use cHPI if custom frequency is in HPI information
     if chpi and np.all(['custom_ref' in x.keys()
-                        for x in raw.info['hpi_meas'][0]['hpi_coils']]):
+                        for x in info['hpi_meas'][0]['hpi_coils']]):
         raise ValueError("`custom_ref` must be in "
-                         "raw.info['hpi_meas'][0]['hpi_coils'] to use cHPI")
+                         "info['hpi_meas'][0]['hpi_coils'] to use cHPI")
     rng = check_random_state(random_state)
     if interp not in ('linear', 'zero'):
         raise ValueError('interp must be "linear" or "zero"')
 
     # Use stationary head
     if head_pos is None:
-        dev_head_ts = [raw.info['dev_head_t']] * 2
-        offsets = np.array([0, raw.n_times])
+        dev_head_ts = [info['dev_head_t']] * 2
+        offsets = np.array([0, len(times)])
         interp = 'zero'
     # Use position data to simulate head movement
     else:
@@ -136,7 +129,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
             head_pos = get_chpi_positions(head_pos, verbose=False)
         if isinstance(head_pos, tuple):  # can be an already-loaded pos file
             transs, rots, ts = head_pos
-            ts -= raw.first_samp / raw.info['sfreq']  # MF files need reref
+            ts -= 0  # raw.first_samp = 0
             dev_head_ts = [np.r_[np.c_[r, t[:, np.newaxis]], [[0, 0, 0, 1]]]
                            for r, t in zip(rots, transs)]
             del transs, rots
@@ -148,20 +141,20 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
             raise TypeError('unknown head_pos type %s' % type(head_pos))
         if not (ts >= 0).all():  # pathological if not
             raise RuntimeError('Cannot have t < 0 in transform file')
-        tend = raw.times[-1]
+        tend = times[-1]
         assert not (ts < 0).any()
         assert not (ts > tend).any()
         if ts[0] > 0:
             ts = np.r_[[0.], ts]
-            dev_head_ts.insert(0, raw.info['dev_head_t']['trans'])
-        dev_head_ts = [{'trans': d, 'to': raw.info['dev_head_t']['to'],
-                        'from': raw.info['dev_head_t']['from']}
+            dev_head_ts.insert(0, info['dev_head_t']['trans'])
+        dev_head_ts = [{'trans': d, 'to': info['dev_head_t']['to'],
+                        'from': info['dev_head_t']['from']}
                        for d in dev_head_ts]
         if ts[-1] < tend:
             dev_head_ts.append(dev_head_ts[-1])
             ts = np.r_[ts, [tend]]
-        offsets = raw.time_as_index(ts)
-        offsets[-1] = raw.n_times  # fix for roundoff error
+        offsets = np.where(times == ts)  # XXX raw.time_as_index(ts)
+        offsets[-1] = len(times)  # fix for roundoff error
         assert offsets[-2] != offsets[-1]
         del ts
 
@@ -169,10 +162,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
         bem = read_bem_solution(bem, verbose)
     if isinstance(cov, string_types):
         assert cov == 'simple'
-        cov = make_ad_hoc_cov(raw.info, verbose=False)
+        cov = make_ad_hoc_cov(info, verbose=False)
     assert np.array_equal(offsets, np.unique(offsets))
     assert len(offsets) == len(dev_head_ts)
-    approx_events = int((raw.n_times / raw.info['sfreq']) /
+    approx_events = int((len(times) / info['sfreq']) /
                         (stc.times[-1] - stc.times[0]))
     logger.info('Provided parameters will provide approximately %s event%s'
                 % (approx_events, '' if approx_events == 1 else 's'))
@@ -180,23 +173,23 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
     # Get chpi freqs and reorder
     if chpi:
         hpi_freqs = np.array([x['custom_ref'][0]
-                             for x in raw.info['hpi_meas'][0]['hpi_coils']])
+                             for x in info['hpi_meas'][0]['hpi_coils']])
         n_freqs = len(hpi_freqs)
-        order = [x['number'] - 1 for x in raw.info['hpi_meas'][0]['hpi_coils']]
+        order = [x['number'] - 1 for x in info['hpi_meas'][0]['hpi_coils']]
         assert np.array_equal(np.unique(order), np.arange(n_freqs))
         hpi_freqs = hpi_freqs[order]
-        hpi_order = raw.info['hpi_results'][0]['order'] - 1
+        hpi_order = info['hpi_results'][0]['order'] - 1
         assert np.array_equal(np.unique(hpi_order), np.arange(n_freqs))
         hpi_freqs = hpi_freqs[hpi_order]
 
     # Extract necessary info
-    picks = pick_types(raw.info, meg=True, eeg=True)  # for simulation
-    meg_picks = pick_types(raw.info, meg=True, eeg=False)  # for CHPI
-    fwd_info = pick_info(raw.info, picks)
+    picks = pick_types(info, meg=True, eeg=True)  # for simulation
+    meg_picks = pick_types(info, meg=True, eeg=False)  # for CHPI
+    fwd_info = pick_info(info, picks)
     fwd_info['projs'] = []  # Ensure no 'projs' applied
     logger.info('Setting up raw data simulation using %s head position%s'
                 % (len(dev_head_ts), 's' if len(dev_head_ts) != 1 else ''))
-    raw.preload_data(verbose=False)
+    # raw.preload_data(verbose=False)
 
     if isinstance(stc, VolSourceEstimate):
         verts = [stc.vertices]
@@ -214,15 +207,15 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
     if ecg or blink:
 
         # Figure out our cHPI, ECG, and Blink dipoles
-        dig = raw.info['dig']
+        dig = info['dig']
         assert all([d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
                     for d in dig if d['kind'] == FIFF.FIFFV_POINT_HPI])
         chpi_rrs = [d['r'] for d in dig if d['kind'] == FIFF.FIFFV_POINT_HPI]
-        R, r0 = fit_sphere_to_headshape(raw.info, verbose=False)[:2]
+        R, r0 = fit_sphere_to_headshape(info, verbose=False)[:2]
         R /= 1000.
         r0 /= 1000.
 
-        blink_rr = [d['r'] for d in raw.info['dig']
+        blink_rr = [d['r'] for d in info['dig']
                     if d['ident'] == FIFF.FIFFV_POINT_NASION][0]
         blink_rr = blink_rr - r0
         blink_rr = (blink_rr / np.sqrt(np.sum(blink_rr * blink_rr)) *
@@ -233,14 +226,14 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
             verbose=False)
 
     if blink:
-        blink_rate = np.cos(2 * np.pi * 1. / 60. * raw.times)
+        blink_rate = np.cos(2 * np.pi * 1. / 60. * times)
         blink_rate *= 12.5 / 60.
         blink_rate += 4.5 / 60.
-        blink_times = rng.rand(raw.n_times) < blink_rate / raw.info['sfreq']
+        blink_times = rng.rand(len(times)) < blink_rate / info['sfreq']
         # vary amplitudes
-        blink_times = blink_times * (rng.rand(raw.n_times) + 0.5)
+        blink_times = blink_times * (rng.rand(len(times)) + 0.5)
         # Convolve blink times with kernel to get blink traces
-        blink_kernel = np.hanning(int(0.25 * raw.info['sfreq']))
+        blink_kernel = np.hanning(int(0.25 * info['sfreq']))
         blink_data = np.convolve(blink_times, blink_kernel,
                                  'same')[np.newaxis, :]
         blink_data += rng.randn(blink_data.shape[1]) * 0.05
@@ -250,16 +243,16 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
     if ecg:
         ecg_rr = np.array([[-R, 0, -3 * R]])
 
-        max_beats = int(np.ceil(raw.times[-1] * 70. / 60.))
+        max_beats = int(np.ceil(times[-1] * 70. / 60.))
         cardiac_idx = np.cumsum(rng.uniform(60. / 70., 60. / 50., max_beats) *
-                                raw.info['sfreq']).astype(int)
-        cardiac_idx = cardiac_idx[cardiac_idx < raw.n_times]
-        cardiac_data = np.zeros(raw.n_times)
+                                info['sfreq']).astype(int)
+        cardiac_idx = cardiac_idx[cardiac_idx < len(times)]
+        cardiac_data = np.zeros(len(times))
         cardiac_data[cardiac_idx] = 1
         cardiac_kernel = np.concatenate([
-            2 * np.hanning(int(0.04 * raw.info['sfreq'])),
-            -0.3 * np.hanning(int(0.05 * raw.info['sfreq'])),
-            0.2 * np.hanning(int(0.26 * raw.info['sfreq']))], axis=-1)
+            2 * np.hanning(int(0.04 * info['sfreq'])),
+            -0.3 * np.hanning(int(0.05 * info['sfreq'])),
+            0.2 * np.hanning(int(0.26 * info['sfreq']))], axis=-1)
         ecg_data = np.convolve(cardiac_data, cardiac_kernel,
                                'same')[np.newaxis, :]
         ecg_data += rng.randn(ecg_data.shape[1]) * 0.05
@@ -285,17 +278,17 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
     evoked = EvokedArray(np.zeros((len(picks), len(stc.times))), fwd_info,
                          stc.tmin, verbose=False)
     stc_event_idx = np.argmin(np.abs(stc.times))
-    event_chs = pick_channels(raw.info['ch_names'], ['STI101'])
+    event_chs = pick_channels(info['ch_names'], ['STI101'])
     if len(event_chs) == 0:
         # When functionality is complete, expand raw object with this channel
         # raise RuntimeError('No `STI` channels found.')
         event_ch = 0
     else:
-        event_ch = pick_channels(raw.info['ch_names'], ['STI101'])[0]
+        event_ch = pick_channels(info['ch_names'], ['STI101'])[0]
 
-    used = np.zeros(raw.n_times, bool)
-    stc_indices = np.arange(raw.n_times) % len(stc.times)
-    raw._data[event_ch, ].fill(0)
+    used = np.zeros(len(times), bool)
+    stc_indices = np.arange(len(times)) % len(stc.times)
+    # raw._data[event_ch, ].fill(0) XXX
     hpi_mag = 25e-9
     last_fwd = last_fwd_chpi = last_fwd_blink = last_fwd_ecg = src_sel = None
 
@@ -342,7 +335,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
         event_idxs = np.where(stc_idxs == stc_event_idx)[0] + offsets[fi - 1]
         used[time_slice] = True
         logger.info('  Simulating data for %0.3f-%0.3f sec with %s event%s'
-                    % (tuple(offsets[fi - 1:fi + 1] / raw.info['sfreq']) +
+                    % (tuple(offsets[fi - 1:fi + 1] / info['sfreq']) +
                        (len(event_idxs), '' if len(event_idxs) == 1 else 's')))
 
         # Simulate brain data
@@ -351,38 +344,39 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
                        interp)
         simulated = EvokedArray(data, evoked.info, 0)
         if cov is not None:
-            noise = generate_noise_evoked(simulated, cov, [1, -1, 0.2], rng)
+            noise = simulate_noise_evoked(simulated, cov, [1, -1, 0.2], rng)
             simulated.data += noise.data
         assert simulated.data.shape[0] == len(picks)
         assert simulated.data.shape[1] == len(stc_idxs)
-        raw._data[picks, time_slice] = simulated.data
+
+        raw_data = np.array((len(info['ch_names']), len(times)))
+        raw_data[picks, time_slice] = simulated.data
 
         # Add ECG, Blink, and CHPI traces
         # TODO: Should conditionals depend on fwds or param bool flags?
         if ecg:
-            raw._data[meg_picks, time_slice] += \
+            raw_data[meg_picks, time_slice] += \
                 _interp(last_fwd_ecg, fwd_ecg, ecg_data[:, time_slice], interp)
             last_fwd_ecg = fwd_ecg
 
         if blink:
-            raw._data[picks, time_slice] += \
+            raw_data[picks, time_slice] += \
                 _interp(last_fwd_blink, fwd_blink, blink_data[:, time_slice],
                         interp)
             last_fwd_blink = fwd_blink
 
         if chpi:
-            this_t = (np.arange(offsets[fi - 1], offsets[fi]) /
-                      raw.info['sfreq'])
+            this_t = (np.arange(offsets[fi - 1], offsets[fi]) / info['sfreq'])
             sinusoids = np.zeros((n_freqs, n_time))
             for fi, freq in enumerate(hpi_freqs):
                 sinusoids[fi] = 2 * np.pi * freq * this_t
                 sinusoids[fi] = hpi_mag * np.sin(sinusoids[fi])
-            raw._data[meg_picks, time_slice] += \
+            raw_data[meg_picks, time_slice] += \
                 _interp(last_fwd_chpi, fwd_chpi, sinusoids, interp)
             last_fwd_chpi = fwd_chpi
 
         # Add events
-        raw._data[event_ch, event_idxs] = fi
+        raw_data[event_ch, event_idxs] = fi
 
         # Prepare for next iteration
         last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
@@ -390,7 +384,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
 
     assert used.all()
     logger.info('Done')
-    return raw
+
+    return RawArray(raw_data, info)
 
 
 def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,

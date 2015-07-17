@@ -11,7 +11,7 @@ import warnings
 
 from mne.datasets import testing
 from mne import read_forward_solution
-from mne.simulation import simulate_sparse_stc, generate_evoked
+from mne.simulation import simulate_sparse_stc, simulate_evoked
 from mne import read_cov
 from mne.io import Raw
 from mne import pick_types_forward, read_evokeds
@@ -50,12 +50,13 @@ def test_simulate_evoked():
 
     # Generate times series for 2 dipoles
     stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times)
+    stc._data *= 1e-9
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')  # positive semidefinite warning
-        evoked = generate_evoked(fwd, stc, evoked_template.info, cov, snr,
+        evoked = simulate_evoked(fwd, stc, evoked_template.info, cov, snr,
                                  tmin=0.0, tmax=0.2, iir_filter=iir_filter)
     assert_array_almost_equal(evoked.times, stc.times)
     assert_true(len(evoked.data) == len(fwd['sol']['data']))
@@ -64,5 +65,5 @@ def test_simulate_evoked():
     stc_bad = stc.copy()
     mv = np.max(fwd['src'][0]['vertno'][fwd['src'][0]['inuse']])
     stc_bad.vertices[0][0] = mv + 1
-    assert_raises(RuntimeError, generate_evoked, fwd, stc_bad,
+    assert_raises(RuntimeError, simulate_evoked, fwd, stc_bad,
                   evoked_template.info, cov, snr, tmin=0.0, tmax=0.2)
