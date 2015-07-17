@@ -1073,7 +1073,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         plt.figure(figsize=(width, height))
         axes = list()
         for ax_idx in range(len(times)):
-            axes.append(plt.subplot(1, n_times, ax_idx + 1))
+            if colorbar:  # Make room for the colorbar
+                axes.append(plt.subplot(1, n_times + 1, ax_idx + 1))
+            else:
+                axes.append(plt.subplot(1, n_times, ax_idx + 1))
     elif colorbar:
         logger.warning('Colorbar is drawn to the rightmost column of the '
                        'figure.\nBe sure to provide enough space for it '
