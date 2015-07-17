@@ -11,6 +11,7 @@ from __future__ import print_function
 import numpy as np
 import warnings
 
+
 def plot_patterns(patterns, info, times=None, ch_type=None, layout=None,
                   vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                   colorbar=True, scale=None, scale_time=1e3, unit=None,
@@ -19,7 +20,7 @@ def plot_patterns(patterns, info, times=None, ch_type=None, layout=None,
                   show_names=False, title=None, mask=None,
                   mask_params=None, outlines='head', contours=6,
                   image_interp='bilinear', average=None, head_pos=None):
-    """Plot topographic patterns of a linear model 
+    """Plot topographic patterns of a linear model
     Parameters
     ----------
     patterns : array of floats
@@ -121,23 +122,25 @@ def plot_patterns(patterns, info, times=None, ch_type=None, layout=None,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
-    
+
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
        The figure.
     """
     from mne import EvokedArray
-    # create an evoked 
+    # create an evoked
     patterns = EvokedArray(patterns.reshape(info['nchan'], -1), info, tmin=0)
     # the call plot_topomap
     return patterns.plot_topomap(times=times, ch_type=ch_type, layout=layout,
                                  vmin=vmin, vmax=vmax, cmap=cmap, title=title,
-                                 colorbar=colorbar, res=res, cbar_fmt=cbar_fmt, 
-                                 sensors=sensors, scale=scale, scale_time=scale_time, 
-                                 unit=unit, time_format=time_format, size=size, 
-                                 show_names=show_names, mask_params=mask_params, 
-                                 mask=mask, outlines=outlines, contours=contours, 
+                                 colorbar=colorbar, res=res, cbar_fmt=cbar_fmt,
+                                 sensors=sensors, scale=scale,
+                                 scale_time=scale_time, unit=unit,
+                                 time_format=time_format, size=size,
+                                 show_names=show_names,
+                                 mask_params=mask_params, mask=mask,
+                                 outlines=outlines, contours=contours,
                                  image_interp=image_interp, show=False)
 
 

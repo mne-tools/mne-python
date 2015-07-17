@@ -41,8 +41,8 @@ class Scaler(TransformerMixin):
         self.info = info
         self.with_mean = with_mean
         self.with_std = with_std
-        self.ch_mean_ = dict() # TODO rename attribute
-        self.std_ = dict() # TODO rename attribute
+        self.ch_mean_ = dict()  # TODO rename attribute
+        self.std_ = dict()  # TODO rename attribute
 
     def fit(self, epochs_data, y):
         """
@@ -77,10 +77,10 @@ class Scaler(TransformerMixin):
         for key, this_pick in picks_list.items():
             if self.with_mean:
                 ch_mean = X[:, this_pick, :].mean(axis=1)[:, None, :]
-                self.ch_mean_[key] = ch_mean # TODO rename attribute
+                self.ch_mean_[key] = ch_mean  # TODO rename attribute
             if self.with_std:
                 ch_std = X[:, this_pick, :].mean(axis=1)[:, None, :]
-                self.std_[key] = ch_std # TODO rename attribute
+                self.std_[key] = ch_std  # TODO rename attribute
 
         return self
 
@@ -112,7 +112,7 @@ class Scaler(TransformerMixin):
                 X[:, this_pick, :] /= self.std_[key]
 
         return X
-    
+
     def inverse_transform(self, epochs_data, y=None):
         """ Inverse standardization of data across channels
 
@@ -141,7 +141,7 @@ class Scaler(TransformerMixin):
                 X[:, this_pick, :] *= self.std_[key]
 
         return X
-        
+
 
 class ConcatenateChannels(TransformerMixin):
     """Concatenates data from different channels into a single feature vector
@@ -150,7 +150,7 @@ class ConcatenateChannels(TransformerMixin):
     ----------
     info : dict
         The measurement info.
-    
+
     Attributes
     ----------
     n_epochs : int
@@ -159,7 +159,7 @@ class ConcatenateChannels(TransformerMixin):
         The number of channels
     n_times : int
         The number of time points
-    
+
     """
     def __init__(self, info=None):
         self.info = info
@@ -216,11 +216,11 @@ class ConcatenateChannels(TransformerMixin):
         self.n_epochs = n_epochs
         self.n_channels = n_channels
         self.n_times = n_times
-        
+
         return X
-    
+
     def inverse_transform(self, X, y=None):
-        """Reshape a feature vector into the original data shape 
+        """Reshape a feature vector into the original data shape
 
         Parameters
         ----------
@@ -237,7 +237,7 @@ class ConcatenateChannels(TransformerMixin):
         if not isinstance(X, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(X))
-        
+
         return X.reshape(self.n_epochs, self.n_channels, self.n_times)
 
 

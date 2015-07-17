@@ -5,7 +5,6 @@
 
 import warnings
 import os.path as op
-import numpy as np
 
 from nose.tools import assert_raises, assert_true
 from numpy.testing import assert_equal
@@ -33,7 +32,7 @@ def test_linear_classifier():
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import StandardScaler
-    
+
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -42,30 +41,30 @@ def test_linear_classifier():
 
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), decim=4, preload=True)
-    
+
     labels = epochs.events[:, -1]
     epochs_data = epochs.get_data().reshape(len(labels), -1)
-    
+
     clf = LinearClassifier()
     clf.fit(epochs_data, labels)
-    
+
     # test patterns have been computed
     assert_true(clf.patterns_ is not None)
     # test filters have been computed
     assert_true(clf.filters_ is not None)
-    
+
     # test classifier without a coef_ attribute
     clf = LinearClassifier(RandomForestClassifier())
     assert_raises(AssertionError, clf.fit, epochs_data, labels)
-    
+
     # test get_params
-    clf = LinearClassifier(LinearSVC(C = 10))
+    clf = LinearClassifier(LinearSVC(C=10))
     assert_equal(clf.get_params()['clf__C'], 10)
-    
+
     # test set_params
     clf.set_params(clf__C=100)
     assert_equal(clf.get_params()['clf__C'], 100)
-    
+
     # test it goes through a scikit-learn pipeline
     clf = LinearClassifier()
     sc = StandardScaler()

@@ -1,6 +1,6 @@
 """
 ===============================================================
-Decoding sensor space data using a linear classifier 
+Decoding sensor space data using a linear classifier
 Patterns and filters visualization of the linear classifier
 ===============================================================
 
@@ -12,7 +12,6 @@ data in sensor space. Here the classifier is applied to a single time point.
 #
 # License: BSD (3-clause)
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
@@ -56,7 +55,7 @@ mne.epochs.equalize_epoch_counts(epochs_list)
 # X is 2d with X.shape[0] is the total number of epochs to classify
 # y is filled with integers coding for the class to predict
 # We must have X.shape[0] equal to y.shape[0]
-X = [e.get_data()[:,:,0] for e in epochs_list]
+X = [e.get_data()[:, :, 0] for e in epochs_list]
 y = [k * np.ones(len(this_X)) for k, this_X in enumerate(X)]
 X = np.concatenate(X)
 y = np.concatenate(y)

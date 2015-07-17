@@ -5,7 +5,6 @@
 #
 # License: BSD (3-clause)
 
-import copy
 import inspect
 import warnings
 import six
@@ -104,7 +103,7 @@ class BaseEstimator(object):
                 # nested objects case
                 name, sub_name = split
                 if name not in valid_params:
-                    raise ValueError('Invalid parameter %s for estimator %s. ' 
+                    raise ValueError('Invalid parameter %s for estimator %s. '
                                      'Check the list of available parameters '
                                      'with `estimator.get_params().keys()`.' %
                                      (name, self))
@@ -124,6 +123,7 @@ class BaseEstimator(object):
         class_name = self.__class__.__name__
         return '%s(%s)' % (class_name, _pprint(self.get_params(deep=False),
                                                offset=len(class_name),),)
+
 
 ###############################################################################
 def _pprint(params, offset=0, printer=repr):
@@ -172,4 +172,3 @@ def _pprint(params, offset=0, printer=repr):
     # Strip trailing space to avoid nightmare in doctests
     lines = '\n'.join(l.rstrip(' ') for l in lines.split('\n'))
     return lines
-
