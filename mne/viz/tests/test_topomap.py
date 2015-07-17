@@ -133,7 +133,7 @@ def test_plot_topomap():
     plot_projs_topomap(projs, res=res)
     plt.close('all')
     ax = plt.subplot(111)
-    plot_projs_topomap(projs[0], res=res, axes=ax)  # test axes param
+    plot_projs_topomap([projs[0]], res=res, axes=ax)  # test axes param
     plt.close('all')
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
