@@ -229,7 +229,8 @@ class CSP(TransformerMixin):
                       show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
                       image_interp='bilinear', average=None, head_pos=None):
-        """Plot topographic patterns of CSP components
+        """
+        Plot topographic patterns of CSP components
 
         Parameters
         ----------
