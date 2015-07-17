@@ -200,7 +200,7 @@ class ProjMixin(object):
 
         return self
 
-    def plot_projs_topomap(self, ch_type=None, layout=None):
+    def plot_projs_topomap(self, ch_type=None, layout=None, axes=None):
         """Plot SSP vector
 
         Parameters
@@ -217,6 +217,10 @@ class ProjMixin(object):
             file was found, the layout is automatically generated from the
             sensor locations. Or a list of Layout if projections
             are from different sensor types.
+        axes : instance of Axes | list | None
+            The axes to plot to. If list, the list must be a list of Axes of
+            the same length as the number of projectors. If instance of Axes,
+            there must be only one projector. Defaults to None.
 
         Returns
         -------
@@ -238,7 +242,7 @@ class ProjMixin(object):
                     else:
                         err = 'Channel type %s is not found in info.' % ch
                         warnings.warn(err)
-            fig = plot_projs_topomap(self.info['projs'], layout)
+            fig = plot_projs_topomap(self.info['projs'], layout, axes=axes)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
 

@@ -71,6 +71,11 @@ def test_plot_topomap():
 
     evoked.plot_topomap(0.1, layout=layout, scale=dict(mag=0.1))
     plt.close('all')
+    axes = [plt.subplot(221), plt.subplot(222)]
+    evoked.plot_topomap(axes=axes, colorbar=False)
+    plt.close('all')
+    evoked.plot_topomap(times=[-0.1, 0.2])
+    plt.close('all')
     mask = np.zeros_like(evoked.data, dtype=bool)
     mask[[1, 5], :] = True
     evoked.plot_topomap(None, ch_type='mag', outlines=None)
@@ -131,6 +136,9 @@ def test_plot_topomap():
         projs = read_proj(ecg_fname)
     projs = [pp for pp in projs if pp['desc'].lower().find('eeg') < 0]
     plot_projs_topomap(projs, res=res)
+    plt.close('all')
+    ax = plt.subplot(111)
+    plot_projs_topomap([projs[0]], res=res, axes=ax)  # test axes param
     plt.close('all')
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
