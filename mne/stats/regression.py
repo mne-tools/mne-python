@@ -217,7 +217,7 @@ def linear_regression_raw(raw, events, event_id=None,
     solver : str | function
         Either a function which takes as its inputs the predictor matrix X
         and the observation matrix Y, and returns the coefficient matrix b;
-        or a string (for now, only 'defaults'), in which case the solver used 
+        or a string (for now, only 'defaults'), in which case the solver used
         is dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T.
 
     Returns
