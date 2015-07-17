@@ -14,7 +14,7 @@ See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
 
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Romain Trachel <romain.trachel@inria.fr>
+#          Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -99,9 +99,7 @@ clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should get better results than above
 
-# plot CSP patterns estimated on full data for visualization
-csp.fit_transform(epochs_data, labels)
-evoked.data = csp.patterns_.T
-evoked.times = np.arange(evoked.data.shape[0])
-evoked.plot_topomap(times=[0, 1, 201, 202], ch_type='grad',
-                    colorbar=False, size=1.5)
+# fit on full data for visualization
+csp.fit(epochs_data, labels)
+# plot the estimated CSP patterns
+csp.plot_patterns(epochs.info)

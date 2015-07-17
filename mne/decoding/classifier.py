@@ -269,7 +269,6 @@ class PSDEstimator(TransformerMixin):
 
         _, n_freqs = psd.shape
         psd = psd.reshape(n_epochs, n_channels, n_freqs)
-
         return psd
 
 

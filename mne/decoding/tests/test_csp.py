@@ -1,5 +1,5 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#         Romain Trachel <romain.trachel@inria.fr>
+#         Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -93,3 +93,23 @@ def test_regularized_csp():
         csp.n_components = n_components
         sources = csp.transform(epochs_data)
         assert_true(sources.shape[1] == n_components)
+
+
+@requires_sklearn
+def test_plot_pattern():
+    """Test plot for Common Spatial Patterns
+    """
+    raw = io.Raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+    epochs_data = epochs.get_data()
+
+    n_components = 3
+    csp = CSP(n_components=n_components, reg='lws')
+
+    csp.fit(epochs_data, epochs.events[:, -1])
+    csp.plot_patterns(epochs.info)
+    csp.plot_patterns(epochs.info, components=np.arange(10))
