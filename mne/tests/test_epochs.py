@@ -831,12 +831,15 @@ def test_resample():
     """Test of resample of epochs
     """
     raw, events, picks = _get_data()
-    epochs_o = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                      baseline=(None, 0), preload=False,
-                      reject=reject, flat=flat)
-
-    epochs = epochs_o.copy()
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=False,
+                    reject=reject, flat=flat)
     assert_raises(RuntimeError, epochs.resample, 100)
+
+    epochs_o = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                      baseline=(None, 0), preload=True,
+                      reject=reject, flat=flat)
+    epochs = epochs_o.copy()
 
     data_normal = cp.deepcopy(epochs.get_data())
     times_normal = cp.deepcopy(epochs.times)
@@ -868,10 +871,9 @@ def test_resample():
     # test copy flag
     epochs = epochs_o.copy()
     epochs_resampled = epochs.resample(sfreq_normal * 2, npad=0, copy=True)
-    assert_true(epochs == epochs_o)
-    assert_true(epochs_resampled != epochs_o)
+    assert_true(epochs_resampled is not epochs)
     epochs_resampled = epochs.resample(sfreq_normal * 2, npad=0, copy=False)
-    assert_true(epochs_resampled == epochs_o)
+    assert_true(epochs_resampled is epochs)
 
 
 def test_detrend():

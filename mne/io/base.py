@@ -931,7 +931,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                  n_jobs=1, events=None, copy=False, verbose=None):
         """Resample data channels.
 
-        Resamples all channels. The data of the Raw object is modified inplace.
+        Resamples all channels.
 
         The Raw object has to be constructed using preload=True (or string).
 
@@ -939,13 +939,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                      speed up computations (e.g., projection calculation) when
                      precise timing of events is not required, as downsampling
                      raw data effectively jitters trigger timings. It is
-                     generally recommended to find events using the original
-                     data and jointly resample the raw and events using the
-                     'events' parameter. Alternatively, resampling can be
-                     performed on the epochs instead. See here for an
-                     example:
+                     generally recommended not to epoch downsampled data,
+                     but instead epoch and then downsample, as epoching
+                     downsampled data jitters triggers.
+                     See here for an example:
 
                          https://gist.github.com/Eric89GXL/01642cb3789992fbca59
+
+                     If resampling the continuous data is desired, it is
+                     recommended to construct events using the original data.
+                     The event onsets can be jointly resampled with the raw
+                     data using the 'events' parameter.
 
         Parameters
         ----------
@@ -989,10 +993,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         inst = self.copy() if copy else self
 
+        # When no event object is supplied, some basic detection of dropped
+        # events is performed to generate a warning. Finding events can fail
+        # for a variety of reasons, e.g. if no stim channel is present or it is
+        # corrupted. This should not stop the resampling from working. The
+        # warning should simply not be generated in this case.
         if events is None:
-            # No event object supplied. Perform some basic detection of
-            # dropped events anyway
-            original_events = find_events(inst)
+            try:
+                original_events = find_events(inst)
+            except:
+                pass
 
         sfreq = float(sfreq)
         o_sfreq = float(inst.info['sfreq'])
@@ -1018,10 +1028,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             # (above) and then replace the stim channels than it was to only
             # resample the proper subset of channels and then use np.insert()
             # to restore the stims.
-            stim_resampled = _resample_stim_channels(
-                data_chunk[stim_picks], new_data[ri].shape[1],
-                data_chunk.shape[1])
-            new_data[ri][stim_picks] = stim_resampled
+            if len(stim_picks) > 0:
+                stim_resampled = _resample_stim_channels(
+                    data_chunk[stim_picks], new_data[ri].shape[1],
+                    data_chunk.shape[1])
+                new_data[ri][stim_picks] = stim_resampled
 
             inst._first_samps[ri] = int(inst._first_samps[ri] * ratio)
             inst._last_samps[ri] = inst._first_samps[ri] + new_ntimes - 1
@@ -1031,16 +1042,20 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         inst.info['sfreq'] = sfreq
         inst._update_times()
 
+        # See the comment above why we ignore all errors here.
         if events is None:
-            # Did we loose events?
-            resampled_events = find_events(inst)
-            if len(resampled_events) != len(original_events):
-                warnings.warn(
-                    'Resampling of the stim channels caused event '
-                    'information to become unreliable. Consider finding '
-                    'events on the original data and passing the event '
-                    'matrix as a parameter.'
-                )
+            try:
+                # Did we loose events?
+                resampled_events = find_events(inst)
+                if len(resampled_events) != len(original_events):
+                    warnings.warn(
+                        'Resampling of the stim channels caused event '
+                        'information to become unreliable. Consider finding '
+                        'events on the original data and passing the event '
+                        'matrix as a parameter.'
+                    )
+            except:
+                pass
 
             return inst
         else:

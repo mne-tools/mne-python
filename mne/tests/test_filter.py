@@ -159,47 +159,22 @@ def test_resample():
 def test_resample_stim_channel():
     """Test resampling of stim channels"""
 
-    # Normal resampling without any issues
+    # Downsampling
     assert_array_equal(
         _resample_stim_channels([1, 0, 0, 0, 2, 0, 0, 0], 1, 2),
         [[1, 0, 2, 0]])
     assert_array_equal(
         _resample_stim_channels([1, 0, 0, 0, 2, 0, 0, 0], 1, 1.5),
-        [[1, 0, 2, 0, 0]])
+        [[1, 0, 0, 2, 0]])
     assert_array_equal(
-        _resample_stim_channels([1, 1, 1, 2, 2, 2], 1, 3), [[1, 2]])
-    assert_array_equal(
-        _resample_stim_channels([0, 0, 1, 1, 1, 2], 1, 2), [[0, 1, 2]])
-    assert_array_equal(
-        _resample_stim_channels([0, 0, 0, 0, 0, 0], 1, 3), [[0, 0]])
-    assert_array_equal(
-        _resample_stim_channels([1, 1, 1, 1, 1, 2], 1, 3), [[1, 2]])
-    assert_array_equal(
-        _resample_stim_channels([0, 0, 1, 1, 1, 2], 1, 2), [[0, 1, 2]])
-    assert_array_equal(
-        _resample_stim_channels([1, 2, 2, 2], 1, 2, max_delay=1), [[1, 2]])
-    assert_array_equal(
-        _resample_stim_channels([1, 2, 3, 3, 3, 3], 1, 2, max_delay=1),
-        [[1, 2, 3]])
-
-    # Resampling with overlap that causes too much delay
-    assert_raises(RuntimeError, _resample_stim_channels,
-                  [1, 2, 3, 4, 0, 0, 0, 0], 1, 2, max_delay=1)
-
-    # Resampling with overlap that causes boundary issues
-    assert_raises(RuntimeError, _resample_stim_channels,
-                  [1, 2, 3, 4, 0, 0, 0, 0], 1, 4, max_delay=1)
-    assert_raises(RuntimeError, _resample_stim_channels,
-                  [1, 2, 3, 0], 1, 2, max_delay=2)
-    assert_raises(RuntimeError, _resample_stim_channels, [1, 2, 3, 4], 1, 2)
-    assert_raises(RuntimeError, _resample_stim_channels, [0, 0, 3, 4], 1, 2)
-    assert_raises(RuntimeError, _resample_stim_channels, [1, 2, 0, 0], 1, 2)
+        _resample_stim_channels([1, 0, 0, 1, 2, 0, 0, 1], 1, 2),
+        [[1, 1, 2, 1]])
 
     # Upsampling
     assert_array_equal(
         _resample_stim_channels([1, 2, 3], 2, 1), [[1, 1, 2, 2, 3, 3]])
     assert_array_equal(
-        _resample_stim_channels([1, 2, 3], 2.5, 1), [[1, 1, 2, 2, 2, 3, 3]])
+        _resample_stim_channels([1, 2, 3], 2.5, 1), [[1, 1, 1, 2, 2, 3, 3]])
 
 
 @slow_test

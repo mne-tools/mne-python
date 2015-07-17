@@ -1351,7 +1351,8 @@ def _resample_stim_channels(stim_data, up, down):
 
     Parameters
     ----------
-    stim_data : 2D array, shape (n_stim_channels, n_samples)
+    stim_data : 1D array, shape (n_samples,) |
+                2D array, shape (n_stim_channels, n_samples)
         Stim channels to resample.
     up : float
         Factor to upsample by.
@@ -1362,6 +1363,11 @@ def _resample_stim_channels(stim_data, up, down):
     -------
     stim_resampled : 2D array, shape (n_stim_channels, n_samples_resampled)
         The resampled stim channels
+
+    Note
+    ----
+    The approach taken here is equivalent to the approach in the C-code.
+    See the decimate_stimch function in MNE/mne_browse_raw/save.c
     """
     stim_data = np.atleast_2d(stim_data)
     n_stim_channels, n_samples = stim_data.shape
@@ -1389,7 +1395,7 @@ def _resample_stim_channels(stim_data, up, down):
             if len(nonzero) > 0:
                 val = stim[window[0] + nonzero[0]]
             else:
-                val = 0
+                val = stim[window[0]]
             stim_resampled[stim_num, window_i] = val
 
     return stim_resampled

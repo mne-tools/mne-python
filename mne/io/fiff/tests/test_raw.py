@@ -809,9 +809,9 @@ def test_resample():
     raw3 = raw.copy()
     raw4 = raw.copy()
     raw1 = concatenate_raws([raw1, raw2])
-    raw1.resample(10)
-    raw3.resample(10)
-    raw4.resample(10)
+    raw1.resample(10.)
+    raw3.resample(10.)
+    raw4.resample(10.)
     raw3 = concatenate_raws([raw3, raw4])
     assert_array_equal(raw1._data, raw3._data)
     assert_array_equal(raw1._first_samps, raw3._first_samps)
@@ -826,12 +826,12 @@ def test_resample():
     # basic decimation
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    assert_allclose(raw.resample(8)._data,
+    assert_allclose(raw.resample(8.)._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0]])
 
     # decimation of multiple stim channels
-    raw = RawArray(2*[stim], create_info(2, len(stim), 2*['stim']))
-    assert_allclose(raw.resample(8)._data,
+    raw = RawArray(2 * [stim], create_info(2, len(stim), 2 * ['stim']))
+    assert_allclose(raw.resample(8.)._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0],
                      [1, 1, 0, 0, 1, 1, 0, 0]])
 
@@ -839,7 +839,7 @@ def test_resample():
     # done naively
     stim = [0, 0, 0, 1, 1, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    assert_allclose(raw.resample(4)._data,
+    assert_allclose(raw.resample(4.)._data,
                     [[0, 1, 1, 0]])
 
     # two events are merged in this case (warning)
@@ -847,7 +847,7 @@ def test_resample():
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        raw.resample(8)
+        raw.resample(8.)
         assert_true(len(w) == 1)
 
     # events are dropped in this case (warning)
@@ -855,15 +855,28 @@ def test_resample():
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        raw.resample(4)
+        raw.resample(4.)
         assert_true(len(w) == 1)
 
     # test resampling events: this should no longer give a warning
     stim = [0, 1, 1, 0, 0, 1, 1, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     events = find_events(raw)
-    raw, events = raw.resample(4, events=events)
+    raw, events = raw.resample(4., events=events)
     assert_equal(events, np.array([[0, 0, 1], [2, 0, 1]]))
+
+    # test copy flag
+    stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    raw_resampled = raw.resample(4., copy=True)
+    assert_true(raw_resampled is not raw)
+    raw_resampled = raw.resample(4., copy=False)
+    assert_true(raw_resampled is raw)
+
+    # resample should still work even when no stim channel is present
+    raw = RawArray(np.random.randn(1, 100), create_info(1, 100, ['eeg']))
+    raw.resample(10)
+    assert_true(len(raw) == 10)
 
 
 @testing.requires_testing_data
