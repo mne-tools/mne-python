@@ -10,6 +10,7 @@ averaging.
 If overlap exists and/or predictors are continuous, traditional averaging
 is inapplicable, but regression can estimate, including those of
 continuous predictors.
+
 References
 -------------
 See Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
