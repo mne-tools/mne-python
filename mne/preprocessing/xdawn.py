@@ -101,6 +101,8 @@ def _regularized_covariance(data, reg=None):
         # compute empirical covariance
         covar = np.cov(data)
     else:
+        no_sklearn_err = ('the scikit-learn package is missing and '
+                          'required for covariance regularization.')
         # use sklearn covariance estimators
         if isinstance(reg, float):
             if (reg < 0) or (reg > 1):
@@ -111,8 +113,7 @@ def _regularized_covariance(data, reg=None):
                 sklearn_version = LooseVersion(sklearn.__version__)
                 from sklearn.covariance import ShrunkCovariance
             except ImportError:
-                raise Exception('the scikit-learn package is missing and '
-                                'required for covariance regularization.')
+                raise Exception(no_sklearn_err)
             if sklearn_version < '0.12':
                 skl_cov = ShrunkCovariance(shrinkage=reg,
                                            store_precision=False)
@@ -126,8 +127,7 @@ def _regularized_covariance(data, reg=None):
                 try:
                     from sklearn.covariance import LedoitWolf
                 except ImportError:
-                    raise Exception('the scikit-learn package is missing '
-                                    'and required for regularization.')
+                    raise Exception(no_sklearn_err)
                 # init sklearn.covariance.LedoitWolf estimator
                 skl_cov = LedoitWolf(store_precision=False,
                                      assume_centered=True)
@@ -135,17 +135,16 @@ def _regularized_covariance(data, reg=None):
                 try:
                     from sklearn.covariance import OAS
                 except ImportError:
-                    raise Exception('the scikit-learn package is missing '
-                                    'and required for regularization.')
+                    raise Exception(no_sklearn_err)
                 # init sklearn.covariance.OAS estimator
                 skl_cov = OAS(store_precision=False,
                               assume_centered=True)
             else:
                 raise ValueError("regularization parameter should be "
-                                 "of type str (got %s)." % type(reg))
+                                 "'lwf' or 'oas'")
         else:
             raise ValueError("regularization parameter should be "
-                             "of type str (got %s)." % type(reg))
+                             "of type str or int (got %s)." % type(reg))
 
         # compute regularized covariance using sklearn
         covar = skl_cov.fit(data.T).covariance_
@@ -223,6 +222,7 @@ def least_square_evoked(epochs, return_toeplitz=False):
 
 
 class Xdawn(TransformerMixin, ContainsMixin):
+
     """Implementation of the Xdawn Algorithm.
 
     Xdawn is a spatial filtering method designed to improve the signal

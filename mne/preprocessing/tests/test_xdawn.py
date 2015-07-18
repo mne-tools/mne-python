@@ -108,6 +108,7 @@ def test_xdawn_apply_transform():
     # transform on someting else
     assert_raises(ValueError, xd.transform, 42)
 
+
 @requires_sklearn
 def test_xdawn_regularization():
     """Test Xdawn with regularization."""
