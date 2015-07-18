@@ -154,8 +154,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         logger.info("Registered flash 5 image is already there")
     # Step 5a : Convert flash5 into COR
     logger.info("Converting flash5 volume into COR format...")
-    if op.exists(op.join(mri_dir, 'flash5')):
-        shutil.rmtree(op.join(mri_dir, 'flash5'))
+    shutil.rmtree(op.join(mri_dir, 'flash5'), ignore_errors=True)
     os.makedirs(op.join(mri_dir, 'flash5'))
     cmd = ['mri_convert', 'flash5_reg.mgz', op.join(mri_dir, 'flash5')]
     run_subprocess(cmd, env=env, stdout=sys.stdout)
