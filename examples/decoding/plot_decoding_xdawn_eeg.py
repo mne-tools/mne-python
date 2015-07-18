@@ -1,9 +1,9 @@
 """
 =============================
- XDAWN Decoding From MEG data
+ XDAWN Decoding From EEG data
 =============================
 
-ERF decoding with Xdawn. For each event type, a set of spatial Xdawn filters
+ERP decoding with Xdawn. For each event type, a set of spatial Xdawn filters
 are trained and apply on the signal. Channels are concatenated and rescaled to
 create features vectors that will be fed into a Logistic Regression.
 
@@ -55,7 +55,7 @@ raw.filter(1, 20, method='iir')
 events = read_events(event_fname)
 
 raw.info['bads'] = ['MEG 2443']  # set bad channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=False,
+picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
                    exclude='bads')
 
 epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,

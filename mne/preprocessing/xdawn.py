@@ -20,7 +20,7 @@ from ..decoding.mixin import TransformerMixin
 from ..channels.channels import ContainsMixin
 
 
-def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
+def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq):
     """Least square estimation of evoked response from data.
 
     Parameters
@@ -39,8 +39,6 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
         End time after event.
     sfreq : float
         Sampling frequency.
-    decim : int
-        The decimation factor.
 
     Returns
     -------
@@ -49,9 +47,8 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
     toeplitz : dict of array
         A dict of toeplitz matrix for each event type in event_id.
     """
-    nmin = int(tmin * sfreq / decim)
-    nmax = int(tmax * sfreq / decim)
-    data = data[:, ::decim]
+    nmin = int(tmin * sfreq)
+    nmax = int(tmax * sfreq)
 
     window = nmax - nmin
     ne, ns = data.shape
@@ -63,7 +60,7 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
 
         # build toeplitz matrix
         trig = np.zeros((ns, 1))
-        ix_trig = (events[ix_ev, 0] / decim) + nmin
+        ix_trig = (events[ix_ev, 0]) + nmin
         trig[ix_trig] = 1
         toep = linalg.toeplitz(trig[0:window], trig)
         to[eid] = toep
@@ -165,19 +162,20 @@ def _check_overlapp(epochs):
 
 def _construct_signal_from_epochs(epochs):
     """Reconstruct pseudo continuous signal from epochs."""
-    start_ix = (np.min(epochs.events[:, 0])
-                + int(epochs.tmin * epochs.info['sfreq']))
-    end_ix = (np.max(epochs.events[:, 0])
-              + int(epochs.tmax * epochs.info['sfreq']) + 1)
+    start = (np.min(epochs.events[:, 0])
+             + int(epochs.tmin * epochs.info['sfreq']))
+    stop = (np.max(epochs.events[:, 0])
+            + int(epochs.tmax * epochs.info['sfreq']) + 1)
 
-    ns = end_ix - start_ix
-    ns_epochs = epochs._data.shape[2]
-    ne = epochs._data.shape[1]
+    n_samples = stop - start
+    epochs_data = epochs.get_data()
+    n_epochs, n_channels, n_times = epochs_data.shape
     ix_events = epochs.events[:, 0] - epochs.events[0, 0]
 
-    data = np.zeros((ne, ns))
-    for i, ix in enumerate(ix_events):
-        data[:, ix:(ix + ns_epochs)] = epochs._data[i]
+    data = np.zeros((n_channels, n_samples))
+    for idx in range(n_epochs):
+        onset = ix_events[idx]
+        data[:, onset:(onset + n_times)] = epochs_data[idx]
 
     return data
 
@@ -203,22 +201,23 @@ def least_square_evoked(epochs, return_toeplitz=False):
     if not isinstance(epochs, _BaseEpochs):
         raise ValueError('epochs must be an instance of `mne.Epochs`')
 
-    evs = epochs.events.copy()
-    evs[:, 0] -= evs[0, 0] + int(epochs.tmin * epochs.info['sfreq'])
+    events = epochs.events.copy()
+    events[:, 0] -= events[0, 0] + int(epochs.tmin * epochs.info['sfreq'])
     data = _construct_signal_from_epochs(epochs)
-    evo, to = _least_square_evoked(data, evs, epochs.event_id,
-                                   tmin=epochs.tmin, tmax=epochs.tmax,
-                                   sfreq=epochs.info['sfreq'], decim=1)
+    evoked_data, toeplitz = _least_square_evoked(data, events, epochs.event_id,
+                                                 tmin=epochs.tmin,
+                                                 tmax=epochs.tmax,
+                                                 sfreq=epochs.info['sfreq'])
     evokeds = dict()
     info = cp.deepcopy(epochs.info)
-    for name, data in evo.items():
-        n_events = len(evs[evs[:, 2] == epochs.event_id[name]])
+    for name, data in evoked_data.items():
+        n_events = len(events[events[:, 2] == epochs.event_id[name]])
         evoked = EvokedArray(data, info, tmin=epochs.tmin,
                              comment=name, nave=n_events)
         evokeds[name] = evoked
 
     if return_toeplitz:
-        return evokeds, to
+        return evokeds, toeplitz
 
     return evokeds
 
@@ -259,6 +258,15 @@ class Xdawn(TransformerMixin, ContainsMixin):
         type, else empty.
     evokeds_ : dict of evoked instance
         If fit, the evoked response for each event type.
+
+    Notes
+    -----
+    .. versionadded:: 0.10
+
+    See Also
+    --------
+    ICA
+    CSP
 
     References
     ----------
@@ -529,11 +537,10 @@ class Xdawn(TransformerMixin, ContainsMixin):
         for eid in event_id:
 
             data_r = self._pick_sources(data, include, exclude, eid)
-            evo = evoked.copy()
+            evokeds[eid] = evoked.copy()
 
             # restore evoked
-            evo.data[picks] = data_r
-            evokeds[eid] = evo
+            evokeds[eid].data[picks] = data_r
 
         return evokeds
 
