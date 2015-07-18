@@ -158,6 +158,38 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     os.makedirs(op.join(mri_dir, 'flash5'))
     cmd = ['mri_convert', 'flash5_reg.mgz', op.join(mri_dir, 'flash5')]
     run_subprocess(cmd, env=env, stdout=sys.stdout)
+    # Step 5b and c : Convert the mgz volumes into COR
+    os.chdir(mri_dir)
+    convertT1 = False
+    if op.isdir('T1'):
+        if len(glob.glob('T1/COR*')) == 0:
+            convertT1 = True
+    else:
+        convertT1 = True
+    convertbrain = False
+    if op.isdir('brain'):
+        if len(glob.glob('brain/COR*')) == 0:
+            convertbrain = True
+    else:
+        convertbrain = True
+    if convertT1 == True:
+        logger.info("Converting T1 volume into COR format...")
+        if not op.isfile('T1.mgz'):
+            raise RuntimeError ("Both T1 mgz and T1 COR volumes missing.")
+        os.makedirs('T1')
+        cmd = ['mri_convert', 'T1.mgz', 'T1']
+        run_subprocess(cmd, env=env, stdout=sys.stdout)
+    else:
+        logger.info("T1 volume is already in COR format")
+    if convertbrain == True:
+        logger.info("Converting brain volume into COR format...")
+        if not op.isfile('brain.mgz'):
+            raise RuntimeError("Both brain mgz and brain COR volumes missing.")
+        os.makedirs('brain')
+        cmd = ['mri_convert', 'brain.mgz', 'brain']
+        run_subprocess(cmd, env=env, stdout=sys.stdout)
+    else:
+        logger.info("Brain volume is already in COR format")
     #
     #
     '''
