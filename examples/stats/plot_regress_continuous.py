@@ -8,7 +8,7 @@ are the same and if no overlap between epochs exists and if all
 predictors are binary, regression is virtually identical to traditional
 averaging.
 If overlap exists and/or predictors are continuous, traditional averaging
-is inapplicable, but regression can be separate effects, including those of
+is inapplicable, but regression can estimate, including those of
 continuous predictors.
 References
 -------------
