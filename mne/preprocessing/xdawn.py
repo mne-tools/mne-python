@@ -9,10 +9,9 @@ from scipy import linalg
 import copy as cp
 from distutils.version import LooseVersion
 
-from ..io.proj import Projection
 from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
-from .. import Covariance, EvokedArray, Evoked
+from .. import Covariance, EvokedArray, Evoked, EpochsArray
 from ..io.pick import pick_types
 from .ica import _get_fast_dot
 from ..utils import logger
@@ -42,8 +41,8 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq):
 
     Returns
     -------
-    evokeds : dict of evoked instance
-        A dict of evoked instance for each event type in event_id.
+    evokeds_data : dict of array
+        A dict of evoked data for each event type in event_id.
     toeplitz : dict of array
         A dict of toeplitz matrix for each event type in event_id.
     """
@@ -51,32 +50,35 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq):
     nmax = int(tmax * sfreq)
 
     window = nmax - nmin
-    ne, ns = data.shape
-    to = dict()
-
+    n_samples = data.shape[1]
+    toeplitz_mat = dict()
+    full_toep = []
     for eid in event_id:
         # select events by type
         ix_ev = events[:, -1] == event_id[eid]
 
         # build toeplitz matrix
-        trig = np.zeros((ns, 1))
+        trig = np.zeros((n_samples, 1))
         ix_trig = (events[ix_ev, 0]) + nmin
         trig[ix_trig] = 1
-        toep = linalg.toeplitz(trig[0:window], trig)
-        to[eid] = toep
+        toep_mat = linalg.toeplitz(trig[0:window], trig)
+        toeplitz_mat[eid] = toep_mat
+        full_toep.append(toep_mat)
 
     # Concatenate toeplitz
-    to_tot = np.concatenate(to.values())
+    full_toep = np.concatenate(full_toep)
 
     # least square estimation
-    evo = np.dot(np.dot(linalg.pinv(np.dot(to_tot, to_tot.T)), to_tot), data.T)
+    predictor = np.dot(linalg.pinv(np.dot(full_toep, full_toep.T)), full_toep)
+    all_evokeds = np.dot(predictor, data.T)
+    all_evokeds = np.vsplit(all_evokeds, len(event_id))
 
     # parse evoked response
     evoked_data = dict()
-    for i, eid in enumerate(event_id):
-        evoked_data[eid] = np.array(evo[(i * window):(i + 1) * window, :]).T
+    for idx, eid in enumerate(event_id):
+        evoked_data[eid] = all_evokeds[idx].T
 
-    return evoked_data, to
+    return evoked_data, toeplitz_mat
 
 
 def _regularized_covariance(data, reg=None):
@@ -156,6 +158,8 @@ def _check_overlapp(epochs):
     """check if events are overlapped."""
     isi = np.diff(epochs.events[:, 0])
     window = int((epochs.tmax - epochs.tmin) * epochs.info['sfreq'])
+    # Events are overlapped if the minimal inter-stimulus interval is smaller
+    # than the time window.
     return isi.min() < window
 
 
@@ -174,7 +178,8 @@ def _construct_signal_from_epochs(epochs):
     data = np.zeros((n_channels, n_samples))
     for idx in range(n_epochs):
         onset = ix_events[idx]
-        data[:, onset:(onset + n_times)] = epochs_data[idx]
+        offset = onset + n_times
+        data[:, onset:offset] = epochs_data[idx]
 
     return data
 
@@ -289,7 +294,6 @@ class Xdawn(TransformerMixin, ContainsMixin):
         self.filters_ = dict()
         self.patterns_ = dict()
         self.evokeds_ = dict()
-        self.projs_ = dict()
 
         if correct_overlap not in ['auto', True, False]:
             raise ValueError('correct_overlap must be a bool or "auto"')
@@ -338,17 +342,18 @@ class Xdawn(TransformerMixin, ContainsMixin):
             if epochs.baseline is not None:
                 raise ValueError('Baseline correction must be None if overlap '
                                  'correction activated')
-            evo, to = least_square_evoked(epochs, return_toeplitz=True)
+            evokeds, toeplitz = least_square_evoked(epochs,
+                                                    return_toeplitz=True)
         else:
-            evo = dict()
-            to = dict()
+            evokeds = dict()
+            toeplitz = dict()
             for eid in epochs.event_id:
-                evo[eid] = epochs[eid].average()
-                to[eid] = 1.0
-        self.evokeds_ = evo
+                evokeds[eid] = epochs[eid].average()
+                toeplitz[eid] = 1.0
+        self.evokeds_ = evokeds
 
         for eid in epochs.event_id:
-            data = np.dot(evo[eid].data, to[eid])
+            data = np.dot(evokeds[eid].data, toeplitz[eid])
             self.evokeds_cov_[eid] = _regularized_covariance(data, self.reg)
 
         # estimates spatial filters
@@ -366,21 +371,9 @@ class Xdawn(TransformerMixin, ContainsMixin):
             self.filters_[eid] = evecs
             self.patterns_[eid] = linalg.inv(evecs.T)
 
-            # Create and add projectors
-            ch_names = self.evokeds_[eid].ch_names
-            projs = list()
-            for j in range(self.n_components):
-                proj_data = dict(col_names=ch_names, row_names=None,
-                                 data=evecs[:, j].T, nrow=1,
-                                 ncol=len(ch_names))
-                projs.append(Projection(active=True, data=proj_data,
-                             desc="%s Xdawn #%d" % (eid, j)))
-
-            self.projs_[eid] = projs
-
         # store some values
         self.ch_names = epochs.ch_names
-        self.exclude = range(self.n_components, len(self.ch_names))
+        self.exclude = list(range(self.n_components, len(self.ch_names)))
         self.event_id = epochs.event_id
         return self
 
@@ -407,8 +400,8 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
         # create full matrix of spatial filter
         full_filters = list()
-        for f in self.filters_.values():
-            full_filters.append(f[:, 0:self.n_components])
+        for filt in self.filters_.values():
+            full_filters.append(filt[:, 0:self.n_components])
         full_filters = np.concatenate(full_filters, axis=1)
 
         # Apply spatial filters
@@ -508,10 +501,11 @@ class Xdawn(TransformerMixin, ContainsMixin):
         for eid in event_id:
 
             data_r = self._pick_sources(data, include, exclude, eid)
-
-            epochs_r = epochs.copy()
-            epochs_r._data[:, picks] = np.array(np.split(data_r,
-                                                len(epochs.events), 1))
+            data_r = np.array(np.split(data_r, len(epochs.events), 1))
+            info_r = cp.deepcopy(epochs.info)
+            epochs_r = EpochsArray(data=data_r, info=info_r,
+                                   events=epochs.events, tmin=epochs.tmin,
+                                   event_id=epochs.event_id, verbose=False)
             epochs_r.preload = True
             epochs_dict[eid] = epochs_r
 
@@ -550,7 +544,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
         if exclude is None:
             exclude = self.exclude
         else:
-            exclude = list(set(self.exclude + list(exclude)))
+            exclude = list(set(list(self.exclude) + list(exclude)))
 
         logger.info('Transforming to Xdawn space')
 
