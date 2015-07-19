@@ -3,10 +3,10 @@
 #
 # License: BSD (3-clause)
 
-
+import copy as cp
+import six
 import numpy as np
 from scipy import linalg
-import copy as cp
 from distutils.version import LooseVersion
 
 from ..io.base import _BaseRaw
@@ -24,9 +24,9 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq):
 
     Parameters
     ----------
-    data : array, shape (n_channels, n_times)
+    data : ndarray, shape (n_channels, n_times)
         The data to estimates evoked
-    events : array, shape (n_events, 3)
+    events : ndarray, shape (n_events, 3)
         The events typically returned by the read_events function.
         If some events don't match the events of interest as specified
         by event_id, they will be ignored.
@@ -41,9 +41,9 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq):
 
     Returns
     -------
-    evokeds_data : dict of array
+    evokeds_data : dict ofnd array
         A dict of evoked data for each event type in event_id.
-    toeplitz : dict of array
+    toeplitz : dict of ndarray
         A dict of toeplitz matrix for each event type in event_id.
     """
     nmin = int(tmin * sfreq)
@@ -52,7 +52,7 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq):
     window = nmax - nmin
     n_samples = data.shape[1]
     toeplitz_mat = dict()
-    full_toep = []
+    full_toep = list()
     for eid in event_id:
         # select events by type
         ix_ev = events[:, -1] == event_id[eid]
@@ -86,9 +86,9 @@ def _regularized_covariance(data, reg=None):
 
     Parameters
     ----------
-    data : array, shape (n_channels x n_times)
+    data : ndarray, shape (n_channels x n_times)
         Data for covariance estimation.
-    reg : float, str, None
+    reg : float | str | None
         If not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
@@ -96,12 +96,12 @@ def _regularized_covariance(data, reg=None):
 
     Returns
     -------
-    cov : array, shape=(n_channels x n_channels)
+    cov : ndarray, shape (n_channels x n_channels)
         The covariance matrix.
     """
     if reg is None:
         # compute empirical covariance
-        covar = np.cov(data)
+        cov = np.cov(data)
     else:
         no_sklearn_err = ('the scikit-learn package is missing and '
                           'required for covariance regularization.')
@@ -124,7 +124,7 @@ def _regularized_covariance(data, reg=None):
                 skl_cov = ShrunkCovariance(shrinkage=reg,
                                            store_precision=False,
                                            assume_centered=True)
-        elif isinstance(reg, str):
+        elif isinstance(reg, six.string_types):
             if reg == 'lws':
                 try:
                     from sklearn.covariance import LedoitWolf
@@ -149,9 +149,9 @@ def _regularized_covariance(data, reg=None):
                              "of type str or int (got %s)." % type(reg))
 
         # compute regularized covariance using sklearn
-        covar = skl_cov.fit(data.T).covariance_
+        cov = skl_cov.fit(data.T).covariance_
 
-    return covar
+    return cov
 
 
 def _check_overlapp(epochs):
@@ -198,7 +198,7 @@ def least_square_evoked(epochs, return_toeplitz=False):
     -------
     evokeds : dict of evoked instance
         An dict of evoked instance for each event type in epochs.event_id.
-    toeplitz : dict of array
+    toeplitz : dict of ndarray
         If return_toeplitz is true, return the toeplitz matrix for each event
         type in epochs.event_id.
     """
@@ -240,14 +240,14 @@ class Xdawn(TransformerMixin, ContainsMixin):
     ----------
     n_components : int, default 2
         The number of components to decompose M/EEG signals.
-    signal_cov : None, Covariance instance or ndarray
+    signal_cov : None | Covariance | ndarray, shape (n_channels, n_channels)
         The signal covariance used for whitening of the data. if None, the
         covariance is estimated from the epochs signal.
     correct_overlap : 'auto' or bool
         Apply correction for overlaped ERP for the estimation of evokeds
         responses. if 'auto', the overlapp correction is chosen in function
         of the events in epochs.events.
-    reg : float, str, None
+    reg : float | str | None
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
@@ -382,12 +382,12 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
         Parameters
         ----------
-        epochs : Epoch or array, shape (n_trial x n_channels x n_times)
+        epochs : Epoch | ndarray, shape (n_trial x n_channels x n_times)
             Data on which Xdawn filters will be applied.
 
         Returns
         -------
-        X : array, shape (n_trials x n_components * event_types x n_times)
+        X : ndarray, shape (n_trials x n_components * event_types x n_times)
             Spatially filtered signals.
         """
         if isinstance(epochs, _BaseEpochs):
@@ -419,7 +419,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
         Parameters
         ----------
-        inst : instance of Raw, Epochs or Evoked
+        inst : instance of Raw | Epochs | Evoked
             The data to be processed.
         event_id : dict or None
             The kind of event to apply. if none, a dict of inst will be return
@@ -441,8 +441,8 @@ class Xdawn(TransformerMixin, ContainsMixin):
             event_id = self.event_id
 
         if isinstance(inst, _BaseRaw):
-            out = self._apply_raw(raw=inst, include=include,
-                                  exclude=exclude, event_id=event_id)
+            out = self._apply_raw(raw=inst, include=include, exclude=exclude,
+                                  event_id=event_id)
         elif isinstance(inst, _BaseEpochs):
             out = self._apply_epochs(epochs=inst, include=include,
                                      exclude=exclude, event_id=event_id)
@@ -450,8 +450,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
             out = self._apply_evoked(evoked=inst, include=include,
                                      exclude=exclude, event_id=event_id)
         else:
-            raise ValueError('Data input must be of Raw, Epochs or Evoked '
-                             'type')
+            raise ValueError('Data input must be Raw, Epochs or Evoked type')
         return out
 
     def _apply_raw(self, raw, include, exclude, event_id):
@@ -484,8 +483,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
             raise ValueError('Epochs must be preloaded to apply Xdawn')
 
         picks = pick_types(epochs.info, meg=False, ref_meg=False,
-                           include=self.ch_names,
-                           exclude='bads')
+                           include=self.ch_names, exclude='bads')
 
         # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):

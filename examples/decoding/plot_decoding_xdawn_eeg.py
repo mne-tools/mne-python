@@ -54,7 +54,6 @@ raw = io.Raw(raw_fname, preload=True)
 raw.filter(1, 20, method='iir')
 events = read_events(event_fname)
 
-raw.info['bads'] = ['MEG 2443']  # set bad channels
 picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
                    exclude='bads')
 
