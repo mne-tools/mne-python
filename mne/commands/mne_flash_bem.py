@@ -17,6 +17,7 @@ from __future__ import print_function
 
 # Authors:  Rey Rene Ramirez, Ph.D.   e-mail: rrramir at uw.edu
 #           Alexandre Gramfort, Ph.D.
+#           Lorenzo De Santis
 
 import sys
 import math
@@ -35,7 +36,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     Create 3-Layers BEM model from Flash MRI images
 
     Parameters
-    ----------
+    -----------
     subject : string
         Subject name
     subjects_dir : string
@@ -97,11 +98,11 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         os.chdir("flash")
         if not op.exists('parameter_maps'):
             os.mkdir("parameter_maps")
-        logger.info("--- Converting Flash 5")
+        logger.info("\n---- Converting Flash 5 ----")
         cmd = ['mri_convert', '-flip_angle', str(5 * math.pi / 180), '-tr 25',
                flash05, 'mef05.mgz']
         run_subprocess(cmd, env=env, stdout=sys.stdout)
-        logger.info("--- Converting Flash 30")
+        logger.info("\n---- Converting Flash 30 ----")
         cmd = ['mri_convert', '-flip_angle', str(30 * math.pi / 180), '-tr 25',
                flash30, 'mef30.mgz']
         run_subprocess(cmd, env=env, stdout=sys.stdout)
@@ -109,7 +110,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     os.chdir(op.join(mri_dir, "flash"))
     files = glob.glob("mef*.mgz")
     if unwarp:
-        logger.info("--- Unwarp mgz data sets")
+        logger.info("\n---- Unwarp mgz data sets ----")
         for infile in files:
             outfile = infile.replace(".mgz", "u.mgz")
             cmd = ['grad_unwarp', '-i', infile, '-o', outfile, '-unwarp',
@@ -117,6 +118,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
             run_subprocess(cmd, env=env, stdout=sys.stdout)
     # Step 2 : Create the parameter maps
     # (Clear everything if some of the data were reconverted)
+    logger.info("\n---- Creating the parameter maps ----")
     if not noconvert and op.exists("parameter_maps"):
             shutil.rmtree("parameter_maps")
             logger.info("Parameter maps directory cleared")
@@ -126,13 +128,12 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         for i in range(len(files)):
             files[i] = files[i].replace(".mgz", "u.mgz")
     if len(os.listdir('parameter_maps')) == 0:
-        logger.info("--- Creating the parameter maps")
         cmd = ['mri_ms_fitparms'] + files + ['parameter_maps']
         run_subprocess(cmd, env=env, stdout=sys.stdout)
     else:
         logger.info("Parameter maps were already computed")
     # Step 3 : Synthesize the flash 5 images
-    logger.info("Synthesizing flash 5 images...")
+    logger.info("\n---- Synthesizing flash 5 images ----")
     os.chdir('parameter_maps')
     if not op.exists('flash5.mgz'):
         cmd = ['mri_synthesize', '20 5 5', 'T1.mgz', 'PD.mgz', 'flash5.mgz']
@@ -141,7 +142,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     else:
         logger.info("Synthesized flash 5 volume is already there")
     # Step 4 : Register with MPRAGE
-    logger.info("Registering flash 5 with MPRAGE...")
+    logger.info("\n---- Registering flash 5 with MPRAGE ----")
     if not op.exists('flash5_reg.mgz'):
         if op.exists(op.join(mri_dir, 'T1.mgz')):
             ref_volume = op.join(mri_dir, 'T1.mgz')
@@ -153,7 +154,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     else:
         logger.info("Registered flash 5 image is already there")
     # Step 5a : Convert flash5 into COR
-    logger.info("Converting flash5 volume into COR format...")
+    logger.info("\n---- Converting flash5 volume into COR format ----")
     shutil.rmtree(op.join(mri_dir, 'flash5'), ignore_errors=True)
     os.makedirs(op.join(mri_dir, 'flash5'))
     cmd = ['mri_convert', 'flash5_reg.mgz', op.join(mri_dir, 'flash5')]
@@ -172,8 +173,8 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
             convertbrain = True
     else:
         convertbrain = True
+    logger.info("\n---- Converting T1 volume into COR format ----")
     if convertT1:
-        logger.info("Converting T1 volume into COR format...")
         if not op.isfile('T1.mgz'):
             raise RuntimeError("Both T1 mgz and T1 COR volumes missing.")
         os.makedirs('T1')
@@ -181,8 +182,8 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         run_subprocess(cmd, env=env, stdout=sys.stdout)
     else:
         logger.info("T1 volume is already in COR format")
+    logger.info("\n---- Converting brain volume into COR format ----")
     if convertbrain:
-        logger.info("Converting brain volume into COR format...")
         if not op.isfile('brain.mgz'):
             raise RuntimeError("Both brain mgz and brain COR volumes missing.")
         os.makedirs('brain')
@@ -191,10 +192,10 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     else:
         logger.info("Brain volume is already in COR format")
     # Finally ready to go
-    logger.info("Creating the BEM surfaces...")
+    logger.info("\n---- Creating the BEM surfaces ----")
     cmd = ['mri_make_bem_surfaces', subject]
     run_subprocess(cmd, env=env, stdout=sys.stdout)
-    logger.info("Converting the tri files into surf files...")
+    logger.info("\n---- Converting the tri files into surf files ----")
     os.chdir(bem_dir)
     if not op.exists('flash'):
         os.makedirs('flash')
@@ -208,7 +209,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
                        'mri/flash/parameter_maps/flash5_reg.mgz')]
         run_subprocess(cmd, env=env, stdout=sys.stdout)
     # Cleanup section
-    logger.info("Cleaning up...")
+    logger.info("\n---- Cleaning up ----")
     os.chdir(bem_dir)
     os.remove('inner_skull_tmp.tri')
     os.chdir(mri_dir)
@@ -220,7 +221,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         logger.info("Deleted the brain COR volume")
     shutil.rmtree('flash5')
     logger.info("Deleted the flash5 COR volume")
-    logger.info("Thank you for waiting.\nThe BEM triangulations for this "
+    logger.info("\nThank you for waiting.\nThe BEM triangulations for this "
                 "subject are now available at %s.\nWe hope the BEM meshes "
                 "created will facilitate your MEG and EEG data analyses."
                 % op.join(bem_dir, 'flash'))
@@ -261,8 +262,8 @@ def run():
                             "degrees in Nifti format"), metavar="FILE")
     parser.add_option("-n", "--noconvert", dest="noconvert",
                       action="store_true", default=False,
-                      help=("Assume that the images have already been "
-                            "converted"))
+                      help=("Assume that the Flash MRI images have already "
+                            "been converted to mgz files"))
     parser.add_option("-u", "--unwarp", dest="unwarp",
                       action="store_true", default=False,
                       help=("Run grad_unwarp with -unwarp <type> option on "
