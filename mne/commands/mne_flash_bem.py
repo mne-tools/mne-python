@@ -207,10 +207,26 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
                op.join(subjects_dir, subject,
                        'mri/flash/parameter_maps/flash5_reg.mgz')]
         run_subprocess(cmd, env=env, stdout=sys.stdout)
-    #
-    #
-
+    # Cleanup section
+    logger.info("Cleaning up...")
+    os.chdir(bem_dir)
+    os.remove('inner_skull_tmp.tri')
+    os.chdir(mri_dir)
+    if convertT1:
+        shutil.rmtree('T1')
+        logger.info("Deleted the T1 COR volume")
+    if convertbrain:
+        shutil.rmtree('brain')
+        logger.info("Deleted the brain COR volume")
+    shutil.rmtree('flash5')
+    logger.info("Deleted the flash5 COR volume")
+    logger.info("Thank you for waiting.\nThe BEM triangulations for this "
+                "subject are now available at %s.\nWe hope the BEM meshes "
+                "created will facilitate your MEG and EEG data analyses."
+                % op.join(bem_dir, 'flash'))
+    # Show computed BEM surfaces
     if show:
+        os.chdir(op.join(bem_dir, 'flash'))
         fnames = ['outer_skin.surf', 'outer_skull.surf', 'inner_skull.surf']
         head_col = (0.95, 0.83, 0.83)  # light pink
         skull_col = (0.91, 0.89, 0.67)
