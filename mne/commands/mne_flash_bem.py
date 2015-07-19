@@ -190,6 +190,20 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         run_subprocess(cmd, env=env, stdout=sys.stdout)
     else:
         logger.info("Brain volume is already in COR format")
+    # Finally ready to go
+    logger.info("Creating the BEM surfaces...")
+    cmd = ['mri_make_bem_surfaces', subject]
+    run_subprocess(cmd, env=env, stdout=sys.stdout)
+    logger.info("Converting the tri files into surf files...")
+    os.chdir(bem_dir)
+    if not op.exists('flash'):
+        os.makedirs('flash')
+    os.chdir('flash')
+    surfs = ['inner_skull', 'outer_skull', 'outer_skin']
+    for surf in surfs:
+        shutil.move(op.join(bem_dir, surf+'.tri'), surf+'.tri')
+        cmd = ['mne_convert_surface', '--tri', surf+'.tri', '--surfout', surf+'.surf', '--swap', '--mghmri', op.join(subjects_dir, subject, 'mri/flash/parameter_maps/flash5_reg.mgz')]
+        run_subprocess(cmd, env=env, stdout=sys.stdout)
     #
     #
     '''
