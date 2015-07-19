@@ -250,9 +250,9 @@ def linear_regression_raw(raw, events, event_id=None,
     events[:, 0] -= raw.first_samp
     events[:, 0] /= decim
 
-    conds = list(event_id.keys())
+    conds = list(event_id)
     if covariates is not None:
-        conds += list(covariates.keys())
+        conds += list(covariates)
 
     # time windows (per event type)
     if isinstance(tmin, (float, int)):
@@ -289,7 +289,7 @@ def linear_regression_raw(raw, events, event_id=None,
         n_lags = int(tmax_ - tmin_)
         samples, lags = np.zeros(len(times)), np.zeros(n_lags)
 
-        if cond in event_id.keys():  # for binary predictors
+        if cond in event_id:  # for binary predictors
             ids = ([event_id[cond]] if isinstance(event_id[cond], int)
                    else event_id[cond])
             samples[events[np.in1d(events[:, 2], ids), 0] + int(tmin_)] = 1
