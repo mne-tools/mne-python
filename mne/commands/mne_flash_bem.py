@@ -172,16 +172,16 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
             convertbrain = True
     else:
         convertbrain = True
-    if convertT1 == True:
+    if convertT1:
         logger.info("Converting T1 volume into COR format...")
         if not op.isfile('T1.mgz'):
-            raise RuntimeError ("Both T1 mgz and T1 COR volumes missing.")
+            raise RuntimeError("Both T1 mgz and T1 COR volumes missing.")
         os.makedirs('T1')
         cmd = ['mri_convert', 'T1.mgz', 'T1']
         run_subprocess(cmd, env=env, stdout=sys.stdout)
     else:
         logger.info("T1 volume is already in COR format")
-    if convertbrain == True:
+    if convertbrain:
         logger.info("Converting brain volume into COR format...")
         if not op.isfile('brain.mgz'):
             raise RuntimeError("Both brain mgz and brain COR volumes missing.")
@@ -201,20 +201,14 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     os.chdir('flash')
     surfs = ['inner_skull', 'outer_skull', 'outer_skin']
     for surf in surfs:
-        shutil.move(op.join(bem_dir, surf+'.tri'), surf+'.tri')
-        cmd = ['mne_convert_surface', '--tri', surf+'.tri', '--surfout', surf+'.surf', '--swap', '--mghmri', op.join(subjects_dir, subject, 'mri/flash/parameter_maps/flash5_reg.mgz')]
+        shutil.move(op.join(bem_dir, surf + '.tri'), surf + '.tri')
+        cmd = ['mne_convert_surface', '--tri', surf + '.tri', '--surfout',
+               surf + '.surf', '--swap', '--mghmri',
+               op.join(subjects_dir, subject,
+                       'mri/flash/parameter_maps/flash5_reg.mgz')]
         run_subprocess(cmd, env=env, stdout=sys.stdout)
     #
     #
-    '''
-    print("--- Running mne_flash_bem")
-    os.system('mne_flash_bem --noconvert')
-    os.chdir(bem_dir)
-    if not op.exists('flash'):
-        os.mkdir("flash")
-    os.chdir("flash")
-    print("[done]")
-    '''
 
     if show:
         fnames = ['outer_skin.surf', 'outer_skull.surf', 'inner_skull.surf']
