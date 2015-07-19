@@ -10,6 +10,8 @@ Current
 
 Changelog
 ~~~~~~~~~
+    - Add Xdawn algorithm for denoising and decoding of ERP/ERF by `Alexandre
+    Barachant`_
 
     - Add support for generalized M-way repeated measures ANOVA for fully balanced designs with :func:`mne.stats.f_mway_rm` by `Denis Engemann`_
 
