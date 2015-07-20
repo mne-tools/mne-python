@@ -7,7 +7,10 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import (assert_array_equal, 
+                           assert_array_almost_equal, assert_allclose)
+
+from scipy.signal import hann
 
 from nose.tools import assert_raises, assert_true, assert_equal
 
@@ -67,7 +70,7 @@ def test_regression():
 
 
 @testing.requires_testing_data
-def test_continuous_regression():
+def test_continuous_regression_no_overlap():
     tmin, tmax = -.1, .5
 
     raw = mne.io.Raw(raw_fname, preload=True)
@@ -81,8 +84,24 @@ def test_continuous_regression():
 
     revokeds = linear_regression_raw(raw, events, event_id,
                                      tmin=tmin, tmax=tmax,
-                                     reject=False)
+                                     reject=None)
 
     for cond in event_id.keys():
-        assert_array_almost_equal(revokeds[cond].data * 1e+15,
-                                  epochs[cond].average().data * 1e+15)
+        assert_allclose(revokeds[cond].data,
+                        epochs[cond].average().data)
+
+
+def test_continuous_regression_with_overlap():
+    signal = np.zeros(100000)
+    times = [1000, 2500, 3000, 5000, 5250, 7000, 7250, 8000]
+    events = np.zeros((len(times, 3), int)
+    events[:, 2] = 1
+    events[:, 0] = times
+    signal[events[:, 0]] = 1.
+    effect = hann(101)
+    signal = np.convolve(signal, effect)[:len(signal)]
+    raw = mne.io.RawArray(signal[np.newaxis, :], mne.create_info(1, 100, 'eeg'))
+
+    assert_allclose(effect,
+                    linear_regression_raw(raw, events, {1:1}, tmin=0)[1]
+                    .data.flatten())
