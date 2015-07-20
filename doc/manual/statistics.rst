@@ -13,10 +13,8 @@ Parametric statistics
 Models
 ^^^^^^
 
-- :func:`mne.stats.linear_regression` allows to compute ordinary least square
-regressions on multiple targets, e.g., sensors, time points across trials (samples).
-For each regressor it returns the beta values, t-staistics, and uncorrected
-significance values. While it can be used as a test it is particularly useful
+- :func:`mne.stats.linear_regression` allows to compute ordinary least square regressions on multiple targets, e.g., sensors, time points across trials (samples).
+For each regressor it returns the beta values, t-staistics, and uncorrected significance values. While it can be used as a test it is particularly useful
 to compute weighted averages.
 
 - :func:`mne.stats.f_mway_rm` computes a generalized M-way repeated
