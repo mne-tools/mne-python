@@ -1805,3 +1805,41 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
         mask |= isclose(times, tmin)
         mask |= isclose(times, tmax)
     return mask
+
+
+def random_permutation(n_samples, random_state=None):
+    """Helper to emulate the randperm matlab function.
+
+    It returns a vector containing a random permutation of the
+    integers between 0 and n_samples-1. It returns the same random numbers
+    than randperm matlab function whenever the random_state is the same
+    as the matlab's random seed.
+
+    This function is useful for comparing against matlab scripts
+    which use the randperm function.
+
+    Note: the randperm(n_samples) matlab function generates a random
+    sequence between 1 and n_samples, whereas
+    random_permutation(n_samples, random_state) function generates
+    a random sequence between 0 and n_samples-1, that is:
+    randperm(n_samples) = random_permutation(n_samples, random_state) - 1
+
+    Parameters
+    ----------
+    n_samples : int
+        End point of the sequence to be permuted (excluded, i.e., the end point
+        is equal to n_samples-1)
+    random_state : int | None
+        Random seed for initializing the pseudo-random number generator.
+
+    Returns
+    -------
+    randperm : ndarray, int
+        Randomly permuted sequence between 0 and n-1.
+    """
+    rng = check_random_state(random_state)
+    idx = rng.rand(n_samples)
+
+    randperm = np.argsort(idx)
+
+    return randperm
