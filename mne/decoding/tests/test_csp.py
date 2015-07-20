@@ -115,6 +115,7 @@ def test_plot_pattern():
     csp.plot_patterns(epochs.info, components=np.arange(10))
 
 
+@requires_sklearn
 def test_plot_filters():
     """Test plot for Common Spatial Patterns
     """

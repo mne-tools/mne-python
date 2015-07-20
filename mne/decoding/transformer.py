@@ -1,5 +1,6 @@
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -20,8 +21,8 @@ class Scaler(TransformerMixin):
 
     Parameters
     ----------
-    info : dict
-        measurement info
+    info : instance of Info
+        The measurement info
     with_mean : boolean, True by default
         If True, center the data before scaling.
     with_std : boolean, True by default
@@ -30,11 +31,11 @@ class Scaler(TransformerMixin):
 
     Attributes
     ----------
-    info : dict
+    info : instance of Info
         The measurement info
     ch_mean_ : dict
         The mean value for each channel type
-    std_ : array
+    std_ : dict
         The standard deviation for each channel type
      """
     def __init__(self, info, with_mean=True, with_std=True):
@@ -45,12 +46,13 @@ class Scaler(TransformerMixin):
         self.std_ = dict()  # TODO rename attribute
 
     def fit(self, epochs_data, y):
-        """
+        """Standardizes data across channels
+
         Parameters
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data to concatenate channels.
-        y : array
+        y : array, shape (n_epochs,)
             The label for each epoch.
 
         Returns
@@ -91,12 +93,13 @@ class Scaler(TransformerMixin):
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : None
-            Not used.
+        y : None | array, shape (n_epochs,)
+            The label for each epoch.
+            If None not used. Defaults to None.
 
         Returns
         -------
-        X : array of shape (n_epochs, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
         """
         if not isinstance(epochs_data, np.ndarray):
@@ -120,8 +123,9 @@ class Scaler(TransformerMixin):
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : None
-            Not used.
+        y : None | array, shape (n_epochs,)
+            The label for each epoch.
+            If None not used. Defaults to None.
 
         Returns
         -------
@@ -148,7 +152,7 @@ class ConcatenateChannels(TransformerMixin):
 
     Parameters
     ----------
-    info : dict
+    info : instance of Info
         The measurement info.
 
     Attributes
@@ -174,7 +178,7 @@ class ConcatenateChannels(TransformerMixin):
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data to concatenate channels.
-        y : array
+        y : array, shape (n_epochs,)
             The label for each epoch.
 
         Returns
@@ -196,8 +200,9 @@ class ConcatenateChannels(TransformerMixin):
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : None
-            Not used.
+        y : None | array, shape (n_epochs,)
+            The label for each epoch.
+            If None not used. Defaults to None.
 
         Returns
         -------
@@ -226,8 +231,9 @@ class ConcatenateChannels(TransformerMixin):
         ----------
         X : array, shape (n_epochs, n_channels * n_times)
             The feature vector concatenated over channels
-        y : None
-            Not used.
+        y : None | array, shape (n_epochs,)
+            The label for each epoch.
+            If None not used. Defaults to None.
 
         Returns
         -------
@@ -289,7 +295,7 @@ class PSDEstimator(TransformerMixin):
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : array
+        y : array, shape (n_epochs,)
             The label for each epoch
 
         Returns
@@ -311,8 +317,9 @@ class PSDEstimator(TransformerMixin):
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data
-        y : None
-            Not used.
+        y : None | array, shape (n_epochs,)
+            The label for each epoch.
+            If None not used. Defaults to None.
 
         Returns
         -------
@@ -361,7 +368,7 @@ class FilterEstimator(TransformerMixin):
 
     Parameters
     ----------
-    info : dict
+    info : instance of Info
         Measurement info.
     l_freq : float | None
         Low cut-off frequency in Hz. If None the data are only low-passed.
@@ -417,7 +424,7 @@ class FilterEstimator(TransformerMixin):
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : array
+        y : array, shape (n_epochs,)
             The label for each epoch.
 
         Returns
@@ -465,8 +472,9 @@ class FilterEstimator(TransformerMixin):
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : None
-            Not used.
+        y : None | array, shape (n_epochs,)
+            The label for each epoch.
+            If None not used. Defaults to None.
 
         Returns
         -------
