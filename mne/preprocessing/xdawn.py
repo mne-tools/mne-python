@@ -4,10 +4,8 @@
 # License: BSD (3-clause)
 
 import copy as cp
-import six
 import numpy as np
 from scipy import linalg
-from distutils.version import LooseVersion
 
 from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
@@ -16,6 +14,7 @@ from ..io.pick import pick_types
 from .ica import _get_fast_dot
 from ..utils import logger
 from ..decoding.mixin import TransformerMixin
+from ..cov import _regularized_covariance
 from ..channels.channels import ContainsMixin
 
 
@@ -79,79 +78,6 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq):
         evoked_data[eid] = all_evokeds[idx].T
 
     return evoked_data, toeplitz_mat
-
-
-def _regularized_covariance(data, reg=None):
-    """Compute a regularized covariance from data.
-
-    Parameters
-    ----------
-    data : ndarray, shape (n_channels, n_times)
-        Data for covariance estimation.
-    reg : float | str | None (default None)
-        If not None, allow regularization for covariance estimation
-        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
-        Oracle Approximating Shrinkage ('oas').
-
-    Returns
-    -------
-    cov : ndarray, shape (n_channels, n_channels)
-        The covariance matrix.
-    """
-    if reg is None:
-        # compute empirical covariance
-        cov = np.cov(data)
-    else:
-        no_sklearn_err = ('the scikit-learn package is missing and '
-                          'required for covariance regularization.')
-        # use sklearn covariance estimators
-        if isinstance(reg, float):
-            if (reg < 0) or (reg > 1):
-                raise ValueError('0 <= shrinkage <= 1 for '
-                                 'covariance regularization.')
-            try:
-                import sklearn
-                sklearn_version = LooseVersion(sklearn.__version__)
-                from sklearn.covariance import ShrunkCovariance
-            except ImportError:
-                raise Exception(no_sklearn_err)
-            if sklearn_version < '0.12':
-                skl_cov = ShrunkCovariance(shrinkage=reg,
-                                           store_precision=False)
-            else:
-                # init sklearn.covariance.ShrunkCovariance estimator
-                skl_cov = ShrunkCovariance(shrinkage=reg,
-                                           store_precision=False,
-                                           assume_centered=True)
-        elif isinstance(reg, six.string_types):
-            if reg == 'lws':
-                try:
-                    from sklearn.covariance import LedoitWolf
-                except ImportError:
-                    raise Exception(no_sklearn_err)
-                # init sklearn.covariance.LedoitWolf estimator
-                skl_cov = LedoitWolf(store_precision=False,
-                                     assume_centered=True)
-            elif reg == 'oas':
-                try:
-                    from sklearn.covariance import OAS
-                except ImportError:
-                    raise Exception(no_sklearn_err)
-                # init sklearn.covariance.OAS estimator
-                skl_cov = OAS(store_precision=False,
-                              assume_centered=True)
-            else:
-                raise ValueError("regularization parameter should be "
-                                 "'lwf' or 'oas'")
-        else:
-            raise ValueError("regularization parameter should be "
-                             "of type str or int (got %s)." % type(reg))
-
-        # compute regularized covariance using sklearn
-        cov = skl_cov.fit(data.T).covariance_
-
-    return cov
 
 
 def _check_overlapp(epochs):
