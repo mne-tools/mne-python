@@ -35,6 +35,8 @@ Changelog
 
     - Add support for splitting epochs into multiple files in :func:`mne.Epochs.save` by `Mainak Jas`_ and `Alexandre Gramfort`_
 
+    - Add support for jointly resampling a raw object and event matrix to avoid issues with resampling status channels by `Marijn van Vliet`
+
     - Add new method :class:`mne.preprocessing.Xdawn` for denoising and
     decoding of ERP/ERF by `Alexandre Barachant`_
 
@@ -48,6 +50,8 @@ BUG
     - Fix FFT filter artifacts when using short windows in overlap-add by `Eric Larson`_
 
     - Fix picking channels from forward operator could return a channel ordering different from ``info['chs']`` by `Chris Bailey`_
+
+    - Fix dropping of events after downsampling stim channels by `Marijn van Vliet`
 
 .. _changes_0_9:
 

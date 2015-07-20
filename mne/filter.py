@@ -1346,6 +1346,61 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     return y
 
 
+def _resample_stim_channels(stim_data, up, down):
+    """Resample stim channels, carefully.
+
+    Parameters
+    ----------
+    stim_data : 1D array, shape (n_samples,) |
+                2D array, shape (n_stim_channels, n_samples)
+        Stim channels to resample.
+    up : float
+        Factor to upsample by.
+    down : float
+        Factor to downsample by.
+
+    Returns
+    -------
+    stim_resampled : 2D array, shape (n_stim_channels, n_samples_resampled)
+        The resampled stim channels
+
+    Note
+    ----
+    The approach taken here is equivalent to the approach in the C-code.
+    See the decimate_stimch function in MNE/mne_browse_raw/save.c
+    """
+    stim_data = np.atleast_2d(stim_data)
+    n_stim_channels, n_samples = stim_data.shape
+
+    ratio = float(up) / down
+    resampled_n_samples = int(n_samples * ratio)
+
+    stim_resampled = np.zeros((n_stim_channels, resampled_n_samples))
+
+    # Figure out which points in old data to subsample protect against
+    # out-of-bounds, which can happen (having one sample more than
+    # expected) due to padding
+    sample_picks = np.minimum(
+        (np.arange(resampled_n_samples) / ratio).astype(int),
+        n_samples - 1
+    )
+
+    # Create windows starting from sample_picks[i], ending at sample_picks[i+1]
+    windows = zip(sample_picks, np.r_[sample_picks[1:], n_samples])
+
+    # Use the first non-zero value in each window
+    for window_i, window in enumerate(windows):
+        for stim_num, stim in enumerate(stim_data):
+            nonzero = stim[window[0]:window[1]].nonzero()[0]
+            if len(nonzero) > 0:
+                val = stim[window[0] + nonzero[0]]
+            else:
+                val = stim[window[0]]
+            stim_resampled[stim_num, window_i] = val
+
+    return stim_resampled
+
+
 def detrend(x, order=1, axis=-1):
     """Detrend the array x.
 

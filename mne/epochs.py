@@ -1367,7 +1367,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
-                 verbose=None):
+                 copy=False, verbose=None):
         """Resample preloaded data
 
         Parameters
@@ -1380,9 +1380,17 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Window to use in resampling. See scipy.signal.resample.
         n_jobs : int
             Number of jobs to run in parallel.
+        copy : bool
+            Whether to operate on a copy of the data (True) or modify data
+            in-place (False). Defaults to False.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The resampled epochs object.
 
         Notes
         -----
@@ -1392,13 +1400,18 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # XXX this could operate on non-preloaded data, too
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
-        o_sfreq = self.info['sfreq']
-        self._data = resample(self._data, sfreq, o_sfreq, npad,
+
+        inst = self.copy() if copy else self
+
+        o_sfreq = inst.info['sfreq']
+        inst._data = resample(inst._data, sfreq, o_sfreq, npad,
                               n_jobs=n_jobs)
         # adjust indirectly affected variables
-        self.info['sfreq'] = sfreq
-        self.times = (np.arange(self._data.shape[2], dtype=np.float) /
-                      sfreq + self.times[0])
+        inst.info['sfreq'] = sfreq
+        inst.times = (np.arange(inst._data.shape[2], dtype=np.float) /
+                      sfreq + inst.times[0])
+
+        return inst
 
     def copy(self):
         """Return copy of Epochs instance"""

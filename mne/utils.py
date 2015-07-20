@@ -1482,8 +1482,25 @@ def _url_to_local_path(url, path):
     return destination
 
 
-def _get_stim_channel(stim_channel):
-    """Helper to determine the appropriate stim_channel"""
+def _get_stim_channel(stim_channel, info):
+    """Helper to determine the appropriate stim_channel
+
+    First, 'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2', etc.
+    are read. If these are not found, it will fall back to 'STI 014' if
+    present, then fall back to the first channel of type 'stim', if present.
+
+    Parameters
+    ----------
+    stim_channel : str | list of str | None
+        The stim channel selected by the user.
+    info : instance of Info
+        An information structure containing information about the channels.
+
+    Returns
+    -------
+    stim_channel : str | list of str
+        The name of the stim channel(s) to use
+    """
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
             if not isinstance(stim_channel, string_types):
@@ -1496,13 +1513,24 @@ def _get_stim_channel(stim_channel):
     stim_channel = list()
     ch_count = 0
     ch = get_config('MNE_STIM_CHANNEL')
-    while(ch is not None):
+    while(ch is not None and ch in info['ch_names']):
         stim_channel.append(ch)
         ch_count += 1
         ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
-    if ch_count == 0:
-        stim_channel = ['STI 014']
-    return stim_channel
+    if ch_count > 0:
+        return stim_channel
+
+    if 'STI 014' in info['ch_names']:
+        return 'STI 014'
+
+    from .io.pick import pick_types
+    stim_channel = pick_types(info, meg=False, ref_meg=False, stim=True)
+    if len(stim_channel) > 0:
+        stim_channel = [info['ch_names'][ch_] for ch_ in stim_channel]
+        return stim_channel
+
+    raise ValueError("No stim channels found. Consider specifying them "
+                     "manually using the 'stim_channel' parameter.")
 
 
 def _check_fname(fname, overwrite):
