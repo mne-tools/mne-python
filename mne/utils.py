@@ -1815,7 +1815,7 @@ def random_permutation(n_samples, random_state=None):
     >>> random_state=42
     >>> p = random_permutation(n_samples, random_state)
     >>> p
-    array([6, 5, 4, 0, 3, 8, 9, 2, 7, 1])
+    array([6, 5, 4, 0, 3, 8, 9, 2, 7, 1], dtype=int64)
     """
     rng = check_random_state(random_state)
     idx = rng.rand(n_samples)
