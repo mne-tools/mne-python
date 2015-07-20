@@ -37,6 +37,9 @@ Changelog
 
     - Add support for jointly resampling a raw object and event matrix to avoid issues with resampling status channels by `Marijn van Vliet`
 
+    - Add new method :class:`mne.preprocessing.Xdawn` for denoising and
+    decoding of ERP/ERF by `Alexandre Barachant`_
+
 BUG
 ~~~
 
@@ -1083,3 +1086,5 @@ of commits):
 .. _Chris Bailey: https://github.com/cjayb
 
 .. _Ross Maddox: http://faculty.washington.edu/rkmaddox/
+
+.. _Alexandre Barachant: http://alexandre.barachant.org
