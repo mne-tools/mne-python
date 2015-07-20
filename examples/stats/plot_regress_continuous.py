@@ -1,7 +1,7 @@
 """
-=========================================
+========================================
 Regression on continuous data (rER[P/F])
-=========================================
+========================================
 This demonstrates how rERPs/regressing the continuous data is a
 generalisation of traditional averaging. If all preprocessing steps
 are the same and if no overlap between epochs exists and if all
@@ -12,10 +12,11 @@ is inapplicable, but regression can estimate, including those of
 continuous predictors.
 
 References
--------------
+----------
 See Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
 waveforms: II. Non-linear effects, overlap correction, and practical
 considerations. Psychophysiology, 52(2), 169-189.
+
 Authors: Jona Sassenhagen <jona.sassenhagen@gmail.de>
 License: BSD (3-clause)
 """
@@ -54,9 +55,9 @@ evoked_dict = linear_regression_raw(raw, events=events, event_id=event_id,
 
 # plot both results
 cond = "faces"
-print("traditional ERF:")
+plt.title("Traditional ERF")
 epochs[cond].average().plot()
-print("rERF:")
+plt.title("rERF")
 evoked_dict[cond].plot()
 
 # check if results are virtually identical
