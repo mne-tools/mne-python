@@ -142,7 +142,7 @@ def linear_regression_raw(raw, events, event_id=None,
                           covariates=None,
                           reject=None, tstep=1.,
                           decim=1, picks=None,
-                          solver='default'):
+                          solver='pinv'):
     """Estimate regression-based evoked potentials/fields by linear modelling
     of the full M/EEG time course, including correction for overlapping
     potentials and allowing for continuous/scalar predictors. Internally, this
@@ -220,7 +220,7 @@ def linear_regression_raw(raw, events, event_id=None,
 
     if isinstance(solver, str):
         if solver == 'pinv':
-            fast_dot = get_fast_dot()
+            fast_dot = _get_fast_dot()
 
             # inv is slightly (~10%) faster, but pinv seemingly more stable
             def solver(X, Y):
