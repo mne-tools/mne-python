@@ -18,6 +18,7 @@ import mne
 from mne import read_source_estimate
 from mne.datasets import testing
 from mne.stats.regression import linear_regression, linear_regression_raw
+from mne.io import RawArray
 
 data_path = testing.data_path(download=False)
 stc_fname = op.join(data_path, 'MEG', 'sample',
@@ -100,7 +101,7 @@ def test_continuous_regression_with_overlap():
     signal[events[:, 0]] = 1.
     effect = hann(101)
     signal = np.convolve(signal, effect)[:len(signal)]
-    raw = mne.io.RawArray(signal[np.newaxis, :], mne.create_info(1, 100, 'eeg'))
+    raw = RawArray(signal[np.newaxis, :], mne.create_info(1, 100, 'eeg'))
 
     assert_allclose(effect,
                     linear_regression_raw(raw, events, {1:1}, tmin=0)[1]
