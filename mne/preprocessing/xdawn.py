@@ -304,7 +304,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
         Parameters
         ----------
-        epochs : Epoch object
+        epochs : Epochs object
             An instance of Epoch on which Xdawn filters will be trained.
         y : ndarray | None (default None)
             Not used, here for compatibility with decoding API.
@@ -378,12 +378,12 @@ class Xdawn(TransformerMixin, ContainsMixin):
 
         Parameters
         ----------
-        epochs : Epoch | ndarray, shape (n_trial, n_channels, n_times)
+        epochs : Epochs | ndarray, shape (n_epochs, n_channels, n_times)
             Data on which Xdawn filters will be applied.
 
         Returns
         -------
-        X : ndarray, shape (n_trials, n_components * event_types, n_times)
+        X : ndarray, shape (n_epochs, n_components * event_types, n_times)
             Spatially filtered signals.
         """
         if isinstance(epochs, _BaseEpochs):
