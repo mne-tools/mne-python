@@ -173,13 +173,43 @@ def test_generalization_across_time():
     gat.predict(epochs[7:])
     gat.score(epochs[7:])
 
+    # Test training time parameters
+    gat_ = copy.deepcopy(gat)
+    # --- start stop outside time range
+    gat_.train_times = dict(start=-999.)
+    assert_raises(ValueError, gat_.fit, epochs)
+    gat_.train_times = dict(start=999.)
+    assert_raises(ValueError, gat_.fit, epochs)
+    # --- impossible slices
+    gat_.train_times = dict(step=.000001)
+    assert_raises(ValueError, gat_.fit, epochs)
+    gat_.train_times = dict(length=.000001)
+    assert_raises(ValueError, gat_.fit, epochs)
+    gat_.train_times = dict(length=999.)
+    assert_raises(ValueError, gat_.fit, epochs)
+
     # Test testing time parameters
+    # --- outside time range
+    gat.test_times = dict(start=-999.)
+    assert_raises(ValueError, gat.predict, epochs)
+    gat.test_times = dict(start=999.)
+    assert_raises(ValueError, gat.predict, epochs)
+    # --- impossible slices
+    gat.test_times = dict(step=.000001)
+    assert_raises(ValueError, gat.predict, epochs)
+    gat_ = copy.deepcopy(gat)
+    gat_.train_times_['length'] = .000001
+    gat_.test_times = dict(length=.000001)
+    assert_raises(ValueError, gat_.predict, epochs)
+    # --- test time region of interest
     gat.test_times = dict(step=.150)
     gat.predict(epochs)
     assert_array_equal(np.shape(gat.y_pred_), (15, 5, 14, 1))
+    # --- silly value
     gat.test_times = 'foo'
     assert_raises(ValueError, gat.predict, epochs)
     assert_raises(RuntimeError, gat.score)
+    # --- unmatched length between training and testing time
     gat.test_times = dict(length=.150)
     assert_raises(ValueError, gat.predict, epochs)
 

@@ -541,6 +541,23 @@ def _sliding_window(times, window_params):
         if 'length' not in window_params:
             window_params['length'] = freq
 
+        if (window_params['start'] < times[0] or
+                window_params['start'] > times[-1]):
+            raise ValueError(
+                '`start` (%.2f s) outside time range [%.2f, %.2f].' % (
+                    window_params['start'], times[0], times[-1]))
+        if (window_params['stop'] < times[0] or
+                window_params['stop'] > times[-1]):
+            raise ValueError(
+                '`stop` (%.2f s) outside time range [%.2f, %.2f].' % (
+                    window_params['stop'], times[0], times[-1]))
+        if window_params['step'] < freq:
+            raise ValueError('`step` must be >= 1 / sampling_frequency')
+        if window_params['length'] < freq:
+            raise ValueError('`length` must be >= 1 / sampling_frequency')
+        if window_params['length'] > np.ptp(times):
+            raise ValueError('`length` must be <= time range')
+
         # Convert seconds to index
 
         def find_time_idx(t):  # find closest time point
