@@ -19,11 +19,13 @@ from . import egi
 from . import fiff
 from . import kit
 from . import pick
+from . import gdf
 
 from .array import RawArray
 from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .edf import read_raw_edf
+from .gdf import read_raw_gdf
 from .egi import read_raw_egi
 from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
