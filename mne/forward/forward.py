@@ -1166,16 +1166,15 @@ def apply_forward(fwd, stc, info=None, start=None, stop=None,
     # project the source estimate to the sensor space
     data, times = _apply_forward(fwd, stc, start, stop)
 
-    info_out = deepcopy(info)
-    evoked = EvokedArray(data, info_out, times[0], nave=1)
-    evoked.times = times
-
+    # fill the measurement info
     sfreq = float(1.0 / stc.tstep)
+    info_out = _fill_measurement_info(info, fwd, sfreq)
+
+    evoked = EvokedArray(data, info_out, times[0], nave=1)
+
+    evoked.times = times
     evoked.first = int(np.round(evoked.times[0] * sfreq))
     evoked.last = evoked.first + evoked.data.shape[1] - 1
-
-    # fill the measurement info
-    evoked.info = _fill_measurement_info(evoked.info, fwd, sfreq)
 
     return evoked
 
