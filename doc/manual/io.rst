@@ -322,7 +322,7 @@ information nor head shape digitization information. Therefore, this information
 has to be provided separately. For that purpose all readers have a montage
 parameter to read locations from standard electrode templates or a polhemus
 digitizer file. This can also be done post-hoc using the
-:py:method:`mne.io.Raw.set_montage` method of the Raw object in memory.
+:func:`mne.io.Raw.set_montage` method of the Raw object in memory.
 
 
 When using the locations of the fiducial points the digitization data

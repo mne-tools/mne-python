@@ -97,6 +97,7 @@ unused_docs = ['config_doc.rst']
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
 exclude_trees = ['_build']
+exclude_patterns = ['source/generated']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -240,8 +241,8 @@ htmlhelp_basename = 'mne-doc'
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ('index', 'MNE.tex', u'MNE Manual',
-     u'MNE Contributors', 'manual'),
+#    ('index', 'MNE.tex', u'MNE Manual',
+#     u'MNE Contributors', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
