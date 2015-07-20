@@ -180,7 +180,9 @@ class CSP(TransformerMixin):
                       mask_params=None, outlines='head', contours=6,
                       image_interp='bilinear', average=None, head_pos=None):
         """
-        Plot topographic patterns of CSP components
+        Plot topographic patterns of CSP components.
+        The CSP patterns explain how the measured data was generated
+        from the neural sources (a.k.a. the forward model).
 
         Parameters
         ----------
@@ -320,7 +322,9 @@ class CSP(TransformerMixin):
                      mask_params=None, outlines='head', contours=6,
                      image_interp='bilinear', average=None, head_pos=None):
         """
-        Plot topographic filters of CSP components
+        Plot topographic filters of CSP components.
+        The CSP filters are used to extract discriminant neural sources from
+        the measured data (a.k.a. the backward model).
 
         Parameters
         ----------
