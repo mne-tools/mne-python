@@ -35,7 +35,7 @@ ICA finds directions in the feature space corresponding to projections with high
 
 - not necessarily orthogonal in the original feature space, but orthogonal in the whitened feature space.
 - In contrast, PCA finds orthogonal directions in the raw feature
-space that correspond to directions accounting for maximum variance.
+  space that correspond to directions accounting for maximum variance.
 - or differently, if data only reflect Gaussian processes ICA and PCA are equivalent.
 
 
