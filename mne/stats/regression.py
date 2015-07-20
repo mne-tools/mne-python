@@ -15,17 +15,9 @@ from scipy import linalg
 from ..source_estimate import SourceEstimate
 from ..epochs import _BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger
+from ..utils import logger, _get_fast_dot, _reject_data_segments
 from ..io.pick import pick_types
-
-
-def get_fast_dot():
-    try:
-        from sklearn.utils.extmath import fast_dot
-    except ImportError:
-        fast_dot = np.dot
-    return fast_dot
-
+from . import pick_info
 
 def linear_regression(inst, design_matrix, names=None):
     """Fit Ordinary Least Squares regression (OLS)
@@ -148,7 +140,7 @@ def _fit_lm(data, design_matrix, names):
 def linear_regression_raw(raw, events, event_id=None,
                           tmin=-.1, tmax=1,
                           covariates=None,
-                          reject=True, tstep=1.,
+                          reject=None, tstep=1.,
                           decim=1, picks=None,
                           solver='default'):
     """Estimate regression-based evoked potentials/fields by linear modelling
@@ -194,17 +186,15 @@ def linear_regression_raw(raw, events, event_id=None,
         types/conditions to be estimated and are matched with the time points
         given by the first column of ```events```. If None, only binary events
         (from event_id) are used.
-    reject : bool | dict
+    reject : None | dict
         Activate rejection parameters based on peak-to-peak amplitude in
         continuously selected subwindows. If reject is None, no rejection is
-        done. If True, the following default is employed:
-            reject = dict(grad=4000e-12, # T / m (gradiometers)
-                          mag=4e-11, # T (magnetometers)
-                          eeg=40e-5, # uV (EEG channels)
-                          eog=250e-5 # uV (EOG channels)
-                         )
-        If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg') and
-        values are the maximal peak-to-peak values to select rejected epochs.
+        done. If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg') 
+        and values are the maximal peak-to-peak values to select rejected 
+        epochs. E.g. reject = dict(grad=4000e-12, # T / m (gradiometers)
+                                   mag=4e-11, # T (magnetometers)
+                                   eeg=40e-5, # uV (EEG channels)
+                                   eog=250e-5 # uV (EOG channels))
     tstep : float
         Length of windows for peak-to-peak detection.
     decim : int
@@ -217,7 +207,7 @@ def linear_regression_raw(raw, events, event_id=None,
     solver : str | function
         Either a function which takes as its inputs the predictor matrix X
         and the observation matrix Y, and returns the coefficient matrix b;
-        or a string (for now, only 'defaults'), in which case the solver used
+        or a string (for now, only 'pinv'), in which case the solver used
         is dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T.
 
     Returns
@@ -228,24 +218,23 @@ def linear_regression_raw(raw, events, event_id=None,
         other Evoked object, including e.g. plotting or statistics.
     """
 
-    if solver == 'default':
-        fast_dot = get_fast_dot()
+    if isinstance(solver, str):
+        if solver == 'pinv':
+            fast_dot = get_fast_dot()
 
-        # inv is slightly (~10%) faster, but pinv seemingly more stable
-        def solver(X, Y):
-            return fast_dot(linalg.pinv(fast_dot(X.T, X)),
-                            fast_dot(X.T, Y.T)).T
+            # inv is slightly (~10%) faster, but pinv seemingly more stable
+            def solver(X, Y):
+                return fast_dot(linalg.pinv(fast_dot(X.T, X)),
+                                fast_dot(X.T, Y.T)).T
+        else:
+            raise ValueError("No such solver: {}".format(solver))
 
     # prepare raw and events
     if picks is None:
-        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True,
-                           stim=False, eog=False, ecg=False,
-                           emg=False, exclude=['bads'])
-    raw = raw.pick_channels([raw.ch_names[ii] for ii in picks], copy=True)
-    sfreq = raw.info["sfreq"] = raw.info["sfreq"] / decim
-    data, times = raw[:]
-    data = data[:, ::decim]
-    times = times[::decim]
+        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
+    info = pick_info(raw.info, picks)
+    info["sfreq"] /= decim
+    data, times = raw[picks, ::decim]
     events = events.copy()
     events[:, 0] -= raw.first_samp
     events[:, 0] /= decim
@@ -256,14 +245,14 @@ def linear_regression_raw(raw, events, event_id=None,
 
     # time windows (per event type)
     if isinstance(tmin, (float, int)):
-        tmin = dict((cond, int(tmin * sfreq)) for cond in conds)
+        tmin = dict((cond, int(tmin * info["sfreq"])) for cond in conds)
     else:
-        tmin = dict((cond, int(tmin.get(cond, -.1) * sfreq))
+        tmin = dict((cond, int(tmin.get(cond, -.1) * info["sfreq"]))
                     for cond in conds)
     if isinstance(tmax, (float, int)):
-        tmax = dict((cond, int((tmax * sfreq) + 1.)) for cond in conds)
+        tmax = dict((cond, int((tmax * info["sfreq"]) + 1.)) for cond in conds)
     else:
-        tmax = dict((cond, int((tmax.get(cond, 1.) * sfreq) + 1))
+        tmax = dict((cond, int((tmax.get(cond, 1.) * info["sfreq"]) + 1))
                     for cond in conds)
 
     # Construct predictor matrix
@@ -314,17 +303,9 @@ def linear_regression_raw(raw, events, event_id=None,
                           for line in big_arr.T])
 
     # additionally, reject positions based on extreme steps in the data
-    if reject is not False:
-        from ..utils import _reject_data_segments
-        if not isinstance(reject, dict):
-            reject = dict(grad=4000e-12,  # T / m (gradiometers)
-                          mag=4e-11,  # T (magnetometers)
-                          eeg=40e-5,  # uV (EEG channels)
-                          eog=250e-5  # uV (EOG channels)
-                          )
-
+    if reject is not None:
         _, inds = _reject_data_segments(data, reject, None, None,
-                                        raw.info, tstep)
+                                        info, tstep)
         for t0, t1 in inds:
             has_val[t0:t1] = False
 
@@ -342,7 +323,7 @@ def linear_regression_raw(raw, events, event_id=None,
     for cond in conds:
         tmin_, tmax_ = tmin[cond], tmax[cond]
         ev_dict[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                    raw.info, tmin_ / sfreq,
+                                    info, tmin_ / info["sfreq"],
                                     comment=cond, nave=cond_length[cond],
                                     kind='mean')  # note that nave and kind are
         cum += tmax_ - tmin_                      # technically not correct
