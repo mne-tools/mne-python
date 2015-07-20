@@ -1781,39 +1781,40 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
 
 def custom_randperm(n, rng):
     """Helper to emulate the randperm matlab function.
+
     It returns a vector containing a random permutation of the
-    integers between 0 and n-1.
-    It returns the same random numbers than randperm
-    matlab function whenever the calling random number generator (rng)
-    uses the same matlab's random seed.
+    integers between 0 and n-1. It returns the same random numbers
+    than randperm matlab function whenever the calling random number
+    generator (rng) uses the same matlab's random seed.
+
     This function is useful for comparing against matlab scripts
     which use the randperm function.
+
     Note: randperm(n) matlab function generates a random sequence between
     1 and n, whereas custom_randperm(n, rng) function generates a random
     sequence between 0 and n-1, that is:
     randperm(n) = custom_randperm(n, rng) - 1
 
     Parameters
-        ----------
-        n : int
+    ----------
+    n : int
         End point of the sequence to be permuted (excluded, i.e., the end point
         is equal to n-1)
-        rng : np.random.RandomState
+    rng : np.random.RandomState
         Pseudo-random number generator used to generate the random sequence.
 
-        Returns
-        -------
-        randperm : ndarray, int
+    Returns
+    -------
+    randperm : ndarray, int
         Randomly permuted sequence between 0 and n-1.
 
-        Example
-        -----
-        >>> rng = np.random.RandomState(42)
-        >>> p = custom_randperm(10, rng)  # permuted sequence between 0 and 9
-        >>> p
-        array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2])
-
-     """
+    Example
+    -------
+    >>> rng = np.random.RandomState(42)
+    >>> p = custom_randperm(10, rng)  # permuted sequence between 0 and 9
+    >>> p
+    array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2])
+    """
     idx = rng.rand(n)
 
     randperm = np.argsort(idx)
