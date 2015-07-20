@@ -16,7 +16,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        ArgvSetter, _memory_usage, check_random_state,
                        _check_mayavi_version, requires_mayavi,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
-                       create_slices, _time_mask, custom_randperm)
+                       create_slices, _time_mask, random_permutation)
 from mne.io import show_fiff
 from mne import Evoked
 from mne.externals.six.moves import StringIO
@@ -460,13 +460,12 @@ def test_time_mask():
     assert_equal(_time_mask(x - 1e-10, 0, N - 1, strict=True).sum(), N - 1)
 
 
-def test_custom_randperm():
-    """Test custom randperm function
+def test_random_permutation():
+    """Test random permutation function
     """
-    n = 10
-    random_seed = 42
-    rng = np.random.RandomState(random_seed)
-    python_randperm = custom_randperm(n, rng)
+    n_samples = 10
+    random_state = 42
+    python_randperm = random_permutation(n_samples, random_state)
 
     # matlab output when we execute rng(42), randperm(10)
     matlab_randperm = np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2])
