@@ -151,8 +151,9 @@ class _GeneralizationAcrossTime(object):
             self.train_times_ = _sliding_window(epochs.times, self.train_times)
 
         # Parallel across training time
+        # TODO: JRK: Chunking times points needs to be simplified
         parallel, p_time_gen, n_jobs = parallel_func(_fit_slices, n_jobs)
-        n_chunks = min(X.shape[2], n_jobs)
+        n_chunks = min(len(self.train_times_['slices']), n_jobs)
         splits = np.array_split(self.train_times_['slices'], n_chunks)
 
         def f(x):
@@ -233,13 +234,20 @@ class _GeneralizationAcrossTime(object):
         self.test_times_ = test_times
 
         # Prepare parallel predictions
-        parallel, p_time_gen, _ = parallel_func(_predict_time_loop, n_jobs)
+        # TODO: JRK: Chunking times points needs to be simplified
+        parallel, p_time_gen, _ = parallel_func(_predict_slices, n_jobs)
+        n_estimators = len(self.train_times_['slices'])
+        n_chunks = min(n_estimators, n_jobs)
+        splits = np.array_split(self.test_times_['slices'], n_chunks)
 
         # Loop across estimators (i.e. training times)
-        self.y_pred_ = parallel(p_time_gen(X, self.estimators_[t_train],
-                                           self.cv_, slices, self.predict_mode)
-                                for t_train, slices in
-                                enumerate(self.test_times_['slices']))
+        y_pred = parallel(p_time_gen(
+            X,
+            [self.estimators_[t_train] for t_train in split * int(
+                n_chunks / n_estimators) + np.arange(len(slices))],
+            self.cv_, slices, self.predict_mode)
+            for split, slices in enumerate(splits))
+        self.y_pred_ = np.concatenate(y_pred, axis=1).tolist()
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
@@ -312,17 +320,31 @@ class _GeneralizationAcrossTime(object):
         self.y_true_ = y  # to be compared with y_pred for scoring
 
         # Preprocessing for parallelization:
+        # TODO: JRK: Chunking times points needs to be simplified
         n_jobs = min(len(self.y_pred_[0][0]), check_n_jobs(self.n_jobs))
-        parallel, p_time_gen, n_jobs = parallel_func(_score_loop, n_jobs)
-
+        parallel, p_time_gen, n_jobs = parallel_func(_score_slices, n_jobs)
+        n_estimators = len(self.train_times_['slices'])
+        n_chunks = min(n_estimators, n_jobs)
+        splits = np.array_split(self.test_times_['slices'], n_chunks)
         # Score each training and testing time point
-        scores = parallel(p_time_gen(self.y_true_, self.y_pred_[t_train],
-                                     slices, self.scorer_)
-                          for t_train, slices
-                          in enumerate(self.test_times_['slices']))
+        scores = parallel(p_time_gen(
+            self.y_true_,
+            [self.y_pred_[t_train] for t_train in split * int(
+                n_chunks / n_estimators) + np.arange(len(slices))],
+            slices, self.scorer_) for split, slices in enumerate(splits))
+        self.scores_ = np.concatenate(scores, axis=1).tolist()
+        return self.scores_
 
-        self.scores_ = scores
-        return scores
+
+def _predict_slices(X, estimators, cv, slices, predict_mode):
+    """Aux function of GeneralizationAcrossTime that loops across chunks of
+    testing slices.
+    """
+    out = list()
+    for this_estimator, this_slice in zip(estimators, slices):
+        out.append(_predict_time_loop(X, this_estimator, cv, this_slice,
+                                      predict_mode))
+    return out
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):
@@ -389,13 +411,23 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     return y_pred
 
 
+def _score_slices(y_true, list_y_pred, list_slices, scorer):
+    """Aux function of GeneralizationAcrossTime that loops across chunks of
+    testing slices.
+    """
+    out = list()
+    for this_y_pred, this_slice in zip(list_y_pred, list_slices):
+        out.append(_score_loop(y_true, this_y_pred, this_slice, scorer))
+    return out
+
+
 def _score_loop(y_true, y_pred, slices, scorer):
     n_time = len(slices)
     # Loop across testing times
     scores = [0] * n_time
     for t, indices in enumerate(slices):
         # Scores across trials
-        scores[t] = scorer(y_true, y_pred[t])
+        scores[t] = scorer(y_true, np.array(y_pred[t]))
     return scores
 
 
