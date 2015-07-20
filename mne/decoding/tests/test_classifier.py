@@ -17,7 +17,6 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
-start, stop = 0, 8
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
@@ -72,3 +71,47 @@ def test_linear_classifier():
     test_pipe.fit(epochs_data, labels)
     test_pipe.predict(epochs_data)
     test_pipe.score(epochs_data, labels)
+
+
+@requires_sklearn
+def test_plot_patterns():
+    """Test plot_patterns of LinearModel
+    """
+    raw = io.Raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=False, stim=False, ecg=False,
+                       eog=False, eeg=True, exclude='bads')
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=None, decim=8, preload=True)
+
+    labels = epochs.events[:, -1]
+    epochs_data = epochs.get_data().reshape(len(labels), -1)
+
+    model = LinearModel()
+    model.fit(epochs_data, labels)
+
+    # test plot patterns
+    model.plot_patterns(epochs.info)
+
+
+@requires_sklearn
+def test_plot_filters():
+    """Test plot_filters of LinearModel
+    """
+    raw = io.Raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=False, stim=False, ecg=False,
+                       eog=False, eeg=True, exclude='bads')
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=None, decim=8, preload=True)
+
+    labels = epochs.events[:, -1]
+    epochs_data = epochs.get_data().reshape(len(labels), -1)
+
+    model = LinearModel()
+    model.fit(epochs_data, labels)
+
+    # test plot patterns
+    model.plot_filters(epochs.info)
