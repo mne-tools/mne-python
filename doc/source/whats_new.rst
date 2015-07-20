@@ -10,8 +10,6 @@ Current
 
 Changelog
 ~~~~~~~~~
-    - Add Xdawn algorithm for denoising and decoding of ERP/ERF by `Alexandre
-    Barachant`_
 
     - Add support for generalized M-way repeated measures ANOVA for fully balanced designs with :func:`mne.stats.f_mway_rm` by `Denis Engemann`_
 
@@ -36,6 +34,9 @@ Changelog
     - Add command ``mne freeview_bem_surfaces`` to quickly check BEM surfaces with Freeview by `Alex Gramfort`_.
 
     - Add support for splitting epochs into multiple files in :func:`mne.Epochs.save` by `Mainak Jas`_ and `Alexandre Gramfort`_
+
+    - Add new method :class:`mne.preprocessing.Xdawn` for denoising and
+    decoding of ERP/ERF by `Alexandre Barachant`_
 
 BUG
 ~~~
@@ -1081,3 +1082,5 @@ of commits):
 .. _Chris Bailey: https://github.com/cjayb
 
 .. _Ross Maddox: http://faculty.washington.edu/rkmaddox/
+
+.. _Alexandre Barachant: http://alexandre.barachant.org

@@ -8,7 +8,7 @@ from nose.tools import (assert_equal, assert_raises)
 from numpy.testing import assert_array_equal
 from mne import (io, Epochs, read_events, pick_types,
                  compute_raw_data_covariance)
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, run_tests_if_main
 from mne.preprocessing.xdawn import Xdawn
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -35,7 +35,6 @@ def test_xdawn_init():
     Xdawn(n_components=2, correct_overlap='auto', signal_cov=None, reg=None)
     # init xdawn with bad parameters
     assert_raises(ValueError, Xdawn, correct_overlap=42)
-    assert_raises(ValueError, Xdawn, signal_cov=42)
 
 
 def test_xdawn_fit():
@@ -71,7 +70,11 @@ def test_xdawn_fit():
     xd = Xdawn(n_components=2, correct_overlap=False,
                signal_cov=signal_cov, reg=None)
     assert_raises(ValueError, xd.fit, epochs)
-
+    # provide another type
+    signal_cov = 42
+    xd = Xdawn(n_components=2, correct_overlap=False,
+               signal_cov=signal_cov, reg=None)
+    assert_raises(ValueError, xd.fit, epochs)
     # fit with baseline correction and ovverlapp correction should throw an
     # error
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -138,3 +141,5 @@ def test_xdawn_regularization():
     xd = Xdawn(n_components=2, correct_overlap=False,
                signal_cov=np.eye(len(picks)), reg=2)
     assert_raises(ValueError, xd.fit, epochs)
+
+run_tests_if_main()
