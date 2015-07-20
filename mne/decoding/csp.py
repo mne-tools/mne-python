@@ -1,17 +1,93 @@
 # Authors: Romain Trachel <romain.trachel@inria.fr>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Barachant <alexandre.barachant@gmail.com>
 #
 # License: BSD (3-clause)
 
 import numpy as np
 from scipy import linalg
+import six
 from distutils.version import LooseVersion
 
 from .mixin import TransformerMixin
 
 
+def _regularized_covariance(data, reg=None):
+    """Compute a regularized covariance from data.
+
+    Parameters
+    ----------
+    data : ndarray, shape (n_channels, n_times)
+        Data for covariance estimation.
+    reg : float | str | None (default None)
+        If not None, allow regularization for covariance estimation
+        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
+        Oracle Approximating Shrinkage ('oas').
+
+    Returns
+    -------
+    cov : ndarray, shape (n_channels, n_channels)
+        The covariance matrix.
+    """
+    if reg is None:
+        # compute empirical covariance
+        cov = np.cov(data)
+    else:
+        no_sklearn_err = ('the scikit-learn package is missing and '
+                          'required for covariance regularization.')
+        # use sklearn covariance estimators
+        if isinstance(reg, float):
+            if (reg < 0) or (reg > 1):
+                raise ValueError('0 <= shrinkage <= 1 for '
+                                 'covariance regularization.')
+            try:
+                import sklearn
+                sklearn_version = LooseVersion(sklearn.__version__)
+                from sklearn.covariance import ShrunkCovariance
+            except ImportError:
+                raise Exception(no_sklearn_err)
+            if sklearn_version < '0.12':
+                skl_cov = ShrunkCovariance(shrinkage=reg,
+                                           store_precision=False)
+            else:
+                # init sklearn.covariance.ShrunkCovariance estimator
+                skl_cov = ShrunkCovariance(shrinkage=reg,
+                                           store_precision=False,
+                                           assume_centered=True)
+        elif isinstance(reg, six.string_types):
+            if reg == 'lws':
+                try:
+                    from sklearn.covariance import LedoitWolf
+                except ImportError:
+                    raise Exception(no_sklearn_err)
+                # init sklearn.covariance.LedoitWolf estimator
+                skl_cov = LedoitWolf(store_precision=False,
+                                     assume_centered=True)
+            elif reg == 'oas':
+                try:
+                    from sklearn.covariance import OAS
+                except ImportError:
+                    raise Exception(no_sklearn_err)
+                # init sklearn.covariance.OAS estimator
+                skl_cov = OAS(store_precision=False,
+                              assume_centered=True)
+            else:
+                raise ValueError("regularization parameter should be "
+                                 "'lwf' or 'oas'")
+        else:
+            raise ValueError("regularization parameter should be "
+                             "of type str or int (got %s)." % type(reg))
+
+        # compute regularized covariance using sklearn
+        cov = skl_cov.fit(data.T).covariance_
+
+    return cov
+
+
 class CSP(TransformerMixin):
-    """M/EEG signal decomposition using the Common Spatial Patterns (CSP)
+
+    """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This object can be used as a supervised decomposition to estimate
     spatial filters for feature extraction in a 2 class decoding problem.
@@ -19,27 +95,27 @@ class CSP(TransformerMixin):
 
     Parameters
     ----------
-    n_components : int, default 4
+    n_components : int (default 4)
         The number of components to decompose M/EEG signals.
         This number should be set by cross-validation.
-    reg : float, str, None
+    reg : float | str | None (default None)
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
         Oracle Approximating Shrinkage ('oas').
-    log : bool
+    log : bool (default True)
         If true, apply log to standardize the features.
         If false, features are just z-scored.
 
     Attributes
     ----------
-    filters_ : ndarray
+    filters_ : ndarray, shape (n_channels, n_channels)
         If fit, the CSP components used to decompose the data, else None.
-    patterns_ : ndarray
+    patterns_ : ndarray, shape (n_channels, n_channels)
         If fit, the CSP patterns used to restore M/EEG signals, else None.
-    mean_ : ndarray
+    mean_ : ndarray, shape (n_channels,)
         If fit, the mean squared power for each component.
-    std_ : ndarray
+    std_ : ndarray, shape (n_channels,)
         If fit, the std squared power for each component.
 
     References
@@ -48,7 +124,9 @@ class CSP(TransformerMixin):
     of the abnormal components in the clinical EEG. Electroencephalography
     and Clinical Neurophysiology, 79(6):440--447, December 1991.
     """
+
     def __init__(self, n_components=4, reg=None, log=True):
+        """Init of CSP."""
         self.n_components = n_components
         self.reg = reg
         self.log = log
@@ -62,9 +140,9 @@ class CSP(TransformerMixin):
 
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : ndarray, shape (n_epochs, n_channels, n_times)
             The data to estimate the CSP on.
-        y : array
+        y : array, shape (n_epochs,)
             The class for each epoch.
 
         Returns
@@ -84,60 +162,9 @@ class CSP(TransformerMixin):
                                [1, 0, 2]).reshape(epochs_data.shape[1], -1)
         class_2 = np.transpose(epochs_data[y == classes[1]],
                                [1, 0, 2]).reshape(epochs_data.shape[1], -1)
-        if self.reg is None:
-            # compute empirical covariance
-            cov_1 = np.dot(class_1, class_1.T)
-            cov_2 = np.dot(class_2, class_2.T)
-        else:
-            # use sklearn covariance estimators
-            if isinstance(self.reg, float):
-                if (self.reg < 0) or (self.reg > 1):
-                    raise ValueError('0 <= shrinkage <= 1 for '
-                                     'covariance regularization.')
-                try:
-                    import sklearn
-                    sklearn_version = LooseVersion(sklearn.__version__)
-                    from sklearn.covariance import ShrunkCovariance
-                except ImportError:
-                    raise Exception('the scikit-learn package is missing and '
-                                    'required for covariance regularization.')
-                if sklearn_version < '0.12':
-                    skl_cov = ShrunkCovariance(shrinkage=self.reg,
-                                               store_precision=False)
-                else:
-                    # init sklearn.covariance.ShrunkCovariance estimator
-                    skl_cov = ShrunkCovariance(shrinkage=self.reg,
-                                               store_precision=False,
-                                               assume_centered=True)
-            elif isinstance(self.reg, str):
-                if self.reg == 'lws':
-                    try:
-                        from sklearn.covariance import LedoitWolf
-                    except ImportError:
-                        raise Exception('the scikit-learn package is missing '
-                                        'and required for regularization.')
-                    # init sklearn.covariance.LedoitWolf estimator
-                    skl_cov = LedoitWolf(store_precision=False,
-                                         assume_centered=True)
-                elif self.reg == 'oas':
-                    try:
-                        from sklearn.covariance import OAS
-                    except ImportError:
-                        raise Exception('the scikit-learn package is missing '
-                                        'and required for regularization.')
-                    # init sklearn.covariance.OAS estimator
-                    skl_cov = OAS(store_precision=False,
-                                  assume_centered=True)
-                else:
-                    raise ValueError("regularization parameter should be "
-                                     "of type str (got %s)." % type(self.reg))
-            else:
-                raise ValueError("regularization parameter should be "
-                                 "of type str (got %s)." % type(self.reg))
 
-            # compute regularized covariance using sklearn
-            cov_1 = skl_cov.fit(class_1.T).covariance_
-            cov_2 = skl_cov.fit(class_2.T).covariance_
+        cov_1 = _regularized_covariance(class_1, reg=self.reg)
+        cov_2 = _regularized_covariance(class_2, reg=self.reg)
 
         # then fit on covariance
         self._fit(cov_1, cov_2)
@@ -155,8 +182,7 @@ class CSP(TransformerMixin):
         return self
 
     def _fit(self, cov_a, cov_b):
-        """Aux Function (modifies cov_a and cov_b in-place)"""
-
+        """Aux Function (modifies cov_a and cov_b in-place)."""
         cov_a /= np.trace(cov_a)
         cov_b /= np.trace(cov_b)
         # computes the eigen values
@@ -183,11 +209,11 @@ class CSP(TransformerMixin):
         self.patterns_ = linalg.pinv(w).T
 
     def transform(self, epochs_data, y=None):
-        """Estimate epochs sources given the CSP filters
+        """Estimate epochs sources given the CSP filters.
 
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
         y : None
             Not used.
