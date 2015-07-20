@@ -9,6 +9,8 @@ import os
 from math import floor, ceil, log
 import itertools as itt
 import warnings
+import six
+from distutils.version import LooseVersion
 
 import numpy as np
 from scipy import linalg
@@ -47,7 +49,7 @@ def _check_covs_algebra(cov1, cov2):
 
 
 def _get_tslice(epochs, tmin, tmax):
-    """get the slice"""
+    """get the slice."""
     tstart, tend = None, None
     mask = _time_mask(epochs.times, tmin, tmax)
     tstart = np.where(mask)[0][0] if tmin is not None else None
@@ -57,7 +59,7 @@ def _get_tslice(epochs, tmin, tmax):
 
 
 class Covariance(dict):
-    """Noise covariance matrix
+    """Noise covariance matrix.
 
     Parameters
     ----------
@@ -1205,7 +1207,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, verbose=None):
-    """Regularize noise covariance matrix
+    """Regularize noise covariance matrix.
 
     This method works by adding a constant to the diagonal for each
     channel type separately. Special care is taken to keep the
@@ -1319,9 +1321,82 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     return cov
 
 
+def _regularized_covariance(data, reg=None):
+    """Compute a regularized covariance from data using sklearn.
+
+    Parameters
+    ----------
+    data : ndarray, shape (n_channels, n_times)
+        Data for covariance estimation.
+    reg : float | str | None (default None)
+        If not None, allow regularization for covariance estimation
+        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
+        Oracle Approximating Shrinkage ('oas').
+
+    Returns
+    -------
+    cov : ndarray, shape (n_channels, n_channels)
+        The covariance matrix.
+    """
+    if reg is None:
+        # compute empirical covariance
+        cov = np.cov(data)
+    else:
+        no_sklearn_err = ('the scikit-learn package is missing and '
+                          'required for covariance regularization.')
+        # use sklearn covariance estimators
+        if isinstance(reg, float):
+            if (reg < 0) or (reg > 1):
+                raise ValueError('0 <= shrinkage <= 1 for '
+                                 'covariance regularization.')
+            try:
+                import sklearn
+                sklearn_version = LooseVersion(sklearn.__version__)
+                from sklearn.covariance import ShrunkCovariance
+            except ImportError:
+                raise Exception(no_sklearn_err)
+            if sklearn_version < '0.12':
+                skl_cov = ShrunkCovariance(shrinkage=reg,
+                                           store_precision=False)
+            else:
+                # init sklearn.covariance.ShrunkCovariance estimator
+                skl_cov = ShrunkCovariance(shrinkage=reg,
+                                           store_precision=False,
+                                           assume_centered=True)
+        elif isinstance(reg, six.string_types):
+            if reg == 'lws':
+                try:
+                    from sklearn.covariance import LedoitWolf
+                except ImportError:
+                    raise Exception(no_sklearn_err)
+                # init sklearn.covariance.LedoitWolf estimator
+                skl_cov = LedoitWolf(store_precision=False,
+                                     assume_centered=True)
+            elif reg == 'oas':
+                try:
+                    from sklearn.covariance import OAS
+                except ImportError:
+                    raise Exception(no_sklearn_err)
+                # init sklearn.covariance.OAS estimator
+                skl_cov = OAS(store_precision=False,
+                              assume_centered=True)
+            else:
+                raise ValueError("regularization parameter should be "
+                                 "'lwf' or 'oas'")
+        else:
+            raise ValueError("regularization parameter should be "
+                             "of type str or int (got %s)." % type(reg))
+
+        # compute regularized covariance using sklearn
+        cov = skl_cov.fit(data.T).covariance_
+
+    return cov
+
+
 def compute_whitener(noise_cov, info, picks=None, rank=None,
                      scalings=None, verbose=None):
-    """Compute whitening matrix
+    """Compute whitening matrix.
 
     Parameters
     ----------

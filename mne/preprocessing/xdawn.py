@@ -14,7 +14,7 @@ from ..io.pick import pick_types
 from .ica import _get_fast_dot
 from ..utils import logger
 from ..decoding.mixin import TransformerMixin
-from ..decoding.csp import _regularized_covariance
+from ..cov import _regularized_covariance
 from ..channels.channels import ContainsMixin
 
 
