@@ -212,14 +212,18 @@ class _GeneralizationAcrossTime(object):
             raise ValueError('`test_times` must be a dict or "diagonal"')
 
         if 'slices' not in test_times:
-            # Force same number of time sample in testing than in training
+            # Check that same number of time sample in testing than in training
             # (otherwise it won 't be the same number of features')
-            window_param = dict(length=self.train_times_['length'])
+            if 'length' not in test_times:
+                test_times['length'] = self.train_times_['length']
+            if test_times['length'] != self.train_times_['length']:
+                raise ValueError('`train_times` and `test_times` must have '
+                                 'identical `length` keys')
             # Make a sliding window for each training time.
             slices_list = list()
             times_list = list()
             for t in range(0, len(self.train_times_['slices'])):
-                test_times_ = _sliding_window(epochs.times, window_param)
+                test_times_ = _sliding_window(epochs.times, test_times)
                 times_list += [test_times_['times']]
                 slices_list += [test_times_['slices']]
             test_times = test_times_

@@ -173,10 +173,15 @@ def test_generalization_across_time():
     gat.predict(epochs[7:])
     gat.score(epochs[7:])
 
-    # Test wrong testing time
+    # Test testing time parameters
+    gat.test_times = dict(step=.150)
+    gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 5, 14, 1))
     gat.test_times = 'foo'
     assert_raises(ValueError, gat.predict, epochs)
     assert_raises(RuntimeError, gat.score)
+    gat.test_times = dict(length=.150)
+    assert_raises(ValueError, gat.predict, epochs)
 
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
