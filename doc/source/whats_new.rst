@@ -11,10 +11,6 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - Add support for plotting patterns/filters in :class:`mne.decoding.csp.CSP` and :class:`mne.decoding.base.LinearModel` by `Romain Trachel`_
-
-    - Add new object :class:`mne.decoding.base.LinearModel` for decoding M/EEG data and interpreting coefficients of linear models with patterns attribute by `Romain Trachel`_ and `Alexandre Gramfort`_
-
     - Add support for generalized M-way repeated measures ANOVA for fully balanced designs with :func:`mne.stats.f_mway_rm` by `Denis Engemann`_
 
     - Add epochs browser to interactively view and manipulate epochs with :func:`mne.viz.plot_epochs` by `Jaakko Leppakangas`_
@@ -43,6 +39,11 @@ Changelog
 
     - Add new method :class:`mne.preprocessing.Xdawn` for denoising and
     decoding of ERP/ERF by `Alexandre Barachant`_
+
+    - Add support for plotting patterns/filters in :class:`mne.decoding.csp.CSP` and :class:`mne.decoding.base.LinearModel` by `Romain Trachel`_
+
+    - Add new object :class:`mne.decoding.base.LinearModel` for decoding M/EEG data and interpreting coefficients of linear models with patterns attribute by `Romain Trachel`_ and `Alexandre Gramfort`_
+
 
 BUG
 ~~~
