@@ -59,6 +59,7 @@ def _get_tslice(epochs, tmin, tmax):
 
 
 class Covariance(dict):
+
     """Noise covariance matrix.
 
     Parameters
@@ -75,7 +76,9 @@ class Covariance(dict):
     nfree : int
         Number of degrees of freedom i.e. number of time points used.
     """
+
     def __init__(self, fname):
+        """Init of covariance."""
         if fname is None:
             return
 
@@ -86,21 +89,21 @@ class Covariance(dict):
 
     @property
     def data(self):
-        """Numpy array of Noise covariance matrix"""
+        """Numpy array of Noise covariance matrix."""
         return self['data']
 
     @property
     def ch_names(self):
-        """Channel names"""
+        """Channel names."""
         return self['names']
 
     @property
     def nfree(self):
-        """Number of degrees of freedom"""
+        """Number of degrees of freedom."""
         return self['nfree']
 
     def save(self, fname):
-        """Save covariance matrix in a FIF file
+        """Save covariance matrix in a FIF file.
 
         Parameters
         ----------
@@ -120,7 +123,7 @@ class Covariance(dict):
         end_file(fid)
 
     def as_diag(self, copy=True):
-        """Set covariance to be processed as being diagonal
+        """Set covariance to be processed as being diagonal.
 
         Parameters
         ----------
@@ -160,7 +163,7 @@ class Covariance(dict):
         return "<Covariance  |  %s>" % s
 
     def __add__(self, cov):
-        """Add Covariance taking into account number of degrees of freedom"""
+        """Add Covariance taking into account number of degrees of freedom."""
         _check_covs_algebra(self, cov)
         this_cov = cp.deepcopy(cov)
         this_cov['data'] = (((this_cov['data'] * this_cov['nfree']) +
@@ -173,7 +176,7 @@ class Covariance(dict):
         return this_cov
 
     def __iadd__(self, cov):
-        """Add Covariance taking into account number of degrees of freedom"""
+        """Add Covariance taking into account number of degrees of freedom."""
         _check_covs_algebra(self, cov)
         self['data'][:] = (((self['data'] * self['nfree']) +
                             (cov['data'] * cov['nfree'])) /
@@ -187,7 +190,7 @@ class Covariance(dict):
     @verbose
     def plot(self, info, exclude=[], colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
-        """Plot Covariance data
+        """Plot Covariance data.
 
         Parameters
         ----------
@@ -231,7 +234,7 @@ def read_cov(fname, verbose=None):
     fname : string
         The name of file containing the covariance matrix. It should end with
         -cov.fif or -cov.fif.gz.
-    verbose : bool, str, int, or None
+    verbose : bool, str, int, or None (default None)
         If not None, override default verbose level (see mne.verbose).
 
     Returns
@@ -249,13 +252,13 @@ def read_cov(fname, verbose=None):
 
 @verbose
 def make_ad_hoc_cov(info, verbose=None):
-    """Create an ad hoc noise covariance
+    """Create an ad hoc noise covariance.
 
     Parameters
     ----------
     info : instance of mne.io.meas_info.Info
         Measurement info.
-    verbose : bool, str, int, or None
+    verbose : bool, str, int, or None (default None)
         If not None, override default verbose level (see mne.verbose).
 
     Returns
@@ -290,7 +293,7 @@ def make_ad_hoc_cov(info, verbose=None):
 
 
 def _check_n_samples(n_samples, n_chan):
-    """Check to see if there are enough samples for reliable cov calc"""
+    """Check to see if there are enough samples for reliable cov calc."""
     n_samples_min = 10 * (n_chan + 1) // 2
     if n_samples <= 0:
         raise ValueError('No samples found to compute the covariance matrix')
@@ -305,7 +308,7 @@ def _check_n_samples(n_samples, n_chan):
 def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
                                 reject=None, flat=None, picks=None,
                                 verbose=None):
-    """Estimate noise covariance matrix from a continuous segment of raw data
+    """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance
     from empty room data or time intervals before starting
@@ -318,13 +321,13 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     ----------
     raw : instance of Raw
         Raw data
-    tmin : float
+    tmin : float | None (default None)
         Beginning of time interval in seconds
-    tmax : float
+    tmax : float | None (default None)
         End of time interval in seconds
-    tstep : float
+    tstep : float (default 0.2)
         Length of data chunks for artefact rejection in seconds.
-    reject : dict | None
+    reject : dict | None (default None)
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
         If reject is None then no rejection is done. Example::
@@ -335,15 +338,15 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
                           eog=250e-6 # uV (EOG channels)
                           )
 
-    flat : dict | None
+    flat : dict | None (default None)
         Rejection parameters based on flatness of signal.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    picks : array-like of int
+    picks : array-like of int | None (default None)
         Indices of channels to include (if None, all channels
         except bad channels are used).
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None (default None)
         If not None, override default verbose level (see mne.verbose).
 
     Returns
@@ -419,7 +422,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
                        cv=3, scalings=None, n_jobs=1, return_estimators=False,
                        verbose=None):
-    """Estimate noise covariance matrix from epochs
+    """Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stim periods
     when the stim onset is defined from events.
@@ -450,21 +453,21 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     ----------
     epochs : instance of Epochs, or a list of Epochs objects
         The epochs.
-    keep_sample_mean : bool
+    keep_sample_mean : bool (default true)
         If False, the average response over epochs is computed for
         each event type and subtracted during the covariance
         computation. This is useful if the evoked response from a
         previous stimulus extends into the baseline period of the next.
         Note. This option is only implemented for method='empirical'.
-    tmin : float | None
+    tmin : float | None (default None)
         Start time for baseline. If None start at first sample.
-    tmax : float | None
+    tmax : float | None (default None)
         End time for baseline. If None end at last sample.
-    projs : list of Projection | None
+    projs : list of Projection | None (default None)
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
-    method : str | list | None
+    method : str | list | None (default 'empirical')
         The method used for covariance estimation. If 'empirical' (default),
         the sample covariance will be computed. A list can be passed to run a
         set of the different methods.
@@ -489,7 +492,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
         .. versionadded:: 0.9.0
 
-    method_params : dict
+    method_params : dict | None (default None)
         Additional parameters to the estimation procedure. Only considered if
         method is not None. Keys must correspond to the value(s) of `method`.
         If None (default), expands to::
@@ -504,19 +507,19 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             'pca': {'iter_n_components': None},
             'factor_analysis': {'iter_n_components': None}
 
-    cv : int | sklearn cross_validation object
+    cv : int | sklearn cross_validation object (default 3)
         The cross validation method. Defaults to 3, which will
         internally trigger a default 3-fold shuffle split.
-    scalings : dict
+    scalings : dict | None (default None)
         Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale magnetometers and gradiometers
         at the same unit.
-    n_jobs : int
+    n_jobs : int (default 1)
         Number of jobs to run in parallel.
-    return_estimators : bool
+    return_estimators : bool (default False)
         Whether to return all estimators or the best. Only considered if
         method equals 'auto' or is a list of str. Defaults to False
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | or None (default None)
         If not None, override default verbose level (see mne.verbose).
 
     Returns
@@ -743,7 +746,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list,
                              verbose):
-    """docstring for _compute_covariance_auto"""
+    """docstring for _compute_covariance_auto."""
     from sklearn.grid_search import GridSearchCV
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
                                     EmpiricalCovariance)
@@ -850,14 +853,14 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 
 
 def _logdet(A):
-    """Compute the log det of a symmetric matrix"""
+    """Compute the log det of a symmetric matrix."""
     vals = linalg.eigh(A)[0]
     vals = np.abs(vals)  # avoid negative values (numerical errors)
     return np.sum(np.log(vals))
 
 
 def _gaussian_loglik_scorer(est, X, y=None):
-    """Compute the Gaussian log likelihood of X under the model in est"""
+    """Compute the Gaussian log likelihood of X under the model in est."""
     # compute empirical covariance of the test set
     precision = est.get_precision()
     n_samples, n_features = X.shape
@@ -869,7 +872,7 @@ def _gaussian_loglik_scorer(est, X, y=None):
 
 
 def _cross_val(data, est, cv, n_jobs):
-    """Helper to compute cross validation"""
+    """Helper to compute cross validation."""
     from sklearn.cross_validation import cross_val_score
     return np.mean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs,
                                    scoring=_gaussian_loglik_scorer))
@@ -877,7 +880,7 @@ def _cross_val(data, est, cv, n_jobs):
 
 def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
                          stop_early=True, verbose=None):
-    """compute latent variable models"""
+    """compute latent variable models."""
     method_params = cp.deepcopy(method_params)
     iter_n_components = method_params.pop('iter_n_components')
     if iter_n_components is None:
@@ -937,12 +940,13 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
 
 
 def _get_covariance_classes():
-    """Prepare special cov estimators"""
+    """Prepare special cov estimators."""
     from sklearn.covariance import (EmpiricalCovariance, shrunk_covariance,
                                     ShrunkCovariance)
 
     class _RegCovariance(EmpiricalCovariance):
-        """Aux class"""
+
+        """Aux class."""
 
         def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0,
                      store_precision=False, assume_centered=False):
@@ -970,7 +974,8 @@ def _get_covariance_classes():
             return self
 
     class _ShrunkCovariance(ShrunkCovariance):
-        """Aux class"""
+
+        """Aux class."""
 
         def __init__(self, store_precision, assume_centered, shrinkage=0.1):
             self.store_precision = store_precision
@@ -1018,7 +1023,7 @@ def _get_covariance_classes():
             return self
 
         def score(self, X_test, y=None):
-            """Computes the log-likelihood of a Gaussian data set with
+            """Compute the log-likelihood of a Gaussian data set with
             `self.covariance_` as an estimator of its covariance matrix.
 
             Parameters
@@ -1053,7 +1058,7 @@ def _get_covariance_classes():
 # Writing
 
 def write_cov(fname, cov):
-    """Write a noise covariance matrix
+    """Write a noise covariance matrix.
 
     Parameters
     ----------
@@ -1069,7 +1074,7 @@ def write_cov(fname, cov):
 # Prepare for inverse modeling
 
 def _unpack_epochs(epochs):
-    """ Aux Function """
+    """Aux Function."""
     if len(epochs.event_id) > 1:
         epochs = [epochs[k] for k in epochs.event_id]
     else:
@@ -1079,7 +1084,7 @@ def _unpack_epochs(epochs):
 
 
 def _get_ch_whitener(A, pca, ch_type, rank):
-    """"Get whitener params for a set of channels"""
+    """"Get whitener params for a set of channels."""
     # whitening operator
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
@@ -1099,7 +1104,7 @@ def _get_ch_whitener(A, pca, ch_type, rank):
 @verbose
 def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
                       scalings=None, verbose=None):
-    """Prepare noise covariance matrix
+    """Prepare noise covariance matrix.
 
     Parameters
     ----------
@@ -1226,18 +1231,18 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         The noise covariance matrix.
     info : dict
         The measurement info (used to get channel types and bad channels).
-    mag : float
+    mag : float (default 0.1)
         Regularization factor for MEG magnetometers.
-    grad : float
+    grad : float (default 0.1)
         Regularization factor for MEG gradiometers.
-    eeg : float
+    eeg : float (default 0.1)
         Regularization factor for EEG.
-    exclude : list | 'bads'
+    exclude : list | 'bads' (default 'bads')
         List of channels to mark as bad. If 'bads', bads channels
         are extracted from both info['bads'] and cov['bads'].
-    proj : bool
+    proj : bool (default true)
         Apply or not projections to keep rank of data.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None (default None)
         If not None, override default verbose level (see mne.verbose).
 
     Returns
@@ -1454,7 +1459,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
 @verbose
 def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
                   scalings=None, verbose=None):
-    """Whiten evoked data using given noise covariance
+    """Whiten evoked data using given noise covariance.
 
     Parameters
     ----------
@@ -1465,14 +1470,14 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
     picks : array-like of int | None
         The channel indices to whiten. Can be None to whiten MEG and EEG
         data.
-    diag : bool
+    diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.
-    rank : None | int | dict
+    rank : None | int | dict (default None)
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    scalings : dict | None
+    scalings : dict | None (default None)
         To achieve reliable rank estimation on multiple sensors,
         sensors have to be rescaled. This parameter controls the
         rescaling. If dict, it will override the
@@ -1500,7 +1505,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
 @verbose
 def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
                        scalings=None, verbose=None):
-    """Get whitening matrix for a set of data"""
+    """Get whitening matrix for a set of data."""
     ch_names = [info['ch_names'][k] for k in picks]
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
     info = pick_info(info, picks)
@@ -1515,7 +1520,7 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
 
 @verbose
 def _read_cov(fid, node, cov_kind, verbose=None):
-    """Read a noise covariance matrix"""
+    """Read a noise covariance matrix."""
     #   Find all covariance matrices
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
@@ -1625,7 +1630,7 @@ def _read_cov(fid, node, cov_kind, verbose=None):
 
 
 def _write_cov(fid, cov):
-    """Write a noise covariance matrix"""
+    """Write a noise covariance matrix."""
     start_block(fid, FIFF.FIFFB_MNE_COV)
 
     #   Dimensions etc.
@@ -1677,7 +1682,7 @@ def _write_cov(fid, cov):
 
 
 def _apply_scaling_array(data, picks_list, scalings):
-    """scale data type-dependently for estimation"""
+    """Scale data type-dependently for estimation."""
     scalings = _check_scaling_inputs(data, picks_list, scalings)
     if isinstance(scalings, dict):
         picks_dict = dict(picks_list)
@@ -1699,7 +1704,7 @@ def _undo_scaling_array(data, picks_list, scalings):
 
 
 def _apply_scaling_cov(data, picks_list, scalings):
-    """scalings resulting data after estimation"""
+    """Scale resulting data after estimation."""
     scalings = _check_scaling_inputs(data, picks_list, scalings)
     scales = None
     if isinstance(scalings, dict):
@@ -1734,7 +1739,7 @@ def _undo_scaling_cov(data, picks_list, scalings):
 
 
 def _check_scaling_inputs(data, picks_list, scalings):
-    """Aux function"""
+    """Aux function."""
     rescale_dict_ = dict(mag=1e15, grad=1e13, eeg=1e6)
 
     scalings_ = None
