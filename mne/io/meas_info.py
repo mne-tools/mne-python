@@ -95,6 +95,8 @@ class Info(dict):
         MEG system acquition parameters.
     acq_stim : str | None
         TODO: What is this?
+    buffer_size_sec : float | None
+        Buffer size (in seconds) when reading the raw data in chunks.
     ctf_head_t : dict | None
         The transformation from 4D/CTF head coordinates to Neuromag head
         coordinates. This is only present in 4D/CTF data.
