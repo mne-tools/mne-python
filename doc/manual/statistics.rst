@@ -46,7 +46,7 @@ Multiple comparisons
 
 In MEG and EEG analyses typically involve multiple measurements
 (sensors, time points) for each sample. In a mass-univariate analysis fitting
- statistical models for each of these observations a multiple comparison problem
+statistical models for each of these observations a multiple comparison problem
 occurs (MCPP). MNE-Python provides the following functions to control for
 multiple comparison:
 
