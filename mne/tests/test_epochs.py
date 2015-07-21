@@ -484,6 +484,14 @@ def test_read_write_epochs():
     assert_equal(set(epochs.event_id.keys()),
                  set(text_type(x) for x in epochs_read.event_id.keys()))
 
+    # test saving split epoch files
+    epochs.save(temp_fname, split_size='7MB')
+    epochs_read = read_epochs(temp_fname)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
+    assert_array_equal(epochs.events, epochs_read.events)
+    assert_array_equal(epochs.selection, epochs_read.selection)
+    assert_equal(epochs.drop_log, epochs_read.drop_log)
+
 
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
@@ -827,13 +835,17 @@ def test_resample():
                     baseline=(None, 0), preload=False,
                     reject=reject, flat=flat)
     assert_raises(RuntimeError, epochs.resample, 100)
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True,
-                    reject=reject, flat=flat)
+
+    epochs_o = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                      baseline=(None, 0), preload=True,
+                      reject=reject, flat=flat)
+    epochs = epochs_o.copy()
+
     data_normal = cp.deepcopy(epochs.get_data())
     times_normal = cp.deepcopy(epochs.times)
     sfreq_normal = epochs.info['sfreq']
     # upsample by 2
+    epochs = epochs_o.copy()
     epochs.resample(sfreq_normal * 2, npad=0)
     data_up = cp.deepcopy(epochs.get_data())
     times_up = cp.deepcopy(epochs.times)
@@ -852,11 +864,16 @@ def test_resample():
     assert_array_almost_equal(data_new, data_normal, 5)
 
     # use parallel
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True,
-                    reject=reject, flat=flat)
+    epochs = epochs_o.copy()
     epochs.resample(sfreq_normal * 2, n_jobs=2, npad=0)
     assert_true(np.allclose(data_up, epochs._data, rtol=1e-8, atol=1e-16))
+
+    # test copy flag
+    epochs = epochs_o.copy()
+    epochs_resampled = epochs.resample(sfreq_normal * 2, npad=0, copy=True)
+    assert_true(epochs_resampled is not epochs)
+    epochs_resampled = epochs.resample(sfreq_normal * 2, npad=0, copy=False)
+    assert_true(epochs_resampled is epochs)
 
 
 def test_detrend():
@@ -1584,5 +1601,8 @@ def test_concatenate_epochs():
 
     assert_equal(epochs_conc._raw, None)
 
+    # check if baseline is same for all epochs
+    epochs2.baseline = (-0.1, None)
+    assert_raises(ValueError, concatenate_epochs, [epochs, epochs2])
 
 run_tests_if_main()

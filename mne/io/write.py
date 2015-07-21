@@ -31,6 +31,20 @@ def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
     fid.write(np.array(data, dtype=dtype).tostring())
 
 
+def _get_split_size(split_size):
+    """Convert human-readable bytes to machine-readable bytes."""
+    if isinstance(split_size, string_types):
+        exp = dict(MB=20, GB=30).get(split_size[-2:], None)
+        if exp is None:
+            raise ValueError('split_size has to end with either'
+                             '"MB" or "GB"')
+        split_size = int(float(split_size[:-2]) * 2 ** exp)
+
+    if split_size > 2147483648:
+        raise ValueError('split_size cannot be larger than 2GB')
+    return split_size
+
+
 def write_int(fid, kind, data):
     """Writes a 32-bit integer tag to a fif file"""
     data_size = 4

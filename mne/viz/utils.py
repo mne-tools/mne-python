@@ -287,6 +287,8 @@ def _get_help_text(params):
             text2.insert(9, 'Increase the number of channels per view\n')
             text.insert(10, u'b : \n')
             text2.insert(10, 'Toggle butterfly plot on/off\n')
+            text.insert(11, u'h : \n')
+            text2.insert(11, 'Show histogram of peak-to-peak values\n')
             text2.append('Mark bad epoch\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')

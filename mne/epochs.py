@@ -12,13 +12,14 @@ import copy as cp
 import warnings
 import json
 
+import os.path as op
 import numpy as np
 
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float_matrix, write_float,
-                       write_id, write_string)
+                       write_id, write_string, _get_split_size)
 from .io.meas_info import read_meas_info, write_meas_info, _merge_info
-from .io.open import fiff_open
+from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
 from .io.constants import FIFF
@@ -39,6 +40,97 @@ from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, object_hash)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
+
+
+def _save_split(epochs, fname, part_idx, n_parts):
+    """Split epochs"""
+
+    # insert index in filename
+    path, base = op.split(fname)
+    idx = base.find('.')
+    if part_idx > 0:
+        fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx,
+                                            base[idx + 1:]))
+
+    next_fname = None
+    if part_idx < n_parts - 1:
+        next_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx + 1,
+                                                 base[idx + 1:]))
+        next_idx = part_idx + 1
+
+    fid = start_file(fname)
+
+    info = epochs.info
+    meas_id = info['meas_id']
+
+    start_block(fid, FIFF.FIFFB_MEAS)
+    write_id(fid, FIFF.FIFF_BLOCK_ID)
+    if info['meas_id'] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info['meas_id'])
+
+    # Write measurement info
+    write_meas_info(fid, info)
+
+    # One or more evoked data sets
+    start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+    start_block(fid, FIFF.FIFFB_EPOCHS)
+
+    # write events out after getting data to ensure bad events are dropped
+    data = epochs.get_data()
+    start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+    write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
+    mapping_ = ';'.join([k + ':' + str(v) for k, v in
+                         epochs.event_id.items()])
+    write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
+    end_block(fid, FIFF.FIFFB_MNE_EVENTS)
+
+    # First and last sample
+    first = int(epochs.times[0] * info['sfreq'])
+    last = first + len(epochs.times) - 1
+    write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
+    write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
+
+    # save baseline
+    if epochs.baseline is not None:
+        bmin, bmax = epochs.baseline
+        bmin = epochs.times[0] if bmin is None else bmin
+        bmax = epochs.times[-1] if bmax is None else bmax
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
+
+    # The epochs itself
+    decal = np.empty(info['nchan'])
+    for k in range(info['nchan']):
+        decal[k] = 1.0 / (info['chs'][k]['cal'] *
+                          info['chs'][k].get('scale', 1.0))
+
+    data *= decal[np.newaxis, :, np.newaxis]
+
+    write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
+
+    # undo modifications to data
+    data /= decal[np.newaxis, :, np.newaxis]
+
+    write_string(fid, FIFF.FIFFB_MNE_EPOCHS_DROP_LOG,
+                 json.dumps(epochs.drop_log))
+
+    write_int(fid, FIFF.FIFFB_MNE_EPOCHS_SELECTION,
+              epochs.selection)
+
+    # And now write the next file info in case epochs are split on disk
+    if next_fname is not None and n_parts > 1:
+        start_block(fid, FIFF.FIFFB_REF)
+        write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
+        write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
+        if meas_id is not None:
+            write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+        write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
+        end_block(fid, FIFF.FIFFB_REF)
+
+    end_block(fid, FIFF.FIFFB_EPOCHS)
+    end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+    end_block(fid, FIFF.FIFFB_MEAS)
+    end_file(fid)
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
@@ -913,8 +1005,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The figure.
         """
         if not self._bad_dropped:
-            logger.error("Bad epochs have not yet been dropped.")
-            return
+            raise ValueError("You cannot use plot_drop_log since bad "
+                             "epochs have not yet been dropped. "
+                             "Use epochs.drop_bad_epochs().")
 
         from .viz import plot_drop_log
         return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
@@ -1274,7 +1367,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
-                 verbose=None):
+                 copy=False, verbose=None):
         """Resample preloaded data
 
         Parameters
@@ -1287,9 +1380,17 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Window to use in resampling. See scipy.signal.resample.
         n_jobs : int
             Number of jobs to run in parallel.
+        copy : bool
+            Whether to operate on a copy of the data (True) or modify data
+            in-place (False). Defaults to False.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The resampled epochs object.
 
         Notes
         -----
@@ -1299,13 +1400,18 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # XXX this could operate on non-preloaded data, too
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
-        o_sfreq = self.info['sfreq']
-        self._data = resample(self._data, sfreq, o_sfreq, npad,
+
+        inst = self.copy() if copy else self
+
+        o_sfreq = inst.info['sfreq']
+        inst._data = resample(inst._data, sfreq, o_sfreq, npad,
                               n_jobs=n_jobs)
         # adjust indirectly affected variables
-        self.info['sfreq'] = sfreq
-        self.times = (np.arange(self._data.shape[2], dtype=np.float) /
-                      sfreq + self.times[0])
+        inst.info['sfreq'] = sfreq
+        inst.times = (np.arange(inst._data.shape[2], dtype=np.float) /
+                      sfreq + inst.times[0])
+
+        return inst
 
     def copy(self):
         """Return copy of Epochs instance"""
@@ -1316,7 +1422,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         new._raw = raw
         return new
 
-    def save(self, fname):
+    def save(self, fname, split_size='2GB'):
         """Save epochs in a fif file
 
         Parameters
@@ -1324,71 +1430,34 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         fname : str
             The name of the file, which should end with -epo.fif or
             -epo.fif.gz.
+        split_size : string | int
+            Large raw files are automatically split into multiple pieces. This
+            parameter specifies the maximum size of each piece. If the
+            parameter is an integer, it specifies the size in Bytes. It is
+            also possible to pass a human-readable string, e.g., 100MB.
+            Note: Due to FIFF file limitations, the maximum split size is 2GB.
+
+            .. versionadded:: 0.10.0
+
+        Notes
+        -----
+        Bad epochs will be dropped before saving the epochs to disk.
         """
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+        split_size = _get_split_size(split_size)
 
-        # Create the file and save the essentials
-        fid = start_file(fname)
+        # to know the length accurately. The get_data() call would drop
+        # bad epochs anyway
+        self.drop_bad_epochs()
+        total_size = self[0].get_data().nbytes * len(self)
+        n_parts = int(np.ceil(total_size / float(split_size)))
+        epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
-        start_block(fid, FIFF.FIFFB_MEAS)
-        write_id(fid, FIFF.FIFF_BLOCK_ID)
-        if self.info['meas_id'] is not None:
-            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info['meas_id'])
-
-        # Write measurement info
-        write_meas_info(fid, self.info)
-
-        # One or more evoked data sets
-        start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        start_block(fid, FIFF.FIFFB_EPOCHS)
-
-        # write events out after getting data to ensure bad events are dropped
-        data = self.get_data()
-        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
-        mapping_ = ';'.join([k + ':' + str(v) for k, v in
-                             self.event_id.items()])
-        write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
-        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
-
-        # First and last sample
-        first = int(self.times[0] * self.info['sfreq'])
-        last = first + len(self.times) - 1
-        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
-        write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
-
-        # save baseline
-        if self.baseline is not None:
-            bmin, bmax = self.baseline
-            bmin = self.times[0] if bmin is None else bmin
-            bmax = self.times[-1] if bmax is None else bmax
-            write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
-            write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
-
-        # The epochs itself
-        decal = np.empty(self.info['nchan'])
-        for k in range(self.info['nchan']):
-            decal[k] = 1.0 / (self.info['chs'][k]['cal'] *
-                              self.info['chs'][k].get('scale', 1.0))
-
-        data *= decal[np.newaxis, :, np.newaxis]
-
-        write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
-
-        # undo modifications to data
-        data /= decal[np.newaxis, :, np.newaxis]
-
-        write_string(fid, FIFF.FIFFB_MNE_EPOCHS_DROP_LOG,
-                     json.dumps(self.drop_log))
-
-        write_int(fid, FIFF.FIFFB_MNE_EPOCHS_SELECTION,
-                  self.selection)
-
-        end_block(fid, FIFF.FIFFB_EPOCHS)
-
-        end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        end_block(fid, FIFF.FIFFB_MEAS)
-        end_file(fid)
+        for part_idx, epoch_idx in enumerate(epoch_idxs):
+            this_epochs = self[epoch_idx] if n_parts > 1 else self
+            # avoid missing event_ids in splits
+            this_epochs.event_id = self.event_id
+            _save_split(this_epochs, fname, part_idx, n_parts)
 
     def equalize_event_counts(self, event_ids, method='mintime', copy=True):
         """Equalize the number of trials in each condition
@@ -1936,40 +2005,8 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
 
 
 @verbose
-def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
-    """Read epochs from a fif file
+def _read_one_epoch_file(f, tree, fname, proj, add_eeg_ref, verbose):
 
-    Parameters
-    ----------
-    fname : str
-        The name of the file, which should end with -epo.fif or -epo.fif.gz.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to raw.verbose.
-
-    Returns
-    -------
-    epochs : instance of Epochs
-        The epochs
-    """
-    check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
-
-    logger.info('Reading %s ...' % fname)
-    f, tree, _ = fiff_open(fname)
     with f as fid:
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree)
@@ -2072,7 +2109,57 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
         epochs.selection = selection
         epochs.drop_log = drop_log
         epochs._bad_dropped = True
+    return epochs
 
+
+@verbose
+def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
+    """Read epochs from a fif file
+
+    Parameters
+    ----------
+    fname : str
+        The name of the file, which should end with -epo.fif or -epo.fif.gz.
+    proj : bool | 'delayed'
+        Apply SSP projection vectors. If proj is 'delayed' and reject is not
+        None the single epochs will be projected before the rejection
+        decision, but used in unprojected state if they are kept.
+        This way deciding which projection vectors are good can be postponed
+        to the evoked stage without resulting in lower epoch counts and
+        without producing results different from early SSP application
+        given comparable parameters. Note that in this case baselining,
+        detrending and temporal decimation will be postponed.
+        If proj is False no projections will be applied which is the
+        recommended value if SSPs are not used for cleaning the data.
+    add_eeg_ref : bool
+        If True, an EEG average reference will be added (unless one
+        already exists).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+
+    Returns
+    -------
+    epochs : instance of Epochs
+        The epochs
+    """
+    check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+
+    fnames = [fname]
+    epochs = list()
+    for fname in fnames:
+        logger.info('Reading %s ...' % fname)
+        fid, tree, _ = fiff_open(fname)
+        next_fname = _get_next_fname(fid, fname, tree)
+        epoch = _read_one_epoch_file(fid, tree, fname, proj, add_eeg_ref,
+                                     verbose)
+        epochs.append(epoch)
+
+        if next_fname is not None:
+            fnames.append(next_fname)
+
+    epochs = _concatenate_epochs(epochs, read_file=True)
+    epochs._bad_dropped = True
     return epochs
 
 
@@ -2219,6 +2306,52 @@ def _compare_epochs_infos(info1, info2, ind):
         raise ValueError('SSP projectors in epochs files must be the same')
 
 
+def _concatenate_epochs(epochs_list, read_file=False):
+    """Auxiliary function for concatenating epochs."""
+    out = epochs_list[0]
+    data = [out.get_data()]
+    events = [out.events]
+    drop_log = cp.deepcopy(out.drop_log)
+    event_id = cp.deepcopy(out.event_id)
+    selection = out.selection
+    for ii, epochs in enumerate(epochs_list[1:]):
+        _compare_epochs_infos(epochs.info, epochs_list[0].info, ii)
+        if not np.array_equal(epochs.times, epochs_list[0].times):
+            raise ValueError('Epochs must have same times')
+
+        if epochs.baseline != epochs_list[0].baseline:
+            raise ValueError('Baseline must be same for all epochs')
+
+        data.append(epochs.get_data())
+        events.append(epochs.events)
+        selection = np.concatenate((selection, epochs.selection))
+        if read_file:
+            for k, (a, b) in enumerate(zip(drop_log, epochs.drop_log)):
+                if a == ['IGNORED'] and b != ['IGNORED']:
+                    drop_log[k] = b
+        else:
+            drop_log.extend(epochs.drop_log)
+        event_id.update(epochs.event_id)
+    events = np.concatenate(events, axis=0)
+    # do not do this if epochs read from disk are being concatenated
+    if read_file is False:
+        events[:, 0] = np.arange(len(events))  # arbitrary after concat
+
+    baseline = epochs_list[0].baseline
+    out = _BaseEpochs(out.info, np.concatenate(data, axis=0), events, event_id,
+                      out.tmin, out.tmax, baseline=baseline, add_eeg_ref=False,
+                      proj=False, verbose=out.verbose, on_missing='ignore')
+    # We previously only set the drop log here, but we also need to set the
+    # selection, too
+    if read_file is False:
+        selection = np.where([len(d) == 0 for d in drop_log])[0]
+
+    assert len(selection) == len(out.drop_log)
+    out.selection = selection
+    out.drop_log = drop_log
+    return out
+
+
 def concatenate_epochs(epochs_list):
     """Concatenate a list of epochs into one epochs object
 
@@ -2236,29 +2369,4 @@ def concatenate_epochs(epochs_list):
     -----
     .. versionadded:: 0.9.0
     """
-    out = epochs_list[0]
-    data = [out.get_data()]
-    events = [out.events]
-    drop_log = cp.deepcopy(out.drop_log)
-    event_id = cp.deepcopy(out.event_id)
-    for ii, epochs in enumerate(epochs_list[1:]):
-        _compare_epochs_infos(epochs.info, epochs_list[0].info, ii)
-        if not np.array_equal(epochs.times, epochs_list[0].times):
-            raise ValueError('Epochs must have same times')
-
-        data.append(epochs.get_data())
-        events.append(epochs.events)
-        drop_log.extend(epochs.drop_log)
-        event_id.update(epochs.event_id)
-    events = np.concatenate(events, axis=0)
-    events[:, 0] = np.arange(len(events))  # arbitrary after concat
-    out = _BaseEpochs(out.info, np.concatenate(data, axis=0), events, event_id,
-                      out.tmin, out.tmax, baseline=None, add_eeg_ref=False,
-                      proj=False, verbose=out.verbose)
-    # We previously only set the drop log here, but we also need to set the
-    # selection, too
-    selection = np.where([len(d) == 0 for d in drop_log])[0]
-    assert len(selection) == len(out.drop_log)
-    out.selection = selection
-    out.drop_log = drop_log
-    return out
+    return _concatenate_epochs(epochs_list)

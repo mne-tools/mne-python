@@ -190,10 +190,16 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
     extent = (tmin, tmax, freq[0], freq[-1])
     ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
               vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
-    if x_label is not None:
-        plt.xlabel(x_label)
-    if y_label is not None:
-        plt.ylabel(y_label)
+    if isinstance(ax, plt.Axes):
+        if x_label is not None:
+            ax.set_xlabel(x_label)
+        if y_label is not None:
+            ax.set_ylabel(y_label)
+    else:
+        if x_label is not None:
+            plt.xlabel(x_label)
+        if y_label is not None:
+            plt.ylabel(y_label)
     if colorbar:
         plt.colorbar()
     if title:

@@ -48,6 +48,7 @@ Classes
    decoding.FilterEstimator
    decoding.PSDEstimator
    decoding.GeneralizationAcrossTime
+   decoding.TimeDecoding
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
