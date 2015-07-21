@@ -149,7 +149,9 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     length), solving the linear system Y = bX and returning b as evoked-like
     time series split by condition.
 
-    See Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
+    References
+    ----------
+    Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
     waveforms: II. Non-linear effects, overlap correction, and practical
     considerations. Psychophysiology, 52(2), 169-189.
 
@@ -242,7 +244,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     if covariates is not None:
         conds += list(covariates)
 
-    # time windows (per event type)
+    # time windows (per event type) are converted to sample points from times
     if isinstance(tmin, (float, int)):
         tmin = dict((cond, int(tmin * info["sfreq"])) for cond in conds)
     else:
@@ -274,8 +276,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         # the full predictor matrix
         tmin_, tmax_ = tmin[cond], tmax[cond]
         n_lags = int(tmax_ - tmin_)
-        samples = np.zeros(len(times), dtype=np.float64)
-        lags = np.zeros(n_lags, dtype=np.float64)
+        samples = np.zeros(len(times), dtype=np.float)
+        lags = np.zeros(n_lags, dtype=np.float)
 
         if cond in event_id:  # for binary predictors
             ids = ([event_id[cond]] if isinstance(event_id[cond], int)
@@ -287,8 +289,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                 error = """Condition {0} from ```covariates``` is
                         not the same length as ```events```""".format(cond)
                 raise ValueError(error)
-            for tx, v in zip(events[:, 0], covariates[cond]):
-                samples[tx + int(tmin_)] = np.float(v)
+            for time, value in zip(events[:, 0], covariates[cond]):
+                samples[time + int(tmin_)] = np.float(value)
 
         cond_length[cond] = len(np.nonzero(samples))
 
