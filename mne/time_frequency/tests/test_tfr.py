@@ -55,19 +55,28 @@ def test_time_frequency():
     times = epochs.times
     nave = len(data)
 
+    epochs_full = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0))
+
     freqs = np.arange(6, 20, 5)  # define frequencies of interest
     n_cycles = freqs / 4.
 
     # Test first with a single epoch
     power, itc = tfr_morlet(epochs[0], freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
+    # Now compute evoked
     evoked = epochs.average()
     power_evoked = tfr_morlet(evoked, freqs, n_cycles, use_fft=True,
                               return_itc=False)
     assert_raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
+    # Test picks argument
+    power_picks, itc_picks = tfr_morlet(epochs_picks, freqs=freqs,
+                                        n_cycles=n_cycles, use_fft=True,
+                                        return_itc=True, picks=picks)
     # the actual data arrays here are equivalent, too...
+    assert_array_equal(power.data, power_picks.data)
+    assert_array_equal(itc.data, itc_picks.data)
     assert_array_almost_equal(power.data, power_evoked.data)
 
     print(itc)  # test repr
@@ -165,9 +174,16 @@ def test_tfr_multitaper():
     freqs = np.arange(5, 100, 3, dtype=np.float)
     power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                 time_bandwidth=4.0)
+    picks = np.arange(len(ch_names))
+    power_picks, itc_picks = tfr_multitaper(epochs, freqs=freqs,
+                                            n_cycles=freqs / 2.,
+                                            time_bandwidth=4.0, picks=picks)
     power_evoked = tfr_multitaper(epochs.average(), freqs=freqs,
                                   n_cycles=freqs / 2., time_bandwidth=4.0,
                                   return_itc=False)
+    # test picks argument
+    assert_array_equal(power.data, power_picks.data)
+    assert_array_equal(itc.data, itc_picks.data)
     # one is squared magnitude of the average (evoked) and
     # the other is average of the squared magnitudes (epochs PSD)
     # so values shouldn't match, but shapes should
@@ -261,7 +277,10 @@ def test_plot():
     tfr.plot(picks=[0, 1, 2], axes=[ax, ax2, ax3])
     plt.close('all')
 
-    tfr.plot_topo()
+    tfr.plot_topo(picks=[1, 2])
+    plt.close('all')
+
+    tfr.plot_topo(picks=[1, 2])
     plt.close('all')
 
 
