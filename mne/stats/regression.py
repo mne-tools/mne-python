@@ -8,7 +8,7 @@
 from collections import namedtuple
 from inspect import isgenerator
 import warnings
-from .externals.six import string_types
+from ..externals.six import string_types
 
 import numpy as np
 from scipy import linalg
