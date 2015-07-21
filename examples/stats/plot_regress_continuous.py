@@ -49,7 +49,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=None,
 
 # rERF
 evokeds = linear_regression_raw(raw, events=events, event_id=event_id,
-                                    reject=False, tmin=tmin, tmax=tmax)
+                                reject=False, tmin=tmin, tmax=tmax)
 
 # plot both results
 cond = "faces"
