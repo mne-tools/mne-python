@@ -188,16 +188,17 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         given by the first column of ```events```. If None, only binary events
         (from event_id) are used.
     reject : None | dict
-        Activate rejection parameters based on peak-to-peak amplitude in
-        continuously selected subwindows. If reject is None, no rejection is
-        done. If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg')
+        For cleaning raw data before the regression is performed: set up
+        rejection parameters based on peak-to-peak amplitude in continuously
+        selected subwindows. If reject is None, no rejection is done.
+        If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg')
         and values are the maximal peak-to-peak values to select rejected
         epochs. E.g. reject = dict(grad=4000e-12, # T / m (gradiometers)
                                    mag=4e-11, # T (magnetometers)
                                    eeg=40e-5, # uV (EEG channels)
                                    eog=250e-5 # uV (EOG channels))
     tstep : float
-        Length of windows for peak-to-peak detection.
+        Length of windows for peak-to-peak detection for raw data cleaning.
     decim : int
         Decimate by choosing only a subsample of data points. Highly
         recommended for data recorded at high sampling frequencies, as
