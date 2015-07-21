@@ -7,8 +7,7 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import (assert_array_equal, 
-                           assert_array_almost_equal, assert_allclose)
+from numpy.testing import assert_array_equal, assert_allclose
 
 from scipy.signal import hann
 
@@ -104,5 +103,5 @@ def test_continuous_regression_with_overlap():
     raw = RawArray(signal[np.newaxis, :], mne.create_info(1, 100, 'eeg'))
 
     assert_allclose(effect,
-                    linear_regression_raw(raw, events, {1:1}, tmin=0)[1]
+                    linear_regression_raw(raw, events, {1: 1}, tmin=0)[1]
                     .data.flatten())
