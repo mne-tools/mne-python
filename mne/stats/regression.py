@@ -16,8 +16,8 @@ from ..source_estimate import SourceEstimate
 from ..epochs import _BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..utils import logger, _reject_data_segments, _get_fast_dot
-from ..io.pick import pick_types
-from . import pick_info
+from ..io.pick import pick_types, pick_info
+
 
 def linear_regression(inst, design_matrix, names=None):
     """Fit Ordinary Least Squares regression (OLS)
@@ -189,8 +189,8 @@ def linear_regression_raw(raw, events, event_id=None,
     reject : None | dict
         Activate rejection parameters based on peak-to-peak amplitude in
         continuously selected subwindows. If reject is None, no rejection is
-        done. If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg') 
-        and values are the maximal peak-to-peak values to select rejected 
+        done. If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg')
+        and values are the maximal peak-to-peak values to select rejected
         epochs. E.g. reject = dict(grad=4000e-12, # T / m (gradiometers)
                                    mag=4e-11, # T (magnetometers)
                                    eeg=40e-5, # uV (EEG channels)
