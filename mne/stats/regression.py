@@ -162,7 +162,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         downsampled, as the resulting matrices can be enormous and easily
         overload your computer. Typically, 100 Hz sampling rate is
         appropriate - or using the decim keyword (see below).
-    events : ndarray of int, shape(n_events, 3)
+    events : ndarray of int, shape (n_events, 3)
         An array where the first column corresponds to samples in raw
         and the last to integer codes in event_id.
     event_id : dict
