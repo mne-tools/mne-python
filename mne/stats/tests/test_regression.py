@@ -1,6 +1,7 @@
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#
 # License: BSD (3-clause)
 
 import os.path as op
