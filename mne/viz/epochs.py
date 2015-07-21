@@ -27,7 +27,7 @@ from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
 from ..defaults import _handle_default
 
 
-def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
+def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap='RdBu_r'):
     """Plot Event Related Potential / Fields image
@@ -39,9 +39,9 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
     picks : int | array-like of int | None
         The indices of the channels to consider. If None, all good
         data channels are plotted.
-    sigma : float
+    sigma : float | None
         The standard deviation of the Gaussian smoothing to apply along
-        the epoch axis to apply in the image.
+        the epoch axis to apply in the image. If None, no smoothing is applied.
     vmin : float
         The min value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers
@@ -110,7 +110,9 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         if this_order is not None:
             this_data = this_data[this_order]
 
-        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+        if sigma is not None:
+            this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
+                                                  axis=0)
 
         ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
         im = plt.imshow(this_data,
