@@ -11,9 +11,6 @@
     </div></div>
     </div></div>
 
-MEG & EEG data analysis package
--------------------------------
-
 .. raw:: html
 
    <div class="container-fluid">
@@ -21,19 +18,23 @@ MEG & EEG data analysis package
    <div class="col-md-8">
    <br>
 
-MNE is a software package for processing magnetoencephalography
-(MEG) and electroencephalography (EEG) data that
-provides comprehensive analysis tools and workflows including preprocessing,
-source estimation, time–frequency analysis, statistical analysis, and several
-methods to estimate functional connectivity between distributed brain regions.
+MNE is a community-driven software package designed for for **processing
+electroencephalography (EEG) and magnetoencephalography (MEG) data**
+providing comprehensive tools and workflows for:
 
-MNE includes tools compiled from C code for the LINUX and Mac OSX
-operating systems, as well as a matlab toolbox and a comprehensive
-Python package (provided under the simplified BSD license).
+1. Preprocessing
+2. Source estimation
+3. Time–frequency analysis
+4. Statistical testing
+5. Estimation of functional connectivity
+6. Applying machine learning algorithms
+7. Visualization of sensor- and source-space data
 
-.. raw:: html
+MNE includes a comprehensive Python package (provided under the simplified
+BSD license), supplemented by tools compiled from C code for the LINUX and
+Mac OSX operating systems, as well as a MATLAB toolbox.
 
-   <h4>From raw data to dSPM source estimates in 30 lines of code:</h4>
+**From raw data to source estimates in about 30 lines of code:**
 
 .. code:: python
 
@@ -75,6 +76,13 @@ under Award Number DE-FG02-99ER62764 to The MIND Institute.
 
 .. raw:: html
 
+   <div style="width: 40%; float: left; padding: 20px;">
+       <script type="text/javascript" src="http://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
+   </div>
+
+
+.. raw:: html
+
    </div>
    <div class="col-md-4">
    <h2>Documentation</h2>
@@ -99,9 +107,16 @@ under Award Number DE-FG02-99ER62764 to The MIND Institute.
 
    <h2>Community</h2>
 
-* Join the MNE `mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
-* `Help/Feature Request/Bug Report <mailto:mne_support@nmr.mgh.harvard.edu>`_
-* :ref:`contributing`
+* | Analysis talk: join the
+  | `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
+
+* | Feature requests and bug reports:
+  | `GitHub issues <https://github.com/mne-tools/mne-python/issues/>`_
+
+* | Chat with developers:
+  | `Gitter <https://gitter.im/mne-tools/mne-python>`_
+
+* :ref:`Contribute to MNE! <contributing>`
 
 .. raw:: html
 
@@ -112,19 +127,10 @@ under Award Number DE-FG02-99ER62764 to The MIND Institute.
       <li><a href=http://martinos.org/mne/dev>Development</a></li>
    </ul>
 
-.. raw:: html
+   <div style="float: left; padding: 10px; width: 100%;">
+       <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
+   </div>
 
    </div>
    </div>
    </div>
-
-.. raw:: html
-
-    <div>
-    <div style="width: 40%; float: left; padding: 20px;">
-        <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
-    </div>
-    <div style="width: 40%; float: left; padding: 20px;">
-        <script type="text/javascript" src="http://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
-    </div>
-    </div>
