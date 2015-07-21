@@ -22,7 +22,6 @@ Authors: Jona Sassenhagen <jona.sassenhagen@gmail.de>
 License: BSD (3-clause)
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
