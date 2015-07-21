@@ -242,7 +242,9 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
     info = pick_info(raw.info, picks, copy=True)
     info["sfreq"] /= decim
-    data, times = raw[picks, ::decim]
+    data, times = raw
+    data = data[picks, ::decim]
+    times = times[::decim]
     events = events.copy()
     events[:, 0] -= raw.first_samp
     events[:, 0] /= decim
