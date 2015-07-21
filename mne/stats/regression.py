@@ -3,6 +3,7 @@
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
+#
 # License: BSD (3-clause)
 
 from collections import namedtuple
@@ -155,16 +156,16 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     Parameters
     ----------
     raw : instance of Raw
-        A raw object. Warning: be very careful about data that is not
+        A raw object. Note: be very careful about data that is not
         downsampled, as the resulting matrices can be enormous and easily
-        overload your computer. Typically, 100 hz sampling rate is
+        overload your computer. Typically, 100 Hz sampling rate is
         appropriate - or using the decim keyword (see below).
-    events : np.ndarray of int, shape(n_events, 3)
+    events : ndarray of int, shape(n_events, 3)
         An array where the first column corresponds to samples in raw
         and the last to integer codes in event_id.
     event_id : dict
         As in Epochs; a dictionary where the values may be integers or
-        list-like collections of integers, corresponding to the 3rd column of
+        iterables of integers, corresponding to the 3rd column of
         events, and the keys are condition names.
     tmin : float | dict
         If float, gives the lower limit (in seconds) for the time window for
@@ -210,8 +211,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
     Returns
     -------
-    ev_dict : dictionary
-        A dictionary where the keys correspond to conditions and the values are
+    evokeds : dict
+        A dict where the keys correspond to conditions and the values are
         Evoked objects with the rE[R/F]Ps. These can be used exactly like any
         other Evoked object, including e.g. plotting or statistics.
     """
@@ -254,7 +255,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                     for cond in conds)
 
     # Construct predictor matrix
-    # We do this by creating one array per event type, shape lags * samples
+    # We do this by creating one array per event type, shape (lags, samples)
     # (where lags depends on tmin/tmax and can be different for different
     # event types). Columns correspond to predictors, predictors correspond to
     # time lags. Thus, each array is mostly sparse, with one diagonal of 1s
@@ -315,14 +316,14 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     coefs = solver(X, Y)
 
     # construct Evoked objects to be returned from output
-    ev_dict = dict()
+    evokeds = dict()
     cum = 0
     for cond in conds:
         tmin_, tmax_ = tmin[cond], tmax[cond]
-        ev_dict[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
+        evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
                                     info=info, tmin=tmin_ / info["sfreq"],
                                     comment=cond, nave=cond_length[cond],
                                     kind='mean')  # note that nave and kind are
         cum += tmax_ - tmin_                      # technically not correct
 
-    return ev_dict
+    return evokeds
