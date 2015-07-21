@@ -55,7 +55,8 @@ def test_time_frequency():
     times = epochs.times
     nave = len(data)
 
-    epochs_picks = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0))
+    epochs_picks = Epochs(raw, events, event_id, tmin, tmax,
+                          baseline=(None, 0))
 
     freqs = np.arange(6, 20, 5)  # define frequencies of interest
     n_cycles = freqs / 4.
