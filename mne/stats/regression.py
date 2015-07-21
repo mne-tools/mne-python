@@ -8,6 +8,7 @@
 from collections import namedtuple
 from inspect import isgenerator
 import warnings
+from .externals.six import string_types
 
 import numpy as np
 from scipy import linalg
@@ -137,12 +138,9 @@ def _fit_lm(data, design_matrix, names):
     return beta, stderr, t_val, p_val, mlog10_p_val
 
 
-def linear_regression_raw(raw, events, event_id=None,
-                          tmin=-.1, tmax=1,
-                          covariates=None,
-                          reject=None, tstep=1.,
-                          decim=1, picks=None,
-                          solver='pinv'):
+def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
+                          covariates=None, reject=None, tstep=1.,
+                          decim=1, picks=None, solver='pinv'):
     """Estimate regression-based evoked potentials/fields by linear modelling
     of the full M/EEG time course, including correction for overlapping
     potentials and allowing for continuous/scalar predictors. Internally, this
@@ -161,8 +159,8 @@ def linear_regression_raw(raw, events, event_id=None,
         downsampled, as the resulting matrices can be enormous and easily
         overload your computer. Typically, 100 hz sampling rate is
         appropriate - or using the decim keyword (see below).
-    events : array
-        An n x 3 array, where the first column corresponds to samples in raw
+    events : np.ndarray of int, shape(n_events, 3)
+        An array where the first column corresponds to samples in raw
         and the last to integer codes in event_id.
     event_id : dict
         As in Epochs; a dictionary where the values may be integers or
@@ -218,7 +216,7 @@ def linear_regression_raw(raw, events, event_id=None,
         other Evoked object, including e.g. plotting or statistics.
     """
 
-    if isinstance(solver, str):
+    if isinstance(solver, string_types):
         if solver == 'pinv':
             fast_dot = _get_fast_dot()
 
@@ -227,11 +225,11 @@ def linear_regression_raw(raw, events, event_id=None,
                 return fast_dot(linalg.pinv(fast_dot(X.T, X)),
                                 fast_dot(X.T, Y.T)).T
         else:
-            raise ValueError("No such solver: {}".format(solver))
+            raise ValueError("No such solver: {0}".format(solver))
 
     # prepare raw and events
     if picks is None:
-        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
+        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True, copy=True)
     info = pick_info(raw.info, picks)
     info["sfreq"] /= decim
     data, times = raw[picks, ::decim]
@@ -271,12 +269,12 @@ def linear_regression_raw(raw, events, event_id=None,
     cond_length = dict()
     pred_arrays = list()
     for cond in conds:
-
         # create the first row and column to be later used by toeplitz to build
         # the full predictor matrix
         tmin_, tmax_ = tmin[cond], tmax[cond]
         n_lags = int(tmax_ - tmin_)
-        samples, lags = np.zeros(len(times)), np.zeros(n_lags)
+        samples = np.zeros(len(times), dtype=numpy.float64)
+        lags = np.zeros(n_lags, dtype=numpy.float64)
 
         if cond in event_id:  # for binary predictors
             ids = ([event_id[cond]] if isinstance(event_id[cond], int)
@@ -285,7 +283,7 @@ def linear_regression_raw(raw, events, event_id=None,
 
         else:  # for predictors from covariates, e.g. continuous ones
             if len(covariates[cond]) != len(events):
-                error = """Condition {} from ```covariates``` is
+                error = """Condition {0} from ```covariates``` is
                         not the same length as ```events```""".format(cond)
                 raise ValueError(error)
             for tx, v in zip(events[:, 0], covariates[cond]):
@@ -318,12 +316,12 @@ def linear_regression_raw(raw, events, event_id=None,
     coefs = solver(X, Y)
 
     # construct Evoked objects to be returned from output
-    ev_dict = {}
+    ev_dict = dict()
     cum = 0
     for cond in conds:
         tmin_, tmax_ = tmin[cond], tmax[cond]
         ev_dict[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                    info, tmin_ / info["sfreq"],
+                                    info=info, tmin=tmin_ / info["sfreq"],
                                     comment=cond, nave=cond_length[cond],
                                     kind='mean')  # note that nave and kind are
         cum += tmax_ - tmin_                      # technically not correct
