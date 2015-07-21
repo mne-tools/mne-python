@@ -71,6 +71,7 @@ def test_regression():
 
 @testing.requires_testing_data
 def test_continuous_regression_no_overlap():
+    """Test regression without overlap correction, on real data"""
     tmin, tmax = -.1, .5
 
     raw = mne.io.Raw(raw_fname, preload=True)
