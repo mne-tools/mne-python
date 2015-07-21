@@ -465,12 +465,21 @@ def test_random_permutation():
     """
     n_samples = 10
     random_state = 42
-    python_randperm = random_permutation(n_samples, random_state)
+    rng = check_random_state(random_state)
 
-    # matlab output when we execute rng(42), randperm(10)
-    matlab_randperm = np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2])
+    # matlab output when we execute rng(42), and then call randperm(10)
+    # 5 times:
+    matlab1 = np.array([7, 6, 5, 1, 4, 9, 10, 3, 8, 2])  # 1st call
+    matlab2 = np.array([1, 5, 6, 4, 10, 7, 9, 8, 3, 2])  # 2nd call
+    matlab3 = np.array([10, 2, 7, 3, 4, 5, 8, 9, 1, 6])  # 3rd call
+    matlab4 = np.array([3, 8, 2, 7, 10, 1, 9, 6, 4, 5])  # 4th call
+    matlab5 = np.array([3, 1, 10, 5, 7, 2, 8, 9, 6, 4])  # 5th call
 
-    assert_array_equal(python_randperm, matlab_randperm - 1)
+    assert_array_equal(random_permutation(n_samples, rng), matlab1 - 1)
+    assert_array_equal(random_permutation(n_samples, rng), matlab2 - 1)
+    assert_array_equal(random_permutation(n_samples, rng), matlab3 - 1)
+    assert_array_equal(random_permutation(n_samples, rng), matlab4 - 1)
+    assert_array_equal(random_permutation(n_samples, rng), matlab5 - 1)
 
 
 run_tests_if_main()
