@@ -452,7 +452,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 
     ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
               origin='lower', vmin=vmin, vmax=vmax, picker=True,
-              cmap=cmap)
+              cmap=cmap, interpolation='nearest')
 
     if x_label is not None:
         plt.xlabel(x_label)
