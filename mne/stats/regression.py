@@ -283,8 +283,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         # the full predictor matrix
         tmin_, tmax_ = tmin[cond], tmax[cond]
         n_lags = int(tmax_ - tmin_)
-        samples = np.zeros(len(times), dtype=np.float)
-        lags = np.zeros(n_lags, dtype=np.float)
+        samples = np.zeros(len(times), dtype=float)
+        lags = np.zeros(n_lags, dtype=float)
 
         if cond in event_id:  # for binary predictors
             ids = ([event_id[cond]] if isinstance(event_id[cond], int)
@@ -297,7 +297,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                         not the same length as ```events```""".format(cond)
                 raise ValueError(error)
             for time, value in zip(events[:, 0], covariates[cond]):
-                samples[time + int(tmin_)] = np.float(value)
+                samples[time + int(tmin_)] = float(value)
 
         cond_length[cond] = len(np.nonzero(samples))
 
