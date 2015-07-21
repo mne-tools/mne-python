@@ -51,11 +51,14 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=None,
 evokeds = linear_regression_raw(raw, events=events, event_id=event_id,
                                 reject=None, tmin=tmin, tmax=tmax, 
                                 decim=4)
+# linear_regression_raw returns a dict of evokeds
+# select conditions similarly to mne.Epochs objects
 
 # plot both results
 cond = "faces"
 fig, (ax1, ax2) = plt.subplots(1, 2)
-epochs[cond].average().plot(axes=ax1)
-evokeds[cond].plot(axes=ax2)  # linear_regression_raw returns a dict of evokeds
+epochs[cond].average().plot(axes=ax1, show=False)
+evokeds[cond].plot(axes=ax2, show=False)
 ax1.set_title("Traditional averaging")
 ax2.set_title("rERF")
+plt.show()
