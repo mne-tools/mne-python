@@ -22,6 +22,7 @@ License: BSD (3-clause)
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import spm_face
