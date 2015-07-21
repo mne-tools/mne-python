@@ -297,8 +297,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
     big_arr = np.hstack(pred_arrays).T
     # find only those positions where at least one predictor isn't 0
-    has_val = np.asarray([len(np.nonzero(line)[0]) > 0
-                          for line in big_arr.T])
+    has_val = np.where(np.any(big_arr, axis=0))[0]
 
     # additionally, reject positions based on extreme steps in the data
     if reject is not None:
