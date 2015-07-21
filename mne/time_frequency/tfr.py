@@ -704,8 +704,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             else:
                 ax = axes[idx]
                 fig = ax.get_figure()
-            _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, ylim=None,
-                        tfr=data[idx: idx + 1], freq=freqs,
+            _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, self._onselect,
+                        ylim=None, tfr=data[idx: idx + 1], freq=freqs,
                         x_label='Time (ms)', y_label='Frequency (Hz)',
                         colorbar=False, picker=False, cmap=cmap)
             if title:
@@ -713,6 +713,49 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         if show:
             plt.show()
         return fig
+
+    def _onselect(self, eclick, erelease):
+        """Callback function called by rubber band selector in channel tfr."""
+        if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
+            return
+        import matplotlib.pyplot as plt
+        plt.ion()  # turn interactive mode on
+        tmin = round(min(eclick.xdata, erelease.xdata) / 1000., 1)  # ms to s
+        tmax = round(max(eclick.xdata, erelease.xdata) / 1000., 1)
+        fmin = round(min(eclick.ydata, erelease.ydata), 1)  # Hz
+        fmax = round(max(eclick.ydata, erelease.ydata), 1)
+        types = list()
+        if len(pick_types(self.info, meg=False, eeg=True, ref_meg=False)) > 0:
+            types.append('eeg')
+        if len(pick_types(self.info, meg='mag', ref_meg=False)) > 0:
+            types.append('mag')
+        if len(pick_types(self.info, meg='grad', ref_meg=False)) > 0:
+            types.append('grad')
+        fig, axis = plt.subplots(1, len(types))
+        fig.suptitle('%s s - %s s, %s Hz - %s Hz' % (tmin, tmax, fmin, fmax))
+        plot_idx = 0
+        try:
+            if 'grad' in types:
+                self.plot_topomap(ch_type='grad', tmin=tmin, tmax=tmax,
+                                  fmin=fmin, fmax=fmax, baseline=(-0.5, 0),
+                                  mode='logratio', title='grad', vmin=-0.45,
+                                  vmax=0.45, axes=axis[plot_idx])
+                plot_idx += 1
+            if 'mag' in types:
+                self.plot_topomap(ch_type='mag', tmin=tmin, tmax=tmax,
+                                  fmin=fmin, fmax=fmax, baseline=(-0.5, 0),
+                                  mode='logratio', title='mag', vmin=-0.45,
+                                  vmax=0.45, axes=axis[plot_idx])
+                plot_idx += 1
+            if 'eeg' in types:
+                self.plot_topomap(ch_type='eeg', tmin=tmin, tmax=tmax,
+                                  fmin=fmin, fmax=fmax, baseline=(-0.5, 0),
+                                  mode='logratio', title='eeg', vmin=-0.45,
+                                  vmax=0.45, axes=axis[plot_idx])
+        except IndexError:  # if the user selects a window that is too small
+            logger.info('The selected area is too small. '
+                        'Select a larger time-frequency window.')
+            plt.close(fig)
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
@@ -805,7 +848,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             from mne import find_layout
             layout = find_layout(self.info)
 
-        imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap)
+        imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap,
+                         onselect=self._onselect)
 
         fig = _plot_topo(info=info, times=times,
                          show_func=imshow, layout=layout,

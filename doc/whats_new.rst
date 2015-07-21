@@ -44,6 +44,8 @@ Changelog
     - Add new object :class:`mne.decoding.base.LinearModel` for decoding M/EEG data and interpreting coefficients of linear models with patterns attribute by `Romain Trachel`_ and `Alex Gramfort`_
 
 
+    - Add interactive plotting of topomap from time-frequency representation by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
