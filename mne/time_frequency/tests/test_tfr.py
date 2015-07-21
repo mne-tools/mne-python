@@ -55,7 +55,7 @@ def test_time_frequency():
     times = epochs.times
     nave = len(data)
 
-    epochs_full = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0))
+    epochs_picks = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0))
 
     freqs = np.arange(6, 20, 5)  # define frequencies of interest
     n_cycles = freqs / 4.
@@ -75,8 +75,8 @@ def test_time_frequency():
                                         n_cycles=n_cycles, use_fft=True,
                                         return_itc=True, picks=picks)
     # the actual data arrays here are equivalent, too...
-    assert_array_equal(power.data, power_picks.data)
-    assert_array_equal(itc.data, itc_picks.data)
+    assert_array_almost_equal(power.data, power_picks.data)
+    assert_array_almost_equal(itc.data, itc_picks.data)
     assert_array_almost_equal(power.data, power_evoked.data)
 
     print(itc)  # test repr
@@ -182,8 +182,8 @@ def test_tfr_multitaper():
                                   n_cycles=freqs / 2., time_bandwidth=4.0,
                                   return_itc=False)
     # test picks argument
-    assert_array_equal(power.data, power_picks.data)
-    assert_array_equal(itc.data, itc_picks.data)
+    assert_array_almost_equal(power.data, power_picks.data)
+    assert_array_almost_equal(itc.data, itc_picks.data)
     # one is squared magnitude of the average (evoked) and
     # the other is average of the squared magnitudes (epochs PSD)
     # so values shouldn't match, but shapes should
