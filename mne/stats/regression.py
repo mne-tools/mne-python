@@ -182,11 +182,11 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         in event_id and/or covariates; for missing values, the default (1.) is
         used.
     covariates : dict-like | None
-        If dict-like, values have to be array-like and of the same length as
-        the columns in ```events```. Keys correspond to additional event
-        types/conditions to be estimated and are matched with the time points
-        given by the first column of ```events```. If None, only binary events
-        (from event_id) are used.
+        If dict-like (e.g., a pandas DataFrame), values have to be array-like
+        and of the same length as the columns in ```events```. Keys correspond
+        to additional event types/conditions to be estimated and are matched
+        with the time points given by the first column of ```events```. If
+        None, only binary events (from event_id) are used.
     reject : None | dict
         For cleaning raw data before the regression is performed: set up
         rejection parameters based on peak-to-peak amplitude in continuously
@@ -222,7 +222,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     -------
     evokeds : dict
         A dict where the keys correspond to conditions and the values are
-        Evoked objects with the rE[R/F]Ps. These can be used exactly like any
+        Evoked objects with the ER[F/P]s. These can be used exactly like any
         other Evoked object, including e.g. plotting or statistics.
     """
 
