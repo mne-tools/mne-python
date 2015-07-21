@@ -15,8 +15,7 @@ from scipy import linalg
 from ..source_estimate import SourceEstimate
 from ..epochs import _BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger, _reject_data_segments
-from ..preprocessing.ica import _get_fast_dot
+from ..utils import logger, _reject_data_segments, _get_fast_dot
 from ..io.pick import pick_types
 from . import pick_info
 
