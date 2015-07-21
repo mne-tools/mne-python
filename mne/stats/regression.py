@@ -229,7 +229,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
     # prepare raw and events
     if picks is None:
-        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True, copy=True)
+        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True, 
+                           copy=True)
     info = pick_info(raw.info, picks)
     info["sfreq"] /= decim
     data, times = raw[picks, ::decim]
@@ -273,8 +274,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         # the full predictor matrix
         tmin_, tmax_ = tmin[cond], tmax[cond]
         n_lags = int(tmax_ - tmin_)
-        samples = np.zeros(len(times), dtype=numpy.float64)
-        lags = np.zeros(n_lags, dtype=numpy.float64)
+        samples = np.zeros(len(times), dtype=np.float64)
+        lags = np.zeros(n_lags, dtype=np.float64)
 
         if cond in event_id:  # for binary predictors
             ids = ([event_id[cond]] if isinstance(event_id[cond], int)
