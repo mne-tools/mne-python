@@ -140,7 +140,7 @@ def _fit_lm(data, design_matrix, names):
 
 
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
-                          covariates=None, reject=None, tstep=1.,
+                          covariates=None, reject=None, flat=None, tstep=1.,
                           decim=1, picks=None, solver='pinv'):
     """Estimate regression-based evoked potentials/fields by linear modelling
     of the full M/EEG time course, including correction for overlapping
@@ -190,13 +190,19 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     reject : None | dict
         For cleaning raw data before the regression is performed: set up
         rejection parameters based on peak-to-peak amplitude in continuously
-        selected subwindows. If reject is None, no rejection is done.
+        selected subepochs. If None, no rejection is done.
         If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg')
         and values are the maximal peak-to-peak values to select rejected
         epochs. E.g. reject = dict(grad=4000e-12, # T / m (gradiometers)
                                    mag=4e-11, # T (magnetometers)
                                    eeg=40e-5, # uV (EEG channels)
                                    eog=250e-5 # uV (EOG channels))
+    flat : None | dict
+        or cleaning raw data before the regression is performed: set up
+        rejection parameters based on flatness of the signal. If None, no
+        rejection is done. If a dict, keys are ('grad' | 'mag' |
+        'eeg' | 'eog' | 'ecg') and values are minimal peak-to-peak values to
+        select rejected epochs.
     tstep : float
         Length of windows for peak-to-peak detection for raw data cleaning.
     decim : int
@@ -305,7 +311,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
     # additionally, reject positions based on extreme steps in the data
     if reject is not None:
-        _, inds = _reject_data_segments(data, reject, None, None,
+        _, inds = _reject_data_segments(data, reject, flat, None,
                                         info, tstep)
         for t0, t1 in inds:
             has_val[t0:t1] = False
