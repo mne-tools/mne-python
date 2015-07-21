@@ -448,7 +448,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
     if order is not None:
         this_data = this_data[order]
 
-    if sigma is not None:
+    if sigma > 0.:
         this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
 
     ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
@@ -476,9 +476,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         The epochs.
     layout: instance of Layout
         System specific sensor positions.
-    sigma : float | None
+    sigma : float
         The standard deviation of the Gaussian smoothing to apply along
-        the epoch axis to apply in the image. If None, no smoothing is applied.
+        the epoch axis to apply in the image. If 0., no smoothing is applied.
     vmin : float
         The min value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.

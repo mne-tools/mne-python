@@ -39,9 +39,9 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
     picks : int | array-like of int | None
         The indices of the channels to consider. If None, all good
         data channels are plotted.
-    sigma : float | None
+    sigma : float
         The standard deviation of the Gaussian smoothing to apply along
-        the epoch axis to apply in the image. If None, no smoothing is applied.
+        the epoch axis to apply in the image. If 0., no smoothing is applied.
     vmin : float
         The min value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers
@@ -110,7 +110,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         if this_order is not None:
             this_data = this_data[this_order]
 
-        if sigma is not None:
+        if sigma > 0.:
             this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
                                                   axis=0)
 
