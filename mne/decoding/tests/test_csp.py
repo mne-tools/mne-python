@@ -107,12 +107,10 @@ def test_plot_pattern():
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
 
-    n_components = 3
-    csp = CSP(n_components=n_components, reg='lws')
+    csp = CSP(n_components=3, reg='lws')
 
     csp.fit(epochs_data, epochs.events[:, -1])
     csp.plot_patterns(epochs.info)
-    csp.plot_patterns(epochs.info, components=np.arange(10))
 
 
 @requires_sklearn
@@ -127,9 +125,7 @@ def test_plot_filters():
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
 
-    n_components = 3
-    csp = CSP(n_components=n_components, reg='lws')
+    csp = CSP(n_components=3, reg='lws')
 
     csp.fit(epochs_data, epochs.events[:, -1])
     csp.plot_filters(epochs.info)
-    csp.plot_filters(epochs.info, components=np.arange(10))
