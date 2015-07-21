@@ -45,15 +45,17 @@ raw.pick_types(meg=True)
 
 # regular epoching
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=None,
-                    baseline=None, preload=True, verbose=False)
+                    baseline=None, preload=True, verbose=False, decim=4)
 
 # rERF
 evokeds = linear_regression_raw(raw, events=events, event_id=event_id,
-                                reject=False, tmin=tmin, tmax=tmax)
+                                reject=False, tmin=tmin, tmax=tmax, 
+                                decim=4)
 
 # plot both results
 cond = "faces"
-plt.title("Traditional ERF")
-epochs[cond].average().plot()
-plt.title("rERF")
-evokeds[cond].plot()  # linear_regression_raw returns a dict of evokeds
+fig, (ax1, ax2) = plt.subplots(1, 2)
+epochs[cond].average().plot(axes=ax1)
+evokeds[cond].plot(axes=ax2)  # linear_regression_raw returns a dict of evokeds
+ax1.set_title("Traditional averaging")
+ax2.set_title("rERF")
