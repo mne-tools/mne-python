@@ -229,9 +229,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
     # prepare raw and events
     if picks is None:
-        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True, 
-                           copy=True)
-    info = pick_info(raw.info, picks)
+        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
+    info = pick_info(raw.info, picks, copy=True)
     info["sfreq"] /= decim
     data, times = raw[picks, ::decim]
     events = events.copy()
