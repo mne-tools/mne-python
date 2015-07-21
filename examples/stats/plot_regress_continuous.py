@@ -2,6 +2,7 @@
 ========================================
 Regression on continuous data (rER[P/F])
 ========================================
+
 This demonstrates how rERPs/regressing the continuous data is a
 generalisation of traditional averaging. If all preprocessing steps
 are the same and if no overlap between epochs exists and if all
@@ -33,7 +34,7 @@ mne.set_log_level(False)
 # Preprocess data
 data_path = spm_face.data_path()
 # Load and filter data, set up epochs
-raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
+raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw.fif'
 
 raw = mne.io.Raw(raw_fname % 1, preload=True)  # Take first run
 
@@ -41,7 +42,7 @@ picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 45, method='iir')
 
 events = mne.find_events(raw, stim_channel='UPPT001')
-event_id = {"faces": 1, "scrambled": 2}
+event_id = dict(faces=1, scrambled=2)
 tmin, tmax = -.1, .5
 
 raw.pick_types(meg=True)
@@ -59,10 +60,4 @@ cond = "faces"
 plt.title("Traditional ERF")
 epochs[cond].average().plot()
 plt.title("rERF")
-evoked_dict[cond].plot()
-
-# check if results are virtually identical
-# (as they should be, in the case of no overlap)
-print("Are the two methods virtually identical? ",
-      np.allclose(epochs[cond].average().data * 1e+15,
-                  evoked_dict[cond].data * 1e+15))
+evoked_dict[cond].plot()  # linear_regression_raw returns a dict of evokeds
