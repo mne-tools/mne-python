@@ -116,7 +116,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         im = plt.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
                                 0, len(data)],
-                        aspect='auto', origin='lower',
+                        aspect='auto', origin='lower', interpolation='nearest',
                         vmin=vmin, vmax=vmax, cmap=cmap)
         ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
         if colorbar:
