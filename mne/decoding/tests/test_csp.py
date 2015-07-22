@@ -110,7 +110,7 @@ def test_plot_pattern():
     csp = CSP(n_components=3, reg=.9)
 
     csp.fit(epochs_data, epochs.events[:, -1])
-    csp.plot_patterns(epochs.info)
+    csp.plot_patterns(epochs.info, show=False)
 
 
 @requires_sklearn
@@ -128,4 +128,4 @@ def test_plot_filters():
     csp = CSP(n_components=3, reg=.9)
 
     csp.fit(epochs_data, epochs.events[:, -1])
-    csp.plot_filters(epochs.info)
+    csp.plot_filters(epochs.info, show=False)
