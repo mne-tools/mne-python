@@ -1,4 +1,5 @@
 # Author: Mainak Jas <mainak@neuro.hut.fi>
+#         Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -10,8 +11,8 @@ from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_equal
 
 from mne import io, read_events, Epochs, pick_types
-from mne.decoding.classifier import Scaler, FilterEstimator
-from mne.decoding.classifier import PSDEstimator, ConcatenateChannels
+from mne.decoding import Scaler, FilterEstimator
+from mne.decoding import PSDEstimator, ConcatenateChannels
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -46,6 +47,10 @@ def test_scaler():
         X2 = scaler.fit(epochs_data, y).transform(epochs_data)
 
     assert_array_equal(X2, X)
+
+    # Test inverse_transform
+    Xi = scaler.inverse_transform(X, y)
+    assert_array_equal(epochs_data, Xi)
 
     # Test init exception
     assert_raises(ValueError, scaler.fit, epochs, y)
@@ -139,6 +144,12 @@ def test_concatenatechannels():
     # Check if data is preserved
     n_times = epochs_data.shape[2]
     assert_array_equal(epochs_data[0, 0, 0:n_times], X[0, 0:n_times])
+
+    # Check inverse transform
+    Xi = concat.inverse_transform(X, y)
+    assert_true(Xi.shape[0] == epochs_data.shape[0])
+    assert_true(Xi.shape[1] == epochs_data.shape[1])
+    assert_array_equal(epochs_data[0, 0, 0:n_times], Xi[0, 0, 0:n_times])
 
     # Test init exception
     assert_raises(ValueError, concat.fit, epochs, y)
