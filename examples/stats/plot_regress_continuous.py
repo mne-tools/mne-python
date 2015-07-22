@@ -49,7 +49,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=None,
 
 # rERF
 evokeds = linear_regression_raw(raw, events=events, event_id=event_id,
-                                reject=None, tmin=tmin, tmax=tmax, 
+                                reject=None, tmin=tmin, tmax=tmax,
                                 decim=4)
 # linear_regression_raw returns a dict of evokeds
 # select conditions similarly to mne.Epochs objects
