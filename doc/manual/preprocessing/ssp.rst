@@ -1,3 +1,5 @@
+.. _ssp:
+
 The Signal-Space Projection (SSP) method
 ########################################
 

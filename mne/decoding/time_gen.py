@@ -160,8 +160,7 @@ class GeneralizationAcrossTime(object):
         The estimators for each time point and each fold.
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
-    y_pred_ : list of lists of arrays of floats,
-              shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
+    y_pred_ : list of lists of arrays of floats, shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
         The single-trial predictions estimated by self.predict() at each
         training time and each testing time. Note that the number of testing
         times per training time need not be regular, else

@@ -77,7 +77,19 @@ following steps:
 
 - Inspecting the meshes with tkmedit, see :ref:`BABHJBED`.
 
-.. note:: The following sections assume that you have    run the appropriate setup scripts to make both MNE and FreeSurfer    software available.
+.. note:: Different methods can be employed for the creation of the
+          individual surfaces. For example, it may turn out that the 
+          watershed algorithm produces are better quality skin surface than
+          the segmentation approach based on the FLASH images. If this is 
+          the case, ``outer_skin.surf`` can set to point to the corresponding
+          watershed output file while the other surfaces can be picked from
+          the FLASH segmentation data.
+
+.. note:: The :ref:`mne_convert_surface` C utility can be used to convert
+          text format triangulation files into the FreeSurfer surface format.
+
+.. note:: The following sections assume that you have run the appropriate
+          setup scripts to make both MNE and FreeSurfer software available.
 
 .. _BABEBJHI:
 
@@ -198,9 +210,7 @@ Inspecting the meshes
 =====================
 
 It is advisable to check the validity of the BEM meshes before
-using them. This can be done with help of tkmedit either
-before or after executing mne_setup_forward_model,
-see :ref:`CIHDBFEG`.
+using them. This can be done with help of tkmedit, see :ref:`CIHDBFEG`.
 
 Using seglab
 ############

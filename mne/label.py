@@ -634,7 +634,7 @@ class Label(object):
         ----------
         vertices : ndarray of int, shape (n_vertices,) | None
             The set of vertices to compare the label to. If None, equals to
-            ```np.arange(10242)```. Defaults to None.
+            ``np.arange(10242)``. Defaults to None.
 
         Returns
         -------
@@ -657,7 +657,7 @@ class Label(object):
             source space.
         vertices : ndarray of int, shape (n_vertices,) | None
             The set of vertices to compare the label to. If None, equals to
-            ```np.arange(10242)```. Defaults to None.
+            ``np.arange(10242)``. Defaults to None.
 
         Returns
         -------
@@ -712,7 +712,6 @@ class BiHemiLabel(object):
     subject : str | None
         Subject the label is from.
     """
-    hemi = 'both'
 
     def __init__(self, lh, rh, name=None, color=None):
         if lh.subject != rh.subject:
@@ -723,6 +722,7 @@ class BiHemiLabel(object):
         self.name = name
         self.subject = lh.subject
         self.color = color
+        self.hemi = 'both'
 
     def __repr__(self):
         temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
