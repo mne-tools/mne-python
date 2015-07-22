@@ -716,23 +716,27 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
     def _onselect(self, eclick, erelease):
         """Callback function called by rubber band selector in channel tfr."""
+        import matplotlib.pyplot as plt
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
             return
-        import matplotlib.pyplot as plt
         plt.ion()  # turn interactive mode on
         tmin = round(min(eclick.xdata, erelease.xdata) / 1000., 1)  # ms to s
         tmax = round(max(eclick.xdata, erelease.xdata) / 1000., 1)
         fmin = round(min(eclick.ydata, erelease.ydata), 1)  # Hz
         fmax = round(max(eclick.ydata, erelease.ydata), 1)
         types = list()
-        if len(pick_types(self.info, meg=False, eeg=True, ref_meg=False)) > 0:
+        eegs = pick_types(self.info, meg=False, eeg=True, ref_meg=False)
+        if len(eegs) > 0:
             types.append('eeg')
         if len(pick_types(self.info, meg='mag', ref_meg=False)) > 0:
             types.append('mag')
         if len(pick_types(self.info, meg='grad', ref_meg=False)) > 0:
             types.append('grad')
         fig, axis = plt.subplots(1, len(types))
-        fig.suptitle('%s s - %s s, %s Hz - %s Hz' % (tmin, tmax, fmin, fmax))
+        if isinstance(axis, plt.Axes):
+            axis = [axis]
+        fig.suptitle('%s s - %s s, %s Hz - %s Hz' % (tmin, tmax, fmin, fmax),
+                     y=0.04)
         plot_idx = 0
         try:
             if 'grad' in types:
