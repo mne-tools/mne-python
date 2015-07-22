@@ -129,7 +129,7 @@ class Scaler(TransformerMixin):
 
         Returns
         -------
-        X : array of shape (n_epochs, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
         """
         if not isinstance(epochs_data, np.ndarray):
@@ -158,11 +158,11 @@ class ConcatenateChannels(TransformerMixin):
     Attributes
     ----------
     n_epochs : int
-        The number of epochs
+        The number of epochs.
     n_channels : int
-        The number of channels
+        The number of channels.
     n_times : int
-        The number of time points
+        The number of time points.
 
     """
     def __init__(self, info=None):

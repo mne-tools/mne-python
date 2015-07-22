@@ -4,6 +4,8 @@
 #
 # License: BSD (3-clause)
 
+import copy as cp
+
 import numpy as np
 from scipy import linalg
 
@@ -12,7 +14,6 @@ from ..cov import _regularized_covariance
 
 
 class CSP(TransformerMixin):
-
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This object can be used as a supervised decomposition to estimate
@@ -179,8 +180,8 @@ class CSP(TransformerMixin):
                       show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
                       image_interp='bilinear', average=None, head_pos=None):
-        """
-        Plot topographic patterns of CSP components.
+        """Plot topographic patterns of CSP components.
+
         The CSP patterns explain how the measured data was generated
         from the neural sources (a.k.a. the forward model).
 
@@ -296,6 +297,7 @@ class CSP(TransformerMixin):
             components = np.arange(self.n_components)
 
         # set sampling frequency to have 1 component per time point
+        info = cp.deepcopy(info)
         info['sfreq'] = 1
         # create an evoked
         patterns = EvokedArray(self.patterns_.T, info, tmin=0)
@@ -321,8 +323,8 @@ class CSP(TransformerMixin):
                      show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
                      image_interp='bilinear', average=None, head_pos=None):
-        """
-        Plot topographic filters of CSP components.
+        """Plot topographic filters of CSP components.
+
         The CSP filters are used to extract discriminant neural sources from
         the measured data (a.k.a. the backward model).
 
@@ -438,6 +440,7 @@ class CSP(TransformerMixin):
             components = np.arange(self.n_components)
 
         # set sampling frequency to have 1 component per time point
+        info = cp.deepcopy(info)
         info['sfreq'] = 1
         # create an evoked
         filters = EvokedArray(self.filters_, info, tmin=0)
