@@ -1,9 +1,9 @@
 
 .. _ch_interactive_analysis:
 
-==================================
-Interactive analysis (mne_analyze)
-==================================
+=====================================
+Interactive analysis with mne_analyze
+=====================================
 
 .. contents:: Contents
    :local:

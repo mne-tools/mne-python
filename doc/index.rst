@@ -55,8 +55,8 @@ Mac OSX operating systems, as well as a MATLAB toolbox.
     >>> cov = mne.compute_covariance(epochs, tmax=0)
     >>> evoked.plot()  # plot evoked
     >>> # Compute inverse operator:
-    >>> fwd_fname = 'sample audvis−meg−eeg−oct−6−fwd.fif'
-    >>> fwd = mne.read forward solution(fwd fname, surf ori=True)
+    >>> fwd_fname = 'sample_audvis−meg−eeg−oct−6−fwd.fif'
+    >>> fwd = mne.read_forward_solution(fwd fname, surf ori=True)
     >>> inv = mne.minimum_norm.make_inverse_operator(raw.info, fwd,
     >>>                                              cov, loose=0.2)
     >>> # Compute inverse solution:
@@ -90,18 +90,18 @@ under Award Number DE-FG02-99ER62764 to The MIND Institute.
 .. toctree::
    :maxdepth: 1
 
-   getting_started.rst
-   whats_new.rst
+   getting_started
+   whats_new
    cite
    references
    tutorials
    auto_examples/index
-   manual
+   manual/index
+   python_reference
    generated/commands
-   faq.rst
-   python_reference.rst
-   advanced_setup.rst
-   mne-cpp
+   faq
+   advanced_setup
+   mne_cpp
 
 .. raw:: html
 

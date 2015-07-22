@@ -15,7 +15,7 @@ Purpose
 
 This Chapter gives a detailed description of the processing
 of a sample data set, which can be employed to familiarize with
-the workflow described in :ref:`ch_cookbook`.
+the workflow described in :ref:`cookbook`.
 
 .. note:: Going through the analysis exercise in    this chapter is not a substitute for reading other chapters of this    manual and understanding the concepts underlying MNE software.
 
