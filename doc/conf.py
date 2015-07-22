@@ -139,7 +139,7 @@ html_theme_options = {
     'bootstrap_version': "3",
     'navbar_links': [("Tutorials", "tutorials"),
                      ("Gallery", "auto_examples/index"),
-                     ("Manual", "manual"),
+                     ("Manual", "manual/index"),
                      ("API", "python_reference"),
                      ("FAQ", "faq"),
                      ("Cite", "cite"),

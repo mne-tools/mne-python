@@ -1,9 +1,9 @@
 
 .. _ch_browse:
 
-==================================
-Browsing raw data (mne_browse_raw)
-==================================
+=====================================
+Browsing raw data with mne_browse_raw
+=====================================
 
 .. contents:: Contents
    :local:

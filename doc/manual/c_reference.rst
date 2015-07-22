@@ -258,7 +258,7 @@ Utilities
     |                                  | a data file                                |
     +----------------------------------+--------------------------------------------+
     | `mne_morph_labels`_              | Morph label file definitions between       |
-    |                                  | subjects, see :ref:`CHDCEAFC`.             |
+    |                                  | subjects.                                  |
     +----------------------------------+--------------------------------------------+
     | `mne_organize_dicom`_            | Organized DICOM MRI image files into       |
     |                                  | directories, see :ref:`BABEBJHI`.          |
@@ -2118,7 +2118,7 @@ Visualization options
     into account and will represent the data on the cortical surface
     of the subject defined with this option. The stc files morphed to
     a single subject's cortical surface are used by mne_average_estimates to
-    combine data from different subjects, see :ref:`CHDFDIFE`.
+    combine data from different subjects.
     If morphing is selected appropriate smoothing must be specified
     with the ``--smooth`` option. The morphing process can
     be made faster by precomputing the necessary morphing maps with mne_make_morph_maps ,
