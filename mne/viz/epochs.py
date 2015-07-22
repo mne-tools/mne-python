@@ -27,7 +27,7 @@ from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
 from ..defaults import _handle_default
 
 
-def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
+def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap='RdBu_r'):
     """Plot Event Related Potential / Fields image
@@ -41,7 +41,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         data channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
-        the epoch axis to apply in the image.
+        the epoch axis to apply in the image. If 0., no smoothing is applied.
     vmin : float
         The min value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers
@@ -110,13 +110,15 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         if this_order is not None:
             this_data = this_data[this_order]
 
-        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+        if sigma > 0.:
+            this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
+                                                  axis=0)
 
         ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
         im = plt.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
                                 0, len(data)],
-                        aspect='auto', origin='lower',
+                        aspect='auto', origin='lower', interpolation='nearest',
                         vmin=vmin, vmax=vmax, cmap=cmap)
         ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
         if colorbar:
@@ -128,6 +130,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         ax1.axvline(0, color='m', linewidth=3, linestyle='--')
         ax2.plot(1e3 * evoked.times, scalings[ch_type] * evoked.data[i])
         ax2.set_xlabel('Time (ms)')
+        ax2.set_xlim([1e3 * evoked.times[0], 1e3 * evoked.times[-1]])
         ax2.set_ylabel(units[ch_type])
         ax2.set_ylim([vmin, vmax])
         ax2.axvline(0, color='m', linewidth=3, linestyle='--')
