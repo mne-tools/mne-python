@@ -1612,6 +1612,7 @@ def test_concatenate_epochs():
     epochs2.baseline = (-0.1, None)
     assert_raises(ValueError, concatenate_epochs, [epochs, epochs2])
 
+
 def test_add_channels():
     """Test epoch splitting / re-appending channel types
     """
