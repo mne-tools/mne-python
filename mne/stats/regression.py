@@ -255,15 +255,15 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
     # time windows (per event type) are converted to sample points from times
     if isinstance(tmin, (float, int)):
-        tmin = dict((cond, int(tmin * info["sfreq"])) for cond in conds)
+        tmin_s = dict((cond, int(tmin * info["sfreq"])) for cond in conds)
     else:
-        tmin = dict((cond, int(tmin.get(cond, -.1) * info["sfreq"]))
-                    for cond in conds)
+        tmin_s = dict((cond, int(tmin.get(cond, -.1) * info["sfreq"]))
+                      for cond in conds)
     if isinstance(tmax, (float, int)):
-        tmax = dict((cond, int((tmax * info["sfreq"]) + 1.)) for cond in conds)
+        tmax_s = dict((cond, int((tmax * info["sfreq"]) + 1.)) for cond in conds)
     else:
-        tmax = dict((cond, int((tmax.get(cond, 1.) * info["sfreq"]) + 1))
-                    for cond in conds)
+        tmax_s = dict((cond, int((tmax.get(cond, 1.) * info["sfreq"]) + 1))
+                      for cond in conds)
 
     # Construct predictor matrix
     # We do this by creating one array per event type, shape (lags, samples)
@@ -283,7 +283,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     for cond in conds:
         # create the first row and column to be later used by toeplitz to build
         # the full predictor matrix
-        tmin_, tmax_ = tmin[cond], tmax[cond]
+        tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
         n_lags = int(tmax_ - tmin_)
         samples = np.zeros(len(times), dtype=float)
         lags = np.zeros(n_lags, dtype=float)
@@ -319,8 +319,6 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
             has_val[t0:t1] = False
 
     X = big_arr[:, has_val].T
-#    X = np.vstack((X, np.ones(X.shape[1]))).T  # currently no intercept
-
     Y = data[:, has_val]
 
     # solve linear system
@@ -330,7 +328,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     evokeds = dict()
     cum = 0
     for cond in conds:
-        tmin_, tmax_ = tmin[cond], tmax[cond]
+        tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
         evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
                                     info=info, tmin=tmin_ / info["sfreq"],
                                     comment=cond, nave=cond_length[cond],
