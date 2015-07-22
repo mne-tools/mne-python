@@ -404,6 +404,44 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             epochs.times = epochs._raw_times[epochs._decim_slice]
         return epochs
 
+    @verbose
+    def apply_baseline(self, baseline, verbose=None):
+        """Baseline correct epochs
+
+        Parameters
+        ----------
+        baseline : tuple of length 2
+            The time interval to apply baseline correction. (a, b) is the
+            interval is between "a (s)" and "b (s)". If a is None the beginning
+            of the data is used and if b is None then b is set to the end of
+            the interval. If baseline is equal to (None, None) all the time
+            interval is used.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The baseline-corrected Epochs object.
+
+        Notes
+        -----
+        Baseline correction can be done multiple times.
+
+        .. versionadded:: 0.10.0
+        """
+        if not isinstance(baseline, tuple) or len(baseline) != 2:
+            raise ValueError('`baseline=%s` is an invalid argument.'
+                             % str(baseline))
+
+        data = self._data
+        picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                           ref_meg=True, eog=True, ecg=True,
+                           emg=True, exclude=[])
+        data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline,
+                                    'mean', copy=False)
+        self.baseline = baseline
+
     def _reject_setup(self, reject, flat):
         """Sets self._reject_time and self._channel_type_idx"""
         idx = channel_indices_by_type(self.info)
@@ -2180,6 +2218,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
 
     epochs = _concatenate_epochs(epochs, read_file=True)
     epochs._bad_dropped = True
+
     return epochs
 
 
