@@ -32,7 +32,10 @@ Imaging. EEG data from a 60-channel electrode cap was acquired simultaneously wi
 the MEG. The original MRI data set was acquired with a Siemens 1.5 T
 Sonata scanner using an MPRAGE sequence.
 
-.. note:: These data are provided solely for the    purpose of getting familiar with the MNE software. They should not    be redistributed to third parties. The data should not be used to    evaluate the performance of the MEG or MRI system employed.
+.. note:: These data are provided solely for the purpose of getting familiar
+          with the MNE software. They should not be redistributed to third
+          parties. The data should not be used to evaluate the performance
+          of the MEG or MRI system employed.
 
 In the MEG/EEG experiment, checkerboard patterns were presented
 into the left and right visual field, interspersed by tones to the
@@ -60,46 +63,9 @@ of the corresponding trigger codes is provided in :ref:`BABDHIFJ`
 Setting up
 ##########
 
-The sample data set is distributed with the MNE software
-as a compressed tar archive located at ``$MNE_ROOT/sample-data/MNE-sample-data.tar.gz`` .
-To make a personal copy of the sample data set, follow these steps:
+The sample dataset can be downloaded automatically by doing::
 
-- Set up for using the MNE software as
-  instructed in :ref:`user_environment` of this manual.
-
-- Create a directory for your personal copy: ``mkdir`` <*yourdir*> , where <*yourdir*> is
-  the location where you want your personal copy to reside. Tho store
-  the sample data set and to finish the tutorials in this Chapter, you
-  need approximately 600 MBytes of space on the disk where <*yourdir*> is
-  located.
-
-- Go to your newly created sample data directory: ``cd`` <*yourdir*> .
-
-- Extract the sample data: ``tar zxvf`` <*dir*> ``/MNE-sample-data.tar.gz`` ,
-  where <*dir*> is the location
-  of the tar archive, provided by your system administrator.
-
-To start the tutorials you need to:
-
-- Set up MNE software user environment, see :ref:`user_environment`.
-
-- Set the SUBJECTS_DIR environment variable:``setenv SUBJECTS_DIR`` <*yourdir*> ``/subjects`` (csh
-  and tcsh) or ``export SUBJECTS_DIR=`` <*yourdir*> ``/subjects`` (POSIX-compatible
-  shell). Most users at the Martinos Center have tcsh as their login shell.
-
-- Assign the SUBJECT environment variable the value ``sample`` .
-
-- For convenience, you can also set the environment variable
-  SAMPLE to <*yourdir*> . The following
-  tutorial examples assume you have done this.
-
-- Set up the FreeSurfer environment
-  using the commands specific to your site. The FreeSurfer license
-  is needed for the source space creation covered in :ref:`CHDIGEJG`.
-
-.. note:: From this point on, directories and files under    your personal copy of the sample data set under <*yourdir*> will    be referred to by relative pathnames. For example, the file <*yourdir*> ``/MEG/sample/audvis.ave`` will    be simply called ``MEG/sample/audvis.ave`` .
-
-.. note:: You can also proceed without FreeSurfer installed    if you choose to use source space creation using the recursively    subdivided octahedron or icosahedron method. For more information,    see the Note in :ref:`CHDIGEJG`.
+    >>> mne.datasets.sample.data_path(verbose=True)
 
 Contents of the data set
 ########################
@@ -151,9 +117,6 @@ in the sample data set:
 
 - The MEG/EEG raw data file has been checked with the utilities described
   in :ref:`BABCDBDI` and :ref:`BABCDFJH`.
-
-- Template scripts for averaging and computation of the noise-covariance
-  matrices have been written.
 
 Setting up subject-specific data
 ################################
