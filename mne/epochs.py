@@ -1109,14 +1109,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             for idx in range(n_events):
                 # faster to pre-allocate memory here
                 epoch_raw = self._get_epoch_from_raw(idx)
-                if idx == 0:
-                    data = np.empty((n_events, epoch_raw.shape[0],
-                                     epoch_raw.shape[1]),
-                                    dtype=epoch_raw.dtype)
                 if self._delayed_proj:
                     epoch_out = epoch_raw
                 else:
                     epoch_out = self._process_epoch_raw(epoch_raw)
+                if idx == 0:
+                    data = np.empty((n_events, epoch_out.shape[0],
+                                     epoch_out.shape[1]),
+                                    dtype=epoch_raw.dtype)
                 data[idx] = epoch_out
         else:
             # bads need to be dropped, this might occur after a preload
