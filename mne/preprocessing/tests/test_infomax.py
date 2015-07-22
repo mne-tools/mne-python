@@ -63,7 +63,8 @@ def test_infomax_simple(add_noise=False):
     algos = [True, False]
     for algo in algos:
         X = RandomizedPCA(n_components=2, whiten=True).fit_transform(m.T)
-        k_ = infomax(X, extended=algo)
+        k_ = infomax(X, extended=algo, blowup=1e4, blowup_fac=0.5,
+                     n_small_angle=20, use_bias=True)
         s_ = np.dot(k_, X.T)
 
         center_and_norm(s_)
@@ -114,7 +115,9 @@ def test_non_square_infomax(add_noise=False):
     m = m.T
     m = pca.fit_transform(m)
     # we need extended since input signals are sub-gaussian
-    unmixing_ = infomax(m, random_state=rng, extended=True)
+    unmixing_ = infomax(m, random_state=rng, extended=True,
+                        blowup=1e4, blowup_fac=0.5, n_small_angle=20,
+                        use_bias=True)
     s_ = np.dot(unmixing_, m.T)
     # Check that the mixing model described in the docstring holds:
     mixing_ = linalg.pinv(unmixing_.T)
