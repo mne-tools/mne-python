@@ -260,7 +260,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         tmin_s = dict((cond, int(tmin.get(cond, -.1) * info["sfreq"]))
                       for cond in conds)
     if isinstance(tmax, (float, int)):
-        tmax_s = dict((cond, int((tmax * info["sfreq"]) + 1.)) for cond in conds)
+        tmax_s = dict((cond, int((tmax * info["sfreq"]) + 1.)) 
+                      for cond in conds)
     else:
         tmax_s = dict((cond, int((tmax.get(cond, 1.) * info["sfreq"]) + 1))
                       for cond in conds)
