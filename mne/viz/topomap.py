@@ -755,7 +755,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         return figs
     elif np.isscalar(picks):
         picks = [picks]
-    ch_type = 'mag' if ch_type is None else ch_type
+    ch_type = _get_ch_type(ica, ch_type)
 
     data = np.dot(ica.mixing_matrix_[:, picks].T,
                   ica.pca_components_[:ica.n_components_])
