@@ -1807,6 +1807,15 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
     return mask
 
 
+def _get_fast_dot():
+    """"Helper to get fast dot"""
+    try:
+        from sklearn.utils.extmath import fast_dot
+    except ImportError:
+        fast_dot = np.dot
+    return fast_dot
+
+
 def random_permutation(n_samples, random_state=None):
     """Helper to emulate the randperm matlab function.
 

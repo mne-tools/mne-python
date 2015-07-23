@@ -37,20 +37,12 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_sklearn_version, logger, check_fname, verbose,
-                     _reject_data_segments, check_random_state)
+                     _reject_data_segments, check_random_state,
+                     _get_fast_dot)
 from ..filter import band_pass_filter
 from .bads import find_outliers
 from .ctps_ import ctps
 from ..externals.six import string_types, text_type
-
-
-def _get_fast_dot():
-    """"Helper to get fast dot"""
-    try:
-        from sklearn.utils.extmath import fast_dot
-    except ImportError:
-        fast_dot = np.dot
-    return fast_dot
 
 
 def _make_xy_sfunc(func, ndim_output=False):
