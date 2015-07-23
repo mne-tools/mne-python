@@ -168,7 +168,7 @@ your contact info::
 If you are going to :ref:`setup-github` eventually, this email address should
 be the same as the one used to sign up for a GitHub account. For more
 information about configuring your git installation, see
-:ref:`customizing_git`.
+`customizing_git`_.
 
 The following sections cover the installation of the git software, the basic
 configuration, and links to resources to learn more about using git.

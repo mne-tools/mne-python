@@ -33,16 +33,15 @@ Changelog
 
     - Add command ``mne freeview_bem_surfaces`` to quickly check BEM surfaces with Freeview by `Alex Gramfort`_.
 
-    - Add support for splitting epochs into multiple files in :func:`mne.Epochs.save` by `Mainak Jas`_ and `Alexandre Gramfort`_
+    - Add support for splitting epochs into multiple files in :func:`mne.Epochs.save` by `Mainak Jas`_ and `Alex Gramfort`_
 
     - Add support for jointly resampling a raw object and event matrix to avoid issues with resampling status channels by `Marijn van Vliet`
 
-    - Add new method :class:`mne.preprocessing.Xdawn` for denoising and
-    decoding of ERP/ERF by `Alexandre Barachant`_
+    - Add new method :class:`mne.preprocessing.Xdawn` for denoising and decoding of ERP/ERF by `Alexandre Barachant`_
 
     - Add support for plotting patterns/filters in :class:`mne.decoding.csp.CSP` and :class:`mne.decoding.base.LinearModel` by `Romain Trachel`_
 
-    - Add new object :class:`mne.decoding.base.LinearModel` for decoding M/EEG data and interpreting coefficients of linear models with patterns attribute by `Romain Trachel`_ and `Alexandre Gramfort`_
+    - Add new object :class:`mne.decoding.base.LinearModel` for decoding M/EEG data and interpreting coefficients of linear models with patterns attribute by `Romain Trachel`_ and `Alex Gramfort`_
 
 
 BUG
