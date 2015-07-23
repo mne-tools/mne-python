@@ -12,6 +12,9 @@ If overlap exists and/or predictors are continuous, traditional averaging
 is inapplicable, but regression can estimate, including those of
 continuous predictors.
 
+Note. This example is based on new code which may still not be
+memory-optimized. Be careful when working with a small computer.
+
 rERPs are described in:
 Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
 waveforms: II. Non-linear effects, overlap correction, and practical
