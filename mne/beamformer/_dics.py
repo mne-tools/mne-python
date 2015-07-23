@@ -179,6 +179,10 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
     stc : SourceEstimate
         Source time courses
 
+    See Also
+    --------
+    dics_epochs
+
     Notes
     -----
     The original reference is:
@@ -240,6 +244,10 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     -------
     stc: list | generator of SourceEstimate
         The source estimates for all epochs
+
+    See Also
+    --------
+    dics
 
     Notes
     -----

@@ -879,6 +879,10 @@ class ICA(ContainsMixin):
         scores : np.ndarray of float, shape (``n_components_``)
             The correlation scores.
 
+        See also
+        --------
+        find_bads_eog
+
         References
         ----------
         [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
@@ -977,6 +981,10 @@ class ICA(ContainsMixin):
             The indices of EOG related components, sorted by score.
         scores : np.ndarray of float, shape (``n_components_``) | list of array
             The correlation scores.
+
+        See Also
+        --------
+        find_bads_ecg
         """
         if verbose is None:
             verbose = self.verbose

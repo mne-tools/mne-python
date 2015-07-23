@@ -239,6 +239,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     residual : instance of Evoked
         The residual a.k.a. data not explained by the sources.
         Only returned if return_residual is True.
+
+    See Also
+    --------
+    tf_mixed_norm
     """
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '
@@ -447,6 +451,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     residual : instance of Evoked
         The residual a.k.a. data not explained by the sources.
         Only returned if return_residual is True.
+
+    See Also
+    --------
+    mixed_norm
     """
     _check_reference(evoked)
 

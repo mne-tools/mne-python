@@ -759,6 +759,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
+
+        See Also
+        --------
+        mne.Epochs.savgol_filter
         """
         if verbose is None:
             verbose = self.verbose

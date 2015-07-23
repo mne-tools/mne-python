@@ -31,6 +31,10 @@ def read_proj(fname):
     -------
     projs : list
         The list of projection vectors.
+
+    See Also
+    --------
+    write_proj
     """
     check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
 
@@ -51,6 +55,10 @@ def write_proj(fname, projs):
 
     projs : list
         The list of projection vectors.
+
+    See Also
+    --------
+    read_proj
     """
     check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
 
@@ -127,6 +135,10 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     -------
     projs: list
         List of projection vectors
+
+    See Also
+    --------
+    compute_proj_raw, compute_proj_evoked
     """
     # compute data covariance
     data = _compute_cov_epochs(epochs, n_jobs)
@@ -176,6 +188,10 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
     -------
     projs : list
         List of projection vectors
+
+    See Also
+    --------
+    compute_proj_raw, compute_proj_epochs
     """
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
     desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
@@ -218,6 +234,10 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     -------
     projs: list
         List of projection vectors
+
+    See Also
+    --------
+    compute_proj_epochs, compute_proj_evoked
     """
     if duration is not None:
         events = make_fixed_length_events(raw, 999, start, stop, duration)

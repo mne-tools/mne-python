@@ -215,6 +215,10 @@ def read_events(filename, include=None, exclude=None, mask=0):
     events: array, shape (n_events, 3)
         The list of events
 
+    See Also
+    --------
+    find_events, write_events
+
     Notes
     -----
     This function will discard the offset line (i.e., first line with zero
@@ -276,6 +280,10 @@ def write_events(filename, event_list):
 
     event_list : array, shape (n_events, 3)
         The list of events
+
+    See Also
+    --------
+    read_events
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt'))

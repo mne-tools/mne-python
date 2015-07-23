@@ -352,6 +352,10 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     fwd : instance of Forward
         The forward solution.
 
+    See Also
+    --------
+    do_forward_solution
+
     Notes
     -----
     Some of the forward solution calculation options from the C code

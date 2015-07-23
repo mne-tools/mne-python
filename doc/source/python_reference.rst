@@ -346,6 +346,18 @@ Manipulate channels and set sensors locations for processing and plotting:
 
 .. currentmodule:: mne.channels
 
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   Layout
+   Montage
+   DigMontage
+
+Functions:
+
 .. autosummary::
    :toctree: generated/
    :template: function.rst
@@ -755,6 +767,22 @@ Functions that operate on ``np.ndarray`` objects:
    stft
    istft
    stftfreq
+
+
+:py:mod:`mne.time_frequency.tfr`:
+
+.. automodule:: mne.time_frequency.tfr
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.time_frequency.tfr
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   cwt
+   morlet
 
 
 Connectivity Estimation
