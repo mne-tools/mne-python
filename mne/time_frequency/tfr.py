@@ -69,7 +69,8 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False):
 
     See Also
     --------
-    mne.time_frequency.cwt_morlet : Compute time-frequency decomposition with Morlet wavelets
+    mne.time_frequency.cwt_morlet : Compute time-frequency decomposition
+                                    with Morlet wavelets
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
@@ -317,7 +318,8 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
     See Also
     --------
-    mne.time_frequency.cwt_morlet : Compute time-frequency decomposition with Morlet wavelets
+    mne.time_frequency.cwt_morlet : Compute time-frequency decomposition
+                                    with Morlet wavelets
     """
     n_signals, n_times = X[:, ::decim].shape
     n_frequencies = len(Ws)
