@@ -514,7 +514,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
 
     See Also
     --------
-    write_source_spaces
+    write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',

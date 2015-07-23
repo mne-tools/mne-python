@@ -152,7 +152,7 @@ def read_layout(kind, path=None, scale=True):
 
     See Also
     --------
-    save
+    Layout.save
     """
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'layouts')

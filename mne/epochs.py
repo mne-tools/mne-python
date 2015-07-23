@@ -1727,7 +1727,7 @@ class EpochsArray(_BaseEpochs):
 
     See Also
     --------
-    io.RawArray, mne.EvokedArray
+    io.RawArray, EvokedArray
     """
 
     @verbose

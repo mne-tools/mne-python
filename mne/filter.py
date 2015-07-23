@@ -847,6 +847,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
 
     See Also
     --------
+    resample
     band_pass_filter, high_pass_filter
 
     Notes

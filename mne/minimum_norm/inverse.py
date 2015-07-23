@@ -106,7 +106,7 @@ def read_inverse_operator(fname, verbose=None):
 
     See Also
     --------
-    write_inverse_operator
+    write_inverse_operator, make_inverse_operator
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 

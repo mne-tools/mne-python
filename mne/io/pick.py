@@ -86,7 +86,7 @@ def pick_channels(ch_names, include, exclude=[]):
 
     See Also
     --------
-    pick_channels_regexp
+    pick_channels_regexp, pick_types
 
     Returns
     -------
