@@ -2,7 +2,6 @@ import numpy as np
 
 from scipy.linalg import svd
 
-import mne
 from mne.io import Raw
 from mne import pick_types
 
