@@ -426,7 +426,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     See Also
     --------
-    write_forward_solution
+    write_forward_solution, make_forward_solution
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 

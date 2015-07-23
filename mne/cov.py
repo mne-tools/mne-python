@@ -244,7 +244,7 @@ def read_cov(fname, verbose=None):
 
     See Also
     --------
-    write_cov
+    write_cov, compute_covariance, compute_raw_data_covariance
     """
     check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
 

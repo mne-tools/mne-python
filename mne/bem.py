@@ -989,7 +989,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
 
     See Also
     --------
-    write_bem_surfaces, read_bem_solution, make_bem_solution
+    write_bem_surfaces, write_bem_solution, make_bem_model
     """
     from .surface import _complete_surface_info
     # Default coordinate frame
@@ -1122,7 +1122,7 @@ def read_bem_solution(fname, verbose=None):
 
     See Also
     --------
-    write_bem_solution
+    write_bem_solution, read_bem_surfaces, write_bem_surfaces, make_bem_solution
     """
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
     logger.info('Loading surfaces...')

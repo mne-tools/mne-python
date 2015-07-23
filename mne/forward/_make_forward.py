@@ -354,7 +354,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     See Also
     --------
-    forward.do_forward_solution
+    do_forward_solution
 
     Notes
     -----

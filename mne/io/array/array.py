@@ -22,6 +22,10 @@ class RawArray(_BaseRaw):
         this structure.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    mne.EpochsArray, mne.EvokedArray
     """
     @verbose
     def __init__(self, data, info, verbose=None):

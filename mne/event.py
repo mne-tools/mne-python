@@ -217,7 +217,7 @@ def read_events(filename, include=None, exclude=None, mask=0):
 
     See Also
     --------
-    write_events
+    find_events, write_events
 
     Notes
     -----

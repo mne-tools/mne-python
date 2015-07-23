@@ -830,7 +830,7 @@ class EvokedArray(Evoked):
 
     See Also
     --------
-    epochs.EpochsArray, io.RawArray
+    EpochsArray, io.RawArray
     """
 
     @verbose

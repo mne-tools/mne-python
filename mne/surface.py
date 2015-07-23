@@ -677,7 +677,7 @@ def write_surface(fname, coords, faces, create_stamp=''):
 
     See Also
     --------
-    write_surface
+    read_surface
     """
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")

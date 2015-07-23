@@ -213,7 +213,7 @@ class StimServer(object):
 
         See Also
         --------
-        mne.realtime.StimClient.get_trigger
+        StimClient.get_trigger
         """
 
         for client in self._clients:
@@ -290,7 +290,7 @@ class StimClient(object):
 
         See Also
         --------
-        mne.decoding.StimServer.add_trigger
+        StimServer.add_trigger
         """
         start_time = time.time()  # init delay counter. Will stop iterations
 
