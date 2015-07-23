@@ -293,7 +293,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
             ids = ([event_id[cond]] if isinstance(event_id[cond], int)
                    else event_id[cond])
             samples[events[np.in1d(events[:, 2], ids), 0] + int(tmin_)] = 1
-            cond_length[cond] = len(np.in1d(events[:, 2], ids))
+            cond_length[cond] = sum(np.in1d(events[:, 2], ids))
 
         else:  # for predictors from covariates, e.g. continuous ones
             if len(covariates[cond]) != len(events):
