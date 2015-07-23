@@ -248,9 +248,10 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                                        math.sqrt(change * oldchange))
                 angledelta *= degconst
 
-            logger.info(
-                'step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg'
-                % (step, l_rate, change, angledelta))
+            if verbose:
+                logger.info(
+                    'step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg'
+                    % (step, l_rate, change, angledelta))
 
             # anneal learning rate
             oldweights = weights.copy()
