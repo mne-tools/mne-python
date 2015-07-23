@@ -14,7 +14,7 @@ instead of e.g. EEG-cap positions.
 # License: BSD (3-clause)
 
 import mne
-from mne.surface import decimate_surface
+from mne.surface import decimate_surface  # noqa
 
 print(__doc__)
 

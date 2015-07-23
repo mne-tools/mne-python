@@ -18,8 +18,6 @@ fast machine it can take about a minute to complete.
 #
 # License: BSD (3-clause)
 
-import numpy as np
-
 import mne
 from mne.io import Raw
 from mne.preprocessing import ICA, create_ecg_epochs
