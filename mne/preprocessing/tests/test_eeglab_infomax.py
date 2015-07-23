@@ -12,6 +12,9 @@ from mne.preprocessing.infomax_ import infomax
 from numpy.testing import assert_almost_equal
 from mne.utils import random_permutation
 from mne.datasets import testing
+import os.path as op
+
+base_dir = op.join(op.dirname(__file__), 'data')
 
 
 def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
@@ -168,9 +171,7 @@ def test_mne_python_vs_eeglab():
         # ||unmixing_mne_python - unmixing_eeglab||_inf
         #######################################################################
 
-        eeglab_data = sio.loadmat(mne.__path__[0] +
-                                  '/preprocessing/tests/data/' +
-                                  eeglab_results_file)
+        eeglab_data = sio.loadmat(base_dir + '/' + eeglab_results_file)
         unmixing_eeglab = eeglab_data['unmixing_eeglab']
 
         maximum_difference = np.max(np.abs(unmixing_ordered - unmixing_eeglab))
