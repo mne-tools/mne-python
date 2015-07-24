@@ -8,6 +8,7 @@ import os
 import os.path as op
 import shutil
 import tarfile
+import zipfile
 from warnings import warn
 import stat
 
@@ -134,6 +135,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
            'spm': 'MNE_DATASETS_SPM_FACE_PATH',
            'somato': 'MNE_DATASETS_SOMATO_PATH',
+           'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
            'testing': 'MNE_DATASETS_TESTING_PATH',
            'fake': 'MNE_DATASETS_FAKE_PATH',
            }[name]
@@ -143,6 +145,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='MNE-sample-data-processed.tar.gz',
         spm='MNE-spm-face.tar.bz2',
         somato='MNE-somato-data.tar.gz',
+        brainstorm='sample_ctf',
         testing='mne-testing-data-master.tar.gz',
         fake='foo.tgz',
     )
@@ -150,6 +153,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='MNE-sample-data',
         spm='MNE-spm-face',
         somato='MNE-somato-data',
+        brainstorm='MNE-brainstorm-data',
         testing='MNE-testing-data',
         fake='foo',
     )
@@ -157,6 +161,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample="https://s3.amazonaws.com/mne-python/datasets/%s",
         spm='https://s3.amazonaws.com/mne-python/datasets/%s',
         somato='https://s3.amazonaws.com/mne-python/datasets/%s',
+        brainstorm='http://neuroimage.usc.edu/bst/getupdate.php?u=mne&s=%s',
         testing='https://github.com/mne-tools/mne-testing-data/archive/'
                 'master.tar.gz',
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
@@ -166,6 +171,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='f73186795af820428e5e8e779ce5bfcf',
         spm='3e9e83c642136e5b720e2ecc5dcc3244',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
+        brainstorm=None,
         testing=None,
         fake='3194e9f7b46039bb050a74f3e1ae9908',
     )
@@ -234,6 +240,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         logger.info('Decompressing the archive: %s' % archive_name)
         logger.info('(please be patient, this can take some time)')
         for ext in ['gz', 'bz2']:  # informed guess (and the only 2 options).
+            if name == 'brainstorm':
+                zipfile.ZipFile(archive_name).extractall(folder_path)
+                break
             try:
                 tarfile.open(archive_name, 'r:%s' % ext).extractall(path=path)
                 break
