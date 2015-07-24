@@ -407,6 +407,10 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
+    onselect : callable | None
+        Handle for a function that is called when the user selects a set of
+        channels by rectangle selection (matplotlib ``RectangleSelector``). If
+        None interactive selection is disabled. Defaults to None.
 
     Returns
     -------
