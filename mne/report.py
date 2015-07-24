@@ -1166,7 +1166,8 @@ class Report(object):
 
         self._render_toc()
 
-        html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
+        html = footer_template.substitute(date=time.strftime("%B %d, %Y"),
+                                          current_year=time.strftime("%Y"))
         self.html.append(html)
 
         if not overwrite and op.isfile(fname):
