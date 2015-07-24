@@ -1705,7 +1705,7 @@ def _allocate_data(data, data_buffer, data_shape, dtype):
     return data
 
 
-def _time_as_index(times, first_samp=0, use_first_samp=False,
+def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False,
                    use_rounding=False):
     """Convert time to indices
 
@@ -1713,6 +1713,8 @@ def _time_as_index(times, first_samp=0, use_first_samp=False,
     ----------
     times : list-like | float | int
         List of numbers or a number representing points in time.
+    sfreq : float | int
+        Sample frequency.
     first_samp : int
        Index to use as first time point.
     use_first_samp : boolean
@@ -1726,11 +1728,16 @@ def _time_as_index(times, first_samp=0, use_first_samp=False,
     -------
     index : ndarray
         Indices corresponding to the times supplied.
+
+    Notes
+    -----
+    np.around will return the nearest even number for values exactly between
+        two integers.
     """
     index = np.atleast_1d(times) * sfreq
     index -= (first_samp if use_first_samp else 0)
 
-    # TODO: is rounding func okay here? np.around(2.5) returns 2.0
+    # Round or truncate time indices
     if use_rounding:
         return np.around(index).astype(int)
     else:
