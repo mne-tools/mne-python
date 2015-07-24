@@ -169,8 +169,8 @@ class _GeneralizationAcrossTime(object):
     def predict(self, epochs):
         """ Test each classifier on each specified testing time slice.
 
-        Note. This function sets the ``y_pred_`` and ``test_times_``
-        attributes.
+        .. note:: This function sets the ``y_pred_`` and ``test_times_``
+                  attributes.
 
         Parameters
         ----------
@@ -180,13 +180,12 @@ class _GeneralizationAcrossTime(object):
 
         Returns
         -------
-        y_pred : list of lists of arrays of floats,
-                 shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
+        y_pred : list of lists of arrays of floats, shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
             The single-trial predictions at each training time and each testing
             time. Note that the number of testing times per training time need
-            not be regular;
-            else, np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs).
-        """
+            not be regular; else
+            ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs)``.
+        """  # noqa
 
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
@@ -679,7 +678,8 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         each classifier is trained.
         If set to None, predictions are made at all time points.
         If set to dict, the dict should contain ``slices`` or be contructed in
-        a similar way to train_times
+        a similar way to train_times::
+
             ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
@@ -731,21 +731,20 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         The actual CrossValidation input depending on y.
     estimators_ : list of list of scikit-learn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
-    y_pred_ : list of lists of arrays of floats,
-              shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
+    y_pred_ : list of lists of arrays of floats, shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
         The single-trial predictions estimated by self.predict() at each
         training time and each testing time. Note that the number of testing
         times per training time need not be regular, else
-        np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs).
+        ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs).``
     y_true_ : list | ndarray, shape (n_samples,)
-        The categories used for scoring y_pred_.
+        The categories used for scoring ``y_pred_``.
     scorer_ : object
         scikit-learn Scorer instance.
     scores_ : list of lists of float
-        The scores estimated by self.scorer_ at each training time and each
+        The scores estimated by ``self.scorer_`` at each training time and each
         testing time (e.g. mean accuracy of self.predict(X)). Note that the
         number of testing times per training time need not be regular;
-        else, np.shape(scores) = (n_train_time, n_test_time).
+        else, ``np.shape(scores) = (n_train_time, n_test_time)``.
 
     See Also
     --------
@@ -761,7 +760,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         DOI: 10.1371/journal.pone.0085791
 
     .. versionadded:: 0.9.0
-    """
+    """  # noqa
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_mode='cross-validation', scorer=None,
                  n_jobs=1):
@@ -1101,8 +1100,8 @@ class TimeDecoding(_GeneralizationAcrossTime):
     def predict(self, epochs):
         """ Test each classifier on each specified testing time slice.
 
-        Note. This function sets the ``y_pred_`` and ``test_times_``
-        attributes.
+        .. note:: This function sets the ``y_pred_`` and ``test_times_``
+                  attributes.
 
         Parameters
         ----------
@@ -1112,10 +1111,9 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
         Returns
         -------
-        y_pred : list of lists of arrays of floats,
-                 shape (n_times, n_epochs, n_prediction_dims)
+        y_pred : list of lists of arrays of floats, shape (n_times, n_epochs, n_prediction_dims)
             The single-trial predictions at each time sample.
-        """
+        """  # noqa
         self._prep_times()
         super(TimeDecoding, self).predict(epochs)
         self._clean_times()

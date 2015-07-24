@@ -40,15 +40,15 @@ coverage
 
 dist/
 doc/_build/
-doc/build/
+doc/generated/
 doc/auto_examples/
+doc/auto_tutorials/
 doc/modules/generated/
-doc/source/generated/
-doc/source/modules
 pip-log.txt
 .coverage
 tags
 doc/coverages
 doc/samples
+cover
 
 *.orig

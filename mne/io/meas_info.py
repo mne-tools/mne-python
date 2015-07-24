@@ -48,7 +48,104 @@ def _summarize_str(st):
 
 
 class Info(dict):
-    """ Info class to nicely represent info dicts
+    """Information about the recording.
+
+    This data structure behaves like a dictionary. It contains all meta-data
+    that is available for a recording.
+
+    The attributes listed below are the possible dictionary entries:
+
+    Attributes
+    ----------
+    bads : list of str
+        List of bad (noisy/broken) channels, by name. These channels will by
+        default be ignored by many processing steps.
+    ch_names : list of str
+        The names of the channels.
+    chs	: list of dict
+        A list of channel information structures.
+        See: :ref:`faq` for details.
+    comps : list of dict
+        CTF software gradient compensation data.
+        See: :ref:`faq` for details.
+    custom_ref_applied : bool
+        Whether a custom (=other than average) reference has been applied to
+        the EEG data. This flag is checked by some algorithms that require an
+        average reference to be set.
+    events : list of dict
+        Event list, usually extracted from the stim channels.
+        See: :ref:`faq` for details.
+    hpi_results : list of dict
+        Head position indicator (HPI) digitization points.
+        See: :ref:`faq` for details.
+    meas_date : list of int
+        The first element of this list is a POSIX timestamp (milliseconds since
+        1970-01-01 00:00:00) denoting the date and time at which the
+        measurement was taken.
+        TODO: what are the other fields?
+    nchan : int
+        Number of channels.
+    projs : list of dict
+        List of SSP operators that operate on the data.
+        See: :ref:`faq` for details.
+    sfreq : float
+        Sampling frequency in Hertz.
+        See: :ref:`faq` for details.
+    acq_pars : str | None
+        MEG system acquition parameters.
+    acq_stim : str | None
+        TODO: What is this?
+    buffer_size_sec : float | None
+        Buffer size (in seconds) when reading the raw data in chunks.
+    ctf_head_t : dict | None
+        The transformation from 4D/CTF head coordinates to Neuromag head
+        coordinates. This is only present in 4D/CTF data.
+        See: :ref:`faq` for details.
+    description : str | None
+        String description of the recording.
+    dev_ctf_t : dict | None
+        The transformation from device coordinates to 4D/CTF head coordinates.
+        This is only present in 4D/CTF data.
+        See: :ref:`faq` for details.
+    dev_head_t : dict | None
+        The device to head transformation.
+        See: :ref:`faq` for details.
+    dig : list of dict | None
+        The Polhemus digitization data in head coordinates.
+        See: :ref:`faq` for details.
+    experimentor : str | None
+        Name of the person that ran the experiment.
+    file_id	: dict | None
+        The fif ID datastructure of the measurement file.
+        See: :ref:`faq` for details.
+    filename : str | None
+        The name of the file that provided the raw data.
+    highpass : float | None
+        Highpass corner frequency in Hertz. Zero indicates a DC recording.
+    hpi_meas : list of dict | None
+        HPI measurements.
+        TODO: What is this exactly?
+    hpi_subsystem: | None
+        TODO: What is this?
+    line_freq : float | None
+        Frequency of the power line in Hertz.
+    lowpass : float | None
+        Lowpass corner frequency in Hertz.
+    meas_id : dict | None
+        The ID assigned to this measurement by the acquisition system or during
+        file conversion.
+        See: :ref:`faq` for details.
+    proj_id : int | None
+        ID number of the project the experiment belongs to.
+    proj_name : str | None
+        Name of the project the experiment belongs to.
+    subject_info : dict | None
+        Information about the subject.
+        See: :ref:`subject_info` for details
+    proc_history : list of dict | None | not present in dict
+        The SSS info, the CTC correction and the calibaraions from the SSS
+        processing logs inside of a raw file.
+        See: :ref:`faq` for details.
     """
 
     def copy(self):

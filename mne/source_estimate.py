@@ -1150,8 +1150,8 @@ class SourceEstimate(_BaseSourceEstimate):
               and flip is a sing-flip vector based on the vertex normals. This
               procedure assures that the phase does not randomly change by 180
               degrees from one stc to the next.
-
             - 'max': Max value within each label.
+
 
         Parameters
         ----------
@@ -2828,8 +2828,8 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
           and flip is a sing-flip vector based on the vertex normals. This
           procedure assures that the phase does not randomly change by 180
           degrees from one stc to the next.
-
         - 'max': Max value within each label.
+
 
     Parameters
     ----------
@@ -2851,10 +2851,9 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     Returns
     -------
-    label_tc : array | list (or generator) of array,
-               shape=(len(labels), n_times)
+    label_tc : array | list (or generator) of array, shape=(len(labels), n_times)
         Extracted time course for each label and source estimate.
-    """
+    """  # noqa
     # convert inputs to lists
     if isinstance(stcs, SourceEstimate):
         stcs = [stcs]

@@ -519,8 +519,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mt_low_bias=True, cwt_frequencies=None,
                           cwt_n_cycles=7, block_size=1000, n_jobs=1,
                           verbose=None):
-    """Compute various frequency-domain and time-frequency domain connectivity
-    measures.
+    """Compute frequency-domain and time-frequency domain connectivity measures
 
     The connectivity method(s) are specified using the "method" parameter.
     All methods are based on estimates of the cross- and power spectral
@@ -594,6 +593,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
         'wpli2_debiased' : Debiased estimator of squared WPLI [5].
 
+
     References
     ----------
 
@@ -620,15 +620,14 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     Parameters
     ----------
-    data : array, shape=(n_epochs, n_signals, n_times)
-           or list/generator of array, shape =(n_signals, n_times)
-           or list/generator of SourceEstimate or VolSourceEstimate
-           or Epochs
+    data : array-like, shape=(n_epochs, n_signals, n_times) | Epochs
         The data from which to compute connectivity. Note that it is also
         possible to combine multiple signals by providing a list of tuples,
         e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],
         corresponds to 3 epochs, and arr_* could be an array with the same
-        number of time points as stc_*.
+        number of time points as stc_*. The array-like object can also
+        be a list/generator of array, shape =(n_signals, n_times),
+        or a list/generator of SourceEstimate or VolSourceEstimate objects.
     method : string | list of string
         Connectivity measure(s) to compute.
     indices : tuple of arrays | None
