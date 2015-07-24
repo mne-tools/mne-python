@@ -171,6 +171,7 @@ def test_plot_topomap():
 def test_plot_tfr_topomap():
     """Test plotting of TFR data
     """
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
     raw = _get_raw()
     times = np.linspace(-0.1, 0.1, 200)
@@ -181,6 +182,16 @@ def test_plot_tfr_topomap():
     tfr = AverageTFR(raw.info, data, times, np.arange(n_freqs), nave)
     tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
                      res=16)
+
+    eclick = mpl.backend_bases.MouseEvent('button_press_event',
+                                          plt.gcf().canvas, 0, 0, 1)
+    eclick.xdata = 0.1
+    eclick.ydata = 0.1
+    erelease = mpl.backend_bases.MouseEvent('button_release_event',
+                                            plt.gcf().canvas, 0.9, 0.9, 1)
+    erelease.xdata = 0.3
+    erelease.ydata = 0.2
+    tfr._onselect(eclick, erelease)  # test for rectangle selector
     plt.close('all')
 
 
