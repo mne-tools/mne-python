@@ -100,8 +100,6 @@ class ToDataFrameMixin(object):
         """
         from ..epochs import _BaseEpochs
         from ..evoked import Evoked
-        from .fiff import RawFIF
-        from .array import RawArray
         from ..source_estimate import _BaseSourceEstimate
 
         pd = _check_pandas_installed()
@@ -127,9 +125,9 @@ class ToDataFrameMixin(object):
             else:
                 # volume source estimates
                 col_names = ['VOL {0}'.format(vert) for vert in self.vertices]
-        else:
+        elif isinstance(self, (_BaseEpochs, _BaseRaw, Evoked)):
+            picks = self._get_check_picks(picks, self.ch_names)
             if isinstance(self, _BaseEpochs):
-                picks = self._get_check_picks(picks, self.ch_names)
                 default_index = ['condition', 'epoch', 'time']
                 data = self.get_data()[:, picks, :]
                 times = self.times
@@ -145,10 +143,9 @@ class ToDataFrameMixin(object):
                               np.repeat(np.arange(n_epochs), n_times)))
                 col_names = [self.ch_names[k] for k in picks]
 
-            elif isinstance(self, (RawFIF, RawArray, Evoked)):
-                picks = self._get_check_picks(picks, self.ch_names)
+            elif isinstance(self, (_BaseRaw, Evoked)):
                 default_index = ['time']
-                if isinstance(self, (RawFIF, RawArray)):
+                if isinstance(self, _BaseRaw):
                     data, times = self[picks, start:stop]
                 elif isinstance(self, Evoked):
                     data = self.data[picks, :]
@@ -172,6 +169,10 @@ class ToDataFrameMixin(object):
                 idx = [picks[i] for i in range(len(picks)) if types[i] == t]
                 if len(idx) > 0:
                     data[:, idx] *= scaling
+        else:
+            # In case some other object gets this mixin w/o an explicit check
+            raise NameError('Object must be one of Raw, Epochs, Evoked,  or ' +
+                            'SourceEstimate. This is {0}'.format(type(self)))
 
         # Make sure that the time index is scaled correctly
         times = np.round(times * scale_time)
