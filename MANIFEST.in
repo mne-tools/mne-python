@@ -14,6 +14,7 @@ recursive-include mne/channels/data/montages *.sfp
 recursive-include mne/channels/data/layouts *.lout
 recursive-include mne/channels/data/layouts *.lay
 recursive-include mne/channels/data/neighbors *.mat
+recursive-include mne/preprocessing/tests/data *.mat
 recursive-include mne/html *.js
 recursive-include mne/html *.css
 recursive-exclude examples/MNE-sample-data *
