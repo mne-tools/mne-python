@@ -18,8 +18,8 @@ base_dir = op.join(op.dirname(__file__), 'data')
 
 def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
 
-    data_path = testing.data_path()
-    raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
+    data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
+    raw_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 
     raw = Raw(raw_fname, preload=True)
 
@@ -170,7 +170,7 @@ def test_mne_python_vs_eeglab():
         # ||unmixing_mne_python - unmixing_eeglab||_inf
         #######################################################################
 
-        eeglab_data = sio.loadmat(base_dir + '/' + eeglab_results_file)
+        eeglab_data = sio.loadmat(op.join(base_dir, eeglab_results_file))
         unmixing_eeglab = eeglab_data['unmixing_eeglab']
 
         maximum_difference = np.max(np.abs(unmixing_ordered - unmixing_eeglab))
