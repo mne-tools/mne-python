@@ -717,6 +717,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     def _onselect(self, eclick, erelease):
         """Callback function called by rubber band selector in channel tfr."""
         import matplotlib.pyplot as plt
+        from ..viz import plot_tfr_topomap
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
             return
         plt.ion()  # turn interactive mode on
@@ -740,22 +741,22 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         plot_idx = 0
         try:
             if 'grad' in types:
-                self.plot_topomap(ch_type='grad', tmin=tmin, tmax=tmax,
-                                  fmin=fmin, fmax=fmax, baseline=(-0.5, 0),
-                                  mode='logratio', title='grad', vmin=-0.45,
-                                  vmax=0.45, axes=axis[plot_idx])
+                plot_tfr_topomap(self, ch_type='grad', tmin=tmin, tmax=tmax,
+                                 fmin=fmin, fmax=fmax, baseline=(-0.5, 0),
+                                 mode='logratio', title='grad', vmin=-0.45,
+                                 vmax=0.45, axes=axis[plot_idx])
                 plot_idx += 1
             if 'mag' in types:
-                self.plot_topomap(ch_type='mag', tmin=tmin, tmax=tmax,
-                                  fmin=fmin, fmax=fmax, baseline=(-0.5, 0),
-                                  mode='logratio', title='mag', vmin=-0.45,
-                                  vmax=0.45, axes=axis[plot_idx])
+                plot_tfr_topomap(self, ch_type='mag', tmin=tmin, tmax=tmax,
+                                 fmin=fmin, fmax=fmax, baseline=(-0.5, 0),
+                                 mode='logratio', title='mag', vmin=-0.45,
+                                 vmax=0.45, axes=axis[plot_idx])
                 plot_idx += 1
             if 'eeg' in types:
-                self.plot_topomap(ch_type='eeg', tmin=tmin, tmax=tmax,
-                                  fmin=fmin, fmax=fmax, baseline=(-0.5, 0),
-                                  mode='logratio', title='eeg', vmin=-0.45,
-                                  vmax=0.45, axes=axis[plot_idx])
+                plot_tfr_topomap(self, ch_type='eeg', tmin=tmin, tmax=tmax,
+                                 fmin=fmin, fmax=fmax, baseline=(-0.5, 0),
+                                 mode='logratio', title='eeg', vmin=-0.45,
+                                 vmax=0.45, axes=axis[plot_idx])
         except IndexError:  # if the user selects a window that is too small
             logger.info('The selected area is too small. '
                         'Select a larger time-frequency window.')

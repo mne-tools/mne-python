@@ -11,6 +11,7 @@ from __future__ import print_function
 
 import math
 import copy
+from functools import partial
 
 import numpy as np
 from scipy import linalg
@@ -336,7 +337,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
                  contours=6, image_interp='bilinear', show=True,
-                 head_pos=None):
+                 head_pos=None, onselect=None):
     """Plot a topographic map as image
 
     Parameters
@@ -415,6 +416,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         The fieldlines.
     """
     import matplotlib.pyplot as plt
+    from matplotlib.widgets import RectangleSelector
 
     data = np.asarray(data)
     if data.ndim > 1:
@@ -540,6 +542,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                     verticalalignment='center', size='x-small')
 
     plt.subplots_adjust(top=.95)
+
+    if onselect is not None:
+        ax.RS = RectangleSelector(ax, onselect=onselect)
     if show:
         plt.show()
     return im, cont
@@ -906,9 +911,13 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     if title is not None:
         ax.set_title(title)
 
+    selection_callback = partial(_onselect, tfr=tfr, pos=pos, ch_type=ch_type,
+                                 itmin=itmin, itmax=itmax, ifmin=ifmin,
+                                 ifmax=ifmax, cmap=cmap)
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axis=ax, cmap=cmap, image_interp='bilinear',
-                         contours=False, names=names, show=False)
+                         contours=False, names=names, show_names=show_names,
+                         show=False, onselect=selection_callback)
 
     if colorbar:
         divider = make_axes_locatable(ax)
@@ -1441,3 +1450,51 @@ def plot_psds_topomap(
     if show:
         plt.show()
     return fig
+
+
+def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
+              cmap):
+    """Callback called from topomap for drawing average tfr over channels."""
+    import matplotlib.pyplot as plt
+    pos, _ = _check_outlines(pos, outlines='head', head_pos=None)
+    xmin = min(eclick.xdata, erelease.xdata)
+    xmax = max(eclick.xdata, erelease.xdata)
+    ymin = min(eclick.ydata, erelease.ydata)
+    ymax = max(eclick.ydata, erelease.ydata)
+    indices = [i for i in range(len(pos)) if pos[i][0] < xmax and
+               pos[i][0] > xmin and pos[i][1] < ymax and pos[i][1] > ymin]
+    data = tfr.data
+    if ch_type == 'mag':
+        picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
+        data = np.average(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
+        chs = [tfr.ch_names[picks[x]] for x in indices]
+    elif ch_type == 'grad':
+        picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
+        from ..channels.layout import _pair_grad_sensors
+        grads = _pair_grad_sensors(tfr.info, layout=None, topomap_coords=False)
+        idxs = list()
+        for idx in indices:
+            idxs.append(grads[idx * 2])
+            idxs.append(grads[idx * 2 + 1])  # pair of grads
+        data = np.average(data[idxs, ifmin:ifmax, itmin:itmax], axis=0)
+        chs = [tfr.ch_names[x] for x in idxs]
+    elif ch_type == 'eeg':
+        picks = pick_types(tfr.info, meg=False, eeg=True, ref_meg=False)
+        data = np.average(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
+        chs = [tfr.ch_names[picks[x]] for x in indices]
+    if len(chs) == 0:
+        return
+    logger.info('Averaging TFR over channels ' + str(chs))
+    plt.figure()
+    ax = plt.subplot(111)
+    itmax = min(itmax, len(tfr.times) - 1)
+    ifmax = min(ifmax, len(tfr.freqs) - 1)
+    extent = (tfr.times[itmin] * 1e3, tfr.times[itmax] * 1e3, tfr.freqs[ifmin],
+              tfr.freqs[ifmax])
+
+    title = 'Average over %d %s channels.' % (len(chs), ch_type)
+    ax.set_title(title)
+    ax.set_xlabel('Time (ms)')
+    ax.set_ylabel('Frequency (Hz)')
+    ax.imshow(data, extent=extent, aspect="auto", origin="lower", cmap=cmap)
+    plt.show()
