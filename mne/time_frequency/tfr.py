@@ -18,7 +18,7 @@ from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask
-from ..channels.channels import ContainsMixin, PickDropChannelsMixin
+from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
 from .multitaper import dpss_windows
@@ -537,7 +537,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     return data, times, freqs, vmin, vmax
 
 
-class AverageTFR(ContainsMixin, PickDropChannelsMixin):
+class AverageTFR(ContainsMixin, UpdateChannelsMixin):
     """Container for Time-Frequency data
 
     Can for example store induced power at sensor level or intertrial

@@ -1612,4 +1612,41 @@ def test_concatenate_epochs():
     epochs2.baseline = (-0.1, None)
     assert_raises(ValueError, concatenate_epochs, [epochs, epochs2])
 
+
+def test_add_channels():
+    """Test epoch splitting / re-appending channel types
+    """
+    raw, events, picks = _get_data()
+    epoch_nopre = Epochs(
+        raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax,
+        picks=picks)
+    epoch = Epochs(
+        raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax,
+        picks=picks, preload=True)
+    epoch_eeg = epoch.pick_types(meg=False, eeg=True, copy=True)
+    epoch_meg = epoch.pick_types(meg=True, copy=True)
+    epoch_stim = epoch.pick_types(meg=False, stim=True, copy=True)
+    epoch_eeg_meg = epoch.pick_types(meg=True, eeg=True, copy=True)
+    epoch_new = epoch_meg.add_channels([epoch_eeg, epoch_stim], copy=True)
+    assert_true(all(ch in epoch_new.ch_names
+                    for ch in epoch_stim.ch_names + epoch_meg.ch_names))
+    epoch_new = epoch_meg.add_channels([epoch_eeg], copy=True)
+
+    assert_true(ch in epoch_new.ch_names for ch in epoch.ch_names)
+    assert_array_equal(epoch_new._data, epoch_eeg_meg._data)
+    assert_true(all(ch not in epoch_new.ch_names
+                    for ch in epoch_stim.ch_names))
+
+    # Now test errors
+    epoch_badsf = epoch_eeg.copy()
+    epoch_badsf.info['sfreq'] = 3.1415927
+    epoch_eeg = epoch_eeg.crop(-.1, .1)
+
+    assert_raises(AssertionError, epoch_meg.add_channels, [epoch_nopre])
+    assert_raises(RuntimeError, epoch_meg.add_channels, [epoch_badsf])
+    assert_raises(AssertionError, epoch_meg.add_channels, [epoch_eeg])
+    assert_raises(ValueError, epoch_meg.add_channels, [epoch_meg])
+    assert_raises(AssertionError, epoch_meg.add_channels, epoch_badsf)
+
+
 run_tests_if_main()

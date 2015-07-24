@@ -20,7 +20,7 @@ from .constants import FIFF
 from .pick import pick_types, channel_type, pick_channels, pick_info
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
-from ..channels.channels import (ContainsMixin, PickDropChannelsMixin,
+from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
 from ..channels.montage import read_montage, _set_montage, Montage
 from .compensator import set_current_comp
@@ -210,7 +210,7 @@ def _check_fun(fun, d, *args, **kwargs):
     return d
 
 
-class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
+class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                SetChannelsMixin, InterpolationMixin, ToDataFrameMixin):
     """Base class for Raw data
 

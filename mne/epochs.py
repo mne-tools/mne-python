@@ -29,7 +29,7 @@ from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin
 from .evoked import EvokedArray, _aspect_rev
 from .baseline import rescale
-from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
+from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
@@ -133,7 +133,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
     end_file(fid)
 
 
-class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
+class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   SetChannelsMixin, InterpolationMixin, FilterMixin,
                   ToDataFrameMixin):
     """Abstract base class for Epochs-type classes

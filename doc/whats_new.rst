@@ -43,6 +43,8 @@ Changelog
 
     - Add new object :class:`mne.decoding.base.LinearModel` for decoding M/EEG data and interpreting coefficients of linear models with patterns attribute by `Romain Trachel`_ and `Alex Gramfort`_
 
+    - Add support to append new channels to an object from a list of other objects by `Chris Holdgraf`_
+
 
 BUG
 ~~~

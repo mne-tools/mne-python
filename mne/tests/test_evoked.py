@@ -452,3 +452,33 @@ def test_array_epochs():
     types = ['eeg'] * 19
     info = create_info(ch_names, sfreq, types)
     assert_raises(ValueError, EvokedArray, data1, info, tmin=-0.01)
+
+
+def test_add_channels():
+    """Test evoked splitting / re-appending channel types
+    """
+    evoked = read_evokeds(fname, condition=0)
+    evoked.info['buffer_size_sec'] = None
+    evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
+    evoked_meg = evoked.pick_types(meg=True, copy=True)
+    evoked_stim = evoked.pick_types(meg=False, stim=True, copy=True)
+    evoked_eeg_meg = evoked.pick_types(meg=True, eeg=True, copy=True)
+    evoked_new = evoked_meg.add_channels([evoked_eeg, evoked_stim], copy=True)
+    assert_true(all(ch in evoked_new.ch_names
+                    for ch in evoked_stim.ch_names + evoked_meg.ch_names))
+    evoked_new = evoked_meg.add_channels([evoked_eeg], copy=True)
+
+    assert_true(ch in evoked_new.ch_names for ch in evoked.ch_names)
+    assert_array_equal(evoked_new.data, evoked_eeg_meg.data)
+    assert_true(all(ch not in evoked_new.ch_names
+                    for ch in evoked_stim.ch_names))
+
+    # Now test errors
+    evoked_badsf = evoked_eeg.copy()
+    evoked_badsf.info['sfreq'] = 3.1415927
+    evoked_eeg = evoked_eeg.crop(-.1, .1)
+
+    assert_raises(RuntimeError, evoked_meg.add_channels, [evoked_badsf])
+    assert_raises(AssertionError, evoked_meg.add_channels, [evoked_eeg])
+    assert_raises(ValueError, evoked_meg.add_channels, [evoked_meg])
+    assert_raises(AssertionError, evoked_meg.add_channels, evoked_badsf)
