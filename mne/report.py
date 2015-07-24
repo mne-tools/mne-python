@@ -551,7 +551,7 @@ div.footer {
 footer_template = HTMLTemplate(u"""
 </div></body>
 <div class="footer">
-        &copy; Copyright 2012-2013, MNE Developers.
+        &copy; Copyright 2012-{{current_year}}, MNE Developers.
       Created on {{date}}.
       Powered by <a href="http://martinos.org/mne">MNE.
 </div>
@@ -1166,7 +1166,8 @@ class Report(object):
 
         self._render_toc()
 
-        html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
+        html = footer_template.substitute(date=time.strftime("%B %d, %Y"),
+                                          current_year=time.strftime("%Y"))
         self.html.append(html)
 
         if not overwrite and op.isfile(fname):
