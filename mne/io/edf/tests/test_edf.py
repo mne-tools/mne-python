@@ -20,7 +20,7 @@ import numpy as np
 
 from mne import pick_types, concatenate_raws
 from mne.externals.six import iterbytes
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, requires_pandas
 from mne.io import Raw, read_raw_edf, RawArray
 from mne.io.tests.test_raw import _test_concat
 import mne.io.edf.edf as edfmodule
@@ -256,6 +256,20 @@ def test_edf_stim_channel():
 
     # assert data are equal
     assert_array_almost_equal(true_data[0:-1] * 1e-6, edf_data[0:-1])
+
+
+@requires_pandas
+def test_to_data_frame():
+    """Test edf Raw Pandas exporter"""
+    for path in [edf_path, bdf_path]:
+        raw = read_raw_edf(path, stim_channel=None, preload=True)
+        _, times = raw[0, :10]
+        df = raw.to_data_frame()
+        assert_true((df.columns == raw.ch_names).all())
+        assert_array_equal(np.round(times * 1e3), df.index.values[:10])
+        df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
+        assert_true('time' in df.index.names)
+        assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
 
 
 run_tests_if_main()
