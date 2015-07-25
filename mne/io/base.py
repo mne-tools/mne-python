@@ -1731,7 +1731,7 @@ def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False,
 
     Notes
     -----
-    np.around will return the nearest even number for values exactly between
+    np.round will return the nearest even number for values exactly between
         two integers.
     """
     index = np.atleast_1d(times) * sfreq
@@ -1739,7 +1739,7 @@ def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False,
 
     # Round or truncate time indices
     if use_rounding:
-        return np.around(index).astype(int)
+        return np.round(index).astype(int)
     else:
         return index.astype(int)
 
