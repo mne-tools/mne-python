@@ -1419,7 +1419,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                             area_alpha=area_alpha, n_overlap=n_overlap,
                             dB=dB, show=show, n_jobs=n_jobs)
 
-    def time_as_index(self, times, use_first_samp=False):
+    def time_as_index(self, times, use_first_samp=False, use_rounding=False):
         """Convert time to indices
 
         Parameters
@@ -1429,6 +1429,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         use_first_samp : boolean
             If True, time is treated as relative to the session onset, else
             as relative to the recording onset.
+        use_rounding : boolean
+            If True, use rounding (instead of truncation) when converting
+            times to indicies. This can help avoid non-unique indices.
 
         Returns
         -------
@@ -1436,7 +1439,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Indices corresponding to the times supplied.
         """
         return _time_as_index(times, self.info['sfreq'], self.first_samp,
-                              use_first_samp)
+                              use_first_samp, use_rounding=use_rounding)
 
     def index_as_time(self, index, use_first_samp=False):
         """Convert indices to time
@@ -1753,25 +1756,43 @@ def _allocate_data(data, data_buffer, data_shape, dtype):
     return data
 
 
-def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False):
+def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False,
+                   use_rounding=False):
     """Convert time to indices
 
     Parameters
     ----------
     times : list-like | float | int
         List of numbers or a number representing points in time.
+    sfreq : float | int
+        Sample frequency.
+    first_samp : int
+       Index to use as first time point.
     use_first_samp : boolean
         If True, time is treated as relative to the session onset, else
         as relative to the recording onset.
+    use_rounding : boolean
+        If True, use rounding (instead of truncation) when converting times to
+        indicies. This can help avoid non-unique indices.
 
     Returns
     -------
     index : ndarray
         Indices corresponding to the times supplied.
+
+    Notes
+    -----
+    np.round will return the nearest even number for values exactly between
+        two integers.
     """
     index = np.atleast_1d(times) * sfreq
     index -= (first_samp if use_first_samp else 0)
-    return index.astype(int)
+
+    # Round or truncate time indices
+    if use_rounding:
+        return np.round(index).astype(int)
+    else:
+        return index.astype(int)
 
 
 def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):

@@ -1,5 +1,9 @@
 # Generic tests that all raw classes should run
+from os import path as op
 from numpy.testing import assert_allclose
+
+from mne.datasets import testing
+from mne.io import Raw
 
 
 def _test_concat(reader, *args):
@@ -29,3 +33,19 @@ def _test_concat(reader, *args):
                 if last_preload:
                     raw1.preload_data()
                 assert_allclose(data, raw1[:, :][0])
+
+
+@testing.requires_testing_data
+def test_time_index():
+    """Test indexing of raw times"""
+    raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
+                        'data', 'test_raw.fif')
+    raw = Raw(raw_fname)
+
+    # Test original (non-rounding) indexing behavior
+    orig_inds = raw.time_as_index(raw.times)
+    assert(len(set(orig_inds)) != len(orig_inds))
+
+    # Test new (rounding) indexing behavior
+    new_inds = raw.time_as_index(raw.times, use_rounding=True)
+    assert(len(set(new_inds)) == len(new_inds))
