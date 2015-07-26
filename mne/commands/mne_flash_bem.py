@@ -151,8 +151,7 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
     if not noflash30:
         logger.info("\n---- Creating the parameter maps ----")
         if unwarp:
-            for i in range(len(files)):
-                files[i] = files[i].replace(".mgz", "u.mgz")
+            files = glob.glob("mef05*u.mgz")
         if len(os.listdir('parameter_maps')) == 0:
             cmd = ['mri_ms_fitparms'] + files + ['parameter_maps']
             run_subprocess(cmd, env=env, stdout=sys.stdout)
