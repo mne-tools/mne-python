@@ -282,6 +282,10 @@ def run():
             options.flash05 = op.abspath(options.flash05)
             options.flash30 = op.abspath(options.flash30)
 
+    if options.subject is None:
+        parser.print_help()
+        raise RuntimeError('The subject argument must be set')
+
     subject = options.subject
     subjects_dir = options.subjects_dir
     flash05 = options.flash05
