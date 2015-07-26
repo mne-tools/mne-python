@@ -20,7 +20,6 @@ from __future__ import print_function
 #           Lorenzo De Santis
 
 import sys
-import math
 import os
 import os.path as op
 import glob
@@ -30,7 +29,7 @@ import mne
 from mne.utils import (logger, get_subjects_dir, run_subprocess)
 
 
-def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
+def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
                    unwarp=False, show=False):
     """
     Create 3-Layers BEM model from Flash MRI images
@@ -90,23 +89,55 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
                 'SUBJECT = %s\n'
                 'Result dir = %s\n' % (subjects_dir, subject,
                                        op.join(bem_dir, 'flash')))
-    # Step 1 : Data conversion to mgz format
-    os.chdir(mri_dir)
+    # Step 1a : Data conversion to mgz format
+    if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
+        os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'))
+    echos_done = 0
     if not noconvert:
-        if not op.exists('flash'):
-            os.mkdir("flash")
-        os.chdir("flash")
-        if not op.exists('parameter_maps'):
-            os.mkdir("parameter_maps")
-        logger.info("\n---- Converting Flash 5 ----")
-        cmd = ['mri_convert', '-flip_angle', str(5 * math.pi / 180), '-tr 25',
-               flash05, 'mef05.mgz']
-        run_subprocess(cmd, env=env, stdout=sys.stdout)
-        logger.info("\n---- Converting Flash 30 ----")
-        cmd = ['mri_convert', '-flip_angle', str(30 * math.pi / 180), '-tr 25',
-               flash30, 'mef30.mgz']
-        run_subprocess(cmd, env=env, stdout=sys.stdout)
-    #
+        logger.info("\n---- Converting Flash images ----")
+        echos = ['001', '002', '003', '004', '005', '006', '007', '008']
+        # ?
+        missing = False
+        if noflash30:
+            flashes = ['05', '30']
+        else:
+            flashes = ['05']
+        for flash in flashes:
+            for echo in echos:
+                if not op.isdir(op.join('flash' + flash, echo)):
+                    missing = True
+        if missing:
+            echos = ['002', '003', '004', '005', '006', '007', '008', '009']
+        for flash in flashes:
+            for echo in echos:
+                if not op.isdir(op.join('flash' + flash, echo)):
+                    raise RuntimeError("Directory %s is missing."
+                                       % op.join('flash' + flash, echo))
+        #
+        for flash in flashes:
+            for echo in echos:
+                if not op.isdir(op.join('flash' + flash, echo)):
+                    raise RuntimeError("Directory %s is missing."
+                                       % op.join('flash' + flash, echo))
+                sample_file = glob.glob('*')[0]
+                dest_file = op.join(mri_dir, 'flash',
+                                    'mef' + flash + '_' + echo + '.mgz')
+                # do not redo if already present
+                if op.isfile(dest_file):
+                    logger.info("The file %s is already there")
+                else:
+                    cmd = ['mri_convert',
+                           op.join('flash' + flash, echo, sample_file),
+                           dest_file]
+                    run_subprocess(cmd, env=env, stdout=sys.stdout)
+                    echos_done = echos_done + 1
+    # Clear parameter maps if some of the data were reconverted
+    if echos_done > 0 and op.exists("parameter_maps"):
+        shutil.rmtree("parameter_maps")
+        logger.info("\nParameter maps directory cleared")
+    if not op.exists("parameter_maps"):
+        os.makedirs("parameter_maps")
+    # Step 1b : Run grad_unwarp on converted files
     os.chdir(op.join(mri_dir, "flash"))
     files = glob.glob("mef*.mgz")
     if unwarp:
@@ -117,30 +148,37 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
                    'true']
             run_subprocess(cmd, env=env, stdout=sys.stdout)
     # Step 2 : Create the parameter maps
-    # (Clear everything if some of the data were reconverted)
-    logger.info("\n---- Creating the parameter maps ----")
-    if not noconvert and op.exists("parameter_maps"):
-            shutil.rmtree("parameter_maps")
-            logger.info("Parameter maps directory cleared")
-    if not op.exists("parameter_maps"):
-        os.makedirs("parameter_maps")
-    if unwarp:
-        for i in range(len(files)):
-            files[i] = files[i].replace(".mgz", "u.mgz")
-    if len(os.listdir('parameter_maps')) == 0:
-        cmd = ['mri_ms_fitparms'] + files + ['parameter_maps']
-        run_subprocess(cmd, env=env, stdout=sys.stdout)
-    else:
-        logger.info("Parameter maps were already computed")
+    if not noflash30:
+        logger.info("\n---- Creating the parameter maps ----")
+        if unwarp:
+            for i in range(len(files)):
+                files[i] = files[i].replace(".mgz", "u.mgz")
+        if len(os.listdir('parameter_maps')) == 0:
+            cmd = ['mri_ms_fitparms'] + files + ['parameter_maps']
+            run_subprocess(cmd, env=env, stdout=sys.stdout)
+        else:
+            logger.info("Parameter maps were already computed")
     # Step 3 : Synthesize the flash 5 images
-    logger.info("\n---- Synthesizing flash 5 images ----")
-    os.chdir('parameter_maps')
-    if not op.exists('flash5.mgz'):
-        cmd = ['mri_synthesize', '20 5 5', 'T1.mgz', 'PD.mgz', 'flash5.mgz']
-        run_subprocess(cmd, env=env, stdout=sys.stdout)
-        os.remove('flash5_reg.mgz')
+        logger.info("\n---- Synthesizing flash 5 images ----")
+        os.chdir('parameter_maps')
+        if not op.exists('flash5.mgz'):
+            cmd = ['mri_synthesize', '20 5 5', 'T1.mgz', 'PD.mgz',
+                   'flash5.mgz']
+            run_subprocess(cmd, env=env, stdout=sys.stdout)
+            os.remove('flash5_reg.mgz')
+        else:
+            logger.info("Synthesized flash 5 volume is already there")
     else:
-        logger.info("Synthesized flash 5 volume is already there")
+        logger.info("\n---- Averaging flash5 echoes ----")
+        os.chdir('parameter_maps')
+        if unwarp:
+            files = glob.glob("mef05*u.mgz")
+        else:
+            files = glob.glob("mef05*.mgz")
+        cmd = ['mri_average', '-noconform', files, 'flash5.mgz']
+        run_subprocess(cmd, env=env, stdout=sys.stdout)
+        if op.exists('flash5_reg.mgz'):
+            os.remove('flash5_reg.mgz')
     # Step 4 : Register with MPRAGE
     logger.info("\n---- Registering flash 5 with MPRAGE ----")
     if not op.exists('flash5_reg.mgz'):
@@ -222,7 +260,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     shutil.rmtree('flash5')
     logger.info("Deleted the flash5 COR volume")
     logger.info("\nThank you for waiting.\nThe BEM triangulations for this "
-                "subject are now available at %s.\nWe hope the BEM meshes "
+                "subject are now available at:\n%s.\nWe hope the BEM meshes "
                 "created will facilitate your MEG and EEG data analyses."
                 % op.join(bem_dir, 'flash'))
     # Show computed BEM surfaces
@@ -254,12 +292,9 @@ def run():
                       help="Subject name", default=subject)
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="Subjects directory", default=subjects_dir)
-    parser.add_option("-5", "--flash05", dest="flash05",
-                      help=("Path to FLASH sequence with a spin angle of 5 "
-                            "degrees in Nifti format"), metavar="FILE")
-    parser.add_option("-3", "--flash30", dest="flash30",
-                      help=("Path to FLASH sequence with a spin angle of 30 "
-                            "degrees in Nifti format"), metavar="FILE")
+    parser.add_option("-3", "--noflash30", dest="noflash30",
+                      action="store_true", default=False,
+                      help=("Skip the 30-degree flip angle data"),)
     parser.add_option("-n", "--noconvert", dest="noconvert",
                       action="store_true", default=False,
                       help=("Assume that the Flash MRI images have already "
@@ -274,28 +309,19 @@ def run():
 
     options, args = parser.parse_args()
 
-    if not options.noconvert:
-        if options.flash05 is None or options.flash30 is None:
-            parser.print_help()
-            sys.exit(1)
-        else:
-            options.flash05 = op.abspath(options.flash05)
-            options.flash30 = op.abspath(options.flash30)
-
     if options.subject is None:
         parser.print_help()
         raise RuntimeError('The subject argument must be set')
 
     subject = options.subject
     subjects_dir = options.subjects_dir
-    flash05 = options.flash05
-    flash30 = options.flash30
+    noflash30 = options.noflash30
     noconvert = options.noconvert
     unwarp = options.unwarp
     show = options.show
 
-    make_flash_bem(subject=subject, subjects_dir=subjects_dir, flash05=flash05,
-                   flash30=flash30, noconvert=noconvert, unwarp=unwarp,
+    make_flash_bem(subject=subject, subjects_dir=subjects_dir,
+                   noflash30=noflash30, noconvert=noconvert, unwarp=unwarp,
                    show=show)
 
 is_main = (__name__ == '__main__')
