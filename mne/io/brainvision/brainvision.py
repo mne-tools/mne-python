@@ -52,6 +52,11 @@ class RawBrainVision(_BaseRaw):
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    response_trig_shift : int | None
+        An integer that will be added to all response triggers when reading
+        events (stimulus triggers will be unaffected). If None, response
+        triggers will be ignored. Default is 0 for backwards compatibility, but
+        typically another value or None will be necessary.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -62,7 +67,7 @@ class RawBrainVision(_BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None, reference=None,
-                 scale=1., preload=False, verbose=None, response_trig_shift=0):
+                 scale=1., preload=False, response_trig_shift=0, verbose=None):
 
         if reference is not None and preload is False:
             raise ValueError("Preload must be set to True if reference is "
@@ -274,6 +279,8 @@ def _read_vmrk_events(fname, response_trig_shift=0):
     ----------
     fname : str
         vmrk file to be read.
+    response_trig_shift : int | None
+        Integer to shift response triggers by. None ignores response triggers.
 
     Returns
     -------
@@ -377,6 +384,8 @@ def _get_eeg_info(vhdr_fname, eog, misc, response_trig_shift):
     misc : list of str
         Names of channels that should be designated MISC channels. Names
         should correspond to the electrodes in the vhdr file.
+    response_trig_shift : int | None
+        Integer to shift response triggers by. None ignores response triggers.
 
     Returns
     -------
@@ -578,7 +587,7 @@ def _get_eeg_info(vhdr_fname, eog, misc, response_trig_shift):
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None,
                          reference=None, scale=1., preload=False,
-                         verbose=None, response_trig_shift=0):
+                         response_trig_shift=0, verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -608,6 +617,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    response_trig_shift : int | None
+        An integer that will be added to all response triggers when reading
+        events (stimulus triggers will be unaffected). If None, response
+        triggers will be ignored. Default is 0 for backwards compatibility, but
+        typically another value or None will be necessary.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

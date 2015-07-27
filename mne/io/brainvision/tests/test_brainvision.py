@@ -88,9 +88,43 @@ def test_brainvision_data():
 def test_events():
     """Test reading and modifying events"""
     tempdir = _TempDir()
-    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True)
 
     # check that events are read and stim channel is synthesized correcly
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True)
+    events = raw.get_brainvision_events()
+    assert_array_equal(events, [[487, 1, 253],
+                                [497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6000, 1, 255],
+                                [6620, 1, 254],
+                                [6630, 1, 255]])
+
+    # check that events are read and stim channel is synthesized correcly and
+    # response triggers are shifted like they're supposed to be.
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
+                               response_trig_shift=1000)
+    events = raw.get_brainvision_events()
+    assert_array_equal(events, [[487, 1, 253],
+                                [497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6000, 1, 1255],
+                                [6620, 1, 254],
+                                [6630, 1, 255]])
+
+    # check that events are read and stim channel is synthesized correcly and
+    # response triggers are ignored.
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
+                               response_trig_shift=None)
     events = raw.get_brainvision_events()
     assert_array_equal(events, [[487, 1, 253],
                                 [497, 1, 255],
@@ -102,6 +136,11 @@ def test_events():
                                 [4946, 1, 255],
                                 [6620, 1, 254],
                                 [6630, 1, 255]])
+
+    assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+                  preload=True, response_trig_shift=0.1)
+    assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+                  preload=True, response_trig_shift=np.nan)
 
     mne_events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
