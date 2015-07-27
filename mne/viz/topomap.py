@@ -1507,5 +1507,7 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     ax.set_title(title)
     ax.set_xlabel('Time (ms)')
     ax.set_ylabel('Frequency (Hz)')
-    ax.imshow(data, extent=extent, aspect="auto", origin="lower", cmap=cmap)
+    img = ax.imshow(data, extent=extent, aspect="auto", origin="lower",
+                    cmap=cmap)
+    plt.colorbar(mappable=img)
     plt.show()
