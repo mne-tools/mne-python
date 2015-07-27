@@ -13,7 +13,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import mne
-from mne.utils import _TempDir
+from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import Raw
@@ -202,3 +202,5 @@ def test_read_segment():
     raw3.save(raw3_file, buffer_size_sec=2)
     raw3 = Raw(raw3_file, preload=True)
     assert_array_equal(raw3._data, raw1._data)
+
+run_tests_if_main()
