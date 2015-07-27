@@ -171,6 +171,7 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
     if isinstance(cov, string_types):
         assert cov == 'simple'
         cov = make_ad_hoc_cov(info, verbose=False)
+    assert isinstance(bem, dict), 'bem must be a dict or a filepath to load.'
     assert np.array_equal(offsets, np.unique(offsets))
     assert len(offsets) == len(dev_head_ts)
     approx_events = int((len(times) / info['sfreq']) /
@@ -463,6 +464,7 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
             raise IOError('BEM file "%s" not found' % bem)
     if not isinstance(info, (dict, string_types)):
         raise TypeError('info should be a dict or string')
+    info = deepcopy(info)
     if isinstance(info, string_types):
         info = read_info(info, verbose=False)
 
@@ -568,7 +570,7 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
         fwd['info']['mri_head_t'] = mri_head_t
         fwd['info']['dev_head_t'] = dev_head_t
 
-        # Compute forward solutions for each type of artifact
+        # Compute forward solutions for each type of artifact requested
         fwd_blink = fwd_ecg = fwd_chpi = None
         if blink_rrs is not None:
             megblink = _compute_forwards(blink_rrs, bem_blink, [megcoils],

@@ -16,7 +16,7 @@ from mne import (read_forward_solution, read_source_spaces,
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.io import Raw
-from mne.utils import _TempDir
+from mne.utils import _TempDir, slow_test
 
 warnings.simplefilter('always')
 
@@ -37,6 +37,7 @@ src_fname = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-oct-6-src.fif')
 
 
+@slow_test
 @testing.requires_testing_data
 def test_simulate_raw():
     """ Test simulation of raw data """
@@ -46,10 +47,9 @@ def test_simulate_raw():
     fwd = read_forward_solution(fwd_fname, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True, eeg=True,
                              exclude=raw_template.info['bads'])
-    # cov = read_cov(cov_fname)
-    bem = read_bem_solution(bem_fname)
-    src = read_source_spaces(src_fname)
     trans = read_trans(trans_fname)
+    src = read_source_spaces(src_fname)
+    bem = read_bem_solution(bem_fname)
 
     tmin = 0.0
     sfreq = raw_template.info['sfreq']  # Hz
@@ -65,12 +65,14 @@ def test_simulate_raw():
     # Test raw simulation with basic parameters
     raw_sim = simulate_raw(info, stc, trans, src, bem, raw_times)
     assert_array_almost_equal(raw_sim.info['sfreq'], 1. / stc.tstep,
-                            err_msg='Raw and STC tstep must be equal')
+                              err_msg='Raw and STC tstep must be equal')
 
     # Test raw simulation with parameters as filename where possible
     raw_sim_2 = simulate_raw(info, stc, trans_fname, src_fname, bem_fname,
-                            raw_times)
-    assert_equal(raw_sim_2._data, raw_sim._data)
+                             raw_times)
+
+    # Some numerical imprecision
+    assert_array_almost_equal(raw_sim_2._data, raw_sim._data, decimal=5)
 
     # Test all simulated artifacts (after simulating head positions)
     # TODO: Make head positions that are more reasonable than randomly changing
@@ -86,7 +88,7 @@ def test_simulate_raw():
         head_pos_sim[time_key] = temp_trans['trans']
 
     raw_sim_3 = simulate_raw(info, stc, trans, src, bem, raw_times, ecg=True,
-                            blink=True, head_pos=head_pos_sim)
+                             blink=True, head_pos=head_pos_sim)
 
     # Check that EOG channels exist and are not zero
     eog_noise = raw_sim_3._data[raw_sim_3.ch_names.index('EOG 061'), :]
@@ -113,5 +115,5 @@ def test_simulate_raw():
                          allow_maxshield=True)
 
     # Some numerical imprecision since save uses 'single' fmt
-    assert_allclose(raw_sim_loaded._data[:, :], raw._data[:, :], rtol=1e-6,
+    assert_allclose(raw_sim_loaded._data[:, :], raw_sim._data[:, :], rtol=1e-6,
                     atol=1e-20)
