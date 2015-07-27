@@ -19,46 +19,33 @@ def _check_stc(stc1, stc2):
         raise ValueError('Times of two stcs must match.')
 
 
-def source_estimate_quantification(stc1, stc2, metric='rms', src=None):
+def source_estimate_quantification(stc1, stc2, metric='rms'):
     """Helper function to calculate matrix similarities.
 
     Parameters
     ----------
     stc1 : SourceEstimate
-        First source estimate for comparison
+        First source estimate for comparison.
     stc2 : SourceEstimate
-        First source estimate for comparison
+        First source estimate for comparison.
     metric : str
-        Metric to calculate. 'rms', 'rms_normed', 'corr', 'distance_err',
-        'weighted_distance_err', ...
-    src : None | list of dict
-        The source space. The default value is None. It must be provided when
-        using those metrics: "distance_err", "weighted_distance_err"
+        Metric to calculate. 'rms' or 'cosine'.
 
     Returns
     -------
     score : float | array
-        Calculated metric
+        Calculated metric.
 
     Notes
     -----
     Metric calculation has multiple options:
-        rms: Root mean square of difference between stc data matrices.
-        cosine: Normalized correlation of all elements in stc data matrices.
-        distance_err: Distance between most active dipoles.
-        weighted_distance_err: Distance between most active dipoles weighted by
-            difference in activity.
+    rms: Root mean square of difference between stc data matrices.
+    cosine: Normalized correlation of all elements in stc data matrices.
     """
-    known_metrics = ['rms', 'cosine', 'distance_err',
-                     'weighted_distance_err']
+    known_metrics = ['rms', 'cosine']
     if metric not in known_metrics:
         raise ValueError('metric must be a str from the known metrics: '
-                         '"rms", "cosine", "distance_err", '
-                         '"weighted_distance_err" or "..."')
-
-    if metric in ['distance_err', 'weighted_distance_err'] and src is None:
-        raise ValueError('The source space src is needed when using '
-                         '"distance_err" or "weighted_distance_err"')
+                         '"rms" or "cosine"')
 
     # This is checking that the datas are having the same size meaning
     # no comparison between distributed and sparse can be done so far.

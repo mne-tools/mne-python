@@ -83,8 +83,9 @@ def test_dipole_fitting():
     nv = sum(len(v) for v in vertices)
     stc = SourceEstimate(amp * np.eye(nv), vertices, 0, 0.001)
     with warnings.catch_warnings(record=True):  # semi-def cov
-        evoked = simulate_evoked(fwd, stc, evoked.info, cov, snr=20,
+        evoked = simulate_evoked(fwd, stc, evoked, cov, snr=20,
                                  random_state=rng)
+
     # For speed, let's use a subset of channels (strange but works)
     picks = np.sort(np.concatenate([
         pick_types(evoked.info, meg=True, eeg=False)[::2],

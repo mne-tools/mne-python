@@ -40,7 +40,7 @@ src_fname = op.join(data_path, 'subjects', 'sample', 'bem',
 @slow_test
 @testing.requires_testing_data
 def test_simulate_raw():
-    """ Test simulation of raw data """
+    """Test simulation of raw data"""
     # Create object necessary to simulate raw
     raw_template = Raw(raw_fname)
     info = raw_template.info
@@ -52,6 +52,7 @@ def test_simulate_raw():
     bem = read_bem_solution(bem_fname)
 
     tmin = 0.0
+
     sfreq = raw_template.info['sfreq']  # Hz
     tstep = 1. / sfreq
     n_samples = 100
@@ -63,7 +64,8 @@ def test_simulate_raw():
     raw_times = stc.times - stc.times[0]
 
     # Test raw simulation with basic parameters
-    raw_sim = simulate_raw(info, stc, trans, src, bem, raw_times)
+    raw_sim = simulate_raw(info, stc, trans, src, bem, raw_times,
+                           random_state=42)
     assert_array_almost_equal(raw_sim.info['sfreq'], 1. / stc.tstep,
                               err_msg='Raw and STC tstep must be equal')
 
@@ -75,9 +77,8 @@ def test_simulate_raw():
     assert_array_almost_equal(raw_sim_2._data, raw_sim._data, decimal=5)
 
     # Test all simulated artifacts (after simulating head positions)
-    # TODO: Make head positions that are more reasonable than randomly changing
-    #       position at every time point
-
+    # TODO: Make head positions that are more reasonable than simple 1mm
+    #       deviations
     head_pos_sim = dict()
     shifts = [[0.001, 0., -0.001], [-0.001, 0.001, 0.], [0., -0.001, 0.001]]
 
@@ -92,28 +93,25 @@ def test_simulate_raw():
 
     # Check that EOG channels exist and are not zero
     eog_noise = raw_sim_3._data[raw_sim_3.ch_names.index('EOG 061'), :]
-
     assert_true(np.any(eog_noise != np.zeros_like(eog_noise)))
 
     # TODO: Eventually, add ECG channels. Testing data raw file doesn't contain
     #       ECG channels yet.
 
-    # Make overly-large transform and make sure tests fail
+    # Make extreme transform and make sure tests fail
     head_pos_sim_err = deepcopy(head_pos_sim)
-    head_pos_sim_err[0.0][:, 3] = 1.  # 1m translation at time 0.0
+    head_pos_sim_err[0.0][:, 3] = 1.  # 1m translation in all directions at t=0
     assert_raises(simulate_raw(info, stc, trans, src, bem, raw_times,
-                               ecg=False, blink=True,
+                               ecg=False, blink=False,
                                head_pos=head_pos_sim_err))
 
     # Test IO on processed data
     tempdir = _TempDir()
-
     test_outname = op.join(tempdir, 'sim_test_raw.fif')
     raw_sim.save(test_outname)
 
     raw_sim_loaded = Raw(test_outname, preload=True, proj=False,
                          allow_maxshield=True)
-
     # Some numerical imprecision since save uses 'single' fmt
     assert_allclose(raw_sim_loaded._data[:, :], raw_sim._data[:, :], rtol=1e-6,
                     atol=1e-20)

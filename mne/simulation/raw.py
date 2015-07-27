@@ -10,29 +10,29 @@ import numpy as np
 import warnings
 from copy import deepcopy
 
-from mne import (pick_types, pick_info, pick_channels, VolSourceEstimate,
+from .. import (pick_types, pick_info, pick_channels, VolSourceEstimate,
                  convert_forward_solution, get_chpi_positions, EvokedArray,
                  make_ad_hoc_cov, read_bem_solution)
-from mne.bem import fit_sphere_to_headshape, make_sphere_model
-from mne.io import read_info, RawArray
-from mne.externals.six import string_types
-from mne.forward.forward import _merge_meg_eeg_fwds, _stc_src_sel
-from mne.forward._make_forward import (_prep_channels, _setup_bem,
+from ..bem import fit_sphere_to_headshape, make_sphere_model, _bem_find_surface
+from ..externals.six import string_types
+from ..fixes import in1d
+from ..forward.forward import _merge_meg_eeg_fwds, _stc_src_sel
+from ..forward._make_forward import (_prep_channels, _setup_bem,
                                        _compute_forwards, _to_forward_dict)
-from mne.forward._compute_forward import _magnetic_dipole_field_vec
-from mne.transforms import _get_mri_head_t, transform_surface_to
-from mne.source_space import (SourceSpaces, read_source_spaces,
+from ..forward._compute_forward import _magnetic_dipole_field_vec
+from ..io import read_info, RawArray
+from ..io.constants import FIFF
+from ..io.meas_info import Info
+from ..simulation import simulate_noise_evoked
+from ..source_space import (SourceSpaces, read_source_spaces,
                               _filter_source_spaces, _points_outside_surface)
-from mne.bem import _bem_find_surface
-from mne.io.constants import FIFF
-from mne.io.meas_info import Info
-from mne.source_estimate import _BaseSourceEstimate
-from mne.utils import logger, verbose, check_random_state
-from mne.simulation import simulate_noise_evoked
+from ..source_estimate import _BaseSourceEstimate
+from ..transforms import _get_mri_head_t, transform_surface_to
+from ..utils import logger, verbose, check_random_state
 
 
 @verbose
-def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
+def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='linear', n_jobs=1, random_state=None,
                  verbose=None):
@@ -40,7 +40,7 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
 
     Parameters
     ----------
-    info_template : instance of mne.io.meas_info.Info | str
+    info : instance of mne.io.meas_info.Info | str
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
@@ -107,7 +107,7 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
     covariance, and the amplitudes of the SourceEstimate. Note that this
     will vary as a function of position.
     """
-    info = deepcopy(info_template)
+    info = deepcopy(info)
 
     # Check for common flag errors and try to override
     if not isinstance(stc, _BaseSourceEstimate):
@@ -159,7 +159,7 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
             dev_head_ts.append(dev_head_ts[-1])
             ts = np.r_[ts, [tend]]
 
-        offsets = np.where(np.in1d(times, ts))[0]
+        offsets = np.where(in1d(times, ts))[0]
         offsets[-1] = len(times)  # fix for roundoff error
         assert offsets[-2] != offsets[-1]
         del ts
@@ -171,7 +171,6 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
     if isinstance(cov, string_types):
         assert cov == 'simple'
         cov = make_ad_hoc_cov(info, verbose=False)
-    assert isinstance(bem, dict), 'bem must be a dict or a filepath to load.'
     assert np.array_equal(offsets, np.unique(offsets))
     assert len(offsets) == len(dev_head_ts)
     approx_events = int((len(times) / info['sfreq']) /
@@ -272,33 +271,37 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
     stc_event_idx = np.argmin(np.abs(stc.times))
     event_chs = pick_channels(info['ch_names'], ['STI101'])
     if len(event_chs) == 0:
-        # When functionality is complete, expand raw object with this channel
+        # TODO: To further functionality, eventually expand raw object with
+        #     this channel if it doesn't exist
         # raise RuntimeError('No `STI` channels found.')
         event_ch = 0
     else:
         event_ch = pick_channels(info['ch_names'], ['STI101'])[0]
+    assert (event_ch not in picks, 'Error: Event channel overlaps with MEEG '
+            'channel.')
 
     used = np.zeros(len(times), bool)
     stc_indices = np.arange(len(times)) % len(stc.times)
     hpi_mag = 25e-9
     last_fwd = last_fwd_chpi = last_fwd_blink = last_fwd_ecg = src_sel = None
 
-    # Simulate raw data in sets of event
+    raw_data = np.zeros((len(info['ch_names']), len(times)))
+
+    # Simulate raw data in sets of events
     for fi, (fwd, fwd_blink, fwd_ecg, fwd_chpi) in enumerate(
         _make_forward_solutions(fwd_info, trans, src, bem, mindist,
                                 dev_head_ts, n_jobs, blink_bem, ecg_rr,
                                 blink_rr, chpi_rrs)):
-
         # Must be fixed orientation
         fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                        verbose=False)
 
         # Just use one arbitrary direction for each
-        if fwd_ecg is not None:
+        if ecg:
             fwd_ecg = fwd_ecg['sol']['data'][:, ::3]
-        if fwd_blink is not None:
+        if blink:
             fwd_blink = fwd_blink['sol']['data'][:, ::3]
-        if fwd_chpi is not None:
+        if chpi:
             fwd_chpi = fwd_chpi[:, ::3]
 
         if src_sel is None:
@@ -340,7 +343,6 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
         assert simulated.data.shape[0] == len(picks)
         assert simulated.data.shape[1] == len(stc_idxs)
 
-        raw_data = np.zeros((len(info['ch_names']), len(times)))
         raw_data[picks, time_slice] = simulated.data
 
         # Add ECG, Blink, and CHPI traces
@@ -382,11 +384,13 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
             last_fwd_chpi = fwd_chpi
 
         # Add events
+        # TODO: Add back in
         raw_data[event_ch, event_idxs] = fi
 
         # Prepare for next iteration
         last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
             fwd, fwd_blink, fwd_ecg, fwd_chpi
+
 
     assert used.all()
     logger.info('Done')
@@ -464,7 +468,6 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
             raise IOError('BEM file "%s" not found' % bem)
     if not isinstance(info, (dict, string_types)):
         raise TypeError('info should be a dict or string')
-    info = deepcopy(info)
     if isinstance(info, string_types):
         info = read_info(info, verbose=False)
 
@@ -506,6 +509,7 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
         transform_surface_to(s, coord_frame, mri_head_t)
 
     # Prepare the BEM model
+    import ipdb; ipdb.set_trace()
     bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t, verbose=False)
 
     # Circumvent numerical problems by excluding points too close to the skull
@@ -554,6 +558,7 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
                                'surface for transform %s' % ti)
 
         # Compute forward
+        #import ipdb; ipdb.set_trace()
         megfwd = _compute_forwards(rr, bem, [megcoils], [compcoils],
                                    [meg_info], ['meg'], n_jobs,
                                    verbose=False)[0]
@@ -570,7 +575,7 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
         fwd['info']['mri_head_t'] = mri_head_t
         fwd['info']['dev_head_t'] = dev_head_t
 
-        # Compute forward solutions for each type of artifact requested
+        # Compute forward solutions for each type of artifact
         fwd_blink = fwd_ecg = fwd_chpi = None
         if blink_rrs is not None:
             megblink = _compute_forwards(blink_rrs, bem_blink, [megcoils],
