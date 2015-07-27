@@ -23,8 +23,9 @@ import math
 import os
 
 import mne
+from mne.utils import deprecated
 
-
+@deprecated("This function is deprecated, use mne_flash_bem instead")
 def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
     """Create 3-Layers BEM model from Flash MRI images
 
