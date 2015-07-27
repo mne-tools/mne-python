@@ -24,6 +24,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox)
 from ..time_frequency import compute_epochs_psd
 from ..defaults import _handle_default
+from ..channels.layout import _find_topomap_coords
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -59,12 +60,17 @@ def _prepare_topo_plot(inst, ch_type, layout):
             raise ValueError("No channels of type %r" % ch_type)
 
         if layout is None:
-            from ..channels.layout import _find_topomap_coords
             pos = _find_topomap_coords(info, picks)
         else:
             names = [n.upper() for n in layout.names]
-            pos = [layout.pos[names.index(info['ch_names'][k].upper())]
-                   for k in picks]
+            try:
+                pos = [layout.pos[names.index(info['ch_names'][k].upper())]
+                       for k in picks]
+            except ValueError:  # special case, where pos info not in layout
+                logger.warning('Failed to locate %s channel positions from '
+                               'layout. Inferring channel positions from '
+                               'data.' % ch_type)
+                pos = _find_topomap_coords(info, picks)
 
     ch_names = [info['ch_names'][k] for k in picks]
     if merge_grads:
@@ -917,7 +923,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     selection_callback = partial(_onselect, tfr=tfr, pos=pos, ch_type=ch_type,
                                  itmin=itmin, itmax=itmax, ifmin=ifmin,
-                                 ifmax=ifmax, cmap=cmap)
+                                 ifmax=ifmax, cmap=cmap, layout=layout)
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axis=ax, cmap=cmap, image_interp='bilinear',
                          contours=False, names=names, show_names=show_names,
@@ -1457,7 +1463,7 @@ def plot_psds_topomap(
 
 
 def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
-              cmap):
+              cmap, layout=None):
     """Callback called from topomap for drawing average tfr over channels."""
     import matplotlib.pyplot as plt
     pos, _ = _check_outlines(pos, outlines='head', head_pos=None)
@@ -1475,7 +1481,8 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     elif ch_type == 'grad':
         picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
         from ..channels.layout import _pair_grad_sensors
-        grads = _pair_grad_sensors(tfr.info, layout=None, topomap_coords=False)
+        grads = _pair_grad_sensors(tfr.info, layout=layout,
+                                   topomap_coords=False)
         idxs = list()
         for idx in indices:
             idxs.append(grads[idx * 2])
