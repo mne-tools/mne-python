@@ -191,7 +191,7 @@ def test_plot_tfr_topomap():
                                             plt.gcf().canvas, 0.9, 0.9, 1)
     erelease.xdata = 0.3
     erelease.ydata = 0.2
-    tfr._onselect(eclick, erelease)  # test for rectangle selector
+    tfr._onselect(eclick, erelease, None, 'mean', None, None, None, 'RdBu_r')
     plt.close('all')
 
 

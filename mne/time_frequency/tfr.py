@@ -696,11 +696,11 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         tmin, tmax = times[0], times[-1]
         if isinstance(axes, plt.Axes):
             axes = [axes]
-        if isinstance(axes, list) and len(axes) != len(picks):
-            raise RuntimeError('There must be an axes for each picked '
-                               'channel.')
-            if colorbar:
-                logger.warning('Cannot draw colorbar for user defined axes.')
+        if isinstance(axes, list) or isinstance(axes, np.ndarray):
+            if len(axes) != len(picks):
+                raise RuntimeError('There must be an axes for each picked '
+                                   'channel.')
+
         for idx in range(len(data)):
             if axes is None:
                 fig = plt.figure()
@@ -708,20 +708,22 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             else:
                 ax = axes[idx]
                 fig = ax.get_figure()
-            onselect_callback = partial(self._onselect, layout=layout,
-                                        baseline=baseline, mode=mode,
-                                        cmap=cmap)
+            onselect_callback = partial(self._onselect, baseline=baseline,
+                                        mode=mode, vmin=vmin, vmax=vmax,
+                                        layout=layout, cmap=cmap)
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
                         x_label='Time (ms)', y_label='Frequency (Hz)',
-                        colorbar=False, picker=False, cmap=cmap)
+                        colorbar=colorbar, picker=False, cmap=cmap)
             if title:
                 fig.suptitle(title)
+            colorbar = False  # only one colorbar for multiple axes
         if show:
             plt.show()
         return fig
 
-    def _onselect(self, eclick, erelease, layout, baseline, mode, cmap):
+    def _onselect(self, eclick, erelease, baseline, mode, vmin, vmax, layout,
+                  cmap):
         """Callback function called by rubber band selector in channel tfr."""
         import matplotlib.pyplot as plt
         from ..viz import plot_tfr_topomap
@@ -751,21 +753,21 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                 plot_tfr_topomap(self, ch_type='grad', tmin=tmin, tmax=tmax,
                                  fmin=fmin, fmax=fmax, layout=layout,
                                  baseline=baseline, mode=mode, cmap=cmap,
-                                 title='grad', vmin=-0.45, vmax=0.45,
+                                 title='grad', vmin=vmin, vmax=vmax,
                                  axes=axis[plot_idx])
                 plot_idx += 1
             if 'mag' in types:
                 plot_tfr_topomap(self, ch_type='mag', tmin=tmin, tmax=tmax,
                                  fmin=fmin, fmax=fmax, layout=layout,
                                  baseline=baseline, mode=mode, cmap=cmap,
-                                 title='mag', vmin=-0.45, vmax=0.45,
+                                 title='mag', vmin=vmin, vmax=vmax,
                                  axes=axis[plot_idx])
                 plot_idx += 1
             if 'eeg' in types:
                 plot_tfr_topomap(self, ch_type='eeg', tmin=tmin, tmax=tmax,
                                  fmin=fmin, fmax=fmax, layout=layout,
                                  baseline=baseline, mode=mode, cmap=cmap,
-                                 title='eeg', vmin=-0.45, vmax=0.45,
+                                 title='eeg', vmin=vmin, vmax=vmax,
                                  axes=axis[plot_idx])
         except IndexError:  # if the user selects a window that is too small
             logger.info('The selected area is too small. '
@@ -862,8 +864,9 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         if layout is None:
             from mne import find_layout
             layout = find_layout(self.info)
-        onselect_callback = partial(self._onselect, layout=layout,
-                                    baseline=baseline, mode=mode, cmap=cmap)
+        onselect_callback = partial(self._onselect, baseline=baseline,
+                                    mode=mode, layout=layout, vmin=vmin,
+                                    vmax=vmax, cmap=cmap)
         imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap,
                          onselect=onselect_callback)
 
