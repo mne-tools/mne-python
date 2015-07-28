@@ -728,17 +728,19 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
             return
         plt.ion()  # turn interactive mode on
-        tmin = round(min(eclick.xdata, erelease.xdata) / 1000., 1)  # ms to s
-        tmax = round(max(eclick.xdata, erelease.xdata) / 1000., 1)
-        fmin = round(min(eclick.ydata, erelease.ydata), 1)  # Hz
-        fmax = round(max(eclick.ydata, erelease.ydata), 1)
-        tdelta = tmax - tmin
-        fdelta = fmax - fmin
-        if tdelta < abs(self.times[1] - self.times[0]) or \
-           fdelta < abs(self.freqs[1] - self.freqs[0]):
+        tmin = round(min(eclick.xdata, erelease.xdata) / 1000., 5)  # ms to s
+        tmax = round(max(eclick.xdata, erelease.xdata) / 1000., 5)
+        fmin = round(min(eclick.ydata, erelease.ydata), 5)  # Hz
+        fmax = round(max(eclick.ydata, erelease.ydata), 5)
+        tmin = min(self.times, key=lambda x: abs(x - tmin))  # find closest
+        tmax = min(self.times, key=lambda x: abs(x - tmax))
+        fmin = min(self.freqs, key=lambda x: abs(x - fmin))
+        fmax = min(self.freqs, key=lambda x: abs(x - fmax))
+        if tmin == tmax or fmin == fmax:
             logger.info('The selected area is too small. '
                         'Select a larger time-frequency window.')
             return
+
         types = list()
         eegs = pick_types(self.info, meg=False, eeg=True, ref_meg=False)
         if len(eegs) > 0:
@@ -750,7 +752,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         fig, axis = plt.subplots(1, len(types))
         if isinstance(axis, plt.Axes):
             axis = [axis]
-        fig.suptitle('%s s - %s s, %s Hz - %s Hz' % (tmin, tmax, fmin, fmax),
+        fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(tmin,
+                                                                         tmax,
+                                                                         fmin,
+                                                                         fmax),
                      y=0.04)
         plot_idx = 0
         if 'grad' in types:
