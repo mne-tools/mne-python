@@ -709,8 +709,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                 ax = axes[idx]
                 fig = ax.get_figure()
             onselect_callback = partial(self._onselect, baseline=baseline,
-                                        mode=mode, vmin=vmin, vmax=vmax,
-                                        layout=layout, cmap=cmap)
+                                        mode=mode, layout=layout, cmap=cmap)
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
                         x_label='Time (ms)', y_label='Frequency (Hz)',
@@ -722,8 +721,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             plt.show()
         return fig
 
-    def _onselect(self, eclick, erelease, baseline, mode, vmin, vmax, layout,
-                  cmap):
+    def _onselect(self, eclick, erelease, baseline, mode, layout, cmap):
         """Callback function called by rubber band selector in channel tfr."""
         import matplotlib.pyplot as plt
         from ..viz import plot_tfr_topomap
@@ -759,21 +757,21 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             plot_tfr_topomap(self, ch_type='grad', tmin=tmin, tmax=tmax,
                              fmin=fmin, fmax=fmax, layout=layout,
                              baseline=baseline, mode=mode, cmap=cmap,
-                             title='grad', vmin=vmin, vmax=vmax,
+                             title='grad', vmin=None, vmax=None,
                              axes=axis[plot_idx])
             plot_idx += 1
         if 'mag' in types:
             plot_tfr_topomap(self, ch_type='mag', tmin=tmin, tmax=tmax,
                              fmin=fmin, fmax=fmax, layout=layout,
                              baseline=baseline, mode=mode, cmap=cmap,
-                             title='mag', vmin=vmin, vmax=vmax,
+                             title='mag', vmin=None, vmax=None,
                              axes=axis[plot_idx])
             plot_idx += 1
         if 'eeg' in types:
             plot_tfr_topomap(self, ch_type='eeg', tmin=tmin, tmax=tmax,
                              fmin=fmin, fmax=fmax, layout=layout,
                              baseline=baseline, mode=mode, cmap=cmap,
-                             title='eeg', vmin=vmin, vmax=vmax,
+                             title='eeg', vmin=None, vmax=None,
                              axes=axis[plot_idx])
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
@@ -867,8 +865,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             from mne import find_layout
             layout = find_layout(self.info)
         onselect_callback = partial(self._onselect, baseline=baseline,
-                                    mode=mode, layout=layout, vmin=vmin,
-                                    vmax=vmax, cmap=cmap)
+                                    mode=mode, layout=layout, cmap=cmap)
         imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap,
                          onselect=onselect_callback)
 
