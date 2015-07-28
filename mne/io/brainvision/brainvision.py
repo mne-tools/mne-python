@@ -52,6 +52,11 @@ class RawBrainVision(_BaseRaw):
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    response_trig_shift : int | None
+        An integer that will be added to all response triggers when reading
+        events (stimulus triggers will be unaffected). If None, response
+        triggers will be ignored. Default is 0 for backwards compatibility, but
+        typically another value or None will be necessary.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -62,7 +67,7 @@ class RawBrainVision(_BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None, reference=None,
-                 scale=1., preload=False, verbose=None):
+                 scale=1., preload=False, response_trig_shift=0, verbose=None):
 
         if reference is not None and preload is False:
             raise ValueError("Preload must be set to True if reference is "
@@ -77,7 +82,8 @@ class RawBrainVision(_BaseRaw):
         if not isinstance(scale, (int, float)):
             raise TypeError('Scale factor must be an int or float. '
                             '%s provided' % type(scale))
-        info, self._eeg_info, events = _get_eeg_info(vhdr_fname, eog, misc)
+        info, self._eeg_info, events = _get_eeg_info(vhdr_fname, eog, misc,
+                                                     response_trig_shift)
         self._eeg_info['scale'] = float(scale)
         logger.info('Creating Raw.info structure...')
         _check_update_montage(info, montage)
@@ -266,13 +272,15 @@ class RawBrainVision(_BaseRaw):
             self._data[-1] = _synthesize_stim_channel(events, start, stop)
 
 
-def _read_vmrk_events(fname):
+def _read_vmrk_events(fname, response_trig_shift=0):
     """Read events from a vmrk file
 
     Parameters
     ----------
     fname : str
         vmrk file to be read.
+    response_trig_shift : int | None
+        Integer to shift response triggers by. None ignores response triggers.
 
     Returns
     -------
@@ -291,6 +299,9 @@ def _read_vmrk_events(fname):
     end_tag = 'Version 1.0'
     if not header.endswith(end_tag):
         raise ValueError("vmrk file should be %r" % end_tag)
+    if (response_trig_shift is not None and
+            not isinstance(response_trig_shift, int)):
+        raise TypeError("response_trig_shift must be an integer or None")
 
     # extract Marker Infos block
     m = re.search("\[Marker Infos\]", txt)
@@ -308,9 +319,12 @@ def _read_vmrk_events(fname):
         mtype, mdesc, onset, duration = info.split(',')[:4]
         try:
             trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
-            onset = int(onset)
-            duration = int(duration)
-            events.append((onset, duration, trigger))
+            if mdesc[0].lower() == 's' or response_trig_shift is not None:
+                if mdesc[0].lower() == 'r':
+                    trigger += response_trig_shift
+                onset = int(onset)
+                duration = int(duration)
+                events.append((onset, duration, trigger))
         except IndexError:
             pass
 
@@ -357,7 +371,7 @@ def _synthesize_stim_channel(events, start, stop):
     return stim_channel
 
 
-def _get_eeg_info(vhdr_fname, eog, misc):
+def _get_eeg_info(vhdr_fname, eog, misc, response_trig_shift):
     """Extracts all the information from the header file.
 
     Parameters
@@ -370,6 +384,8 @@ def _get_eeg_info(vhdr_fname, eog, misc):
     misc : list of str
         Names of channels that should be designated MISC channels. Names
         should correspond to the electrodes in the vhdr file.
+    response_trig_shift : int | None
+        Integer to shift response triggers by. None ignores response triggers.
 
     Returns
     -------
@@ -563,7 +579,7 @@ def _get_eeg_info(vhdr_fname, eog, misc):
         info['chs'].append(chan_info)
 
     # for stim channel
-    events = _read_vmrk_events(eeg_info['marker_id'])
+    events = _read_vmrk_events(eeg_info['marker_id'], response_trig_shift)
 
     return info, eeg_info, events
 
@@ -571,7 +587,7 @@ def _get_eeg_info(vhdr_fname, eog, misc):
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None,
                          reference=None, scale=1., preload=False,
-                         verbose=None):
+                         response_trig_shift=0, verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -601,6 +617,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    response_trig_shift : int | None
+        An integer that will be added to all response triggers when reading
+        events (stimulus triggers will be unaffected). If None, response
+        triggers will be ignored. Default is 0 for backwards compatibility, but
+        typically another value or None will be necessary.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -615,5 +636,6 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     """
     raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                          misc=misc, reference=reference, scale=scale,
-                         preload=preload, verbose=verbose)
+                         preload=preload, verbose=verbose,
+                         response_trig_shift=response_trig_shift)
     return raw
