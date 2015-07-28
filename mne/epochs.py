@@ -265,7 +265,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             assert decim == 1
             if data.ndim != 3 or data.shape[2] != \
-                    round((tmax - tmin) * self.info['sfreq']) + 1:
+                    np.floor((tmax - tmin) * self.info['sfreq']) + 1:
                 raise RuntimeError('bad data shape')
             self.preload = True
             self._data = data
