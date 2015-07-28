@@ -72,6 +72,11 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         raise RuntimeError('Maxwell filter does not yet handle bad channels.')
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
+    if raw.proj:
+        raise RuntimeError('Projectors cannot be applied to raw data.')
+    if 'dev_head_t' not in raw.info.keys():
+        raise RuntimeError("Raw.info must contain 'dev_head_t' to transform "
+                           "device to head coords")
 
     # TODO: Improve logging process to better match Elekta's version
     # Read coil definitions from file
