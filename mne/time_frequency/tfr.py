@@ -734,6 +734,13 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         tmax = round(max(eclick.xdata, erelease.xdata) / 1000., 1)
         fmin = round(min(eclick.ydata, erelease.ydata), 1)  # Hz
         fmax = round(max(eclick.ydata, erelease.ydata), 1)
+        tdelta = tmax - tmin
+        fdelta = fmax - fmin
+        if tdelta < abs(self.times[1] - self.times[0]) or \
+           fdelta < abs(self.freqs[1] - self.freqs[0]):
+            logger.info('The selected area is too small. '
+                        'Select a larger time-frequency window.')
+            return
         types = list()
         eegs = pick_types(self.info, meg=False, eeg=True, ref_meg=False)
         if len(eegs) > 0:
@@ -748,31 +755,26 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         fig.suptitle('%s s - %s s, %s Hz - %s Hz' % (tmin, tmax, fmin, fmax),
                      y=0.04)
         plot_idx = 0
-        try:
-            if 'grad' in types:
-                plot_tfr_topomap(self, ch_type='grad', tmin=tmin, tmax=tmax,
-                                 fmin=fmin, fmax=fmax, layout=layout,
-                                 baseline=baseline, mode=mode, cmap=cmap,
-                                 title='grad', vmin=vmin, vmax=vmax,
-                                 axes=axis[plot_idx])
-                plot_idx += 1
-            if 'mag' in types:
-                plot_tfr_topomap(self, ch_type='mag', tmin=tmin, tmax=tmax,
-                                 fmin=fmin, fmax=fmax, layout=layout,
-                                 baseline=baseline, mode=mode, cmap=cmap,
-                                 title='mag', vmin=vmin, vmax=vmax,
-                                 axes=axis[plot_idx])
-                plot_idx += 1
-            if 'eeg' in types:
-                plot_tfr_topomap(self, ch_type='eeg', tmin=tmin, tmax=tmax,
-                                 fmin=fmin, fmax=fmax, layout=layout,
-                                 baseline=baseline, mode=mode, cmap=cmap,
-                                 title='eeg', vmin=vmin, vmax=vmax,
-                                 axes=axis[plot_idx])
-        except IndexError:  # if the user selects a window that is too small
-            logger.info('The selected area is too small. '
-                        'Select a larger time-frequency window.')
-            plt.close(fig)
+        if 'grad' in types:
+            plot_tfr_topomap(self, ch_type='grad', tmin=tmin, tmax=tmax,
+                             fmin=fmin, fmax=fmax, layout=layout,
+                             baseline=baseline, mode=mode, cmap=cmap,
+                             title='grad', vmin=vmin, vmax=vmax,
+                             axes=axis[plot_idx])
+            plot_idx += 1
+        if 'mag' in types:
+            plot_tfr_topomap(self, ch_type='mag', tmin=tmin, tmax=tmax,
+                             fmin=fmin, fmax=fmax, layout=layout,
+                             baseline=baseline, mode=mode, cmap=cmap,
+                             title='mag', vmin=vmin, vmax=vmax,
+                             axes=axis[plot_idx])
+            plot_idx += 1
+        if 'eeg' in types:
+            plot_tfr_topomap(self, ch_type='eeg', tmin=tmin, tmax=tmax,
+                             fmin=fmin, fmax=fmax, layout=layout,
+                             baseline=baseline, mode=mode, cmap=cmap,
+                             title='eeg', vmin=vmin, vmax=vmax,
+                             axes=axis[plot_idx])
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
