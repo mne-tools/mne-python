@@ -17,7 +17,7 @@ from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform)
 
 from .forward._make_forward import (_get_mri_head_t, _setup_bem,
-                                    _prep_channels)
+                                    _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
                                        _prep_field_computation)
 
@@ -546,8 +546,10 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
     logger.info('%d bad channels total' % len(info['bads']))
 
     # Forward model setup (setup_forward_model from setup.c)
-    megcoils, compcoils, eegels, megnames, eegnames, meg_info = \
-        _prep_channels(info, exclude='bads', accurate=accurate)
+    megcoils, compcoils, megnames, meg_info = \
+        _prep_meg_channels(info, accurate=accurate, verbose=verbose)
+    eegels, eegnames = _prep_eeg_channels(info, exclude='bads',
+                                          verbose=verbose)
 
     # Whitener for the data
     logger.info('Decomposing the sensor noise covariance matrix...')
