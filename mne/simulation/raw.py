@@ -272,7 +272,7 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
         blink_data = np.convolve(blink_impulses, blink_kernel,
                                  'same')[np.newaxis, :]
         blink_data += rng.randn(blink_data.shape[1]) * max_amp * 0.05
-        del blink_times,
+        del blink_times, blink_amps
 
     if ecg:
         ecg_rr = np.array([[-R, 0, -3 * R]])
@@ -304,6 +304,7 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
                          stc.tmin, verbose=False)
     stc_event_idx = np.argmin(np.abs(stc.times))
     event_chs = pick_channels(info['ch_names'], ['STI101'])
+
     # XXX remove below conditional when done with testing
     if len(event_chs) == 0:
         event_ch = 0
@@ -322,6 +323,7 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
         _make_forward_solutions(fwd_info, trans, src, bem, mindist,
                                 dev_head_ts, n_jobs, blink_bem, ecg_rr,
                                 blink_rr, chpi_rrs)):
+
         # Must be fixed orientation
         fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                        verbose=False)
@@ -384,7 +386,6 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
 
             # Add cardiac data to ECG channels
             ecg_chs = pick_types(info, meg=False, ecg=True)
-
             raw_data[ecg_chs, time_slice] = ecg_data[:, time_slice]
 
             last_fwd_ecg = fwd_ecg

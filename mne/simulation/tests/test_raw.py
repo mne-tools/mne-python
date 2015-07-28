@@ -27,6 +27,8 @@ bem_fname = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-1280-1280-1280-bem-sol.fif')
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test_raw.fif')
+cov_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc-cov.fif')
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 bem_fname = op.join(data_path, 'subjects', 'sample', 'bem',
