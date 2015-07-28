@@ -9,9 +9,11 @@ from numpy.testing import (assert_equal, assert_allclose,
                            assert_array_almost_equal)
 from nose.tools import assert_true, assert_raises
 
-from mne.preprocessing import maxwell
+from mne import compute_raw_data_covariance
 from mne.datasets import testing
+from mne.forward._make_forward import _prep_meg_channels
 from mne.io import Raw, proc_history
+from mne.preprocessing import maxwell
 from mne.utils import _TempDir, run_tests_if_main
 
 warnings.simplefilter('always')  # Always throw warnings
@@ -45,7 +47,8 @@ def test_maxwell_filter():
     assert_raises(RuntimeError, maxwell.maxwell_filter, raw_err)
 
     # Create coils
-    all_coils, meg_info = maxwell._make_coils(raw.info)
+    all_coils, _, _, meg_info = _prep_meg_channels(raw.info, ignore_ref=True,
+                                                   elekta_defs=True)
     picks = [raw.info['ch_names'].index(ch) for ch in [coil['chname']
                                                        for coil in all_coils]]
     coils = [all_coils[ci] for ci in picks]
@@ -117,9 +120,14 @@ def test_maxwell_filter_additional():
     file_name = 'test_move_anon'
 
     raw_fname = op.join(data_path, 'SSS', file_name + '_raw.fif')
+
     with warnings.catch_warnings(record=True):  # maxshield
+        # Use 2.0 seconds of data to get stable cov. estimate
         raw = Raw(raw_fname, preload=False, proj=False,
-                  allow_maxshield=True).crop(0., 1., False)
+                  allow_maxshield=True).crop(0., 2., False)
+
+    raw.preload_data()
+    raw.pick_types(meg=True, eeg=False)
     raw_sss = maxwell.maxwell_filter(raw)
 
     # Test io on processed data
@@ -128,11 +136,15 @@ def test_maxwell_filter_additional():
     raw_sss.save(test_outname)
     raw_sss_loaded = Raw(test_outname, preload=True, proj=False,
                          allow_maxshield=True)
+
     # Some numerical imprecision since save uses 'single' fmt
     assert_allclose(raw_sss_loaded._data[:, :], raw_sss._data[:, :],
                     rtol=1e-6, atol=1e-20)
 
-    # Test covariance calculation XXX add this
+    # Test covariance calculation
+    cov_raw = compute_raw_data_covariance(raw)
+    cov_sss = compute_raw_data_covariance(raw_sss)
 
+    assert_equal(np.rank(cov_raw), np.rank(cov_sss))
 
 run_tests_if_main()
