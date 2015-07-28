@@ -9,12 +9,13 @@ import numpy as np
 
 from ..io.pick import pick_channels_cov
 from ..forward import apply_forward
-from ..utils import check_random_state, verbose, _time_mask
+from ..utils import check_random_state, verbose, _time_mask, logger
 
 
 @verbose
-def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
-                    iir_filter=None, random_state=None, verbose=None):
+def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None,
+                    tmax=None, iir_filter=None, random_state=None,
+                    verbose=None, info=None):
     """Generate noisy evoked data
 
     Parameters
@@ -42,13 +43,20 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
         To specify the random generator state.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    info : dict
+        Measurement info to generate the evoked.
 
     Returns
     -------
     evoked : Evoked object
         The simulated evoked data
     """
-    evoked = apply_forward(fwd, stc, evoked)  # verbose
+    if info is None:
+        logger.warning('"evoked" is deprecated and will be removed in '
+                       'MNE-0.11. Please give evoked.info instead')
+        info = evoked.info
+
+    evoked = apply_forward(fwd, stc, evoked, info=info)  # verbose
     noise = generate_noise_evoked(evoked, cov, iir_filter, random_state)
     evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin, tmax=tmax)
     return evoked_noise
