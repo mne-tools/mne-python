@@ -16,7 +16,7 @@ from mne import (read_forward_solution, read_source_spaces,
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.io import Raw
-from mne.utils import _TempDir, slow_test
+from mne.utils import _TempDir, slow_test, run_tests_if_main
 
 warnings.simplefilter('always')
 
@@ -27,8 +27,6 @@ bem_fname = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-1280-1280-1280-bem-sol.fif')
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test_raw.fif')
-cov_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-cov.fif')
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 bem_fname = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -53,7 +51,7 @@ def test_simulate_raw():
 
     tmin = 0.0
 
-    sfreq = raw_template.info['sfreq']  # Hz
+    sfreq = info['sfreq']  # Hz
     tstep = 1. / sfreq
     n_samples = 100
     times = np.arange(tmin, tmin + tstep * n_samples, tstep)
@@ -115,3 +113,5 @@ def test_simulate_raw():
     # Some numerical imprecision since save uses 'single' fmt
     assert_allclose(raw_sim_loaded._data[:, :], raw_sim._data[:, :], rtol=1e-6,
                     atol=1e-20)
+
+run_tests_if_main()

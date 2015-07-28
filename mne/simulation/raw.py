@@ -11,21 +11,21 @@ import warnings
 from copy import deepcopy
 
 from .. import (pick_types, pick_info, pick_channels, VolSourceEstimate,
-                 convert_forward_solution, get_chpi_positions, EvokedArray,
-                 make_ad_hoc_cov, read_bem_solution)
+                convert_forward_solution, get_chpi_positions, EvokedArray,
+                make_ad_hoc_cov, read_bem_solution)
 from ..bem import fit_sphere_to_headshape, make_sphere_model, _bem_find_surface
 from ..externals.six import string_types
 from ..fixes import in1d
 from ..forward.forward import _merge_meg_eeg_fwds, _stc_src_sel
 from ..forward._make_forward import (_prep_channels, _setup_bem,
-                                       _compute_forwards, _to_forward_dict)
+                                     _compute_forwards, _to_forward_dict)
 from ..forward._compute_forward import _magnetic_dipole_field_vec
 from ..io import read_info, RawArray
 from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..simulation import simulate_noise_evoked
 from ..source_space import (SourceSpaces, read_source_spaces,
-                              _filter_source_spaces, _points_outside_surface)
+                            _filter_source_spaces, _points_outside_surface)
 from ..source_estimate import _BaseSourceEstimate
 from ..transforms import _get_mri_head_t, transform_surface_to
 from ..utils import logger, verbose, check_random_state
@@ -107,21 +107,42 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
     covariance, and the amplitudes of the SourceEstimate. Note that this
     will vary as a function of position.
     """
-    info = deepcopy(info)
+
+    if not isinstance(info, (dict, string_types)):
+        raise TypeError('info should be a dict or string')
+    if isinstance(info, string_types):
+        info = read_info(info, verbose=False)
 
     # Check for common flag errors and try to override
     if not isinstance(stc, _BaseSourceEstimate):
         raise TypeError('stc must be a SourceEstimate')
     if not np.allclose(info['sfreq'], 1. / stc.tstep):
         raise ValueError('stc and info must have same sample rate')
+
     # Only use cHPI if custom frequency is in HPI information
     if chpi and np.all(['custom_ref' in x.keys()
                         for x in info['hpi_meas'][0]['hpi_coils']]):
         raise ValueError("`custom_ref` must be in "
                          "info['hpi_meas'][0]['hpi_coils'] to use cHPI")
-    rng = check_random_state(random_state)
     if interp not in ('linear', 'zero'):
         raise ValueError('interp must be "linear" or "zero"')
+
+    # Ensure required channel types are present
+    '''
+    if len(pick_types(info, meg=False, stim=True) < 1):
+        # TODO: To further functionality, eventually expand raw object with
+        #     this channel if it doesn't exist
+        raise ValueError('`STI` channels must be present to record events.')
+    '''
+    if np.any(pick_types(info, meg=False, eog=True) < 1) and blink:
+        raise ValueError('EOG channels must be present to simulate blinks.')
+    '''
+    if np.any(pick_types(info, meg=False, ecg=True) < 1) and ecg:
+        raise ValueError('ECG channels must be present to simulate heart '
+                         'beats.')
+        '''
+
+    rng = check_random_state(random_state)
 
     # Use stationary head
     if head_pos is None:
@@ -233,52 +254,61 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
             verbose=False)
 
     if blink:
+        # Find time of blink onsets
         blink_rate = np.cos(2 * np.pi * 1. / 60. * times)
         blink_rate *= 12.5 / 60.
         blink_rate += 4.5 / 60.
         blink_times = rng.rand(len(times)) < blink_rate / info['sfreq']
-        # vary amplitudes
-        blink_times = blink_times * (rng.rand(len(times)) + 0.5)
+
+        # Generate scaled impulses for blinks
+        min_amp, max_amp = 0.0004, 0.0006
+        blink_amps = (max_amp - min_amp) * \
+            rng.rand(np.sum(blink_times)) + min_amp
+
         # Convolve blink times with kernel to get blink traces
+        blink_impulses = np.zeros(len(times))
+        blink_impulses[blink_times] = blink_amps
         blink_kernel = np.hanning(int(0.25 * info['sfreq']))
-        blink_data = np.convolve(blink_times, blink_kernel,
+        blink_data = np.convolve(blink_impulses, blink_kernel,
                                  'same')[np.newaxis, :]
-        blink_data += rng.randn(blink_data.shape[1]) * 0.05
-        blink_data *= 100e-6  # Scale to blink EMG scale
+        blink_data += rng.randn(blink_data.shape[1]) * max_amp * 0.05
         del blink_times,
 
     if ecg:
         ecg_rr = np.array([[-R, 0, -3 * R]])
 
+        # Find time of heart beat onsets
         max_beats = int(np.ceil(times[-1] * 70. / 60.))
-        cardiac_idx = np.cumsum(rng.uniform(60. / 70., 60. / 50., max_beats) *
-                                info['sfreq']).astype(int)
-        cardiac_idx = cardiac_idx[cardiac_idx < len(times)]
-        cardiac_data = np.zeros(len(times))
-        cardiac_data[cardiac_idx] = 1
+        beat_times = np.cumsum(rng.uniform(60. / 70., 60. / 50., max_beats) *
+                               info['sfreq']).astype(int)
+        beat_times = beat_times[beat_times < len(times)]
+
+        # Generate scaled impulses for heart beats
+        min_amp, max_amp = 0.0001, 0.00012
+        beat_amps = np.zeros(len(times))
+        beat_amps[beat_times] = (max_amp - min_amp) * \
+            rng.rand(len(beat_times)) + min_amp
+
+        # Create cardiac kernel and convolve
         cardiac_kernel = np.concatenate([
-            2 * np.hanning(int(0.04 * info['sfreq'])),
+            np.hanning(int(0.04 * info['sfreq'])),
             -0.3 * np.hanning(int(0.05 * info['sfreq'])),
-            0.2 * np.hanning(int(0.26 * info['sfreq']))], axis=-1)
-        ecg_data = np.convolve(cardiac_data, cardiac_kernel,
+            0.1 * np.hanning(int(0.26 * info['sfreq']))], axis=-1)
+        ecg_data = np.convolve(beat_amps, cardiac_kernel,
                                'same')[np.newaxis, :]
-        ecg_data += rng.randn(ecg_data.shape[1]) * 0.05
-        ecg_data *= 3e-4
-        del cardiac_data
+        # Add some white noise
+        ecg_data += rng.randn(ecg_data.shape[1]) * max_amp * 0.05
+        del beat_times, beat_amps
 
     evoked = EvokedArray(np.zeros((len(picks), len(stc.times))), fwd_info,
                          stc.tmin, verbose=False)
     stc_event_idx = np.argmin(np.abs(stc.times))
     event_chs = pick_channels(info['ch_names'], ['STI101'])
+    # XXX remove below conditional when done with testing
     if len(event_chs) == 0:
-        # TODO: To further functionality, eventually expand raw object with
-        #     this channel if it doesn't exist
-        # raise RuntimeError('No `STI` channels found.')
         event_ch = 0
     else:
         event_ch = pick_channels(info['ch_names'], ['STI101'])[0]
-    assert (event_ch not in picks, 'Error: Event channel overlaps with MEEG '
-            'channel.')
 
     used = np.zeros(len(times), bool)
     stc_indices = np.arange(len(times)) % len(stc.times)
@@ -346,17 +376,16 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
         raw_data[picks, time_slice] = simulated.data
 
         # Add ECG, Blink, and CHPI traces
-        # TODO: Should conditionals depend on fwds or param bool flags?
         if ecg:
             # Create cardiac artifact, add to MEG channels
             ecg_noise = _interp(last_fwd_ecg, fwd_ecg, ecg_data[:, time_slice],
                                 interp)
             raw_data[meg_picks, time_slice] += ecg_noise
 
-            # Rescale ECG channels
+            # Add cardiac data to ECG channels
             ecg_chs = pick_types(info, meg=False, ecg=True)
 
-            raw_data[ecg_chs, time_slice] = 5e-4 * ecg_data[:, time_slice]
+            raw_data[ecg_chs, time_slice] = ecg_data[:, time_slice]
 
             last_fwd_ecg = fwd_ecg
 
@@ -366,10 +395,9 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
                                   blink_data[:, time_slice], interp)
             raw_data[picks, time_slice] += blink_noise
 
-            # Rescale EOG channels
+            # Add blink artifacts to EOG electrodes
             eog_chs = pick_types(info, meg=False, eog=True)
-
-            raw_data[eog_chs, time_slice] = 1e-3 * blink_data[:, time_slice]
+            raw_data[eog_chs, time_slice] = blink_data[:, time_slice]
 
             last_fwd_blink = fwd_blink
 
@@ -384,13 +412,11 @@ def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
             last_fwd_chpi = fwd_chpi
 
         # Add events
-        # TODO: Add back in
         raw_data[event_ch, event_idxs] = fi
 
         # Prepare for next iteration
         last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
             fwd, fwd_blink, fwd_ecg, fwd_chpi
-
 
     assert used.all()
     logger.info('Done')
@@ -420,9 +446,8 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
     src : str | instance of SourceSpaces
         If string, should be a source space filename. Can also be an
         instance of loaded or generated SourceSpaces.
-    bem : str
-        Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
-        use.
+    bem : dict
+        BEM dict to use.
     mindist : float
         Minimum distance of sources from inner skull surface (in mm).
     dev_head_ts : list
@@ -451,6 +476,11 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
     `do_forward_solution`.
     """
 
+    if not isinstance(info, (dict, string_types)):
+        raise TypeError('info should be a dict or string')
+    if isinstance(info, string_types):
+        info = read_info(info, verbose=False)
+
     mri_head_t, mri = _get_mri_head_t(mri)
     assert mri_head_t['from'] == FIFF.FIFFV_COORD_MRI
 
@@ -460,19 +490,9 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
     else:
         if not op.isfile(src):
             raise IOError('Source space file "%s" not found' % src)
-    if isinstance(bem, dict):
-        bem_extra = 'dict'
-    else:
-        bem_extra = bem
-        if not op.isfile(bem):
-            raise IOError('BEM file "%s" not found' % bem)
-    if not isinstance(info, (dict, string_types)):
-        raise TypeError('info should be a dict or string')
-    if isinstance(info, string_types):
-        info = read_info(info, verbose=False)
 
-    # set default forward solution coordinate frame to HEAD
-    # this could, in principle, be an option
+    # Set default forward solution coordinate frame to HEAD. This could, in
+    # principle, be an option.
     coord_frame = FIFF.FIFFV_COORD_HEAD
 
     # Report the setup
@@ -508,9 +528,8 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
     for s in src:
         transform_surface_to(s, coord_frame, mri_head_t)
 
-    # Prepare the BEM model
-    import ipdb; ipdb.set_trace()
-    bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t, verbose=False)
+    # Add transformation info to bem
+    bem = _setup_bem(bem, 'dict', len(eegnames), mri_head_t, verbose=False)
 
     # Circumvent numerical problems by excluding points too close to the skull
     if not bem['is_sphere']:
@@ -558,7 +577,6 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
                                'surface for transform %s' % ti)
 
         # Compute forward
-        #import ipdb; ipdb.set_trace()
         megfwd = _compute_forwards(rr, bem, [megcoils], [compcoils],
                                    [meg_info], ['meg'], n_jobs,
                                    verbose=False)[0]
@@ -566,7 +584,7 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
                                   FIFF.FIFFV_MNE_FREE_ORI)
         fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
 
-        # pick out final dict info
+        # Pick out final dict info
         nsource = fwd['sol']['data'].shape[1] // 3
         source_nn = np.tile(np.eye(3), (nsource, 1))
         fwd.update(dict(nchan=fwd['sol']['data'].shape[0], nsource=nsource,
@@ -599,8 +617,8 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
 
 def _restrict_source_space_to(src, vertices):
     """Helper to trim down a source space"""
-    assert len(src) == len(vertices)
     src = deepcopy(src)
+    assert len(src) == len(vertices)
     for s, v in zip(src, vertices):
         s['inuse'].fill(0)
         s['nuse'] = len(v)
