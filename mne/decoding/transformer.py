@@ -13,7 +13,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
 from ..time_frequency import multitaper_psd
 from ..externals import six
-from ..utils import _check_type_picks
+from ..utils import _check_type_picks, deprecated
 
 
 class Scaler(TransformerMixin):
@@ -147,6 +147,8 @@ class Scaler(TransformerMixin):
         return X
 
 
+@deprecated("Class 'ConcatenateChannels' has been renamed to "
+            "'EpochVectorizer' and will be removed in release 0.11.")
 class ConcatenateChannels(TransformerMixin):
     """Concatenates data from different channels into a single feature vector
 

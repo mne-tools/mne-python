@@ -45,6 +45,8 @@ Changelog
 
     - Add support to append new channels to an object from a list of other objects by `Chris Holdgraf`_
 
+    - Deprecated :class: ConcatenateChannels and replaced by :class: EpochVectorizer by `Romain Trachel`_ 
+
 
 BUG
 ~~~
