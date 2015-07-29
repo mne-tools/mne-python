@@ -10,6 +10,7 @@ from numpy.testing import (assert_equal, assert_allclose,
 from nose.tools import assert_true, assert_raises
 
 from mne import compute_raw_data_covariance
+from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.forward._make_forward import _prep_meg_channels
 from mne.io import Raw, proc_history
@@ -126,9 +127,12 @@ def test_maxwell_filter_additional():
         raw = Raw(raw_fname, preload=False, proj=False,
                   allow_maxshield=True).crop(0., 2., False)
 
+    # Get MEG channels, compute Maxwell filtered data
     raw.preload_data()
     raw.pick_types(meg=True, eeg=False)
-    raw_sss = maxwell.maxwell_filter(raw)
+    int_order, ext_order = 8, 3
+    raw_sss = maxwell.maxwell_filter(raw, int_order=int_order,
+                                     ext_order=ext_order)
 
     # Test io on processed data
     tempdir = _TempDir()
@@ -141,10 +145,16 @@ def test_maxwell_filter_additional():
     assert_allclose(raw_sss_loaded._data[:, :], raw_sss._data[:, :],
                     rtol=1e-6, atol=1e-20)
 
-    # Test covariance calculation
+    # Test rank of covariance matrices for raw and SSS processed data
     cov_raw = compute_raw_data_covariance(raw)
     cov_sss = compute_raw_data_covariance(raw_sss)
 
-    assert_equal(np.rank(cov_raw), np.rank(cov_sss))
+    scalings = None
+    cov_raw_rank = _estimate_rank_meeg_cov(cov_raw['data'], raw.info, scalings)
+    cov_sss_rank = _estimate_rank_meeg_cov(cov_sss['data'], raw_sss.info,
+                                           scalings)
+
+    assert_equal(cov_raw_rank, raw.info['nchan'])
+    assert_equal(cov_sss_rank, maxwell.get_num_moments(int_order, 0))
 
 run_tests_if_main()

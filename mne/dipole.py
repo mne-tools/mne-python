@@ -10,7 +10,7 @@ import re
 
 from .cov import read_cov, _get_whitener_data
 from .io.constants import FIFF
-from .io.pick import pick_types
+from .io.pick import pick_types, channel_type
 from .io.proj import make_projector, _has_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
@@ -546,10 +546,16 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
     logger.info('%d bad channels total' % len(info['bads']))
 
     # Forward model setup (setup_forward_model from setup.c)
-    megcoils, compcoils, megnames, meg_info = \
-        _prep_meg_channels(info, accurate=accurate, verbose=verbose)
-    eegels, eegnames = _prep_eeg_channels(info, exclude='bads',
-                                          verbose=verbose)
+    ch_types = [channel_type(info, idx) for idx in range(info['nchan'])]
+
+    megcoils, compcoils, megnames, meg_info = [], [], [], None
+    eegels, eegnames = [], []
+    if 'grad' in ch_types or 'mag' in ch_types:
+        megcoils, compcoils, megnames, meg_info = \
+            _prep_meg_channels(info, accurate=accurate, verbose=verbose)
+    if 'eeg' in ch_types:
+        eegels, eegnames = _prep_eeg_channels(info, exclude='bads',
+                                              verbose=verbose)
 
     # Whitener for the data
     logger.info('Decomposing the sensor noise covariance matrix...')

@@ -8,10 +8,11 @@ from __future__ import division
 import numpy as np
 from scipy.linalg import pinv
 from math import factorial
+import time
 
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
-from ..io.write import get_machid
+from ..io.write import _generate_meas_id
 from ..utils import verbose
 
 
@@ -106,8 +107,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     recon = np.dot(S_in, mm[:S_in.shape[1], :])
 
     # Return reconstructed raw file object
-    raw_sss = _update_info(raw.copy(), origin, int_order, ext_order,
-                           data.shape[0], mm.shape[0])
+    raw_sss = _update_sss_info(raw.copy(), origin, int_order, ext_order,
+                               data.shape[0])
     raw_sss._data[picks, :] = recon / coil_scale[:, np.newaxis]
 
     return raw_sss
@@ -454,7 +455,7 @@ def _cart_to_sph(cart_pts):
     return np.c_[rad, az, pol]
 
 
-def _update_info(raw, origin, int_order, ext_order, nsens, nmoments):
+def _update_sss_info(raw, origin, int_order, ext_order, nsens):
     """Helper function to update info after Maxwell filtering.
 
     Parameters
@@ -470,8 +471,6 @@ def _update_info(raw, origin, int_order, ext_order, nsens, nmoments):
         Order of external component of spherical expansion
     nsens : int
         Number of sensors
-    nmoments : int
-        Number of multipolar moments
 
     Returns
     -------
@@ -481,19 +480,29 @@ def _update_info(raw, origin, int_order, ext_order, nsens, nmoments):
     from .. import __version__
     # TODO: Continue to fill out bookkeeping info as additional features
     # are added (fine calibration, cross-talk calibration, etc.)
+    int_moments = get_num_moments(int_order, 0)
+    ext_moments = get_num_moments(0, ext_order)
+
+    # Get time in sec, usec
+    now = time.time()
+    date_now = np.array([int(np.floor(now)),
+                         int(1e6 * (now - np.floor(now)))])
 
     raw.info['maxshield'] = False
     sss_info_dict = dict(in_order=int_order, out_order=ext_order,
-                         origin=origin, nsens=nsens, nmoments=nmoments,
-                         components=np.ones(nmoments))
+                         nsens=nsens, origin=origin.astype('float32'),
+                         n_int_moments=int_moments,
+                         frame=raw.info['dev_head_t']['to'],
+                         components=np.ones(int_moments +
+                                            ext_moments).astype('int32'))
 
     max_info_dict = dict(max_st={}, sss_cal={}, sss_ctc={},
                          sss_info=sss_info_dict)
 
-    block_id = dict(machid=get_machid(), secs=-1, usecs=-1, version=-1)
+    block_id = _generate_meas_id()
     proc_block = dict(max_info=max_info_dict, block_id=block_id,
                       creator='mne-python v%s' % __version__,
-                      date=-1, experimentor='')
+                      date=date_now, experimentor='')
 
     # Insert information in raw.info['proc_info']
     if 'proc_history' in raw.info.keys():

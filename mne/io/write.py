@@ -366,6 +366,7 @@ def _generate_meas_id():
     id_ = dict()
     id_['version'] = (1 << 16) | 2
     id_['machid'] = get_machid()
-    id_['secs'] = time.time()
-    id_['usecs'] = 0            # Do not know how we could get this XXX
+    now = time.time()
+    id_['secs'] = int(np.floor(now))
+    id_['usecs'] = int(1e6 * (now - id_['secs']))
     return id_

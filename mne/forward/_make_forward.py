@@ -226,7 +226,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
 
 
 @verbose
-def _prep_meg_channels(info, accurate=True, exclude='bads', ignore_ref=False,
+def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
                        elekta_defs=False, verbose=None):
     """Prepare MEG coil definitions for forward calculation
 
