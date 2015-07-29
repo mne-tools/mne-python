@@ -23,6 +23,7 @@ from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
 from .multitaper import dpss_windows
 from .._hdf5 import write_hdf5, read_hdf5
+from mne.viz.utils import figure_nobar
 
 
 def _get_data(inst, return_itc):
@@ -749,9 +750,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             types.append('mag')
         if len(pick_types(self.info, meg='grad', ref_meg=False)) > 0:
             types.append('grad')
-        fig, axis = plt.subplots(1, len(types))
-        if isinstance(axis, plt.Axes):
-            axis = [axis]
+        fig = figure_nobar()
+        axis = list()
+        for idx in range(len(types)):
+            axis.append(plt.subplot(1, len(types), idx + 1))
         fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(tmin,
                                                                          tmax,
                                                                          fmin,

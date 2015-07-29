@@ -21,7 +21,7 @@ from ..io.constants import FIFF
 from ..io.pick import pick_types
 from ..utils import _clean_names, _time_mask, verbose, logger
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
-                    _check_delayed_ssp, _draw_proj_checkbox)
+                    _check_delayed_ssp, _draw_proj_checkbox, figure_nobar)
 from ..time_frequency import compute_epochs_psd
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
@@ -1496,7 +1496,7 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     if len(chs) == 0:
         return
     logger.info('Averaging TFR over channels ' + str(chs))
-    plt.figure()
+    figure_nobar()
     ax = plt.subplot(111)
     itmax = min(itmax, len(tfr.times) - 1)
     ifmax = min(ifmax, len(tfr.freqs) - 1)
