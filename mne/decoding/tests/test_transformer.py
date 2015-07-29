@@ -12,7 +12,7 @@ from numpy.testing import assert_array_equal
 
 from mne import io, read_events, Epochs, pick_types
 from mne.decoding import Scaler, FilterEstimator
-from mne.decoding import PSDEstimator, EpochVectorizer
+from mne.decoding import PSDEstimator, EpochsVectorizer
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -119,8 +119,8 @@ def test_psdestimator():
     assert_raises(ValueError, psd.transform, epochs, y)
 
 
-def test_epochvectorizer():
-    """Test methods of EpochVectorizer
+def test_epochs_vectorizer():
+    """Test methods of EpochsVectorizer
     """
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
@@ -131,7 +131,7 @@ def test_epochvectorizer():
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
-    vector = EpochVectorizer(epochs.info)
+    vector = EpochsVectorizer(epochs.info)
     y = epochs.events[:, -1]
     X = vector.fit_transform(epochs_data, y)
 

@@ -148,7 +148,7 @@ class Scaler(TransformerMixin):
 
 
 @deprecated("Class 'ConcatenateChannels' has been renamed to "
-            "'EpochVectorizer' and will be removed in release 0.11.")
+            "'EpochsVectorizer' and will be removed in release 0.11.")
 class ConcatenateChannels(TransformerMixin):
     """Concatenates data from different channels into a single feature vector
 
@@ -249,8 +249,8 @@ class ConcatenateChannels(TransformerMixin):
         return X.reshape(self.n_epochs, self.n_channels, self.n_times)
 
 
-class EpochVectorizer(TransformerMixin):
-    """EpochVectorizer transforms epoch data to fit into a scikit-learn pipeline.
+class EpochsVectorizer(TransformerMixin):
+    """EpochsVectorizer transforms epoch data to fit into a scikit-learn pipeline.
 
     Parameters
     ----------
