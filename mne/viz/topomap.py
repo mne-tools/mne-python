@@ -1480,6 +1480,8 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
         else:
             circle.set_color('black')
     plt.gcf().canvas.draw()
+    if not indices:
+        return
     data = tfr.data
     if ch_type == 'mag':
         picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
@@ -1500,8 +1502,6 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
         picks = pick_types(tfr.info, meg=False, eeg=True, ref_meg=False)
         data = np.average(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
         chs = [tfr.ch_names[picks[x]] for x in indices]
-    if len(chs) == 0:
-        return
     logger.info('Averaging TFR over channels ' + str(chs))
     figure_nobar()
     ax = plt.subplot(111)
