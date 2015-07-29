@@ -61,7 +61,15 @@ _deprecation_ignores = [
     'mne.fixes._in1d',  # fix function
     'mne.utils.plot_epochs_trellis',  # deprecated
     'mne.utils.write_bem_surface',  # deprecated
+    'generate_sparse_stc',  # deprecated
+    'generate_stc',  # deprecated
+    'generate_evoked',  # deprecated
+    'generate_noise_evoked',  # deprecated
     'mne.gui.coregistration'  # deprecated
+    'generate_sparse_stc',  # deprecated
+    'generate_stc',  # deprecated
+    'generate_evoked',  # deprecated
+    'generate_noise_evoked',  # deprecated
 ]
 
 
