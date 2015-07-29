@@ -154,6 +154,8 @@ class ConcatenateChannels(TransformerMixin):
 
     Parameters
     ----------
+    info : instance of Info
+        The measurement info.
 
     Attributes
     ----------
