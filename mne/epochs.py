@@ -2357,6 +2357,7 @@ def _concatenate_epochs(epochs_list, read_file=False):
     assert len(selection) == len(out.drop_log)
     out.selection = selection
     out.drop_log = drop_log
+    out.drop_bad_epochs()
     return out
 
 
