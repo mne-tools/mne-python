@@ -12,7 +12,7 @@ from numpy.testing import assert_array_equal
 
 from mne import io, read_events, Epochs, pick_types
 from mne.decoding import Scaler, FilterEstimator
-from mne.decoding import PSDEstimator, ConcatenateChannels
+from mne.decoding import PSDEstimator, EpochVectorizer
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -119,8 +119,8 @@ def test_psdestimator():
     assert_raises(ValueError, psd.transform, epochs, y)
 
 
-def test_concatenatechannels():
-    """Test methods of ConcatenateChannels
+def test_epochvectorizer():
+    """Test methods of EpochVectorizer
     """
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
@@ -131,26 +131,26 @@ def test_concatenatechannels():
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
-    concat = ConcatenateChannels(epochs.info)
+    vector = EpochVectorizer(epochs.info)
     y = epochs.events[:, -1]
-    X = concat.fit_transform(epochs_data, y)
+    X = vector.fit_transform(epochs_data, y)
 
     # Check data dimensions
     assert_true(X.shape[0] == epochs_data.shape[0])
     assert_true(X.shape[1] == epochs_data.shape[1] * epochs_data.shape[2])
 
-    assert_array_equal(concat.fit(epochs_data, y).transform(epochs_data), X)
+    assert_array_equal(vector.fit(epochs_data, y).transform(epochs_data), X)
 
     # Check if data is preserved
     n_times = epochs_data.shape[2]
     assert_array_equal(epochs_data[0, 0, 0:n_times], X[0, 0:n_times])
 
     # Check inverse transform
-    Xi = concat.inverse_transform(X, y)
+    Xi = vector.inverse_transform(X, y)
     assert_true(Xi.shape[0] == epochs_data.shape[0])
     assert_true(Xi.shape[1] == epochs_data.shape[1])
     assert_array_equal(epochs_data[0, 0, 0:n_times], Xi[0, 0, 0:n_times])
 
     # Test init exception
-    assert_raises(ValueError, concat.fit, epochs, y)
-    assert_raises(ValueError, concat.transform, epochs, y)
+    assert_raises(ValueError, vector.fit, epochs, y)
+    assert_raises(ValueError, vector.transform, epochs, y)
