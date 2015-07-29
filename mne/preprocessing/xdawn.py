@@ -216,11 +216,6 @@ class Xdawn(TransformerMixin, ContainsMixin):
         """init xdawn."""
         self.n_components = n_components
         self.signal_cov = signal_cov
-        if reg == 'lws':
-            raise DeprecationWarning('`lws` has been deprecated for the `reg`'
-                                     ' argument. It will be removed in 0.11.'
-                                     ' Use `ledoit_wolf` instead.')
-            reg = 'ledoit_wolf'
         self.reg = reg
         self.filters_ = dict()
         self.patterns_ = dict()
