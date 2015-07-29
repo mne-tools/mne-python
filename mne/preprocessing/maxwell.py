@@ -8,11 +8,10 @@ from __future__ import division
 import numpy as np
 from scipy.linalg import pinv
 from math import factorial
-import time
 
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
-from ..io.write import _generate_meas_id
+from ..io.write import _generate_meas_id, _date_now
 from ..utils import verbose
 
 
@@ -74,7 +73,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     if 'dev_head_t' not in raw.info.keys():
         raise RuntimeError("Raw.info must contain 'dev_head_t' to transform "
                            "device to head coords")
-    if 'comps' in raw.info.keys() and len(raw.info['comps']) > 0:
+    if len(raw.info.get('comps', [])) > 0:
         raise RuntimeError('Maxwell filter cannot handle compensated '
                            'channels.')
 
@@ -483,11 +482,6 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
     int_moments = get_num_moments(int_order, 0)
     ext_moments = get_num_moments(0, ext_order)
 
-    # Get time in sec, usec
-    now = time.time()
-    date_now = np.array([int(np.floor(now)),
-                         int(1e6 * (now - np.floor(now)))])
-
     raw.info['maxshield'] = False
     sss_info_dict = dict(in_order=int_order, out_order=ext_order,
                          nsens=nsens, origin=origin.astype('float32'),
@@ -502,7 +496,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
     block_id = _generate_meas_id()
     proc_block = dict(max_info=max_info_dict, block_id=block_id,
                       creator='mne-python v%s' % __version__,
-                      date=date_now, experimentor='')
+                      date=_date_now(), experimentor='')
 
     # Insert information in raw.info['proc_info']
     if 'proc_history' in raw.info.keys():
