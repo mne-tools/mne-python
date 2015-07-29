@@ -1467,12 +1467,19 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     """Callback called from topomap for drawing average tfr over channels."""
     import matplotlib.pyplot as plt
     pos, _ = _check_outlines(pos, outlines='head', head_pos=None)
+    ax = eclick.inaxes
     xmin = min(eclick.xdata, erelease.xdata)
     xmax = max(eclick.xdata, erelease.xdata)
     ymin = min(eclick.ydata, erelease.ydata)
     ymax = max(eclick.ydata, erelease.ydata)
     indices = [i for i in range(len(pos)) if pos[i][0] < xmax and
                pos[i][0] > xmin and pos[i][1] < ymax and pos[i][1] > ymin]
+    for idx, circle in enumerate(ax.artists):
+        if idx in indices:
+            circle.set_color('r')
+        else:
+            circle.set_color('black')
+    plt.gcf().canvas.draw()
     data = tfr.data
     if ch_type == 'mag':
         picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
