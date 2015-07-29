@@ -176,8 +176,8 @@ class Xdawn(TransformerMixin, ContainsMixin):
     reg : float | str | None (default None)
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
-        Oracle Approximating Shrinkage ('oas').
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
+        or Oracle Approximating Shrinkage ('oas').
 
     Attributes
     ----------
@@ -216,6 +216,11 @@ class Xdawn(TransformerMixin, ContainsMixin):
         """init xdawn."""
         self.n_components = n_components
         self.signal_cov = signal_cov
+        if reg == 'lws':
+            raise DeprecationWarning('`lws` has been deprecated for the `reg`'
+                                     ' argument. It will be removed in 0.11.'
+                                     ' Use `ledoit_wolf` instead.')
+            reg = 'ledoit_wolf'
         self.reg = reg
         self.filters_ = dict()
         self.patterns_ = dict()

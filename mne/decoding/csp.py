@@ -28,8 +28,8 @@ class CSP(TransformerMixin):
     reg : float | str | None (default None)
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
-        Oracle Approximating Shrinkage ('oas').
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
+        or Oracle Approximating Shrinkage ('oas').
     log : bool (default True)
         If true, apply log to standardize the features.
         If false, features are just z-scored.
@@ -55,6 +55,11 @@ class CSP(TransformerMixin):
     def __init__(self, n_components=4, reg=None, log=True):
         """Init of CSP."""
         self.n_components = n_components
+        if reg == 'lws':
+            raise DeprecationWarning('`lws` has been deprecated for the `reg`'
+                                     ' argument. It will be removed in 0.11.'
+                                     ' Use `ledoit_wolf` instead.')
+            reg = 'ledoit_wolf'
         self.reg = reg
         self.log = log
         self.filters_ = None

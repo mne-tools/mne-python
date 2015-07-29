@@ -1356,8 +1356,8 @@ def _regularized_covariance(data, reg=None):
     reg : float | str | None (default None)
         If not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
-        Oracle Approximating Shrinkage ('oas').
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
+        or Oracle Approximating Shrinkage ('oas').
 
     Returns
     -------
@@ -1390,7 +1390,7 @@ def _regularized_covariance(data, reg=None):
                                            store_precision=False,
                                            assume_centered=True)
         elif isinstance(reg, six.string_types):
-            if reg == 'lws':
+            if reg == 'ledoit_wolf':
                 try:
                     from sklearn.covariance import LedoitWolf
                 except ImportError:

@@ -127,7 +127,7 @@ def test_xdawn_regularization():
     # ========== with cov regularization ====================
     # ledoit-wolf
     xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=np.eye(len(picks)), reg='lws')
+               signal_cov=np.eye(len(picks)), reg='ledoit_wolf')
     xd.fit(epochs)
     # oas
     xd = Xdawn(n_components=2, correct_overlap=False,
