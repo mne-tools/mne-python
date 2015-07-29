@@ -557,6 +557,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
         eegels, eegnames = _prep_eeg_channels(info, exclude='bads',
                                               verbose=verbose)
 
+    # Ensure that MEG and/or EEG channels are present
+    assert len(megcoils + eegels) > 0, 'No MEG or EEG channels found.'
+
     # Whitener for the data
     logger.info('Decomposing the sensor noise covariance matrix...')
     picks = pick_types(info, meg=True, eeg=True, exclude='bads')

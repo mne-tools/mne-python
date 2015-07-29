@@ -270,13 +270,16 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
                        exclude=exclude)
 
-    # Get channel info and names for MEG channels
+    # Make sure MEG coils exist
     nmeg = len(picks)
-    if nmeg > 0:
-        megchs = pick_info(info, picks)['chs']
-        megnames = [info['ch_names'][p] for p in picks]
-        logger.info('Read %3d MEG channels from %s'
-                    % (len(picks), info_extra))
+    if nmeg <= 0:
+        raise RuntimeError('Could not find any MEG channels')
+
+    # Get channel info and names for MEG channels
+    megchs = pick_info(info, picks)['chs']
+    megnames = [info['ch_names'][p] for p in picks]
+    logger.info('Read %3d MEG channels from %s'
+                % (len(picks), info_extra))
 
     # Get MEG compensation channels
     if not ignore_ref:
@@ -305,17 +308,15 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
 
     # Create coil descriptions with transformation to head or MRI frame
     templates = _read_coil_defs(elekta_defs=elekta_defs)
-    if nmeg > 0:
-        megcoils = _create_coils(megchs, accuracy, info['dev_head_t'], 'meg',
-                                 templates)
-        if ncomp > 0:
-            logger.info('%d compensation data sets in %s' % (ncomp_data,
-                                                             info_extra))
-            compcoils = _create_coils(compchs, FIFF.FWD_COIL_ACCURACY_NORMAL,
-                                      info['dev_head_t'], 'meg', templates)
-        logger.info('Head coordinate MEG coil definitions created.')
-    else:
-        raise RuntimeError('Could not find any MEG channels')
+
+    megcoils = _create_coils(megchs, accuracy, info['dev_head_t'], 'meg',
+                             templates)
+    if ncomp > 0:
+        logger.info('%d compensation data sets in %s' % (ncomp_data,
+                                                         info_extra))
+        compcoils = _create_coils(compchs, FIFF.FWD_COIL_ACCURACY_NORMAL,
+                                  info['dev_head_t'], 'meg', templates)
+    logger.info('Head coordinate MEG coil definitions created.')
 
     return megcoils, compcoils, megnames, meg_info
 
@@ -348,21 +349,21 @@ def _prep_eeg_channels(info, exclude='bads', verbose=None):
     # Find EEG electrodes
     picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
                        exclude=exclude)
+
+    # Make sure EEG electrodes exist
     neeg = len(picks)
+    if neeg <= 0:
+        raise RuntimeError('Could not find any EEG channels')
+    templates = _read_coil_defs()
 
     # Get channel info and names for EEG channels
-    if neeg > 0:
-        eegchs = pick_info(info, picks)['chs']
-        eegnames = [info['ch_names'][p] for p in picks]
-        logger.info('Read %3d EEG channels from %s' % (len(picks), info_extra))
+    eegchs = pick_info(info, picks)['chs']
+    eegnames = [info['ch_names'][p] for p in picks]
+    logger.info('Read %3d EEG channels from %s' % (len(picks), info_extra))
 
     # Create EEG electrode descriptions
-    templates = _read_coil_defs()
-    if neeg > 0:
-        eegels = _create_coils(eegchs, coil_type='eeg', coilset=templates)
-        logger.info('Head coordinate coil definitions created.')
-    else:
-        raise RuntimeError('Could not find any EEG channels')
+    eegels = _create_coils(eegchs, coil_type='eeg', coilset=templates)
+    logger.info('Head coordinate coil definitions created.')
 
     return eegels, eegnames
 
@@ -519,6 +520,9 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
             _prep_meg_channels(info, ignore_ref=ignore_ref, verbose=verbose)
     if eeg:
         eegels, eegnames = _prep_eeg_channels(info, verbose=verbose)
+
+    # Check that some channels were found
+    assert len(megcoils + eegels) > 0, 'No MEG or EEG channels found.'
 
     # Transform the source spaces into the appropriate coordinates
     # (will either be HEAD or MRI)
