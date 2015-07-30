@@ -88,9 +88,9 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
     evoked = epochs.average(picks)
     data = epochs.get_data()[:, picks, :]
     if vmin is None:
-        vmin = data.min()
+        vmin = data.min() * scalings[channel_type(epochs.info, picks[0])]
     if vmax is None:
-        vmax = data.max()
+        vmax = data.max() * scalings[channel_type(epochs.info, picks[0])]
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
@@ -631,6 +631,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
     from matplotlib.colors import colorConverter
+    plt.ion()
     epochs = params['epochs']
 
     if picks is None:
@@ -1097,13 +1098,9 @@ def _pick_bad_epochs(event, params):
 
 def _pick_bad_channels(pos, params):
     """Helper function for selecting bad channels."""
-    labels = params['ax'].yaxis.get_ticklabels()
-    offsets = np.array(params['offsets']) + params['offsets'][0]
-    line_idx = np.searchsorted(offsets, pos[1])
-    text = labels[line_idx].get_text()
-    if len(text) == 0:
+    text, ch_idx = _label2idx(params, pos)
+    if text is None:
         return
-    ch_idx = params['ch_start'] + line_idx
     if text in params['info']['bads']:
         while text in params['info']['bads']:
             params['info']['bads'].remove(text)
@@ -1143,7 +1140,20 @@ def _mouse_click(event, params):
         pos = ax.transData.inverted().transform((event.x, event.y))
         if pos[0] > 0 or pos[1] < 0 or pos[1] > ylim[0]:
             return
-        params['label_click_fun'](pos)
+        if event.button == 1:  # left click
+            params['label_click_fun'](pos)
+        elif event.button == 3:  # right click
+            if 'ica' not in params:
+                _, ch_idx = _label2idx(params, pos)
+                if ch_idx is None:
+                    return
+                if channel_type(params['info'], ch_idx) not in ['mag', 'grad',
+                                                                'eeg']:
+                    logger.info('Event related fields / potentials only '
+                                'available for MEG and EEG channels.')
+                    return
+                plot_image_epochs(params['epochs'],
+                                  picks=params['inds'][ch_idx])
     elif event.button == 1:  # left click
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:
@@ -1586,3 +1596,15 @@ def _plot_histogram(params):
         pass
     if params['fig_proj'] is not None:
         params['fig_proj'].canvas.draw()
+
+
+def _label2idx(params, pos):
+    """Aux function for click on labels. Returns channel name and idx."""
+    labels = params['ax'].yaxis.get_ticklabels()
+    offsets = np.array(params['offsets']) + params['offsets'][0]
+    line_idx = np.searchsorted(offsets, pos[1])
+    text = labels[line_idx].get_text()
+    if len(text) == 0:
+        return None, None
+    ch_idx = params['ch_start'] + line_idx
+    return text, ch_idx

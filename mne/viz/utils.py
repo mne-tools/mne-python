@@ -287,6 +287,7 @@ def _get_help_text(params):
             text2.append('Show topography for the component\n')
         else:
             text.append(u'click channel name :\n')
+            text.append(u'right click channel name :\n')
             text2.insert(2, 'Navigate channels down\n')
             text2.insert(3, 'Navigate channels up\n')
             text2.insert(8, 'Reduce the number of channels per view\n')
@@ -298,6 +299,7 @@ def _get_help_text(params):
             text2.append('Mark bad epoch\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
+            text2.append('Plot ERP/ERF image\n')
             text.append(u'middle click :\n')
             text2.append('Show channel name (butterfly plot)\n')
         text.insert(11, u'o : \n')
