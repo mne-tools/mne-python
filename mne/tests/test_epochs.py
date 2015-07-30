@@ -833,6 +833,15 @@ def test_crop():
     assert_array_equal(data2, data_normal[:, :, tmask])
     assert_array_equal(data3, data_normal[:, :, tmask])
 
+    # test time info is correct
+    epochs = EpochsArray(np.zeros((1, 1, 1000)), create_info(1, 1000., 'eeg'),
+                         np.ones((1, 3), int), tmin=-0.2)
+    epochs.crop(-.200, .700)
+    last_time = epochs.times[-1]
+    with warnings.catch_warnings(record=True):  # not LP filtered
+        epochs.decimate(10)
+    assert_allclose(last_time, epochs.times[-1])
+
 
 def test_resample():
     """Test of resample of epochs
