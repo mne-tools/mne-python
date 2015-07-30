@@ -75,17 +75,27 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     noise : evoked object
         an instance of evoked
     """
-    from scipy.signal import lfilter
     noise = copy.deepcopy(evoked)
-    noise_cov = pick_channels_cov(cov, include=noise.info['ch_names'])
-    rng = check_random_state(random_state)
-    n_channels = np.zeros(noise.info['nchan'])
-    n_samples = evoked.data.shape[1]
-    c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
-    noise.data = rng.multivariate_normal(n_channels, c, n_samples).T
-    if iir_filter is not None:
-        noise.data = lfilter([1], iir_filter, noise.data, axis=-1)
+    noise.data = _generate_noise(evoked.info, cov, iir_filter, random_state,
+                                 evoked.data.shape[1])[0]
     return noise
+
+
+def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
+    """Helper to create spatially colored and temporally IIR-filtered noise"""
+    from scipy.signal import lfilter
+    noise_cov = pick_channels_cov(cov, include=info['ch_names'])
+    rng = check_random_state(random_state)
+    mu_channels = np.zeros(info['nchan'])
+    c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
+    noise = rng.multivariate_normal(mu_channels, c, n_samples).T
+    if iir_filter is not None:
+        if zi is None:
+            zi = np.zeros((info['nchan'], len(iir_filter) - 1))
+        noise, zf = lfilter([1], iir_filter, noise, axis=-1, zi=zi)
+    else:
+        zf = None
+    return noise, zf
 
 
 def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):

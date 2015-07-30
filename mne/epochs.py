@@ -1366,6 +1366,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         this_epochs.tmin = this_epochs.times[tidx[0]]
         this_epochs.tmax = this_epochs.times[tidx[-1]]
         this_epochs.times = this_epochs.times[tmask]
+        this_epochs._raw_times = this_epochs._raw_times[tmask]
         this_epochs._data = this_epochs._data[:, :, tmask]
         return this_epochs
 
@@ -1809,7 +1810,7 @@ class EpochsArray(_BaseEpochs):
             raise ValueError('Data must be a 3D array of shape (n_epochs, '
                              'n_channels, n_samples)')
 
-        if len(info['ch_names']) != np.shape(data)[1]:
+        if len(info['ch_names']) != data.shape[1]:
             raise ValueError('Info and data must have same number of '
                              'channels.')
         if data.shape[0] != len(events):
