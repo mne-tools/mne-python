@@ -45,7 +45,9 @@ Changelog
 
     - Add support to append new channels to an object from a list of other objects by `Chris Holdgraf`_
 
-    - Deprecated `lws` and renamed `ledoit_wolf` for the `reg` argument in :class:`mne.decoding.csp.CSP` and :class:`mne.preprocessing.Xdawn` by `Romain Trachel`_ 
+    - Deprecated :class: `mne.decoding.transformer.ConcatenateChannels` and replaced by :class: `mne.decoding.transformer.EpochsVectorizer` by `Romain Trachel`_ 
+
+    - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.csp.CSP` and :class:`mne.preprocessing.Xdawn` by `Romain Trachel`_ 
 
 
 BUG

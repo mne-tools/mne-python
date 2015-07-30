@@ -13,7 +13,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
 from ..time_frequency import multitaper_psd
 from ..externals import six
-from ..utils import _check_type_picks
+from ..utils import _check_type_picks, deprecated
 
 
 class Scaler(TransformerMixin):
@@ -147,8 +147,8 @@ class Scaler(TransformerMixin):
         return X
 
 
-class ConcatenateChannels(TransformerMixin):
-    """Concatenates data from different channels into a single feature vector
+class EpochsVectorizer(TransformerMixin):
+    """EpochsVectorizer transforms epoch data to fit into a scikit-learn pipeline.
 
     Parameters
     ----------
@@ -172,7 +172,8 @@ class ConcatenateChannels(TransformerMixin):
         self.n_times = None
 
     def fit(self, epochs_data, y):
-        """Concatenate different channels into a single feature vector
+        """For each epoch, concatenate data from different channels into a single
+        feature vector.
 
         Parameters
         ----------
@@ -193,8 +194,8 @@ class ConcatenateChannels(TransformerMixin):
         return self
 
     def transform(self, epochs_data, y=None):
-        """Concatenates data from different channels into a single feature
-        vector
+        """For each epoch, concatenate data from different channels into a single
+        feature vector.
 
         Parameters
         ----------
@@ -225,7 +226,7 @@ class ConcatenateChannels(TransformerMixin):
         return X
 
     def inverse_transform(self, X, y=None):
-        """Reshape a feature vector into the original data shape
+        """For each epoch, reshape a feature vector into the original data shape
 
         Parameters
         ----------
@@ -245,6 +246,12 @@ class ConcatenateChannels(TransformerMixin):
                              % type(X))
 
         return X.reshape(self.n_epochs, self.n_channels, self.n_times)
+
+
+@deprecated("Class 'ConcatenateChannels' has been renamed to "
+            "'EpochsVectorizer' and will be removed in release 0.11.")
+class ConcatenateChannels(EpochsVectorizer):
+    pass
 
 
 class PSDEstimator(TransformerMixin):
