@@ -522,7 +522,8 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
         eegels, eegnames = _prep_eeg_channels(info, verbose=verbose)
 
     # Check that some channels were found
-    assert len(megcoils + eegels) > 0, 'No MEG or EEG channels found.'
+    if len(megcoils + eegels) == 0:
+        raise RuntimeError('No MEG or EEG channels found.')
 
     # Transform the source spaces into the appropriate coordinates
     # (will either be HEAD or MRI)

@@ -558,7 +558,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
                                               verbose=verbose)
 
     # Ensure that MEG and/or EEG channels are present
-    assert len(megcoils + eegels) > 0, 'No MEG or EEG channels found.'
+    if len(megcoils + eegels) == 0:
+        raise RuntimeError('No MEG or EEG channels found.')
 
     # Whitener for the data
     logger.info('Decomposing the sensor noise covariance matrix...')

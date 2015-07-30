@@ -372,12 +372,10 @@ def _generate_meas_id():
 
 def _date_now():
     """Helper to get date in secs, usecs"""
-    date_arr = np.zeros(2)
     now = time.time()
-
     # Get date in secs/usecs (as in `fill_measurement_info` in
     # mne/forward/forward.py)
-    date_arr[0] = int(np.floor(now))
-    date_arr[1] = int(1e6 * (now - date_arr[0]))
+    date_arr = np.array([np.floor(now), 1e6 * (now - np.floor(now))],
+                        dtype='int32')
 
     return date_arr
