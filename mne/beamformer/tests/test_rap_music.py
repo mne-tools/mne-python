@@ -13,6 +13,7 @@ from nose.tools import assert_true
 import mne
 from mne.datasets import testing
 from mne.beamformer import rap_music
+from mne.utils import run_tests_if_main
 
 
 data_path = testing.data_path(download=False)
@@ -147,3 +148,5 @@ def test_rap_music_simulated():
     dipoles, residual = rap_music(sim_evoked, forward_surf_ori, noise_cov,
                                   n_dipoles=n_dipoles, return_residual=True)
     _check_dipoles(dipoles, forward_fixed, stc, evoked, residual)
+
+run_tests_if_main()

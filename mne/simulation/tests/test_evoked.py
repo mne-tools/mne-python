@@ -10,12 +10,12 @@ from nose.tools import assert_true, assert_raises
 import warnings
 
 from mne.datasets import testing
-from mne import read_label, read_forward_solution
+from mne import (read_label, read_forward_solution, pick_types_forward,
+                 read_evokeds, read_cov)
 from mne.time_frequency import morlet
 from mne.simulation import generate_sparse_stc, generate_evoked
-from mne import read_cov
 from mne.io import Raw
-from mne import pick_types_forward, read_evokeds
+from mne.utils import run_tests_if_main
 
 warnings.simplefilter('always')
 
@@ -79,3 +79,5 @@ def test_simulate_evoked():
     stc_bad.vertices[0][0] = mv + 1
     assert_raises(RuntimeError, generate_evoked, fwd, stc_bad,
                   evoked_template, cov, snr, tmin=0.0, tmax=0.2)
+
+run_tests_if_main()
