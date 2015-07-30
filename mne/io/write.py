@@ -380,6 +380,16 @@ def _generate_meas_id():
     id_ = dict()
     id_['version'] = (1 << 16) | 2
     id_['machid'] = get_machid()
-    id_['secs'] = time.time()
-    id_['usecs'] = 0            # Do not know how we could get this XXX
+    id_['secs'], id_['usecs'] = _date_now()
     return id_
+
+
+def _date_now():
+    """Helper to get date in secs, usecs"""
+    now = time.time()
+    # Get date in secs/usecs (as in `fill_measurement_info` in
+    # mne/forward/forward.py)
+    date_arr = np.array([np.floor(now), 1e6 * (now - np.floor(now))],
+                        dtype='int32')
+
+    return date_arr

@@ -10,14 +10,14 @@ import re
 
 from .cov import read_cov, _get_whitener_data
 from .io.constants import FIFF
-from .io.pick import pick_types
+from .io.pick import pick_types, channel_type
 from .io.proj import make_projector, _has_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform)
 
 from .forward._make_forward import (_get_mri_head_t, _setup_bem,
-                                    _prep_channels)
+                                    _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
                                        _prep_field_computation)
 
@@ -550,8 +550,20 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
     logger.info('%d bad channels total' % len(info['bads']))
 
     # Forward model setup (setup_forward_model from setup.c)
-    megcoils, compcoils, eegels, megnames, eegnames, meg_info = \
-        _prep_channels(info, exclude='bads', accurate=accurate)
+    ch_types = [channel_type(info, idx) for idx in range(info['nchan'])]
+
+    megcoils, compcoils, megnames, meg_info = [], [], [], None
+    eegels, eegnames = [], []
+    if 'grad' in ch_types or 'mag' in ch_types:
+        megcoils, compcoils, megnames, meg_info = \
+            _prep_meg_channels(info, accurate=accurate, verbose=verbose)
+    if 'eeg' in ch_types:
+        eegels, eegnames = _prep_eeg_channels(info, exclude='bads',
+                                              verbose=verbose)
+
+    # Ensure that MEG and/or EEG channels are present
+    if len(megcoils + eegels) == 0:
+        raise RuntimeError('No MEG or EEG channels found.')
 
     # Whitener for the data
     logger.info('Decomposing the sensor noise covariance matrix...')

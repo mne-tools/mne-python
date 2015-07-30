@@ -5,16 +5,14 @@
 # License: BSD (3-clause)
 
 from __future__ import division
-from os import path as op
 import numpy as np
 from scipy.linalg import pinv
 from math import factorial
 
-from .. import pick_types, pick_info
-from ..io.constants import FIFF
 from ..forward._compute_forward import _concatenate_coils
-from ..forward._make_forward import _read_coil_defs, _create_coils
-from ..utils import verbose, logger
+from ..forward._make_forward import _prep_meg_channels
+from ..io.write import _generate_meas_id, _date_now
+from ..utils import verbose
 
 
 @verbose
@@ -72,11 +70,15 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         raise RuntimeError('Maxwell filter does not yet handle bad channels.')
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
+    if 'dev_head_t' not in raw.info.keys():
+        raise RuntimeError("Raw.info must contain 'dev_head_t' to transform "
+                           "device to head coords")
+    if len(raw.info.get('comps', [])) > 0:
+        raise RuntimeError('Maxwell filter cannot handle compensated '
+                           'channels.')
 
-    # TODO: Improve logging process to better match Elekta's version
-    # Read coil definitions from file
-    all_coils, meg_info = _make_coils(raw.info, accurate=True,
-                                      elekta_defs=True)
+    all_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
+                                                   elekta_defs=True)
 
     # Create coil list and pick MEG channels
     picks = [raw.info['ch_names'].index(coil['chname'])
@@ -104,8 +106,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     recon = np.dot(S_in, mm[:S_in.shape[1], :])
 
     # Return reconstructed raw file object
-    raw_sss = _update_info(raw.copy(), origin, int_order, ext_order,
-                           data.shape[0], mm.shape[0])
+    raw_sss = _update_sss_info(raw.copy(), origin, int_order, ext_order,
+                               data.shape[0])
     raw_sss._data[picks, :] = recon / coil_scale[:, np.newaxis]
 
     return raw_sss
@@ -452,74 +454,7 @@ def _cart_to_sph(cart_pts):
     return np.c_[rad, az, pol]
 
 
-# TODO: Eventually refactor this in forward computation code
-
-def _make_coils(info, accurate=True, elekta_defs=False):
-    """Prepare dict of MEG coils and their information.
-
-    Parameters
-    ----------
-    info : instance of mne.io.meas_info.Info
-        Info dict from Raw FIF file
-    accurate : bool
-        If True, use high accuracy of coil information (more integration
-        points)
-    elekta_defs : bool
-        If True, use Elekta's integration point geometry
-
-    Returns
-    -------
-    megcoils, meg_info : dict
-        MEG coils and information dict
-    """
-
-    if accurate:
-        accuracy = FIFF.FWD_COIL_ACCURACY_ACCURATE
-    else:
-        accuracy = FIFF.FWD_COIL_ACCURACY_NORMAL
-    meg_info = None
-    megcoils = list()
-
-    # MEG channels
-    picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
-                       exclude=[])
-    nmeg = len(picks)
-    if nmeg > 0:
-        megchs = pick_info(info, picks)['chs']
-
-    if nmeg <= 0:
-        raise RuntimeError('Could not find any MEG channels')
-
-    meg_info = pick_info(info, picks) if nmeg > 0 else None
-
-    # Create coil descriptions with transformation to head or MRI frame
-    if elekta_defs:
-        elekta_coil_defs = op.join(op.dirname(__file__), '..', 'data',
-                                   'coil_def_Elekta.dat')
-        templates = _read_coil_defs(elekta_coil_defs)
-
-        # Check that we have all coils needed
-        template_set = set([coil['coil_type'] for coil in templates['coils']])
-        req_coil_set = set([coil['coil_type'] for coil in meg_info['chs']])
-        if not req_coil_set.issubset(template_set):
-            logger.info('Didn\'t locate find enough Elekta coil definitions,'
-                        ' using default MNE coils.')
-            templates = _read_coil_defs()
-    else:
-        templates = _read_coil_defs()
-
-    if nmeg > 0:
-        # TODO: In fwd solution code, reformulate check that forces head
-        # coords and remove this hack. (Or use only head coords)
-        # Uncomment below for device coords
-        # info['dev_head_t']['trans'] = np.eye(4)
-        megcoils = _create_coils(megchs, accuracy, info['dev_head_t'], 'meg',
-                                 templates)
-
-    return megcoils, meg_info
-
-
-def _update_info(raw, origin, int_order, ext_order, nsens, nmoments):
+def _update_sss_info(raw, origin, int_order, ext_order, nsens):
     """Helper function to update info after Maxwell filtering.
 
     Parameters
@@ -535,8 +470,6 @@ def _update_info(raw, origin, int_order, ext_order, nsens, nmoments):
         Order of external component of spherical expansion
     nsens : int
         Number of sensors
-    nmoments : int
-        Number of multipolar moments
 
     Returns
     -------
@@ -544,20 +477,26 @@ def _update_info(raw, origin, int_order, ext_order, nsens, nmoments):
         raw file object with raw.info modified
     """
     from .. import __version__
-    # TODO: Flesh out/fix bookkeeping info
+    # TODO: Continue to fill out bookkeeping info as additional features
+    # are added (fine calibration, cross-talk calibration, etc.)
+    int_moments = get_num_moments(int_order, 0)
+    ext_moments = get_num_moments(0, ext_order)
 
     raw.info['maxshield'] = False
     sss_info_dict = dict(in_order=int_order, out_order=ext_order,
-                         origin=origin, nsens=nsens, nmoments=nmoments,
-                         components=np.ones(nmoments))
+                         nsens=nsens, origin=origin.astype('float32'),
+                         n_int_moments=int_moments,
+                         frame=raw.info['dev_head_t']['to'],
+                         components=np.ones(int_moments +
+                                            ext_moments).astype('int32'))
 
     max_info_dict = dict(max_st={}, sss_cal={}, sss_ctc={},
                          sss_info=sss_info_dict)
 
-    block_id = dict(machid=-1 * np.ones(2), secs=-1, usecs=-1, version=-1)
+    block_id = _generate_meas_id()
     proc_block = dict(max_info=max_info_dict, block_id=block_id,
                       creator='mne-python v%s' % __version__,
-                      date=-1, experimentor='')
+                      date=_date_now(), experimentor='')
 
     # Insert information in raw.info['proc_info']
     if 'proc_history' in raw.info.keys():
