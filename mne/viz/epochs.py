@@ -21,10 +21,11 @@ from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
 from ..time_frequency import compute_epochs_psd
-from .utils import tight_layout, _prepare_trellis, figure_nobar
-from .utils import _toggle_options, _toggle_proj, _layout_figure
+from .utils import tight_layout, _prepare_trellis, figure_nobar, _toggle_proj
+from .utils import _toggle_options, _layout_figure, _setup_vmin_vmax
 from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
 from ..defaults import _handle_default
+from __builtin__ import True
 
 
 def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
@@ -87,10 +88,9 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
     picks = np.atleast_1d(picks)
     evoked = epochs.average(picks)
     data = epochs.get_data()[:, picks, :]
-    if vmin is None:
-        vmin = data.min() * scalings[channel_type(epochs.info, picks[0])]
-    if vmax is None:
-        vmax = data.max() * scalings[channel_type(epochs.info, picks[0])]
+    scale_vmin = True if vmin is None else False
+    scale_vmax = True if vmax is None else False
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
@@ -115,6 +115,10 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
                                                   axis=0)
 
         ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
+        if scale_vmin:
+            vmin *= scalings[ch_type]
+        if scale_vmax:
+            vmax *= scalings[ch_type]
         im = plt.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
                                 0, len(data)],
@@ -1148,7 +1152,7 @@ def _mouse_click(event, params):
                 if ch_idx is None:
                     return
                 if channel_type(params['info'], ch_idx) not in ['mag', 'grad',
-                                                                'eeg']:
+                                                                'eeg', 'eog']:
                     logger.info('Event related fields / potentials only '
                                 'available for MEG and EEG channels.')
                     return

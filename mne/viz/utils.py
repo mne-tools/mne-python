@@ -786,7 +786,7 @@ class ClickableImage(object):
         return lt
 
 
-def _fake_click(fig, ax, point, xform='ax'):
+def _fake_click(fig, ax, point, xform='ax', button=1):
     """Helper to fake a click at a relative point within axes."""
     if xform == 'ax':
         x, y = ax.transAxes.transform_point(point)
@@ -795,9 +795,9 @@ def _fake_click(fig, ax, point, xform='ax'):
     else:
         raise ValueError('unknown transform')
     try:
-        fig.canvas.button_press_event(x, y, 1, False, None)
+        fig.canvas.button_press_event(x, y, button, False, None)
     except Exception:  # for old MPL
-        fig.canvas.button_press_event(x, y, 1, False)
+        fig.canvas.button_press_event(x, y, button, False)
 
 
 def add_background_image(fig, im, set_ratios=None):
