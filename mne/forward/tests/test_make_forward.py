@@ -148,7 +148,11 @@ def test_make_forward_solution_kit():
     assert_raises(NotImplementedError, make_forward_solution, raw_py.info,
                   src=src, eeg=False, meg=True,
                   bem=fname_bem_meg, trans=trans_path)
-    fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
+
+    # check that asking for eeg channels (even if they don't exist) is handled
+    meg_only_info = pick_info(raw_py.info, pick_types(raw_py.info, meg=True,
+                                                      eeg=False))
+    fwd_py = make_forward_solution(meg_only_info, src=src, meg=True, eeg=True,
                                    bem=fname_bem_meg, trans=trans_path,
                                    ignore_ref=True)
     _compare_forwards(fwd, fwd_py, 157, n_src,
