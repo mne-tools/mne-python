@@ -129,7 +129,8 @@ def _do_path_update(path, update_path, key, name):
 
 
 def _data_path(path=None, force_update=False, update_path=True, download=True,
-               name=None, check_version=False, return_version=False):
+               name=None, check_version=False, return_version=False,
+               archive_name=None):
     """Aux function
     """
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
@@ -145,10 +146,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='MNE-sample-data-processed.tar.gz',
         spm='MNE-spm-face.tar.bz2',
         somato='MNE-somato-data.tar.gz',
-        brainstorm='sample_ctf',
         testing='mne-testing-data-master.tar.gz',
         fake='foo.tgz',
     )
+    if archive_name is not None:
+        archive_names.update(archive_name)
     folder_names = dict(
         sample='MNE-sample-data',
         spm='MNE-spm-face',
@@ -187,6 +189,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         url = url % archive_name
 
     folder_path = op.join(path, folder_name)
+    if name == 'brainstorm':
+        folder_path = op.join(folder_path, archive_names[name])
 
     rm_archive = False
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
@@ -241,7 +245,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         logger.info('(please be patient, this can take some time)')
         for ext in ['gz', 'bz2']:  # informed guess (and the only 2 options).
             if name == 'brainstorm':
-                zipfile.ZipFile(archive_name).extractall(folder_path)
+                extract_dir = op.join(folder_path, os.pardir)
+                zipfile.ZipFile(archive_name).extractall(extract_dir)
                 break
             try:
                 tarfile.open(archive_name, 'r:%s' % ext).extractall(path=path)
