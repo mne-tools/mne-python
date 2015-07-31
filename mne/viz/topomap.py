@@ -920,10 +920,12 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     if title is not None:
         ax.set_title(title)
-
+    fig_wrapper = list()
     selection_callback = partial(_onselect, tfr=tfr, pos=pos, ch_type=ch_type,
                                  itmin=itmin, itmax=itmax, ifmin=ifmin,
-                                 ifmax=ifmax, cmap=cmap, layout=layout)
+                                 ifmax=ifmax, cmap=cmap, fig=fig_wrapper,
+                                 layout=layout)
+
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axis=ax, cmap=cmap, image_interp='bilinear',
                          contours=False, names=names, show_names=show_names,
@@ -1463,7 +1465,7 @@ def plot_psds_topomap(
 
 
 def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
-              cmap, layout=None):
+              cmap, fig, layout=None):
     """Callback called from topomap for drawing average tfr over channels."""
     import matplotlib.pyplot as plt
     pos, _ = _check_outlines(pos, outlines='head', head_pos=None)
@@ -1503,8 +1505,10 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
         data = np.average(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
         chs = [tfr.ch_names[picks[x]] for x in indices]
     logger.info('Averaging TFR over channels ' + str(chs))
-    figure_nobar()
-    ax = plt.subplot(111)
+    if len(fig) == 0:
+        fig.append(figure_nobar())
+        fig[0].add_subplot(111)
+    ax = fig[0].get_axes()[0]
     itmax = min(itmax, len(tfr.times) - 1)
     ifmax = min(ifmax, len(tfr.freqs) - 1)
     extent = (tfr.times[itmin] * 1e3, tfr.times[itmax] * 1e3, tfr.freqs[ifmin],
@@ -1516,5 +1520,9 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     ax.set_ylabel('Frequency (Hz)')
     img = ax.imshow(data, extent=extent, aspect="auto", origin="lower",
                     cmap=cmap)
-    plt.colorbar(mappable=img)
-    plt.show()
+    if len(fig[0].get_axes()) < 2:
+        fig[0].get_axes()[1].cbar = fig[0].colorbar(mappable=img)
+    else:
+        fig[0].get_axes()[1].cbar.on_mappable_changed(mappable=img)
+    fig[0].canvas.draw()
+    fig[0].show()
