@@ -29,7 +29,6 @@ print(__doc__)
 data_path = spm_face.data_path()
 # Load and filter data, set up epochs
 raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
-events_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 raw = mne.io.Raw(raw_fname % 1, preload=True)  # Take first run
 
