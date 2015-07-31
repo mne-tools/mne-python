@@ -45,7 +45,7 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
     Returns
     -------
     path : str
-        Path to {name} dataset directory.
+        Path to brainstorm dataset directory.
     """
     if archive not in ['DatasetAuditory', 'DatasetResting',
                        'DatasetMedianNerveCtf']:
