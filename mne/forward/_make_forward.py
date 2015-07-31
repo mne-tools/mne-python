@@ -239,7 +239,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         If true (default) then use `accurate` coil definitions (more
         integration points)
     exclude : list of str | str
-        List of channels to exclude. If 'bads' (default), exclude channels in
+        List of channels to exclude. If 'bads', exclude channels in
         info['bads']
     ignore_ref : bool
         If true, ignore compensation coils
@@ -323,7 +323,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
 
 
 @verbose
-def _prep_eeg_channels(info, exclude='bads', verbose=None):
+def _prep_eeg_channels(info, exclude=(), verbose=None):
     """Prepare EEG electrode definitions for forward calculation
 
     Parameters
@@ -331,7 +331,7 @@ def _prep_eeg_channels(info, exclude='bads', verbose=None):
     info : instance of Info
         The measurement information dictionary
     exclude : list of str | str
-        List of channels to exclude. If 'bads' (default), exclude channels in
+        List of channels to exclude. If 'bads', exclude channels in
         info['bads']
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -520,10 +520,10 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     megcoils, compcoils, megnames, meg_info = [], [], [], []
     eegels, eegnames = [], []
 
-    if meg:
+    if meg and len(pick_types(info, ref_meg=False)) > 0:
         megcoils, compcoils, megnames, meg_info = \
             _prep_meg_channels(info, ignore_ref=ignore_ref, verbose=verbose)
-    if eeg:
+    if eeg and len(pick_types(info, meg=False, eeg=True, ref_meg=False)) > 0:
         eegels, eegnames = _prep_eeg_channels(info, verbose=verbose)
 
     # Check that some channels were found
