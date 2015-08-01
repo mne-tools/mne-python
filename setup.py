@@ -71,6 +71,7 @@ if __name__ == "__main__":
                     'mne.datasets.sample',
                     'mne.datasets.somato',
                     'mne.datasets.spm_face',
+                    'mne.datasets.brainstorm',
                     'mne.datasets.testing',
                     'mne.datasets.tests',
                     'mne.externals',
