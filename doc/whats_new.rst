@@ -47,13 +47,7 @@ Changelog
 
     - Add support to append new channels to an object from a list of other objects by `Chris Holdgraf`_
 
-    - Deprecated :class: `mne.decoding.transformer.ConcatenateChannels` and replaced by :class: `mne.decoding.transformer.EpochsVectorizer` by `Romain Trachel`_ 
-
-    - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.csp.CSP` and :class:`mne.preprocessing.Xdawn` by `Romain Trachel`_ 
-
-    - Add interactive plotting of topomap from time-frequency representation by `Jaakko Leppakangas`_
-
-    - Add ``plot_topo`` method to ``Evoked`` object by `Jaakko Leppakangas`_
+    - Add fetcher :mod:`mne.datasets.brainstorm` for datasets used by Brainstorm in their tutorials by `Mainak Jas`_
 
 BUG
 ~~~
@@ -72,6 +66,10 @@ API
 ~~~
 
     - Rename and deprecate ``mne.viz.plot_topo`` for ``mne.viz.plot_evoked_topo`` by `Jaakko Leppakangas`_
+
+    - Deprecated :class:`mne.decoding.transformer.ConcatenateChannels` and replaced by :class:`mne.decoding.transformer.EpochsVectorizer` by `Romain Trachel`_ 
+
+    - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.csp.CSP` and :class:`mne.preprocessing.Xdawn` by `Romain Trachel`_
 
 .. _changes_0_9:
 
