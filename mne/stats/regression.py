@@ -280,15 +280,14 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     # Furthermore, assigning to a preallocated array would be faster.
 
     n_samples = len(times)
-    samples = np.zeros(n_samples, dtype=float)
     cond_length = dict()
     all_n_lags = [int(tmax_s[cond] - tmin_s[cond]) for cond in conds]
-    X = np.empty((len(samples), sum(all_n_lags)), dtype=float)
+    X = np.empty((n_samples, sum(all_n_lags)), dtype=float)
     cum = 0
     for i_cond, (cond, n_lags) in enumerate(zip(conds, all_n_lags)):
         # create the first row and column to be later used by toeplitz to
         # build the full predictor matrix
-
+        samples = np.zeros(n_samples, dtype=float)
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
         n_lags = int(tmax_ - tmin_)
         lags = np.zeros(n_lags, dtype=float)
@@ -313,6 +312,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         X[:, cum:cum + tmax_ - tmin_] = linalg.toeplitz(samples, lags)
         cum += tmax_ - tmin_
 
+    # find only those positions where at least one predictor isn't 0
     has_val = np.where(np.any(X, axis=1))[0]
 
     # additionally, reject positions based on extreme steps in the data
