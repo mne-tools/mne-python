@@ -318,7 +318,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
     # additionally, reject positions based on extreme steps in the data
     if reject is not None:
-        _, inds = _reject_data_segments(data, reject, None, None,
+        _, inds = _reject_data_segments(data, reject, flat, None,
                                         info, tstep)
         for t0, t1 in inds:
             has_val[t0:t1] = False
