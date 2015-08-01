@@ -7,6 +7,23 @@ from ...utils import verbose
 from ...fixes import partial
 from ..utils import has_dataset, _data_path, _get_version, _version_doc
 
+_license_text = """
+License
+-------
+This tutorial dataset (EEG and MRI data) remains a property of the MEG Lab,
+McConnell Brain Imaging Center, Montreal Neurological Institute,
+McGill University, Canada. Its use and transfer outside the Brainstorm
+tutorial, e.g. for research purposes, is prohibited without written consent
+from the MEG Lab.
+
+If you reference this dataset in your publications, please:
+1) aknowledge its authors: Elizabeth Bock, Esther Florin, Francois Tadel and
+Sylvain Baillet
+2) cite Brainstorm as indicated on the website:
+http://neuroimage.usc.edu/brainstorm
+
+For questions, please contact Francois Tadel (francois.tadel@mcgill.ca).
+"""
 
 has_brainstorm_data = partial(has_dataset, name='brainstorm')
 

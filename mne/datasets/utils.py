@@ -133,6 +133,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                archive_name=None):
     """Aux function
     """
+    # to avoid circular import
+    from .brainstorm.brainstorm import _license_text
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
            'spm': 'MNE_DATASETS_SPM_FACE_PATH',
            'somato': 'MNE_DATASETS_SOMATO_PATH',
@@ -198,6 +200,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     if not op.exists(folder_path) and not download:
         return ''
     if not op.exists(folder_path) or force_update:
+        if name == 'brainstorm':
+            answer = input('%sAgree (y/[n])? ' % _license_text)
+            if answer.lower() != 'y':
+                raise RuntimeError('You must agree to the license to use this '
+                                   'dataset')
         logger.info('Downloading or reinstalling '
                     'data archive %s at location %s' % (archive_name, path))
 
