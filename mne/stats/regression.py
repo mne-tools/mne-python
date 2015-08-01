@@ -279,21 +279,25 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     # of massive matrices.
     # Furthermore, assigning to a preallocated array would be faster.
 
+    n_samples = len(times)
+    samples = np.zeros(n_samples, dtype=float)
     cond_length = dict()
-    pred_arrays = list()
-    for cond in conds:
-        # create the first row and column to be later used by toeplitz to build
-        # the full predictor matrix
+    all_n_lags = [int(tmax_s[cond] - tmin_s[cond]) for cond in conds]
+    X = np.empty((len(samples), sum(all_n_lags)), dtype=float)
+    cum = 0
+    for i_cond, (cond, n_lags) in enumerate(zip(conds, all_n_lags)):
+        # create the first row and column to be later used by toeplitz to
+        # build the full predictor matrix
+
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
         n_lags = int(tmax_ - tmin_)
-        samples = np.zeros(len(times), dtype=float)
         lags = np.zeros(n_lags, dtype=float)
-
         if cond in event_id:  # for binary predictors
-            ids = ([event_id[cond]] if isinstance(event_id[cond], int)
+            ids = ([event_id[cond]]
+                   if isinstance(event_id[cond], int)
                    else event_id[cond])
             samples[events[np.in1d(events[:, 2], ids), 0] + int(tmin_)] = 1
-            cond_length[cond] = sum(np.in1d(events[:, 2], ids))
+            cond_length[cond] = np.sum(np.in1d(events[:, 2], ids))
 
         else:  # for predictors from covariates, e.g. continuous ones
             if len(covariates[cond]) != len(events):
@@ -306,24 +310,20 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
         # this is the magical part (thanks to Marijn van Vliet):
         # use toeplitz to construct series of diagonals
-        pred_arrays.append(linalg.toeplitz(samples, lags))
+        X[:, cum:cum + tmax_ - tmin_] = linalg.toeplitz(samples, lags)
+        cum += tmax_ - tmin_
 
-    big_arr = np.hstack(pred_arrays).T
-    # find only those positions where at least one predictor isn't 0
-    has_val = np.where(np.any(big_arr, axis=0))[0]
+    has_val = np.where(np.any(X, axis=1))[0]
 
     # additionally, reject positions based on extreme steps in the data
     if reject is not None:
-        _, inds = _reject_data_segments(data, reject, flat, None,
+        _, inds = _reject_data_segments(data, reject, None, None,
                                         info, tstep)
         for t0, t1 in inds:
             has_val[t0:t1] = False
 
-    X = big_arr[:, has_val].T
-    Y = data[:, has_val]
-
     # solve linear system
-    coefs = solver(X, Y)
+    coefs = solver(X[has_val], data[:, has_val])
 
     # construct Evoked objects to be returned from output
     evokeds = dict()
