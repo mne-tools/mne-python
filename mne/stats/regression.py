@@ -19,6 +19,7 @@ from ..epochs import _BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..utils import logger, _reject_data_segments, _get_fast_dot
 from ..io.pick import pick_types, pick_info
+from ..fixes import _in1d
 
 
 def linear_regression(inst, design_matrix, names=None):
@@ -295,8 +296,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
             ids = ([event_id[cond]]
                    if isinstance(event_id[cond], int)
                    else event_id[cond])
-            samples[events[np.in1d(events[:, 2], ids), 0] + int(tmin_)] = 1
-            cond_length[cond] = np.sum(np.in1d(events[:, 2], ids))
+            samples[events[_in1d(events[:, 2], ids), 0] + int(tmin_)] = 1
+            cond_length[cond] = sum(_in1d(events[:, 2], ids))
 
         else:  # for predictors from covariates, e.g. continuous ones
             if len(covariates[cond]) != len(events):
@@ -323,7 +324,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
             has_val[t0:t1] = False
 
     # solve linear system
-    coefs = solver(X[has_val], data[:, has_val])
+    X, data = X[has_val], data[:, has_val]
+    coefs = solver(X, data)
 
     # construct Evoked objects to be returned from output
     evokeds = dict()
