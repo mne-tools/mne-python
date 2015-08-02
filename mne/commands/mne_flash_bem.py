@@ -285,9 +285,9 @@ def run():
     parser = get_optparser(__file__)
 
     parser.add_option("-s", "--subject", dest="subject",
-                      help="Subject name", default=subject)
+                      help="Subject name", default=None)
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
-                      help="Subjects directory", default=subjects_dir)
+                      help="Subjects directory", default=None)
     parser.add_option("-3", "--noflash30", dest="noflash30",
                       action="store_true", default=False,
                       help=("Skip the 30-degree flip angle data"),)
