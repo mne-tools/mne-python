@@ -96,23 +96,23 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
     if not noconvert:
         logger.info("\n---- Converting Flash images ----")
         echos = ['001', '002', '003', '004', '005', '006', '007', '008']
-        # ?
-        missing = False
         if noflash30:
             flashes = ['05', '30']
         else:
             flashes = ['05']
+        #
+        missing = False
         for flash in flashes:
             for echo in echos:
                 if not op.isdir(op.join('flash' + flash, echo)):
                     missing = True
         if missing:
             echos = ['002', '003', '004', '005', '006', '007', '008', '009']
-        for flash in flashes:
-            for echo in echos:
-                if not op.isdir(op.join('flash' + flash, echo)):
-                    raise RuntimeError("Directory %s is missing."
-                                       % op.join('flash' + flash, echo))
+            for flash in flashes:
+                for echo in echos:
+                    if not op.isdir(op.join('flash' + flash, echo)):
+                        raise RuntimeError("Directory %s is missing."
+                                           % op.join('flash' + flash, echo))
         #
         for flash in flashes:
             for echo in echos:
@@ -283,9 +283,6 @@ def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
-
-    subject = os.environ.get('SUBJECT')
-    subjects_dir = os.environ.get('SUBJECTS_DIR')
 
     parser.add_option("-s", "--subject", dest="subject",
                       help="Subject name", default=subject)
