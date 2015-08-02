@@ -224,7 +224,8 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.plot(times, data_[ch_idx], color_)
     if vline:
-        [plt.axvline(x, color='w', linewidth=0.5) for x in vline]
+        for x in vline:
+            plt.axvline(x, color='w', linewidth=0.5)
     if x_label is not None:
         plt.xlabel(x_label)
     if y_label is not None:
