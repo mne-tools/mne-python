@@ -17,6 +17,7 @@ from mne.io.bti.bti import (_read_config, _setup_head_shape,
                             _read_data, _read_bti_header)
 from mne.io import read_raw_bti
 from mne import concatenate_raws
+from mne.utils import run_tests_if_main
 
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
@@ -119,3 +120,5 @@ def test_setup_headshape():
         found = set(reduce(lambda x, y: list(x) + list(y),
                            [d.keys() for d in dig]))
         assert_true(not expected - found)
+
+run_tests_if_main()
