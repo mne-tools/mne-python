@@ -318,7 +318,7 @@ class RawEGI(_BaseRaw):
             info['chs'].append(ch_info)
 
         _check_update_montage(info, montage)
-        orig_format = {'>f4': 'single', '>f4': 'double',
+        orig_format = {'>f2': 'single', '>f4': 'double',
                        '>i2': 'int'}[egi_info['dtype']]
         super(RawEGI, self).__init__(
             info, data, filenames=[input_fname], orig_format=orig_format,

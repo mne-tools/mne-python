@@ -38,7 +38,9 @@ events = mne.read_events(event_fname)
 # delete EEG projections (we know it's the last one)
 raw.del_proj(-1)
 # add ECG projs for magnetometers
-[raw.add_proj(p) for p in mne.read_proj(ecg_fname) if 'axial' in p['desc']]
+for p in mne.read_proj(ecg_fname):
+    if 'axial' in p['desc']:
+        raw.add_proj(p)
 
 # pick magnetometer channels
 picks = mne.pick_types(raw.info, meg='mag', stim=False, eog=True,

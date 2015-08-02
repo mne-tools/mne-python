@@ -132,7 +132,8 @@ for n_train, (ax_stc_worst, ax_dynamics, ax_stc_best) in zip(samples_epochs,
         im = brain_to_mpl(brain)
         brain.close()
         ax.axis('off')
-        ax.get_xaxis().set_visible(False), ax.get_yaxis().set_visible(False)
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
         ax.imshow(im)
         ax.set_title('{0} ({1} epochs)'.format(kind, n_train * 2))
 

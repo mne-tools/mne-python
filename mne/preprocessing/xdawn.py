@@ -4,6 +4,8 @@
 # License: BSD (3-clause)
 
 import copy as cp
+import warnings
+
 import numpy as np
 from scipy import linalg
 
@@ -91,10 +93,10 @@ def _check_overlapp(epochs):
 
 def _construct_signal_from_epochs(epochs):
     """Reconstruct pseudo continuous signal from epochs."""
-    start = (np.min(epochs.events[:, 0])
-             + int(epochs.tmin * epochs.info['sfreq']))
-    stop = (np.max(epochs.events[:, 0])
-            + int(epochs.tmax * epochs.info['sfreq']) + 1)
+    start = (np.min(epochs.events[:, 0]) +
+             int(epochs.tmin * epochs.info['sfreq']))
+    stop = (np.max(epochs.events[:, 0]) +
+            int(epochs.tmax * epochs.info['sfreq']) + 1)
 
     n_samples = stop - start
     epochs_data = epochs.get_data()

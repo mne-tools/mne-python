@@ -390,7 +390,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         info['nchan'] = nchan = int(fid.read(4).decode())
         channels = list(range(info['nchan']))
         ch_names = [fid.read(16).strip().decode() for ch in channels]
-        [fid.read(80).strip().decode() for ch in channels]  # transducer
+        for ch in channels:
+            fid.read(80)  # transducer
         units = [fid.read(8).strip().decode() for ch in channels]
         for i, unit in enumerate(units):
             if unit == 'uV':

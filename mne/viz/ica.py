@@ -512,7 +512,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     evoked.plot(axes=axes, show=show)
     for ax in fig.axes:
-        [l.set_color('r') for l in ax.get_lines()]
+        for l in ax.get_lines():
+            l.set_color('r')
     fig.canvas.draw()
     evoked_cln.plot(axes=axes, show=show)
     tight_layout(fig=fig)
@@ -749,7 +750,7 @@ def _label_clicked(pos, params):
         for ii, data_ in zip(ic_idx, this_data):
             ax.set_title('IC #%03d ' % ii + ch_type, fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
-            plot_topomap(data_.flatten(), pos, axis=ax, show=False)[0]
+            plot_topomap(data_.flatten(), pos, axis=ax, show=False)
             ax.set_yticks([])
             ax.set_xticks([])
             ax.set_frame_on(False)

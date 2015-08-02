@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 import copy as cp
+import warnings
 
 import numpy as np
 from scipy import linalg
@@ -56,9 +57,9 @@ class CSP(TransformerMixin):
         """Init of CSP."""
         self.n_components = n_components
         if reg == 'lws':
-            raise DeprecationWarning('`lws` has been deprecated for the `reg`'
-                                     ' argument. It will be removed in 0.11.'
-                                     ' Use `ledoit_wolf` instead.')
+            warnings.warn('`lws` has been deprecated for the `reg`'
+                          ' argument. It will be removed in 0.11.'
+                          ' Use `ledoit_wolf` instead.', DeprecationWarning)
             reg = 'ledoit_wolf'
         self.reg = reg
         self.log = log

@@ -251,11 +251,12 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
     """Aux functioin"""
     this = axes_handler[0]
     for ii, data_, ax in zip(epoch_idx, data, axes):
-        [l.set_data(times, d) for l, d in zip(ax.lines, data_[good_ch_idx])]
+        for l, d in zip(ax.lines, data_[good_ch_idx]):
+            l.set_data(times, d)
         if bad_ch_idx is not None:
             bad_lines = [ax.lines[k] for k in bad_ch_idx]
-            [l.set_data(times, d) for l, d in zip(bad_lines,
-                                                  data_[bad_ch_idx])]
+            for l, d in zip(bad_lines, data_[bad_ch_idx]):
+                l.set_data(times, d)
         if title_str is not None:
             ax.set_title(title_str % ii, fontsize=12)
         ax.set_ylim(data.min(), data.max())
@@ -263,7 +264,8 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
         ax.set_xticks(list())
         if vars(ax)[this]['reject'] is True:
             #  memorizing reject
-            [l.set_color((0.8, 0.8, 0.8)) for l in ax.lines]
+            for l in ax.lines:
+                l.set_color((0.8, 0.8, 0.8))
             ax.get_figure().canvas.draw()
         else:
             #  forgetting previous reject
@@ -271,9 +273,11 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
                 if k == this:
                     continue
                 if vars(ax).get(k, {}).get('reject', None) is True:
-                    [l.set_color('k') for l in ax.lines[:len(good_ch_idx)]]
+                    for l in ax.lines[:len(good_ch_idx)]:
+                        l.set_color('k')
                     if bad_ch_idx is not None:
-                        [l.set_color('r') for l in ax.lines[-len(bad_ch_idx):]]
+                        for l in ax.lines[-len(bad_ch_idx):]:
+                            l.set_color('r')
                     ax.get_figure().canvas.draw()
                     break
 
@@ -317,17 +321,20 @@ def _epochs_axes_onclick(event, params):
         idx = here['idx']
         if idx not in p['reject_idx']:
             p['reject_idx'].append(idx)
-            [l.set_color(reject_color) for l in ax.lines]
+            for l in ax.lines:
+                l.set_color(reject_color)
             here['reject'] = True
     elif here.get('reject', None) is True:
         idx = here['idx']
         if idx in p['reject_idx']:
             p['reject_idx'].pop(p['reject_idx'].index(idx))
             good_lines = [ax.lines[k] for k in p['good_ch_idx']]
-            [l.set_color('k') for l in good_lines]
+            for l in good_lines:
+                l.set_color('k')
             if p['bad_ch_idx'] is not None:
                 bad_lines = ax.lines[-len(p['bad_ch_idx']):]
-                [l.set_color('r') for l in bad_lines]
+                for l in bad_lines:
+                    l.set_color('r')
             here['reject'] = False
     ax.get_figure().canvas.draw()
 
@@ -817,7 +824,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'n_channels': n_channels,
                    'n_epochs': n_epochs,
                    'scalings': scalings,
-                   'types': types,
                    'duration': duration,
                    'ch_start': 0,
                    'colors': colors,

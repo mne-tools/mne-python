@@ -394,7 +394,7 @@ def transform_surface_to(surf, dest, trans):
     if isinstance(dest, string_types):
         if dest not in _frame_dict:
             raise KeyError('dest must be one of %s, not "%s"'
-                           % [list(_frame_dict.keys()), dest])
+                           % (list(_frame_dict.keys()), dest))
         dest = _frame_dict[dest]  # convert to integer
     if surf['coord_frame'] == dest:
         return surf

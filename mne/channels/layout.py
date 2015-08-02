@@ -595,7 +595,6 @@ def _auto_topomap_coords(info, picks):
             if ch['kind'] != FIFF.FIFFV_EEG_CH:
                 raise ValueError("Cannot determine location of MEG/EOG/ECG "
                                  "channels using digitization points.")
-                break
 
         eeg_ch_names = [ch['ch_name'] for ch in info['chs']
                         if ch['kind'] == FIFF.FIFFV_EEG_CH]

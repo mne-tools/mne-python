@@ -1892,7 +1892,8 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     # replace the event numbers in the events list
     epochs.events[inds, 2] = new_event_num
     # delete old entries
-    [epochs.event_id.pop(key) for key in old_event_ids]
+    for key in old_event_ids:
+        epochs.event_id.pop(key)
     # add the new entry
     epochs.event_id.update(new_event_id)
     return epochs
@@ -1930,7 +1931,9 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
         raise ValueError('All inputs must be Epochs instances')
 
     # make sure bad epochs are dropped
-    [e.drop_bad_epochs() if not e._bad_dropped else None for e in epochs_list]
+    for e in epochs_list:
+        if not e._bad_dropped:
+            e.drop_bad_epochs()
     event_times = [e.events[:, 0] for e in epochs_list]
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):

@@ -302,7 +302,7 @@ def _grad_in_components(degree, order, rad, az, pol):
     g_pol = (1 / rad ** (degree + 2) *
              np.sqrt((2 * degree + 1) * factorial(degree - order) /
                      (4 * np.pi * factorial(degree + order))) *
-             -np.sin(pol) * _alegendre_deriv(degree, order, np.cos(pol)) *
+             np.sin(-pol) * _alegendre_deriv(degree, order, np.cos(pol)) *
              np.exp(1j * order * az))
 
     # Get real component of vectors, convert to cartesian coords, and return
@@ -345,7 +345,7 @@ def _grad_out_components(degree, order, rad, az, pol):
     g_pol = (rad ** (degree - 1) *
              np.sqrt((2 * degree + 1) * factorial(degree - order) /
                      (4 * np.pi * factorial(degree + order))) *
-             -np.sin(pol) * _alegendre_deriv(degree, order, np.cos(pol)) *
+             np.sin(-pol) * _alegendre_deriv(degree, order, np.cos(pol)) *
              np.exp(1j * order * az))
 
     # Get real component of vectors, convert to cartesian coords, and return

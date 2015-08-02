@@ -1419,7 +1419,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
                     # to complete download method
                     logger.info('Resuming download failed. Attempting to '
                                 'restart downloading the entire file.')
-                    _fetch_file(url, resume=False)
+                    local_file.close()
+                    _fetch_file(url, file_name, resume=False)
                 else:
                     _chunk_read(data, local_file, initial_size=local_file_size,
                                 verbose_bool=verbose_bool)

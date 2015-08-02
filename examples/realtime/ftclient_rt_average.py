@@ -75,7 +75,8 @@ with FieldTripClient(host='localhost', port=1972,
         else:
             evoked += ev
 
-        ax[0].cla(), ax[1].cla()  # clear axis
+        ax[0].cla()
+        ax[1].cla()  # clear axis
 
         plot_events(rt_epochs.events[-5:], sfreq=ev.info['sfreq'],
                     first_samp=-rt_client.tmin_samp, axes=ax[0])
