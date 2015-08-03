@@ -1507,8 +1507,9 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     logger.info('Averaging TFR over channels ' + str(chs))
     if len(fig) == 0:
         fig.append(figure_nobar())
-        fig[0].add_subplot(111)
-    ax = fig[0].get_axes()[0]
+    if not plt.fignum_exists(fig[0].number):
+        fig[0] = figure_nobar()
+    ax = fig[0].add_subplot(111)
     itmax = min(itmax, len(tfr.times) - 1)
     ifmax = min(ifmax, len(tfr.freqs) - 1)
     extent = (tfr.times[itmin] * 1e3, tfr.times[itmax] * 1e3, tfr.freqs[ifmin],
@@ -1525,4 +1526,5 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     else:
         fig[0].get_axes()[1].cbar.on_mappable_changed(mappable=img)
     fig[0].canvas.draw()
-    fig[0].show()
+    plt.figure(fig[0].number)
+    plt.show()
