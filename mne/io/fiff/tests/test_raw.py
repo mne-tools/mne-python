@@ -1120,6 +1120,7 @@ def test_pick_channels_mixin():
     assert_equal(ch_names, raw.ch_names)
     assert_equal(len(ch_names), len(raw._cals))
     assert_equal(len(ch_names), raw._data.shape[0])
+    assert_raises(AssertionError, raw.pick_channels, ch_names[0])
 
     raw = Raw(fif_fname, preload=False)
     assert_raises(RuntimeError, raw.pick_channels, ch_names)

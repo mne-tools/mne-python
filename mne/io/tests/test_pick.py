@@ -5,7 +5,7 @@ import os.path as op
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
-                 pick_info, __file__)
+                 pick_info, pick_channels, __file__)
 
 from mne.io.meas_info import create_info
 from mne.io.array import RawArray
@@ -123,6 +123,10 @@ def test_picks_by_channels():
     sfreq = 250.0
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
     raw = RawArray(test_data, info)
+
+    # Make sure checks for list input work.
+    assert_raises(AssertionError, pick_channels, ch_names, 'MEG 001')
+    assert_raises(AssertionError, pick_channels, ch_names, ['MEG 001'], 'hi')
 
     pick_list = _picks_by_type(raw.info)
     assert_equal(len(pick_list), 1)

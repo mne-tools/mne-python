@@ -404,7 +404,10 @@ class UpdateChannelsMixin(object):
         .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
-
+        if not isinstance(ch_names, (list, tuple, np.ndarray)):
+            raise AssertionError('ch_names must be one of [list, tuple, ',
+                                 'ndarray]. You provided type ',
+                                 '{0}'.format(type(ch_names)))
         idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
         inst._pick_drop_channels(idx)
 
