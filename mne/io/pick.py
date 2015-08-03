@@ -93,9 +93,10 @@ def pick_channels(ch_names, include, exclude=[]):
     sel : array of int
         Indices of good channels.
     """
-    if not all([isinstance(kind, (list, tuple, np.ndarray))
-                for kind in (include, exclude)]):
-        raise AssertionError('include/exclude must be list, tuple, or "bads"')
+    for kind in (include, exclude):
+        if not isinstance(kind, (list, tuple, np.ndarray)) and kind != 'bads':
+            raise AssertionError('include/exclude must be list, tuple, or ',
+                                 '"bads", not type {0}'.format(type(kind)))
     if len(np.unique(ch_names)) != len(ch_names):
         raise RuntimeError('ch_names is not a unique list, picking is unsafe')
     sel = []
