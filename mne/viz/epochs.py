@@ -25,12 +25,11 @@ from .utils import tight_layout, _prepare_trellis, figure_nobar, _toggle_proj
 from .utils import _toggle_options, _layout_figure, _setup_vmin_vmax
 from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
 from ..defaults import _handle_default
-from __builtin__ import True
 
 
 def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap='RdBu_r'):
+                      units=None, scalings=None, cmap='RdBu_r', fig=None):
     """Plot Event Related Potential / Fields image
 
     Parameters
@@ -64,9 +63,14 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         defaults to `units=dict(eeg='uV', grad='fT/cm', mag='fT')`.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.
-        If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15)`
+        If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
+        eog=1e6)`
     cmap : matplotlib colormap
         Colormap.
+    fig : matplotlib figure | None
+        Figure instance to draw the image to. Figure must contain two axes for
+        drawing the single trials and evoked responses. If None a new figure is
+        created. Defaults to None.
 
     Returns
     -------
@@ -86,6 +90,8 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         raise ValueError('Scalings and units must have the same keys.')
 
     picks = np.atleast_1d(picks)
+    if fig is not None and len(picks) > 1:
+        raise ValueError('Only single pick can be drawn to a figure.')
     evoked = epochs.average(picks)
     data = epochs.get_data()[:, picks, :]
     scale_vmin = True if vmin is None else False
@@ -94,7 +100,10 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
-        this_fig = plt.figure()
+        if fig is None:
+            this_fig = plt.figure()
+        else:
+            this_fig = fig
         figs.append(this_fig)
 
         ch_type = channel_type(epochs.info, idx)
@@ -113,13 +122,13 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         if sigma > 0.:
             this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
                                                   axis=0)
-
+        plt.figure(this_fig.number)
         ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
         if scale_vmin:
             vmin *= scalings[ch_type]
         if scale_vmax:
             vmax *= scalings[ch_type]
-        im = plt.imshow(this_data,
+        im = ax1.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
                                 0, len(data)],
                         aspect='auto', origin='lower', interpolation='nearest',
@@ -827,7 +836,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'ax_help_button': ax_help_button,  # needed for positioning
                    'help_button': help_button,  # reference needed for clicks
                    'fig_options': None,
-                   'settings': [True, True, True, True]})
+                   'settings': [True, True, True, True],
+                   'image_plot': None})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
@@ -1156,8 +1166,10 @@ def _mouse_click(event, params):
                     logger.info('Event related fields / potentials only '
                                 'available for MEG and EEG channels.')
                     return
-                plot_image_epochs(params['epochs'],
-                                  picks=params['inds'][ch_idx])
+                fig = plot_image_epochs(params['epochs'],
+                                        picks=params['inds'][ch_idx],
+                                        fig=params['image_plot'])[0]
+                params['image_plot'] = fig
     elif event.button == 1:  # left click
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:
