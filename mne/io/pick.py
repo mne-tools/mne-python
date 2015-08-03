@@ -95,7 +95,7 @@ def pick_channels(ch_names, include, exclude=[]):
     """
     if not all([isinstance(kind, (list, tuple, np.ndarray))
                 for kind in (include, exclude)]):
-        raise AssertionError('include and exclude must be a list or tuple')
+        raise AssertionError('include/exclude must be list, tuple, or "bads"')
     if len(np.unique(ch_names)) != len(ch_names):
         raise RuntimeError('ch_names is not a unique list, picking is unsafe')
     sel = []
@@ -356,6 +356,7 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     if len(include) == 0 and len(exclude) == 0:
         return orig
 
+    exclude = orig.info['bads'] if exclude == 'bads' else exclude
     sel = pick_channels(orig.info['ch_names'], include=include,
                         exclude=exclude)
 
@@ -386,8 +387,9 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     include : list of string
         List of channels to include (if empty, include all available).
         Defaults to [].
-    exclude : list of string
+    exclude : list of string | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
+        If 'bads', then exclude bad channels in orig.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -399,6 +401,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     """
     if len(include) == 0 and len(exclude) == 0:
         return orig
+    exclude = orig.info['bads'] if exclude == 'bads' else exclude
 
     # Allow for possibility of channel ordering in forward solution being
     # different from that of the M/EEG file it is based on.
@@ -516,6 +519,7 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     res : dict
         Covariance solution restricted to selected channels.
     """
+    exclude = orig['bads'] if exclude == 'bads' else exclude
     sel = pick_channels(orig['names'], include=include, exclude=exclude)
     res = deepcopy(orig)
     res['dim'] = len(sel)
