@@ -12,9 +12,11 @@ import copy as cp
 import warnings
 import json
 import inspect
-
 import os.path as op
+from distutils.version import LooseVersion
+
 import numpy as np
+import scipy
 
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float_matrix, write_float,
@@ -1947,6 +1949,13 @@ def _get_drop_indices(event_times, method):
     return indices
 
 
+def _fix_fill(fill):
+    """Helper to fix bug on old scipy"""
+    if LooseVersion(scipy.__version__) < LooseVersion('0.12'):
+        fill = fill[:, np.newaxis]
+    return fill
+
+
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences"""
     from scipy.interpolate import interp1d
@@ -1970,7 +1979,8 @@ def _minimize_time_diff(t_shorter, t_longer):
         x2 = np.arange(len(t_longer) - ii - 1)
         t_keeps = np.array([t_longer[km] for km in keep_mask])
         longer_interp = interp1d(x2, t_keeps, axis=1,
-                                 fill_value=t_keeps[:, -1], **kwargs)
+                                 fill_value=_fix_fill(t_keeps[:, -1]),
+                                 **kwargs)
         d1 = longer_interp(x1) - t_shorter
         d2 = shorter_interp(x2) - t_keeps
         scores[keep] = np.abs(d1, d1).sum(axis=1) + np.abs(d2, d2).sum(axis=1)
