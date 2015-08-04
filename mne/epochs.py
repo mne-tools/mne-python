@@ -11,9 +11,12 @@
 import copy as cp
 import warnings
 import json
-
+import inspect
 import os.path as op
+from distutils.version import LooseVersion
+
 import numpy as np
+import scipy
 
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float_matrix, write_float,
@@ -1946,27 +1949,43 @@ def _get_drop_indices(event_times, method):
     return indices
 
 
+def _fix_fill(fill):
+    """Helper to fix bug on old scipy"""
+    if LooseVersion(scipy.__version__) < LooseVersion('0.12'):
+        fill = fill[:, np.newaxis]
+    return fill
+
+
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences"""
+    from scipy.interpolate import interp1d
     keep = np.ones((len(t_longer)), dtype=bool)
     scores = np.ones((len(t_longer)))
-    for iter in range(len(t_longer) - len(t_shorter)):
+    x1 = np.arange(len(t_shorter))
+    # The first set of keep masks to test
+    kwargs = dict(copy=False, bounds_error=False)
+    # this is a speed tweak, only exists for certain versions of scipy
+    if 'assume_sorted' in inspect.getargspec(interp1d.__init__).args:
+        kwargs['assume_sorted'] = True
+    shorter_interp = interp1d(x1, t_shorter, fill_value=t_shorter[-1],
+                              **kwargs)
+    for ii in range(len(t_longer) - len(t_shorter)):
         scores.fill(np.inf)
+        # set up the keep masks to test, eliminating any rows that are already
+        # gone
+        keep_mask = ~np.eye(len(t_longer), dtype=bool)[keep]
+        keep_mask[:, ~keep] = False
         # Check every possible removal to see if it minimizes
-        for idx in np.where(keep)[0]:
-            keep[idx] = False
-            scores[idx] = _area_between_times(t_shorter, t_longer[keep])
-            keep[idx] = True
+        x2 = np.arange(len(t_longer) - ii - 1)
+        t_keeps = np.array([t_longer[km] for km in keep_mask])
+        longer_interp = interp1d(x2, t_keeps, axis=1,
+                                 fill_value=_fix_fill(t_keeps[:, -1]),
+                                 **kwargs)
+        d1 = longer_interp(x1) - t_shorter
+        d2 = shorter_interp(x2) - t_keeps
+        scores[keep] = np.abs(d1, d1).sum(axis=1) + np.abs(d2, d2).sum(axis=1)
         keep[np.argmin(scores)] = False
     return keep
-
-
-def _area_between_times(t1, t2):
-    """Quantify the difference between two timing sets"""
-    x1 = list(range(len(t1)))
-    x2 = list(range(len(t2)))
-    xs = np.concatenate((x1, x2))
-    return np.sum(np.abs(np.interp(xs, x1, t1) - np.interp(xs, x2, t2)))
 
 
 @verbose
