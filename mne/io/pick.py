@@ -402,7 +402,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     if len(include) == 0 and len(exclude) == 0:
         return orig
     exclude = _check_excludes_includes(exclude,
-                                       info=orig.info, allow_bads=True)
+                                       info=orig['info'], allow_bads=True)
 
     # Allow for possibility of channel ordering in forward solution being
     # different from that of the M/EEG file it is based on.
