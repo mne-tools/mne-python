@@ -23,7 +23,7 @@ from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
 from .multitaper import dpss_windows
 from .._hdf5 import write_hdf5, read_hdf5
-from mne.viz.utils import figure_nobar
+from ..viz.utils import figure_nobar
 
 
 def _get_data(inst, return_itc):
@@ -743,43 +743,25 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             return
 
         types = list()
-        eegs = pick_types(self.info, meg=False, eeg=True, ref_meg=False)
-        if len(eegs) > 0:
+        if 'eeg' in self:
             types.append('eeg')
-        if len(pick_types(self.info, meg='mag', ref_meg=False)) > 0:
+        if 'mag' in self:
             types.append('mag')
-        if len(pick_types(self.info, meg='grad', ref_meg=False)) > 0:
+        if 'grad' in self:
             types.append('grad')
         fig = figure_nobar()
-        axis = list()
-        for idx in range(len(types)):
-            axis.append(plt.subplot(1, len(types), idx + 1))
         fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(tmin,
                                                                          tmax,
                                                                          fmin,
                                                                          fmax),
                      y=0.04)
-        plot_idx = 0
-        if 'grad' in types:
-            plot_tfr_topomap(self, ch_type='grad', tmin=tmin, tmax=tmax,
+        for idx, ch_type in enumerate(types):
+            ax = plt.subplot(1, len(types), idx + 1)
+            plot_tfr_topomap(self, ch_type=ch_type, tmin=tmin, tmax=tmax,
                              fmin=fmin, fmax=fmax, layout=layout,
                              baseline=baseline, mode=mode, cmap=cmap,
-                             title='grad', vmin=None, vmax=None,
-                             axes=axis[plot_idx])
-            plot_idx += 1
-        if 'mag' in types:
-            plot_tfr_topomap(self, ch_type='mag', tmin=tmin, tmax=tmax,
-                             fmin=fmin, fmax=fmax, layout=layout,
-                             baseline=baseline, mode=mode, cmap=cmap,
-                             title='mag', vmin=None, vmax=None,
-                             axes=axis[plot_idx])
-            plot_idx += 1
-        if 'eeg' in types:
-            plot_tfr_topomap(self, ch_type='eeg', tmin=tmin, tmax=tmax,
-                             fmin=fmin, fmax=fmax, layout=layout,
-                             baseline=baseline, mode=mode, cmap=cmap,
-                             title='eeg', vmin=None, vmax=None,
-                             axes=axis[plot_idx])
+                             title=ch_type, vmin=None, vmax=None,
+                             axes=ax)
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,

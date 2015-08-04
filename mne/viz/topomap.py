@@ -1487,7 +1487,7 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     data = tfr.data
     if ch_type == 'mag':
         picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
-        data = np.average(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
+        data = np.mean(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
         chs = [tfr.ch_names[picks[x]] for x in indices]
     elif ch_type == 'grad':
         picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
