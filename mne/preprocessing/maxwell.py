@@ -7,7 +7,7 @@
 
 from __future__ import division
 import numpy as np
-from scipy import linalg
+from scipy.linalg import pinv
 from math import factorial
 import inspect
 
@@ -87,8 +87,15 @@ def _maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # See mathworld.wolfram.com/SphericalHarmonic.html for more discussion.
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
+    # TODO: Exclude 'bads' in multipolar moment calc, add back during
+    # reconstruction
+    if len(raw.info['bads']) > 0:
+        raise RuntimeError('Maxwell filter does not yet handle bad channels.')
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
+    if 'dev_head_t' not in raw.info.keys():
+        raise RuntimeError("Raw.info must contain 'dev_head_t' to transform "
+                           "device to head coords")
     if len(raw.info.get('comps', [])) > 0:
         raise RuntimeError('Maxwell filter cannot handle compensated '
                            'channels.')
@@ -111,6 +118,14 @@ def _maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     meg_picks = pick_types(raw_sss.info, meg=True, exclude=[])
     meg_coils, _, _, meg_info = _prep_meg_channels(raw_sss.info, accurate=True,
                                                    elekta_defs=True)
+
+    # Create coil list and pick MEG channels
+    picks = [raw.info['ch_names'].index(coil['chname'])
+             for coil in all_coils]
+    coils = [all_coils[ci] for ci in picks]
+    raw.preload_data()
+
+    data, _ = raw[picks, :]
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
@@ -642,3 +657,43 @@ def _overlap_projector(data_int, data_res, corr):
     Vh_intersect = Vh_intersect[intersect_mask].T
     V_principal = np.dot(Q_res, Vh_intersect)
     return V_principal
+
+
+def _apply_fine_cal(raw, fine_cal_fname):
+    """Rewrite sensor locations according to fine calibration file."""
+
+    # Read new sensor locations
+    with open(fine_cal_fname, 'r') as fid:
+        result = []
+        lines = fid.readlines()
+        lines = lines[::-1]
+        while len(lines) > 0:
+            line = lines.pop()
+            if line[0] != '#':
+                vals = np.fromstring(line, sep=' ')
+                assert len(vals) == 14  # Check for correct number of items
+                ch = int(vals[0])
+
+                ch_name = 'MEG' + '%04d' % ch  # Zero-pad names to 4 characters
+                loc = vals[1:13]
+                imbalance = vals[13]
+
+                result.append(dict(ch=ch, ch_name=ch_name, loc=loc,
+                              imbalance=imbalance))
+
+    if len(result) != raw.info['nchan']:
+        err_msg = '''Number of channels in fine calibration file (%i) does not
+            equal number of channels in raw.info (%i)''' % (len(result),
+                                                            raw.info['nchan'])
+        raise RuntimeError(err_msg)
+
+    # Replace sensor locations with those from fine calibration
+    for cal_chan in result:
+        ch_ind = raw.info['ch_names'].index(cal_chan['ch_name'])
+        raw.info['chs'][ch_ind]['loc'] = cal_chan['loc']
+
+
+def _sss_basis_point(origin, pt_info, int_order, ext_order):
+    """Compute multipolar moments for point-like sensors (for fine calibration)"""
+    pass
+
