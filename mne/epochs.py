@@ -11,6 +11,7 @@
 import copy as cp
 import warnings
 import json
+import inspect
 
 import os.path as op
 import numpy as np
@@ -1953,8 +1954,12 @@ def _minimize_time_diff(t_shorter, t_longer):
     scores = np.ones((len(t_longer)))
     x1 = np.arange(len(t_shorter))
     # The first set of keep masks to test
-    shorter_interp = interp1d(x1, t_shorter, copy=False, bounds_error=False,
-                              fill_value=t_shorter[-1], assume_sorted=True)
+    kwargs = dict(copy=False, bounds_error=False)
+    # this is a speed tweak, only exists for certain versions of scipy
+    if 'assume_sorted' in inspect.getargspec(interp1d.__init__).args:
+        kwargs['assume_sorted'] = True
+    shorter_interp = interp1d(x1, t_shorter, fill_value=t_shorter[-1],
+                              **kwargs)
     for ii in range(len(t_longer) - len(t_shorter)):
         scores.fill(np.inf)
         # set up the keep masks to test, eliminating any rows that are already
@@ -1964,9 +1969,8 @@ def _minimize_time_diff(t_shorter, t_longer):
         # Check every possible removal to see if it minimizes
         x2 = np.arange(len(t_longer) - ii - 1)
         t_keeps = np.array([t_longer[km] for km in keep_mask])
-        longer_interp = interp1d(x2, t_keeps, axis=1, copy=False,
-                                 bounds_error=False, fill_value=t_keeps[:, -1],
-                                 assume_sorted=True)
+        longer_interp = interp1d(x2, t_keeps, axis=1,
+                                 fill_value=t_keeps[:, -1], **kwargs)
         d1 = longer_interp(x1) - t_shorter
         d2 = shorter_interp(x2) - t_keeps
         scores[keep] = np.abs(d1, d1).sum(axis=1) + np.abs(d2, d2).sum(axis=1)
