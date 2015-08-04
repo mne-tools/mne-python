@@ -591,8 +591,8 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
     Returns
     -------
     chs : list
-        Channels to be excluded. If allow_bads, this will be the
-        bad channels found in 'info'.
+        Channels to be excluded/excluded. If allow_bads, and chs=="bads",
+        this will be the bad channels found in 'info'.
     """
     from .meas_info import Info
     if not isinstance(chs, (list, tuple, np.ndarray)):
