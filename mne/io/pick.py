@@ -93,12 +93,10 @@ def pick_channels(ch_names, include, exclude=[]):
     sel : array of int
         Indices of good channels.
     """
-    for kind in (include, exclude):
-        if not isinstance(kind, (list, tuple, np.ndarray)) and kind != 'bads':
-            raise AssertionError('include/exclude must be list, tuple, or ',
-                                 '"bads", not type {0}'.format(type(kind)))
     if len(np.unique(ch_names)) != len(ch_names):
         raise RuntimeError('ch_names is not a unique list, picking is unsafe')
+    _check_excludes_includes(include)
+    _check_excludes_includes(exclude)
     sel = []
     for k, name in enumerate(ch_names):
         if (len(include) == 0 or name in include) and name not in exclude:
@@ -576,3 +574,19 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False):
              ref_meg=ref_meg))
         )
     return picks_list
+
+
+def _check_excludes_includes(chs, allow_strs=['bads']):
+    """Ensure that inputs to exclude/include are list-like or "bads".
+
+        chs : any input, should be list, tuple, string
+            The channels passed to include or exclude.
+        allow_strs : list of strings
+            Optional strings to allow.
+    """
+    msg = 'include/exclude must be list, tuple, or ndarray.'
+    if not isinstance(chs, (list, tuple, np.ndarray)):
+        if len(allow_strs) > 0 and chs not in allow_strs:
+            msg += ' Or be one of {0}'.format(allow_strs)
+        msg += 'You provided type {0}'.format(type(chs))
+        raise AssertionError(msg)
