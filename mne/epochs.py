@@ -1953,8 +1953,8 @@ def _minimize_time_diff(t_shorter, t_longer):
     scores = np.ones((len(t_longer)))
     x1 = np.arange(len(t_shorter))
     # The first set of keep masks to test
-    shorter_interp = interp1d(x1, t_shorter, bounds_error=False,
-                              fill_value=t_shorter[-1])
+    shorter_interp = interp1d(x1, t_shorter, copy=False, bounds_error=False,
+                              fill_value=t_shorter[-1], assume_sorted=True)
     for ii in range(len(t_longer) - len(t_shorter)):
         scores.fill(np.inf)
         # set up the keep masks to test, eliminating any rows that are already
@@ -1964,8 +1964,9 @@ def _minimize_time_diff(t_shorter, t_longer):
         # Check every possible removal to see if it minimizes
         x2 = np.arange(len(t_longer) - ii - 1)
         t_keeps = np.array([t_longer[km] for km in keep_mask])
-        longer_interp = interp1d(x2, t_keeps, axis=1, bounds_error=False,
-                                 fill_value=t_keeps[:, -1])
+        longer_interp = interp1d(x2, t_keeps, axis=1, copy=False,
+                                 bounds_error=False, fill_value=t_keeps[:, -1],
+                                 assume_sorted=True)
         d1 = longer_interp(x1) - t_shorter
         d2 = shorter_interp(x2) - t_keeps
         scores[keep] = np.abs(d1, d1).sum(axis=1) + np.abs(d2, d2).sum(axis=1)
