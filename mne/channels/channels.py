@@ -405,7 +405,7 @@ class UpdateChannelsMixin(object):
         .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
-        _check_excludes_includes(ch_names, allow_strs=[])
+        _check_excludes_includes(ch_names)
 
         idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
         inst._pick_drop_channels(idx)

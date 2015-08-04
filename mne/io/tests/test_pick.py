@@ -125,8 +125,8 @@ def test_picks_by_channels():
     raw = RawArray(test_data, info)
 
     # Make sure checks for list input work.
-    assert_raises(AssertionError, pick_channels, ch_names, 'MEG 001')
-    assert_raises(AssertionError, pick_channels, ch_names, ['MEG 001'], 'hi')
+    assert_raises(ValueError, pick_channels, ch_names, 'MEG 001')
+    assert_raises(ValueError, pick_channels, ch_names, ['MEG 001'], 'hi')
 
     pick_list = _picks_by_type(raw.info)
     assert_equal(len(pick_list), 1)

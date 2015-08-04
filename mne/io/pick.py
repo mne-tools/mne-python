@@ -355,7 +355,8 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     if len(include) == 0 and len(exclude) == 0:
         return orig
 
-    exclude = orig.info['bads'] if exclude == 'bads' else exclude
+    exclude = _check_excludes_includes(exclude, info=orig.info,
+                                       allow_bads=True)
     sel = pick_channels(orig.info['ch_names'], include=include,
                         exclude=exclude)
 
@@ -400,7 +401,8 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     """
     if len(include) == 0 and len(exclude) == 0:
         return orig
-    exclude = orig.info['bads'] if exclude == 'bads' else exclude
+    exclude = _check_excludes_includes(exclude,
+                                       info=orig.info, allow_bads=True)
 
     # Allow for possibility of channel ordering in forward solution being
     # different from that of the M/EEG file it is based on.
@@ -576,17 +578,33 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False):
     return picks_list
 
 
-def _check_excludes_includes(chs, allow_strs=['bads']):
+def _check_excludes_includes(chs, info=None, allow_bads=False):
     """Ensure that inputs to exclude/include are list-like or "bads".
 
-        chs : any input, should be list, tuple, string
-            The channels passed to include or exclude.
-        allow_strs : list of strings
-            Optional strings to allow.
+    Parameters
+    ----------
+    chs : any input, should be list, tuple, string
+        The channels passed to include or exclude.
+    allow_strs : list of strings
+        Optional strings to allow.
+
+    Returns
+    -------
+    chs : list
+        Channels to be excluded. If allow_bads, this will be the
+        bad channels found in 'info'.
     """
-    msg = 'include/exclude must be list, tuple, or ndarray.'
+    from .meas_info import Info
     if not isinstance(chs, (list, tuple, np.ndarray)):
-        if len(allow_strs) > 0 and chs not in allow_strs:
-            msg += ' Or be one of {0}'.format(allow_strs)
-        msg += 'You provided type {0}'.format(type(chs))
-        raise AssertionError(msg)
+        if allow_bads is True:
+            if not isinstance(info, Info):
+                raise ValueError('Supply an info object if allow_bads is true')
+            elif chs != 'bads':
+                raise ValueError('If chs is a string, it must be "bads"')
+            else:
+                chs = info['bads']
+        else:
+            raise ValueError(
+                'include/exclude must be list, tuple, ndarray, or "bads". ' +
+                'You provided type {0}'.format(type(chs)))
+    return chs
