@@ -1948,25 +1948,30 @@ def _get_drop_indices(event_times, method):
 
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences"""
+    from scipy.interpolate import interp1d
     keep = np.ones((len(t_longer)), dtype=bool)
     scores = np.ones((len(t_longer)))
-    for iter in range(len(t_longer) - len(t_shorter)):
+    x1 = np.arange(len(t_shorter))
+    # The first set of keep masks to test
+    keep_mask = ~np.eye(len(t_longer), dtype=bool)
+    shorter_interp = interp1d(x1, t_shorter, bounds_error=False,
+                              fill_value=t_shorter[-1])
+    for ii in range(len(t_longer) - len(t_shorter)):
         scores.fill(np.inf)
         # Check every possible removal to see if it minimizes
-        for idx in np.where(keep)[0]:
-            keep[idx] = False
-            scores[idx] = _area_between_times(t_shorter, t_longer[keep])
-            keep[idx] = True
+        x2 = np.arange(len(t_longer) - ii - 1)
+        t_keeps = np.array([t_longer[km] for km in keep_mask])
+        longer_interp = interp1d(x2, t_keeps, axis=1, bounds_error=False,
+                                 fill_value=t_keeps[:, -1])
+        d1 = longer_interp(x1) - t_shorter
+        d2 = shorter_interp(x2) - t_keeps
+        scores[keep] = np.abs(d1, d1).sum(axis=1) + np.abs(d2, d2).sum(axis=1)
         keep[np.argmin(scores)] = False
+        # set up the next set of keep masks to test, eliminating the row that
+        # won the last check
+        keep_mask = (~np.eye(len(t_longer), dtype=bool))[keep]
+        keep_mask[:, ~keep] = False
     return keep
-
-
-def _area_between_times(t1, t2):
-    """Quantify the difference between two timing sets"""
-    x1 = list(range(len(t1)))
-    x2 = list(range(len(t2)))
-    xs = np.concatenate((x1, x2))
-    return np.sum(np.abs(np.interp(xs, x1, t1) - np.interp(xs, x2, t2)))
 
 
 @verbose
