@@ -23,6 +23,7 @@ from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
 from .multitaper import dpss_windows
 from .._hdf5 import write_hdf5, read_hdf5
+from ..viz.utils import figure_nobar
 
 
 def _get_data(inst, return_itc):
@@ -618,7 +619,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True,
-             title=None, axes=None, verbose=None):
+             title=None, axes=None, layout=None, verbose=None):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -672,6 +673,10 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             The axes to plot to. If list, the list must be a list of Axes of
             the same length as the number of channels. If instance of Axes,
             there must be only one channel plotted.
+        layout : Layout | None
+            Layout instance specifying sensor positions. Used for interactive
+            plotting of topographies on rectangle selection. If possible, the
+            correct layout is inferred from the data.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -692,11 +697,11 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         tmin, tmax = times[0], times[-1]
         if isinstance(axes, plt.Axes):
             axes = [axes]
-        if isinstance(axes, list) and len(axes) != len(picks):
-            raise RuntimeError('There must be an axes for each picked '
-                               'channel.')
-            if colorbar:
-                logger.warning('Cannot draw colorbar for user defined axes.')
+        if isinstance(axes, list) or isinstance(axes, np.ndarray):
+            if len(axes) != len(picks):
+                raise RuntimeError('There must be an axes for each picked '
+                                   'channel.')
+
         for idx in range(len(data)):
             if axes is None:
                 fig = plt.figure()
@@ -704,15 +709,59 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             else:
                 ax = axes[idx]
                 fig = ax.get_figure()
-            _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, ylim=None,
-                        tfr=data[idx: idx + 1], freq=freqs,
+            onselect_callback = partial(self._onselect, baseline=baseline,
+                                        mode=mode, layout=layout, cmap=cmap)
+            _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
+                        ylim=None, tfr=data[idx: idx + 1], freq=freqs,
                         x_label='Time (ms)', y_label='Frequency (Hz)',
-                        colorbar=False, picker=False, cmap=cmap)
+                        colorbar=colorbar, picker=False, cmap=cmap)
             if title:
                 fig.suptitle(title)
+            colorbar = False  # only one colorbar for multiple axes
         if show:
             plt.show()
         return fig
+
+    def _onselect(self, eclick, erelease, baseline, mode, layout, cmap):
+        """Callback function called by rubber band selector in channel tfr."""
+        import matplotlib.pyplot as plt
+        from ..viz import plot_tfr_topomap
+        if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
+            return
+        plt.ion()  # turn interactive mode on
+        tmin = round(min(eclick.xdata, erelease.xdata) / 1000., 5)  # ms to s
+        tmax = round(max(eclick.xdata, erelease.xdata) / 1000., 5)
+        fmin = round(min(eclick.ydata, erelease.ydata), 5)  # Hz
+        fmax = round(max(eclick.ydata, erelease.ydata), 5)
+        tmin = min(self.times, key=lambda x: abs(x - tmin))  # find closest
+        tmax = min(self.times, key=lambda x: abs(x - tmax))
+        fmin = min(self.freqs, key=lambda x: abs(x - fmin))
+        fmax = min(self.freqs, key=lambda x: abs(x - fmax))
+        if tmin == tmax or fmin == fmax:
+            logger.info('The selected area is too small. '
+                        'Select a larger time-frequency window.')
+            return
+
+        types = list()
+        if 'eeg' in self:
+            types.append('eeg')
+        if 'mag' in self:
+            types.append('mag')
+        if 'grad' in self:
+            types.append('grad')
+        fig = figure_nobar()
+        fig.suptitle('{:.2f} s - {:.2f} s, {:.2f} Hz - {:.2f} Hz'.format(tmin,
+                                                                         tmax,
+                                                                         fmin,
+                                                                         fmax),
+                     y=0.04)
+        for idx, ch_type in enumerate(types):
+            ax = plt.subplot(1, len(types), idx + 1)
+            plot_tfr_topomap(self, ch_type=ch_type, tmin=tmin, tmax=tmax,
+                             fmin=fmin, fmax=fmax, layout=layout,
+                             baseline=baseline, mode=mode, cmap=cmap,
+                             title=ch_type, vmin=None, vmax=None,
+                             axes=ax)
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
@@ -804,15 +853,16 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         if layout is None:
             from mne import find_layout
             layout = find_layout(self.info)
+        onselect_callback = partial(self._onselect, baseline=baseline,
+                                    mode=mode, layout=layout, cmap=cmap)
+        imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap,
+                         onselect=onselect_callback)
 
-        imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap)
-
-        fig = _plot_topo(info=info, times=times,
-                         show_func=imshow, layout=layout,
-                         colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
-                         layout_scale=layout_scale, title=title, border=border,
-                         x_label='Time (ms)', y_label='Frequency (Hz)',
-                         fig_facecolor=fig_facecolor,
+        fig = _plot_topo(info=info, times=times, show_func=imshow,
+                         layout=layout, colorbar=colorbar, vmin=vmin,
+                         vmax=vmax, cmap=cmap, layout_scale=layout_scale,
+                         title=title, border=border, x_label='Time (ms)',
+                         y_label='Frequency (Hz)', fig_facecolor=fig_facecolor,
                          font_color=font_color)
 
         if show:
