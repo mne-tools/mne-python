@@ -3,12 +3,19 @@
 # License: BSD (3-clause)
 
 import os.path as op
-from ...utils import verbose
+from ...utils import verbose, logger
 from ...fixes import partial
 from ..utils import (has_dataset, _data_path, _get_version, _version_doc,
                      _data_path_doc)
 
 has_brainstorm_data = partial(has_dataset, name='brainstorm')
+
+_description = u"""
+URL: http://neuroimage.usc.edu/brainstorm/DatasetResting
+    - One subject
+    - Two runs of 10 min of resting state recordings
+    - Eyes open
+"""
 
 
 @verbose
@@ -35,3 +42,16 @@ def get_version():
     return _get_version('brainstorm')
 
 get_version.__doc__ = _version_doc.format(name='brainstorm')
+
+
+@verbose
+def description(verbose=None):
+    """Get description of brainstorm (bst_resting) dataset
+
+    Parameters
+    ----------
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    for desc in _description.splitlines():
+        logger.info(desc)
