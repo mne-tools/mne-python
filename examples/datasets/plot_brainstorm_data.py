@@ -4,7 +4,8 @@ Brainstorm tutorial datasets
 ============================
 
 Here we compute the evoked from raw for the Brainstorm
-tutorial dataset
+tutorial dataset. For comparison, see:
+http://neuroimage.usc.edu/brainstorm/Tutorials/MedianNerveCtf
 
 References
 ----------
@@ -18,20 +19,30 @@ Computational Intelligence and Neuroscience, vol. 2011, Article ID 879716,
 #
 # License: BSD (3-clause)
 
+import numpy as np
+
 import mne
 from mne.datasets.brainstorm import bst_raw
 from mne.io import Raw
 
 print(__doc__)
 
-tmin, tmax, event_id = -0.2, 0.5, 1
-reject = dict(mag=4e-12)
+tmin, tmax, event_id = -0.2, 0.5, 2  # take right-hand somato
+reject = dict(mag=4e-12, eog=250e-6)
 
 data_path = bst_raw.data_path()
 
 raw_fname = data_path + '/MEG/bst_raw/' + \
                         'subj001_somatosensory_20111109_01_AUX-f_raw.fif'
-raw = Raw(raw_fname)
+raw = Raw(raw_fname, preload=True)
+raw.plot()
+
+# set EOG channel
+raw.set_channel_types({'EEG058': 'eog'})
+
+# show power line interference and remove it
+raw.plot_psd()
+raw.notch_filter(np.arange(60, 181, 60))
 
 events = mne.find_events(raw, stim_channel='UPPT001')
 
@@ -39,16 +50,25 @@ events = mne.find_events(raw, stim_channel='UPPT001')
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                        exclude='bads')
 
-# Read epochs
+# Compute epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, preload=False)
 
 # compute evoked
 evoked = epochs.average()
 
-# remove artifacts using SSP on baseline
+# remove physiological artifacts (eyeblinks, heartbeats) using SSP on baseline
 evoked.add_proj(mne.compute_proj_evoked(evoked.crop(tmax=0, copy=True)))
 evoked.apply_proj()
 
+# fix stim artifact
+mne.preprocessing.fix_stim_artifact(evoked)
+
+# correct delays due to hardware (stim artifact is at 4 ms)
+evoked.shift_time(-0.004)
+
 # plot the result
 evoked.plot()
+
+# show topomaps
+evoked.plot_topomap(times=np.array([0.016, 0.030, 0.060, 0.070]))
