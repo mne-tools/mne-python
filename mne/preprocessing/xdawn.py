@@ -4,7 +4,6 @@
 # License: BSD (3-clause)
 
 import copy as cp
-import warnings
 
 import numpy as np
 from scipy import linalg
