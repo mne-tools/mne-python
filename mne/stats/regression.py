@@ -283,7 +283,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     n_samples = len(times)
     cond_length = dict()
     all_n_lags = [int(tmax_s[cond] - tmin_s[cond]) for cond in conds]
-    X = np.empty((n_samples, sum(all_n_lags)), dtype=float)
+    X = np.zeros((n_samples, sum(all_n_lags)), dtype=float)
     cum = 0
     for i_cond, (cond, n_lags) in enumerate(zip(conds, all_n_lags)):
         # create the first row and column to be later used by toeplitz to
@@ -301,8 +301,9 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
         else:  # for predictors from covariates, e.g. continuous ones
             if len(covariates[cond]) != len(events):
-                error = """Condition {0} from ```covariates``` is
-                        not the same length as ```events```""".format(cond)
+                # XXX this is not coverged
+                error = ("Condition {0} from ```covariates``` is "
+                         "not the same length as ```events```".format(cond))
                 raise ValueError(error)
             for time, value in zip(events[:, 0], covariates[cond]):
                 samples[time + int(tmin_)] = float(value)
@@ -310,6 +311,9 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
         # this is the magical part (thanks to Marijn van Vliet):
         # use toeplitz to construct series of diagonals
+        # XXX this is magical but terribly inefficient as
+        # linalg.toeplitz(samples, lags) allocates a dense matrix with
+        # n_samples rows for each condition in the loop !!!
         X[:, cum:cum + tmax_ - tmin_] = linalg.toeplitz(samples, lags)
         cum += tmax_ - tmin_
 
