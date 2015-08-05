@@ -19,8 +19,9 @@ from ..utils import verbose, logger
 
 
 @verbose
-def _maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
-                    st_dur=None, st_corr=0.98, verbose=None):
+def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
+                   fine_cal_fname=None, st_dur=None, st_corr=0.98, 
+				   verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -47,6 +48,8 @@ def _maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     st_corr : float
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
+    fine_cal_name : str | None
+        If not none, filename of fine calibration file.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -104,11 +107,12 @@ def _maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         raise ValueError('Need 0 < st_corr <= 1., got %s' % st_corr)
     logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
 
-    logger.info('Preparing coil definitions')
-    all_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
-                                                   elekta_defs=True,
-                                                   verbose=False)
-    raw_sss = raw.copy().load_data()
+    # Do fine calibration if necessary
+    if fine_cal_fname is not None:
+        cal_chans = _read_fine_cal(raw.info, fine_cal_fname)
+        raw.info = _update_sens_geometry(raw.info, cal_chans)
+    
+	raw_sss = raw.copy().load_data()
     del raw
     times = raw_sss.times
 
@@ -116,6 +120,7 @@ def _maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     good_chs = pick_types(raw_sss.info, meg=True, exclude='bads')
     # Get indices of MEG channels
     meg_picks = pick_types(raw_sss.info, meg=True, exclude=[])
+    logger.info('Preparing coil definitions')
     meg_coils, _, _, meg_info = _prep_meg_channels(raw_sss.info, accurate=True,
                                                    elekta_defs=True)
 
@@ -138,6 +143,16 @@ def _maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # Compute in/out bases and create copies containing only good chs
     S_in, S_out = _sss_basis(origin, meg_coils, int_order, ext_order)
     n_in = S_in.shape[1]
+
+    # If doing fine calibration, compute point-like mags and add to S_in space
+    if fine_cal_fname is not None:
+        grad_inds = pick_types(raw.info, meg='grad')
+        grad_info = pick_info(raw.info, grad_inds)
+
+        S_in_fine = _sss_basis_point(origin, grad_info, int_order, ext_order,
+                                     cal_chans)
+        S_in[grad_inds, :] += S_in_fine * coil_scale[grad_inds]
+
 
     S_in_good, S_out_good = S_in[good_chs, :], S_out[good_chs, :]
     S_in_good_norm = np.sqrt(np.sum(S_in_good * S_in_good, axis=0))[:,
@@ -275,8 +290,9 @@ def _sss_basis(origin, coils, int_order, ext_order):
     origin : ndarray, shape (3,)
         Origin of the multipolar moment space in millimeters
     coils : list
-        List of MEG coils. Each should contain coil information dict. All
-        position info must be in the same coordinate frame as 'origin'
+        List of MEG coils. Each should contain coil information dict specifying
+        position, normals, weights, number of integration points and channel
+        type. All position info must be in the 'origin' coordinate frame
     int_order : int
         Order of the internal multipolar moment space
     ext_order : int
@@ -288,6 +304,8 @@ def _sss_basis(origin, coils, int_order, ext_order):
         Internal and external basis sets ndarrays with shape
         (n_coils, n_mult_moments)
     """
+
+    # Get position, normal, weights, and number of integration pts.
     r_int_pts, ncoils, wcoils, counts = _concatenate_coils(coils)
     bins = np.repeat(np.arange(len(counts)), counts)
     n_sens = len(counts)
@@ -659,41 +677,73 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
-def _apply_fine_cal(raw, fine_cal_fname):
-    """Rewrite sensor locations according to fine calibration file."""
+def _read_fine_cal(info, fine_cal_fname):
+    """Read sensor locations and imbalances from fine calibration file."""
 
     # Read new sensor locations
     with open(fine_cal_fname, 'r') as fid:
-        result = []
+        cal_chans = []
         lines = fid.readlines()
         lines = lines[::-1]
         while len(lines) > 0:
             line = lines.pop()
             if line[0] != '#':
                 vals = np.fromstring(line, sep=' ')
-                assert len(vals) == 14  # Check for correct number of items
-                ch = int(vals[0])
 
+                # Check for correct number of items
+                if len(vals) not in [14, 16]:
+                    raise RuntimeError('Error reading fine calibration file')
+
+                ch = int(vals[0])
                 ch_name = 'MEG' + '%04d' % ch  # Zero-pad names to 4 characters
                 loc = vals[1:13]
-                imbalance = vals[13]
+                imbalance = vals[13:]
 
-                result.append(dict(ch=ch, ch_name=ch_name, loc=loc,
-                              imbalance=imbalance))
+                cal_chans.append(dict(ch=ch, ch_name=ch_name, loc=loc,
+                                      imbalance=imbalance))
 
-    if len(result) != raw.info['nchan']:
+    # Check that we ended up with correct number of channels
+    if len(cal_chans) != info['nchan']:
         err_msg = '''Number of channels in fine calibration file (%i) does not
-            equal number of channels in raw.info (%i)''' % (len(result),
-                                                            raw.info['nchan'])
+            equal number of channels in info (%i)''' % (len(cal_chans),
+                                                        info['nchan'])
         raise RuntimeError(err_msg)
 
+    return cal_chans
+
+
+def _update_sens_geometry(info, cal_chans):
+    """Helper to replace sensor geometry information"""
+
     # Replace sensor locations with those from fine calibration
-    for cal_chan in result:
-        ch_ind = raw.info['ch_names'].index(cal_chan['ch_name'])
-        raw.info['chs'][ch_ind]['loc'] = cal_chan['loc']
+    for cal_chan in cal_chans:
+        ch_ind = info['ch_names'].index(cal_chan['ch_name'])
+        info['chs'][ch_ind]['loc'] = cal_chan['loc']
+
+    return info
 
 
-def _sss_basis_point(origin, pt_info, int_order, ext_order):
-    """Compute multipolar moments for point-like sensors (for fine calibration)"""
-    pass
+def _sss_basis_point(origin, info, int_order, ext_order, cal_chans):
+    """Compute multipolar moments for point-like magnetometers (in fine cal)"""
 
+    # Construct 'coils' with r, weights, normal vecs, # integration pts, and
+    # channel type.
+    imbalance = np.array([ch['imbalance'] for ch in cal_chans])
+    if imbalance.ndim == 1:
+        imbalance = imbalance[:, np.newaxis]
+
+    # Initialize internal multipolar moment space for point-like magnetometers
+    S_in_all = np.zeros((len(info['chs']), (int_order + 1) ** 2 - 1))
+    pt_types = [2000, 2001, 2002]  # coil_type values for x, y, z pt. mags
+    for dir_ind in np.arange(imbalance.shape[1]):
+
+        temp_info = deepcopy(info)
+        for ch in temp_info['chs']:
+            ch['coil_type'] = pt_types[dir_ind]
+        coils_add, _, _, _ = _prep_meg_channels(temp_info, accurate=True,
+                                                elekta_defs=True)
+
+        S_in_add, _ = _sss_basis(origin, coils_add, int_order, ext_order)
+        S_in_all += imbalance[dir_ind, :] * S_in_add
+
+    return S_in_all
