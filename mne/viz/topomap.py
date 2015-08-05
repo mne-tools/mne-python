@@ -63,14 +63,17 @@ def _prepare_topo_plot(inst, ch_type, layout):
             pos = _find_topomap_coords(info, picks)
         else:
             names = [n.upper() for n in layout.names]
-            try:
-                pos = [layout.pos[names.index(info['ch_names'][k].upper())]
-                       for k in picks]
-            except ValueError:  # special case, where pos info not in layout
-                logger.warning('Failed to locate %s channel positions from '
-                               'layout. Inferring channel positions from '
-                               'data.' % ch_type)
-                pos = _find_topomap_coords(info, picks)
+            pos = list()
+            for pick in picks:
+                this_name = info['ch_names'][pick].upper()
+                if this_name in names:
+                    pos.append(layout.pos[names.index(this_name)])
+                else:
+                    logger.warning('Failed to locate %s channel positions from'
+                                   ' layout. Inferring channel positions from '
+                                   'data.' % ch_type)
+                    pos = _find_topomap_coords(info, picks)
+                    break
 
     ch_names = [info['ch_names'][k] for k in picks]
     if merge_grads:
@@ -1498,11 +1501,11 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
         for idx in indices:
             idxs.append(grads[idx * 2])
             idxs.append(grads[idx * 2 + 1])  # pair of grads
-        data = np.average(data[idxs, ifmin:ifmax, itmin:itmax], axis=0)
+        data = np.mean(data[idxs, ifmin:ifmax, itmin:itmax], axis=0)
         chs = [tfr.ch_names[x] for x in idxs]
     elif ch_type == 'eeg':
         picks = pick_types(tfr.info, meg=False, eeg=True, ref_meg=False)
-        data = np.average(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
+        data = np.mean(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
         chs = [tfr.ch_names[picks[x]] for x in indices]
     logger.info('Averaging TFR over channels ' + str(chs))
     if len(fig) == 0:
