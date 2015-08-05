@@ -31,6 +31,7 @@ help:
 clean:
 	-rm -rf _build/*
 	-rm -rf auto_examples
+	-rm -rf auto_tutorials
 	-rm -rf generated
 	-rm -rf *.stc
 	-rm -rf *.fif

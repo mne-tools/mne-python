@@ -277,5 +277,5 @@ sphinxgallery_conf = {
         'numpy': 'http://docs.scipy.org/doc/numpy-1.9.1',
         'scipy': 'http://docs.scipy.org/doc/scipy-0.11.0/reference',
         'mayavi': 'http://docs.enthought.com/mayavi/mayavi'},
-    'use_mayavi': True,
+    'find_mayavi_figures': True,
     }
