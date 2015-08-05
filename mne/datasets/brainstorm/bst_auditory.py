@@ -3,7 +3,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
-from ...utils import verbose, logger
+from ...utils import verbose
 from ...fixes import partial
 from ..utils import (has_dataset, _data_path, _get_version, _version_doc,
                      _data_path_doc)
@@ -53,14 +53,8 @@ def get_version():
 get_version.__doc__ = _version_doc.format(name='brainstorm')
 
 
-@verbose
-def description(verbose=None):
+def description():
     """Get description of brainstorm (bst_auditory) dataset
-
-    Parameters
-    ----------
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     """
     for desc in _description.splitlines():
-        logger.info(desc)
+        print(desc)
