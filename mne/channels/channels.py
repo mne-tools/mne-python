@@ -16,7 +16,8 @@ from scipy import sparse
 from ..externals.six import string_types
 
 from ..utils import verbose, logger
-from ..io.pick import channel_type, pick_info, pick_types
+from ..io.pick import (channel_type, pick_info, pick_types,
+                       _check_excludes_includes)
 from ..io.constants import FIFF
 
 
@@ -404,6 +405,7 @@ class UpdateChannelsMixin(object):
         .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
+        _check_excludes_includes(ch_names)
 
         idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
         inst._pick_drop_channels(idx)

@@ -84,7 +84,7 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
 def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     """Helper to create spatially colored and temporally IIR-filtered noise"""
     from scipy.signal import lfilter
-    noise_cov = pick_channels_cov(cov, include=info['ch_names'])
+    noise_cov = pick_channels_cov(cov, include=info['ch_names'], exclude=[])
     rng = check_random_state(random_state)
     mu_channels = np.zeros(info['nchan'])
     c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
