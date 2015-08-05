@@ -274,7 +274,6 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     # time lags. Thus, each array is mostly sparse, with one diagonal of 1s
     # per event (for binary predictors).
 
-    n_samples = len(times)
     cond_length = dict()
     xs = []
     for cond in conds:
