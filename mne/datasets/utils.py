@@ -8,7 +8,6 @@ import os
 import os.path as op
 import shutil
 import tarfile
-import zipfile
 from warnings import warn
 import stat
 
@@ -57,6 +56,25 @@ _version_doc = """Get version of the local {name} dataset
     version : str | None
         Version of the {name} local dataset, or None if the dataset
         does not exist locally.
+"""
+
+
+_license_text = """
+License
+-------
+This tutorial dataset (EEG and MRI data) remains a property of the MEG Lab,
+McConnell Brain Imaging Center, Montreal Neurological Institute,
+McGill University, Canada. Its use and transfer outside the Brainstorm
+tutorial, e.g. for research purposes, is prohibited without written consent
+from the MEG Lab.
+
+If you reference this dataset in your publications, please:
+1) aknowledge its authors: Elizabeth Bock, Esther Florin, Francois Tadel and
+Sylvain Baillet
+2) cite Brainstorm as indicated on the website:
+http://neuroimage.usc.edu/brainstorm
+
+For questions, please contact Francois Tadel (francois.tadel@mcgill.ca).
 """
 
 
@@ -133,8 +151,6 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                archive_name=None):
     """Aux function
     """
-    # to avoid circular import
-    from .brainstorm.brainstorm import _license_text
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
            'spm': 'MNE_DATASETS_SPM_FACE_PATH',
            'somato': 'MNE_DATASETS_SOMATO_PATH',
@@ -192,7 +208,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
     folder_path = op.join(path, folder_name)
     if name == 'brainstorm':
-        folder_path = op.join(folder_path, archive_names[name])
+        extract_path = folder_path
+        folder_path = op.join(folder_path, archive_names[name].split('.')[0])
 
     rm_archive = False
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
@@ -251,12 +268,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         logger.info('Decompressing the archive: %s' % archive_name)
         logger.info('(please be patient, this can take some time)')
         for ext in ['gz', 'bz2']:  # informed guess (and the only 2 options).
-            if name == 'brainstorm':
-                extract_dir = op.join(folder_path, os.pardir)
-                zipfile.ZipFile(archive_name).extractall(extract_dir)
-                break
             try:
-                tarfile.open(archive_name, 'r:%s' % ext).extractall(path=path)
+                if name != 'brainstorm':
+                    extract_path = path
+                tf = tarfile.open(archive_name, 'r:%s' % ext)
+                tf.extractall(path=extract_path)
                 break
             except tarfile.ReadError as err:
                 logger.info('%s is %s trying "bz2"' % (archive_name, err))
@@ -301,6 +317,11 @@ def has_dataset(name):
                 'somato': 'MNE-somato-data',
                 'testing': 'MNE-testing-data',
                 'fake': 'foo',
+                'brainstorm': 'MNE_brainstorm-data',
                 }[name]
-    dp = _data_path(download=False, name=name, check_version=False)
+    archive_name = None
+    if name == 'brainstorm':
+        archive_name = dict(brainstorm='bst_raw')
+    dp = _data_path(download=False, name=name, check_version=False,
+                    archive_name=archive_name)
     return dp.endswith(endswith)

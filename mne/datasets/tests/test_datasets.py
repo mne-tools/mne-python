@@ -1,5 +1,5 @@
 from os import path as op
-from nose.tools import assert_true, assert_equal, assert_raises
+from nose.tools import assert_true, assert_equal
 
 from mne import datasets
 from mne.externals.six import string_types
@@ -9,14 +9,16 @@ from mne.utils import _TempDir, run_tests_if_main, requires_good_network
 def test_datasets():
     """Test simple dataset functions
     """
-    for dname in ('sample', 'somato', 'brainstorm', 'spm_face', 'testing'):
-        dataset = getattr(datasets, dname)
+    for dname in ('sample', 'somato', 'spm_face', 'testing',
+                  'bst_raw', 'bst_auditory', 'bst_resting'):
+        if dname.startswith('bst'):
+            dataset = getattr(datasets.brainstorm, dname)
+        else:
+            dataset = getattr(datasets, dname)
     if dataset.data_path(download=False) != '':
         assert_true(isinstance(dataset.get_version(), string_types))
     else:
         assert_true(dataset.get_version() is None)
-    # brainstorm tests
-    assert_raises(ValueError, datasets.brainstorm.data_path, archive='foo')
 
 
 @requires_good_network

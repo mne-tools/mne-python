@@ -19,7 +19,7 @@ Computational Intelligence and Neuroscience, vol. 2011, Article ID 879716,
 # License: BSD (3-clause)
 
 import mne
-from mne.datasets import brainstorm
+from mne.datasets.brainstorm import bst_raw
 from mne.io import Raw
 
 print(__doc__)
@@ -27,9 +27,10 @@ print(__doc__)
 tmin, tmax, event_id = -0.2, 0.5, 1
 reject = dict(mag=4e-12)
 
-data_path = brainstorm.data_path(archive='DatasetMedianNerveCtf')
+data_path = bst_raw.data_path()
 
-raw_fname = data_path + '/Data/subj001_somatosensory_20111109_01_AUX-f.fif'
+raw_fname = data_path + '/MEG/bst_raw/' + \
+                        'subj001_somatosensory_20111109_01_AUX-f_raw.fif'
 raw = Raw(raw_fname)
 
 events = mne.find_events(raw, stim_channel='UPPT001')
