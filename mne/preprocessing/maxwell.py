@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jussi Nurminen <jnu@iki.fi>
@@ -48,7 +49,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     st_corr : float
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
-    fine_cal_name : str | None
+    fine_cal_fname : str | None
         If not none, filename of fine calibration file.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
@@ -107,7 +108,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         raise ValueError('Need 0 < st_corr <= 1., got %s' % st_corr)
     logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
 
-    # Do fine calibration if necessary
+    # If necessary, load fine calibration and overwrite sensor geometry
     if fine_cal_fname is not None:
         cal_chans = _read_fine_cal(raw.info, fine_cal_fname)
         raw.info = _update_sens_geometry(raw.info, cal_chans)
@@ -134,9 +135,10 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
-    coil_scale = np.ones((len(meg_coils), 1))
+    magscale = 100.
+    coil_scale = np.ones((len(picks), 1))
     coil_scale[np.array([coil['coil_class'] == 1.0
-                         for coil in meg_coils])] = 100.
+                         for coil in coils])] = magscale
 
     # Compute multipolar moment bases
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
@@ -144,21 +146,25 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     S_in, S_out = _sss_basis(origin, meg_coils, int_order, ext_order)
     n_in = S_in.shape[1]
 
-    # If doing fine calibration, compute point-like mags and add to S_in space
+    # Fine calibration processing (point-like magnetometers and imbalance)
     if fine_cal_fname is not None:
+        mag_inds = pick_types(raw.info, meg='mag')
         grad_inds = pick_types(raw.info, meg='grad')
         grad_info = pick_info(raw.info, grad_inds)
 
+        # Compute point-like mags and incorporate imbalance
+        imbalance = np.array([ch['imbalance'] for ch in cal_chans])
         S_in_fine = _sss_basis_point(origin, grad_info, int_order, ext_order,
-                                     cal_chans)
-        S_in[grad_inds, :] += S_in_fine * coil_scale[grad_inds]
+                                     imbalance[grad_inds])
 
+        # Scale and add point like magnetometer data to internal bases
+        S_in[grad_inds] += S_in_fine * magscale
+        # Scale magnetometers to correct for imbalance
+        S_in[mag_inds] /= imbalance[mag_inds]
 
-    S_in_good, S_out_good = S_in[good_chs, :], S_out[good_chs, :]
-    S_in_good_norm = np.sqrt(np.sum(S_in_good * S_in_good, axis=0))[:,
-                                                                    np.newaxis]
-    S_out_good_norm = \
-        np.sqrt(np.sum(S_out_good * S_out_good, axis=0))[:, np.newaxis]
+    # Combine internal and external spaces
+    S_tot = np.c_[S_in, S_out]
+
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
     S_tot_good = np.c_[S_in_good, S_out_good]
     S_tot_good /= np.sqrt(np.sum(S_tot_good * S_tot_good, axis=0))[np.newaxis,
@@ -310,7 +316,6 @@ def _sss_basis(origin, coils, int_order, ext_order):
     bins = np.repeat(np.arange(len(counts)), counts)
     n_sens = len(counts)
     n_bases = get_num_moments(int_order, ext_order)
-    # int_lens = np.insert(np.cumsum(counts), obj=0, values=0)
 
     S_in = np.empty((n_sens, (int_order + 1) ** 2 - 1))
     S_out = np.empty((n_sens, (ext_order + 1) ** 2 - 1))
@@ -680,6 +685,9 @@ def _overlap_projector(data_int, data_res, corr):
 def _read_fine_cal(info, fine_cal_fname):
     """Read sensor locations and imbalances from fine calibration file."""
 
+    logger.info('Fine calibration file used in Maxwell Filter: ' +
+                fine_cal_fname)
+
     # Read new sensor locations
     with open(fine_cal_fname, 'r') as fid:
         cal_chans = []
@@ -715,26 +723,54 @@ def _read_fine_cal(info, fine_cal_fname):
 def _update_sens_geometry(info, cal_chans):
     """Helper to replace sensor geometry information"""
 
-    # Replace sensor locations with those from fine calibration
+    # Replace sensor locations (and track differences) for fine calibration
+    ang_shift = np.zeros((info['nchan'], 3))
     for cal_chan in cal_chans:
         ch_ind = info['ch_names'].index(cal_chan['ch_name'])
+
+        # Loop over vectors in X, Y, and Z directions
+        for ang_i, (i1, i2) in enumerate(zip(range(3, 10, 3),
+                                             range(6, 13, 3))):
+            v1 = cal_chan['loc'][i1:i2]
+            v2 = info['chs'][ch_ind]['loc'][i1:i2].astype(float)
+
+            cos_ang = np.dot(v1, v2) / (np.linalg.norm(v1) *
+                                        np.linalg.norm(v2))
+            ang_shift[ch_ind, ang_i] = cos_ang
+
+        # Adjust channel orientation with those from fine calibration
         info['chs'][ch_ind]['loc'] = cal_chan['loc']
+
+    ang_shift[ang_shift > 1.] = 1.  # Deal with unreasonable values
+    ang_shift = np.arccos(ang_shift) * (180. / np.pi)  # Convert to degrees
+
+    # Log quantification of sensor changes
+    logger.info('Fine calibration adjusted coil positions by (mean ± std in '
+                'degrees): %0.5f ± %0.5f (max: %0.5f)' %
+                (np.mean(ang_shift), np.std(ang_shift),
+                 np.max(np.abs(ang_shift))))
 
     return info
 
 
-def _sss_basis_point(origin, info, int_order, ext_order, cal_chans):
+def _sss_basis_point(origin, info, int_order, ext_order, imbalance):
     """Compute multipolar moments for point-like magnetometers (in fine cal)"""
 
     # Construct 'coils' with r, weights, normal vecs, # integration pts, and
     # channel type.
-    imbalance = np.array([ch['imbalance'] for ch in cal_chans])
     if imbalance.ndim == 1:
         imbalance = imbalance[:, np.newaxis]
+    if imbalance.shape[1] not in [1, 3]:
+        err_msg = '''Must have 1 (x) or 3 (x, y, z) point-like magnetometers.
+            Currently have %i''' % imbalance.shape[1]
+        raise ValueError(err_msg)
 
     # Initialize internal multipolar moment space for point-like magnetometers
     S_in_all = np.zeros((len(info['chs']), (int_order + 1) ** 2 - 1))
-    pt_types = [2000, 2001, 2002]  # coil_type values for x, y, z pt. mags
+    # Coil_type values for x, y, z point magnetometers
+    pt_types = [2000, 2001, 2002]
+
+    # Loop over all coordinate directions desired and create point mags
     for dir_ind in np.arange(imbalance.shape[1]):
 
         temp_info = deepcopy(info)
@@ -744,6 +780,7 @@ def _sss_basis_point(origin, info, int_order, ext_order, cal_chans):
                                                 elekta_defs=True)
 
         S_in_add, _ = _sss_basis(origin, coils_add, int_order, ext_order)
+        # Scale with gradiometer imbalance and add to internal SSS space
         S_in_all += imbalance[dir_ind, :] * S_in_add
 
     return S_in_all
