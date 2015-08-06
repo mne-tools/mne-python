@@ -685,7 +685,7 @@ def _overlap_projector(data_int, data_res, corr):
 def _read_fine_cal(info, fine_cal_fname):
     """Read sensor locations and imbalances from fine calibration file."""
 
-    logger.info('Fine calibration file used in Maxwell Filter: ' +
+    logger.info('Fine calibration file used in Maxwell filter: ' +
                 fine_cal_fname)
 
     # Read new sensor locations
@@ -761,9 +761,9 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalance):
     if imbalance.ndim == 1:
         imbalance = imbalance[:, np.newaxis]
     if imbalance.shape[1] not in [1, 3]:
-        err_msg = '''Must have 1 (x) or 3 (x, y, z) point-like magnetometers.
-            Currently have %i''' % imbalance.shape[1]
-        raise ValueError(err_msg)
+        raise ValueError('Must have 1 (x) or 3 (x, y, z) point-like ' +
+                         'magnetometers. Currently have %i' %
+                         imbalance.shape[1])
 
     # Initialize internal multipolar moment space for point-like magnetometers
     S_in_all = np.zeros((len(info['chs']), (int_order + 1) ** 2 - 1))
