@@ -97,9 +97,9 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
         logger.info("\n---- Converting Flash images ----")
         echos = ['001', '002', '003', '004', '005', '006', '007', '008']
         if noflash30:
-            flashes = ['05', '30']
-        else:
             flashes = ['05']
+        else:
+            flashes = ['05', '30']
         #
         missing = False
         for flash in flashes:
@@ -119,7 +119,7 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
                 if not op.isdir(op.join('flash' + flash, echo)):
                     raise RuntimeError("Directory %s is missing."
                                        % op.join('flash' + flash, echo))
-                sample_file = glob.glob('*')[0]
+                sample_file = glob.glob(op.join('flash' + flash, echo, '*'))[0]
                 dest_file = op.join(mri_dir, 'flash',
                                     'mef' + flash + '_' + echo + '.mgz')
                 # do not redo if already present
@@ -127,16 +127,10 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
                     logger.info("The file %s is already there")
                 else:
                     cmd = ['mri_convert',
-                           op.join('flash' + flash, echo, sample_file),
+                           sample_file,
                            dest_file]
                     run_subprocess(cmd, env=env, stdout=sys.stdout)
                     echos_done = echos_done + 1
-    # Clear parameter maps if some of the data were reconverted
-    if echos_done > 0 and op.exists("parameter_maps"):
-        shutil.rmtree("parameter_maps")
-        logger.info("\nParameter maps directory cleared")
-    if not op.exists("parameter_maps"):
-        os.makedirs("parameter_maps")
     # Step 1b : Run grad_unwarp on converted files
     os.chdir(op.join(mri_dir, "flash"))
     files = glob.glob("mef*.mgz")
@@ -147,6 +141,12 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
             cmd = ['grad_unwarp', '-i', infile, '-o', outfile, '-unwarp',
                    'true']
             run_subprocess(cmd, env=env, stdout=sys.stdout)
+    # Clear parameter maps if some of the data were reconverted
+    if echos_done > 0 and op.exists("parameter_maps"):
+        shutil.rmtree("parameter_maps")
+        logger.info("\nParameter maps directory cleared")
+    if not op.exists("parameter_maps"):
+        os.makedirs("parameter_maps")
     # Step 2 : Create the parameter maps
     if not noflash30:
         logger.info("\n---- Creating the parameter maps ----")
