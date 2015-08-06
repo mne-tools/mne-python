@@ -12,7 +12,7 @@ import warnings
 from ..externals.six import string_types
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, sparse
 
 from ..source_estimate import SourceEstimate
 from ..epochs import _BaseEpochs
@@ -214,10 +214,10 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         List of indices of channels to be included. If None, defaults to all
         MEG and EEG channels.
     solver : str | function
-        Either a function which takes as its inputs the predictor matrix X
-        and the observation matrix Y, and returns the coefficient matrix b;
-        or a string (for now, only 'pinv'), in which case the solver used
-        is dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T.
+        Either a function which takes as its inputs the sparse predictor
+        matrix X and the observation matrix Y, and returns the coefficient
+        matrix b; or a string (for now, only 'pinv'), in which case the
+        solver used is dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T.
 
     Returns
     -------
@@ -233,8 +233,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
             # inv is slightly (~10%) faster, but pinv seemingly more stable
             def solver(X, Y):
-                return fast_dot(linalg.pinv(fast_dot(X.T, X)),
-                                fast_dot(X.T, Y.T)).T
+                return fast_dot(linalg.pinv(X.T.dot(X).todense()),
+                                X.T.dot(Y.T)).T
         else:
             raise ValueError("No such solver: {0}".format(solver))
 
@@ -274,57 +274,46 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     # time lags. Thus, each array is mostly sparse, with one diagonal of 1s
     # per event (for binary predictors).
 
-    # This should probably be improved (including making it more robust to
-    # high frequency data) by operating on sparse matrices. As-is, high
-    # sampling rates plus long windows blow up the system due to the inversion
-    # of massive matrices.
-    # Furthermore, assigning to a preallocated array would be faster.
-
-    n_samples = len(times)
     cond_length = dict()
-    all_n_lags = [int(tmax_s[cond] - tmin_s[cond]) for cond in conds]
-    X = np.empty((n_samples, sum(all_n_lags)), dtype=float)
-    cum = 0
-    for i_cond, (cond, n_lags) in enumerate(zip(conds, all_n_lags)):
-        # create the first row and column to be later used by toeplitz to
-        # build the full predictor matrix
-        samples = np.zeros(n_samples, dtype=float)
+    xs = []
+    for cond in conds:
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
-        n_lags = int(tmax_ - tmin_)
-        lags = np.zeros(n_lags, dtype=float)
+        n_lags = int(tmax_ - tmin_)  # width of matrix
         if cond in event_id:  # for binary predictors
             ids = ([event_id[cond]]
                    if isinstance(event_id[cond], int)
                    else event_id[cond])
-            samples[events[in1d(events[:, 2], ids), 0] + int(tmin_)] = 1
-            cond_length[cond] = sum(in1d(events[:, 2], ids))
+            onsets = -(events[in1d(events[:, 2], ids), 0] + tmin_)
+            values = np.ones((len(onsets), n_lags))
 
         else:  # for predictors from covariates, e.g. continuous ones
-            if len(covariates[cond]) != len(events):
-                error = """Condition {0} from ```covariates``` is
-                        not the same length as ```events```""".format(cond)
+            covs = covariates[cond]
+            if len(covs) != len(events):
+                error = ("Condition {0} from ```covariates``` is "
+                         "not the same length as ```events```").format(cond)
                 raise ValueError(error)
-            for time, value in zip(events[:, 0], covariates[cond]):
-                samples[time + int(tmin_)] = float(value)
-            cond_length[cond] = len(np.nonzero(covariates[cond])[0])
+            onsets = -(events[np.where(covs != 0), 0] + tmin_)[0]
+            v = np.asarray(covs)[np.nonzero(covs)].astype(float)
+            values = np.ones((len(onsets), n_lags)) * v[:, np.newaxis]
 
-        # this is the magical part (thanks to Marijn van Vliet):
-        # use toeplitz to construct series of diagonals
-        X[:, cum:cum + tmax_ - tmin_] = linalg.toeplitz(samples, lags)
-        cum += tmax_ - tmin_
+        cond_length[cond] = len(onsets)
+        xs.append(sparse.dia_matrix((values, onsets),
+                                    shape=(data.shape[1], n_lags)))
+
+    X = sparse.hstack(xs)
 
     # find only those positions where at least one predictor isn't 0
-    has_val = np.where(np.any(X, axis=1))[0]
+    has_val = np.unique(X.nonzero()[0])
 
     # additionally, reject positions based on extreme steps in the data
     if reject is not None:
         _, inds = _reject_data_segments(data, reject, flat, decim=None,
                                         info=info, tstep=tstep)
         for t0, t1 in inds:
-            has_val[t0:t1] = False
+            has_val = np.setdiff1d(has_val, range(t0, t1))
 
     # solve linear system
-    X, data = X[has_val], data[:, has_val]
+    X, data = X.tocsr()[has_val], data[:, has_val]
     coefs = solver(X, data)
 
     # construct Evoked objects to be returned from output
