@@ -932,7 +932,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean',
-                     layout=None, vmin=None, vmax=None, cmap='RdBu_r',
+                     layout=None, vmin=None, vmax=None, cmap=None,
                      sensors=True, colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None):
@@ -976,18 +976,19 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             file is inferred from the data; if no appropriate layout file was
             found, the layout is automatically generated from the sensor
             locations.
-        vmin : float | callable
-            The value specfying the lower bound of the color range.
-            If None, and vmax is None, -vmax is used. Else np.min(data).
-            If callable, the output equals vmin(data).
-        vmax : float | callable
-            The value specfying the upper bound of the color range.
-            If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.min(data).
-            If callable, the output equals vmax(data).
-        cmap : matplotlib colormap
-            Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-            'Reds'.
+        vmin : float | callable | None
+            The value specifying the lower bound of the color range. If None,
+            and vmax is None, -vmax is used. Else np.min(data) or in case
+            data contains only positive values 0. If callable, the output
+            equals vmin(data). Defaults to None.
+        vmax : float | callable | None
+            The value specifying the upper bound of the color range. If None,
+            the maximum value is used. If callable, the output equals
+            vmax(data). Defaults to None.
+        cmap : matplotlib colormap | None
+            Colormap. If None and the plotted data is all positive, defaults to
+            'Reds'. If None and data contains also negative values, defaults to
+            'RdBu_r'. Defaults to None.
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True, a circle
