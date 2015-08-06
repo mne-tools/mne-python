@@ -59,4 +59,4 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 times = np.arange(0.05, 0.15, 0.01)
 
 evoked.plot_topomap(times, proj='interactive')
-# Hint: the same works for evoked.plot and viz.plot_topo
+# Hint: the same works for evoked.plot and evoked.plot_topo

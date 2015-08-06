@@ -22,6 +22,7 @@ from .utils import _draw_proj_checkbox, tight_layout, _check_delayed_ssp
 from ..utils import logger
 from ..fixes import partial
 from ..io.pick import pick_info
+from .topo import _plot_evoked_topo
 
 
 def _butterfly_onpick(event, params):
@@ -282,6 +283,76 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly")
+
+
+def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
+                     border='none', ylim=None, scalings=None, title=None,
+                     proj=False, vline=[0.0], fig_facecolor='k',
+                     fig_background=None, axis_facecolor='k', font_color='w',
+                     show=True):
+    """Plot 2D topography of evoked responses.
+
+    Clicking on the plot of an individual sensor opens a new figure showing
+    the evoked response for the selected sensor.
+
+    Parameters
+    ----------
+    evoked : list of Evoked | Evoked
+        The evoked response to plot.
+    layout : instance of Layout | None
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.
+    layout_scale: float
+        Scaling factor for adjusting the relative size of the layout
+        on the canvas
+    color : list of color objects | color object | None
+        Everything matplotlib accepts to specify colors. If not list-like,
+        the color specified will be repeated. If None, colors are
+        automatically drawn.
+    border : str
+        matplotlib borders style to be used for each sensor plot.
+    ylim : dict | None
+        ylim for plots. The value determines the upper and lower subplot
+        limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
+        mag, grad, misc. If None, the ylim parameter for each channel is
+        determined by the maximum absolute peak.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    title : str
+        Title of the figure.
+    proj : bool | 'interactive'
+        If true SSP projections are applied before display. If 'interactive',
+        a check box for reversible selection of SSP projection vectors will
+        be shown.
+    vline : list of floats | None
+        The values at which to show a vertical line.
+    fig_facecolor : str | obj
+        The figure face color. Defaults to black.
+    fig_background : None | numpy ndarray
+        A background image for the figure. This must work with a call to
+        plt.imshow. Defaults to None.
+    axis_facecolor : str | obj
+        The face color to be used for each sensor plot. Defaults to black.
+    font_color : str | obj
+        The color of text in the colorbar and title. Defaults to white.
+    show : bool
+        Show figure if True.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        Images of evoked responses at sensor locations
+    """
+    return _plot_evoked_topo(evoked=evoked, layout=layout,
+                             layout_scale=layout_scale, color=color,
+                             border=border, ylim=ylim, scalings=scalings,
+                             title=title, proj=proj, vline=vline,
+                             fig_facecolor=fig_facecolor,
+                             fig_background=fig_background,
+                             axis_facecolor=axis_facecolor,
+                             font_color=font_color, show=show)
 
 
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
