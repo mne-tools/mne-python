@@ -27,7 +27,7 @@ from mne.io import Raw
 
 print(__doc__)
 
-tmin, tmax, event_id = -0.2, 0.5, 2  # take right-hand somato
+tmin, tmax, event_id = -0.1, 0.3, 2  # take right-hand somato
 reject = dict(mag=4e-12, eog=250e-6)
 
 data_path = bst_raw.data_path()

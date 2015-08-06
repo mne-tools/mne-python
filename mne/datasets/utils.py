@@ -273,6 +273,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                     extract_path = path
                 tf = tarfile.open(archive_name, 'r:%s' % ext)
                 tf.extractall(path=extract_path)
+                tf.close()
                 break
             except tarfile.ReadError as err:
                 logger.info('%s is %s trying "bz2"' % (archive_name, err))
