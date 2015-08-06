@@ -1,16 +1,32 @@
 #!/usr/bin/env python
 """Create 3-Layers BEM model from Flash MRI images
 
+
 This function extracts the BEM surfaces (outer skull, inner skull, and
 outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
-degrees. The multiecho FLASH data are inputted in NIFTI format.
-It was developed to work for Phillips MRI data, but could probably be
-used for data from other scanners that have been converted to NIFTI format
-(e.g., using MRIcron's dcm2nii). However,it has been tested only for
-data from the Achieva scanner). This function assumes that the Freesurfer
-segmentation of the subject has been completed. In particular, the T1.mgz
-and brain.mgz MRI volumes should be, as usual, in the subject's mri
-directory.
+degrees. The multiecho FLASH data are inputted in DICOM format.
+This function assumes that the Freesurfer segmentation of the subject
+has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
+should be, as usual, in the subject's mri directory.
+
+Before running this script do the following:
+(unless the -noconvert option is specified)
+
+    1. Copy all of your FLASH images in a single directory <source> and a
+       directory <dest> to hold the output of mne_organize_dicom
+    2. cd to <dest> and run
+       $ mne_organize_dicom <source>
+       to create an appropriate directory structure
+    2. Create symbolic links to make flash05 and flash30 point to the appropriate series:
+       $ ln -s <FLASH 5 series dir> flash05
+       $ ln -s <FLASH 30 series dir> flash30
+    3. cd to the directory where flash05 and flash30 links are
+    4. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
+    5. Run this script
+
+Example usage:
+
+$ mne flash_bem --subject sample
 
 """
 from __future__ import print_function
@@ -40,12 +56,11 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
         Subject name
     subjects_dir : string
         Directory containing subjects data (Freesurfer SUBJECTS_DIR)
-    flash05 : string
-        Full path of the NIFTI file for the
-        FLASH sequence with a spin angle of 5 degrees
-    flash30 : string
-        Full path of the NIFTI file for the
-        FLASH sequence with a spin angle of 30 degrees
+    noflash30 : bool
+        Skip the 30-degree flip angle data
+    noconvert : bool
+        Assume that the Flash MRI images have already been converted
+        to mgz files
     show : bool
         Show surfaces in 3D to visually inspect all three BEM
         surfaces (recommended)
