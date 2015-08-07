@@ -56,10 +56,10 @@ power.plot([82], baseline=(-0.5, 0), mode='logratio')
 fig, axis = plt.subplots(1, 2, figsize=(7, 4))
 power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=8, fmax=12,
                    baseline=(-0.5, 0), mode='logratio', axes=axis[0],
-                   title='Alpha', vmin=-0.45, vmax=0.45)
+                   title='Alpha', vmax=0.45)
 power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=13, fmax=25,
                    baseline=(-0.5, 0), mode='logratio', axes=axis[1],
-                   title='Beta', vmin=-0.45, vmax=0.45)
+                   title='Beta', vmax=0.45)
 mne.viz.tight_layout()
 
 # Inspect ITC

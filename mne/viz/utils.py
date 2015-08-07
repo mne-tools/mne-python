@@ -26,19 +26,25 @@ COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
 
-def _setup_vmin_vmax(data, vmin, vmax):
-    """Aux function to handle vmin and vamx parameters"""
+def _setup_vmin_vmax(data, vmin, vmax, norm=False):
+    """Aux function to handle vmin and vmax parameters"""
     if vmax is None and vmin is None:
         vmax = np.abs(data).max()
-        vmin = -vmax
+        if norm:
+            vmin = 0.
+        else:
+            vmin = -vmax
     else:
         if callable(vmin):
             vmin = vmin(data)
         elif vmin is None:
-            vmin = np.min(data)
+            if norm:
+                vmin = 0.
+            else:
+                vmin = np.min(data)
         if callable(vmax):
             vmax = vmax(data)
-        elif vmin is None:
+        elif vmax is None:
             vmax = np.max(data)
     return vmin, vmax
 

@@ -355,15 +355,14 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         The data values to plot.
     pos : array, shape = (n_points, 2)
         For each data point, the x and y coordinates.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+        If callable, the output equals vmin(data). Defaults to None.
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
     cmap : matplotlib colormap
         Colormap.
     sensors : bool | str
@@ -641,15 +640,14 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+        If callable, the output equals vmin(data). Defaults to None.
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
     cmap : matplotlib colormap
         Colormap.
     sensors : bool | str
@@ -766,7 +764,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean', layout=None,
-                     vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
+                     vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None):
@@ -812,18 +810,19 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         file is inferred from the data; if no appropriate layout file
         was found, the layout is automatically generated from the sensor
         locations.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
-    cmap : matplotlib colormap
-        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-        'Reds'.
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data) or in case
+        data contains only positive values 0. If callable, the output equals
+        vmin(data). Defaults to None.
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range. If None, the
+        maximum value is used. If callable, the output equals vmax(data).
+        Defaults to None.
+    cmap : matplotlib colormap | None
+        Colormap. If None and the plotted data is all positive, defaults to
+        'Reds'. If None and data contains also negative values, defaults to
+        'RdBu_r'. Defaults to None.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
         plot format string (e.g., 'r+' for red plusses). If True, a circle will
@@ -908,7 +907,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    norm = False if np.min(data) < 0 else True
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
+    if cmap is None:
+        cmap = 'Reds' if norm else 'RdBu_r'
 
     if axes is None:
         fig = plt.figure()
@@ -977,15 +979,14 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         be specified for Neuromag data). If possible, the correct layout file
         is inferred from the data; if no appropriate layout file was found, the
         layout is automatically generated from the sensor locations.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.max(data).
-        If callable, the output equals vmax(data).
+        If callable, the output equals vmin(data). Defaults to None.
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
     cmap : matplotlib colormap
         Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
         'Reds'.
@@ -1282,15 +1283,14 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
                  (12, 30, 'Beta'), (30, 45, 'Gamma')]
 
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
+        If None np.min(data) is used. If callable, the output equals
+        vmin(data).
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
     proj : bool
         Apply projection.
     n_fft : int
@@ -1381,15 +1381,14 @@ def plot_psds_topomap(
     agg_fun : callable
         The function used to aggregate over frequencies.
         Defaults to np.sum. if normalize is True, else np.mean.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
+        If None np.min(data) is used. If callable, the output equals
+        vmin(data).
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
     bands : list of tuple | None
         The lower and upper frequency and the name for that band. If None,
         (default) expands to:

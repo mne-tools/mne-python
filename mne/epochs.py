@@ -851,15 +851,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
                      (12, 30, 'Beta'), (30, 45, 'Gamma')]
 
-        vmin : float | callable
-            The value specfying the lower bound of the color range.
+        vmin : float | callable | None
+            The value specifying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
             If callable, the output equals vmin(data).
-        vmax : float | callable
-            The value specfying the upper bound of the color range.
-            If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.min(data).
-            If callable, the output equals vmax(data).
+        vmax : float | callable | None
+            The value specifying the upper bound of the color range.
+            If None, the maximum absolute value is used. If callable, the
+            output equals vmax(data). Defaults to None.
         proj : bool
             Apply projection.
         n_fft : int
