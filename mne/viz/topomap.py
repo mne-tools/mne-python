@@ -909,7 +909,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
-    norm = True if np.min(data) > 0 else False
+    norm = False if np.min(data) < 0 else True
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
     if cmap is None:
         cmap = 'Reds' if norm else 'RdBu_r'
