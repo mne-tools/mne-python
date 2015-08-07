@@ -59,7 +59,7 @@ _version_doc = """Get version of the local {name} dataset
 """
 
 
-_license_text = """
+_bst_license_text = """
 License
 -------
 This tutorial dataset (EEG and MRI data) remains a property of the MEG Lab,
@@ -218,7 +218,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         return ''
     if not op.exists(folder_path) or force_update:
         if name == 'brainstorm':
-            answer = input('%sAgree (y/[n])? ' % _license_text)
+            answer = input('%sAgree (y/[n])? ' % _bst_license_text)
             if answer.lower() != 'y':
                 raise RuntimeError('You must agree to the license to use this '
                                    'dataset')

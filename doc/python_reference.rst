@@ -249,7 +249,9 @@ Sample datasets
    :toctree: generated/
    :template: function.rst
 
-   data_path
+   bst_auditory.data_path
+   bst_resting.data_path
+   bst_raw.data_path
 
 :py:mod:`mne.datasets.megsim`:
 
