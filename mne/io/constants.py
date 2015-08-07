@@ -770,8 +770,10 @@ FIFF.FIFFV_COIL_DIPOLE             = 200  # Time-varying dipole definition
 # direction (ex)
 FIFF.FIFFV_COIL_MCG_42             = 1000  # For testing the MCG software
 
-FIFF.FIFFV_COIL_POINT_MAGNETOMETER = 2000  # Simple point magnetometer
-FIFF.FIFFV_COIL_AXIAL_GRAD_5CM     = 2001  # Generic axial gradiometer
+FIFF.FIFFV_COIL_POINT_MAGNETOMETER   = 2000  # Simple point magnetometer
+FIFF.FIFFV_COIL_AXIAL_GRAD_5CM       = 2001  # Generic axial gradiometer
+FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X = 2002  # Simple point magnetometer, x-direction
+FIFF.FIFFV_COIL_POINT_MAGNETOMETER_Y = 2003  # Simple point magnetometer, y-direction
 
 FIFF.FIFFV_COIL_VV_PLANAR_W        = 3011  # VV prototype wirewound planar sensor
 FIFF.FIFFV_COIL_VV_PLANAR_T1       = 3012  # Vectorview SQ20483N planar gradiometer
