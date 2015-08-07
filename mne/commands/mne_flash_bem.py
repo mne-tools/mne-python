@@ -17,7 +17,8 @@ Before running this script do the following:
     2. cd to <dest> and run
        $ mne_organize_dicom <source>
        to create an appropriate directory structure
-    2. Create symbolic links to make flash05 and flash30 point to the appropriate series:
+    2. Create symbolic links to make flash05 and flash30 point to the
+       appropriate series:
        $ ln -s <FLASH 5 series dir> flash05
        $ ln -s <FLASH 30 series dir> flash30
     3. cd to the directory where flash05 and flash30 links are
