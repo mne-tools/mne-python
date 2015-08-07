@@ -12,8 +12,8 @@ should be, as usual, in the subject's mri directory.
 Before running this script do the following:
 (unless the -noconvert option is specified)
 
-    1. Copy all of your FLASH images in a single directory <source> and a
-       directory <dest> to hold the output of mne_organize_dicom
+    1. Copy all of your FLASH images in a single directory <source> and create
+       a directory <dest> to hold the output of mne_organize_dicom
     2. cd to <dest> and run
        $ mne_organize_dicom <source>
        to create an appropriate directory structure
