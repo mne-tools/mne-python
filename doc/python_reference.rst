@@ -237,6 +237,22 @@ Sample datasets
 
    data_path
 
+:py:mod:`mne.datasets.brainstorm`:
+
+.. automodule:: mne.datasets.brainstorm
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.datasets.brainstorm
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   bst_auditory.data_path
+   bst_resting.data_path
+   bst_raw.data_path
+
 :py:mod:`mne.datasets.megsim`:
 
 .. automodule:: mne.datasets.megsim

@@ -55,6 +55,8 @@ Changelog
 
     - Add ``plot_topo`` method to ``Evoked`` object by `Jaakko Leppakangas`_
 
+    - Add fetcher :mod:`mne.datasets.brainstorm` for datasets used by Brainstorm in their tutorials by `Mainak Jas`_
+
 BUG
 ~~~
 
