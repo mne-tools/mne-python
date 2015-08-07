@@ -65,16 +65,16 @@ def run():
 
     options, args = parser.parse_args()
 
-    if options.subject is None:
-        parser.print_help()
-        raise RuntimeError('The subject argument must be set')
-
     subject = options.subject
     subjects_dir = options.subjects_dir
     noflash30 = options.noflash30
     noconvert = options.noconvert
     unwarp = options.unwarp
     show = options.show
+
+    if options.subject is None:
+      parser.print_help()
+      raise RuntimeError('The subject argument must be set')
 
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
                    noflash30=noflash30, noconvert=noconvert, unwarp=unwarp,
