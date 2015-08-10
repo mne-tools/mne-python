@@ -322,7 +322,7 @@ def _sss_basis(origin, coils, int_order, ext_order):
 
     Notes
     -----
-    Incorporates magnetometer scaling factor. Does not normalize spaces though
+    Incorporates magnetometer scaling factor. Does not normalize spaces.
     """
 
     # Get position, normal, weights, and number of integration pts.
@@ -726,15 +726,14 @@ def _read_fine_cal(info, fine_cal_fname):
 
     # Check that we ended up with correct number of channels
     if len(cal_chans) != info['nchan']:
-        err_msg = '''Number of channels in fine calibration file (%i) does not
-            equal number of channels in info (%i)''' % (len(cal_chans),
-                                                        info['nchan'])
-        raise RuntimeError(err_msg)
+        raise RuntimeError('Number of channels in fine calibration file (%i) '
+                           'does not equal number of channels in info (%i)' %
+                           (len(cal_chans), info['nchan']))
 
     return cal_chans
 
 
-def _update_sens_geometry(info, cal_chans):
+def _update_sensor_geometry(info, cal_chans):
     """Helper to replace sensor geometry information"""
 
     # Replace sensor locations (and track differences) for fine calibration
@@ -755,12 +754,13 @@ def _update_sens_geometry(info, cal_chans):
         # Adjust channel orientation with those from fine calibration
         info['chs'][ch_ind]['loc'] = cal_chan['loc']
 
-    ang_shift[ang_shift > 1.] = 1.  # Deal with unreasonable values
-    ang_shift = np.arccos(ang_shift) * (180. / np.pi)  # Convert to degrees
+    # Deal with numerical precision giving values slightly more than 1.
+    ang_shift[ang_shift > 1.] = 1.
+    ang_shift = np.rad2deg(np.arccos(ang_shift))  # Convert to degrees
 
     # Log quantification of sensor changes
     logger.info('Fine calibration adjusted coil positions by (mean ± std in '
-                'degrees): %0.5f ± %0.5f (max: %0.5f)' %
+                'degrees): %0.1f ± %0.1f (max: %0.1f)' %
                 (np.mean(ang_shift), np.std(ang_shift),
                  np.max(np.abs(ang_shift))))
 
@@ -789,7 +789,7 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalance):
                 FIFF.FIFFV_COIL_POINT_MAGNETOMETER]
 
     # Loop over all coordinate directions desired and create point mags
-    for dir_ind in np.arange(imbalance.shape[1]):
+    for dir_ind in range(imbalance.shape[1]):
 
         temp_info = deepcopy(info)
         for ch in temp_info['chs']:
@@ -800,7 +800,7 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalance):
         S_in_add, S_out_add = _sss_basis(origin, coils_add, int_order,
                                          ext_order)
         # Scale spaces by gradiometer imbalance
-        S_in_all += S_in_add * imbalance[:, dir_ind].reshape(-1, 1)
-        S_out_all += S_out_add * imbalance[:, dir_ind].reshape(-1, 1)
+        S_in_all += S_in_add * imbalance[:, dir_ind][:, np.newaxis]
+        S_out_all += S_out_add * imbalance[:, dir_ind][:, np.newaxis]
 
     return S_in_all, S_out_all

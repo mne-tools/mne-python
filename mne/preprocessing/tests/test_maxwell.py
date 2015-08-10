@@ -83,7 +83,7 @@ def test_maxwell_filter():
     assert_equal(S_out.shape, (ncoils, n_ext_bases),
                  'S_out has incorrect shape')
 
-    # Test sss computation at the standard head origin
+    # Test SSS computation at the standard head origin
     raw_sss = maxwell_filter(raw, origin=[0., 0., 40.],
                              int_order=int_order, ext_order=ext_order)
 
@@ -325,8 +325,11 @@ def test_maxwell_filter_fine_calibration():
     assert_true(np.mean(bench_rms / error_rms) >= 100, 'SNR < 100')
 
 
-# TODO: Eventually add simulation tests mirroring Taulu's original papers
-#@testing.requires_testing_data
-#def test_maxwell_noise_rejection():
+# TODO: Eventually add simulation tests mirroring Taulu's original paper
+# that calculates the localization error and shielding factor:
+# http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=1495874
+
+# @testing.requires_testing_data
+# def test_maxwell_noise_rejection():
 
 run_tests_if_main()
