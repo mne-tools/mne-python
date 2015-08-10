@@ -34,7 +34,8 @@ class RawEDF(_BaseRaw):
         Path to the EDF+,BDF file.
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0).
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the electrodes in the
@@ -583,7 +584,8 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Path to the EDF+,BDF file.
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0).
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the electrodes in the
