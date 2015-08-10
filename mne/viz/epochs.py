@@ -146,8 +146,8 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         ax2.set_xlabel('Time (ms)')
         ax2.set_xlim([1e3 * evoked.times[0], 1e3 * evoked.times[-1]])
         ax2.set_ylabel(units[ch_type])
-        evoked_vmin = min(evoked_data) if scale_vmin else vmin
-        evoked_vmax = max(evoked_data) if scale_vmax else vmax
+        evoked_vmin = min(evoked_data) * 1.1 if scale_vmin else vmin
+        evoked_vmax = max(evoked_data) * 1.1 if scale_vmax else vmax
         if scale_vmin or scale_vmax:
             evoked_vmax = max(np.abs([evoked_vmax, evoked_vmin]))
             evoked_vmin = -evoked_vmax
