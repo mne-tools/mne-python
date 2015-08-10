@@ -77,6 +77,51 @@ class Montage(object):
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read montage from a file
 
+    This function can be used to read electrode positions from a user specified
+    file using the `kind` and `path` parameters. Alternatively, use only the
+    `kind` parameter to load one of the build-in montages:
+
+    ===================   =====================================================
+    Kind                  description 
+    ===================   =====================================================
+    standard_1005         Electrodes are named and positioned according to the
+                          international 10-05 system.
+    standard_1020         Electrodes are named and positioned according to the
+                          international 10-20 system.
+    standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
+                          (A1, B2, F4, etc.)
+    standard_postfixed    Electrodes are named according to the international
+                          10-20 system using postfixes for intermediate
+                          positions.
+    standard_prefixed     Electrodes are named according to the international
+                          10-20 system using prefixes for intermediate
+                          positions.
+    standard_primed       Electrodes are named according to the international
+                          10-20 system using prime marks (' and '') for 
+                          intermediate positions.
+
+    biosemi16             BioSemi cap with 16 electrodes
+    biosemi32             BioSemi cap with 32 electrodes
+    biosemi64             BioSemi cap with 64 electrodes
+    biosemi128            BioSemi cap with 128 electrodes
+    biosemi160            BioSemi cap with 160 electrodes
+    biosemi256            BioSemi cap with 256 electrodes
+
+    easycap-M10           Brainproducts EasyCap with electrodes named
+                          according to the 10-05 system
+    easycap-M1            Brainproduct EasyCap with numbered electrodes
+
+    EGI_256               Geodesic Sensor Net with 256 channels
+
+    GSN-HydroCel-32       HydroCel Geodesic Sensor Net with 32 electrodes
+    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net with 64 electrodes
+    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net with 64 electrodes + Cz
+    GSN-HydroCel-128      HydroCel Geodesic Sensor Net with 128 electrodes
+    GSN-HydroCel-129      HydroCel Geodesic Sensor Net with 128 electrodes + Cz
+    GSN-HydroCel-256      HydroCel Geodesic Sensor Net with 256 electrodes
+    GSN-HydroCel-257      HydroCel Geodesic Sensor Net with 256 electrodes + Cz
+    ===================   =====================================================
+
     Parameters
     ----------
     kind : str
@@ -84,13 +129,15 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd',
         '.elp', '.hpts' or '.sfp' are supported.
     ch_names : list of str | None
-        The names to read. If None, all names are returned.
+        If not all electrodes defined in the montage are present in the EEG
+        data, use this parameter to select subset of electrode positions to
+        load. If None (default), all defined electrode positions are returned.
     path : str | None
         The path of the folder containing the montage file. Defaults to the
         mne/channels/data/montages folder in your mne-python installation.
     unit : 'm' | 'cm' | 'mm'
-        Unit of the input file. If not 'm', coordinates will be rescaled
-        to 'm'.
+        Unit of the input file. If not 'm' (default), coordinates will be
+        rescaled to 'm'.
     transform : bool
         If True, points will be transformed to Neuromag space.
         The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
