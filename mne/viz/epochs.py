@@ -21,15 +21,15 @@ from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
 from ..time_frequency import compute_epochs_psd
-from .utils import tight_layout, _prepare_trellis, figure_nobar
-from .utils import _toggle_options, _toggle_proj, _layout_figure
+from .utils import tight_layout, _prepare_trellis, figure_nobar, _toggle_proj
+from .utils import _toggle_options, _layout_figure, _setup_vmin_vmax
 from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
 from ..defaults import _handle_default
 
 
 def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap='RdBu_r'):
+                      units=None, scalings=None, cmap='RdBu_r', fig=None):
     """Plot Event Related Potential / Fields image
 
     Parameters
@@ -63,9 +63,14 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         defaults to `units=dict(eeg='uV', grad='fT/cm', mag='fT')`.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.
-        If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15)`
+        If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
+        eog=1e6)`
     cmap : matplotlib colormap
         Colormap.
+    fig : matplotlib figure | None
+        Figure instance to draw the image to. Figure must contain two axes for
+        drawing the single trials and evoked responses. If None a new figure is
+        created. Defaults to None.
 
     Returns
     -------
@@ -85,16 +90,20 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         raise ValueError('Scalings and units must have the same keys.')
 
     picks = np.atleast_1d(picks)
+    if fig is not None and len(picks) > 1:
+        raise ValueError('Only single pick can be drawn to a figure.')
     evoked = epochs.average(picks)
     data = epochs.get_data()[:, picks, :]
-    if vmin is None:
-        vmin = data.min()
-    if vmax is None:
-        vmax = data.max()
+    scale_vmin = True if vmin is None else False
+    scale_vmax = True if vmax is None else False
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
-        this_fig = plt.figure()
+        if fig is None:
+            this_fig = plt.figure()
+        else:
+            this_fig = fig
         figs.append(this_fig)
 
         ch_type = channel_type(epochs.info, idx)
@@ -113,9 +122,13 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         if sigma > 0.:
             this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
                                                   axis=0)
-
+        plt.figure(this_fig.number)
         ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
-        im = plt.imshow(this_data,
+        if scale_vmin:
+            vmin *= scalings[ch_type]
+        if scale_vmax:
+            vmax *= scalings[ch_type]
+        im = ax1.imshow(this_data,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
                                 0, len(data)],
                         aspect='auto', origin='lower', interpolation='nearest',
@@ -128,11 +141,17 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         ax1.axis('auto')
         ax1.axis('tight')
         ax1.axvline(0, color='m', linewidth=3, linestyle='--')
-        ax2.plot(1e3 * evoked.times, scalings[ch_type] * evoked.data[i])
+        evoked_data = scalings[ch_type] * evoked.data[i]
+        ax2.plot(1e3 * evoked.times, evoked_data)
         ax2.set_xlabel('Time (ms)')
         ax2.set_xlim([1e3 * evoked.times[0], 1e3 * evoked.times[-1]])
         ax2.set_ylabel(units[ch_type])
-        ax2.set_ylim([vmin, vmax])
+        evoked_vmin = min(evoked_data) * 1.1 if scale_vmin else vmin
+        evoked_vmax = max(evoked_data) * 1.1 if scale_vmax else vmax
+        if scale_vmin or scale_vmax:
+            evoked_vmax = max(np.abs([evoked_vmax, evoked_vmin]))
+            evoked_vmin = -evoked_vmax
+        ax2.set_ylim([evoked_vmin, evoked_vmax])
         ax2.axvline(0, color='m', linewidth=3, linestyle='--')
         if colorbar:
             plt.colorbar(im, cax=ax3)
@@ -822,7 +841,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'ax_help_button': ax_help_button,  # needed for positioning
                    'help_button': help_button,  # reference needed for clicks
                    'fig_options': None,
-                   'settings': [True, True, True, True]})
+                   'settings': [True, True, True, True],
+                   'image_plot': None})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
@@ -1097,13 +1117,9 @@ def _pick_bad_epochs(event, params):
 
 def _pick_bad_channels(pos, params):
     """Helper function for selecting bad channels."""
-    labels = params['ax'].yaxis.get_ticklabels()
-    offsets = np.array(params['offsets']) + params['offsets'][0]
-    line_idx = np.searchsorted(offsets, pos[1])
-    text = labels[line_idx].get_text()
-    if len(text) == 0:
+    text, ch_idx = _label2idx(params, pos)
+    if text is None:
         return
-    ch_idx = params['ch_start'] + line_idx
     if text in params['info']['bads']:
         while text in params['info']['bads']:
             params['info']['bads'].remove(text)
@@ -1143,7 +1159,22 @@ def _mouse_click(event, params):
         pos = ax.transData.inverted().transform((event.x, event.y))
         if pos[0] > 0 or pos[1] < 0 or pos[1] > ylim[0]:
             return
-        params['label_click_fun'](pos)
+        if event.button == 1:  # left click
+            params['label_click_fun'](pos)
+        elif event.button == 3:  # right click
+            if 'ica' not in params:
+                _, ch_idx = _label2idx(params, pos)
+                if ch_idx is None:
+                    return
+                if channel_type(params['info'], ch_idx) not in ['mag', 'grad',
+                                                                'eeg', 'eog']:
+                    logger.info('Event related fields / potentials only '
+                                'available for MEG and EEG channels.')
+                    return
+                fig = plot_image_epochs(params['epochs'],
+                                        picks=params['inds'][ch_idx],
+                                        fig=params['image_plot'])[0]
+                params['image_plot'] = fig
     elif event.button == 1:  # left click
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:
@@ -1586,3 +1617,15 @@ def _plot_histogram(params):
         pass
     if params['fig_proj'] is not None:
         params['fig_proj'].canvas.draw()
+
+
+def _label2idx(params, pos):
+    """Aux function for click on labels. Returns channel name and idx."""
+    labels = params['ax'].yaxis.get_ticklabels()
+    offsets = np.array(params['offsets']) + params['offsets'][0]
+    line_idx = np.searchsorted(offsets, pos[1])
+    text = labels[line_idx].get_text()
+    if len(text) == 0:
+        return None, None
+    ch_idx = params['ch_start'] + line_idx
+    return text, ch_idx

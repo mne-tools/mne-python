@@ -530,7 +530,6 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                       block):
     """Function for plotting the ICA components as raw array."""
     import matplotlib.pyplot as plt
-    plt.ion()
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
     if picks is None:
@@ -644,7 +643,6 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                          title, block):
     """Function for plotting the components as epochs."""
     import matplotlib.pyplot as plt
-    plt.ion()  # Turn interactive mode on to avoid warnings.
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True)

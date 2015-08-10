@@ -287,6 +287,7 @@ def _get_help_text(params):
             text2.append('Show topography for the component\n')
         else:
             text.append(u'click channel name :\n')
+            text.append(u'right click channel name :\n')
             text2.insert(2, 'Navigate channels down\n')
             text2.insert(3, 'Navigate channels up\n')
             text2.insert(8, 'Reduce the number of channels per view\n')
@@ -298,6 +299,7 @@ def _get_help_text(params):
             text2.append('Mark bad epoch\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
+            text2.append('Plot ERP/ERF image\n')
             text.append(u'middle click :\n')
             text2.append('Show channel name (butterfly plot)\n')
         text.insert(11, u'o : \n')
@@ -784,7 +786,7 @@ class ClickableImage(object):
         return lt
 
 
-def _fake_click(fig, ax, point, xform='ax'):
+def _fake_click(fig, ax, point, xform='ax', button=1):
     """Helper to fake a click at a relative point within axes."""
     if xform == 'ax':
         x, y = ax.transAxes.transform_point(point)
@@ -793,9 +795,9 @@ def _fake_click(fig, ax, point, xform='ax'):
     else:
         raise ValueError('unknown transform')
     try:
-        fig.canvas.button_press_event(x, y, 1, False, None)
+        fig.canvas.button_press_event(x, y, button, False, None)
     except Exception:  # for old MPL
-        fig.canvas.button_press_event(x, y, 1, False)
+        fig.canvas.button_press_event(x, y, button, False)
 
 
 def add_background_image(fig, im, set_ratios=None):
