@@ -82,7 +82,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     `kind` parameter to load one of the build-in montages:
 
     ===================   =====================================================
-    Kind                  description 
+    Kind                  description
     ===================   =====================================================
     standard_1005         Electrodes are named and positioned according to the
                           international 10-05 system.
@@ -97,7 +97,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                           10-20 system using prefixes for intermediate
                           positions.
     standard_primed       Electrodes are named according to the international
-                          10-20 system using prime marks (' and '') for 
+                          10-20 system using prime marks (' and '') for
                           intermediate positions.
 
     biosemi16             BioSemi cap with 16 electrodes
