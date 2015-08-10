@@ -510,7 +510,6 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     """Helper for setting up the mne_browse_raw window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
-    plt.ion()
     size = get_config('MNE_BROWSE_RAW_SIZE')
     if size is not None:
         size = size.split(',')

@@ -650,7 +650,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
     from matplotlib.colors import colorConverter
-    plt.ion()
     epochs = params['epochs']
 
     if picks is None:
