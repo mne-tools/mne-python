@@ -1530,7 +1530,7 @@ def _get_stim_channel(stim_channel, info):
         return stim_channel
 
     if 'STI 014' in info['ch_names']:
-        return 'STI 014'
+        return ['STI 014']
 
     from .io.pick import pick_types
     stim_channel = pick_types(info, meg=False, ref_meg=False, stim=True)
