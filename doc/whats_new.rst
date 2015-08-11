@@ -57,6 +57,8 @@ Changelog
 
     - Add interactive plotting of single trials by right clicking on channel name in epochs browser by `Jaakko Leppakangas`_
 
+    - New logos and logo generation script by `Daniel McCloy`_
+
 BUG
 ~~~
 
