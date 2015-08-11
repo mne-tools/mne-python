@@ -194,7 +194,7 @@ def test_plot_tfr_topomap():
     erelease.ydata = 0.2
     pos = [[0.11, 0.11], [0.25, 0.5], [0.0, 0.2], [0.2, 0.39]]
     _onselect(eclick, erelease, tfr, pos, 'mag', 1, 3, 1, 3, 'RdBu_r', list())
-    tfr._onselect(eclick, erelease, None, 'mean', None, 'RdBu_r')
+    tfr._onselect(eclick, erelease, None, 'mean', None)
     plt.close('all')
 
 
