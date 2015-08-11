@@ -710,7 +710,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                 ax = axes[idx]
                 fig = ax.get_figure()
             onselect_callback = partial(self._onselect, baseline=baseline,
-                                        mode=mode, layout=layout, cmap=cmap)
+                                        mode=mode, layout=layout)
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
                         x_label='Time (ms)', y_label='Frequency (Hz)',
@@ -722,7 +722,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             plt.show()
         return fig
 
-    def _onselect(self, eclick, erelease, baseline, mode, layout, cmap):
+    def _onselect(self, eclick, erelease, baseline, mode, layout):
         """Callback function called by rubber band selector in channel tfr."""
         import matplotlib.pyplot as plt
         from ..viz import plot_tfr_topomap
@@ -759,7 +759,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             ax = plt.subplot(1, len(types), idx + 1)
             plot_tfr_topomap(self, ch_type=ch_type, tmin=tmin, tmax=tmax,
                              fmin=fmin, fmax=fmax, layout=layout,
-                             baseline=baseline, mode=mode, cmap=cmap,
+                             baseline=baseline, mode=mode, cmap=None,
                              title=ch_type, vmin=None, vmax=None,
                              axes=ax)
 
@@ -854,7 +854,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             from mne import find_layout
             layout = find_layout(self.info)
         onselect_callback = partial(self._onselect, baseline=baseline,
-                                    mode=mode, layout=layout, cmap=cmap)
+                                    mode=mode, layout=layout)
         imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap,
                          onselect=onselect_callback)
 
