@@ -3,8 +3,9 @@
 .. raw:: html
 
     <div class="container"><div class="row">
-    <div class="col-md-8"><div style="float: center">
-    <a href="index.html"><img src="_static/mne_logo.png"" border="0" alt="MNE"/></a>
+    <div class="col-md-8"><div style="text-align: center; height: 270px">
+    <span style="display: inline-block; height: 100%; vertical-align: middle"></span>
+    <a href="index.html"><img src="_static/mne_logo.png"" border="0" alt="MNE" style="vertical-align: middle"></a>
     </div></div>
     <div class="col-md-4"><div style="float: left">
     <a href="index.html"><img src="_static/institutions.png"" border="0" alt="Institutions"/></a>
