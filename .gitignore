@@ -34,6 +34,7 @@ MNE-sample-data*
 MNE-somato-data*
 MNE-spm-face*
 MNE-testing-data*
+MNE-brainstorm-data*
 MEGSIM*
 build
 coverage
