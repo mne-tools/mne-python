@@ -59,6 +59,7 @@ Changelog
 
     - New logos and logo generation script by `Daniel McCloy`_
 
+
 BUG
 ~~~
 
@@ -1114,3 +1115,5 @@ of commits):
 .. _Ross Maddox: http://faculty.washington.edu/rkmaddox/
 
 .. _Alexandre Barachant: http://alexandre.barachant.org
+
+.. _Daniel McCloy: http://dan.mccloy.info
