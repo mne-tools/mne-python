@@ -153,7 +153,7 @@ class _GeneralizationAcrossTime(object):
         # Parallel across training time
         # TODO: JRK: Chunking times points needs to be simplified
         parallel, p_time_gen, n_jobs = parallel_func(_fit_slices, n_jobs)
-        n_chunks = min(len(self.train_times_['slices']), n_jobs)
+        n_chunks = min(X.shape[2], n_jobs)
         splits = np.array_split(self.train_times_['slices'], n_chunks)
 
         def f(x):
@@ -212,19 +212,24 @@ class _GeneralizationAcrossTime(object):
             raise ValueError('`test_times` must be a dict or "diagonal"')
 
         if 'slices' not in test_times:
-            # Force same number of time sample in testing than in training
+            # Check that same number of time sample in testing than in training
             # (otherwise it won 't be the same number of features')
-            window_param = dict(length=self.train_times_['length'])
+            if 'length' not in test_times:
+                test_times['length'] = self.train_times_['length']
+            if test_times['length'] != self.train_times_['length']:
+                raise ValueError('`train_times` and `test_times` must have '
+                                 'identical `length` keys')
             # Make a sliding window for each training time.
             slices_list = list()
             times_list = list()
             for t in range(0, len(self.train_times_['slices'])):
-                test_times_ = _sliding_window(epochs.times, window_param)
+                test_times_ = _sliding_window(epochs.times, test_times)
                 times_list += [test_times_['times']]
                 slices_list += [test_times_['slices']]
             test_times = test_times_
             test_times['slices'] = slices_list
             test_times['times'] = times_list
+
 
         # Store all testing times parameters
         self.test_times_ = test_times
@@ -567,6 +572,23 @@ def _sliding_window(times, window_params):
             window_params['step'] = freq
         if 'length' not in window_params:
             window_params['length'] = freq
+
+        if (window_params['start'] < times[0] or
+                window_params['start'] > times[-1]):
+            raise ValueError(
+                '`start` (%.2f s) outside time range [%.2f, %.2f].' % (
+                    window_params['start'], times[0], times[-1]))
+        if (window_params['stop'] < times[0] or
+                window_params['stop'] > times[-1]):
+            raise ValueError(
+                '`stop` (%.2f s) outside time range [%.2f, %.2f].' % (
+                    window_params['stop'], times[0], times[-1]))
+        if window_params['step'] < freq:
+            raise ValueError('`step` must be >= 1 / sampling_frequency')
+        if window_params['length'] < freq:
+            raise ValueError('`length` must be >= 1 / sampling_frequency')
+        if window_params['length'] > np.ptp(times):
+            raise ValueError('`length` must be <= time range')
 
         # Convert seconds to index
 
