@@ -239,7 +239,7 @@ class _GeneralizationAcrossTime(object):
         # chunk, is larger than the estimators, cloned in each chunk)
         if np.all([np.array_equal(self.test_times_['slices'][0], this_slice)
                    for this_slice in self.test_times_['slices']]):
-            n_chunks = min(n_estimators, n_jobs) + 1
+            n_chunks = min(n_estimators, n_jobs)
             splits = np.transpose([np.array_split(slices, n_chunks)
                                    for slices in self.test_times_['slices']])
 
@@ -343,14 +343,22 @@ class _GeneralizationAcrossTime(object):
         parallel, p_time_gen, n_jobs = parallel_func(_score_slices, n_jobs)
         n_estimators = len(self.train_times_['slices'])
         n_chunks = min(n_estimators, n_jobs)
-        splits = np.array_split(self.test_times_['slices'], n_chunks)
-        # Score each training and testing time point
-        scores = parallel(p_time_gen(
-            self.y_true_,
-            [self.y_pred_[t_train] for t_train in split * int(
-                n_chunks / n_estimators) + np.arange(len(slices))],
-            slices, self.scorer_) for split, slices in enumerate(splits))
-        self.scores_ = np.concatenate(scores, axis=0).tolist()
+        splits = np.transpose([np.array_split(slices, n_chunks)
+                               for slices in self.test_times_['slices']])
+
+        def chunk_y_pred(y_pred, slices):
+            """Smart chunking to avoid memory overload"""
+            slices = [sl for sl in slices]  # from object array to list
+            start = np.min(slices)
+            stop = np.max(slices) + 1
+            slices_ = np.array(slices) - start
+            y_pred_ = [[y_[ii] for ii in range(start, stop)] for y_ in y_pred]
+            return (self.y_true_, y_pred_, slices_, self.scorer_)
+
+        scores = parallel(p_time_gen(*chunk_y_pred(self.y_pred_, slices))
+                          for slices in splits)
+        self.scores_ = np.concatenate(scores, axis=1).tolist()
+
         return self.scores_
 
 
