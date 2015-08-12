@@ -240,8 +240,9 @@ class _GeneralizationAcrossTime(object):
         if np.all([np.array_equal(self.test_times_['slices'][0], this_slice)
                    for this_slice in self.test_times_['slices']]):
             n_chunks = min(n_estimators, n_jobs)
-            splits = np.transpose([np.array_split(slices, n_chunks)
-                                   for slices in self.test_times_['slices']])
+            splits = [np.array_split(slices, n_chunks)
+                      for slices in self.test_times_['slices']]
+            splits = map(list, zip(*splits))
 
             def chunk_X(X, slices):
                 """Smart chunking to avoid memory overload"""
@@ -337,27 +338,18 @@ class _GeneralizationAcrossTime(object):
             y = np.array(y)
         self.y_true_ = y  # to be compared with y_pred for scoring
 
-        # Preprocessing for parallelization:
-        # TODO: JRK: Chunking times points needs to be simplified
+        # Preprocessing for parallelization
         n_jobs = min(len(self.y_pred_[0][0]), check_n_jobs(self.n_jobs))
         parallel, p_time_gen, n_jobs = parallel_func(_score_slices, n_jobs)
         n_estimators = len(self.train_times_['slices'])
         n_chunks = min(n_estimators, n_jobs)
-        splits = np.transpose([np.array_split(slices, n_chunks)
-                               for slices in self.test_times_['slices']])
-
-        def chunk_y_pred(y_pred, slices):
-            """Smart chunking to avoid memory overload"""
-            slices = [sl for sl in slices]  # from object array to list
-            start = np.min(slices)
-            stop = np.max(slices) + 1
-            slices_ = np.array(slices) - start
-            y_pred_ = [[y_[ii] for ii in range(start, stop)] for y_ in y_pred]
-            return (self.y_true_, y_pred_, slices_, self.scorer_)
-
-        scores = parallel(p_time_gen(*chunk_y_pred(self.y_pred_, slices))
-                          for slices in splits)
-        self.scores_ = np.concatenate(scores, axis=1).tolist()
+        splits = np.array_split(range(len(self.train_times_['slices'])), n_chunks)
+        scores = parallel(
+            p_time_gen(self.y_true_,
+                       [self.y_pred_[train] for train in split],
+                       self.scorer_)
+            for split in splits)
+        self.scores_ = np.concatenate(scores, axis=0).tolist()
 
         return self.scores_
 
@@ -437,24 +429,18 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     return y_pred
 
 
-def _score_slices(y_true, list_y_pred, list_slices, scorer):
+def _score_slices(y_true, list_y_pred, scorer):
     """Aux function of GeneralizationAcrossTime that loops across chunks of
     testing slices.
     """
-    out = list()
-    for this_y_pred, this_slice in zip(list_y_pred, list_slices):
-        out.append(_score_loop(y_true, this_y_pred, this_slice, scorer))
-    return out
-
-
-def _score_loop(y_true, y_pred, slices, scorer):
-    n_time = len(slices)
-    # Loop across testing times
-    scores = [0] * n_time
-    for t, indices in enumerate(slices):
-        # Scores across trials
-        scores[t] = scorer(y_true, np.array(y_pred[t]))
-    return scores
+    scores_list = list()
+    for y_pred in list_y_pred:
+        scores = list()
+        for t, this_y_pred in enumerate(y_pred):
+            # Scores across trials
+            scores.append(scorer(y_true, np.array(this_y_pred)))
+        scores_list.append(scores)
+    return scores_list
 
 
 def _check_epochs_input(epochs, y, picks=None):
