@@ -614,7 +614,7 @@ def _predict(X, estimators):
             predict_size = _y_pred.shape[1] if _y_pred.ndim > 1 else 1
             y_pred = np.ones((n_epochs, predict_size, n_clf))
         if predict_size == 1:
-            y_pred[:, 0, fold] = _y_pred
+            y_pred[:, 0, fold] = np.squeeze(_y_pred)
         else:
             y_pred[:, :, fold] = _y_pred
 

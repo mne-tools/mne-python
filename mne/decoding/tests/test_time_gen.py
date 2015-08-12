@@ -46,6 +46,7 @@ def test_generalization_across_time():
     """Test time generalization decoding
     """
     from sklearn.svm import SVC
+    from sklearn.linear_model import RANSACRegressor, LinearRegression
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import mean_squared_error
     from sklearn.cross_validation import LeaveOneLabelOut
@@ -236,6 +237,12 @@ def test_generalization_across_time():
         gat.fit(epochs)
     gat.predict(epochs)
     assert_raises(ValueError, gat.predict, epochs[:10])
+
+    # Check that still works with classifier that output y_pred with
+    # shape = (n_trials, 1) instead of (n_trials,)
+    gat = GeneralizationAcrossTime(clf=RANSACRegressor(LinearRegression()))
+    gat.fit(epochs)
+    gat.predict(epochs)
 
     # Test combinations of complex scenarios
     # 2 or more distinct classes
