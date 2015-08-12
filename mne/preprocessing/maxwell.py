@@ -9,6 +9,7 @@ import numpy as np
 from scipy.linalg import pinv
 from math import factorial
 
+from mne import pick_types
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..io.write import _generate_meas_id, _date_now
@@ -17,7 +18,7 @@ from ..utils import verbose
 
 @verbose
 def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
-                   verbose=None):
+                   reconstruct=True, verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -31,6 +32,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         Order of internal component of spherical expansion
     ext_order : int
         Order of external component of spherical expansion
+    reconstruct : bool
+        If True, reconstruct data at any bad channels (in raw.info['bads']).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -64,10 +67,6 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # See mathworld.wolfram.com/SphericalHarmonic.html for more discussion.
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
-    # TODO: Exclude 'bads' in multipolar moment calc, add back during
-    # reconstruction
-    if len(raw.info['bads']) > 0:
-        raise RuntimeError('Maxwell filter does not yet handle bad channels.')
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
     if 'dev_head_t' not in raw.info.keys():
@@ -77,38 +76,40 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         raise RuntimeError('Maxwell filter cannot handle compensated '
                            'channels.')
 
-    all_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
+    # Get channels to use in multipolar moment calculation
+    good_chs = pick_types(raw.info, exclude='bads')
+    # Figure out channels to use in data reconstruction
+    recon_chs = pick_types(raw.info, exclude=[]) if reconstruct else good_chs
+
+    meg_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
                                                    elekta_defs=True)
 
-    # Create coil list and pick MEG channels
-    picks = [raw.info['ch_names'].index(coil['chname'])
-             for coil in all_coils]
-    coils = [all_coils[ci] for ci in picks]
     raw.preload_data()
-
-    data, _ = raw[picks, :]
+    data, _ = raw[good_chs, :]
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
-    coil_scale = np.ones(len(picks))
-    coil_scale[np.array([coil['coil_class'] == 1.0 for coil in coils])] = 100.
+    coil_scale = np.ones(len(meg_coils))
+    coil_scale[np.array([coil['coil_class'] == 1.0
+                         for coil in meg_coils])] = 100.
 
     # Compute multipolar moment bases
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
-    S_in, S_out = _sss_basis(origin, coils, int_order, ext_order)
+    S_in, S_out = _sss_basis(origin, meg_coils, int_order, ext_order)
     S_tot = np.c_[S_in, S_out]
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
     pS_tot = pinv(S_tot, cond=1e-15)
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
-    mm = np.dot(pS_tot, data * coil_scale[:, np.newaxis])
+    mm = np.dot(pS_tot[:, good_chs], data * coil_scale[good_chs, np.newaxis])
+
     # Reconstruct data from internal space (Eq. 38)
-    recon = np.dot(S_in, mm[:S_in.shape[1], :])
+    recon = np.dot(S_in[recon_chs, :], mm[:S_in.shape[1], :])
 
     # Return reconstructed raw file object
     raw_sss = _update_sss_info(raw.copy(), origin, int_order, ext_order,
                                data.shape[0])
-    raw_sss._data[picks, :] = recon / coil_scale[:, np.newaxis]
+    raw_sss._data[recon_chs, :] = recon / coil_scale[recon_chs, np.newaxis]
 
     return raw_sss
 
