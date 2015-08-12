@@ -233,17 +233,39 @@ class _GeneralizationAcrossTime(object):
         # TODO: JRK: Chunking times points needs to be simplified
         parallel, p_time_gen, n_jobs = parallel_func(_predict_slices, n_jobs)
         n_estimators = len(self.train_times_['slices'])
-        n_chunks = min(n_estimators, n_jobs)
-        splits = np.array_split(self.test_times_['slices'], n_chunks)
-
         # Loop across estimators (i.e. training times)
-        y_pred = parallel(p_time_gen(
-            X,
-            [self.estimators_[t_train] for t_train in split * int(
-                n_chunks / n_estimators) + np.arange(len(slices))],
-            self.cv_, slices, self.predict_mode)
-            for split, slices in enumerate(splits))
-        self.y_pred_ = np.concatenate(y_pred, axis=1).tolist()
+        # 1. if all testing slices are identical, loop across data. This
+        # minimizes memory load, assuming that the data, when cloned in each
+        # chunk, is larger than the estimators, cloned in each chunk)
+        if np.all([np.array_equal(self.test_times_['slices'][0], this_slice)
+                   for this_slice in self.test_times_['slices']]):
+            n_chunks = min(n_estimators, n_jobs) + 1
+            splits = np.transpose([np.array_split(slices, n_chunks)
+                                   for slices in self.test_times_['slices']])
+
+            def chunk_X(X, slices):
+                """Smart chunking to avoid memory overload"""
+                slices = [sl for sl in slices]  # from object array to list
+                start = np.min(slices)
+                stop = np.max(slices) + 1
+                slices_ = np.array(slices) - start
+                X_ = X[:, :, start:stop]
+                return (X_, self.estimators_, self.cv_, slices_.tolist(),
+                        self.predict_mode)
+
+            y_pred = parallel(p_time_gen(*chunk_X(X, slices))
+                              for slices in splits)
+            self.y_pred_ = np.concatenate(y_pred, axis=1).tolist()
+        else:
+            # 2. If each classifier is used to predict different data slices
+            # we have no choice but to loop across classifiers.
+            # TODO: Use chunks and select X slices to avoid unnecessary
+            # overload.
+            self.y_pred_ = parallel(p_time_gen(X, [self.estimators_[t_train]],
+                                               self.cv_, slices,
+                                               self.predict_mode)
+                                    for t_train, slices in
+                                    enumerate(self.test_times_['slices']))
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
@@ -328,7 +350,7 @@ class _GeneralizationAcrossTime(object):
             [self.y_pred_[t_train] for t_train in split * int(
                 n_chunks / n_estimators) + np.arange(len(slices))],
             slices, self.scorer_) for split, slices in enumerate(splits))
-        self.scores_ = np.concatenate(scores, axis=1).tolist()
+        self.scores_ = np.concatenate(scores, axis=0).tolist()
         return self.scores_
 
 
