@@ -6,19 +6,18 @@
 
 from __future__ import division
 import numpy as np
-from scipy.linalg import pinv
+from scipy.linalg import pinv, svd, qr
 from math import factorial
 
-from .. import pick_types
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..io.write import _generate_meas_id, _date_now
-from ..utils import logger, verbose
+from ..utils import verbose
 
 
 @verbose
 def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
-                   verbose=None):
+                   tSSS_buffer=None, verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -32,6 +31,9 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         Order of internal component of spherical expansion
     ext_order : int
         Order of external component of spherical expansion
+    st_dur : float | None
+        If not None, apply spatiotemporal tSSS with specified buffer duration
+        (in seconds).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -44,10 +46,11 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     -----
     .. versionadded:: 0.10
 
-    Equation numbers refer to Taulu and Kajola, 2005 [1]_.
+    Equation numbers refer to Taulu and Kajola, 2005 [1]_ unless otherwise
+    noted.
 
-    This code was adapted and relicensed (with BSD form) with permission from
-    Jussi Nurminen.
+    Some of this code was adapted and relicensed (with BSD form) with
+    permission from Jussi Nurminen.
 
     References
     ----------
@@ -56,6 +59,12 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
            Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
 
            http://lib.tkk.fi/Diss/2008/isbn9789512295654/article2.pdf
+
+    .. [2] Taulu S. and Simola J. "Spatiotemporal signal space separation
+           method for rejecting nearby interference in MEG measurements,"
+           Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
+
+           http://lib.tkk.fi/Diss/2008/isbn9789512295654/article3.pdf
     """
 
     # There are an absurd number of different possible notations for spherical
@@ -65,6 +74,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # See mathworld.wolfram.com/SphericalHarmonic.html for more discussion.
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
+    if len(raw.info['bads']) > 0:
+        raise RuntimeError('Maxwell filter does not yet handle bad channels.')
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
     if 'dev_head_t' not in raw.info.keys():
@@ -75,13 +86,20 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
                            'channels.')
     logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
 
+    all_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
+                                                   elekta_defs=True)
+
+    # Create coil list and pick MEG channels
+    picks = [raw.info['ch_names'].index(coil['chname'])
+             for coil in all_coils]
+    coils = [all_coils[ci] for ci in picks]
     raw.load_data()
 
     # Get indices of channels to use in multipolar moment calculation
     good_chs = pick_types(raw.info, meg=True, exclude='bads')
     # Get indices of MEG channels
     meg_chs = pick_types(raw.info, meg=True, exclude=[])
-    data, _ = raw[good_chs, :]
+	data, times = raw[picks, :]
 
     meg_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
                                                    elekta_defs=True)
@@ -110,7 +128,26 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
     mm = np.dot(pS_tot_good, data * coil_scale[good_chs][:, np.newaxis])
 
-    # Reconstruct data from internal space (Eq. 38)
+    if tSSS_buffer is not None:
+        # Generate time points to break up data
+        t_starts = raw.time_as_index(np.arange(times[0], times[-1],
+                                               tSSS_buffer))
+        t_ends = np.arange(times[0] + tSSS_buffer, times[-1], tSSS_buffer)
+        t_ends = raw.time_as_index(np.append(t_ends, times[-1]))
+
+        # Loop through buffer windows of data
+        for wind in zip(raw.time_as_index(t_starts),
+                        raw.time_as_index(t_ends)):
+
+            # Compute SSP-like projector
+            proj = _overlap_projector(mm[:S_in.shape[1], wind[0]:wind[1]],
+                                      mm[S_in.shape[1]:, wind[0]:wind[1]])
+
+            # Apply projector according to Eq. 12 in [2]_
+            corrected_data = np.dot(proj, mm[:S_in.shape[1], wind[0]:wind[1]])
+            mm[:S_in.shape[1], wind[0]:wind[1]] = corrected_data
+	# TODO: Double check that normalization is in the correct location    
+	# Reconstruct data from internal space (Eq. 38)
     recon = np.dot(S_in, mm[:S_in.shape[1], :] / S_in_good_norm)
 
     # Return reconstructed raw file object
@@ -518,3 +555,36 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
         raw.info['proc_history'] = [proc_block]
 
     return raw
+
+
+def _overlap_projector(mat_1, mat_2, delta=0.02):
+    """Calculate projector for removal of subspace intersection in tSSS"""
+    # delta necessary to deal with noise when finding identical signal
+    # directions in the subspace. See the end of the Results section in [2]_
+
+    # TODO: Get comments on naming conventions from @staulu
+
+    # Compute SVD to get temporal bases. Matrices must have shape
+    # (n_samps x n_channels) when passed into svd computation
+    U_1, S_1, V_1 = svd(mat_1.T)
+    U_2, S_2, V_2 = svd(mat_2.T)
+
+    # Compute subspace intersection between temporal bases
+    # Q_1, Q_2 should have shape (n_time_pts x n_bases)
+    # R_1, R_2 should have shape (80 x 80)
+    Q_1, R_1 = qr(V_1.T)
+    Q_2, R_2 = qr(V_2.T)
+
+    # L_total should have shape (80 x 80)
+    L_total = np.dot(Q_1.T, Q_2)
+
+    # Compute angles between subspace and which bases to keep
+    _, S_intersect, V_intersect = svd(L_total)
+    retain_inds = S_intersect > (1 - delta)
+
+    # Compute projection operator as (I-LL_T) Eq. 12 in [2]_
+    # L_principal should be shape (n_time_pts x n_bases)
+    L_principal = np.dot(Q_2, V_intersect.T)[:, retain_inds]
+    proj = np.eye(len(L_principal)) - np.dot(L_principal, L_principal.T)
+
+    return proj
