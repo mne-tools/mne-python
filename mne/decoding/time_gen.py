@@ -230,7 +230,6 @@ class _GeneralizationAcrossTime(object):
             test_times['slices'] = slices_list
             test_times['times'] = times_list
 
-
         # Store all testing times parameters
         self.test_times_ = test_times
 
@@ -255,7 +254,11 @@ class _GeneralizationAcrossTime(object):
 
         y_pred = parallel(p_time_gen(*chunk_X(X, slices))
                           for slices in splits)
-        self.y_pred_ = np.concatenate(y_pred, axis=1).tolist()
+
+        # concatenate chunks across test time dimension. Don't use
+        # np.concatenate as this would need new memory allocations
+        self.y_pred_ = [[test for chunk in train for test in chunk]
+                        for train in map(list, zip(*y_pred))]
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
@@ -332,14 +335,15 @@ class _GeneralizationAcrossTime(object):
         parallel, p_time_gen, n_jobs = parallel_func(_score_slices, n_jobs)
         n_estimators = len(self.train_times_['slices'])
         n_chunks = min(n_estimators, n_jobs)
-        splits = np.array_split(range(len(self.train_times_['slices'])), n_chunks)
+        splits = np.array_split(range(len(self.train_times_['slices'])),
+                                n_chunks)
         scores = parallel(
             p_time_gen(self.y_true_,
                        [self.y_pred_[train] for train in split],
                        self.scorer_)
             for split in splits)
-        self.scores_ = np.concatenate(scores, axis=0).tolist()
 
+        self.scores_ = [score for chunk in scores for score in chunk]
         return self.scores_
 
 
