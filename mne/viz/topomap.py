@@ -244,7 +244,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
 
 
 def _check_outlines(pos, outlines, head_pos=None):
-    """Check or create outlines for 1opoplot
+    """Check or create outlines for topoplot
     """
     pos = np.array(pos, float)[:, :2]  # ensure we have a copy
     head_pos = dict() if head_pos is None else head_pos
