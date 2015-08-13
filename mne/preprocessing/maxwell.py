@@ -93,13 +93,19 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
     # Compute multipolar moment bases
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
+    # Compute in/out bases and create copies containing only good chs
     S_in, S_out = _sss_basis(origin, meg_coils, int_order, ext_order)
-    S_tot = np.c_[S_in, S_out]
+    S_in_good, S_out_good = S_in[good_chs, :], S_out[good_chs, :]
+
+    # Normalize each space
+    for spc in [S_in, S_in_good, S_out_good]:
+        spc /= np.sqrt(np.sum(spc * spc, axis=0))[np.newaxis, :]
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
-    pS_tot = pinv(S_tot, cond=1e-15)
+    S_tot_good = np.c_[S_in_good, S_out_good]
+    pS_tot_good = pinv(S_tot_good, cond=1e-15)
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
-    mm = np.dot(pS_tot[:, good_chs], data * coil_scale[good_chs, np.newaxis])
+    mm = np.dot(pS_tot_good, data * coil_scale[good_chs, np.newaxis])
 
     # Reconstruct data from internal space (Eq. 38)
     recon = np.dot(S_in, mm[:S_in.shape[1], :])
@@ -233,9 +239,8 @@ def _sss_basis(origin, coils, int_order, ext_order):
                 spc[:, deg ** 2 + deg + order - 1] = \
                     np.bincount(bins, weights=all_grads, minlength=len(counts))
 
-        # Scale magnetometers and normalize basis vectors to unity magnitude
+        # Scale magnetometers
         spc *= coil_scale[:, np.newaxis]
-        spc /= np.sqrt(np.sum(spc * spc, axis=0))[np.newaxis, :]
 
     return S_in, S_out
 
