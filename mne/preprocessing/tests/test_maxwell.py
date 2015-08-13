@@ -168,31 +168,28 @@ def test_bads_reconstruction():
         sss_bench = Raw(sss_bad_recon_fname, preload=True, proj=False,
                         allow_maxshield=True)
 
-    # Load testing data (raw, SSS std origin, SSS non-standard origin)
-    data_path = op.join(testing.data_path(download=False))
-
-    file_name = 'test_move_anon'
-    raw_fname = op.join(data_path, 'SSS', file_name + '_raw.fif')
+    raw_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 
     with warnings.catch_warnings(record=True):  # maxshield
         # Use 2.0 seconds of data to get stable cov. estimate
         raw = Raw(raw_fname, preload=False, proj=False,
-                  allow_maxshield=True).crop(0., 2., False)
+                  allow_maxshield=True).crop(0., 1., False)
 
-    # Get MEG channels, compute Maxwell filtered data
     raw.preload_data()
-    raw.info['bads'] = ['MEG0113', 'MEG0112', 'MEG0111']
-    raw_sss = maxwell.maxwell_filter(raw)
-    meg_picks = pick_types(raw_sss.info)
 
-    assert_array_almost_equal(raw_sss._data[meg_picks, :],
-                              sss_bench._data[meg_picks, :], decimal=11,
+    # Set bad MEG channels, compute Maxwell filtered data
+    raw.info['bads'] = raw.info['ch_names'][0:9]
+    raw_sss = maxwell.maxwell_filter(raw)
+    meg_chs = pick_types(raw_sss.info)
+
+    assert_array_almost_equal(raw_sss._data[meg_chs, :],
+                              sss_bench._data[meg_chs, :], decimal=11,
                               err_msg='Maxwell filtered data with '
                               ' reconstructed bads is incorrect.')
 
     # Confirm SNR is above 1000
-    bench_rms = np.sqrt(np.mean(raw_sss._data[meg_picks, :] ** 2, axis=1))
-    error = raw_sss._data[meg_picks, :] - sss_bench._data[meg_picks, :]
+    bench_rms = np.sqrt(np.mean(raw_sss._data[meg_chs, :] ** 2, axis=1))
+    error = raw_sss._data[meg_chs, :] - sss_bench._data[meg_chs, :]
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
     assert_true(np.mean(bench_rms / error_rms) >= 1000, 'SNR < 1000')
 
