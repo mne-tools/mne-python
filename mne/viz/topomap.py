@@ -297,7 +297,7 @@ def _check_outlines(pos, outlines, head_pos=None):
             outlines_dict['autoshrink'] = False
             outlines_dict['mask_pos'] = (mask_scale[0] * head_x,
                                          mask_scale[1] * head_y)
-            outlines_dict['clip_radius'] = (mask_scale / 2)
+            outlines_dict['clip_radius'] = (mask_scale / 2.)
         else:
             if 'scale' not in head_pos:
                 # The default is to make the points occupy a slightly smaller
