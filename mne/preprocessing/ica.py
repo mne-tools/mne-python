@@ -1305,14 +1305,14 @@ class ICA(ContainsMixin):
         outlines : 'head' | 'skirt' | dict | None
             The outlines to be drawn. If 'head', the default head scheme will
             be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outsize of the head circle. If dict, each key
-            refers to a tuple of x and y positions. The values in 'mask_pos'
-            will serve as image mask. If None, nothing will be drawn.  Defaults
-            to 'head'. If dict, the 'autoshrink' (bool) field will trigger
-            automated shrinking of the positions due to points outside the
-            outline. Moreover, a matplotlib patch object can be passed for
-            advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots).
+            allowed to be plotted outside of the head circle. If dict, each key
+            refers to a tuple of x and y positions, the values in 'mask_pos'
+            will serve as image mask, and the 'autoshrink' (bool) field will
+            trigger automated shrinking of the positions due to points outside
+            the outline. Alternatively, a matplotlib patch object can be passed
+            for advanced masking options, either directly or as a function that
+            returns patches (required for multi-axis plots). If None, nothing
+            will be drawn. Defaults to 'head'.
         contours : int | False | None
             The number of contour lines to draw. If 0, no contours will
             be drawn.
