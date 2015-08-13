@@ -177,7 +177,7 @@ def test_plot_topomap():
 
     # Plot skirt
     evoked.plot_topomap(times, ch_type='eeg', outlines='skirt')
-    
+
     # Pass custom outlines without patch
     evoked.plot_topomap(times, ch_type='eeg', outlines=outlines)
     plt.close('all')
