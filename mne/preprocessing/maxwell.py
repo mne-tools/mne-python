@@ -18,7 +18,7 @@ from ..utils import verbose
 
 @verbose
 def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
-                   reconstruct=True, verbose=None):
+                   verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -32,8 +32,6 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         Order of internal component of spherical expansion
     ext_order : int
         Order of external component of spherical expansion
-    reconstruct : bool
-        If True, reconstruct data at any bad channels (in raw.info['bads']).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -76,16 +74,16 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         raise RuntimeError('Maxwell filter cannot handle compensated '
                            'channels.')
 
-    # Get channels to use in multipolar moment calculation
-    good_chs = pick_types(raw.info, exclude='bads')
-    # Figure out channels to use in data reconstruction
-    recon_chs = pick_types(raw.info, exclude=[]) if reconstruct else good_chs
+    raw.preload_data()
+
+    # Get indices of channels to use in multipolar moment calculation
+    good_chs = pick_types(raw.info, meg=True, exclude='bads')
+    # Get indices of MEG channels
+    meg_chs = pick_types(raw.info, meg=True, exclude=[])
+    data, _ = raw[good_chs, :]
 
     meg_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
                                                    elekta_defs=True)
-
-    raw.preload_data()
-    data, _ = raw[good_chs, :]
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
@@ -104,12 +102,16 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     mm = np.dot(pS_tot[:, good_chs], data * coil_scale[good_chs, np.newaxis])
 
     # Reconstruct data from internal space (Eq. 38)
-    recon = np.dot(S_in[recon_chs, :], mm[:S_in.shape[1], :])
+    recon = np.dot(S_in, mm[:S_in.shape[1], :])
 
     # Return reconstructed raw file object
     raw_sss = _update_sss_info(raw.copy(), origin, int_order, ext_order,
                                data.shape[0])
-    raw_sss._data[recon_chs, :] = recon / coil_scale[recon_chs, np.newaxis]
+    raw_sss._data[meg_chs, :] = recon / coil_scale[:, np.newaxis]
+
+    # Reset 'bads' for any MEG channels since they've been reconstructed
+    raw_sss.info['bads'] = [ch for ch in raw_sss.info['bads']
+                            if 'MEG' not in ch]
 
     return raw_sss
 
