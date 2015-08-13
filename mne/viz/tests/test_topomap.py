@@ -9,7 +9,7 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_array_equal
 
 from nose.tools import assert_true, assert_equal
 
@@ -152,15 +152,43 @@ def test_plot_topomap():
 
     pos = make_eeg_layout(evoked.info).pos
     pos, outlines = _check_outlines(pos, 'head')
-    # test 1: pass custom outlines without patch
+    assert_true('head' in outlines.keys())
+    assert_true('nose' in outlines.keys())
+    assert_true('ear_left' in outlines.keys())
+    assert_true('ear_right' in outlines.keys())
+    assert_true('autoshrink' in outlines.keys())
+    assert_true(outlines['autoshrink'])
+    assert_true('clip_radius' in outlines.keys())
+    assert_array_equal(outlines['clip_radius'], 0.5)
 
+    pos, outlines = _check_outlines(pos, 'skirt')
+    assert_true('head' in outlines.keys())
+    assert_true('nose' in outlines.keys())
+    assert_true('ear_left' in outlines.keys())
+    assert_true('ear_right' in outlines.keys())
+    assert_true('autoshrink' in outlines.keys())
+    assert_true(not outlines['autoshrink'])
+    assert_true('clip_radius' in outlines.keys())
+    assert_array_equal(outlines['clip_radius'], 0.625)
+
+    pos, outlines = _check_outlines(pos, 'skirt',
+                                    head_pos={'scale': [1.2, 1.2]})
+    assert_array_equal(outlines['clip_radius'], 0.75)
+
+    # Plot skirt
+    evoked.plot_topomap(times, ch_type='eeg', outlines='skirt')
+
+    # Pass custom outlines without patch
+    evoked.plot_topomap(times, ch_type='eeg', outlines=outlines)
+    plt.close('all')
+
+    # Pass custom outlines with patch callable
     def patch():
         return Circle((0.5, 0.4687), radius=.46,
                       clip_on=True, transform=plt.gca().transAxes)
-
-    # test 2: pass custom outlines with patch callable
     outlines['patch'] = patch
-    plot_evoked_topomap(evoked, times, ch_type='eeg', outlines='head')
+    plot_evoked_topomap(evoked, times, ch_type='eeg', outlines=outlines)
+
     # Remove digitization points. Now topomap should fail
     evoked.info['dig'] = None
     assert_raises(RuntimeError, plot_evoked_topomap, evoked,

@@ -1016,15 +1016,17 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             The axes to plot to. If None the axes is defined automatically.
         show : bool
             Call pyplot.show() at the end.
-        outlines : 'head' | dict | None
-            The outlines to be drawn. If 'head', a head scheme will be drawn.
-            If dict, each key refers to a tuple of x and y positions.
-            The values in 'mask_pos' will serve as image mask. If None, nothing
-            will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-            field will trigger automated shrinking of the positions due to
-            points outside the outline. Moreover, a matplotlib patch object can
-            be passed for advanced masking options, either directly or as a
-            function that returns patches (required for multi-axis plots).
+        outlines : 'head' | 'skirt' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will
+            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
+            allowed to be plotted outside of the head circle. If dict, each key
+            refers to a tuple of x and y positions, the values in 'mask_pos'
+            will serve as image mask, and the 'autoshrink' (bool) field will
+            trigger automated shrinking of the positions due to points outside
+            the outline. Alternatively, a matplotlib patch object can be passed
+            for advanced masking options, either directly or as a function that
+            returns patches (required for multi-axis plots). If None, nothing
+            will be drawn. Defaults to 'head'.
         head_pos : dict | None
             If None (default), the sensors are positioned such that they span
             the head circle. If dict, can have entries 'center' (tuple) and

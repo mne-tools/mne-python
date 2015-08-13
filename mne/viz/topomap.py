@@ -146,15 +146,17 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
         multiple topomaps at a time).
     show : bool
         Show figure if True.
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
@@ -247,7 +249,7 @@ def _check_outlines(pos, outlines, head_pos=None):
     pos = np.array(pos, float)[:, :2]  # ensure we have a copy
     head_pos = dict() if head_pos is None else head_pos
     if not isinstance(head_pos, dict):
-        raise TypeError('sensor_pos must be dict or None')
+        raise TypeError('head_pos must be dict or None')
     head_pos = copy.deepcopy(head_pos)
     for key in head_pos.keys():
         if key not in ('center', 'scale'):
@@ -258,7 +260,7 @@ def _check_outlines(pos, outlines, head_pos=None):
             raise ValueError('head_pos["%s"] must have shape (2,), not '
                              '%s' % (key, head_pos[key].shape))
 
-    if outlines in ('head', None):
+    if outlines in ('head', 'skirt', None):
         radius = 0.5
         l = np.linspace(0, 2 * np.pi, 101)
         head_x = np.cos(l) * radius
@@ -273,23 +275,42 @@ def _check_outlines(pos, outlines, head_pos=None):
         # shift and scale the electrode positions
         if 'center' not in head_pos:
             head_pos['center'] = 0.5 * (pos.max(axis=0) + pos.min(axis=0))
-        if 'scale' not in head_pos:
-            # The default is to make the points occupy a slightly smaller
-            # proportion (0.85) of the total width and height
-            # this number was empirically determined (seems to work well)
-            head_pos['scale'] = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
         pos -= head_pos['center']
-        pos *= head_pos['scale']
 
-        # Define the outline of the head, ears and nose
-        outlines = dict()
         if outlines is not None:
-            outlines.update(head=(head_x, head_y), nose=(nose_x, nose_y),
-                            ear_left=(ear_x, ear_y),
-                            ear_right=(-ear_x, ear_y))
+            # Define the outline of the head, ears and nose
+            outlines_dict = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
+                                 ear_left=(ear_x, ear_y),
+                                 ear_right=(-ear_x, ear_y))
+        else:
+            outlines_dict = dict()
 
-        outlines['mask_pos'] = head_x, head_y
-        outlines['autoshrink'] = True
+        if outlines == 'skirt':
+            if 'scale' not in head_pos:
+                # By default, fit electrodes inside the head circle
+                head_pos['scale'] = 1.0 / (pos.max(axis=0) - pos.min(axis=0))
+            pos *= head_pos['scale']
+
+            # Make the figure encompass slightly more than all points
+            mask_scale = 1.25 * (pos.max(axis=0) - pos.min(axis=0))
+
+            outlines_dict['autoshrink'] = False
+            outlines_dict['mask_pos'] = (mask_scale[0] * head_x,
+                                         mask_scale[1] * head_y)
+            outlines_dict['clip_radius'] = (mask_scale / 2.)
+        else:
+            if 'scale' not in head_pos:
+                # The default is to make the points occupy a slightly smaller
+                # proportion (0.85) of the total width and height
+                # this number was empirically determined (seems to work well)
+                head_pos['scale'] = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
+            pos *= head_pos['scale']
+            outlines_dict['autoshrink'] = True
+            outlines_dict['mask_pos'] = head_x, head_y
+            outlines_dict['clip_radius'] = (0.5, 0.5)
+
+        outlines = outlines_dict
+
     elif isinstance(outlines, dict):
         if 'mask_pos' not in outlines:
             raise ValueError('You must specify the coordinates of the image'
@@ -391,15 +412,17 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                 linewidth=0, markersize=4)
 
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     image_mask : ndarray of bool, shape (res, res) | None
         The image mask to cover the interpolated surface. If None, it will be
         computed from the outline.
@@ -511,10 +534,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
 
     if _is_default_outlines:
         from matplotlib import patches
-        # remove nose offset and tweak
-        patch_ = patches.Circle((0.5, 0.4687), radius=.46,
-                                clip_on=True,
-                                transform=ax.transAxes)
+        patch_ = patches.Ellipse((0, 0),
+                                 2 * outlines['clip_radius'][0],
+                                 2 * outlines['clip_radius'][1],
+                                 clip_on=True,
+                                 transform=ax.transData)
     if _is_default_outlines or patch is not None:
         im.set_clip_path(patch_)
         # ax.set_clip_path(patch_)
@@ -660,15 +684,17 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         Title to use.
     show : bool
         Show figure if True.
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
@@ -849,15 +875,17 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The axes to plot to. If None the axes is defined automatically.
     show : bool
         Show figure if True.
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn.
-        If dict, each key refers to a tuple of x and y positions.
-        The values in 'mask_pos' will serve as image mask. If None, nothing
-        will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-        field will trigger automated shrinking of the positions due to
-        points outside the outline. Moreover, a matplotlib patch object can
-        be passed for advanced masking options, either directly or as a
-        function that returns patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     head_pos : dict | None
         If None (default), the sensors are positioned such that they span
         the head circle. If dict, can have entries 'center' (tuple) and
@@ -1036,15 +1064,17 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
             dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                  linewidth=0, markersize=4)
 
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
@@ -1324,15 +1354,17 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn.
-        If dict, each key refers to a tuple of x and y positions.
-        The values in 'mask_pos' will serve as image mask. If None, nothing
-        will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-        field will trigger automated shrinking of the positions due to
-        points outside the outline. Moreover, a matplotlib patch object can
-        be passed for advanced masking options, either directly or as a
-        function that returns patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     show : bool
         Show figure if True.
     verbose : bool, str, int, or None
@@ -1408,15 +1440,17 @@ def plot_psds_topomap(
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn.
-        If dict, each key refers to a tuple of x and y positions.
-        The values in 'mask_pos' will serve as image mask. If None, nothing
-        will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-        field will trigger automated shrinking of the positions due to
-        points outside the outline. Moreover, a matplotlib patch object can
-        be passed for advanced masking options, either directly or as a
-        function that returns patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     show : bool
         Show figure if True.
 
