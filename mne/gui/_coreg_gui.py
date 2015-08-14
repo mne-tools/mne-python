@@ -106,9 +106,7 @@ class CoregModel(HasPrivateTraits):
     has_fid_data = Property(Bool, depends_on=['mri_origin', 'hsp.nasion'],
                             desc="Required fiducials data is present.")
     has_pts_data = Property(Bool, depends_on=['mri.points', 'hsp.points'])
-    has_eegpts_data = Property(Bool, depends_on=['hsp.eeg_points'])
-    dig_points = Property(depends_on=['hsp.raw_points', 'hsp.has_eegpts_data',
-                                      'use_eeg_as_hsp'])
+    dig_points = Property(depends_on=['hsp.inst_points'])
 
     # MRI dependent
     mri_origin = Property(depends_on=['mri.nasion', 'scale'],
@@ -372,6 +370,34 @@ class CoregModel(HasPrivateTraits):
         n_excluded = np.sum(new_sub_filter == False)  # noqa
         logger.info("Coregistration: Excluding %i head shape points with "
                     "distance >= %.3f m.", n_excluded, distance)
+
+        # combine the new filter with the previous filter
+        old_filter = self.hsp.points_filter
+        if old_filter is None:
+            new_filter = new_sub_filter
+        else:
+            new_filter = np.ones(len(self.hsp.raw_points), np.bool8)
+            new_filter[old_filter] = new_sub_filter
+
+        # set the filter
+        with warnings.catch_warnings(record=True):  # comp to None in Traits
+            self.hsp.points_filter = new_filter
+
+    def omit_eeg_points(self, reset=False):
+        """Exclude all EEG head shape points
+        """
+
+        if reset:
+            logger.info("Coregistration: Reset excluded EEG points")
+            with warnings.catch_warnings(record=True):  # Traits None comp
+                self.hsp.points_filter = None
+            return  # nothing more to do here
+
+        # find the new filter
+        new_sub_filter = self.hsp.points_type != FIFF.FIFFV_POINT_EEG
+        n_excluded = np.sum(new_sub_filter == False)  # noqa
+        logger.info("Coregistration: Excluding %i EEG points",
+                    n_excluded)
 
         # combine the new filter with the previous filter
         old_filter = self.hsp.points_filter
@@ -1147,16 +1173,15 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                HGroup('hsp_always_visible',
                                       Label("Always Show Head Shape Points"),
                                       show_labels=False),
-                               HGroup('use_eeg_as_hsp',
-                                      Label("Use EEG Locations as "
-                                            "Head Shape Points"),
-                                      show_labels=False),
                                Item('fid_panel', style='custom'),
                                label="MRI Fiducials", show_border=True,
                                show_labels=False),
                         VGroup(Item('raw_src', style="custom"),
                                HGroup(Item('distance', show_label=True),
                                       'omit_points', 'reset_omit_points',
+                                      show_labels=False),
+                               HGroup('omit_eeg_points',
+                                      'reset_omit_eeg_points',
                                       show_labels=False),
                                Item('omitted_info', style='readonly',
                                     show_label=False),
@@ -1219,13 +1244,16 @@ class CoregFrame(HasTraits):
                          "procedure.")
     reset_omit_points = Button(label='Reset Omission', desc="Reset the "
                                "omission of head shape points to include all.")
+    omit_eeg_points = Button(label='Omit EEG', desc="Omit EEG "
+                             "points for the purpose of the automatic "
+                             "coregistration procedure.")
+    reset_omit_eeg_points = Button(label='Reset EEG', desc="Reset the "
+                                   "omission of EEG points to include all.")
     omitted_info = Property(Str, depends_on=['model.hsp.n_omitted'])
 
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
     hsp_always_visible = Bool(False, label="Always Show Head Shape")
-    use_eeg_as_hsp = Bool(False, label="Use EEG Locations as "
-                                       "Head Shape Points")
 
     # visualization
     hsp_obj = Instance(PointObject)
@@ -1237,7 +1265,6 @@ class CoregFrame(HasTraits):
     hsp_nasion_obj = Instance(PointObject)
     hsp_rpa_obj = Instance(PointObject)
     hsp_visible = Property(depends_on=['hsp_always_visible', 'lock_fiducials'])
-    eeg_as_hsp = Property(depends_on=['use_eeg_as_hsp'])
 
     view_options = Button(label="View Options")
 
@@ -1363,10 +1390,6 @@ class CoregFrame(HasTraits):
         return self.hsp_always_visible or self.lock_fiducials
 
     @cached_property
-    def _get_eeg_as_hsp(self):
-        return self.use_eeg_as_hsp
-
-    @cached_property
     def _get_omitted_info(self):
         if self.model.hsp.n_omitted == 0:
             return "No points omitted"
@@ -1381,6 +1404,12 @@ class CoregFrame(HasTraits):
 
     def _reset_omit_points_fired(self):
         self.model.omit_hsp_points(0, True)
+
+    def _omit_eeg_points_fired(self):
+        self.model.omit_eeg_points(False)
+
+    def _reset_omit_eeg_points_fired(self):
+        self.model.omit_eeg_points(True)
 
     @on_trait_change('model.mri.tris')
     def _on_mri_src_change(self):
