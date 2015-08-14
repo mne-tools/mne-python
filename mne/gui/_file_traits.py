@@ -290,7 +290,11 @@ class InstSource(HasPrivateTraits):
     # head shape, where EEG is included but can be filtered out
     inst_points = Property(depends_on='inst', desc="Head shape points in the "
                            "inst file(n x 3 array)")
-    points = Property(depends_on=['inst_points', 'points_filter'], desc="Head "
+    points_type = Property(depends_on='inst',
+                           desc="A list of point types ('Extra', 'EEG', ...)"
+                           "(n x 3 array) from the inst file")
+    points = Property(depends_on=['inst_points', 'points_type',
+                      'points_filter'], desc="Head "
                       "shape points selected by the filter (n x 3 array)")
 
     # fiducials
@@ -340,6 +344,17 @@ class InstSource(HasPrivateTraits):
                            if (d['kind'] == FIFF.FIFFV_POINT_EXTRA or
                            d['kind'] == FIFF.FIFFV_POINT_EEG)])
         return points
+
+    @cached_property
+    def _get_points_type(self):
+        if not self.inst:
+            return []
+
+        points_type = [d['kind'] for d in self.inst['dig']
+                       if (d['kind'] == FIFF.FIFFV_POINT_EXTRA or
+                       d['kind'] == FIFF.FIFFV_POINT_EEG)]
+        print(points_type)
+        return points_type
 
     @cached_property
     def _get_points(self):
