@@ -287,7 +287,7 @@ class InstSource(HasPrivateTraits):
                         "points")
     n_omitted = Property(Int, depends_on=['points_filter'])
 
-    # head shape
+    # head shape, where EEG is included but can be filtered out
     inst_points = Property(depends_on='inst', desc="Head shape points in the "
                            "inst file(n x 3 array)")
     points = Property(depends_on=['inst_points', 'points_filter'], desc="Head "
@@ -337,16 +337,8 @@ class InstSource(HasPrivateTraits):
             return np.zeros((1, 3))
 
         points = np.array([d['r'] for d in self.inst['dig']
-                           if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
-        return points
-
-    @cached_property
-    def _get_eeg_points(self):
-        if not self.raw:
-            return np.zeros((1, 3))
-
-        points = np.array([d['r'] for d in self.raw.info['dig']
-                           if d['kind'] == FIFF.FIFFV_POINT_EEG])
+                           if (d['kind'] == FIFF.FIFFV_POINT_EXTRA or
+                           d['kind'] == FIFF.FIFFV_POINT_EEG)])
         return points
 
     @cached_property
