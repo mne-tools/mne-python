@@ -17,7 +17,7 @@ from ..utils import verbose
 
 @verbose
 def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
-                   tSSS_buffer=None, verbose=None):
+                   st_dur=None, verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -33,7 +33,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         Order of external component of spherical expansion
     st_dur : float | None
         If not None, apply spatiotemporal tSSS with specified buffer duration
-        (in seconds).
+        (in seconds). Elekta's default is 10.0 seconds in MaxFilter v2.2
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -128,11 +128,10 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
     mm = np.dot(pS_tot_good, data * coil_scale[good_chs][:, np.newaxis])
 
-    if tSSS_buffer is not None:
+    if st_dur is not None:
         # Generate time points to break up data
-        t_starts = raw.time_as_index(np.arange(times[0], times[-1],
-                                               tSSS_buffer))
-        t_ends = np.arange(times[0] + tSSS_buffer, times[-1], tSSS_buffer)
+        t_starts = raw.time_as_index(np.arange(times[0], times[-1], st_dur))
+        t_ends = np.arange(times[0] + st_dur, times[-1], st_dur)
         t_ends = raw.time_as_index(np.append(t_ends, times[-1]))
 
         # Loop through buffer windows of data
