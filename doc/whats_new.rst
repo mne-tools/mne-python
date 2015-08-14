@@ -35,7 +35,7 @@ Changelog
 
     - Add support for splitting epochs into multiple files in :func:`mne.Epochs.save` by `Mainak Jas`_ and `Alex Gramfort`_
 
-    - Add support for jointly resampling a raw object and event matrix to avoid issues with resampling status channels by `Marijn van Vliet`
+    - Add support for jointly resampling a raw object and event matrix to avoid issues with resampling status channels by `Marijn van Vliet`_
 
     - Add new method :class:`mne.preprocessing.Xdawn` for denoising and decoding of ERP/ERF by `Alexandre Barachant`_
 
@@ -58,6 +58,8 @@ Changelog
     - Add interactive plotting of single trials by right clicking on channel name in epochs browser by `Jaakko Leppakangas`_
 
     - New logos and logo generation script by `Daniel McCloy`_
+
+    - Add ability to plot topomap with a "skirt" (channels outside of the head circle) by `Marijn van Vliet`_
 
 
 BUG
