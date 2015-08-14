@@ -348,12 +348,11 @@ class InstSource(HasPrivateTraits):
     @cached_property
     def _get_points_type(self):
         if not self.inst:
-            return []
+            return np.zeros((1, 3))
 
-        points_type = [d['kind'] for d in self.inst['dig']
-                       if (d['kind'] == FIFF.FIFFV_POINT_EXTRA or
-                       d['kind'] == FIFF.FIFFV_POINT_EEG)]
-        print(points_type)
+        points_type = np.array([d['kind'] for d in self.inst['dig']
+                                if (d['kind'] == FIFF.FIFFV_POINT_EXTRA or
+                                d['kind'] == FIFF.FIFFV_POINT_EEG)])
         return points_type
 
     @cached_property
