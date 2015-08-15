@@ -167,14 +167,26 @@ class SetChannelsMixin(object):
             Indices of channels to include. If None (default), all meg and eeg
             channels that are available are returned (bad channels excluded).
 
+        Returns
+        -------
+        pos : shape (n_points, 12)
+            The channel positions from picks.
+
         Notes
         -----
         .. versionadded:: 0.9.0
+
+        The dimensionality of for a given channel position `ch`:
+        ch[0:3] are channel position
+        ch[3:6] is unit vector in x
+        ch[6:9] is unit vector in y
+        ch[9:12] is unit vector in z
+        'eeg' channels have have zeros for their unit vectors.
         """
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
         chs = self.info['chs']
-        pos = np.array([chs[k]['loc'][:3] for k in picks])
+        pos = np.array([chs[k]['loc'] for k in picks])
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
         if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
             raise ValueError('Could not extract channel positions for '
@@ -186,7 +198,7 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        pos : array-like | np.ndarray, shape (n_points, 3)
+        pos : array-like | np.ndarray, shape (n_points, 12)
             The channel positions to be set.
         names : list of str
             The names of the channels to be set.
@@ -198,15 +210,15 @@ class SetChannelsMixin(object):
         if len(pos) != len(names):
             raise ValueError('Number of channel positions not equal to '
                              'the number of names given.')
-        pos = np.asarray(pos, dtype=np.float)
-        if pos.shape[-1] != 3 or pos.ndim != 2:
+        pos = np.asarray(pos, dtype=np.float)          
+        if pos.shape[-1] != 12 or pos.ndim != 2:
             msg = ('Channel positions must have the shape (n_points, 3) '
                    'not %s.' % (pos.shape,))
             raise ValueError(msg)
-        for name, p in zip(names, pos):
+        for name, pt in zip(names, pos):
             if name in self.ch_names:
                 idx = self.ch_names.index(name)
-                self.info['chs'][idx]['loc'][:3] = p
+                self.info['chs'][idx]['loc'] = pt
             else:
                 msg = ('%s was not found in the info. Cannot be updated.'
                        % name)

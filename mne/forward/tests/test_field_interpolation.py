@@ -12,10 +12,12 @@ from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_lut_accurate,
                                     _do_cross_dots)
 from mne.forward._make_forward import _create_coils
-from mne.forward._field_interpolation import _setup_dots
+from mne.forward._field_interpolation import (_setup_dots, _map_meg_channels,
+                                              transform_instances)
 from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import testing
-from mne import read_evokeds
+from mne.transforms import rotation, apply_trans
+from mne import read_evokeds, pick_types
 from mne.io.constants import FIFF
 from mne.fixes import partial
 from mne.externals.six.moves import zip
@@ -222,3 +224,29 @@ def test_as_meg_type_evoked():
     assert_true(np.corrcoef(data1, data2)[0, 1] > 0.95)
 
 run_tests_if_main()
+
+
+@testing.requires_testing_data
+def test_transform_instances():
+    evoked = read_evokeds(evoked_fname, condition='Left Auditory')
+    info = evoked.info
+    evoked_rot = evoked.copy()
+    info_rot = evoked_rot.info
+    picks = pick_types(info_rot, meg=True)
+    names = np.array(info_rot['ch_names'])[picks]
+
+    rot = rotation(x=0, y=np.pi/12, z=0)
+
+    trans = info_rot['dev_head_t']['trans']
+    trans[:] = rot.dot(trans)
+    transform_instances([evoked, evoked_rot], copy=False)
+
+    # rotate back
+    info_rot = evoked_rot.info
+    rot = rotation(x=0, y=-np.pi/12, z=0)
+    trans = info_rot['dev_head_t']['trans']
+    trans[:] = rot.dot(trans)
+
+    evs = transform_instances([evoked, evoked_rot], copy=True)
+
+    np.testing.assert_array_equal(evs[0].data[picks], evs[1].data[picks])

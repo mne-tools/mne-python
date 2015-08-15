@@ -1,3 +1,11 @@
+# Authors: Eric Larson <larsoner@uw.edu>
+#          Mainak Jas <mainak.jas@telecom-paristech.fr>
+#          Yousra Bekhti <yousra.bekhti@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
@@ -104,17 +112,18 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
+def _map_meg_channels(info_from, info_to, picks=None, mode='accurate'):
     """Find mapping from one set of channels to another.
 
     Parameters
     ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    pick_from : array-like of int
-        The channels from which to interpolate.
-    pick_to : array-like of int
-        The channels to which to interpolate.
+    info_from : instance of Info
+        The info of the channels from which to interpolate.
+    info_to : instance of Info
+        The info of the channels to which to interpolate.
+    picks : array-like of int
+        The indices of the channels to include.
+        Defaults to None.
     mode : str
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
@@ -125,9 +134,9 @@ def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
     mapping : array
         A mapping matrix of shape len(pick_to) x len(pick_from).
     """
-    info_from = pick_info(inst.info, pick_from, copy=True)
-    info_to = pick_info(inst.info, pick_to, copy=True)
-
+    if picks is not None:
+        info_from = pick_info(info_from, picks)
+        info_to = pick_info(info_to, picks)
     # no need to apply trans because both from and to coils are in device
     # coordinates
     coils_from = _create_coils(info_from['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
@@ -163,7 +172,7 @@ def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
     return fmd['data']
 
 
-def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
+def _as_meg_type_evoked(evoked, ch_type='grad', mode='accurate'):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
@@ -190,8 +199,10 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
     # pick the original and destination channels
     pick_from = pick_types(evoked.info, meg=True, eeg=False,
                            ref_meg=False)
+    info_from = evoked.info
     pick_to = pick_types(evoked.info, meg=ch_type, eeg=False,
                          ref_meg=False)
+    info_to = pick_info(evoked.info, pick_to, copy=True)
 
     if len(pick_to) == 0:
         raise ValueError('No channels matching the destination channel type'
@@ -200,7 +211,7 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
                          ' locations of the destination channels will be used'
                          ' for interpolation.')
 
-    mapping = _map_meg_channels(evoked, pick_from, pick_to, mode='fast')
+    mapping = _map_meg_channels(info_from, info_to, mode=mode)
 
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
@@ -414,3 +425,67 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         surf_maps.append(this_map)
 
     return surf_maps
+
+
+def _transform_instance(inst_from, info_to):
+    """ Map the inst_from to the head position in info_to"""
+    picks = pick_types(info_to, meg=True, eeg=False, ref_meg=False,
+                       exclude='bads')
+    info_from = inst_from.info
+
+    # the dev_head_t is applied to the channel positions
+    # the result is a rotation in inst_from's channels wrt to inst_to
+    # compute the mapping matrix from new pos 'from' to 'to' in head space 
+    mapping = _map_meg_channels(info_from, info_to, picks, mode='accurate')
+    # compute rotated data by multiplying by the 'gain matrix' from
+    # original sensors to virtual sensors
+    from ..channels.interpolation import _do_interp_dots
+    _do_interp_dots(inst_from, mapping, picks, picks)
+
+    inst_from.info = info_to
+    
+    return inst_from
+
+
+def transform_instances(insts, copy=False, n_jobs=1):
+    """ Map list of evokeds to the same head position
+
+    Parameters
+    ----------
+    insts : list of instances
+        list of evokeds to be mapped to same head position i.e.
+        the head position of the first evoked.
+    copy : bool
+        If True, it returns copies of transformed instances.
+        If False, transformation is done in-place. Default is False.
+        Note that the first instance will always remain untouched.
+    n_jobs : int
+        The number of jobs to run in parallel.
+
+    Returns
+    -------
+    insts : list of instances
+        list of instances after remapping.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    if isinstance(insts, (list, tuple)):
+        if len(insts) < 2:
+            raise ValueError('Only %d instance provided.' % len(insts))
+    else:
+        raise TypeError('insts must be a list or tuple instead of %d.'
+                        % type(insts))
+    inst_to = insts[0]
+    info_to = inst_to.info
+
+    from ..parallel import parallel_func
+    parallel, my_trans, n_jobs = parallel_func(_transform_instance,
+                                               n_jobs=n_jobs)
+
+    if copy:
+        insts[1:] = parallel(my_trans(inst.copy(), info_to) for inst in insts[1:])
+        return insts
+    else:
+        insts[1:] = parallel(my_trans(inst, info_to) for inst in insts[1:])

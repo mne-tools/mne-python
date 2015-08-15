@@ -58,7 +58,7 @@ def test_interpolation():
     ave_before = evoked_eeg.data[bads_idx]
 
     # interpolate bad channels for EEG
-    pos = epochs_eeg._get_channel_positions()
+    pos = epochs_eeg._get_channel_positions()[:, :3]
     pos_good = pos[goods_idx]
     pos_bad = pos[bads_idx]
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
