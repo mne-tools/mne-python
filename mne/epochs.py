@@ -178,6 +178,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         del event_id
 
         if events is not None:  # RtEpochs can have events=None
+
+            if not np.array_equal(events, np.array(events, dtype=int)):
+                raise ValueError('events values be integers.')
+            events = np.array(events, dtype=int)
+
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
@@ -1548,7 +1553,7 @@ class Epochs(_BaseEpochs):
     ----------
     raw : Raw object
         An instance of Raw.
-    events : array, shape (n_events, 3)
+    events : array of int, shape (n_events, 3)
         The events typically returned by the read_events function.
         If some events don't match the events of interest as specified
         by event_id, they will be marked as 'IGNORED' in the drop log.
@@ -1820,8 +1825,6 @@ class EpochsArray(_BaseEpochs):
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
-        if not np.array_equal(events, np.array(events, dtype=int)):
-            raise ValueError('events must be an array integers.')
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))

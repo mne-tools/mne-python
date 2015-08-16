@@ -242,6 +242,10 @@ def test_base_epochs():
     epochs = _BaseEpochs(raw.info, None, np.ones((1, 3), int),
                          event_id, tmin, tmax)
     assert_raises(NotImplementedError, epochs.get_data)
+    # events with non integers
+    _BaseEpochs(raw.info, None, np.ones((1, 3), float), event_id, tmin, tmax)
+    assert_raises(ValueError, _BaseEpochs, raw.info, None,
+                  np.ones((1, 3)) + .01, event_id, tmin, tmax)
 
 
 @requires_scipy_version('0.14')
@@ -1582,9 +1586,6 @@ def test_array_epochs():
                          tmin=-.2, baseline=(None, 0))
     ep_data = epochs.get_data()
     assert_array_equal(np.zeros_like(ep_data), ep_data)
-
-    # events with non integers
-    assert_raises(ValueError, EpochsArray, data, info, events + .01)
 
 
 def test_concatenate_epochs():
