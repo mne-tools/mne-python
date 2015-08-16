@@ -2,7 +2,6 @@
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
-
 import warnings
 import copy
 import os.path as op
@@ -240,7 +239,10 @@ def test_generalization_across_time():
 
     # Check that still works with classifier that output y_pred with
     # shape = (n_trials, 1) instead of (n_trials,)
-    gat = GeneralizationAcrossTime(clf=RANSACRegressor(LinearRegression()))
+    gat = GeneralizationAcrossTime(clf=RANSACRegressor(LinearRegression()),
+                                   cv=2)
+    epochs._data = epochs._data[:, :, :2]
+    epochs.times = epochs.times[:2]
     gat.fit(epochs)
     gat.predict(epochs)
 
