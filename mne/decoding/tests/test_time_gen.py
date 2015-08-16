@@ -48,6 +48,7 @@ def test_generalization_across_time():
     from sklearn.svm import SVC
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import mean_squared_error
+    from sklearn.cross_validation import LeaveOneLabelOut
 
     epochs = make_epochs()
 
@@ -142,13 +143,14 @@ def test_generalization_across_time():
     assert_true(len(gat.scores_) == len(gat.estimators_) == 8)  # training time
     assert_equal(len(gat.scores_[0]), 15)  # testing time
 
-    # Test start stop training
-    gat = GeneralizationAcrossTime(train_times={'start': 0.090,
-                                                'stop': 0.250})
+    # Test start stop training & test cv without n_fold params
+    y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
+    gat = GeneralizationAcrossTime(cv=LeaveOneLabelOut(y_4classes),
+                                   train_times={'start': 0.090, 'stop': 0.250})
     # predict without fit
     assert_raises(RuntimeError, gat.predict, epochs)
     with warnings.catch_warnings(record=True):
-        gat.fit(epochs)
+        gat.fit(epochs, y=y_4classes)
     gat.score(epochs)
     assert_equal(len(gat.scores_), 4)
     assert_equal(gat.train_times_['times'][0], epochs.times[6])

@@ -367,7 +367,7 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
             # classifier and average prediction.
 
             # Check that training cv and predicting cv match
-            if (len(estimators) != cv.n_folds) or (cv.n != Xtrain.shape[0]):
+            if (len(estimators) != len(cv)) or (cv.n != Xtrain.shape[0]):
                 raise ValueError(
                     'When `predict_mode = "cross-validation"`, the training '
                     'and predicting cv schemes must be identical.')
