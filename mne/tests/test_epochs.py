@@ -1583,6 +1583,9 @@ def test_array_epochs():
     ep_data = epochs.get_data()
     assert_array_equal(np.zeros_like(ep_data), ep_data)
 
+    # events with non integers
+    assert_raises(ValueError, EpochsArray, data, info, events + .01)
+
 
 def test_concatenate_epochs():
     """Test concatenate epochs"""
