@@ -178,6 +178,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         del event_id
 
         if events is not None:  # RtEpochs can have events=None
+
+            if events.dtype.kind not in ['i', 'u']:
+                raise ValueError('`events` needs to be an array of type int')
+
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
@@ -1548,7 +1552,7 @@ class Epochs(_BaseEpochs):
     ----------
     raw : Raw object
         An instance of Raw.
-    events : array, shape (n_events, 3)
+    events : array of int, shape (n_events, 3)
         The events typically returned by the read_events function.
         If some events don't match the events of interest as specified
         by event_id, they will be marked as 'IGNORED' in the drop log.
@@ -1751,7 +1755,7 @@ class EpochsArray(_BaseEpochs):
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
-    events : array, shape (n_events, 3)
+    events : array of int, shape (n_events, 3)
         The events typically returned by the read_events function.
         If some events don't match the events of interest as specified
         by event_id, they will be marked as 'IGNORED' in the drop log.
