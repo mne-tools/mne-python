@@ -245,6 +245,8 @@ def test_base_epochs():
     # events with non integers
     assert_raises(ValueError, _BaseEpochs, raw.info, None,
                   np.ones((1, 3), float), event_id, tmin, tmax)
+    assert_raises(ValueError, _BaseEpochs, raw.info, None,
+                  np.ones((1, 3, 2), int), event_id, tmin, tmax)
 
 
 @requires_scipy_version('0.14')
