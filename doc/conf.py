@@ -278,5 +278,5 @@ sphinxgallery_conf = {
         'scipy': 'http://docs.scipy.org/doc/scipy-0.11.0/reference',
         'mayavi': 'http://docs.enthought.com/mayavi/mayavi'},
     'find_mayavi_figures': True,
-    'default_thumb_file': '_images/mne_helmet.png',
+    'default_thumb_file': '_static/mne_helmet.png',
     }
