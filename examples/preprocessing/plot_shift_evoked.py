@@ -25,7 +25,7 @@ evoked = mne.read_evokeds(fname, condition=condition, baseline=(None, 0),
                           proj=True)
 
 ch_names = evoked.info['ch_names']
-picks = mne.pick_channels(ch_names=ch_names, include="MEG 2332", exclude="bad")
+picks = mne.pick_channels(ch_names=ch_names, include=["MEG 2332"])
 
 # Create subplots
 f, (ax1, ax2, ax3) = plt.subplots(3)

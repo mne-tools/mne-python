@@ -40,7 +40,7 @@ event_ids = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks)
 
 # Get the stim channel data
-pick_ch = mne.pick_channels(epochs.ch_names, 'STI 014')[0]
+pick_ch = mne.pick_channels(epochs.ch_names, ['STI 014'])[0]
 data = epochs.get_data()[:, pick_ch, :].astype(int)
 data = np.sum((data.astype(int) & 512) == 512, axis=0)
 
