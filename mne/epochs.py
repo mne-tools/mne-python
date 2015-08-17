@@ -179,9 +179,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if events is not None:  # RtEpochs can have events=None
 
-            if not np.array_equal(events, np.array(events, dtype=int)):
-                raise ValueError('events values be integers.')
-            events = np.array(events, dtype=int)
+            if events.dtype.kind != 'i':
+                raise ValueError('`events` needs to be an array of type int')
 
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
