@@ -268,8 +268,8 @@ trim_doctests_flags = True
 intersphinx_mapping = {'http://docs.python.org/': None}
 
 sphinxgallery_conf = {
-    'examples_dir'   : ['../examples', '../tutorials'],
-    'gallery_dir'    : ['auto_examples', 'auto_tutorials'],
+    'examples_dirs'   : ['../examples', '../tutorials'],
+    'gallery_dirs'    : ['auto_examples', 'auto_tutorials'],
     'doc_module': ('sphinxgallery', 'numpy'),
     'reference_url': {
         'mne': None,
@@ -278,4 +278,5 @@ sphinxgallery_conf = {
         'scipy': 'http://docs.scipy.org/doc/scipy-0.11.0/reference',
         'mayavi': 'http://docs.enthought.com/mayavi/mayavi'},
     'find_mayavi_figures': True,
+    'default_thumb_file': '_images/mne_helmet.png',
     }

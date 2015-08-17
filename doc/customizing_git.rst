@@ -4,6 +4,10 @@
  Customizing git
 =================
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
 .. _git-config-basic:
 
 Overview
