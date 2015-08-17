@@ -585,8 +585,8 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
     ----------
     chs : any input, should be list, tuple, string
         The channels passed to include or exclude.
-    allow_strs : list of strings
-        Optional strings to allow.
+    allow_bads : bool
+        Allow the user to supply "bads" as a string for auto exclusion.
 
     Returns
     -------
