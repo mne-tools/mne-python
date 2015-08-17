@@ -173,11 +173,6 @@ class CoregModel(HasPrivateTraits):
         return has
 
     @cached_property
-    def _get_has_eegpts_data(self):
-        has = np.any(self.hsp.eeg_points)
-        return has
-
-    @cached_property
     def _get_has_fid_data(self):
         has = (np.any(self.mri_origin) and np.any(self.hsp.nasion))
         return has
