@@ -81,7 +81,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
 
 
 def test_magnetic_dipole():
-    """Basic test for magnetic dipole forward calculation
+    """Test basic magnetic dipole forward calculation
     """
     trans = {'to': FIFF.FIFFV_COORD_HEAD, 'from': FIFF.FIFFV_COORD_MRI,
              'trans': np.eye(4)}

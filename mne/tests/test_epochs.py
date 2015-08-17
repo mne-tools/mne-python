@@ -1539,7 +1539,7 @@ def test_array_epochs():
     types = ['eeg'] * 20
     info = create_info(ch_names, sfreq, types)
     events = np.c_[np.arange(1, 600, 60),
-                   np.zeros(10),
+                   np.zeros(10, int),
                    [1, 2] * 5]
     event_id = {'a': 1, 'b': 2}
     epochs = EpochsArray(data, info, events, tmin, event_id)

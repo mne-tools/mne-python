@@ -150,7 +150,7 @@ def test_tfr_multitaper():
     dat = noise + signal
 
     reject = dict(grad=4000.)
-    events = np.empty((n_epochs, 3))
+    events = np.empty((n_epochs, 3), int)
     first_event_sample = 100
     event_id = dict(sin50hz=1)
     for k in range(n_epochs):

@@ -180,7 +180,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if events is not None:  # RtEpochs can have events=None
 
             if events.dtype.kind not in ['i', 'u']:
-                raise ValueError('`events` needs to be an array of type int')
+                raise ValueError('events must be an array of type int')
+            if events.ndim != 2 or events.shape[1] != 3:
+                raise ValueError('events must be 2D with 3 columns')
 
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:

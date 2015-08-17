@@ -186,8 +186,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     logger.info("Number of ECG events detected : %d (average pulse %d / "
                 "min.)" % (n_events, average_pulse))
 
-    ecg_events = np.c_[ecg_events + raw.first_samp, np.zeros(n_events),
-                       event_id * np.ones(n_events)]
+    ecg_events = np.array([ecg_events + raw.first_samp,
+                           np.zeros(n_events, int),
+                           event_id * np.ones(n_events, int)]).T
     return ecg_events, idx_ecg, average_pulse
 
 

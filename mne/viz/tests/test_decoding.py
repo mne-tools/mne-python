@@ -79,7 +79,8 @@ def test_gat_plot_times():
     gat.plot_times(gat.train_times_['times'])
     # test multiple colors
     n_times = len(gat.train_times_['times'])
-    colors = np.tile(['r', 'g', 'b'], np.ceil(n_times / 3))[:n_times]
+    colors = np.tile(['r', 'g', 'b'],
+                     int(np.ceil(n_times / 3)))[:n_times]
     gat.plot_times(gat.train_times_['times'], color=colors)
     # test invalid time point
     assert_raises(ValueError, gat.plot_times, -1.)
