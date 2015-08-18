@@ -5,9 +5,10 @@ from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_almost_equal
 import numpy as np
 
-from ...io import Raw
-from ...io.proj import make_projector, activate_proj
-from ..ssp import compute_proj_ecg, compute_proj_eog
+from mne.io import Raw
+from mne.io.proj import make_projector, activate_proj
+from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
+from mne.utils import run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -98,3 +99,5 @@ def test_compute_proj_parallel():
     projs_2, _, _ = make_projector(projs_2, raw_2.info['ch_names'],
                                    bads=['MEG 2443'])
     assert_array_almost_equal(projs, projs_2, 10)
+
+run_tests_if_main()

@@ -15,6 +15,7 @@ from mne.io.constants import FIFF
 from mne.io import Raw
 from mne.datasets import testing
 from mne.forward.tests import test_forward
+from mne.utils import run_tests_if_main
 
 
 def test_pick_channels_regexp():
@@ -40,7 +41,7 @@ def test_pick_seeg():
     for i, t in enumerate(types):
         assert_equal(channel_type(info, i), types[i])
     raw = RawArray(np.zeros((len(names), 10)), info)
-    events = np.array([[1, 0, 0], [2, 0, 0]]).astype('d')
+    events = np.array([[1, 0, 0], [2, 0, 0]])
     epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
     e_seeg = evoked.pick_types(meg=False, seeg=True, copy=True)
@@ -168,3 +169,5 @@ def test_clean_info_bads():
 
     assert_equal(info_eeg['bads'], eeg_bad_ch)
     assert_equal(info_meg['bads'], meg_bad_ch)
+
+run_tests_if_main()

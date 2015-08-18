@@ -128,8 +128,9 @@ def test_rap_music_simulated():
         _get_data()
 
     n_dipoles = 2
-    sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov, n_dipoles,
-                                evoked.times)
+    with warnings.catch_warnings(record=True):  # not positive semidef
+        sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
+                                    n_dipoles, evoked.times)
     # Check dipoles for fixed ori
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)

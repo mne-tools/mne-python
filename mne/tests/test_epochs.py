@@ -242,6 +242,11 @@ def test_base_epochs():
     epochs = _BaseEpochs(raw.info, None, np.ones((1, 3), int),
                          event_id, tmin, tmax)
     assert_raises(NotImplementedError, epochs.get_data)
+    # events with non integers
+    assert_raises(ValueError, _BaseEpochs, raw.info, None,
+                  np.ones((1, 3), float), event_id, tmin, tmax)
+    assert_raises(ValueError, _BaseEpochs, raw.info, None,
+                  np.ones((1, 3, 2), int), event_id, tmin, tmax)
 
 
 @requires_scipy_version('0.14')
@@ -1536,7 +1541,7 @@ def test_array_epochs():
     types = ['eeg'] * 20
     info = create_info(ch_names, sfreq, types)
     events = np.c_[np.arange(1, 600, 60),
-                   np.zeros(10),
+                   np.zeros(10, int),
                    [1, 2] * 5]
     event_id = {'a': 1, 'b': 2}
     epochs = EpochsArray(data, info, events, tmin, event_id)
