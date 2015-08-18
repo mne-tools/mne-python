@@ -241,8 +241,7 @@ def test_generalization_across_time():
     # shape = (n_trials, 1) instead of (n_trials,)
     gat = GeneralizationAcrossTime(clf=RANSACRegressor(LinearRegression()),
                                    cv=2)
-    epochs._data = epochs._data[:, :, :2]
-    epochs.times = epochs.times[:2]
+    epochs.crop(None, epochs.times[2])
     gat.fit(epochs)
     gat.predict(epochs)
 
