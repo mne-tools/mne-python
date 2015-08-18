@@ -373,6 +373,7 @@ Functions:
    :template: function.rst
 
    read_montage
+   read_dig_montage
    read_layout
    find_layout
    make_eeg_layout
@@ -839,6 +840,7 @@ Statistics
    spatio_temporal_cluster_1samp_test
    ttest_1samp_no_p
    linear_regression
+   linear_regression_raw
    f_mway_rm
 
 Functions to compute connectivity (adjacency) matrices for cluster-level statistics
