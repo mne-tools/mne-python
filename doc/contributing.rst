@@ -1,8 +1,11 @@
 .. _contributing:
 
-
 Contributing to MNE project
 ===========================
+
+.. contents:: Contents
+   :local:
+   :depth: 2
 
 .. We want to thank all MNE Software users at the Martinos Center and
 .. in other institutions for their collaboration during the creation
@@ -167,8 +170,12 @@ your contact info::
 
 If you are going to :ref:`setup-github` eventually, this email address should
 be the same as the one used to sign up for a GitHub account. For more
-information about configuring your git installation, see
-`customizing_git`_.
+information about configuring your git installation, see:
+
+.. toctree::
+   :maxdepth: 1
+
+   customizing_git
 
 The following sections cover the installation of the git software, the basic
 configuration, and links to resources to learn more about using git.
