@@ -1398,19 +1398,12 @@ class CoregFrame(HasTraits):
     def _reset_omit_points_fired(self):
         self.model.omit_hsp_points(0, True)
 
-    def _select_eeg_points_fired(self):
-        self.model.select_eeg_points(False)
-
-    def _reset_select_eeg_points_fired(self):
-        self.model.select_eeg_points(True)
-
     @cached_property
     def _get_eeg_visible(self):
         return self.use_eeg_locations
 
     def _eeg_visible_fired(self):
         self.model.select_eeg_points(use_eeg=self.use_eeg_locations)
-        self.model.omit_hsp_points(0, reset=self.use_eeg_locations)
 
     @on_trait_change('model.mri.tris')
     def _on_mri_src_change(self):
