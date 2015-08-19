@@ -13,7 +13,6 @@ from numpy.testing import assert_array_equal
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import requires_sklearn, slow_test
 from mne.decoding import GeneralizationAcrossTime, TimeDecoding
-from mne import EpochsArray
 
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -46,6 +45,7 @@ def test_generalization_across_time():
     """Test time generalization decoding
     """
     from sklearn.svm import SVC
+    from sklearn.linear_model import RANSACRegressor, LinearRegression
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import mean_squared_error
     from sklearn.cross_validation import LeaveOneLabelOut
@@ -214,14 +214,6 @@ def test_generalization_across_time():
     # --- unmatched length between training and testing time
     gat.test_times = dict(length=.150)
     assert_raises(ValueError, gat.predict, epochs)
-
-    # Test float arithmetic error
-    with warnings.catch_warnings(record=True):
-        epochs.decimate(3)
-    gat.fit(epochs)
-    0/0
-    epochs = EpochsArray(epochs._data, epochs.info, epochs.events, tmin=epochs.times[0])
-    gat.predict(epochs)
 
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
