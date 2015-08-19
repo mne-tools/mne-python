@@ -378,7 +378,7 @@ class CoregModel(HasPrivateTraits):
         with warnings.catch_warnings(record=True):  # comp to None in Traits
             self.hsp.points_filter = new_filter
 
-    def omit_eeg_points(self, use_eeg=True):
+    def select_eeg_points(self, use_eeg=True):
         """Omit all EEG head shape points
         """
 
@@ -1174,9 +1174,6 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                HGroup(Item('distance', show_label=True),
                                       'omit_points', 'reset_omit_points',
                                       show_labels=False),
-                               HGroup('omit_eeg_points',
-                                      'reset_omit_eeg_points',
-                                      show_labels=False),
                                HGroup('use_eeg_locations',
                                       Label("Use EEG electrode locations "
                                             "as head shape points"),
@@ -1242,11 +1239,6 @@ class CoregFrame(HasTraits):
                          "procedure.")
     reset_omit_points = Button(label='Reset Omission', desc="Reset the "
                                "omission of head shape points to include all.")
-    omit_eeg_points = Button(label='Omit EEG', desc="Omit EEG "
-                             "points for the purpose of the automatic "
-                             "coregistration procedure.")
-    reset_omit_eeg_points = Button(label='Reset EEG', desc="Reset the "
-                                   "omission of EEG points to include all.")
     omitted_info = Property(Str, depends_on=['model.hsp.n_omitted'])
 
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
@@ -1405,21 +1397,20 @@ class CoregFrame(HasTraits):
 
     def _reset_omit_points_fired(self):
         self.model.omit_hsp_points(0, True)
-        if not self.use_eeg_locations:
-            self.model.omit_eeg_points(omit=True)
 
-    def _omit_eeg_points_fired(self):
-        self.model.omit_eeg_points(False)
+    def _select_eeg_points_fired(self):
+        self.model.select_eeg_points(False)
 
-    def _reset_omit_eeg_points_fired(self):
-        self.model.omit_eeg_points(True)
+    def _reset_select_eeg_points_fired(self):
+        self.model.select_eeg_points(True)
 
     @cached_property
     def _get_eeg_visible(self):
         return self.use_eeg_locations
 
     def _eeg_visible_fired(self):
-        self.model.omit_eeg_points(use_eeg=self.use_eeg_locations)
+        self.model.select_eeg_points(use_eeg=self.use_eeg_locations)
+        self.model.omit_hsp_points(0, reset=self.use_eeg_locations)
 
     @on_trait_change('model.mri.tris')
     def _on_mri_src_change(self):
