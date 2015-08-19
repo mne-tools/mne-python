@@ -378,7 +378,7 @@ class CoregModel(HasPrivateTraits):
         with warnings.catch_warnings(record=True):  # comp to None in Traits
             self.hsp.points_filter = new_filter
 
-    def omit_eeg_points(self, omit=False):
+    def omit_eeg_points(self, use_eeg=True):
         """Omit all EEG head shape points
         """
 
@@ -387,16 +387,19 @@ class CoregModel(HasPrivateTraits):
         eeg_filter = self.hsp.points_type == FIFF.FIFFV_POINT_EEG
         nEEG = np.sum(eeg_filter)
 
-        if old_filter is None and (not omit):
-            new_filter = np.ones(len(self.hsp.raw_points), np.bool8)
+        if old_filter is None:
+            old_filter = np.ones(len(self.hsp.inst_points), np.bool8)
 
-        if omit:
-            new_filter = old_filter * np.logical_not(eeg_filter)
-            logger.info("Coregistration: Omitting %i EEG points", nEEG)
-        else:
+        if use_eeg:
             with warnings.catch_warnings(record=True):  # Traits None comp
                 new_filter = old_filter + eeg_filter
                 logger.info("Coregistration: Including %i EEG points", nEEG)
+        else:
+            new_filter = old_filter * np.logical_not(eeg_filter)
+            logger.info("Coregistration: Omitting %i EEG points", nEEG)
+
+        if np.sum(new_filter) == len(new_filter):
+            new_filter = None
 
         # set the filter
         with warnings.catch_warnings(record=True):  # comp to None in Traits
@@ -1416,7 +1419,7 @@ class CoregFrame(HasTraits):
         return self.use_eeg_locations
 
     def _eeg_visible_fired(self):
-        self.model.omit_eeg_points(omit=self.use_eeg_locations)
+        self.model.omit_eeg_points(use_eeg=self.use_eeg_locations)
 
     @on_trait_change('model.mri.tris')
     def _on_mri_src_change(self):
