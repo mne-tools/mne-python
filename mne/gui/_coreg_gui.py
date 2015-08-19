@@ -335,7 +335,7 @@ class CoregModel(HasPrivateTraits):
         elif 'fsaverage' in self.mri.subject_source.subjects:
             self.mri.subject = 'fsaverage'
 
-    def omit_hsp_points(self, distance=0, reset=False):
+    def omit_hsp_points(self, distance=0, reset=False, use_eeg=True):
         """Exclude head shape points that are far away from the MRI head
 
         Parameters
@@ -347,12 +347,15 @@ class CoregModel(HasPrivateTraits):
         reset : bool
             Reset the filter before calculating new omission (default is
             False).
+        use_eeg : bool
+            Sets EEG point selection on reset.
         """
         distance = float(distance)
         if reset:
             logger.info("Coregistration: Reset excluded head shape points")
             with warnings.catch_warnings(record=True):  # Traits None comp
                 self.hsp.points_filter = None
+                self.select_eeg_points(use_eeg=use_eeg)
 
         if distance <= 0:
             return
@@ -1257,7 +1260,8 @@ class CoregFrame(HasTraits):
     hsp_nasion_obj = Instance(PointObject)
     hsp_rpa_obj = Instance(PointObject)
     hsp_visible = Property(depends_on=['hsp_always_visible', 'lock_fiducials'])
-    eeg_visible = Property(depends_on=['use_eeg_locations'])
+    eeg_visible = Property(depends_on=['use_eeg_locations', 'omit_points',
+                                       'reset_omit_points'])
 
     view_options = Button(label="View Options")
 
@@ -1393,12 +1397,11 @@ class CoregFrame(HasTraits):
 
     def _omit_points_fired(self):
         distance = self.distance / 1000.
-        self.model.omit_hsp_points(distance)
+        self.model.omit_hsp_points(distance, use_eeg=self.use_eeg_locations)
 
     def _reset_omit_points_fired(self):
         self.model.omit_hsp_points(0, True)
 
-    @cached_property
     def _get_eeg_visible(self):
         return self.use_eeg_locations
 
