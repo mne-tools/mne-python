@@ -378,29 +378,25 @@ class CoregModel(HasPrivateTraits):
         with warnings.catch_warnings(record=True):  # comp to None in Traits
             self.hsp.points_filter = new_filter
 
-    def omit_eeg_points(self, reset=False):
-        """Exclude all EEG head shape points
+    def omit_eeg_points(self, omit=False):
+        """Omit all EEG head shape points
         """
-
-        if reset:
-            logger.info("Coregistration: Reset excluded EEG points")
-            with warnings.catch_warnings(record=True):  # Traits None comp
-                self.hsp.points_filter = None
-            return  # nothing more to do here
-
-        # find the new filter
-        new_sub_filter = self.hsp.points_type != FIFF.FIFFV_POINT_EEG
-        n_excluded = np.sum(new_sub_filter == False)  # noqa
-        logger.info("Coregistration: Excluding %i EEG points",
-                    n_excluded)
 
         # combine the new filter with the previous filter
         old_filter = self.hsp.points_filter
-        if old_filter is None:
-            new_filter = new_sub_filter
-        else:
+        eeg_filter = self.hsp.points_type == FIFF.FIFFV_POINT_EEG
+        nEEG = np.sum(eeg_filter)
+
+        if old_filter is None and (not omit):
             new_filter = np.ones(len(self.hsp.raw_points), np.bool8)
-            new_filter[old_filter] = new_sub_filter
+
+        if omit:
+            new_filter = old_filter * np.logical_not(eeg_filter)
+            logger.info("Coregistration: Omitting %i EEG points", nEEG)
+        else:
+            with warnings.catch_warnings(record=True):  # Traits None comp
+                new_filter = old_filter + eeg_filter
+                logger.info("Coregistration: Including %i EEG points", nEEG)
 
         # set the filter
         with warnings.catch_warnings(record=True):  # comp to None in Traits
@@ -1178,6 +1174,10 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                HGroup('omit_eeg_points',
                                       'reset_omit_eeg_points',
                                       show_labels=False),
+                               HGroup('use_eeg_locations',
+                                      Label("Use EEG electrode locations "
+                                            "as head shape points"),
+                                      show_labels=False),
                                Item('omitted_info', style='readonly',
                                     show_label=False),
                                label='Head Shape Source (Raw/Epochs/Evoked)',
@@ -1249,6 +1249,8 @@ class CoregFrame(HasTraits):
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
     hsp_always_visible = Bool(False, label="Always Show Head Shape")
+    use_eeg_locations = Bool(True, label="Use EEG electrode locations "
+                             "as head shape points")
 
     # visualization
     hsp_obj = Instance(PointObject)
@@ -1260,6 +1262,7 @@ class CoregFrame(HasTraits):
     hsp_nasion_obj = Instance(PointObject)
     hsp_rpa_obj = Instance(PointObject)
     hsp_visible = Property(depends_on=['hsp_always_visible', 'lock_fiducials'])
+    eeg_visible = Property(depends_on=['use_eeg_locations'])
 
     view_options = Button(label="View Options")
 
@@ -1399,12 +1402,21 @@ class CoregFrame(HasTraits):
 
     def _reset_omit_points_fired(self):
         self.model.omit_hsp_points(0, True)
+        if not self.use_eeg_locations:
+            self.model.omit_eeg_points(omit=True)
 
     def _omit_eeg_points_fired(self):
         self.model.omit_eeg_points(False)
 
     def _reset_omit_eeg_points_fired(self):
         self.model.omit_eeg_points(True)
+
+    @cached_property
+    def _get_eeg_visible(self):
+        return self.use_eeg_locations
+
+    def _eeg_visible_fired(self):
+        self.model.omit_eeg_points(omit=self.use_eeg_locations)
 
     @on_trait_change('model.mri.tris')
     def _on_mri_src_change(self):
