@@ -371,7 +371,7 @@ class CoregModel(HasPrivateTraits):
         if old_filter is None:
             new_filter = new_sub_filter
         else:
-            new_filter = np.ones(len(self.hsp.raw_points), np.bool8)
+            new_filter = np.ones(len(self.hsp.inst_points), np.bool8)
             new_filter[old_filter] = new_sub_filter
 
         # set the filter
