@@ -41,7 +41,7 @@ before_install:
 install:
     - conda create -n testenv --yes pip python=$PYTHON
     - source activate testenv
-    - conda install --yes --quiet numpy$NUMPY scipy$SCIPY nose matplotlib$MPL libpng$LIBPNG
+    - conda install --yes --quiet numpy$NUMPY scipy$SCIPY nose matplotlib$MPL libpng$LIBPNG coverage
     # We have to replicate e.g. numpy$NUMPY to ensure the recommended (higher) versions
     # are not automatically installed below with multiple "conda install" calls!
     - if [ "${DEPS}" == "full" ]; then
@@ -65,7 +65,7 @@ install:
     - if [ "${DEPS}" == "nodata" ]; then
         pip install -q flake8;
       fi;
-    - pip install -q coverage coveralls nose-timer
+    - pip install -q coveralls nose-timer
     # check our versions for the major packages
     - NP_VERSION=`python -c 'import numpy; print(numpy.__version__)'`
     - if [ -n "$NUMPY" ] && [ "${NUMPY:(-3)}" != "${NP_VERSION::3}" ]; then

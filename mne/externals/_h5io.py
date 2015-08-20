@@ -9,8 +9,10 @@ from shutil import rmtree
 from os import path as op
 
 import numpy as np
-from scipy import sparse
-import h5py
+try:
+    from scipy import sparse
+except ImportError:
+    sparse = None
 
 # Adapted from six
 PY3 = sys.version_info[0] == 3
@@ -20,6 +22,14 @@ string_types = str if PY3 else basestring  # noqa
 
 ##############################################################################
 # WRITING
+
+def _check_h5py():
+    """Helper to check if h5py is installed"""
+    try:
+        import h5py
+    except ImportError:
+        raise ImportError('the h5py module is required to use HDF5 I/O')
+    return h5py
 
 
 def _create_titled_group(root, key, title):
@@ -57,6 +67,7 @@ def write_hdf5(fname, data, overwrite=False, compression=4,
         The top-level directory name to use. Typically it is useful to make
         this your package name, e.g. ``'mnepython'``.
     """
+    h5py = _check_h5py()
     if op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, use overwrite=True to overwrite'
                       % fname)
@@ -101,7 +112,7 @@ def _triage_write(key, value, root, comp_kw, where):
         _create_titled_dataset(root, key, title, value, comp_kw)
     elif isinstance(value, np.ndarray):
         _create_titled_dataset(root, key, 'ndarray', value)
-    elif isinstance(value, sparse.csc_matrix):
+    elif sparse is not None and isinstance(value, sparse.csc_matrix):
         sub_root = _create_titled_group(root, key, 'csc_matrix')
         _triage_write('data', value.data, sub_root, comp_kw,
                       where + '.csc_matrix_data')
@@ -132,6 +143,7 @@ def read_hdf5(fname, title='h5io'):
     data : object
         The loaded data. Can be of any type supported by ``write_hdf5``.
     """
+    h5py = _check_h5py()
     if not op.isfile(fname):
         raise IOError('file "%s" not found' % fname)
     if not isinstance(title, string_types):
@@ -144,6 +156,7 @@ def read_hdf5(fname, title='h5io'):
 
 
 def _triage_read(node):
+    h5py = _check_h5py()
     type_str = node.attrs['TITLE']
     if isinstance(type_str, bytes):
         type_str = type_str.decode()
@@ -165,6 +178,8 @@ def _triage_read(node):
             data = tuple(data) if type_str == 'tuple' else data
             return data
         elif type_str == 'csc_matrix':
+            if sparse is None:
+                raise RuntimeError('scipy must be installed to read this data')
             data = sparse.csc_matrix((_triage_read(node['data']),
                                       _triage_read(node['indices']),
                                       _triage_read(node['indptr'])))
@@ -244,7 +259,7 @@ def object_diff(a, b, pre=''):
     elif isinstance(a, np.ndarray):
         if not np.array_equal(a, b):
             out += pre + ' array mismatch\n'
-    elif sparse.isspmatrix(a):
+    elif sparse is not None and sparse.isspmatrix(a):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:
             out += pre + (' sparse matrix a and b shape mismatch'
