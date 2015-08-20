@@ -132,13 +132,13 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
             elif fill_na is not None:
                 event[2] = fill_na
                 new_events += [event]
-                lag += [fill_na]
+                lag.append(None)
 
     new_events = np.array(new_events)
 
     lag = np.abs(lag, dtype='f8')
     if lag.any():
-        lag[lag != fill_na] *= tsample
+        lag *= tsample
     else:
         lag = np.array([])
 
