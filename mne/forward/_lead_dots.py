@@ -443,6 +443,8 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
     # virt_ref = False
     if ch_type == 'eeg':
         intrad *= 0.7
+        # The virtual ref code is untested and unused, so it is
+        # commented out for now
         # if virt_ref:
         #     rref = virt_ref[np.newaxis, :] - r0[np.newaxis, :]
         #     refl = np.sqrt(np.sum(rref * rref, axis=1))
