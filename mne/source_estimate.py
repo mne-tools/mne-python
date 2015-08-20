@@ -1733,11 +1733,11 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                                      verbose=verbose)
 
     def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
-                     colormap='hot', time_label='time=%02.f ms',
-                     smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-                     transparent=True, alpha=1.0, time_viewer=False,
+                     colormap='auto', time_label='time=%02.f ms',
+                     smoothing_steps=10,
+                     transparent=None, alpha=1.0, time_viewer=False,
                      config_opts={}, subjects_dir=None, figure=None,
-                     views='lat', colorbar=True):
+                     views='lat', colorbar=True, clim='auto'):
         """Plot surface source estimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1761,20 +1761,15 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         hemi : str, 'lh' | 'rh' | 'split' | 'both'
             The hemisphere to display. Using 'both' or 'split' requires
             PySurfer version 0.4 or above.
-        colormap : str
-            The type of colormap to use.
+        colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+            Name of colormap to use. See `plot_source_estimates`.
         time_label : str
             How to print info about the time instant visualized.
         smoothing_steps : int
             The amount of smoothing.
-        fmin : float
-            The minimum value to display.
-        fmid : float
-            The middle value on the colormap.
-        fmax : float
-            The maximum value for the colormap.
-        transparent : bool
+        transparent : bool | None
             If True, use a linear transparency between fmin and fmid.
+            None will choose automatically based on colormap type.
         alpha : float
             Alpha value to apply globally to the overlay.
         time_viewer : bool
@@ -1792,6 +1787,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             View to use. See surfer.Brain().
         colorbar : bool
             If True, display colorbar on scene.
+        clim : str | dict
+            Colorbar properties specification. See `plot_source_estimates`.
 
         Returns
         -------
@@ -1814,12 +1811,11 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         return plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
                                      colormap=colormap, time_label=time_label,
                                      smoothing_steps=smoothing_steps,
-                                     fmin=fmin, fmid=fmid, fmax=fmax,
                                      transparent=transparent, alpha=alpha,
                                      time_viewer=time_viewer,
                                      config_opts=config_opts,
                                      subjects_dir=subjects_dir, figure=figure,
-                                     views=views, colorbar=colorbar)
+                                     views=views, colorbar=colorbar, clim=clim)
 
 
 ###############################################################################

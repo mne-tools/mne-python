@@ -432,7 +432,6 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
     products : array, shape (n_coils, n_coils)
         The integration products.
     """
-    virt_ref = False
     # convert to normalized distances from expansion center
     rmags = [coil['rmag'] - r0[np.newaxis, :] for coil in coils]
     rlens = [np.sqrt(np.sum(r * r, axis=1)) for r in rmags]
@@ -441,12 +440,15 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
     ws = [coil['w'] for coil in coils]
     rref = None
     refl = None
+    # virt_ref = False
     if ch_type == 'eeg':
         intrad *= 0.7
-        if virt_ref:
-            rref = virt_ref[np.newaxis, :] - r0[np.newaxis, :]
-            refl = np.sqrt(np.sum(rref * rref, axis=1))
-            rref /= refl[:, np.newaxis]
+        # The virtual ref code is untested and unused, so it is
+        # commented out for now
+        # if virt_ref:
+        #     rref = virt_ref[np.newaxis, :] - r0[np.newaxis, :]
+        #     refl = np.sqrt(np.sum(rref * rref, axis=1))
+        #     rref /= refl[:, np.newaxis]
 
     rsurf = surf['rr'][sel] - r0[np.newaxis, :]
     lsurf = np.sqrt(np.sum(rsurf * rsurf, axis=1))
@@ -507,11 +509,13 @@ def _do_surface_dots_subset(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
                                   None, ws[ci], volume, lut,
                                   n_fact, ch_type)
         if rref is not None:
-            vres = _fast_sphere_dot_r0(intrad, rref, rmags[ci],
-                                       refl, rlens[ci],
-                                       None, ws[ci], volume,
-                                       lut, n_fact, ch_type)
-            products[:, ci] = res - vres
+            raise NotImplementedError  # we don't ever use this, isn't tested
+            # vres = _fast_sphere_dot_r0(intrad, rref, rmags[ci],
+            #                            refl, rlens[ci],
+            #                            this_nn, cosmags[ci],
+            #                            None, ws[ci], volume, lut,
+            #                            n_fact, ch_type)
+            # products[:, ci] = res - vres
         else:
             products[:, ci] = res
     return products

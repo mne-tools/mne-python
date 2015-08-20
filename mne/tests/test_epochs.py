@@ -1194,7 +1194,8 @@ def test_to_data_frame():
         df = epochs.to_data_frame(index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
         # test that non-indexed data were present as categorial variables
-        df.reset_index().columns[:3] == ['condition', 'epoch', 'time']
+        assert_array_equal(sorted(df.reset_index().columns[:3]),
+                           sorted(['time', 'condition', 'epoch']))
 
 
 def test_epochs_proj_mixin():

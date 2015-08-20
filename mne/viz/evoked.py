@@ -423,7 +423,8 @@ def _plot_update_evoked(params, bools):
         idx = [picks[i] for i in range(len(picks)) if params['types'][i] == t]
         D = this_scaling * new_evoked.data[idx, :]
         if params['plot_type'] == 'butterfly':
-            [line.set_data(times, di) for line, di in zip(ax.lines, D)]
+            for line, di in zip(ax.lines, D):
+                line.set_data(times, di)
         else:
             ax.images[0].set_data(D)
     params['fig'].canvas.draw()

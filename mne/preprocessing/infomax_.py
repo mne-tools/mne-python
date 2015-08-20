@@ -106,8 +106,8 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     signsbias = 0.02
     signcount_threshold = 25
     signcount_step = 2
-    if ext_blocks > 0:  # allow not to recompute kurtosis
-        n_subgauss = 1  # but initialize n_subgauss to 1 if you recompute
+    # if ext_blocks > 0:  # allow not to recompute kurtosis
+    #     n_subgauss = 1  # but initialize n_subgauss to 1 if you recompute
 
     # check data shape
     n_samples, n_features = data.shape
@@ -148,7 +148,6 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     # for extended Infomax
     if extended is True:
         signs = np.identity(n_features)
-        signs.flat[slice(0, n_features * n_subgauss, n_features)]
         kurt_size = min(kurt_size, n_samples)
         old_kurt = np.zeros(n_features, dtype=np.float64)
         oldsigns = np.zeros((n_features, n_features))
@@ -292,7 +291,6 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             # for extended Infomax
             if extended:
                 signs = np.identity(n_features)
-                signs.flat[slice(0, n_features * n_subgauss, n_features)]
                 oldsigns = np.zeros((n_features, n_features))
 
             if l_rate > min_l_rate:

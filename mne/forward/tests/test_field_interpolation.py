@@ -207,7 +207,8 @@ def test_as_meg_type_evoked():
 
     # set up things
     args1, args2 = _setup_args(info_from), _setup_args(info_to)
-    args1.update(coils2=args2['coils1']), args2.update(coils2=args1['coils1'])
+    args1.update(coils2=args2['coils1'])
+    args2.update(coils2=args1['coils1'])
 
     # test cross dots
     cross_dots1 = _do_cross_dots(**args1)

@@ -189,7 +189,8 @@ class ToDataFrameMixin(object):
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
 
         df = pd.DataFrame(data, columns=col_names)
-        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
+        for i, (k, v) in enumerate(mindex):
+            df.insert(i, k, v)
         if index is not None:
             if 'time' in index:
                 logger.info('Converting time column to int64...')

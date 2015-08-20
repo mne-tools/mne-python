@@ -300,7 +300,8 @@ def write_events(filename, event_list):
         end_file(fid)
     else:
         f = open(filename, 'w')
-        [f.write('%6d %6d %3d\n' % tuple(e)) for e in event_list]
+        for e in event_list:
+            f.write('%6d %6d %3d\n' % tuple(e))
         f.close()
 
 
