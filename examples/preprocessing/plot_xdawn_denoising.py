@@ -3,10 +3,10 @@
  XDAWN Denoising
 ================
 
-Xdawn filters are trained from epochs, signal is projected in the sources
-space and then projected back in the sensor space using only the first two
-xdawn components. The process is similar to an ICA, but is
-supervised in order to maximize the signal to signal + noise ratio of the
+Xdawn filters are fitted on half of the epochs. The second half is then
+projected on to the source space and projected back on to the sensor space
+using only the first two Xdawn components. The process is similar to an ICA,
+but is supervised in order to maximize the signal to noise ratio of the
 evoked response.
 
 References
