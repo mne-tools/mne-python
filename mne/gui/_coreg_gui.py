@@ -348,7 +348,7 @@ class CoregModel(HasPrivateTraits):
             Reset the filter before calculating new omission (default is
             False).
         use_eeg : bool
-            Sets EEG point selection on reset.
+            Check whether to use EEG electrodes (if present) as head points.
         """
         distance = float(distance)
         if reset:
@@ -380,6 +380,7 @@ class CoregModel(HasPrivateTraits):
         # set the filter
         with warnings.catch_warnings(record=True):  # comp to None in Traits
             self.hsp.points_filter = new_filter
+            self.select_eeg_points(use_eeg=use_eeg)
 
     def select_eeg_points(self, use_eeg=True):
         """Omit all EEG head shape points
@@ -1260,8 +1261,7 @@ class CoregFrame(HasTraits):
     hsp_nasion_obj = Instance(PointObject)
     hsp_rpa_obj = Instance(PointObject)
     hsp_visible = Property(depends_on=['hsp_always_visible', 'lock_fiducials'])
-    eeg_visible = Property(depends_on=['use_eeg_locations', 'omit_points',
-                                       'reset_omit_points'])
+    eeg_visible = Property(depends_on=['use_eeg_locations'])
 
     view_options = Button(label="View Options")
 
@@ -1397,10 +1397,11 @@ class CoregFrame(HasTraits):
 
     def _omit_points_fired(self):
         distance = self.distance / 1000.
-        self.model.omit_hsp_points(distance, use_eeg=self.use_eeg_locations)
+        self.model.omit_hsp_points(distance, reset=False)
 
     def _reset_omit_points_fired(self):
-        self.model.omit_hsp_points(0, True)
+        self.model.omit_hsp_points(0, reset=True,
+                                   use_eeg=self.use_eeg_locations)
 
     def _get_eeg_visible(self):
         return self.use_eeg_locations
