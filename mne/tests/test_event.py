@@ -8,7 +8,7 @@ import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, io, pick_channels)
-from mne.utils import _TempDir
+from mne.utils import _TempDir, run_tests_if_main
 from mne.event import define_target_events, merge_events
 
 warnings.simplefilter('always')
@@ -335,3 +335,5 @@ def test_define_events():
 
     assert_array_equal(true_lag_fill, lag_fill)
     assert_array_equal(true_lag_nofill, lag_nofill)
+
+run_tests_if_main()

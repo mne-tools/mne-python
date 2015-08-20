@@ -37,7 +37,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
-from .viz import (plot_epochs, plot_epochs_trellis, _drop_log_stats,
+from .viz import (plot_epochs, _plot_epochs_trellis, _drop_log_stats,
                   plot_epochs_psd, plot_epochs_psd_topomap)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, object_hash)
@@ -779,10 +779,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         .. versionadded:: 0.10.0
         """
         if trellis is True:
-            return plot_epochs_trellis(self, epoch_idx=epoch_idx, picks=picks,
-                                       scalings=scalings, title_str=title_str,
-                                       show=show, block=block,
-                                       n_epochs=n_epochs)
+            return _plot_epochs_trellis(self, epoch_idx=epoch_idx, picks=picks,
+                                        scalings=scalings, title_str=title_str,
+                                        show=show, block=block,
+                                        n_epochs=n_epochs)
         else:
             return plot_epochs(self, picks=picks, scalings=scalings,
                                n_epochs=n_epochs, n_channels=n_channels,

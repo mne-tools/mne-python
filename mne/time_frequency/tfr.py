@@ -22,8 +22,8 @@ from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
 from .multitaper import dpss_windows
-from .._hdf5 import write_hdf5, read_hdf5
 from ..viz.utils import figure_nobar
+from ..externals._h5io import write_hdf5, read_hdf5
 
 
 def _get_data(inst, return_itc):
@@ -1096,7 +1096,7 @@ def write_tfrs(fname, tfr, overwrite=False):
     for ii, tfr_ in enumerate(tfr):
         comment = ii if tfr_.comment is None else tfr_.comment
         out.append(_prepare_write_tfr(tfr_, condition=comment))
-    write_hdf5(fname, out, overwrite=overwrite)
+    write_hdf5(fname, out, overwrite=overwrite, title='mnepython')
 
 
 def read_tfrs(fname, condition=None):
@@ -1129,7 +1129,7 @@ def read_tfrs(fname, condition=None):
     check_fname(fname, 'tfr', ('-tfr.h5',))
 
     logger.info('Reading %s ...' % fname)
-    tfr_data = read_hdf5(fname)
+    tfr_data = read_hdf5(fname, title='mnepython')
     if condition is not None:
         tfr_dict = dict(tfr_data)
         if condition not in tfr_dict:

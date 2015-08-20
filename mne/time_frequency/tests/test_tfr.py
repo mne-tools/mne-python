@@ -11,6 +11,9 @@ from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
 from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
 from mne.time_frequency.tfr import AverageTFR, read_tfrs, write_tfrs
 
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 event_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
@@ -239,8 +242,6 @@ def test_io():
 
 def test_plot():
     """Test TFR plotting."""
-    import matplotlib
-    matplotlib.use('Agg')  # for testing don't use X server
     import matplotlib.pyplot as plt
 
     data = np.zeros((3, 2, 3))

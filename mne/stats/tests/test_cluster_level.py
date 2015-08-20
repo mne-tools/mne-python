@@ -245,7 +245,7 @@ def test_cluster_permutation_with_connectivity():
 
         # Make sure that we got the old ones back
         data_1 = set([np.sum(out[0][b[:n_pts]]) for b in out[1]])
-        data_2 = set([np.sum(out_connectivity_2[0][a[:n_pts]]) for a in
+        data_2 = set([np.sum(out_connectivity_2[0][a]) for a in
                      out_connectivity_2[1][:]])
         assert_true(len(data_1.intersection(data_2)) == len(data_1))
 

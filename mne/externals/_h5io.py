@@ -3,24 +3,23 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
-from scipy import sparse
+import sys
+import tempfile
+from shutil import rmtree
 from os import path as op
 
-from .externals.six import string_types, text_type
+import numpy as np
+from scipy import sparse
+import h5py
+
+# Adapted from six
+PY3 = sys.version_info[0] == 3
+text_type = str if PY3 else unicode  # noqa
+string_types = str if PY3 else basestring  # noqa
 
 
 ##############################################################################
-# WRITE
-
-
-def _check_h5py():
-    """Helper to check if h5py is installed"""
-    try:
-        import h5py
-    except ImportError:
-        raise ImportError('the h5py module is required to use HDF5 I/O')
-    return h5py
+# WRITING
 
 
 def _create_titled_group(root, key, title):
@@ -38,7 +37,8 @@ def _create_titled_dataset(root, key, title, data, comp_kw=None):
     return out
 
 
-def write_hdf5(fname, data, overwrite=False, compression=4):
+def write_hdf5(fname, data, overwrite=False, compression=4,
+               title='h5io'):
     """Write python object to HDF5 format using h5py
 
     Parameters
@@ -53,16 +53,20 @@ def write_hdf5(fname, data, overwrite=False, compression=4):
         If True, overwrite file (if it exists).
     compression : int
         Compression level to use (0-9) to compress data using gzip.
+    title : str
+        The top-level directory name to use. Typically it is useful to make
+        this your package name, e.g. ``'mnepython'``.
     """
-    h5py = _check_h5py()
     if op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, use overwrite=True to overwrite'
                       % fname)
+    if not isinstance(title, string_types):
+        raise ValueError('title must be a string')
     comp_kw = dict()
     if compression > 0:
         comp_kw = dict(compression='gzip', compression_opts=compression)
     with h5py.File(fname, mode='w') as fid:
-        _triage_write('mnepython', data, fid, comp_kw, str(type(data)))
+        _triage_write(title, data, fid, comp_kw, str(type(data)))
 
 
 def _triage_write(key, value, root, comp_kw, where):
@@ -110,33 +114,36 @@ def _triage_write(key, value, root, comp_kw, where):
 
 
 ##############################################################################
-# READ
+# READING
 
-def read_hdf5(fname):
+def read_hdf5(fname, title='h5io'):
     """Read python object from HDF5 format using h5py
 
     Parameters
     ----------
     fname : str
         File to load.
+    title : str
+        The top-level directory name to use. Typically it is useful to make
+        this your package name, e.g. ``'mnepython'``.
 
     Returns
     -------
     data : object
         The loaded data. Can be of any type supported by ``write_hdf5``.
     """
-    h5py = _check_h5py()
     if not op.isfile(fname):
         raise IOError('file "%s" not found' % fname)
+    if not isinstance(title, string_types):
+        raise ValueError('title must be a string')
     with h5py.File(fname, mode='r') as fid:
-        if 'mnepython' not in fid.keys():
-            raise TypeError('no mne-python data found')
-        data = _triage_read(fid['mnepython'])
+        if title not in fid.keys():
+            raise ValueError('no "%s" data found' % title)
+        data = _triage_read(fid[title])
     return data
 
 
 def _triage_read(node):
-    import h5py
     type_str = node.attrs['TITLE']
     if isinstance(type_str, bytes):
         type_str = type_str.decode()
@@ -178,3 +185,98 @@ def _triage_read(node):
     else:
         raise TypeError('Unknown node type: {0}'.format(type_str))
     return data
+
+
+# ############################################################################
+# UTILITIES
+
+def _sort_keys(x):
+    """Sort and return keys of dict"""
+    keys = list(x.keys())  # note: not thread-safe
+    idx = np.argsort([str(k) for k in keys])
+    keys = [keys[ii] for ii in idx]
+    return keys
+
+
+def object_diff(a, b, pre=''):
+    """Compute all differences between two python variables
+
+    Parameters
+    ----------
+    a : object
+        Currently supported: dict, list, tuple, ndarray, int, str, bytes,
+        float.
+    b : object
+        Must be same type as x1.
+    pre : str
+        String to prepend to each line.
+
+    Returns
+    -------
+    diffs : str
+        A string representation of the differences.
+    """
+    out = ''
+    if type(a) != type(b):
+        out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
+    elif isinstance(a, dict):
+        k1s = _sort_keys(a)
+        k2s = _sort_keys(b)
+        m1 = set(k2s) - set(k1s)
+        if len(m1):
+            out += pre + ' x1 missing keys %s\n' % (m1)
+        for key in k1s:
+            if key not in k2s:
+                out += pre + ' x2 missing key %s\n' % key
+            else:
+                out += object_diff(a[key], b[key], pre + 'd1[%s]' % repr(key))
+    elif isinstance(a, (list, tuple)):
+        if len(a) != len(b):
+            out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
+        else:
+            for xx1, xx2 in zip(a, b):
+                out += object_diff(xx1, xx2, pre='')
+    elif isinstance(a, (string_types, int, float, bytes)):
+        if a != b:
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+    elif a is None:
+        pass  # b must be None due to our type checking
+    elif isinstance(a, np.ndarray):
+        if not np.array_equal(a, b):
+            out += pre + ' array mismatch\n'
+    elif sparse.isspmatrix(a):
+        # sparsity and sparse type of b vs a already checked above by type()
+        if b.shape != a.shape:
+            out += pre + (' sparse matrix a and b shape mismatch'
+                          '(%s vs %s)' % (a.shape, b.shape))
+        else:
+            c = a - b
+            c.eliminate_zeros()
+            if c.nnz > 0:
+                out += pre + (' sparse matrix a and b differ on %s '
+                              'elements' % c.nnz)
+    else:
+        raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
+    return out
+
+
+class _TempDir(str):
+    """Class for creating and auto-destroying temp dir
+
+    This is designed to be used with testing modules. Instances should be
+    defined inside test functions. Instances defined at module level can not
+    guarantee proper destruction of the temporary directory.
+
+    When used at module level, the current use of the __del__() method for
+    cleanup can fail because the rmtree function may be cleaned up before this
+    object (an alternative could be using the atexit module instead).
+    """
+    def __new__(self):
+        new = str.__new__(self, tempfile.mkdtemp())
+        return new
+
+    def __init__(self):
+        self._path = self.__str__()
+
+    def __del__(self):
+        rmtree(self._path, ignore_errors=True)

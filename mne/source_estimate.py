@@ -5,16 +5,15 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six import string_types
 import os
 import copy
 from math import ceil
+import warnings
+
 import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import csr_matrix, coo_matrix
-import warnings
 
-from ._hdf5 import read_hdf5, write_hdf5
 from .filter import resample
 from .evoked import _get_peak
 from .parallel import parallel_func
@@ -24,8 +23,10 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask)
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
-from .externals.six.moves import zip
 from .io.base import ToDataFrameMixin
+from .externals.six.moves import zip
+from .externals.six import string_types
+from .externals._h5io import read_hdf5, write_hdf5
 
 
 def _read_stc(filename):
@@ -319,7 +320,7 @@ def read_source_estimate(fname, subject=None):
         kwargs['tmin'] = 0.0
         kwargs['tstep'] = 1.0
     elif ftype == 'h5':
-        kwargs = read_hdf5(fname + '-stc.h5')
+        kwargs = read_hdf5(fname + '-stc.h5', title='mnepython')
 
     if ftype != 'volume':
         # Make sure the vertices are ordered
@@ -991,7 +992,7 @@ class SourceEstimate(_BaseSourceEstimate):
             write_hdf5(fname + '-stc.h5',
                        dict(vertices=self.vertices, data=self.data,
                             tmin=self.tmin, tstep=self.tstep,
-                            subject=self.subject))
+                            subject=self.subject), title='mnepython')
         logger.info('[done]')
 
     def __repr__(self):
