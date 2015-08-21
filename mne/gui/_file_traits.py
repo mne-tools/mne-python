@@ -361,7 +361,6 @@ class InstSource(HasPrivateTraits):
         if self.points_filter is None:
             return self.inst_points
         else:
-            print('filtering inst points, sum', np.sum(self.points_filter))
             return self.inst_points[self.points_filter]
 
     @cached_property
