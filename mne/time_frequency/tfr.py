@@ -23,7 +23,7 @@ from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar
-from ..externals._h5io import write_hdf5, read_hdf5
+from ..externals.h5io import write_hdf5, read_hdf5
 
 
 def _get_data(inst, return_itc):

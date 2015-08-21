@@ -26,7 +26,7 @@ from .fixes import in1d, sparse_block_diag
 from .io.base import ToDataFrameMixin
 from .externals.six.moves import zip
 from .externals.six import string_types
-from .externals._h5io import read_hdf5, write_hdf5
+from .externals.h5io import read_hdf5, write_hdf5
 
 
 def _read_stc(filename):
