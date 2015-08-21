@@ -72,12 +72,6 @@ def test_maxwell_filter():
     assert_equal(S_out.shape, (ncoils, n_ext_bases),
                  'S_out has incorrect shape')
 
-    # Check normalization
-    assert_allclose(np.sum(S_in ** 2, axis=0), np.ones((S_in.shape[1])),
-                    rtol=1e-12, err_msg='S_in normalization error')
-    assert_allclose(np.sum(S_out ** 2, axis=0), np.ones((S_out.shape[1])),
-                    rtol=1e-12, err_msg='S_out normalization error')
-
     # Test sss computation at the standard head origin
     raw_sss = maxwell.maxwell_filter(raw, origin=[0., 0., 40.],
                                      int_order=int_order, ext_order=ext_order)
@@ -171,14 +165,20 @@ def test_bads_reconstruction():
     raw_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 
     with warnings.catch_warnings(record=True):  # maxshield
-        # Use 2.0 seconds of data to get stable cov. estimate
         raw = Raw(raw_fname, preload=False, proj=False,
                   allow_maxshield=True).crop(0., 1., False)
 
     raw.preload_data()
 
-    # Set bad MEG channels, compute Maxwell filtered data
-    raw.info['bads'] = raw.info['ch_names'][0:9]
+    # Set 30 random bad MEG channels (20 grad, 10 mag)
+    bads = ['MEG0912', 'MEG1722', 'MEG2213', 'MEG0132', 'MEG1312', 'MEG0432',
+            'MEG2433', 'MEG1022', 'MEG0442', 'MEG2332', 'MEG0633', 'MEG1043',
+            'MEG1713', 'MEG0422', 'MEG0932', 'MEG1622', 'MEG1343', 'MEG0943',
+            'MEG0643', 'MEG0143', 'MEG2142', 'MEG0813', 'MEG2143', 'MEG1323',
+            'MEG0522', 'MEG1123', 'MEG0423', 'MEG2122', 'MEG2532', 'MEG0812']
+    raw.info['bads'] = bads
+
+    # Compute Maxwell filtered data
     raw_sss = maxwell.maxwell_filter(raw)
     meg_chs = pick_types(raw_sss.info)
 

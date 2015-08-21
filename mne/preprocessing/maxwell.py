@@ -95,20 +95,22 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
     # Compute in/out bases and create copies containing only good chs
     S_in, S_out = _sss_basis(origin, meg_coils, int_order, ext_order)
-    S_in_good, S_out_good = S_in[good_chs, :], S_out[good_chs, :]
 
-    # Normalize each space
-    for spc in [S_in, S_in_good, S_out_good]:
-        spc /= np.sqrt(np.sum(spc * spc, axis=0))[np.newaxis, :]
+    S_in_good, S_out_good = S_in[good_chs, :], S_out[good_chs, :]
+    S_in_good_norm = np.sqrt(np.sum(S_in_good * S_in_good, axis=0))[:,
+                                                                    np.newaxis]
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
     S_tot_good = np.c_[S_in_good, S_out_good]
+    S_tot_good /= np.sqrt(np.sum(S_tot_good * S_tot_good, axis=0))[np.newaxis,
+                                                                   :]
     pS_tot_good = pinv(S_tot_good, cond=1e-15)
+
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
     mm = np.dot(pS_tot_good, data * coil_scale[good_chs, np.newaxis])
 
     # Reconstruct data from internal space (Eq. 38)
-    recon = np.dot(S_in, mm[:S_in.shape[1], :])
+    recon = np.dot(S_in, mm[:S_in.shape[1], :] / S_in_good_norm)
 
     # Return reconstructed raw file object
     raw_sss = _update_sss_info(raw.copy(), origin, int_order, ext_order,
