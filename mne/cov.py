@@ -35,6 +35,7 @@ from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_sklearn_version, _time_mask)
 
 from .externals.six.moves import zip
+from .externals.six import string_types
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -1763,7 +1764,7 @@ def _check_scaling_inputs(data, picks_list, scalings):
     rescale_dict_ = dict(mag=1e15, grad=1e13, eeg=1e6)
 
     scalings_ = None
-    if scalings == 'norm':
+    if isinstance(scalings, string_types) and scalings == 'norm':
         scalings_ = 1. / _compute_row_norms(data)
     elif isinstance(scalings, dict):
         rescale_dict_.update(scalings)

@@ -11,7 +11,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_sklearn, slow_test
+from mne.utils import requires_sklearn, slow_test, run_tests_if_main
 from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
 
@@ -234,6 +234,7 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime()
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
+
     gat.predict(epochs)
     assert_raises(ValueError, gat.predict, epochs[:10])
 
@@ -301,3 +302,5 @@ def test_decoding_time():
     assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
                  "(s), predicted 14 epochs,\n scored (accuracy_score)>",
                  '%s' % tg)
+
+run_tests_if_main()

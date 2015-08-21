@@ -378,6 +378,47 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
     fig : Instance of matplotlib.figure.Figure
         The figure.
     """
+    _plot_epochs_trellis(epochs, epoch_idx, picks, scalings, title_str,
+                         show, block, n_epochs)
+
+
+def _plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
+                         title_str='#%003i', show=True, block=False,
+                         n_epochs=20):
+    """ Visualize epochs using Trellis plot.
+
+    Parameters
+    ----------
+
+    epochs : instance of Epochs
+        The epochs object
+    epoch_idx : array-like | int | None
+        The epochs to visualize. If None, the first 20 epochs are shown.
+        Defaults to None.
+    picks : array-like of int | None
+        Channels to be included. If None only good data channels are used.
+        Defaults to None
+    scalings : dict | None
+        Scale factors for the traces. If None, defaults to:
+        `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
+             ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
+    title_str : None | str
+        The string formatting to use for axes titles. If None, no titles
+        will be shown. Defaults expand to ``#001, #002, ...``
+    show : bool
+        Show figure if True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
+        Useful for rejecting bad trials on the fly by clicking on a
+        sub plot. Defaults to False.
+    n_epochs : int
+        The number of epochs per view. Defaults to 20.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
+    """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     scalings = _handle_default('scalings_plot_raw', scalings)
