@@ -109,16 +109,10 @@ def test_copy_append():
     """Test raw copying and appending combinations
     """
     raw = Raw(fif_fname, preload=True).copy()
-    raw_array = RawArray(raw._data, raw.info)
     raw_full = Raw(fif_fname)
-
-    for i_raw in [raw_array, raw]:
-        i_raw_full = raw_full.copy()
-        print(i_raw_full)
-        i_raw_full.append(i_raw)
-        print(i_raw_full[:, :])
-        data = i_raw_full[:, :][0]
-        assert_equal(data.shape[1], 2 * i_raw._data.shape[1])
+    raw_full.append(raw)
+    data = raw_full[:, :][0]
+    assert_equal(data.shape[1], 2 * raw._data.shape[1])
 
 
 @slow_test
