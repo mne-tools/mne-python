@@ -6,7 +6,7 @@
 
 from __future__ import division
 import numpy as np
-from scipy.linalg import pinv, svd, qr
+from scipy.linalg import pinv, svd, qr, norm, orth
 from math import factorial
 
 from ..forward._compute_forward import _concatenate_coils
@@ -127,38 +127,35 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
     mm = np.dot(pS_tot_good, data * coil_scale[good_chs][:, np.newaxis])
-
+    # Reconstruct data from internal space (Eq. 38)
+    recon = np.dot(S_in, mm[:S_in.shape[1], :])
     if st_dur is not None:
-        # Generate time points to break up data
+        # Reconstruct data from external space and compute residual
+        recon_out = np.dot(S_out, mm[S_in.shape[1]:, :]) /\
+            coil_scale[:, np.newaxis]
+        resid = data - (recon + recon_out)
+
+        # Generate time points to break up data in to windows
         t_starts = raw.time_as_index(np.arange(times[0], times[-1], st_dur))
         t_ends = np.arange(times[0] + st_dur, times[-1], st_dur)
+        # TODO: Decide how to handle last window if it's shorter length
         t_ends = raw.time_as_index(np.append(t_ends, times[-1]))
 
         # Loop through buffer windows of data
-        for wind in zip(raw.time_as_index(t_starts),
-                        raw.time_as_index(t_ends)):
+        for win in zip(raw.time_as_index(t_starts), raw.time_as_index(t_ends)):
 
             # Compute SSP-like projector
-            proj = _overlap_projector(mm[:S_in.shape[1], wind[0]:wind[1]],
-                                      mm[S_in.shape[1]:, wind[0]:wind[1]])
+            proj = _overlap_projector(recon[:, win[0]:win[1]],
+                                      resid[:, win[0]:win[1]])
 
             # Apply projector according to Eq. 12 in [2]_
-            corrected_data = np.dot(proj, mm[:S_in.shape[1], wind[0]:wind[1]])
-            mm[:S_in.shape[1], wind[0]:wind[1]] = corrected_data
-	# TODO: Double check that normalization is in the correct location    
-	# Reconstruct data from internal space (Eq. 38)
-    recon = np.dot(S_in, mm[:S_in.shape[1], :] / S_in_good_norm)
+            recon[:, win[0]:win[1]] = \
+                np.dot(proj, recon[:, win[0]:win[1]].T).T
 
-    # Return reconstructed raw file object
+    # Return reconstructed raw file object with spatiotemporal processed data
     raw_sss = _update_sss_info(raw.copy(), origin, int_order, ext_order,
                                data.shape[0])
-    raw_sss._data[meg_chs, :] = recon / coil_scale[:, np.newaxis]
-
-    # Reset 'bads' for any MEG channels since they've been reconstructed
-    bad_inds = [raw_sss.info['ch_names'].index(ch)
-                for ch in raw_sss.info['bads']]
-    raw_sss.info['bads'] = [raw_sss.info['ch_names'][bi] for bi in bad_inds
-                            if bi not in meg_chs]
+    raw_sss._data[picks, :] = recon
 
     return raw_sss
 
@@ -556,34 +553,36 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
     return raw
 
 
-def _overlap_projector(mat_1, mat_2, delta=0.02):
+def _overlap_projector(data_int, data_res, delta=0.02):
     """Calculate projector for removal of subspace intersection in tSSS"""
     # delta necessary to deal with noise when finding identical signal
     # directions in the subspace. See the end of the Results section in [2]_
 
-    # TODO: Get comments on naming conventions from @staulu
+    # Note that the procedure here is an updated version of [2]_ using
+    # residuals instead of internal/external spaces directly. This provides
+    # data with higher rank to work with.
 
-    # Compute SVD to get temporal bases. Matrices must have shape
-    # (n_samps x n_channels) when passed into svd computation
-    U_1, S_1, V_1 = svd(mat_1.T)
-    U_2, S_2, V_2 = svd(mat_2.T)
+    # Normalize data
+    normed_data_int = data_int / norm(data_int)
+    normed_data_res = data_res / norm(data_res)
 
-    # Compute subspace intersection between temporal bases
-    # Q_1, Q_2 should have shape (n_time_pts x n_bases)
-    # R_1, R_2 should have shape (80 x 80)
-    Q_1, R_1 = qr(V_1.T)
-    Q_2, R_2 = qr(V_2.T)
+    # Compute orth to get temporal bases. Matrices must have shape
+    # (n_samps x effective_rank) when passed into svd computation
+    orth_int = orth(normed_data_int.T)
+    orth_res = orth(normed_data_res.T)
 
-    # L_total should have shape (80 x 80)
-    L_total = np.dot(Q_1.T, Q_2)
+    Q_int, _ = qr(orth_int, mode='economic')
+    Q_res, _ = qr(orth_res, mode='economic')
+
+    C_mat = np.dot(Q_int.T, Q_res)
 
     # Compute angles between subspace and which bases to keep
-    _, S_intersect, V_intersect = svd(L_total)
-    retain_inds = S_intersect > (1 - delta)
+    _, S_intersect, Vh_intersect = svd(C_mat)
+    retain_inds = S_intersect >= (1 - delta)
 
     # Compute projection operator as (I-LL_T) Eq. 12 in [2]_
-    # L_principal should be shape (n_time_pts x n_bases)
-    L_principal = np.dot(Q_2, V_intersect.T)[:, retain_inds]
-    proj = np.eye(len(L_principal)) - np.dot(L_principal, L_principal.T)
+    # V_principal should be shape (n_time_pts x n_retained_inds)
+    V_principal = np.dot(Q_res, Vh_intersect.T)[:, retain_inds]
+    proj = np.eye(len(V_principal)) - np.dot(V_principal, V_principal.T)
 
     return proj
