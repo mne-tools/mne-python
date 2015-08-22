@@ -9,11 +9,11 @@ import numpy as np
 from scipy.linalg import pinv
 from math import factorial
 
-from mne import pick_types
+from .. import pick_types
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..io.write import _generate_meas_id, _date_now
-from ..utils import verbose
+from ..utils import logger, verbose
 
 
 @verbose
@@ -73,6 +73,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     if len(raw.info.get('comps', [])) > 0:
         raise RuntimeError('Maxwell filter cannot handle compensated '
                            'channels.')
+    logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
 
     raw.preload_data()
 
@@ -107,7 +108,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     pS_tot_good = pinv(S_tot_good, cond=1e-15)
 
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
-    mm = np.dot(pS_tot_good, data * coil_scale[good_chs, np.newaxis])
+    mm = np.dot(pS_tot_good, data * coil_scale[good_chs][:, np.newaxis])
 
     # Reconstruct data from internal space (Eq. 38)
     recon = np.dot(S_in, mm[:S_in.shape[1], :] / S_in_good_norm)
@@ -118,8 +119,10 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     raw_sss._data[meg_chs, :] = recon / coil_scale[:, np.newaxis]
 
     # Reset 'bads' for any MEG channels since they've been reconstructed
-    raw_sss.info['bads'] = [ch for ch in raw_sss.info['bads']
-                            if 'MEG' not in ch]
+    bad_inds = [raw_sss.info['ch_names'].index(ch)
+                for ch in raw_sss.info['bads']]
+    raw_sss.info['bads'] = [raw_sss.info['ch_names'][bi] for bi in bad_inds
+                            if bi not in meg_chs]
 
     return raw_sss
 
