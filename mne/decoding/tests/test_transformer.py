@@ -152,6 +152,11 @@ def test_epochs_vectorizer():
     assert_true(Xi.shape[1] == epochs_data.shape[1])
     assert_array_equal(epochs_data[0, 0, 0:n_times], Xi[0, 0, 0:n_times])
 
+    # check if inverse transform works with different number of epochs
+    Xi = vector.inverse_transform(epochs_data[0], y)
+    assert_true(Xi.shape[1] == epochs_data.shape[1])
+    assert_true(Xi.shape[2] == epochs_data.shape[2])
+
     # Test init exception
     assert_raises(ValueError, vector.fit, epochs, y)
     assert_raises(ValueError, vector.transform, epochs, y)
