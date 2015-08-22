@@ -109,10 +109,16 @@ def test_copy_append():
     """Test raw copying and appending combinations
     """
     raw = Raw(fif_fname, preload=True).copy()
+    raw_array = RawArray(raw._data, raw.info)
     raw_full = Raw(fif_fname)
-    raw_full.append(raw)
-    data = raw_full[:, :][0]
-    assert_equal(data.shape[1], 2 * raw._data.shape[1])
+
+    for i_raw in [raw_array, raw]:
+        i_raw_full = raw_full.copy()
+        print(i_raw_full)
+        i_raw_full.append(i_raw)
+        print(i_raw_full[:, :])
+        data = i_raw_full[:, :][0]
+        assert_equal(data.shape[1], 2 * i_raw._data.shape[1])
 
 
 @slow_test
@@ -888,8 +894,14 @@ def test_hilbert():
     picks = picks_meg[:4]
 
     raw2 = raw.copy()
+    raw3 = raw.copy()
+    raw4 = raw.copy()
     raw.apply_hilbert(picks)
     raw2.apply_hilbert(picks, envelope=True, n_jobs=2)
+
+    # Test custom N
+    raw3.apply_hilbert(picks, N=raw3.n_times + 100)
+    assert_raises(ValueError, raw4.apply_hilbert, picks, N=raw4.n_times - 100)
 
     env = np.abs(raw._data[picks, :])
     assert_allclose(env, raw2._data[picks, :], rtol=1e-2, atol=1e-13)
