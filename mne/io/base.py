@@ -2102,7 +2102,7 @@ def _check_raw_compatibility(raw):
     """Check to make sure all instances of Raw
     in the input list raw have compatible parameters"""
     for ri in range(1, len(raw)):
-        if not isinstance(raw[ri], _BaseRaw):
+        if not isinstance(raw[ri], type(raw[0])):
             raise ValueError('raw[%d] type must match' % ri)
         if not raw[ri].info['nchan'] == raw[0].info['nchan']:
             raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
