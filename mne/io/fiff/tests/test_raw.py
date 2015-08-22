@@ -895,6 +895,7 @@ def test_hilbert():
 
     # Test custom N
     raw3.apply_hilbert(picks, N=raw3.n_times + 100)
+    assert_equal(raw3._data.shape, raw._data.shape)
     assert_raises(ValueError, raw4.apply_hilbert, picks, N=raw4.n_times - 100)
 
     env = np.abs(raw._data[picks, :])
