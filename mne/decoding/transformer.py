@@ -157,8 +157,6 @@ class EpochsVectorizer(TransformerMixin):
 
     Attributes
     ----------
-    n_epochs : int
-        The number of epochs.
     n_channels : int
         The number of channels.
     n_times : int
@@ -167,7 +165,6 @@ class EpochsVectorizer(TransformerMixin):
     """
     def __init__(self, info=None):
         self.info = info
-        self.n_epochs = None
         self.n_channels = None
         self.n_times = None
 
@@ -245,7 +242,7 @@ class EpochsVectorizer(TransformerMixin):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(X))
 
-        return X.reshape(self.n_epochs, self.n_channels, self.n_times)
+        return X.reshape(-1, self.n_channels, self.n_times)
 
 
 @deprecated("Class 'ConcatenateChannels' has been renamed to "
