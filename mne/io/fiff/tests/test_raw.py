@@ -900,7 +900,7 @@ def test_hilbert():
     raw_filt.apply_hilbert(picks)
     raw_filt_2.apply_hilbert(picks, n_fft=raw_filt_2.n_times + 1000)
     assert_equal(raw_filt._data.shape, raw_filt_2._data.shape)
-    assert_allclose(raw_filt._data[:, 100:-100], raw_filt_2._data[:, 100:-100],
+    assert_allclose(raw_filt._data[:, 50:-50], raw_filt_2._data[:, 50:-50],
                     atol=1e-13, rtol=1e-2)
     assert_raises(ValueError, raw3.apply_hilbert, picks,
                   n_fft=raw3.n_times - 100)
