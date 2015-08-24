@@ -74,10 +74,10 @@ class RawKIT(_BaseRaw):
 
     Notes
     -----
-    elp and hsp are usually the exported text files (*.txt) from the Polhemus
-    FastScan system. hsp refers to the headshape surface points. elp refers to
-    the points in head-space that corresponds to the HPI points. Currently,
-    '*.elp' and '*.hsp' files are NOT supported.
+    ``elp`` and ``hsp`` are usually the exported text files (*.txt) from the
+    Polhemus FastScan system. hsp refers to the headshape surface points. elp
+    refers to the points in head-space that corresponds to the HPI points.
+    Currently, '*.elp' and '*.hsp' files are NOT supported.
 
     See Also
     --------
@@ -326,10 +326,10 @@ class EpochsKIT(_BaseEpochs):
 
     Notes
     -----
-    elp and hsp are usually the exported text files (*.txt) from the Polhemus
-    FastScan system. hsp refers to the headshape surface points. elp refers to
-    the points in head-space that corresponds to the HPI points. Currently,
-    '*.elp' and '*.hsp' files are NOT supported.
+    ``elp`` and ``hsp`` are usually the exported text files (*.txt) from the
+    Polhemus FastScan system. hsp refers to the headshape surface points. elp
+    refers to the points in head-space that corresponds to the HPI points.
+    Currently, '*.elp' and '*.hsp' files are NOT supported.
 
     See Also
     --------
