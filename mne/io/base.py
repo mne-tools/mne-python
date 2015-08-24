@@ -640,7 +640,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 self._data[p, :] = data_picks_new[pp]
 
     @verbose
-    def apply_hilbert(self, picks, envelope=False, n_jobs=1, verbose=None):
+    def apply_hilbert(self, picks, envelope=False, n_jobs=1, n_fft=None,
+                      verbose=None):
         """ Compute analytic signal or envelope for a subset of channels.
 
         If envelope=False, the analytic signal for the channels defined in
@@ -672,6 +673,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Compute the envelope signal of each channel.
         n_jobs: int
             Number of jobs to run in parallel.
+        n_fft : int > self.n_times | None
+            Points to use in the FFT for Hilbert transformation. The signal
+            will be padded with zeros before computing Hilbert, then cut back
+            to original length. If None, n == self.n_times.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -689,12 +694,21 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         MNE inverse solution, the enevlope in source space can be obtained
         by computing the analytic signal in sensor space, applying the MNE
         inverse, and computing the envelope in source space.
+
+        Also note that the n_fft parameter will allow you to pad the signal
+        with zeros before performing the Hilbert transform. This padding
+        is cut off, but it may result in a slightly different result
+        (particularly around the edges). Use at your own risk.
         """
-        if envelope:
-            self.apply_function(_envelope, picks, None, n_jobs)
+        n_fft = self.n_times if n_fft is None else n_fft
+        if n_fft < self.n_times:
+            raise ValueError("n_fft must be greater than n_times")
+        if envelope is True:
+            self.apply_function(_my_hilbert, picks, None, n_jobs, n_fft,
+                                envelope=envelope)
         else:
-            from scipy.signal import hilbert
-            self.apply_function(hilbert, picks, np.complex64, n_jobs)
+            self.apply_function(_my_hilbert, picks, np.complex64, n_jobs,
+                                n_fft, envelope=envelope)
 
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length='10s',
@@ -2062,10 +2076,32 @@ def _write_raw_buffer(fid, buf, cals, fmt, inv_comp):
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
 
 
-def _envelope(x):
-    """ Compute envelope signal """
+def _my_hilbert(x, n_fft=None, envelope=False):
+    """ Compute Hilbert transform of signals w/ zero padding.
+
+    Parameters
+    ----------
+    x : array, shape (n_times)
+        The signal to convert
+    n_fft : int, length > x.shape[-1] | None
+        How much to pad the signal before Hilbert transform.
+        Note that signal will then be cut back to original length.
+    envelope : bool
+        Whether to compute amplitude of the hilbert transform in order
+        to return the signal envelope.
+
+    Returns
+    -------
+    out : array, shape (n_times)
+        The hilbert transform of the signal, or the envelope.
+    """
     from scipy.signal import hilbert
-    return np.abs(hilbert(x))
+    n_fft = x.shape[-1] if n_fft is None else n_fft
+    n_x = x.shape[-1]
+    out = hilbert(x, N=n_fft)[:n_x]
+    if envelope is True:
+        out = np.abs(out)
+    return out
 
 
 def _check_raw_compatibility(raw):
