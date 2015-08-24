@@ -887,16 +887,23 @@ def test_hilbert():
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
 
+    raw_filt = raw.copy()
+    raw_filt.filter(10, 20)
+    raw_filt_2 = raw_filt.copy()
+
     raw2 = raw.copy()
     raw3 = raw.copy()
-    raw4 = raw.copy()
     raw.apply_hilbert(picks)
     raw2.apply_hilbert(picks, envelope=True, n_jobs=2)
 
-    # Test custom N
-    raw3.apply_hilbert(picks, N=raw3.n_times + 100)
-    assert_equal(raw3._data.shape, raw._data.shape)
-    assert_raises(ValueError, raw4.apply_hilbert, picks, N=raw4.n_times - 100)
+    # Test custom n_fft
+    raw_filt.apply_hilbert(picks)
+    raw_filt_2.apply_hilbert(picks, n_fft=raw_filt_2.n_times + 1000)
+    assert_equal(raw_filt._data.shape, raw_filt_2._data.shape)
+    assert_allclose(raw_filt._data[:, 100:-100], raw_filt_2._data[:, 100:-100],
+                    atol=1e-13, rtol=1e-2)
+    assert_raises(ValueError, raw3.apply_hilbert, picks,
+                  n_fft=raw3.n_times - 100)
 
     env = np.abs(raw._data[picks, :])
     assert_allclose(env, raw2._data[picks, :], rtol=1e-2, atol=1e-13)
