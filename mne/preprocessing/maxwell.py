@@ -9,10 +9,11 @@ import numpy as np
 from scipy.linalg import pinv
 from math import factorial
 
+from .. import pick_types
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..io.write import _generate_meas_id, _date_now
-from ..utils import verbose
+from ..utils import logger, verbose
 
 
 @verbose
@@ -64,10 +65,6 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # See mathworld.wolfram.com/SphericalHarmonic.html for more discussion.
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
-    # TODO: Exclude 'bads' in multipolar moment calc, add back during
-    # reconstruction
-    if len(raw.info['bads']) > 0:
-        raise RuntimeError('Maxwell filter does not yet handle bad channels.')
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
     if 'dev_head_t' not in raw.info.keys():
@@ -76,39 +73,56 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     if len(raw.info.get('comps', [])) > 0:
         raise RuntimeError('Maxwell filter cannot handle compensated '
                            'channels.')
+    logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
 
-    all_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
-                                                   elekta_defs=True)
-
-    # Create coil list and pick MEG channels
-    picks = [raw.info['ch_names'].index(coil['chname'])
-             for coil in all_coils]
-    coils = [all_coils[ci] for ci in picks]
     raw.preload_data()
 
-    data, _ = raw[picks, :]
+    # Get indices of channels to use in multipolar moment calculation
+    good_chs = pick_types(raw.info, meg=True, exclude='bads')
+    # Get indices of MEG channels
+    meg_chs = pick_types(raw.info, meg=True, exclude=[])
+    data, _ = raw[good_chs, :]
+
+    meg_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
+                                                   elekta_defs=True)
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
-    coil_scale = np.ones(len(picks))
-    coil_scale[np.array([coil['coil_class'] == 1.0 for coil in coils])] = 100.
+    coil_scale = np.ones(len(meg_coils))
+    coil_scale[np.array([coil['coil_class'] == 1.0
+                         for coil in meg_coils])] = 100.
 
     # Compute multipolar moment bases
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
-    S_in, S_out = _sss_basis(origin, coils, int_order, ext_order)
-    S_tot = np.c_[S_in, S_out]
+    # Compute in/out bases and create copies containing only good chs
+    S_in, S_out = _sss_basis(origin, meg_coils, int_order, ext_order)
+
+    S_in_good, S_out_good = S_in[good_chs, :], S_out[good_chs, :]
+    S_in_good_norm = np.sqrt(np.sum(S_in_good * S_in_good, axis=0))[:,
+                                                                    np.newaxis]
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
-    pS_tot = pinv(S_tot, cond=1e-15)
+    S_tot_good = np.c_[S_in_good, S_out_good]
+    S_tot_good /= np.sqrt(np.sum(S_tot_good * S_tot_good, axis=0))[np.newaxis,
+                                                                   :]
+    pS_tot_good = pinv(S_tot_good, cond=1e-15)
+
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
-    mm = np.dot(pS_tot, data * coil_scale[:, np.newaxis])
+    mm = np.dot(pS_tot_good, data * coil_scale[good_chs][:, np.newaxis])
+
     # Reconstruct data from internal space (Eq. 38)
-    recon = np.dot(S_in, mm[:S_in.shape[1], :])
+    recon = np.dot(S_in, mm[:S_in.shape[1], :] / S_in_good_norm)
 
     # Return reconstructed raw file object
     raw_sss = _update_sss_info(raw.copy(), origin, int_order, ext_order,
                                data.shape[0])
-    raw_sss._data[picks, :] = recon / coil_scale[:, np.newaxis]
+    raw_sss._data[meg_chs, :] = recon / coil_scale[:, np.newaxis]
+
+    # Reset 'bads' for any MEG channels since they've been reconstructed
+    bad_inds = [raw_sss.info['ch_names'].index(ch)
+                for ch in raw_sss.info['bads']]
+    raw_sss.info['bads'] = [raw_sss.info['ch_names'][bi] for bi in bad_inds
+                            if bi not in meg_chs]
 
     return raw_sss
 
@@ -230,9 +244,8 @@ def _sss_basis(origin, coils, int_order, ext_order):
                 spc[:, deg ** 2 + deg + order - 1] = \
                     np.bincount(bins, weights=all_grads, minlength=len(counts))
 
-        # Scale magnetometers and normalize basis vectors to unity magnitude
+        # Scale magnetometers
         spc *= coil_scale[:, np.newaxis]
-        spc /= np.sqrt(np.sum(spc * spc, axis=0))[np.newaxis, :]
 
     return S_in, S_out
 

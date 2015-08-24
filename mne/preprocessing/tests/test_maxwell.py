@@ -9,7 +9,7 @@ from numpy.testing import (assert_equal, assert_allclose,
                            assert_array_almost_equal)
 from nose.tools import assert_true, assert_raises
 
-from mne import compute_raw_data_covariance
+from mne import compute_raw_data_covariance, pick_types
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.forward._make_forward import _prep_meg_channels
@@ -25,6 +25,8 @@ sss_std_fname = op.join(data_path, 'SSS',
                         'test_move_anon_raw_simp_stdOrigin_sss.fif')
 sss_nonstd_fname = op.join(data_path, 'SSS',
                            'test_move_anon_raw_simp_nonStdOrigin_sss.fif')
+sss_bad_recon_fname = op.join(data_path, 'SSS',
+                              'test_move_anon_raw_bad_recon_sss.fif')
 
 
 @testing.requires_testing_data
@@ -69,12 +71,6 @@ def test_maxwell_filter():
     assert_equal(S_in.shape, (ncoils, n_int_bases), 'S_in has incorrect shape')
     assert_equal(S_out.shape, (ncoils, n_ext_bases),
                  'S_out has incorrect shape')
-
-    # Check normalization
-    assert_allclose(np.sum(S_in ** 2, axis=0), np.ones((S_in.shape[1])),
-                    rtol=1e-12, err_msg='S_in normalization error')
-    assert_allclose(np.sum(S_out ** 2, axis=0), np.ones((S_out.shape[1])),
-                    rtol=1e-12, err_msg='S_out normalization error')
 
     # Test sss computation at the standard head origin
     raw_sss = maxwell.maxwell_filter(raw, origin=[0., 0., 40.],
@@ -156,5 +152,45 @@ def test_maxwell_filter_additional():
 
     assert_equal(cov_raw_rank, raw.info['nchan'])
     assert_equal(cov_sss_rank, maxwell.get_num_moments(int_order, 0))
+
+
+@testing.requires_testing_data
+def test_bads_reconstruction():
+    """Test reconstruction of channels marked as bad"""
+
+    with warnings.catch_warnings(record=True):  # maxshield, naming
+        sss_bench = Raw(sss_bad_recon_fname, preload=True, proj=False,
+                        allow_maxshield=True)
+
+    raw_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
+
+    with warnings.catch_warnings(record=True):  # maxshield
+        raw = Raw(raw_fname, preload=False, proj=False,
+                  allow_maxshield=True).crop(0., 1., False)
+
+    raw.preload_data()
+
+    # Set 30 random bad MEG channels (20 grad, 10 mag)
+    bads = ['MEG0912', 'MEG1722', 'MEG2213', 'MEG0132', 'MEG1312', 'MEG0432',
+            'MEG2433', 'MEG1022', 'MEG0442', 'MEG2332', 'MEG0633', 'MEG1043',
+            'MEG1713', 'MEG0422', 'MEG0932', 'MEG1622', 'MEG1343', 'MEG0943',
+            'MEG0643', 'MEG0143', 'MEG2142', 'MEG0813', 'MEG2143', 'MEG1323',
+            'MEG0522', 'MEG1123', 'MEG0423', 'MEG2122', 'MEG2532', 'MEG0812']
+    raw.info['bads'] = bads
+
+    # Compute Maxwell filtered data
+    raw_sss = maxwell.maxwell_filter(raw)
+    meg_chs = pick_types(raw_sss.info)
+
+    # Some numerical imprecision since save uses 'single' fmt
+    assert_allclose(raw_sss._data[meg_chs, :], sss_bench._data[meg_chs, :],
+                    rtol=1e-12, atol=1e-4, err_msg='Maxwell filtered data '
+                    'with reconstructed bads is incorrect.')
+
+    # Confirm SNR is above 1000
+    bench_rms = np.sqrt(np.mean(raw_sss._data[meg_chs, :] ** 2, axis=1))
+    error = raw_sss._data[meg_chs, :] - sss_bench._data[meg_chs, :]
+    error_rms = np.sqrt(np.mean(error ** 2, axis=1))
+    assert_true(np.mean(bench_rms / error_rms) >= 1000, 'SNR < 1000')
 
 run_tests_if_main()
