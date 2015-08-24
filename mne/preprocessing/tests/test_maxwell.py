@@ -182,10 +182,10 @@ def test_bads_reconstruction():
     raw_sss = maxwell.maxwell_filter(raw)
     meg_chs = pick_types(raw_sss.info)
 
-    assert_array_almost_equal(raw_sss._data[meg_chs, :],
-                              sss_bench._data[meg_chs, :], decimal=11,
-                              err_msg='Maxwell filtered data with '
-                              ' reconstructed bads is incorrect.')
+    # Some numerical imprecision since save uses 'single' fmt
+    assert_allclose(raw_sss._data[meg_chs, :], sss_bench._data[meg_chs, :],
+                    rtol=1e-12, atol=1e-4, err_msg='Maxwell filtered data '
+                    'with reconstructed bads is incorrect.')
 
     # Confirm SNR is above 1000
     bench_rms = np.sqrt(np.mean(raw_sss._data[meg_chs, :] ** 2, axis=1))
