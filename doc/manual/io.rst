@@ -168,9 +168,9 @@ Importing KIT MEG system data
 =============================
 
 MNE-Python includes the :func:`mne.io.read_raw_kit` and
-:func:`mne.io.read_epochs_kit` to read and convert KIT MEG data.
+:func:`mne.read_epochs_kit` to read and convert KIT MEG data.
 This reader function will by default replace the original channel names,
-typically with index starting with zero to an index starting with one.
+which typically with index starting with zero, with ones with an index starting with one.
 
 To import continuous data, only the input .sqd or .con file is needed. For epochs,
 an Nx3 matrix containing the event number/corresponding trigger value in the
