@@ -291,11 +291,10 @@ class InstSource(HasPrivateTraits):
     inst_points = Property(depends_on='inst', desc="Head shape points in the "
                            "inst file(n x 3 array)")
     # a property defining the type of each head shape point
-    points_type = Property(depends_on='inst',
+    points_type = Property(depends_on='inst_points',
                            desc="A list of point types ('Extra', 'EEG', ...)"
                            "(n x 3 array) from the inst file")
-    points = Property(depends_on=['inst_points', 'points_type',
-                      'points_filter'], desc="Head "
+    points = Property(depends_on=['inst_points', 'points_filter'], desc="Head "
                       "shape points selected by the filter (n x 3 array)")
 
     # fiducials
@@ -356,8 +355,9 @@ class InstSource(HasPrivateTraits):
                                 d['kind'] == FIFF.FIFFV_POINT_EEG)])
         return points_type
 
-    # @cached_property
+    @cached_property
     def _get_points(self):
+        print('Getting points again')
         if self.points_filter is None:
             return self.inst_points
         else:

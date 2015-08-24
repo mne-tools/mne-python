@@ -134,7 +134,6 @@ class CoregModel(HasPrivateTraits):
     transformed_mri_points = Property(depends_on=['processed_mri_points',
                                                   'mri_scale_trans'])
     transformed_hsp_points = Property(depends_on=['hsp.points',
-                                                  'hsp.points_filter',
                                                   'head_mri_trans'])
     transformed_mri_lpa = Property(depends_on=['mri.lpa', 'mri_scale_trans'])
     transformed_hsp_lpa = Property(depends_on=['hsp.lpa', 'head_mri_trans'])
