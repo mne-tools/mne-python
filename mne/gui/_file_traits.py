@@ -357,7 +357,6 @@ class InstSource(HasPrivateTraits):
 
     @cached_property
     def _get_points(self):
-        print('Getting points again')
         if self.points_filter is None:
             return self.inst_points
         else:

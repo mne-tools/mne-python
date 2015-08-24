@@ -339,7 +339,7 @@ class CoregModel(HasPrivateTraits):
         elif 'fsaverage' in self.mri.subject_source.subjects:
             self.mri.subject = 'fsaverage'
 
-    def _apply_eeg_filter(self):
+    def apply_eeg_filter(self):
         with warnings.catch_warnings(record=True):  # comp to None in Traits
             if self.hsp.points_filter is None:
                 self.hsp.points_filter = \
@@ -348,6 +348,9 @@ class CoregModel(HasPrivateTraits):
         eeg_filter = self.hsp.points_type == FIFF.FIFFV_POINT_EEG
         nEEG = np.sum(eeg_filter)
         self.hsp.points_filter[eeg_filter] = self.use_eeg_locations
+        # Without the following explicit array copy, the hsp.points_filter-
+        # trait does not get invalidated. Which sucks.
+        self.hsp.points_filter = self.hsp.points_filter[:]
 
         # Log what's happening
         log_str = dict(True="Coregistration: Including {:d} EEG points",
@@ -356,7 +359,6 @@ class CoregModel(HasPrivateTraits):
 
     def omit_hsp_points(self, distance=0, reset=False):
         """Exclude head shape points that are far away from the MRI head
-        or fail to meet other criteria (such as based on point type)
 
         Parameters
         ----------
@@ -373,9 +375,6 @@ class CoregModel(HasPrivateTraits):
             logger.info("Coregistration: Reset excluded head shape points")
             with warnings.catch_warnings(record=True):  # Traits None comp
                 self.hsp.points_filter = None
-
-        # Apply current valid EEG selection
-        self._apply_eeg_filter()
 
         if distance <= 0:
             return
@@ -394,7 +393,8 @@ class CoregModel(HasPrivateTraits):
         if old_filter is None:
             new_filter = new_sub_filter
         else:
-            new_filter = np.ones(len(self.hsp.inst_points), np.bool8)
+            # Must explicitly copy the existing filter to invalidate it
+            new_filter = self.hsp.points_filter[:]
             new_filter[old_filter] = new_sub_filter
 
         # set the filter
@@ -1391,9 +1391,10 @@ class CoregFrame(HasTraits):
 
     def _reset_omit_points_fired(self):
         self.model.omit_hsp_points(0, reset=True)
+        self.model.apply_eeg_filter()  # Don't forget the EEG
 
     def _use_eeg_locations_fired(self):
-        self.model.omit_hsp_points(distance=0, reset=False)
+        self.model.apply_eeg_filter()
 
     @on_trait_change('model.mri.tris')
     def _on_mri_src_change(self):
