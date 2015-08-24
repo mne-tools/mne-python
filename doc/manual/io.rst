@@ -167,8 +167,8 @@ This operation is performed by :ref:`mne_compensate_data`.
 Importing KIT MEG system data
 =============================
 
-MNE-Python includes the :func:`mne.read_raw_kit` and
-:func:`mne.io.read_epochs_kit` to read and convert KIT MEG data.
+MNE-Python includes the :func:`mne.io.read_raw_kit` and
+:func:`mne.read_epochs_kit` to read and convert KIT MEG data.
 This reader function will by default replace the original channel names,
 which typically with index starting with zero, with ones with an index starting with one.
 
