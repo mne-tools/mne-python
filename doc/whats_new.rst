@@ -45,9 +45,9 @@ Changelog
 
     - Add support to append new channels to an object from a list of other objects by `Chris Holdgraf`_
 
-    - Deprecated :class: `mne.decoding.transformer.ConcatenateChannels` and replaced by :class: `mne.decoding.transformer.EpochsVectorizer` by `Romain Trachel`_ 
+    - Deprecated :class: `mne.decoding.transformer.ConcatenateChannels` and replaced by :class: `mne.decoding.transformer.EpochsVectorizer` by `Romain Trachel`_
 
-    - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.csp.CSP` by `Romain Trachel`_ 
+    - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.csp.CSP` by `Romain Trachel`_
 
     - Add interactive plotting of topomap from time-frequency representation by `Jaakko Leppakangas`_
 
@@ -56,6 +56,8 @@ Changelog
     - Add fetcher :mod:`mne.datasets.brainstorm` for datasets used by Brainstorm in their tutorials by `Mainak Jas`_
 
     - Add interactive plotting of single trials by right clicking on channel name in epochs browser by `Jaakko Leppakangas`_
+
+    - Add possibility to use digitised EEG electrode locations as head shape points in :func:`mne.gui.coregistration` by `Chris Bailey`_
 
     - New logos and logo generation script by `Daniel McCloy`_
 
