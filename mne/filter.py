@@ -1389,7 +1389,7 @@ def _resample_stim_channels(stim_data, up, down):
     n_stim_channels, n_samples = stim_data.shape
 
     ratio = float(up) / down
-    resampled_n_samples = int(n_samples * ratio)
+    resampled_n_samples = int(round(n_samples * ratio))
 
     stim_resampled = np.zeros((n_stim_channels, resampled_n_samples))
 
