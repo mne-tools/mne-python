@@ -476,7 +476,6 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
     consider using the C command line tools or the Python wrapper
     `do_forward_solution`.
     """
-
     if not isinstance(info, (dict, string_types)):
         raise TypeError('info should be a dict or string')
     if isinstance(info, string_types):
@@ -586,7 +585,8 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
         fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
 
         # Pick out final dict info
-        nsource = fwd['sol']['data'].shape[1] // 3
+        nsize = fwd['sol']['data']
+        nsource = nsize.shape[1] // 3
         source_nn = np.tile(np.eye(3), (nsource, 1))
         fwd.update(dict(nchan=fwd['sol']['data'].shape[0], nsource=nsource,
                         info=info, src=src, source_nn=source_nn,

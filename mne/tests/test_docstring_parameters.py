@@ -66,10 +66,6 @@ _deprecation_ignores = [
     'generate_evoked',  # deprecated
     'generate_noise_evoked',  # deprecated
     'mne.gui.coregistration'  # deprecated
-    'generate_sparse_stc',  # deprecated
-    'generate_stc',  # deprecated
-    'generate_evoked',  # deprecated
-    'generate_noise_evoked',  # deprecated
 ]
 
 

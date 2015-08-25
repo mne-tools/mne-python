@@ -59,7 +59,7 @@ def test_simulate_raw():
     times = np.arange(tmin, tmin + tstep * n_samples, tstep)
 
     # Simulate STC
-    stc = simulate_sparse_stc(fwd['src'], 1, times)
+    stc = simulate_sparse_stc(fwd['src'], 1, times, random_state=42)
 
     raw_times = stc.times - stc.times[0]
 
