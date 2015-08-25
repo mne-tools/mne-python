@@ -174,7 +174,14 @@ def test_resample_stim_channel():
     assert_array_equal(
         _resample_stim_channels([1, 2, 3], 2, 1), [[1, 1, 2, 2, 3, 3]])
     assert_array_equal(
-        _resample_stim_channels([1, 2, 3], 2.5, 1), [[1, 1, 1, 2, 2, 3, 3]])
+        _resample_stim_channels([1, 2, 3], 2.5, 1), [[1, 1, 1, 2, 2, 3, 3, 3]])
+
+    # Proper number of samples in stim channel resampling from io/base.py
+    data_chunk = np.zeros((1, 315600))
+    for new_data_len in (52598, 52599, 52600, 52601, 315599, 315600):
+        new_data = _resample_stim_channels(data_chunk, new_data_len,
+                                           data_chunk.shape[1])
+        assert_equal(new_data.shape[1], new_data_len)
 
 
 @slow_test
