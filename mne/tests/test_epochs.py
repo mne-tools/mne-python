@@ -1589,8 +1589,7 @@ def test_array_epochs():
     ep_data = epochs.get_data()
     assert_array_equal(np.zeros_like(ep_data), ep_data)
     
-    # test construction with single trial
-    
+    # test construction with single time slice (needed for certain metrics)
     epochs = EpochsArray(data[..., :1], info, events=events,
                          event_id=event_id,
                          tmin=0, reject=dict(eeg=1000), flat=dict(eeg=1e-1),

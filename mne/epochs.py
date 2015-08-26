@@ -272,7 +272,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self.preload = False
             self._data = None
         else:
-            index_offset = (1 if data.shape[-1] > 1 else 0)
+            index_offset = 1 if data.shape[-1] > 1 else 0
             assert decim == 1
             if data.ndim != 3 or data.shape[2] != \
                     round((tmax - tmin) * self.info['sfreq']) + index_offset:
@@ -1827,7 +1827,7 @@ class EpochsArray(_BaseEpochs):
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
-        index_offset = (1 if data.shape[2] > 1 else 0)
+        index_offset = 1 if data.shape[2] > 1 else 0
         tmax = (data.shape[2] - index_offset) / info['sfreq'] + tmin
         if index_offset == 0:
             reject_tmin, reject_tmax = tmin, tmax
