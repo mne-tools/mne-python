@@ -245,8 +245,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     err = ("Baseline interval (tmax = %s) is outside of epoch "
                            "data (tmax = %s)" % (baseline_tmax, tmax))
                     raise ValueError(err)
-        if tmin >= tmax:
-            raise ValueError('tmin has to be smaller than tmax')
+        if tmin > tmax:
+            raise ValueError('tmin has to be less than or equal to than tmax')
 
         self.tmin = tmin
         self.tmax = tmax
