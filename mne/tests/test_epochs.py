@@ -1609,6 +1609,13 @@ def test_array_epochs():
     assert_allclose(epochs_read.times, [0.])
     assert_allclose(epochs_read.get_data(), data[:, :, :1])
 
+    # event as integer (#2435)
+    mask = (events[:, 2] == 1)
+    data_1 = data[mask]
+    events_1 = events[mask]
+    epochs = EpochsArray(data_1, info, events=events_1, event_id=1,
+                         tmin=-0.2, baseline=(None, 0))
+
 
 def test_concatenate_epochs():
     """Test concatenate epochs"""
