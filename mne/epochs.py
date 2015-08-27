@@ -245,8 +245,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     err = ("Baseline interval (tmax = %s) is outside of epoch "
                            "data (tmax = %s)" % (baseline_tmax, tmax))
                     raise ValueError(err)
-        if tmin >= tmax:
-            raise ValueError('tmin has to be smaller than tmax')
+        if tmin > tmax:
+            raise ValueError('tmin has to be less than or equal to tmax')
 
         self.tmin = tmin
         self.tmax = tmax
@@ -1834,7 +1834,7 @@ class EpochsArray(_BaseEpochs):
                                           flat=flat, reject_tmin=reject_tmin,
                                           reject_tmax=reject_tmax, decim=1)
         if len(events) != in1d(self.events[:, 2],
-                               list(event_id.values())).sum():
+                               list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
                              'event_id')
         for ii, e in enumerate(self._data):

@@ -504,6 +504,16 @@ def test_read_write_epochs():
     assert_array_equal(epochs.selection, epochs_read.selection)
     assert_equal(epochs.drop_log, epochs_read.drop_log)
 
+    # Test that having a single time point works
+    epochs.preload_data()
+    epochs.crop(0, 0, copy=False)
+    assert_equal(len(epochs.times), 1)
+    assert_equal(epochs.get_data().shape[-1], 1)
+    epochs.save(temp_fname)
+    epochs_read = read_epochs(temp_fname)
+    assert_equal(len(epochs_read.times), 1)
+    assert_equal(epochs.get_data().shape[-1], 1)
+
 
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
@@ -1588,6 +1598,23 @@ def test_array_epochs():
                          tmin=-.2, baseline=(None, 0))
     ep_data = epochs.get_data()
     assert_array_equal(np.zeros_like(ep_data), ep_data)
+
+    # one time point
+    epochs = EpochsArray(data[:, :, :1], info, events=events,
+                         event_id=event_id, tmin=0., baseline=None)
+    assert_allclose(epochs.times, [0.])
+    assert_allclose(epochs.get_data(), data[:, :, :1])
+    epochs.save(temp_fname)
+    epochs_read = read_epochs(temp_fname)
+    assert_allclose(epochs_read.times, [0.])
+    assert_allclose(epochs_read.get_data(), data[:, :, :1])
+
+    # event as integer (#2435)
+    mask = (events[:, 2] == 1)
+    data_1 = data[mask]
+    events_1 = events[mask]
+    epochs = EpochsArray(data_1, info, events=events_1, event_id=1,
+                         tmin=-0.2, baseline=(None, 0))
 
 
 def test_concatenate_epochs():
