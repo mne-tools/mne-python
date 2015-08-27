@@ -1592,8 +1592,8 @@ def test_array_epochs():
     # test construction with single time slice (needed for certain metrics)
     epochs = EpochsArray(data[..., :1], info, events=events,
                          event_id=event_id,
-                         tmin=0, reject=dict(eeg=1000), flat=dict(eeg=1e-1),
-                         reject_tmin=0.1, reject_tmax=0.2)
+                         tmin=0, reject=dict(eeg=1000), flat=None)
+    assert_array_equal(epochs.get_data().shape, np.array([10, 20, 1]))
 
 
 def test_concatenate_epochs():
