@@ -1826,7 +1826,7 @@ class EpochsArray(_BaseEpochs):
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
-        tmax = (data.shape[-1   ] - 1) / info['sfreq'] + tmin
+        tmax = (data.shape[-1] - 1) / info['sfreq'] + tmin
         if event_id is None or isinstance(event_id, int):
             # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
