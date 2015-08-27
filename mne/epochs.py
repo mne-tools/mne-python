@@ -246,7 +246,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            "data (tmax = %s)" % (baseline_tmax, tmax))
                     raise ValueError(err)
         if tmin > tmax:
-            raise ValueError('tmin has to be less than or equal to than tmax')
+            raise ValueError('tmin has to be less than or equal to tmax')
 
         self.tmin = tmin
         self.tmax = tmax
