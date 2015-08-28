@@ -179,22 +179,22 @@ def test_decim():
         # at init
         epochs = Epochs(raw, events, event_id, tmin, tmax, decim=decim,
                         preload=preload)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
         # split between init and afterward
         epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_1,
                         preload=preload).decimate(dec_2)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
         epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_2,
                         preload=preload).decimate(dec_1)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
@@ -203,24 +203,24 @@ def test_decim():
                         preload=preload)
         epochs.preload_data()
         epochs = epochs.decimate(dec_2)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
         epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_2,
                         preload=preload)
         epochs.preload_data()
         epochs = epochs.decimate(dec_1)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
         # decimate afterward
         epochs = Epochs(raw, events, event_id, tmin, tmax,
                         preload=preload).decimate(decim)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
@@ -229,8 +229,8 @@ def test_decim():
                         preload=preload)
         epochs.preload_data()
         epochs.decimate(decim)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
@@ -414,7 +414,8 @@ def test_read_write_epochs():
         raw.info['lowpass'] = lowpass
 
     data_dec = epochs_dec.get_data()
-    assert_allclose(data[:, :, epochs_dec._decim_slice], data_dec, rtol=1e-12)
+    assert_allclose(data[:, :, epochs_dec._decim_slice], data_dec, rtol=1e-7,
+                    atol=1e-12)
 
     evoked_dec = epochs_dec.average()
     assert_allclose(evoked.data[:, epochs_dec._decim_slice],
