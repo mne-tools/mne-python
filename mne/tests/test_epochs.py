@@ -1279,11 +1279,15 @@ def test_epochs_proj_mixin():
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
 
 
-@slow_test
 def test_delayed_epochs():
     """Test delayed projection
     """
     raw, events, picks = _get_data()
+    events = events[:10]
+    picks = np.concatenate([pick_types(raw.info, meg=True, eeg=True)[::22],
+                            pick_types(raw.info, meg=False, eeg=False,
+                                       ecg=True, eog=True)])
+    picks = np.sort(picks)
     raw.info['lowpass'] = 40.  # fake the LP info so no warnings
     for preload in (True, False):
         for proj in (True, False, 'delayed'):
