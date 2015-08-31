@@ -62,15 +62,32 @@ class RawBCI(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, montage=None, eog=None, misc=None,
+    def __init__(self, input_fname, montage=None, eog=None, misc=[-3, -2, -1],
                  reference=None, scale=1e-6, sfreq=250, preload=True,
                  verbose=None):
 
+        if not eog:
+            eog = list()
+        if not misc:
+            misc = list()
         data = np.genfromtxt(input_fname, delimiter=',', comments='%',
                              skip_footer=1)
         missing_data = np.diff(data[:, 0])
         ch_names = ['EEG %03d' % num for num in range(1, data.shape[-1])]
         ch_types = ['eeg'] * len(ch_names)
+        if misc:
+            misc_names = ['MISC %03d' % ii for ii in range(len(misc))]
+            misc_types = ['misc'] * len(misc)
+            for ii, mi in enumerate(misc):
+                ch_names[mi] = misc_names[ii]
+                ch_types[mi] = misc_types[ii]
+        if eog:
+            eog_names = ['EOG %03d' % ii for ii in range(len(eog))]
+            misc_types = ['eog'] * len(eog)
+            for ii, ei in enumerate(eog):
+                ch_names[ei] = eog_names[ii]
+                ch_types[ei] = eog_types[ii]
+
         # fix it for eog and misc marking
         info = create_info(ch_names, sfreq, ch_types, montage)
         super(RawBCI, self).__init__(info, last_samps=last_sampes,
