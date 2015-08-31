@@ -179,22 +179,22 @@ def test_decim():
         # at init
         epochs = Epochs(raw, events, event_id, tmin, tmax, decim=decim,
                         preload=preload)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
         # split between init and afterward
         epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_1,
                         preload=preload).decimate(dec_2)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
         epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_2,
                         preload=preload).decimate(dec_1)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
@@ -203,24 +203,24 @@ def test_decim():
                         preload=preload)
         epochs.preload_data()
         epochs = epochs.decimate(dec_2)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
         epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_2,
                         preload=preload)
         epochs.preload_data()
         epochs = epochs.decimate(dec_1)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
         # decimate afterward
         epochs = Epochs(raw, events, event_id, tmin, tmax,
                         preload=preload).decimate(decim)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
@@ -229,8 +229,8 @@ def test_decim():
                         preload=preload)
         epochs.preload_data()
         epochs.decimate(decim)
-        assert_array_equal(epochs.get_data(), expected_data)
-        assert_array_equal(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
@@ -414,11 +414,12 @@ def test_read_write_epochs():
         raw.info['lowpass'] = lowpass
 
     data_dec = epochs_dec.get_data()
-    assert_array_equal(data[:, :, epochs_dec._decim_slice], data_dec)
+    assert_allclose(data[:, :, epochs_dec._decim_slice], data_dec, rtol=1e-7,
+                    atol=1e-12)
 
     evoked_dec = epochs_dec.average()
-    assert_array_equal(evoked.data[:, epochs_dec._decim_slice],
-                       evoked_dec.data)
+    assert_allclose(evoked.data[:, epochs_dec._decim_slice],
+                    evoked_dec.data, rtol=1e-12)
 
     n = evoked.data.shape[1]
     n_dec = evoked_dec.data.shape[1]
@@ -1018,7 +1019,7 @@ def test_subtract_evoked():
     # if we compute the evoked response after subtracting it we get zero
     zero_evoked = epochs.average()
     data = zero_evoked.data
-    assert_array_almost_equal(data, np.zeros_like(data), decimal=20)
+    assert_allclose(data, np.zeros_like(data), atol=1e-15)
 
 
 def test_epoch_eq():
@@ -1253,7 +1254,7 @@ def test_epochs_proj_mixin():
                          add_eeg_ref=True, reject=reject)
 
         assert_allclose(epochs.copy().apply_proj().get_data()[0],
-                        epochs2.get_data()[0])
+                        epochs2.get_data()[0], rtol=1e-10, atol=1e-25)
 
         # make sure data output is constant across repeated calls
         # e.g. drop bads
@@ -1276,6 +1277,37 @@ def test_epochs_proj_mixin():
     data = epochs.get_data().copy()
     epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
+
+
+def test_delayed_epochs():
+    """Test delayed projection
+    """
+    raw, events, picks = _get_data()
+    events = events[:10]
+    picks = np.concatenate([pick_types(raw.info, meg=True, eeg=True)[::22],
+                            pick_types(raw.info, meg=False, eeg=False,
+                                       ecg=True, eog=True)])
+    picks = np.sort(picks)
+    raw.info['lowpass'] = 40.  # fake the LP info so no warnings
+    for preload in (True, False):
+        for proj in (True, False, 'delayed'):
+            for decim in (1, 3):
+                for ii in range(2):
+                    epochs = Epochs(raw, events, event_id, tmin, tmax,
+                                    picks=picks, proj=proj, reject=reject,
+                                    preload=preload, decim=decim)
+                    if ii == 1:
+                        epochs.preload_data()
+                    picks_data = pick_types(epochs.info, meg=True, eeg=True)
+                    evoked = epochs.average(picks=picks_data)
+                    if proj is True:
+                        evoked.apply_proj()
+                    epochs_data = epochs.get_data().mean(axis=0)[picks_data]
+                    assert_array_equal(evoked.ch_names,
+                                       np.array(epochs.ch_names)[picks_data])
+                    assert_allclose(evoked.times, epochs.times)
+                    assert_allclose(evoked.data, epochs_data,
+                                    rtol=1e-5, atol=1e-15)
 
 
 def test_drop_epochs():

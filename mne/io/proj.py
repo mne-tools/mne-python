@@ -128,15 +128,17 @@ class ProjMixin(object):
         self : instance of Raw | Epochs | Evoked
             The instance.
         """
+        from ..epochs import _BaseEpochs
+        from .base import _BaseRaw
         if self.info['projs'] is None or len(self.info['projs']) == 0:
             logger.info('No projector specified for this dataset.'
                         'Please consider the method self.add_proj.')
             return self
 
         # Exit delayed mode if you apply proj
-        if getattr(self, '_delayed_proj', False):
+        if isinstance(self, _BaseEpochs) and self._do_delayed_proj:
             logger.info('Leaving delayed SSP mode.')
-            self._delayed_proj = False
+            self._do_delayed_proj = False
 
         if all(p['active'] for p in self.info['projs']):
             logger.info('Projections have already been applied. '
@@ -152,29 +154,18 @@ class ProjMixin(object):
             return self
 
         self._projector, self.info = _projector, info
-        # handle different data / preload attrs and create reference
-        # this also helps avoiding circular imports
-        for attr in ('get_data', '_data', 'data'):
-            data = getattr(self, attr, None)
-            if data is None:
-                continue
-            elif callable(data):
-                if self.preload:
-                    data = np.empty_like(self._data)
-                    for ii, e in enumerate(self._data):
-                        data[ii] = self._preprocess(np.dot(self._projector, e),
-                                                    self.verbose)
-                else:  # get data knows what to do.
-                    data = data()
+        if isinstance(self, _BaseRaw):
+            if self.preload:
+                self._data = np.dot(self._projector, self._data)
+        elif isinstance(self, _BaseEpochs):
+            if self.preload:
+                for ii, e in enumerate(self._data):
+                    self._data[ii] = self._project_epoch(e)
             else:
-                data = np.dot(self._projector, data)
-            break
+                self.preload_data()  # will automatically apply
+        else:  # Evoked
+            self.data = np.dot(self._projector, self.data)
         logger.info('SSP projectors applied...')
-        if hasattr(self, '_data'):
-            self._data = data
-        else:
-            self.data = data
-
         return self
 
     def del_proj(self, idx):

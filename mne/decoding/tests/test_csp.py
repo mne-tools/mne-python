@@ -11,7 +11,7 @@ from numpy.testing import assert_array_almost_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, slow_test
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
@@ -23,6 +23,7 @@ event_id = dict(aud_l=1, vis_l=3)
 start, stop = 0, 8
 
 
+@slow_test
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
     """

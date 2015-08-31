@@ -395,16 +395,11 @@ class RtEpochs(_BaseEpochs):
         # select the channels
         epoch = epoch[self.picks, :]
 
-        # handle offset
-        if self._offset is not None:
-            epoch += self._offset
+        # Detrend, baseline correct, decimate
+        epoch = self._detrend_offset_decim(epoch, verbose='ERROR')
 
         # apply SSP
-        if self.proj and self._projector is not None:
-            epoch = np.dot(self._projector, epoch)
-
-        # Detrend, baseline correct, decimate
-        epoch = self._preprocess(epoch, verbose='ERROR')
+        epoch = self._project_epoch(epoch)
 
         # Decide if this is a good epoch
         is_good, _ = self._is_good_epoch(epoch, verbose='ERROR')
