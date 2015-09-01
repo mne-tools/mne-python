@@ -113,7 +113,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
 
 @verbose
 def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
-                        verbose=None):
+                        desc_prefix=None, verbose=None):
     """Compute SSP (spatial space projection) vectors on Epochs
 
     Parameters
@@ -128,6 +128,9 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         Number of vectors for EEG channels
     n_jobs : int
         Number of jobs to use to compute covariance
+    desc_prefix : str | None
+        The description prefix to use. If None, one will be created based on
+        the event_id, tmin, and tmax.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -149,7 +152,8 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         event_id = str(list(event_id.values())[0])
     else:
         event_id = 'Multiple-events'
-    desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
+    if desc_prefix is None:
+        desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
     return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix)
 
 

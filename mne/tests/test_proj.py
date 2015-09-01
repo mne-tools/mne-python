@@ -138,7 +138,9 @@ def test_compute_proj_epochs():
     # XXX : test something
 
     # test parallelization
-    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2)
+    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2,
+                                desc_prefix='foobar')
+    assert_true(all('foobar' in x['desc'] for x in projs))
     projs = activate_proj(projs)
     proj_par, _, _ = make_projector(projs, epochs.ch_names, bads=[])
     assert_allclose(proj, proj_par, rtol=1e-8, atol=1e-16)
