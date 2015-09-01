@@ -13,6 +13,18 @@ _cuda_capable = False
 _multiply_inplace_c128 = _halve_c128 = _real_c128 = None
 
 
+def _get_cudafft():
+    """Helper to deal with scikit-cuda namespace change"""
+    try:
+        from skcuda import fft
+    except ImportError:
+        try:
+            from scikits.cuda import fft
+        except ImportError:
+            fft = None
+    return fft
+
+
 def get_cuda_memory():
     """Get the amount of free memory for CUDA operations
 
@@ -64,11 +76,10 @@ def init_cuda(ignore_config=False):
         logger.warning('pycuda.autoinit could not be imported, likely '
                        'a hardware error, CUDA not enabled')
         return
-    # Make sure scikits.cuda is installed
-    try:
-        from scikits.cuda import fft as cudafft
-    except ImportError:
-        logger.warning('module scikits.cuda not found, CUDA not '
+    # Make sure scikit-cuda is installed
+    cudafft = _get_cudafft()
+    if cudafft is None:
+        logger.warning('module scikit-cuda not found, CUDA not '
                        'enabled')
         return
 
@@ -146,7 +157,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
         init_cuda()
         if _cuda_capable:
             from pycuda import gpuarray
-            from scikits.cuda import fft as cudafft
+            cudafft = _get_cudafft()
             # set up all arrays necessary for CUDA
             # try setting up for float64
             try:
@@ -191,7 +202,7 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
         # do the fourier-domain operations
         x = np.real(ifft(h_fft * fft(x), overwrite_x=True)).ravel()
     else:
-        from scikits.cuda import fft as cudafft
+        cudafft = _get_cudafft()
         # do the fourier-domain operations, results in second param
         cuda_dict['x'].set(x.astype(np.float64))
         cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
@@ -262,7 +273,7 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
         if _cuda_capable:
             # try setting up for float64
             from pycuda import gpuarray
-            from scikits.cuda import fft as cudafft
+            cudafft = _get_cudafft()
             try:
                 # do the IFFT normalization now so we don't have to later
                 W = gpuarray.to_gpu(W[:cuda_fft_len_x]
@@ -293,7 +304,7 @@ def fft_resample(x, W, new_len, npad, to_remove,
     Parameters
     ----------
     x : 1-d array
-        The array to resample.
+        The array to resample. Will be converted to float64 if necessary.
     W : 1-d array or gpuarray
         The filtering function to apply.
     new_len : int
@@ -311,6 +322,8 @@ def fft_resample(x, W, new_len, npad, to_remove,
         Filtered version of x.
     """
     # add some padding at beginning and end to make this work a little cleaner
+    if x.dtype != np.float64:
+        x = x.astype(np.float64)
     x = _smart_pad(x, npad)
     old_len = len(x)
     shorter = new_len < old_len
@@ -324,7 +337,7 @@ def fft_resample(x, W, new_len, npad, to_remove,
         y_fft[sl_2] = x_fft[sl_2]
         y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
     else:
-        from scikits.cuda import fft as cudafft
+        cudafft = _get_cudafft()
         cuda_dict['x'].set(np.concatenate((x, np.zeros(max(new_len - old_len,
                                                            0), x.dtype))))
         # do the fourier-domain operations, results put in second param

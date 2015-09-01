@@ -1305,6 +1305,7 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
         raise TypeError(err)
 
     # make sure our arithmetic will work
+    x = np.asanyarray(x)
     ratio = float(up) / down
     if axis < 0:
         axis = x.ndim + axis
