@@ -155,6 +155,9 @@ def test_resample():
     x_3_rs = resample(x_3, 1, 2, 10, 0)
     assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
+    # make sure we cast to array if necessary
+    assert_array_equal(resample([0, 0], 2, 1), [0., 0., 0., 0.])
+
 
 def test_resample_stim_channel():
     """Test resampling of stim channels"""
@@ -359,6 +362,9 @@ def test_cuda():
     a4 = resample(a, 2, 1, n_jobs='cuda', npad=0)
     assert_array_almost_equal(a3, a4, 14)
     assert_array_almost_equal(a1, a2, 14)
+    assert_array_equal(resample([0, 0], 2, 1, n_jobs='cuda'), [0., 0., 0., 0.])
+    assert_array_equal(resample(np.zeros(2, np.float32), 2, 1, n_jobs='cuda'),
+                       [0., 0., 0., 0.])
 
 
 def test_detrend():
