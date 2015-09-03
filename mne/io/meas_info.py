@@ -206,6 +206,18 @@ class Info(dict):
         if self.get('subject_info') is not None:
             del self['subject_info']
 
+    def _check_consistency(self):
+        """Run some self-consistency checks"""
+        missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
+        if len(missing) > 0:
+            raise RuntimeError('bad channel(s) %s marked do not exist in info'
+                               % (missing,))
+        chs = [ch['ch_name'] for ch in self['chs']]
+        if len(self['ch_names']) != len(chs) or any(
+                ch_1 != ch_2 for ch_1, ch_2 in zip(self['ch_names'], chs)):
+            raise RuntimeError('info channel name inconsistency detected, '
+                               'please notify mne-python developers')
+
 
 def read_fiducials(fname):
     """Read fiducials from a fiff file
@@ -865,6 +877,7 @@ def read_meas_info(fid, tree, verbose=None):
     info['acq_pars'] = acq_pars
     info['acq_stim'] = acq_stim
     info['custom_ref_applied'] = custom_ref_applied
+    info._check_consistency()
 
     return info, meas
 
@@ -889,6 +902,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     -----
     Tags are written in a particular order for compatibility with maxfilter.
     """
+    info._check_consistency()
 
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
@@ -1216,6 +1230,8 @@ def _merge_info(infos, verbose=None):
     info : instance of Info
         The merged info object.
     """
+    for info in infos:
+        info._check_consistency()
     info = Info()
     ch_names = _merge_dict_values(infos, 'ch_names')
     duplicates = set([ch for ch in ch_names if ch_names.count(ch) > 1])
@@ -1255,7 +1271,7 @@ def _merge_info(infos, verbose=None):
 
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
-
+    info._check_consistency()
     return info
 
 
@@ -1376,4 +1392,5 @@ def _empty_info():
     info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
                           'to': FIFF.FIFFV_COORD_HEAD, 'trans': np.eye(4)}
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
+    info._check_consistency()
     return info

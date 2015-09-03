@@ -57,6 +57,8 @@ raw = concatenate_raws(raw_files)
 
 # strip channel names
 raw.info['ch_names'] = [chn.strip('.') for chn in raw.info['ch_names']]
+for ch in raw.info['chs']:
+    ch['ch_name'] = ch['ch_name'].strip('.')
 
 # Apply band-pass filter
 raw.filter(7., 30., method='iir')

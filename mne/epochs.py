@@ -27,7 +27,7 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag
 from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
-                      pick_channels)
+                      pick_channels, pick_info)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin
 from .evoked import EvokedArray, _aspect_rev
@@ -261,9 +261,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if picks is None:
             picks = list(range(len(self.info['ch_names'])))
         else:
-            self.info['chs'] = [self.info['chs'][k] for k in picks]
-            self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
-            self.info['nchan'] = len(picks)
+            self.info = pick_info(self.info, picks)
         self.picks = _check_type_picks(picks)
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
@@ -2313,6 +2311,8 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
 
 def _compare_epochs_infos(info1, info2, ind):
     """Compare infos"""
+    info1._check_consistency()
+    info2._check_consistency()
     if not info1['nchan'] == info2['nchan']:
         raise ValueError('epochs[%d][\'info\'][\'nchan\'] must match' % ind)
     if not info1['bads'] == info2['bads']:

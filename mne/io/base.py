@@ -258,6 +258,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 load_from_disk = True
         self._last_samps = np.array(last_samps)
         self._first_samps = np.array(first_samps)
+        info._check_consistency()
         self.info = info
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
@@ -1973,6 +1974,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     cals : list
         calibration factors.
     """
+    info._check_consistency()
     #
     #  Create the file and save the essentials
     #
@@ -1987,6 +1989,8 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     info = copy.deepcopy(info)
     if sel is not None:
         info['chs'] = [info['chs'][k] for k in sel]
+        info['ch_names'] = [info['ch_names'][k] for k in sel]
+        info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
         info['nchan'] = len(sel)
 
         ch_names = [c['ch_name'] for c in info['chs']]  # name of good channels

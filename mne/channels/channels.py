@@ -593,6 +593,7 @@ def rename_channels(info, mapping):
         a dictionary mapping the old channel to a new channel name
         e.g. {'EEG061' : 'EEG161'}.
     """
+    info._check_consistency()
     bads, chs = info['bads'], info['chs']
     ch_names = info['ch_names']
     new_names, new_kinds, new_bads = list(), list(), list()

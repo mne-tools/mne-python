@@ -119,7 +119,7 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
 
     new_events = []
     lag = []
-    for event in events.copy().astype('f8'):
+    for event in events.copy().astype(int):
         if event[2] == reference_id:
             lower = event[0] + imin
             upper = event[0] + imax

@@ -202,6 +202,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info, not %s'
                         % type(info))
+    info._check_consistency()
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
 
@@ -304,10 +305,12 @@ def pick_info(info, sel=[], copy=True):
     res : dict
         Info structure restricted to a selection of channels.
     """
+    info._check_consistency()
     if copy:
         info = deepcopy(info)
-
-    if len(sel) == 0:
+    if sel is None:
+        return info
+    elif len(sel) == 0:
         raise ValueError('No channels match the selection.')
 
     info['chs'] = [info['chs'][k] for k in sel]
@@ -399,6 +402,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
         Forward solution restricted to selected channels. If include and
         exclude are empty it returns orig without copy.
     """
+    orig['info']._check_consistency()
     if len(include) == 0 and len(exclude) == 0:
         return orig
     exclude = _check_excludes_includes(exclude,
