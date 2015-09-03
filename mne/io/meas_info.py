@@ -214,7 +214,8 @@ class Info(dict):
                                % (missing,))
         chs = [ch['ch_name'] for ch in self['chs']]
         if len(self['ch_names']) != len(chs) or any(
-                ch_1 != ch_2 for ch_1, ch_2 in zip(self['ch_names'], chs)):
+                ch_1 != ch_2 for ch_1, ch_2 in zip(self['ch_names'], chs)) or \
+                self['nchan'] != len(chs):
             raise RuntimeError('info channel name inconsistency detected, '
                                'please notify mne-python developers')
 
