@@ -13,7 +13,9 @@ from .eog import find_eog_events, create_eog_epochs
 from .ecg import find_ecg_events, create_ecg_epochs
 from .ica import (ICA, ica_find_eog_events, ica_find_ecg_events,
                   get_score_funcs, read_ica, run_ica)
-from .bads import find_outliers
 from .stim import fix_stim_artifact
 from .maxwell import maxwell_filter
 from .xdawn import Xdawn
+from .bads import (find_outliers,
+                   find_bad_channels, find_bad_epochs,
+                   find_bad_channels_in_epochs)

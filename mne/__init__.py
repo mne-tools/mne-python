@@ -81,6 +81,7 @@ from . import channels
 from .channels import equalize_channels, rename_channels, find_layout
 
 from . import beamformer
+from . import channels
 from . import commands
 from . import connectivity
 from . import coreg

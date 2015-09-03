@@ -33,6 +33,7 @@ DEFAULTS = dict(
                      linewidth=0,
                      markeredgewidth=1,
                      markersize=4),
+    bads_faster=dict(max_iter=1, thresh=3, use_metrics=None)
 )
 
 
