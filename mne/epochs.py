@@ -719,8 +719,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Channel names"""
         return self.info['ch_names']
 
-    def plot(self, epoch_idx=None, picks=None, scalings=None,
-             title_str='#%003i', show=True, block=False, n_epochs=20,
+    def plot(self, picks=None, scalings=None, show=True,
+             block=False, n_epochs=20,
              n_channels=20, title=None):
         """Visualize epochs.
 
@@ -732,9 +732,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        epoch_idx : array-like | int | None
-            The epochs to visualize. If None, the first 20 epochs are shown.
-            Defaults to None.
         picks : array-like of int | None
             Channels to be included. If None only good data channels are used.
             Defaults to None
@@ -742,9 +739,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Scale factors for the traces. If None, defaults to
             ``dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
             emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)``.
-        title_str : None | str
-            The string formatting to use for axes titles. If None, no titles
-            will be shown. Defaults expand to ``#001, #002, ...``.
         show : bool
             Whether to show the figure or not.
         block : bool

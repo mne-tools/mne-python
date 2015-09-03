@@ -73,7 +73,6 @@ BUG
 
     - Fix scaling in :func:``mne.viz.utils._setup_vmin_vmax`` by `Jaakko Leppakangas`_
 
-
 API
 ~~~
 
