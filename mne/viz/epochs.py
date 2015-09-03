@@ -9,19 +9,18 @@
 #
 # License: Simplified BSD
 
-from collections import deque
 from functools import partial
 import copy
 
 import numpy as np
 
-from ..utils import create_chunks, verbose, get_config, deprecated, set_config
+from ..utils import verbose, get_config, deprecated, set_config
 from ..utils import logger
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
 from ..time_frequency import compute_epochs_psd
-from .utils import tight_layout, _prepare_trellis, figure_nobar, _toggle_proj
+from .utils import tight_layout, figure_nobar, _toggle_proj
 from .utils import _toggle_options, _layout_figure, _setup_vmin_vmax
 from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
 from ..defaults import _handle_default
@@ -337,184 +336,6 @@ def _epochs_axes_onclick(event, params):
                     l.set_color('r')
             here['reject'] = False
     ax.get_figure().canvas.draw()
-
-
-@deprecated("It will be removed in version 0.11. Use trellis=False "
-            "option in epochs.plot method.")
-def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
-                        title_str='#%003i', show=True, block=False,
-                        n_epochs=20):
-    """ Visualize epochs using Trellis plot.
-
-    Parameters
-    ----------
-
-    epochs : instance of Epochs
-        The epochs object
-    epoch_idx : array-like | int | None
-        The epochs to visualize. If None, the first 20 epochs are shown.
-        Defaults to None.
-    picks : array-like of int | None
-        Channels to be included. If None only good data channels are used.
-        Defaults to None
-    scalings : dict | None
-        Scale factors for the traces. If None, defaults to:
-        `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
-             ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
-    title_str : None | str
-        The string formatting to use for axes titles. If None, no titles
-        will be shown. Defaults expand to ``#001, #002, ...``
-    show : bool
-        Show figure if True.
-    block : bool
-        Whether to halt program execution until the figure is closed.
-        Useful for rejecting bad trials on the fly by clicking on a
-        sub plot. Defaults to False.
-    n_epochs : int
-        The number of epochs per view. Defaults to 20.
-
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figure
-        The figure.
-    """
-    _plot_epochs_trellis(epochs, epoch_idx, picks, scalings, title_str,
-                         show, block, n_epochs)
-
-
-def _plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
-                         title_str='#%003i', show=True, block=False,
-                         n_epochs=20):
-    """ Visualize epochs using Trellis plot.
-
-    Parameters
-    ----------
-
-    epochs : instance of Epochs
-        The epochs object
-    epoch_idx : array-like | int | None
-        The epochs to visualize. If None, the first 20 epochs are shown.
-        Defaults to None.
-    picks : array-like of int | None
-        Channels to be included. If None only good data channels are used.
-        Defaults to None
-    scalings : dict | None
-        Scale factors for the traces. If None, defaults to:
-        `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
-             ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
-    title_str : None | str
-        The string formatting to use for axes titles. If None, no titles
-        will be shown. Defaults expand to ``#001, #002, ...``
-    show : bool
-        Show figure if True.
-    block : bool
-        Whether to halt program execution until the figure is closed.
-        Useful for rejecting bad trials on the fly by clicking on a
-        sub plot. Defaults to False.
-    n_epochs : int
-        The number of epochs per view. Defaults to 20.
-
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figure
-        The figure.
-    """
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
-    scalings = _handle_default('scalings_plot_raw', scalings)
-    if np.isscalar(epoch_idx):
-        epoch_idx = [epoch_idx]
-    if epoch_idx is None:
-        n_events = len(epochs.events)
-        epoch_idx = list(range(n_events))
-    else:
-        n_events = len(epoch_idx)
-    epoch_idx = epoch_idx[:n_events]
-    idx_handler = deque(create_chunks(epoch_idx, n_epochs))
-
-    if picks is None:
-        picks = _handle_picks(epochs)
-    if len(picks) < 1:
-        raise RuntimeError('No appropriate channels found. Please'
-                           ' check your picks')
-    times = epochs.times * 1e3
-    n_channels = epochs.info['nchan']
-    types = [channel_type(epochs.info, idx) for idx in
-             picks]
-
-    # preallocation needed for min / max scaling
-    data = np.zeros((len(epochs.events), n_channels, len(times)))
-    for ii, epoch in enumerate(epochs.get_data()):
-        for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
-            data[ii, jj] = this_channel / scalings[this_type]
-
-    n_events = len(epochs.events)
-    epoch_idx = epoch_idx[:n_events]
-    idx_handler = deque(create_chunks(epoch_idx, n_epochs))
-    # handle bads
-    bad_ch_idx = None
-    ch_names = epochs.ch_names
-    bads = epochs.info['bads']
-    if any(ch_names[k] in bads for k in picks):
-        ch_picked = [k for k in ch_names if ch_names.index(k) in picks]
-        bad_ch_idx = [ch_picked.index(k) for k in bads if k in ch_names]
-        good_ch_idx = [p for p in picks if p not in bad_ch_idx]
-    else:
-        good_ch_idx = np.arange(n_channels)
-
-    fig, axes = _prepare_trellis(len(data[idx_handler[0]]), max_col=5)
-    axes_handler = deque(list(range(len(idx_handler))))
-    for ii, data_, ax in zip(idx_handler[0], data[idx_handler[0]], axes):
-        ax.plot(times, data_[good_ch_idx].T, color='k')
-        if bad_ch_idx is not None:
-            ax.plot(times, data_[bad_ch_idx].T, color='r')
-        if title_str is not None:
-            ax.set_title(title_str % ii, fontsize=12)
-        ax.set_ylim(data.min(), data.max())
-        ax.set_yticks([])
-        ax.set_xticks([])
-        vars(ax)[axes_handler[0]] = {'idx': ii, 'reject': False}
-
-    # initialize memory
-    for this_view, this_inds in zip(axes_handler, idx_handler):
-        for ii, ax in zip(this_inds, axes):
-            vars(ax)[this_view] = {'idx': ii, 'reject': False}
-
-    tight_layout(fig=fig)
-    navigation = figure_nobar(figsize=(3, 1.5))
-    from matplotlib import gridspec
-    gs = gridspec.GridSpec(2, 2)
-    ax1 = plt.subplot(gs[0, 0])
-    ax2 = plt.subplot(gs[0, 1])
-    ax3 = plt.subplot(gs[1, :])
-
-    params = {
-        'fig': fig,
-        'idx_handler': idx_handler,
-        'epochs': epochs,
-        'picks': picks,
-        'times': times,
-        'scalings': scalings,
-        'good_ch_idx': good_ch_idx,
-        'bad_ch_idx': bad_ch_idx,
-        'axes': axes,
-        'back': mpl.widgets.Button(ax1, 'back'),
-        'next': mpl.widgets.Button(ax2, 'next'),
-        'reject-quit': mpl.widgets.Button(ax3, 'reject-quit'),
-        'title_str': title_str,
-        'reject_idx': [],
-        'axes_handler': axes_handler,
-        'data': data,
-        'navigation': navigation,
-    }
-    fig.canvas.mpl_connect('button_press_event',
-                           partial(_epochs_axes_onclick, params=params))
-    navigation.canvas.mpl_connect('button_press_event',
-                                  partial(_epochs_navigation_onclick,
-                                          params=params))
-    if show:
-        plt.show(block=block)
-    return fig
 
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
