@@ -83,7 +83,7 @@ API
 
     - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.csp.CSP` by `Romain Trachel`_ 
     
-    - Redesigned and rewrote mne.Epochs.plot (no backwards compatibility) during the GSOC 2015 by `Jaakko Leppakangas`_, `Mainak Jas`_ and `Denis Engemann`_
+    - Redesigned and rewrote mne.Epochs.plot (no backwards compatibility) during the GSOC 2015 by `Jaakko Leppakangas`_, `Mainak Jas`_, `Federico Raimondo`_ and `Denis Engemann`_
 
 .. _changes_0_9:
 
