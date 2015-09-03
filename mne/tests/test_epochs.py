@@ -1515,6 +1515,7 @@ def test_add_channels_epochs():
 
     epochs_meg.info['chs'].pop(0)
     epochs_meg.info['ch_names'].pop(0)
+    epochs_meg.info['nchan'] -= 1
     assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg, epochs_eeg])
 

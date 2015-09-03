@@ -2313,18 +2313,18 @@ def _compare_epochs_infos(info1, info2, ind):
     """Compare infos"""
     info1._check_consistency()
     info2._check_consistency()
-    if not info1['nchan'] == info2['nchan']:
+    if info1['nchan'] != info2['nchan']:
         raise ValueError('epochs[%d][\'info\'][\'nchan\'] must match' % ind)
-    if not info1['bads'] == info2['bads']:
+    if info1['bads'] != info2['bads']:
         raise ValueError('epochs[%d][\'info\'][\'bads\'] must match' % ind)
-    if not info1['sfreq'] == info2['sfreq']:
+    if info1['sfreq'] != info2['sfreq']:
         raise ValueError('epochs[%d][\'info\'][\'sfreq\'] must match' % ind)
-    if not set(info1['ch_names']) == set(info2['ch_names']):
+    if set(info1['ch_names']) != set(info2['ch_names']):
         raise ValueError('epochs[%d][\'info\'][\'ch_names\'] must match' % ind)
     if len(info2['projs']) != len(info1['projs']):
         raise ValueError('SSP projectors in epochs files must be the same')
-    if not all(_proj_equal(p1, p2) for p1, p2 in
-               zip(info2['projs'], info1['projs'])):
+    if any(not _proj_equal(p1, p2) for p1, p2 in
+           zip(info2['projs'], info1['projs'])):
         raise ValueError('SSP projectors in epochs files must be the same')
 
 
