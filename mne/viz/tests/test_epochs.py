@@ -82,7 +82,7 @@ def test_plot_epochs():
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')
     plt.close('all')
-    fig = epochs.plot(trellis=False)
+    fig = epochs.plot()
     fig.canvas.key_press_event('left')
     fig.canvas.key_press_event('right')
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
@@ -107,7 +107,7 @@ def test_plot_epochs():
     assert_raises(RuntimeError, epochs.plot, picks=[])
     plt.close('all')
     with warnings.catch_warnings(record=True):
-        fig = epochs.plot(trellis=False)
+        fig = epochs.plot()
         # test mouse clicks
         x = fig.get_axes()[0].get_xlim()[1] / 2
         y = fig.get_axes()[0].get_ylim()[0] / 2

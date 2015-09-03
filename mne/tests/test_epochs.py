@@ -1606,7 +1606,7 @@ def test_array_epochs():
     assert_array_equal(epochs.events, epochs2.events)
 
     # plotting
-    epochs[0].plot(trellis=False)
+    epochs[0].plot()
     plt.close('all')
 
     # indexing
