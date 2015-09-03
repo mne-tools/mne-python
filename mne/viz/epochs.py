@@ -14,7 +14,7 @@ import copy
 
 import numpy as np
 
-from ..utils import verbose, get_config, deprecated, set_config
+from ..utils import verbose, get_config, set_config
 from ..utils import logger
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
