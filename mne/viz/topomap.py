@@ -459,7 +459,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                          "shape %s." % str(data.shape))
     elif len(data) != len(pos):
         raise ValueError("Data and pos need to be of same length. Got data of "
-                         "length %s, pos of length %s." % (len(data), len(pos)))
+                         "length %s, pos of length %s" % (len(data), len(pos)))
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
