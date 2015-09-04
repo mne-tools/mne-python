@@ -258,7 +258,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 load_from_disk = True
         self._last_samps = np.array(last_samps)
         self._first_samps = np.array(first_samps)
-        info._check_consistency()
+        info._check_consistency()  # make sure subclass did a good job
         self.info = info
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
@@ -1974,7 +1974,11 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     cals : list
         calibration factors.
     """
-    info._check_consistency()
+    #
+    #    Measurement info
+    #
+    info = pick_info(info, sel, copy=True)
+
     #
     #  Create the file and save the essentials
     #
@@ -1983,28 +1987,6 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     write_id(fid, FIFF.FIFF_BLOCK_ID)
     if info['meas_id'] is not None:
         write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info['meas_id'])
-    #
-    #    Measurement info
-    #
-    info = copy.deepcopy(info)
-    if sel is not None:
-        info['chs'] = [info['chs'][k] for k in sel]
-        info['ch_names'] = [info['ch_names'][k] for k in sel]
-        info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
-        info['nchan'] = len(sel)
-
-        ch_names = [c['ch_name'] for c in info['chs']]  # name of good channels
-        comps = copy.deepcopy(info['comps'])
-        for c in comps:
-            row_idx = [k for k, n in enumerate(c['data']['row_names'])
-                       if n in ch_names]
-            row_names = [c['data']['row_names'][i] for i in row_idx]
-            rowcals = c['rowcals'][row_idx]
-            c['rowcals'] = rowcals
-            c['data']['nrow'] = len(row_names)
-            c['data']['row_names'] = row_names
-            c['data']['data'] = c['data']['data'][row_idx]
-        info['comps'] = comps
 
     cals = []
     for k in range(info['nchan']):

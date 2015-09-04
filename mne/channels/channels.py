@@ -601,11 +601,11 @@ def rename_channels(info, mapping):
 
     # first check and assemble clean mappings of index and name
     if isinstance(mapping, dict):
-        keys = sorted(list(mapping.keys()))
-        missing = [ch_name not in ch_names for ch_name in keys]
+        orig_names = sorted(list(mapping.keys()))
+        missing = [orig_name not in ch_names for orig_name in orig_names]
         if any(missing):
             raise ValueError("Channel name(s) in mapping missing from info: "
-                             "%s" % np.array(keys)[np.array(missing)])
+                             "%s" % np.array(orig_names)[np.array(missing)])
         new_names = [(ch_names.index(ch_name), new_name)
                      for ch_name, new_name in mapping.items()]
     elif callable(mapping):
