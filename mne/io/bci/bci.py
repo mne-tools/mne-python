@@ -34,12 +34,10 @@ class RawBCI(_BaseRaw):
         :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
-        EOG channels. Values should correspond to the vhdr file.
-        Default is ('HEOGL', 'HEOGR', 'VEOGb').
+        EOG channels. Default is None.
     misc : list or tuple
-        Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes
-        in the vhdr file. Default is None.
+        List of indices that should be designated MISC channels.
+        Default is (-3, -2, -1), which are the accelerator sensors.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
@@ -66,9 +64,9 @@ class RawBCI(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, montage=None, eog=None, misc=[-3, -2, -1],
-                 reference=None, scale=1e-6, sfreq=250, preload=True,
-                 verbose=None):
+    def __init__(self, input_fname, montage=None, eog=None,
+                 misc=(-3, -2, -1), reference=None, scale=1e-6, sfreq=250,
+                 preload=True, verbose=None):
 
         if not eog:
             eog = list()
@@ -94,27 +92,28 @@ class RawBCI(_BaseRaw):
         4. Insert resampled data in the array using the diff indices
            (index + 1).
         """
-        diff = np.abs(np.diff(data[:, 0]))
         # counter goes from 0 to 255, maxdiff is 255, make diff one like others.
-        diff = np.mod(diff, 254)
-        missing_idx = np.where(diff != 1)[0]
-        missing_samps = diff[missing_idx]
-        missing_nsamps = np.sum(missing_samps)
-        missing_cumsum = np.insert(np.cumsum(missing_samps), 0, 0)[:-1]
-        missing_data = np.empty((missing_nsamps, data.shape[-1]), dtype=float)
-        for idx, nn, ii in zip(missing_idx, missing_samps, missing_cumsum):
-            missing_data[ii:ii+nn] = np.mean(data[(idx-1, idx), :])
-        idx = list()
-        for ii in missing_idx:
-            idx.append([ii] * ii)
-        idx = np.hstack(idx)
-        asdf
-        data = np.insert(data, idx, missing_data)
+        diff = np.abs(np.diff(data[:, 0]))
+        diff = np.mod(diff, 254) - 1
+        missing_idx = np.where(diff != 0)[0]
+        missing_samps = diff[missing_idx].astype(int)
+        if missing_samps.size:
+            missing_nsamps = np.sum(missing_samps, dtype=int)
+            missing_cumsum = np.insert(np.cumsum(missing_samps), 0, 0)[:-1]
+            missing_data = np.empty((missing_nsamps, data.shape[-1]),
+                                    dtype=float)
+            insert_idx = list()
+            for idx, nn, ii in zip(missing_idx, missing_samps, missing_cumsum):
+                missing_data[ii:ii+nn] = np.mean(data[(idx, idx+1), :])
+                insert_idx.append([idx] * nn)
+            insert_idx = np.hstack(insert_idx)
+            data = np.insert(data, insert_idx, missing_data, axis=0)
+        self._data = data[:, 1:].T
+        nchan, nsamps = self._data.shape
         first_samps = [0]
-        last_samps = [data.shape[0]]
-        # since there is a counter column, don't need to add 1 to range
-        ch_names = ['EEG %03d' % num for num in range(1, data.shape[-1])]
-        ch_types = ['eeg'] * len(ch_names)
+        last_samps = [nsamps]
+        ch_names = ['EEG %03d' % num for num in range(1, nchan + 1)]
+        ch_types = ['eeg'] * nchan
         if misc:
             misc_names = ['MISC %03d' % ii for ii in range(1, len(misc) + 1)]
             misc_types = ['misc'] * len(misc)
@@ -132,11 +131,11 @@ class RawBCI(_BaseRaw):
         info = create_info(ch_names, sfreq, ch_types, montage)
         super(RawBCI, self).__init__(info, last_samps=last_samps,
                                      filenames=[input_fname], verbose=verbose)
-        self._data = data
 
 
-def read_raw_bci(input_fname, montage=None, eog=None, misc=[-3, -2, -1],
-                 reference=None, scale=1e-6, sfreq=250, preload=True, verbose=None):
+def read_raw_bci(input_fname, montage=None, eog=None, misc=(-3, -2, -1),
+                 reference=None, scale=1e-6, sfreq=250,
+                 preload=True, verbose=None):
     """Raw object from BCI file
 
     Parameters
@@ -149,12 +148,10 @@ def read_raw_bci(input_fname, montage=None, eog=None, misc=[-3, -2, -1],
         :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
-        EOG channels. Values should correspond to the vhdr file.
-        Default is ('HEOGL', 'HEOGR', 'VEOGb').
+        EOG channels. Default is None.
     misc : list or tuple
-        Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes
-        in the vhdr file. Default is None.
+        List of indices that should be designated MISC channels.
+        Default is (-3, -2, -1), which are the accelerator sensors.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
