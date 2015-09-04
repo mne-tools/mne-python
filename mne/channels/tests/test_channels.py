@@ -48,13 +48,16 @@ def test_rename_channels():
     rename_channels(info2, mapping)
     assert_true(info2['chs'][374]['ch_name'] == 'EEG060')
     assert_true(info2['ch_names'][374] == 'EEG060')
-    assert_true('EEG060' in info2['bads'])
     assert_true(info2['chs'][375]['ch_name'] == 'EOG061')
     assert_true(info2['ch_names'][375] == 'EOG061')
-    assert_true('EOG061' in info2['bads'])
+    assert_array_equal(['EEG060', 'EOG061'], info2['bads'])
     info2 = deepcopy(info)
     rename_channels(info2, lambda x: x.replace(' ', ''))
     assert_true(info2['chs'][373]['ch_name'] == 'EEG059')
+    info2 = deepcopy(info)
+    info2['bads'] = ['EEG 060', 'EEG 060']
+    rename_channels(info2, mapping)
+    assert_array_equal(['EEG060', 'EEG060'], info2['bads'])
 
 
 def test_set_channel_types():

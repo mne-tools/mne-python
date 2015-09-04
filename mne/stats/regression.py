@@ -144,17 +144,13 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
                           decim=1, picks=None, solver='pinv'):
     """Estimate regression-based evoked potentials/fields by linear modelling
-    of the full M/EEG time course, including correction for overlapping
-    potentials and allowing for continuous/scalar predictors. Internally, this
-    constructs a predictor matrix X of size n_samples * (n_conds * window
-    length), solving the linear system Y = bX and returning b as evoked-like
-    time series split by condition.
 
-    References
-    ----------
-    Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
-    waveforms: II. Non-linear effects, overlap correction, and practical
-    considerations. Psychophysiology, 52(2), 169-189.
+    This models the full M/EEG time course, including correction for
+    overlapping potentials and allowing for continuous/scalar predictors.
+    Internally, this constructs a predictor matrix X of size
+    n_samples * (n_conds * window length), solving the linear system
+    ``Y = bX`` and returning ``b`` as evoked-like time series split by
+    condition. See [1]_.
 
     Parameters
     ----------
@@ -194,10 +190,13 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         selected subepochs. If None, no rejection is done.
         If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg')
         and values are the maximal peak-to-peak values to select rejected
-        epochs. E.g. reject = dict(grad=4000e-12, # T / m (gradiometers)
-                                   mag=4e-11, # T (magnetometers)
-                                   eeg=40e-5, # uV (EEG channels)
-                                   eog=250e-5 # uV (EOG channels))
+        epochs, e.g.::
+
+            reject = dict(grad=4000e-12, # T / m (gradiometers)
+                          mag=4e-11, # T (magnetometers)
+                          eeg=40e-5, # uV (EEG channels)
+                          eog=250e-5 # uV (EOG channels))
+
     flat : None | dict
         or cleaning raw data before the regression is performed: set up
         rejection parameters based on flatness of the signal. If None, no
@@ -225,6 +224,12 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         A dict where the keys correspond to conditions and the values are
         Evoked objects with the ER[F/P]s. These can be used exactly like any
         other Evoked object, including e.g. plotting or statistics.
+
+    References
+    ----------
+    .. [1] Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
+           waveforms: II. Non-linear effects, overlap correction, and practical
+           considerations. Psychophysiology, 52(2), 169-189.
     """
 
     if isinstance(solver, string_types):

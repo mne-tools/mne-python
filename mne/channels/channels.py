@@ -291,7 +291,7 @@ class SetChannelsMixin(object):
         mapping : dict | callable
             a dictionary mapping the old channel to a new channel name
             e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
-            that will be applied to each channel (.. versionadded:: 0.10.0).
+            that takes and returns a string (new in version 0.10.0).
 
         Notes
         -----
@@ -593,7 +593,7 @@ def rename_channels(info, mapping):
     mapping : dict | callable
         a dictionary mapping the old channel to a new channel name
         e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
-        that will be applied to each channel (.. versionadded:: 0.10.0).
+        that takes and returns a string (new in version 0.10.0).
     """
     info._check_consistency()
     bads = list(info['bads'])  # make our own local copies
@@ -622,8 +622,9 @@ def rename_channels(info, mapping):
 
     # do the remapping locally
     for c_ind, new_name in new_names:
-        if ch_names[c_ind] in bads:
-            bads[bads.index(ch_names[c_ind])] = new_name
+        for bi, bad in enumerate(bads):
+            if bad == ch_names[c_ind]:
+                bads[bi] = new_name
         ch_names[c_ind] = new_name
 
     # check that all the channel names are unique

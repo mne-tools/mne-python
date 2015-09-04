@@ -741,12 +741,14 @@ def _merge_grad_data(data):
 def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
                        ch_indices=None, name='ecog', bg_image=None):
     """Generate a custom 2D layout from xy points.
+
     Generates a 2-D layout for plotting with plot_topo methods and
     functions. XY points will be normalized between 0 and 1, where
     normalization extremes will be either the min/max of xy, or
     the width/height of bg_image.
+
     Parameters
-    -------
+    ----------
     xy : ndarray (N x 2)
         The xy coordinates of sensor locations.
     w : float
