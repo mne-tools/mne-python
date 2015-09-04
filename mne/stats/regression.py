@@ -6,6 +6,7 @@
 #
 # License: BSD (3-clause)
 
+from __future__ import division
 from collections import namedtuple
 from inspect import isgenerator
 import warnings
