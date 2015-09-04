@@ -27,7 +27,7 @@ def _prepare_source_params(inst, inverse_operator, label=None,
                            lambda2=1.0 / 9.0, method="dSPM", nave=1,
                            decim=1, pca=True, pick_ori="normal",
                            prepared=False, verbose=None):
-
+    """Prepare inverse operator and params for spectral / TFR analysis"""
     if not prepared:
         inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     else:
