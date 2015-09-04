@@ -455,12 +455,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
 
     data = np.asarray(data)
     if data.ndim > 1:
-        err = ("Data needs to be array of shape (n_sensors,); got shape "
-               "%s." % str(data.shape))
-        raise ValueError(err)
+        raise ValueError("Data needs to be array of shape (n_sensors,); got "
+                         "shape %s." % str(data.shape))
     elif len(data) != len(pos):
-        err = ("Data and pos need to be of same length. Got data of shape %s, "
-               "pos of shape %s." % (str(), str()))
+        raise ValueError("Data and pos need to be of same length. Got data of "
+                         "length %s, pos of length %s." % (len(data), len(pos)))
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
