@@ -6,7 +6,6 @@
 #
 # License: BSD (3-clause)
 
-from __future__ import division
 from collections import namedtuple
 from inspect import isgenerator
 import warnings
@@ -323,8 +322,9 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     for cond in conds:
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
         evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                    info=info, tmin=tmin_ / info["sfreq"],
-                                    comment=cond, nave=cond_length[cond],
+                                    info=info, comment=cond,
+                                    tmin=tmin_ / float(info["sfreq"]),
+                                    nave=cond_length[cond],
                                     kind='mean')  # note that nave and kind are
         cum += tmax_ - tmin_                      # technically not correct
 
