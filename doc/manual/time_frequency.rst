@@ -6,8 +6,8 @@ Spectral and Time-frequency Analysis
 Source Space
 ^^^^^^^^^^^^
 
-Currently, MNE-Python provides a set of functions,
-that allow to compute spectral analyses in the source space.
+Currently, MNE-Python provides a set of functions
+allowing to compute spectral analyses in the source space.
 Many these functions return :func:`mne.SourceEstimate` objects or collections thereof.
 
 .. note::
@@ -16,8 +16,7 @@ Many these functions return :func:`mne.SourceEstimate` objects or collections th
     in the future.
 
 
-The following functions are based on minimum norm estimates (MNE) and return
-STC objects
+The following functions are based on minimum norm estimates (MNE).
 
 - :func:`mne.minimum_norm.compute_source_psd_epochs` returns single-trial power spectral density (PSD) esitmates using multi-tapers.
 Here, the time axis actually refers to frequencies, even if labled as time.
@@ -26,7 +25,7 @@ Here, the time axis actually refers to frequencies, even if labled as time.
 Here, the time axis actually refers to frequencies, even if labled as time.
 
 - :func:`mne.minimum_norm.source_band_induced_power` returns a collection of time-domain :func:`mne.SourceEstimate` for each
-frequency band, based on Morlet-Wavelets. 
+frequency band, based on Morlet-Wavelets.
 
 - :func:`mne.minimum_norm.source_induced_power` returns power and inter-trial-coherence (ITC) as raw numpy arrays, based on Morlet-Wavelets.
 
