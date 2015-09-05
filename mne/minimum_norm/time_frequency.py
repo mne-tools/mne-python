@@ -23,6 +23,43 @@ from ..utils import logger, verbose
 from ..externals import six
 
 
+def _prepare_source_params(inst, inverse_operator, label=None,
+                           lambda2=1.0 / 9.0, method="dSPM", nave=1,
+                           decim=1, pca=True, pick_ori="normal",
+                           prepared=False, verbose=None):
+    """Prepare inverse operator and params for spectral / TFR analysis"""
+    if not prepared:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
+    #
+    #   Pick the correct channels from the data
+    #
+    sel = _pick_channels_inverse_operator(inst.ch_names, inv)
+    logger.info('Picked %d channels from the data' % len(sel))
+    logger.info('Computing inverse...')
+    #
+    #   Simple matrix multiplication followed by combination of the
+    #   three current components
+    #
+    #   This does all the data transformations to compute the weights for the
+    #   eigenleads
+    #
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
+
+    if pca:
+        U, s, Vh = linalg.svd(K, full_matrices=False)
+        rank = np.sum(s > 1e-8 * s[0])
+        K = s[:rank] * U[:, :rank]
+        Vh = Vh[:rank]
+        logger.info('Reducing data rank to %d' % rank)
+    else:
+        Vh = None
+    is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+
+    return K, sel, Vh, vertno, is_free_ori, noise_norm
+
+
 @verbose
 def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               lambda2=1.0 / 9.0, method="dSPM", nave=1,
@@ -196,41 +233,15 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
                           prepared=False, verbose=None):
     """Aux function for source_induced_power
     """
+    epochs_data = epochs.get_data()
+    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+        inst=epochs, inverse_operator=inverse_operator, label=label,
+        lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
+        prepared=prepared, verbose=verbose)
+
+    inv = inverse_operator
     parallel, my_compute_pow_plv, n_jobs = parallel_func(_compute_pow_plv,
                                                          n_jobs)
-    #
-    #   Set up the inverse according to the parameters
-    #
-    epochs_data = epochs.get_data()
-
-    if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
-    else:
-        inv = inverse_operator
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
-    #
-    #   Simple matrix multiplication followed by combination of the
-    #   three current components
-    #
-    #   This does all the data transformations to compute the weights for the
-    #   eigenleads
-    #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
-
-    if pca:
-        U, s, Vh = linalg.svd(K, full_matrices=False)
-        rank = np.sum(s > 1e-8 * s[0])
-        K = s[:rank] * U[:, :rank]
-        Vh = Vh[:rank]
-        logger.info('Reducing data rank to %d' % rank)
-    else:
-        Vh = None
-
     Fs = epochs.info['sfreq']  # sampling in Hz
 
     logger.info('Computing source power ...')
@@ -401,35 +412,10 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
-    if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
-    else:
-        inv = inverse_operator
-    is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(raw.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
-    #
-    #   Simple matrix multiplication followed by combination of the
-    #   three current components
-    #
-    #   This does all the data transformations to compute the weights for the
-    #   eigenleads
-    #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
-
-    if pca:
-        U, s, Vh = linalg.svd(K, full_matrices=False)
-        rank = np.sum(s > 1e-8 * s[0])
-        K = s[:rank] * U[:, :rank]
-        Vh = Vh[:rank]
-        logger.info('Reducing data rank to %d' % rank)
-    else:
-        Vh = None
+    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+        inst=raw, inverse_operator=inverse_operator, label=label,
+        lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
+        prepared=prepared, verbose=verbose)
 
     start, stop = 0, raw.last_samp + 1 - raw.first_samp
     if tmin is not None:
@@ -492,35 +478,10 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
-    if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
-    else:
-        inv = inverse_operator
-    is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
-    #
-    #   Simple matrix multiplication followed by combination of the
-    #   three current components
-    #
-    #   This does all the data transformations to compute the weights for the
-    #   eigenleads
-    #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
-
-    if pca:
-        U, s, Vh = linalg.svd(K, full_matrices=False)
-        rank = np.sum(s > 1e-8 * s[0])
-        K = s[:rank] * U[:, :rank]
-        Vh = Vh[:rank]
-        logger.info('Reducing data rank to %d' % rank)
-    else:
-        Vh = None
+    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+        inst=epochs, inverse_operator=inverse_operator, label=label,
+        lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
+        prepared=prepared, verbose=verbose)
 
     # split the inverse operator
     if inv_split is not None:
