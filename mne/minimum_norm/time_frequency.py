@@ -413,7 +413,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
-        inst=epochs, inverse_operator=inverse_operator, label=label,
+        inst=raw, inverse_operator=inverse_operator, label=label,
         lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
         prepared=prepared, verbose=verbose)
 
