@@ -25,11 +25,13 @@ coding is done saves everyone time and effort!
 What you will need
 ------------------
 
-#. A good python editor: Spyder_ IDE is suitable for those migrating from
-   Matlab. EPD_ and Anaconda_ both ship Spyder and all its dependencies. For
-   Mac users, TextMate_ and `Sublime Text`_ are good choices. `Sublime Text`_
-   is available on all three major platforms. As always, Vim or Emacs will
-   suffice as well.
+#. A good python editor: Atom_ and `Sublime Text`_ are modern general-purpose
+text editors and are available on all three major platforms. Both provide
+plugins that facilitate editing python code and help avoid bugs and style errors.
+See for example linterflake8_ for Atom_.
+The Spyder_ IDE is espectially suitable for those migrating from Matlab.
+EPD_ and Anaconda_ both ship Spyder and all its dependencies.
+As always, Vim or Emacs will suffice as well.
 
 #. Basic scientific tools in python: numpy_, scipy_, matplotlib_
 
@@ -92,7 +94,7 @@ General code guidelines
   To explicitly download and extract the mne-python testing dataset (~320 MB)
   run::
 
-     make testing-data
+     make testing_data
 
   Alternatively::
 

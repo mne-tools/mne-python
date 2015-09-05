@@ -56,6 +56,7 @@
 .. other stuff
 .. _python: http://www.python.org
 .. _travis: https://travis-ci.org/
+.. _linterflake8: https://atom.io/packages/linter-flake8
 
 .. python packages
 .. _pep8: https://pypi.python.org/pypi/pep8
@@ -75,10 +76,10 @@
 .. _PIL: https://pypi.python.org/pypi/PIL
 
 .. python editors
+.. _atom: https://atom.io/
 .. _spyder: http://spyder-ide.blogspot.com/
 .. _anaconda: http://www.continuum.io/downloads
 .. _EPD: https://www.enthought.com/products/epd/
-.. _textmate: http://macromates.com/
 .. _sublime text: http://www.sublimetext.com/
 
 .. mne stuff
