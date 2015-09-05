@@ -57,7 +57,7 @@ def _prepare_source_params(inst, inverse_operator, label=None,
         Vh = None
     is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
-    return K, sel, Vh, vertno, is_free_ori
+    return K, sel, Vh, vertno, is_free_ori, noise_norm
 
 
 @verbose
@@ -234,7 +234,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     """Aux function for source_induced_power
     """
     epochs_data = epochs.get_data()
-    K, Ws, sel, Vh, vertno, noise_norm = _prepare_source_params(
+    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
         inst=epochs, inverse_operator=inverse_operator, label=label,
         lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
         prepared=prepared, verbose=verbose)
@@ -412,8 +412,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
-    K, Ws, sel, Vh, vertno, noise_norm, is_free_ori = _prepare_source_params(
-        inst=raw, inverse_operator=inverse_operator, label=label,
+    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+        inst=epochs, inverse_operator=inverse_operator, label=label,
         lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
         prepared=prepared, verbose=verbose)
 
@@ -478,7 +478,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
-    K, Ws, sel, Vh, vertno, noise_norm, is_free_ori = _prepare_source_params(
+    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
         inst=epochs, inverse_operator=inverse_operator, label=label,
         lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
         prepared=prepared, verbose=verbose)
