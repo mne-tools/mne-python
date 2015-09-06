@@ -562,7 +562,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         for k, (x, y) in outlines_.items():
             if 'mask' in k:
                 continue
-            ax.plot(x, y, color='k', linewidth=linewidth)
+            ax.plot(x, y, color='k', linewidth=linewidth, clip_on=False)
 
     if show_names:
         if show_names is True:
