@@ -158,10 +158,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     return stcs
 
 
-@verbose
-def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
-                     pick_ori, decim, verbose=None):
-    """Aux function for source_induced_power"""
+def _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori):
+    """Aux function to prepare TFR source localization"""
     n_times = data[:, :, ::decim].shape[2]
     n_freqs = len(Ws)
     n_sources = K.shape[0]
@@ -171,12 +169,18 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
         n_sources //= 3
 
     shape = (n_sources, n_freqs, n_times)
+    return shape, is_free_ori
+
+
+@verbose
+def _compute_source_tfrs(data, K, sel, Ws, source_ori, use_fft, Vh, with_power,
+                         with_plv, pick_ori, decim, verbose=None):
+    """Aux function for source_induced_power"""
+    shape, is_free_ori = _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori)
+    n_sources, n_times = shape[:2]
     power = np.zeros(shape, dtype=np.float)  # power
-    if with_plv:
-        shape = (n_sources, n_freqs, n_times)
-        plv = np.zeros(shape, dtype=np.complex)  # phase lock
-    else:
-        plv = None
+    # phase lock
+    plv = np.zeros(shape, dtype=np.complex) if with_plv else None
 
     for e in data:
         e = e[sel]  # keep only selected channels
@@ -191,6 +195,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
             # phase lock and power at freq f
             if with_plv:
                 plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
+
             pow_f = np.zeros((n_sources, n_times), dtype=np.float)
 
             for k, t in enumerate([np.real(tfr), np.imag(tfr)]):
@@ -208,8 +213,8 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
 
                 if is_free_ori:
                     logger.debug('combining the current components...')
-                    sol = combine_xyz(sol, square=True)
-                else:
+                    sol = combine_xyz(sol, square=with_power)
+                elif with_power:
                     np.power(sol, 2, sol)
                 pow_f += sol
                 del sol
@@ -240,8 +245,8 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
         prepared=prepared, verbose=verbose)
 
     inv = inverse_operator
-    parallel, my_compute_pow_plv, n_jobs = parallel_func(_compute_pow_plv,
-                                                         n_jobs)
+    parallel, my_compute_source_tfrs, n_jobs = parallel_func(
+        _compute_source_tfrs, n_jobs)
     Fs = epochs.info['sfreq']  # sampling in Hz
 
     logger.info('Computing source power ...')
@@ -249,9 +254,11 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
     n_jobs = min(n_jobs, len(epochs_data))
-    out = parallel(my_compute_pow_plv(data, K, sel, Ws,
-                                      inv['source_ori'], use_fft, Vh,
-                                      with_plv, pick_ori, decim)
+    out = parallel(my_compute_source_tfrs(data=data, K=K, sel=sel, Ws=Ws,
+                                          source_ori=inv['source_ori'],
+                                          use_fft=use_fft, Vh=Vh,
+                                          with_plv=with_plv, with_power=True,
+                                          pick_ori=pick_ori, decim=decim)
                    for data in np.array_split(epochs_data, n_jobs))
     power = sum(o[0] for o in out)
     power /= len(epochs_data)  # average power over epochs
