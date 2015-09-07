@@ -288,9 +288,10 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        mapping : dict
+        mapping : dict | callable
             a dictionary mapping the old channel to a new channel name
-            e.g. {'EEG061' : 'EEG161'}.
+            e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+            that takes and returns a string (new in version 0.10.0).
 
         Notes
         -----
@@ -589,42 +590,53 @@ def rename_channels(info, mapping):
     ----------
     info : dict
         Measurement info.
-    mapping : dict
+    mapping : dict | callable
         a dictionary mapping the old channel to a new channel name
-        e.g. {'EEG061' : 'EEG161'}.
+        e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+        that takes and returns a string (new in version 0.10.0).
     """
-    bads, chs = info['bads'], info['chs']
-    ch_names = info['ch_names']
-    new_names, new_kinds, new_bads = list(), list(), list()
+    info._check_consistency()
+    bads = list(info['bads'])  # make our own local copies
+    ch_names = list(info['ch_names'])
 
     # first check and assemble clean mappings of index and name
-    for ch_name, new_name in mapping.items():
-        if ch_name not in ch_names:
-            raise ValueError("This channel name (%s) doesn't exist in info."
-                             % ch_name)
+    if isinstance(mapping, dict):
+        orig_names = sorted(list(mapping.keys()))
+        missing = [orig_name not in ch_names for orig_name in orig_names]
+        if any(missing):
+            raise ValueError("Channel name(s) in mapping missing from info: "
+                             "%s" % np.array(orig_names)[np.array(missing)])
+        new_names = [(ch_names.index(ch_name), new_name)
+                     for ch_name, new_name in mapping.items()]
+    elif callable(mapping):
+        new_names = [(ci, mapping(ch_name))
+                     for ci, ch_name in enumerate(ch_names)]
+    else:
+        raise ValueError('mapping must be callable or dict, not %s'
+                         % (type(mapping),))
 
-        c_ind = ch_names.index(ch_name)
-        if not isinstance(new_name, string_types):
-            raise ValueError('Your mapping is not configured properly. '
-                             'Please see the help: mne.rename_channels?')
-        new_names.append((c_ind, new_name))
-        if ch_name in bads:  # check bads
-            new_bads.append((bads.index(ch_name), new_name))
+    # check we got all strings out of the mapping
+    if any(not isinstance(new_name[1], string_types)
+           for new_name in new_names):
+        raise ValueError('New channel mapping must only be to strings')
 
-    # Reset ch_names and Check that all the channel names are unique.
-    for key, collection in [('ch_name', new_names), ('kind', new_kinds)]:
-        for c_ind, new_name in collection:
-            chs[c_ind][key] = new_name
+    # do the remapping locally
+    for c_ind, new_name in new_names:
+        for bi, bad in enumerate(bads):
+            if bad == ch_names[c_ind]:
+                bads[bi] = new_name
+        ch_names[c_ind] = new_name
 
-    for c_ind, new_name in new_bads:
-        bads[c_ind] = new_name
+    # check that all the channel names are unique
+    if len(ch_names) != len(np.unique(ch_names)):
+        raise ValueError('New channel names are not unique, renaming failed')
 
-    # reference magic, please don't change (with the local binding
-    # it doesn't work)
-    info['ch_names'] = [c['ch_name'] for c in chs]
-
-    # assert channel names are unique
-    assert len(info['ch_names']) == np.unique(info['ch_names']).shape[0]
+    # do the reampping in info
+    info['bads'] = bads
+    info['ch_names'] = ch_names
+    for ch, ch_name in zip(info['chs'], ch_names):
+        ch['ch_name'] = ch_name
+    info._check_consistency()
 
 
 def _recursive_flatten(cell, dtype):

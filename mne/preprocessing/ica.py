@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from copy import deepcopy
 from inspect import getargspec, isfunction
 from collections import namedtuple
 
@@ -413,7 +412,7 @@ class ICA(ContainsMixin):
         if not has_pre_whitener and self.noise_cov is None:
             # use standardization as whitener
             # Scale (z-score) the data by channel type
-            info = pick_info(deepcopy(info), picks)
+            info = pick_info(info, picks)
             pre_whitener = np.empty([len(data), 1])
             for ch_type in ['mag', 'grad', 'eeg']:
                 if _contains_ch_type(info, ch_type):

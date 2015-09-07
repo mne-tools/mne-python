@@ -77,10 +77,10 @@ from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
 from .selection import read_selection
 from .dipole import read_dipole, Dipole, fit_dipole
-from . import channels
 from .channels import equalize_channels, rename_channels, find_layout
 
 from . import beamformer
+from . import channels
 from . import commands
 from . import connectivity
 from . import coreg

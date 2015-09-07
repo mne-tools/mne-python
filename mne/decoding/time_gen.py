@@ -842,15 +842,15 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         title : str | None
             Figure title.
         vmin : float | None
-            Min color value for scores. If None, sets to min(gat.scores_).
+            Min color value for scores. If None, sets to min(``gat.scores_``).
         vmax : float | None
-            Max color value for scores. If None, sets to max(gat.scores_).
+            Max color value for scores. If None, sets to max(``gat.scores_``).
         tlim : ndarray, (train_min, test_max) | None
             The time limits used for plotting.
         ax : object | None
             Plot pointer. If None, generate new figure.
         cmap : str | cmap object
-            The color map to be used. Defaults to 'RdBu_r'.
+            The color map to be used. Defaults to ``'RdBu_r'``.
         show : bool
             If True, the figure will be shown. Defaults to True.
         colorbar : bool
@@ -1013,10 +1013,12 @@ class TimeDecoding(_GeneralizationAcrossTime):
             ``length`` : float
                 Duration of each classifier (in seconds). By default, equals
                 one time sample.
+
         If None, empty dict.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
+
             ``cross-validation`` : estimates a single prediction per sample
                 based on the unique independent classifier fitted in the
                 cross-validation.
@@ -1046,6 +1048,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
                 If not given, computed from 'start', 'stop', 'length', 'step'.
             ``times`` : ndarray, shape (n_clfs,)
                 The training times (in seconds).
+
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
     estimators_ : list of list of scikit-learn.base.BaseEstimator subclasses.
@@ -1053,7 +1056,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     y_pred_ : ndarray, shape (n_times, n_epochs, n_prediction_dims)
         Class labels for samples in X.
     y_true_ : list | ndarray, shape (n_samples,)
-        The categories used for scoring y_pred_.
+        The categories used for scoring ``y_pred_``.
     scorer_ : object
         scikit-learn Scorer instance.
     scores_ : list of float, shape (n_times,)

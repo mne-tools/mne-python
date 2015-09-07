@@ -1291,6 +1291,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     gain_info, gain, noise_cov, whitener, n_nzero = \
         _prepare_forward(forward, info, noise_cov, rank=rank)
+    forward['info']._check_consistency()
 
     #
     # 5. Compose the depth-weighting matrix
@@ -1428,7 +1429,9 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                   source_nn=forward['source_nn'].copy(),
                   src=deepcopy(forward['src']), fmri_prior=None)
     inv_info = deepcopy(forward['info'])
-    inv_info['bads'] = deepcopy(info['bads'])
+    inv_info['bads'] = [bad for bad in info['bads']
+                        if bad in inv_info['ch_names']]
+    inv_info._check_consistency()
     inv_op['units'] = 'Am'
     inv_op['info'] = inv_info
 

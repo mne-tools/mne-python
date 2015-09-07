@@ -202,6 +202,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info, not %s'
                         % type(info))
+    info._check_consistency()
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
 
@@ -294,7 +295,7 @@ def pick_info(info, sel=[], copy=True):
     ----------
     info : dict
         Info structure from evoked or raw data.
-    sel : list of int
+    sel : list of int | None
         Indices of channels to include.
     copy : bool
         If copy is False, info is modified inplace.
@@ -304,19 +305,30 @@ def pick_info(info, sel=[], copy=True):
     res : dict
         Info structure restricted to a selection of channels.
     """
+    info._check_consistency()
     if copy:
         info = deepcopy(info)
-
-    if len(sel) == 0:
+    if sel is None:
+        return info
+    elif len(sel) == 0:
         raise ValueError('No channels match the selection.')
 
     info['chs'] = [info['chs'][k] for k in sel]
     info['ch_names'] = [info['ch_names'][k] for k in sel]
     info['nchan'] = len(sel)
-
-    # Check if bads_channels are included, otherwise
-    # remove info['bads']
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
+
+    comps = deepcopy(info['comps'])
+    for c in comps:
+        row_idx = [k for k, n in enumerate(c['data']['row_names'])
+                   if n in info['ch_names']]
+        row_names = [c['data']['row_names'][i] for i in row_idx]
+        rowcals = c['rowcals'][row_idx]
+        c['rowcals'] = rowcals
+        c['data']['nrow'] = len(row_names)
+        c['data']['row_names'] = row_names
+        c['data']['data'] = c['data']['data'][row_idx]
+    info['comps'] = comps
 
     return info
 
@@ -399,6 +411,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
         Forward solution restricted to selected channels. If include and
         exclude are empty it returns orig without copy.
     """
+    orig['info']._check_consistency()
     if len(include) == 0 and len(exclude) == 0:
         return orig
     exclude = _check_excludes_includes(exclude,

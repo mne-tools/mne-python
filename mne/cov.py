@@ -276,6 +276,7 @@ def make_ad_hoc_cov(info, verbose=None):
     .. versionadded:: 0.9.0
     """
     info = pick_info(info, pick_types(info, meg=True, eeg=True))
+    info._check_consistency()
 
     # Standard deviations to be used
     grad_std = 5e-13
@@ -382,10 +383,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     n_samples = 0
     mu = 0
 
-    info = cp.copy(raw.info)
-    info['chs'] = [info['chs'][k] for k in picks]
-    info['ch_names'] = [info['ch_names'][k] for k in picks]
-    info['nchan'] = len(picks)
+    info = pick_info(raw.info, picks)
     idx_by_type = channel_indices_by_type(info)
 
     # Read data in chuncks
@@ -609,6 +607,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             warnings.warn('Epochs are not baseline corrected, covariance '
                           'matrix may be inaccurate')
 
+    for epoch in epochs:
+        epoch.info._check_consistency()
     bads = epochs[0].info['bads']
     if projs is None:
         projs = cp.deepcopy(epochs[0].info['projs'])
@@ -1272,6 +1272,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     compute_covariance
     """  # noqa
     cov = cp.deepcopy(cov)
+    info._check_consistency()
 
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')

@@ -1468,31 +1468,34 @@ def test_add_channels_epochs():
     """Test adding channels"""
     raw, events, picks = _get_data()
 
-    def make_epochs(picks):
+    def make_epochs(picks, proj):
         return Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
-                      reject=None, preload=True, proj=False, picks=picks)
+                      reject=None, preload=True, proj=proj, picks=picks)
 
     picks = pick_types(raw.info, meg=True, eeg=True, exclude='bads')
     picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude='bads')
     picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
 
-    epochs = make_epochs(picks=picks)
-    epochs_meg = make_epochs(picks=picks_meg)
-    epochs_eeg = make_epochs(picks=picks_eeg)
+    for proj in (False, True):
+        epochs = make_epochs(picks=picks, proj=proj)
+        epochs_meg = make_epochs(picks=picks_meg, proj=proj)
+        epochs_eeg = make_epochs(picks=picks_eeg, proj=proj)
+        epochs.info._check_consistency()
+        epochs_meg.info._check_consistency()
+        epochs_eeg.info._check_consistency()
 
-    epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
+        epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
 
-    assert_equal(len(epochs.info['projs']), len(epochs2.info['projs']))
-    assert_equal(len(epochs.info.keys()), len(epochs2.info.keys()))
+        assert_equal(len(epochs.info['projs']), len(epochs2.info['projs']))
+        assert_equal(len(epochs.info.keys()), len(epochs2.info.keys()))
 
-    data1 = epochs.get_data()
-    data2 = epochs2.get_data()
-    data3 = np.concatenate([e.get_data() for e in
-                            [epochs_meg, epochs_eeg]], axis=1)
-    assert_array_equal(data1.shape, data2.shape)
-    # XXX unrelated bug? this crashes when proj == True
-    assert_array_equal(data1, data3)
-    assert_array_equal(data1, data2)
+        data1 = epochs.get_data()
+        data2 = epochs2.get_data()
+        data3 = np.concatenate([e.get_data() for e in
+                                [epochs_meg, epochs_eeg]], axis=1)
+        assert_array_equal(data1.shape, data2.shape)
+        assert_allclose(data1, data3, atol=1e-25)
+        assert_allclose(data1, data2, atol=1e-25)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['meas_date'] += 10
@@ -1511,6 +1514,8 @@ def test_add_channels_epochs():
                   [epochs_meg, epochs_eeg[:2]])
 
     epochs_meg.info['chs'].pop(0)
+    epochs_meg.info['ch_names'].pop(0)
+    epochs_meg.info['nchan'] -= 1
     assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg, epochs_eeg])
 
@@ -1526,6 +1531,7 @@ def test_add_channels_epochs():
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['ch_names'][1] = epochs_meg2.info['ch_names'][0]
+    epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][1]
     assert_raises(ValueError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
