@@ -175,10 +175,13 @@ def _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori):
 @verbose
 def _compute_source_tfrs(data, K, sel, Ws, source_ori, use_fft, Vh, with_power,
                          with_plv, pick_ori, decim, verbose=None):
-    """Aux function for source_induced_power"""
+    """Aux function for source time frequency representation (TFR)
+
+    Returns, the raw TFR or power, and the ITC
+    """
     shape, is_free_ori = _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori)
     n_sources, n_times = shape[:2]
-    power = np.zeros(shape, dtype=np.float)  # power
+    tfr = np.zeros(shape, dtype=np.float)  # power or raw TFR
     # phase lock
     plv = np.zeros(shape, dtype=np.complex) if with_plv else None
 
@@ -196,7 +199,7 @@ def _compute_source_tfrs(data, K, sel, Ws, source_ori, use_fft, Vh, with_power,
             if with_plv:
                 plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
 
-            pow_f = np.zeros((n_sources, n_times), dtype=np.float)
+            tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
 
             for k, t in enumerate([np.real(tfr), np.imag(tfr)]):
                 sol = np.dot(K, t)
@@ -216,18 +219,18 @@ def _compute_source_tfrs(data, K, sel, Ws, source_ori, use_fft, Vh, with_power,
                     sol = combine_xyz(sol, square=with_power)
                 elif with_power:
                     np.power(sol, 2, sol)
-                pow_f += sol
+                tfr_f += sol
                 del sol
 
-            power[:, f, :] += pow_f
-            del pow_f
+            tfr[:, f, :] += tfr_f
+            del tfr_f
 
             if with_plv:
                 plv_f /= np.abs(plv_f)
                 plv[:, f, :] += plv_f
                 del plv_f
 
-    return power, plv
+    return tfr, plv
 
 
 @verbose
@@ -236,7 +239,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
                           decim=1, use_fft=False, pca=True, pick_ori="normal",
                           n_jobs=1, with_plv=True, zero_mean=False,
                           prepared=False, verbose=None):
-    """Aux function for source_induced_power
+    """Aux function for source TFRS.
     """
     epochs_data = epochs.get_data()
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
