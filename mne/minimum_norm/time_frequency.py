@@ -173,64 +173,79 @@ def _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori):
 
 
 @verbose
-def _compute_source_tfrs(data, K, sel, Ws, source_ori, use_fft, Vh, with_power,
-                         with_plv, pick_ori, decim, verbose=None):
-    """Aux function for source time frequency representation (TFR)
-
-    Returns, the raw TFR or power, and the ITC
-    """
+def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
+                     with_power, with_plv, pick_ori, decim, verbose=None):
+    """Aux function for induced power and PLV"""
     shape, is_free_ori = _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori)
     n_sources, n_times = shape[:2]
-    tfr = np.zeros(shape, dtype=np.float)  # power or raw TFR
+    power = np.zeros(shape, dtype=np.float)  # power or raw TFR
     # phase lock
     plv = np.zeros(shape, dtype=np.complex) if with_plv else None
 
-    for e in data:
-        e = e[sel]  # keep only selected channels
+    for epoch in data:
+        epoch = epoch[sel]  # keep only selected channels
 
         if Vh is not None:
-            e = np.dot(Vh, e)  # reducing data rank
+            epoch = np.dot(Vh, epoch)  # reducing data rank
 
-        for f, w in enumerate(Ws):
-            tfr = cwt(e, [w], use_fft=use_fft, decim=decim)
-            tfr = np.asfortranarray(tfr.reshape(len(e), -1))
+        power_e, plv_e = _single_epoch_tfr(
+            data=epoch, is_free_ori=is_free_ori, K=K, Ws=Ws, use_fft=use_fft,
+            decim=decim, shape=shape, with_plv=with_plv, with_power=with_power)
 
-            # phase lock and power at freq f
+        power += power_e
+        if with_plv:
+            plv += plv_e
+
+    return power, plv
+
+
+def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
+                      with_plv, with_power):
+    """Compute single trial TFRs, either ITC, power or raw TFR"""
+    tfr_e = np.zeros(shape, dtype=np.float)  # power or raw TFR
+    # phase lock
+    plv_e = np.zeros(shape, dtype=np.complex) if with_plv else None
+    n_sources, _, n_times = shape
+    for f, w in enumerate(Ws):
+        tfr_ = cwt(data, [w], use_fft=use_fft, decim=decim)
+        tfr_ = np.asfortranarray(tfr_.reshape(len(data), -1))
+
+        # phase lock and power at freq f
+        if with_plv:
+            plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
+
+        tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
+
+        for k, t in enumerate([np.real(tfr_), np.imag(tfr_)]):
+            sol = np.dot(K, t)
+
+            sol_pick_normal = sol
+            if is_free_ori:
+                sol_pick_normal = sol[2::3]
+
             if with_plv:
-                plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
+                if k == 0:  # real
+                    plv_f += sol_pick_normal
+                else:  # imag
+                    plv_f += 1j * sol_pick_normal
 
-            tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
+            if is_free_ori:
+                logger.debug('combining the current components...')
+                sol = combine_xyz(sol, square=with_power)
+            elif with_power:
+                np.power(sol, 2, sol)
+            tfr_f += sol
+            del sol
 
-            for k, t in enumerate([np.real(tfr), np.imag(tfr)]):
-                sol = np.dot(K, t)
+        tfr_e[:, f, :] += tfr_f
+        del tfr_f
 
-                sol_pick_normal = sol
-                if is_free_ori:
-                    sol_pick_normal = sol[2::3]
+        if with_plv:
+            plv_f /= np.abs(plv_f)
+            plv_e[:, f, :] += plv_f
+            del plv_f
 
-                if with_plv:
-                    if k == 0:  # real
-                        plv_f += sol_pick_normal
-                    else:  # imag
-                        plv_f += 1j * sol_pick_normal
-
-                if is_free_ori:
-                    logger.debug('combining the current components...')
-                    sol = combine_xyz(sol, square=with_power)
-                elif with_power:
-                    np.power(sol, 2, sol)
-                tfr_f += sol
-                del sol
-
-            tfr[:, f, :] += tfr_f
-            del tfr_f
-
-            if with_plv:
-                plv_f /= np.abs(plv_f)
-                plv[:, f, :] += plv_f
-                del plv_f
-
-    return tfr, plv
+    return tfr_e, plv_e
 
 
 @verbose
@@ -239,8 +254,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
                           decim=1, use_fft=False, pca=True, pick_ori="normal",
                           n_jobs=1, with_plv=True, zero_mean=False,
                           prepared=False, verbose=None):
-    """Aux function for source TFRS.
-    """
+    """Aux function for source induced power"""
     epochs_data = epochs.get_data()
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
         inst=epochs, inverse_operator=inverse_operator, label=label,
@@ -249,7 +263,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
 
     inv = inverse_operator
     parallel, my_compute_source_tfrs, n_jobs = parallel_func(
-        _compute_source_tfrs, n_jobs)
+        _compute_pow_plv, n_jobs)
     Fs = epochs.info['sfreq']  # sampling in Hz
 
     logger.info('Computing source power ...')
