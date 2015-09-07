@@ -207,7 +207,7 @@ class Info(dict):
             del self['subject_info']
 
     def _check_consistency(self):
-        """Run some self-consistency checks"""
+        """Do some self-consistency checks and datatype tweaks"""
         missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
         if len(missing) > 0:
             raise RuntimeError('bad channel(s) %s marked do not exist in info'
@@ -218,6 +218,10 @@ class Info(dict):
                 self['nchan'] != len(chs):
             raise RuntimeError('info channel name inconsistency detected, '
                                'please notify mne-python developers')
+        # make sure we have the proper datatypes
+        for key in ('sfreq', 'highpass', 'lowpass'):
+            if self.get(key) is not None:
+                self[key] = float(self[key])
 
 
 def read_fiducials(fname):
