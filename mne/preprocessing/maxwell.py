@@ -12,7 +12,7 @@ from math import factorial
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..io.write import _generate_meas_id, _date_now
-from ..utils import verbose
+from ..utils import verbose, logger
 
 
 @verbose
@@ -86,8 +86,10 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
                            'channels.')
     logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
 
+    logger.info('Preparing coil definitions')
     all_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
-                                                   elekta_defs=True)
+                                                   elekta_defs=True,
+                                                   verbose=False)
 
     # Create coil list and pick MEG channels
     picks = [raw.info['ch_names'].index(coil['chname'])
@@ -130,23 +132,25 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # Reconstruct data from internal space (Eq. 38)
     recon = np.dot(S_in, mm[:S_in.shape[1], :])
     if st_dur is not None:
+        logger.info('Processing data using tSSS with st_dur=%s' % st_dur)
         # Reconstruct data from external space and compute residual
         recon_out = np.dot(S_out, mm[S_in.shape[1]:, :]) /\
             coil_scale[:, np.newaxis]
         resid = data - (recon + recon_out)
 
         # Generate time points to break up data in to windows
-        t_starts = raw.time_as_index(np.arange(times[0], times[-1], st_dur))
-        t_ends = np.arange(times[0] + st_dur, times[-1], st_dur)
+        lims = raw.time_as_index(np.arange(times[0], times[-1], st_dur))
+        lims = np.concatenate([lims, [len(raw.times)]])
         # TODO: Decide how to handle last window if it's shorter length
-        t_ends = raw.time_as_index(np.append(t_ends, times[-1]))
 
         # Loop through buffer windows of data
-        for win in zip(raw.time_as_index(t_starts), raw.time_as_index(t_ends)):
+        for win in zip(lims[:-1], lims[1:]):
 
             # Compute SSP-like projector
             proj = _overlap_projector(recon[:, win[0]:win[1]],
-                                      resid[:, win[0]:win[1]])
+                                      resid[:, win[0]:win[1]], 0.02,
+                                      (win[0] / raw.info['sfreq'],
+                                       win[1] / raw.info['sfreq']))
 
             # Apply projector according to Eq. 12 in [2]_
             recon[:, win[0]:win[1]] = \
@@ -553,7 +557,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
     return raw
 
 
-def _overlap_projector(data_int, data_res, delta=0.02):
+def _overlap_projector(data_int, data_res, delta, tlims):
     """Calculate projector for removal of subspace intersection in tSSS"""
     # delta necessary to deal with noise when finding identical signal
     # directions in the subspace. See the end of the Results section in [2]_
@@ -568,6 +572,7 @@ def _overlap_projector(data_int, data_res, delta=0.02):
 
     # Compute orth to get temporal bases. Matrices must have shape
     # (n_samps x effective_rank) when passed into svd computation
+    assert normed_data_int.shape[1] > 0
     orth_int = orth(normed_data_int.T)
     orth_res = orth(normed_data_res.T)
 
@@ -577,8 +582,10 @@ def _overlap_projector(data_int, data_res, delta=0.02):
     C_mat = np.dot(Q_int.T, Q_res)
 
     # Compute angles between subspace and which bases to keep
-    _, S_intersect, Vh_intersect = svd(C_mat)
+    _, S_intersect, Vh_intersect = svd(C_mat, full_matrices=False)
     retain_inds = S_intersect >= (1 - delta)
+    logger.info('    Projecting out %s tSSS components for %s-%s'
+                % ((~retain_inds).sum(), tlims[0], tlims[1]))
 
     # Compute projection operator as (I-LL_T) Eq. 12 in [2]_
     # V_principal should be shape (n_time_pts x n_retained_inds)
