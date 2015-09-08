@@ -696,12 +696,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                          baseline, vmin, vmax, dB)
 
-        if picks is None:
-            picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                               exclude='bads')
-        picks = np.atleast_1d(picks)
-
-        data = data[picks]
+        pick, info = _prepare_picks_info(picks, info)
 
         tmin, tmax = times[0], times[-1]
         if isinstance(axes, plt.Axes):
@@ -730,6 +725,14 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         if show:
             plt.show()
         return fig
+
+    def _prepare_picks_info(picks, info):
+        if picks is None:
+            picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                               exclude='bads')
+            info = pick_info(info, picks)
+
+        return picks, info
 
     def _onselect(self, eclick, erelease, baseline, mode, layout):
         """Callback function called by rubber band selector in channel tfr."""
@@ -851,13 +854,9 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         data = self.data
         info = self.info
 
-        if picks is None:
-            picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                               exclude='bads')
-        picks = np.atleast_1d(picks)
-
-        data = data[picks]
-        info = pick_info(info, picks)
+        picks, info = _prepare_picks_info(picks, info)
+        if picks != np.arange(len(data)):
+            data = data[picks]
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax,
@@ -1199,13 +1198,9 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     data = _get_data(inst, return_itc)
     info = inst.info
 
-    if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
-    picks = np.atleast_1d(picks)
-
-    data = data[:, picks, :]
-    info = pick_info(info, picks)
+    picks, info = _prepare_picks_info(picks, info)
+    if picks != np.arange(len(data)):
+        data = data[:, picks, :]
 
     power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
                                     frequencies=freqs,
@@ -1352,13 +1347,10 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     data = _get_data(inst, return_itc)
     info = inst.info
 
-    if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
-    picks = np.atleast_1d(picks)
+    picks, info = _prepare_picks_info(picks, info)
+    if picks != np.arange(len(data)):
+        data = data[:, picks, :]
 
-    data = data[:, picks, :]
-    info = pick_info(info, picks)
     power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
                                     frequencies=freqs, n_cycles=n_cycles,
                                     time_bandwidth=time_bandwidth,
