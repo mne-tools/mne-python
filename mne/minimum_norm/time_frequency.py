@@ -233,7 +233,7 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
                 logger.debug('combining the current components...')
                 sol = combine_xyz(sol, square=with_power)
             elif with_power:
-                np.power(sol, 2, sol)
+                sol *= sol
             tfr_f += sol
             del sol
 
