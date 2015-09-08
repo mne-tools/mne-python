@@ -26,7 +26,7 @@ from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
 from ..defaults import _handle_default
 
 
-def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
+def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap='RdBu_r', fig=None):
     """Plot Event Related Potential / Fields image
@@ -160,6 +160,17 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         plt.show()
 
     return figs
+
+
+def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
+                      vmax=None, colorbar=True, order=None, show=True,
+                      units=None, scalings=None, cmap='RdBu_r', fig=None):
+
+    warning.warn('This function has been deprecated for `plot_epochs_image`. '
+                 'It will be removed in 0.11', DeprecationWarning)
+    return plot_epochs_image(epochs=epochs, picks=picks, sigma=sigma, vmin=vmin,
+                          vmax=None, colorbar=True, order=order, show=show,
+                          units=None, scalings=None, cmap=cmap, fig=fig)
 
 
 def _drop_log_stats(drop_log, ignore=['IGNORED']):
