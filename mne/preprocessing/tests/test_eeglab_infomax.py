@@ -75,11 +75,11 @@ def test_mne_python_vs_eeglab():
         elif method == 'extended_infomax':
 
             if ch_type == 'eeg':
-                eeglab_results_file = \
-                    'eeglab_extended_infomax_results_eeg_data.mat'
+                eeglab_results_file = ('eeglab_extended_infomax_results_eeg_'
+                                       'data.mat')
             elif ch_type == 'mag':
-                eeglab_results_file = \
-                    'eeglab_extended_infomax_results_meg_data.mat'
+                eeglab_results_file = ('eeglab_extended_infomax_results_meg_'
+                                       'data.mat')
 
         Y = generate_data_for_comparing_against_eeglab_infomax(ch_type,
                                                                random_state)

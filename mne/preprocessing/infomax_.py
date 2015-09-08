@@ -208,7 +208,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             # ICA kurtosis estimation
             if extended is True:
 
-                if (ext_blocks > 0) and ((blockno % ext_blocks) == 0):
+                if ext_blocks > 0 and blockno % ext_blocks == 0:
 
                     if kurt_size < n_samples:
                         rp = np.floor(rng.uniform(0, 1, kurt_size) *
@@ -228,7 +228,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                     # estimate weighted signs
                     signs = np.sign(kurt + signsbias)
 
-                    ndiff = ((signs - oldsigns) != 0).sum()
+                    ndiff = (signs - oldsigns != 0).sum()
                     if ndiff == 0:
                         signcount += 1
                     else:

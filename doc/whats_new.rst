@@ -57,6 +57,8 @@ Changelog
 
     - Add ability to plot topomap with a "skirt" (channels outside of the head circle) by `Marijn van Vliet`_
 
+    - Add multiple options to ICA infomax and extended infomax algorithms (number of subgaussian components, computation of bias, iteration status printing), enabling equivalent computations to those performed by EEGLAB by `Jair Montoya Martinez`_
+
 
 BUG
 ~~~
