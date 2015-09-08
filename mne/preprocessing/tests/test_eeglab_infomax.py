@@ -61,14 +61,25 @@ def test_mne_python_vs_eeglab():
     """
     random_state = 42
 
-    list_ch_types = ['eeg', 'mag']
+    methods = ['infomax', 'infomax', 'extended_infomax', 'extended_infomax']
+    list_ch_types = ['eeg', 'mag', 'eeg', 'mag']
 
-    for ch_type in list_ch_types:
+    for method, ch_type in zip(methods, list_ch_types):
 
-        if ch_type == 'eeg':
-            eeglab_results_file = 'eeglab_infomax_results_eeg_data.mat'
-        elif ch_type == 'mag':
-            eeglab_results_file = 'eeglab_infomax_results_meg_data.mat'
+        if method == 'infomax':
+            if ch_type == 'eeg':
+                eeglab_results_file = 'eeglab_infomax_results_eeg_data.mat'
+            elif ch_type == 'mag':
+                eeglab_results_file = 'eeglab_infomax_results_meg_data.mat'
+
+        elif method == 'extended_infomax':
+
+            if ch_type == 'eeg':
+                eeglab_results_file = \
+                    'eeglab_extended_infomax_results_eeg_data.mat'
+            elif ch_type == 'mag':
+                eeglab_results_file = \
+                    'eeglab_extended_infomax_results_meg_data.mat'
 
         Y = generate_data_for_comparing_against_eeglab_infomax(ch_type,
                                                                random_state)
@@ -76,7 +87,7 @@ def test_mne_python_vs_eeglab():
         T = Y.shape[1]
 
         # For comparasion against eeglab, make sure the folowing
-        # parameter have the same value in mne_python and eeglab:
+        # parameters have the same value in mne_python and eeglab:
         #
         # - starting point
         # - random state
@@ -86,6 +97,7 @@ def test_mne_python_vs_eeglab():
         # - blowup_fac parameter
         # - tolerance for stopping the algorithm
         # - number of iterations
+        # - anneal_step parameter
         #
         # Notes:
         # * By default, eeglab whiten the data using the "sphering transform"
@@ -95,10 +107,15 @@ def test_mne_python_vs_eeglab():
         #   to whiten the data outside, and pass these whiten data to
         #   mne_python and eeglab. Finally, we need to tell eeglab that
         #   the input data is already whiten, this can be done by calling
-        #   eeglab with the following sintax:
+        #   eeglab with the following syntax:
         #
+        #   % Run infomax
         #   [unmixing,sphere,meanvar,bias,signs,lrates,sources,y] = ...
         #       runica( Y, 'sphering', 'none');
+        #
+        #   % Run extended infomax
+        #   [unmixing,sphere,meanvar,bias,signs,lrates,sources,y]  = ...
+        #       runica( Y, 'sphering', 'none', 'extended', 1);
         #
         #   By calling eeglab using the former code, we are using its default
         #   parameters, which are specified below in the section
@@ -130,6 +147,14 @@ def test_mne_python_vs_eeglab():
         blowup_fac_eeglab = 0.8
         max_iter_eeglab = 512
 
+        if method == 'infomax':
+            anneal_step_eeglab = 0.9
+            use_extended = False
+
+        elif method == 'extended_infomax':
+            anneal_step_eeglab = 0.98
+            use_extended = True
+
         if N > 32:
             w_change_eeglab = 1e-7
         else:
@@ -138,7 +163,7 @@ def test_mne_python_vs_eeglab():
 
         # Call mne_python infomax version using the following sintax
         # to obtain the same result than eeglab version
-        unmixing = infomax(Y.T, extended=False,
+        unmixing = infomax(Y.T, extended=use_extended,
                            random_state=random_state,
                            max_iter=max_iter_eeglab,
                            l_rate=l_rate_eeglab,
@@ -147,6 +172,7 @@ def test_mne_python_vs_eeglab():
                            blowup=blowup_eeglab,
                            blowup_fac=blowup_fac_eeglab,
                            n_small_angle=None,
+                           anneal_step=anneal_step_eeglab
                            )
 
         #######################################################################
