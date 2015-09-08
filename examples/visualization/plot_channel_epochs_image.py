@@ -71,5 +71,5 @@ good_pick = 97  # channel with a clear evoked response
 bad_pick = 98  # channel with no evoked response
 
 plt.close('all')
-mne.viz.plot_image_epochs(epochs, [good_pick, bad_pick], sigma=0.5, vmin=-100,
+mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=0.5, vmin=-100,
                           vmax=250, colorbar=True, order=order_func, show=True)

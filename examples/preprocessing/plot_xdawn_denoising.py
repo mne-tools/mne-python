@@ -30,7 +30,7 @@ from mne import (io, compute_raw_data_covariance, read_events, pick_types,
                  Epochs)
 from mne.datasets import sample
 from mne.preprocessing import Xdawn
-from mne.viz import plot_image_epochs
+from mne.viz import plot_epochs_image
 
 print(__doc__)
 
@@ -57,7 +57,7 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
                 add_eeg_ref=False, verbose=False)
 
 # Plot image epoch before xdawn
-plot_image_epochs(epochs['vis_r'], picks=[230], vmin=-500, vmax=500)
+plot_epochs_image(epochs['vis_r'], picks=[230], vmin=-500, vmax=500)
 
 # Estimates signal covariance
 signal_cov = compute_raw_data_covariance(raw, picks=picks)
@@ -72,4 +72,4 @@ xd.fit(epochs)
 epochs_denoised = xd.apply(epochs)
 
 # Plot image epoch after xdawn
-plot_image_epochs(epochs_denoised['vis_r'], picks=[230], vmin=-500, vmax=500)
+plot_epochs_image(epochs_denoised['vis_r'], picks=[230], vmin=-500, vmax=500)
