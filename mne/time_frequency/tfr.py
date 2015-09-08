@@ -20,6 +20,7 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..io.pick import pick_info, pick_types
+from ..io.meas_info import Info
 from ..utils import check_fname
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar
@@ -1130,6 +1131,9 @@ def read_tfrs(fname, condition=None):
 
     logger.info('Reading %s ...' % fname)
     tfr_data = read_hdf5(fname, title='mnepython')
+    for k, tfr in tfr_data:
+        tfr['info'] = Info(tfr['info'])
+
     if condition is not None:
         tfr_dict = dict(tfr_data)
         if condition not in tfr_dict:
