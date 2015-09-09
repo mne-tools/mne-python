@@ -211,7 +211,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
 
 @verbose
 def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
-                       elekta_defs=False, verbose=None):
+                       elekta_defs=False, head_frame=True, verbose=None):
     """Prepare MEG coil definitions for forward calculation
 
     Parameters
@@ -226,6 +226,11 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         info['bads']
     ignore_ref : bool
         If true, ignore compensation coils
+    elekta_defs : bool
+        If True, use Elekta's coil definitions, which use different integration
+        point geometry. False by default.
+    head_frame : bool
+        If True (default), use head frame coords. Otherwise, use device frame.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -287,17 +292,30 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
     meg_info = pick_info(info, picks) if nmeg > 0 else None
 
-    # Create coil descriptions with transformation to head or MRI frame
+    # Create coil descriptions with transformation to head or device frame
     templates = _read_coil_defs(elekta_defs=elekta_defs)
 
-    megcoils = _create_meg_coils(megchs, accuracy, info['dev_head_t'],
-                                 templates)
+    if head_frame:
+        _print_coord_trans(info['dev_head_t'])
+        transform = info['dev_head_t']
+    else:
+        transform = None
+
+    megcoils = _create_coils(megchs, accuracy, transform, 'meg', templates)
+
     if ncomp > 0:
         logger.info('%d compensation data sets in %s' % (ncomp_data,
                                                          info_extra))
-        compcoils = _create_meg_coils(compchs, 'normal', info['dev_head_t'],
-                                      templates)
-    logger.info('Head coordinate MEG coil definitions created.')
+        compcoils = _create_coils(compchs, FIFF.FWD_COIL_ACCURACY_NORMAL,
+                                  transform, 'meg', templates)
+
+    # Check that coordinate frame is correct and log it
+    if head_frame:
+        assert megcoils[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+        logger.info('MEG coil definitions created in head coordinates.')
+    else:
+        assert megcoils[0]['coord_frame'] == FIFF.FIFFV_COORD_DEVICE
+        logger.info('MEG coil definitions created in device coordinate.')
 
     return megcoils, compcoils, megnames, meg_info
 
@@ -335,6 +353,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     neeg = len(picks)
     if neeg <= 0:
         raise RuntimeError('Could not find any EEG channels')
+    templates = _read_coil_defs()
 
     # Get channel info and names for EEG channels
     eegchs = pick_info(info, picks)['chs']
@@ -342,7 +361,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     logger.info('Read %3d EEG channels from %s' % (len(picks), info_extra))
 
     # Create EEG electrode descriptions
-    eegels = _create_eeg_els(eegchs)
+    eegels = _create_coils(eegchs, coil_type='eeg', coilset=templates)
     logger.info('Head coordinate coil definitions created.')
 
     return eegels, eegnames

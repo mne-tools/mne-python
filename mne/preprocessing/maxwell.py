@@ -139,10 +139,10 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
-    magscale = 100.
+    mag_scale = 100.
     coil_scale = np.ones((len(picks), 1))
     coil_scale[np.array([coil['coil_class'] == 1.0
-                         for coil in coils])] = magscale
+                         for coil in coils])] = mag_scale
 
     # Compute multipolar moment bases
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
@@ -163,14 +163,14 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
                                                  ext_order, grad_imbalances)
 
         # Add point like magnetometer data to internal/external bases.
-        S_in[grad_inds] += S_in_fine
-        S_out[grad_inds] += S_out_fine
+        S_in[grad_inds, :] += S_in_fine
+        S_out[grad_inds, :] += S_out_fine
 
         # Scale magnetometers by calibration coefficient
         mag_calib_coeffs = np.array([ch['calib_coeff'] for ch in cal_chans
                                      if ch['ch_type'] == 'mag'])
-        S_in[mag_inds] /= mag_calib_coeffs
-        S_out[mag_inds] /= mag_calib_coeffs
+        S_in[mag_inds, :] /= mag_calib_coeffs
+        S_out[mag_inds, :] /= mag_calib_coeffs
 
     # Combine internal and external spaces
     S_tot = np.c_[S_in, S_out]
@@ -767,7 +767,8 @@ def _update_sensor_geometry(info, cal_chans):
     return info
 
 
-def _sss_basis_point(origin, info, int_order, ext_order, imbalance):
+def _sss_basis_point(origin, info, int_order, ext_order, imbalance,
+                     head_frame=True):
     """Compute multipolar moments for point-like magnetometers (in fine cal)"""
 
     # Construct 'coils' with r, weights, normal vecs, # integration pts, and
@@ -795,7 +796,8 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalance):
         for ch in temp_info['chs']:
             ch['coil_type'] = pt_types[dir_ind]
         coils_add, _, _, _ = _prep_meg_channels(temp_info, accurate=True,
-                                                elekta_defs=True)
+                                                elekta_defs=True,
+                                                head_frame=head_frame)
 
         S_in_add, S_out_add = _sss_basis(origin, coils_add, int_order,
                                          ext_order)
