@@ -56,8 +56,13 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         The window size for kurtosis estimation. Only considered for extended
         Infomax.
     ext_blocks : int
-        The number of blocks after which to recompute Kurtosis.
         Only considered for extended Infomax.
+        If positive, it denotes the number of blocks after which to recompute
+        the Kurtosis, which is used to estimate the signs of the sources.
+        In this case the number of sub-gaussians sources is automatically
+        determined.
+        If negative, the number of sub-gaussians sources to be used is fixed
+        and equal to n_subgauss. In this case the Kurtosis is not estimated.
     max_iter : int
         The maximum number of iterations. Defaults to 200.
     random_state : int | np.random.RandomState
@@ -106,8 +111,6 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     signsbias = 0.02
     signcount_threshold = 25
     signcount_step = 2
-    # if ext_blocks > 0:  # allow not to recompute kurtosis
-    #     n_subgauss = 1  # but initialize n_subgauss to 1 if you recompute
 
     # check data shape
     n_samples, n_features = data.shape
@@ -144,13 +147,18 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     wts_blowup = False
     blockno = 0
     signcount = 0
+    initial_ext_blocks = ext_blocks   # save the initial value in case of reset
 
     # for extended Infomax
     if extended is True:
-        signs = np.identity(n_features)
+        signs = np.ones(n_features)
+
+        for k in range(n_subgauss):
+            signs[k] = -1
+
         kurt_size = min(kurt_size, n_samples)
         old_kurt = np.zeros(n_features, dtype=np.float64)
-        oldsigns = np.zeros((n_features, n_features))
+        oldsigns = np.zeros(n_features)
 
     # trainings loop
     olddelta, oldchange = 1., 0.
@@ -169,7 +177,8 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                 # extended ICA update
                 y = np.tanh(u)
                 weights += l_rate * np.dot(weights,
-                                           BI - np.dot(np.dot(u.T, y), signs) -
+                                           BI -
+                                           signs[None, :] * np.dot(u.T, y) -
                                            np.dot(u.T, u))
                 if use_bias:
                     bias += l_rate * np.reshape(np.sum(y, axis=0,
@@ -199,9 +208,8 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             # ICA kurtosis estimation
             if extended is True:
 
-                n = np.fix(blockno / ext_blocks)
+                if ext_blocks > 0 and blockno % ext_blocks == 0:
 
-                if np.abs(n) * ext_blocks == blockno:
                     if kurt_size < n_samples:
                         rp = np.floor(rng.uniform(0, 1, kurt_size) *
                                       (n_samples - 1))
@@ -218,11 +226,9 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                         old_kurt = kurt
 
                     # estimate weighted signs
-                    signs.flat[::n_features + 1] = ((kurt + signsbias) /
-                                                    np.abs(kurt + signsbias))
+                    signs = np.sign(kurt + signsbias)
 
-                    ndiff = ((signs.flat[::n_features + 1] -
-                              oldsigns.flat[::n_features + 1]) != 0).sum()
+                    ndiff = (signs - oldsigns != 0).sum()
                     if ndiff == 0:
                         signcount += 1
                     else:
@@ -288,10 +294,14 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             olddelta = np.zeros((1, n_features_square), dtype=np.float64)
             bias = np.zeros((n_features, 1), dtype=np.float64)
 
+            ext_blocks = initial_ext_blocks
+
             # for extended Infomax
             if extended:
-                signs = np.identity(n_features)
-                oldsigns = np.zeros((n_features, n_features))
+                signs = np.ones(n_features)
+                for k in range(n_subgauss):
+                    signs[k] = -1
+                oldsigns = np.zeros(n_features)
 
             if l_rate > min_l_rate:
                 if verbose:
