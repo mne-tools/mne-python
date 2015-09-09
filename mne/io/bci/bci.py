@@ -4,21 +4,11 @@
 #
 # License: BSD (3-clause)
 
-import os
-import time
-import re
-import warnings
-
 import numpy as np
 
-from ...utils import verbose, logger
-from ..constants import FIFF
+from ...utils import verbose
 from ..meas_info import create_info
-from ..base import _BaseRaw, _check_update_montage
-from ..reference import add_reference_channels
-
-from ...externals.six import StringIO, u
-from ...externals.six.moves import configparser
+from ..base import _BaseRaw
 
 
 class RawBCI(_BaseRaw):
@@ -80,8 +70,8 @@ class RawBCI(_BaseRaw):
         When recording with OpenBCI over Bluetooth, it is possible for some of
         the data packets, samples, to not be recorded. This does not happen
         often but it poses a problem for maintaining proper sampling periods.
-        OpenBCI data format combats this by providing a counter on the sample to
-        know which ones are missing.
+        OpenBCI data format combats this by providing a counter on the sample
+        to know which ones are missing.
 
         Solution
         --------
@@ -92,7 +82,8 @@ class RawBCI(_BaseRaw):
         4. Insert resampled data in the array using the diff indices
            (index + 1).
         """
-        # counter goes from 0 to 255, maxdiff is 255, make diff one like others.
+        # counter goes from 0 to 255, maxdiff is 255.
+        # make diff one like others.
         diff = np.abs(np.diff(data[:, 0]))
         diff = np.mod(diff, 254) - 1
         missing_idx = np.where(diff != 0)[0]
@@ -104,13 +95,12 @@ class RawBCI(_BaseRaw):
                                     dtype=float)
             insert_idx = list()
             for idx, nn, ii in zip(missing_idx, missing_samps, missing_cumsum):
-                missing_data[ii:ii+nn] = np.mean(data[(idx, idx+1), :])
+                missing_data[ii:ii + nn] = np.mean(data[(idx, idx + 1), :])
                 insert_idx.append([idx] * nn)
             insert_idx = np.hstack(insert_idx)
             data = np.insert(data, insert_idx, missing_data, axis=0)
         self._data = data[:, 1:].T
         nchan, nsamps = self._data.shape
-        first_samps = [0]
         last_samps = [nsamps]
         ch_names = ['EEG %03d' % num for num in range(1, nchan + 1)]
         ch_types = ['eeg'] * nchan
@@ -122,7 +112,7 @@ class RawBCI(_BaseRaw):
                 ch_types[mi] = misc_types[ii]
         if eog:
             eog_names = ['EOG %03d' % ii for ii in range(len(eog))]
-            misc_types = ['eog'] * len(eog)
+            eog_types = ['eog'] * len(eog)
             for ii, ei in enumerate(eog):
                 ch_names[ei] = eog_names[ii]
                 ch_types[ei] = eog_types[ii]
