@@ -59,9 +59,9 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         Only considered for extended Infomax.
         If positive, it denotes the number of blocks after which to recompute
         the Kurtosis, which is used to estimate the signs of the sources.
-        In this case the number of sub-gaussians sources is automatically
+        In this case the number of sub-gaussian sources is automatically
         determined.
-        If negative, the number of sub-gaussians sources to be used is fixed
+        If negative, the number of sub-gaussian sources to be used is fixed
         and equal to n_subgauss. In this case the Kurtosis is not estimated.
     max_iter : int
         The maximum number of iterations. Defaults to 200.

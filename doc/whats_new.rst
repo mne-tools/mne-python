@@ -1123,3 +1123,5 @@ of commits):
 .. _Alexandre Barachant: http://alexandre.barachant.org
 
 .. _Daniel McCloy: http://dan.mccloy.info
+
+.. _Jair Montoya Martinez : https://github.com/jmontoyam
