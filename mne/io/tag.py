@@ -204,9 +204,10 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
         If tuple, the shape of the stored matrix. Only to be used with
         data stored as a vector (not implemented for matrices yet).
     rlims : tuple | None
-        If tuple, the first and last rows to retrieve. Note that data are
-        assumed to be stored row-major in the file. Only to be used with
-        data stored as a vector (not implemented for matrices yet).
+        If tuple, the first (inclusive) and last (exclusive) rows to retrieve.
+        Note that data are assumed to be stored row-major in the file. Only to
+        be used with data stored as a vector (not implemented for matrices
+        yet).
 
     Returns
     -------
