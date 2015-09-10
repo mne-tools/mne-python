@@ -374,8 +374,13 @@ def test_read_write_epochs():
     raw, events, picks = _get_data()
     tempdir = _TempDir()
     temp_fname = op.join(tempdir, 'test-epo.fif')
+    temp_fname_no_bl = op.join(tempdir, 'test_no_bl-epo.fif')
+    baseline = (None, 0)
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=baseline, preload=True)
+    epochs_no_bl = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                          baseline=None, preload=True)
+    assert_true(epochs_no_bl.baseline is None)
     evoked = epochs.average()
     data = epochs.get_data()
 
@@ -392,6 +397,7 @@ def test_read_write_epochs():
                            eog=True, exclude='bads')
     eog_ch_names = [raw.ch_names[k] for k in eog_picks]
     epochs.drop_channels(eog_ch_names)
+    epochs_no_bl.drop_channels(eog_ch_names)
     assert_true(len(epochs.info['chs']) == len(epochs.ch_names) ==
                 epochs.get_data().shape[1])
     data_no_eog = epochs.get_data()
@@ -429,10 +435,17 @@ def test_read_write_epochs():
 
     # test IO
     epochs.save(temp_fname)
+    epochs_no_bl.save(temp_fname_no_bl)
     epochs_read = read_epochs(temp_fname)
+    epochs_no_bl_read = read_epochs(temp_fname_no_bl)
+    assert_raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
+    epochs_no_bl_read.apply_baseline(baseline)
+    assert_true(epochs_no_bl_read.baseline == baseline)
     assert_true(str(epochs_read).startswith('<Epochs'))
 
+    assert_array_equal(epochs_no_bl_read.times, epochs.times)
     assert_array_almost_equal(epochs_read.get_data(), epochs.get_data())
+    assert_array_almost_equal(epochs.get_data(), epochs_no_bl_read.get_data())
     assert_array_equal(epochs_read.times, epochs.times)
     assert_array_almost_equal(epochs_read.average().data, evoked.data)
     assert_equal(epochs_read.proj, epochs.proj)

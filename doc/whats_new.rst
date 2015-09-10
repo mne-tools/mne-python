@@ -59,6 +59,7 @@ Changelog
 
     - Add multiple options to ICA infomax and extended infomax algorithms (number of subgaussian components, computation of bias, iteration status printing), enabling equivalent computations to those performed by EEGLAB by `Jair Montoya Martinez`_
 
+    - Add :func:`mne.Epochs.apply_baseline` method to ``Epochs`` objects by `Teon Brooks`_
 
 BUG
 ~~~
@@ -80,11 +81,11 @@ API
 
     - Rename and deprecate ``mne.viz.plot_topo`` for ``mne.viz.plot_evoked_topo`` by `Jaakko Leppakangas`_
 
-    - Deprecated :class: `mne.decoding.transformer.ConcatenateChannels` and replaced by :class: `mne.decoding.transformer.EpochsVectorizer` by `Romain Trachel`_ 
+    - Deprecated :class: `mne.decoding.transformer.ConcatenateChannels` and replaced by :class: `mne.decoding.transformer.EpochsVectorizer` by `Romain Trachel`_
 
-    - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.csp.CSP` by `Romain Trachel`_ 
-    
-    - Redesigned and rewrote mne.Epochs.plot (no backwards compatibility) during the GSOC 2015 by `Jaakko Leppakangas`_, `Mainak Jas`_, `Federico Raimondo`_ and `Denis Engemann`_
+    - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.csp.CSP` by `Romain Trachel`_
+
+    - Redesigned and rewrote :func:`mne.Epochs.plot` (no backwards compatibility) during the GSOC 2015 by `Jaakko Leppakangas`_, `Mainak Jas`_, `Federico Raimondo`_ and `Denis Engemann`_
 
 .. _changes_0_9:
 
