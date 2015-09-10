@@ -696,7 +696,9 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                          baseline, vmin, vmax, dB)
 
-        pick, info = _prepare_picks_info(picks, info)
+        info, picks = _prepare_picks_info(info, picks)
+        if not np.array_equal(picks, np.arange(len(data))):
+            data = data[picks]
 
         tmin, tmax = times[0], times[-1]
         if isinstance(axes, plt.Axes):
@@ -725,14 +727,6 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         if show:
             plt.show()
         return fig
-
-    def _prepare_picks_info(picks, info):
-        if picks is None:
-            picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                               exclude='bads')
-            info = pick_info(info, picks)
-
-        return picks, info
 
     def _onselect(self, eclick, erelease, baseline, mode, layout):
         """Callback function called by rubber band selector in channel tfr."""
@@ -854,8 +848,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         data = self.data
         info = self.info
 
-        picks, info = _prepare_picks_info(picks, info)
-        if picks != np.arange(len(data)):
+        info, picks = _prepare_picks_info(info, picks)
+        if not np.array_equal(picks, np.arange(len(data))):
             data = data[picks]
 
         data, times, freqs, vmin, vmax = \
@@ -1198,8 +1192,8 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     data = _get_data(inst, return_itc)
     info = inst.info
 
-    picks, info = _prepare_picks_info(picks, info)
-    if picks != np.arange(len(data)):
+    info, picks = _prepare_picks_info(info, picks)
+    if not np.array_equal(picks, np.arange(len(data))):
         data = data[:, picks, :]
 
     power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
@@ -1214,6 +1208,15 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
         out = (out, AverageTFR(info, itc, times, freqs, nave,
                                method='morlet-itc'))
     return out
+
+
+def _prepare_picks_info(info, picks):
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
+    info = pick_info(info, picks)
+
+    return info, picks
 
 
 @verbose
@@ -1347,8 +1350,8 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     data = _get_data(inst, return_itc)
     info = inst.info
 
-    picks, info = _prepare_picks_info(picks, info)
-    if picks != np.arange(len(data)):
+    info, picks = _prepare_picks_info(info, picks)
+    if not np.array_equal(picks, np.arange(len(data))):
         data = data[:, picks, :]
 
     power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
