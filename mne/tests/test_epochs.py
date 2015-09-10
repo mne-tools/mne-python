@@ -438,7 +438,7 @@ def test_read_write_epochs():
     epochs_no_bl.save(temp_fname_no_bl)
     epochs_read = read_epochs(temp_fname)
     epochs_no_bl_read = read_epochs(temp_fname_no_bl)
-    assert_raises(ValueError, epochs.apply_baseline, baseline=[1,2,3])
+    assert_raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
     epochs_no_bl_read.apply_baseline(baseline)
     assert_true(epochs_no_bl_read.baseline == baseline)
     assert_true(str(epochs_read).startswith('<Epochs'))
