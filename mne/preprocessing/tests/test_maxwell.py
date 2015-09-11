@@ -215,6 +215,9 @@ def test_spatiotemporal_maxwell():
     picks = [raw.info['ch_names'].index(ch) for ch in [coil['chname']
                                                        for coil in all_coils]]
 
+    # Test that window is less than length of data
+    assert_raises(RuntimeError, maxwell.maxwell_filter, raw, st_dur=1000.)
+
     # Test sss computation at the standard head origin
     raw_tsss = maxwell.maxwell_filter(raw, st_dur=10.)
 

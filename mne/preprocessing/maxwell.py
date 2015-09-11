@@ -130,8 +130,13 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
     mm = np.dot(pS_tot_good, data * coil_scale[good_chs][:, np.newaxis])
     # Reconstruct data from internal space (Eq. 38)
-    recon = np.dot(S_in, mm[:S_in.shape[1], :])
+    recon = np.dot(S_in, mm[:S_in.shape[1], :]) / coil_scale[:, np.newaxis]
+
+    raw_sss = raw.copy()
     if st_dur is not None:
+        if st_dur > times[-1]:
+            raise ValueError('st_dur (%0.1fs) longer than length of signal in '
+                             'raw (%0.1fs).' % (st_dur, times[-1]))
         logger.info('Processing data using tSSS with st_dur=%s' % st_dur)
         # Reconstruct data from external space and compute residual
         recon_out = np.dot(S_out, mm[S_in.shape[1]:, :]) /\
@@ -140,8 +145,16 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
         # Generate time points to break up data in to windows
         lims = raw.time_as_index(np.arange(times[0], times[-1], st_dur))
-        lims = np.concatenate([lims, [len(raw.times)]])
-        # TODO: Decide how to handle last window if it's shorter length
+        len_last_buf = raw.times[-1] - raw.index_as_time(lims[-1])[0]
+        if len_last_buf >= st_dur:
+            lims = np.concatenate([lims, [len(raw.times)]])
+        else:
+            # Truncate signal if final window is not present
+            raw_sss.crop(lims[0] / raw.info['sfreq'],
+                         lims[-1] / raw.info['sfreq'], copy=False)
+            logger.info('Spatiotemporal window did not fit evenly into raw '
+                        'object. The final %0.2f seconds were truncated.' %
+                        len_last_buf)
 
         # Loop through buffer windows of data
         for win in zip(lims[:-1], lims[1:]):
@@ -157,9 +170,9 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
                 np.dot(proj, recon[:, win[0]:win[1]].T).T
 
     # Return reconstructed raw file object with spatiotemporal processed data
-    raw_sss = _update_sss_info(raw.copy(), origin, int_order, ext_order,
+    raw_sss = _update_sss_info(raw_sss, origin, int_order, ext_order,
                                data.shape[0])
-    raw_sss._data[picks, :] = recon
+    raw_sss._data[picks, :] = recon[:, 0:raw_sss.n_times]
 
     return raw_sss
 
@@ -562,9 +575,10 @@ def _overlap_projector(data_int, data_res, delta, tlims):
     # delta necessary to deal with noise when finding identical signal
     # directions in the subspace. See the end of the Results section in [2]_
 
-    # Note that the procedure here is an updated version of [2]_ using
-    # residuals instead of internal/external spaces directly. This provides
-    # data with higher rank to work with.
+    # Note that the procedure here is an updated version of [2]_ (and used in
+    # Elekta's tSSS) that uses residuals instead of internal/external spaces
+    # directly. This provides more degrees of freedom when analyzing for
+    # intersections between internal and external spaces.
 
     # Normalize data
     normed_data_int = data_int / norm(data_int)
@@ -583,13 +597,13 @@ def _overlap_projector(data_int, data_res, delta, tlims):
 
     # Compute angles between subspace and which bases to keep
     _, S_intersect, Vh_intersect = svd(C_mat, full_matrices=False)
-    retain_inds = S_intersect >= (1 - delta)
+    intersect_inds = S_intersect >= (1 - delta)
     logger.info('    Projecting out %s tSSS components for %s-%s'
-                % ((~retain_inds).sum(), tlims[0], tlims[1]))
+                % ((intersect_inds).sum(), tlims[0], tlims[1]))
 
     # Compute projection operator as (I-LL_T) Eq. 12 in [2]_
     # V_principal should be shape (n_time_pts x n_retained_inds)
-    V_principal = np.dot(Q_res, Vh_intersect.T)[:, retain_inds]
+    V_principal = np.dot(Q_res, Vh_intersect.T)[:, intersect_inds]
     proj = np.eye(len(V_principal)) - np.dot(V_principal, V_principal.T)
 
     return proj
