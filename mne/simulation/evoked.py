@@ -26,7 +26,7 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
     evoked : Evoked object
         An instance of evoked used as template.
     cov : Covariance object
-        The noise covariance
+        The noise covariance.
     snr : float
         signal to noise ratio in dB. It corresponds to
         10 * log10( var(signal) / var(noise) ).
@@ -48,9 +48,13 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
     evoked : Evoked object
         The simulated evoked data
     """
-    evoked = apply_forward(fwd, stc, evoked)  # verbose
-    noise = generate_noise_evoked(evoked, cov, iir_filter, random_state)
-    evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin, tmax=tmax)
+    evoked = apply_forward(fwd, stc, evoked)
+    if snr < np.inf:
+        noise = generate_noise_evoked(evoked, cov, iir_filter, random_state)
+        evoked_noise = add_noise_evoked(evoked, noise, snr,
+                                        tmin=tmin, tmax=tmax)
+    else:
+        evoked_noise = evoked
     return evoked_noise
 
 

@@ -67,7 +67,7 @@ def _read_coil_defs(fname=None, elekta_defs=False, verbose=None):
             line = lines.pop()
             if line[0] != '#':
                 vals = np.fromstring(line, sep=' ')
-                assert len(vals) == 7
+                assert len(vals) in (6, 7)  # newer numpy can truncate comment
                 start = line.find('"')
                 end = len(line.strip()) - 1
                 assert line.strip()[end] == '"'
