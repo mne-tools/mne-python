@@ -312,7 +312,7 @@ Functions:
    plot_ica_components
    plot_ica_scores
    plot_ica_overlay
-   plot_image_epochs
+   plot_epochs_image
    plot_montage
    plot_projs_topomap
    plot_raw

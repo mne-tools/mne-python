@@ -87,6 +87,8 @@ API
 
     - Redesigned and rewrote :func:`mne.Epochs.plot` (no backwards compatibility) during the GSOC 2015 by `Jaakko Leppakangas`_, `Mainak Jas`_, `Federico Raimondo`_ and `Denis Engemann`_
 
+    - Deprecated and renamed :func:`mne.viz.plot_image_epochs` for :func:`mne.plot.plot_epochs_image` by `Teon Brooks`_
+
 .. _changes_0_9:
 
 Version 0.9

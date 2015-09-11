@@ -18,7 +18,7 @@ from mne import pick_types
 from mne.utils import run_tests_if_main, requires_scipy_version
 from mne.channels import read_layout
 
-from mne.viz import plot_drop_log, plot_image_epochs
+from mne.viz import plot_drop_log, plot_epochs_image, plot_image_epochs
 from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
@@ -125,13 +125,16 @@ def test_plot_epochs():
         plt.close('all')
 
 
-def test_plot_image_epochs():
+def test_plot_epochs_image():
     """Test plotting of epochs image
     """
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    plot_image_epochs(epochs, picks=[1, 2])
+    plot_epochs_image(epochs, picks=[1, 2])
     plt.close('all')
+    with warnings.catch_warnings(record=True):
+        plot_image_epochs(epochs, picks=[1, 2])
+        plt.close('all')
 
 
 def test_plot_drop_log():

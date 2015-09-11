@@ -62,7 +62,8 @@ _deprecation_ignores = [
     'mne.utils.plot_epochs_trellis',  # deprecated
     'mne.utils.write_bem_surface',  # deprecated
     'mne.gui.coregistration',  # deprecated
-    'mne.utils.plot_topo'
+    'mne.utils.plot_topo',
+    'mne.viz.plot_image_epochs',  # deprecated
 ]
 
 

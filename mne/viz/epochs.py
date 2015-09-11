@@ -14,7 +14,7 @@ import copy
 
 import numpy as np
 
-from ..utils import verbose, get_config, set_config
+from ..utils import verbose, get_config, set_config, deprecated
 from ..utils import logger
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
@@ -26,7 +26,7 @@ from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
 from ..defaults import _handle_default
 
 
-def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
+def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap='RdBu_r', fig=None):
     """Plot Event Related Potential / Fields image
@@ -160,6 +160,18 @@ def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
         plt.show()
 
     return figs
+
+
+@deprecated('`plot_image_epochs` is deprecated and will be removed in '
+            '"MNE 0.11." Please use plot_epochs_image instead')
+def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
+                      vmax=None, colorbar=True, order=None, show=True,
+                      units=None, scalings=None, cmap='RdBu_r', fig=None):
+
+    return plot_epochs_image(epochs=epochs, picks=picks, sigma=sigma,
+                             vmin=vmin, vmax=None, colorbar=True, order=order,
+                             show=show, units=None, scalings=None, cmap=cmap,
+                             fig=fig)
 
 
 def _drop_log_stats(drop_log, ignore=['IGNORED']):
@@ -1039,7 +1051,7 @@ def _mouse_click(event, params):
                     logger.info('Event related fields / potentials only '
                                 'available for MEG and EEG channels.')
                     return
-                fig = plot_image_epochs(params['epochs'],
+                fig = plot_epochs_image(params['epochs'],
                                         picks=params['inds'][ch_idx],
                                         fig=params['image_plot'])[0]
                 params['image_plot'] = fig
