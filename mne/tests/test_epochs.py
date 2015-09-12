@@ -458,6 +458,15 @@ def test_read_write_epochs():
         assert_allclose(epochs['b'].get_data(),
                         epochs_read['b'].get_data(), **tols)
 
+    # ensure we don't leak file descriptors
+    epochs_read = read_epochs(temp_fname, preload=False)
+    epochs_copy = epochs_read.copy()
+    del epochs_read
+    epochs_copy.get_data()
+    with warnings.catch_warnings(record=True) as w:
+        del epochs_copy
+    assert_equal(len(w), 0)
+
     # test IO
     for preload in (False, True):
         epochs = epochs_orig.copy()

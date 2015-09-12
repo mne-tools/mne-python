@@ -8,7 +8,7 @@
 #
 # License: BSD (3-clause)
 
-import copy as cp
+from copy import deepcopy
 import warnings
 import json
 import inspect
@@ -563,7 +563,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         while True:
             data, event_id = self.next(True)
             tmin = self.times[0]
-            info = cp.deepcopy(self.info)
+            info = deepcopy(self.info)
 
             yield EvokedArray(data, info, tmin, comment=str(event_id))
 
@@ -711,7 +711,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # convert to stderr if requested, could do in one pass but do in
             # two (slower) in case there are large numbers
             if _do_std:
-                data_mean = cp.copy(data)
+                data_mean = data.copy()
                 data.fill(0.)
                 for e in self:
                     data += (e - data_mean) ** 2
@@ -724,7 +724,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             data /= np.sqrt(n_events)
         kind = _aspect_rev.get(str(_aspect_kind), 'Unknown')
 
-        info = cp.deepcopy(self.info)
+        info = deepcopy(self.info)
         evoked = EvokedArray(data, info, tmin=self.times[0],
                              comment=self.name, nave=n_events, kind=kind,
                              verbose=self.verbose)
@@ -1448,7 +1448,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Return copy of Epochs instance"""
         raw = self._raw
         del self._raw
-        new = cp.deepcopy(self)
+        new = deepcopy(self)
         self._raw = raw
         new._raw = raw
         return new
@@ -1737,7 +1737,7 @@ class Epochs(_BaseEpochs):
         if not isinstance(raw, _BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
-        info = cp.deepcopy(raw.info)
+        info = deepcopy(raw.info)
 
         # proj is on when applied in Raw
         proj = proj or raw.proj
@@ -2219,6 +2219,9 @@ class _RawContainer(object):
         self.cals = cals
         self.proj = False
 
+    def __del__(self):
+        self.fid.close()
+
 
 class EpochsFIF(_BaseEpochs):
     """Epochs read from disk
@@ -2261,7 +2264,7 @@ class EpochsFIF(_BaseEpochs):
 
         fnames = [fname]
         ep_list = list()
-        raw = None if preload else list()
+        raw = list()
         for fname in fnames:
             logger.info('Reading %s ...' % fname)
             fid, tree, _ = fiff_open(fname)
@@ -2308,7 +2311,9 @@ class EpochsFIF(_BaseEpochs):
             name=name, proj=proj, add_eeg_ref=add_eeg_ref,
             preload_at_end=False, on_missing='ignore', selection=selection,
             drop_log=drop_log, verbose=verbose)
-        self.drop_bad_epochs()
+        # use the private property instead of drop_bad_epochs so that epochs
+        # are not all read from disk for preload=False
+        self._bad_dropped = True
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -2493,10 +2498,10 @@ def _concatenate_epochs(epochs_list, with_data=True):
     data = [out.get_data()] if with_data else None
     events = [out.events]
     baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
-    info = cp.deepcopy(out.info)
+    info = deepcopy(out.info)
     verbose = out.verbose
-    drop_log = cp.deepcopy(out.drop_log)
-    event_id = cp.deepcopy(out.event_id)
+    drop_log = deepcopy(out.drop_log)
+    event_id = deepcopy(out.event_id)
     selection = out.selection
     for ii, epochs in enumerate(epochs_list[1:]):
         _compare_epochs_infos(epochs.info, info, ii)
