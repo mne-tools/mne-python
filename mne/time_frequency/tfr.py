@@ -692,19 +692,19 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         info = self.info
         data = self.data
 
+        n_picks = len(picks)
+        info, data, picks = _prepare_picks(info, data, picks)
+        data = data[picks]
+
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                          baseline, vmin, vmax, dB)
-
-        info, picks = _prepare_picks_info(info, picks)
-        if not np.array_equal(picks, np.arange(len(data))):
-            data = data[picks]
 
         tmin, tmax = times[0], times[-1]
         if isinstance(axes, plt.Axes):
             axes = [axes]
         if isinstance(axes, list) or isinstance(axes, np.ndarray):
-            if len(axes) != len(picks):
+            if len(axes) != n_picks:
                 raise RuntimeError('There must be an axes for each picked '
                                    'channel.')
 
@@ -848,9 +848,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         data = self.data
         info = self.info
 
-        info, picks = _prepare_picks_info(info, picks)
-        if not np.array_equal(picks, np.arange(len(data))):
-            data = data[picks]
+        info, data, picks = _prepare_picks(info, data, picks)
+        data = data[picks]
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax,
@@ -1152,8 +1151,9 @@ def read_tfrs(fname, condition=None):
     return out
 
 
+@verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
-               return_itc=True, decim=1, n_jobs=1, picks=None):
+               return_itc=True, decim=1, n_jobs=1, picks=None, verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets
 
     Parameters
@@ -1176,6 +1176,8 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     picks : array-like of int | None
         The indices of the channels to plot. If None all available
         channels are displayed.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1192,9 +1194,8 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     data = _get_data(inst, return_itc)
     info = inst.info
 
-    info, picks = _prepare_picks_info(info, picks)
-    if not np.array_equal(picks, np.arange(len(data))):
-        data = data[:, picks, :]
+    info, data, picks = _prepare_picks(info, data, picks)
+    data = data = data[:, picks, :]
 
     power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
                                     frequencies=freqs,
@@ -1210,13 +1211,16 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     return out
 
 
-def _prepare_picks_info(info, picks):
+def _prepare_picks(info, data, picks):
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
-    info = pick_info(info, picks)
+    if np.array_equal(picks, np.arange(len(data))):
+        picks = slice(None)
+    else:
+        info = pick_info(info, picks)
 
-    return info, picks
+    return info, data, picks
 
 
 @verbose
@@ -1292,9 +1296,10 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     return psd, itc
 
 
+@verbose
 def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    use_fft=True, return_itc=True, decim=1, n_jobs=1,
-                   picks=None):
+                   picks=None, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS wavelets
 
     Parameters
@@ -1329,6 +1334,8 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     picks : array-like of int | None
         The indices of the channels to plot. If None all available
         channels are displayed.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1350,9 +1357,8 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     data = _get_data(inst, return_itc)
     info = inst.info
 
-    info, picks = _prepare_picks_info(info, picks)
-    if not np.array_equal(picks, np.arange(len(data))):
-        data = data[:, picks, :]
+    info, data, picks = _prepare_picks(info, data, picks)
+    data = data = data[:, picks, :]
 
     power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
                                     frequencies=freqs, n_cycles=n_cycles,

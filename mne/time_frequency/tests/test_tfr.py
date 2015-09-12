@@ -55,8 +55,8 @@ def test_time_frequency():
     times = epochs.times
     nave = len(data)
 
-    epochs_picks = Epochs(raw, events, event_id, tmin, tmax,
-                          baseline=(None, 0))
+    epochs_nopicks = Epochs(raw, events, event_id, tmin, tmax,
+                            baseline=(None, 0))
 
     freqs = np.arange(6, 20, 5)  # define frequencies of interest
     n_cycles = freqs / 4.
@@ -72,7 +72,7 @@ def test_time_frequency():
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
     # Test picks argument
-    power_picks, itc_picks = tfr_morlet(epochs_picks, freqs=freqs,
+    power_picks, itc_picks = tfr_morlet(epochs_nopicks, freqs=freqs,
                                         n_cycles=n_cycles, use_fft=True,
                                         return_itc=True, picks=picks)
     # the actual data arrays here are equivalent, too...
