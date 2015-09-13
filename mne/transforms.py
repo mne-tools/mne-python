@@ -229,31 +229,38 @@ def translation(x=0, y=0, z=0):
     return m
 
 
-def _get_mri_head_t(mri):
+def _get_mri_head_t(trans):
     """Get mri_head_t (from=mri, to=head) from mri filename"""
-    if isinstance(mri, string_types):
-        if not op.isfile(mri):
-            raise IOError('mri file "%s" not found' % mri)
-        if op.splitext(mri)[1] in ['.fif', '.gz']:
-            mri_head_t = read_trans(mri)
+    if isinstance(trans, string_types):
+        if not op.isfile(trans):
+            raise IOError('trans file "%s" not found' % trans)
+        if op.splitext(trans)[1] in ['.fif', '.gz']:
+            mri_head_t = read_trans(trans)
         else:
             # convert "-trans.txt" to "-trans.fif" mri-type equivalent
-            t = np.genfromtxt(mri)
+            t = np.genfromtxt(trans)
             if t.ndim != 2 or t.shape != (4, 4):
                 raise RuntimeError('File "%s" did not have 4x4 entries'
-                                   % mri)
+                                   % trans)
             mri_head_t = {'from': FIFF.FIFFV_COORD_HEAD,
                           'to': FIFF.FIFFV_COORD_MRI, 'trans': t}
-    else:  # dict
-        mri_head_t = mri
-        mri = 'dict'
+    elif isinstance(trans, dict):
+        mri_head_t = trans
+        trans = 'dict'
+    elif trans is None:
+        mri_head_t = {'from': FIFF.FIFFV_COORD_HEAD,
+                      'to': FIFF.FIFFV_COORD_MRI, 'trans': np.eye(4)}
+        trans = 'identity'
+    else:
+        raise ValueError('trans type %s not known, must be str, dict, or None'
+                         % type(trans))
     # it's usually a head->MRI transform, so we probably need to invert it
     if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
         mri_head_t = invert_transform(mri_head_t)
     if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
             mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
         raise RuntimeError('Incorrect MRI transform provided')
-    return mri_head_t, mri
+    return mri_head_t, trans
 
 
 def combine_transforms(t_first, t_second, fro, to):
