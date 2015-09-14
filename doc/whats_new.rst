@@ -89,6 +89,8 @@ API
 
     - Deprecated and renamed :func:`mne.viz.plot_image_epochs` for :func:`mne.plot.plot_epochs_image` by `Teon Brooks`_
 
+    - `picks` argument has been added to :func:`mne.time_frequency.tfr_morlet`, :func:`mne.time_frequency.tfr_multitaper` by `Teon Brooks`_
+
 .. _changes_0_9:
 
 Version 0.9
