@@ -1058,6 +1058,7 @@ class Report(object):
         figs, _, _ = self._validate_input(figs, section, section)
 
         sectionvar = self._sectionvars[section]
+        self._sectionlabels.append(sectionvar)
         global_id = self._get_id()
         div_klass = self._sectionvars[section]
         img_klass = self._sectionvars[section]
