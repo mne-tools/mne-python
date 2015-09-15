@@ -1069,8 +1069,7 @@ class Report(object):
         html.append(u'<li class="slider" id="%d">\n' % global_id)
         html.append(u'<div class="row">')
 
-        html.append(u'<div class="col-xs-6 col-md-4">')
-        html.append(u'<div style="text-align:center;">')
+        html.append(u'<div class="col-md-6 col-md-offset-3">')
         slides_klass = '%s-%s' % (name, global_id)
 
         if isinstance(figs[0], list):
@@ -1080,7 +1079,7 @@ class Report(object):
         img_klass = 'slideimg-%s' % name
         div_klass = 'span12 %s' % slides_klass
 
-        if isinstance(captions[0], float):
+        if isinstance(captions, float):
             assert len(figs) == len(captions)
             captions = ['%0.3f s' % caption for caption in captions]
         elif captions is None:
@@ -1116,11 +1115,11 @@ class Report(object):
         html.append(u'</ul>')
         html.append(_build_html_slider(sl, slides_klass, slider_id,
                                        start_value=0))
-        html.append(u'</div>')   # div for center
+        html.append(u'</div>')  # div for center
         html.append(u'</div>')  # div for grid
         html.append(u'</div>')  # div for row
+        html.append(u'</li>\n') # for slider
         html.append(u'</div>')  # div for the thumbnail window
-        html.append(u'</li>\n')
 
         html = '\n'.join(html)
 
