@@ -9,7 +9,9 @@
 
 import os.path as op
 from itertools import count
+
 import numpy as np
+from scipy import linalg
 
 from ...utils import logger, verbose, sum_squared
 from ..constants import FIFF
@@ -19,8 +21,6 @@ from .read import (read_int32, read_int16, read_str, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix)
-from .transforms import (bti_identity_trans, bti_to_vv_trans,
-                         bti_to_vv_coil_trans, inverse_trans, merge_trans)
 from ..meas_info import _empty_info, RAW_INFO_FIELDS
 from ...externals import six
 
@@ -40,6 +40,36 @@ BTI_WH2500_REF_GRAD = ['GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA']
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
+
+
+def _get_bti_dev_t(adjust=0., translation=(0.0, 0.02, 0.11)):
+    """Get the general Magnes3600WH to Neuromag coordinate transform
+
+    Parameters
+    ----------
+    adjust : float | None
+        Degrees to tilt x-axis for sensor frame misalignment.
+        If None, no adjustment will be applied.
+    translation : array-like
+        The translation to place the origin of coordinate system
+        to the center of the head.
+
+    Returns
+    -------
+    m_nm_t : ndarray
+        4 x 4 rotation, translation, scaling matrix.
+    """
+    flip_t = np.array([[0., -1., 0.],
+                       [1., 0., 0.],
+                       [0., 0., 1.]])
+    rad = np.deg2rad(adjust)
+    adjust_t = np.array([[1., 0., 0.],
+                         [0., np.cos(rad), -np.sin(rad)],
+                         [0., np.sin(rad), np.cos(rad)]])
+    m_nm_t = np.eye(4)
+    m_nm_t[:3, :3] = np.dot(flip_t, adjust_t)
+    m_nm_t[:3, 3] = translation
+    return m_nm_t
 
 
 def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
@@ -114,16 +144,12 @@ def _convert_head_shape(idx_points, dig_points):
     # adjust order of fiducials to Neuromag
     idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
 
-    t = bti_identity_trans('>f8')
-    t[0, 0] = dcos
-    t[0, 1] = -dsin
-    t[1, 0] = dsin
-    t[1, 1] = dcos
-    t[0, 3] = dt
-
-    dig_points_nm = np.dot(t[BTI.T_ROT_IX], dig_points.T).T
-    dig_points_nm += t[BTI.T_TRANS_IX].T
-
+    # do the transformation
+    t = np.array([[dcos, -dsin, 0., dt],
+                  [dsin, dcos, 0., 0.],
+                  [0., 0., 1., 0.],
+                  [0., 0., 0., 1.]])
+    dig_points_nm = np.dot(t[:3, :3], dig_points.T).T + t[:3, 3]
     return idx_points_nm, dig_points_nm, t
 
 
@@ -171,23 +197,11 @@ def _setup_head_shape(fname, use_hpi=True):
     return dig, t
 
 
-def _convert_coil_trans(coil_trans, bti_trans, bti_to_nm):
+def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
     """ Helper Function """
-    t = bti_to_vv_coil_trans(coil_trans, bti_trans, bti_to_nm)
-    loc = np.roll(t.copy().T, 1, 0)[:, :3].flatten()
-
+    t = np.dot(bti_dev_t, np.dot(linalg.inv(dev_ctf_t), coil_trans))
+    loc = np.roll(t.T[:, :3], 1, 0).flatten()
     return t, loc
-
-
-def _convert_dev_head_t(bti_trans, bti_to_nm, m_h_nm_h):
-    """ Helper Function """
-    nm_to_m_sensor = inverse_trans(bti_identity_trans(), bti_to_nm)
-    nm_sensor_m_head = merge_trans(bti_trans, nm_to_m_sensor)
-
-    nm_dev_head_t = merge_trans(m_h_nm_h, nm_sensor_m_head)
-    nm_dev_head_t[3, :3] = 0.
-
-    return nm_dev_head_t
 
 
 def _correct_offset(fid):
@@ -922,6 +936,15 @@ def _read_data(info, start=None, stop=None):
     return data[:, info['order']].T.astype(np.float64)
 
 
+def _correct_trans(t):
+    """Helper to convert to a transformation matrix"""
+    t = np.array(t, np.float64)
+    t[:3, :3] *= t[3, :3][:, np.newaxis]
+    t[3, :3] = 0.
+    assert t[3, 3] == 1.
+    return t
+
+
 class RawBTi(_BaseRaw):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
@@ -935,9 +958,8 @@ class RawBTi(_BaseRaw):
     head_shape_fname : str
         absolute path to the head shape file. If None, it is assumed to be in
         the same directory.
-    rotation_x : float | int | None
+    rotation_x : float | None
         Degrees to tilt x-axis for sensor frame misalignment.
-        If None, no adjustment will be applied.
     translation : array-like
         The translation to place the origin of coordinate system
         to the center of the head.
@@ -957,7 +979,7 @@ class RawBTi(_BaseRaw):
     """
     @verbose
     def __init__(self, pdf_fname, config_fname='config',
-                 head_shape_fname='hs_file', rotation_x=None,
+                 head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), ecg_ch='E31',
                  eog_ch=('E63', 'E64'), verbose=None):
 
@@ -984,9 +1006,10 @@ class RawBTi(_BaseRaw):
         bti_info = _read_bti_header(pdf_fname, config_fname)
 
         # XXX indx is informed guess. Normally only one transform is stored.
-        dev_ctf_t = bti_info['bti_transform'][0].astype('>f8')
-        bti_to_nm = bti_to_vv_trans(adjust=rotation_x,
-                                    translation=translation, dtype='>f8')
+        dev_ctf_t = _correct_trans(bti_info['bti_transform'][0])
+        # for old backward compatibility
+        rotation_x = 0. if rotation_x is None else rotation_x
+        bti_dev_t = _get_bti_dev_t(rotation_x, translation)
 
         use_hpi = False  # hard coded, but marked as later option.
         logger.info('Creating Neuromag info structure ...')
@@ -1029,8 +1052,8 @@ class RawBTi(_BaseRaw):
             if any(chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
                 if t is not None:
-                    t, loc = _convert_coil_trans(t.astype('>f8'), dev_ctf_t,
-                                                 bti_to_nm)
+                    t = _correct_trans(t)
+                    t, loc = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
                     if idx == 1:
                         logger.info('... putting coil transforms in Neuromag '
                                     'coordinates')
@@ -1088,8 +1111,8 @@ class RawBTi(_BaseRaw):
                     'oordinates')
         info['dig'], ctf_head_t = _setup_head_shape(head_shape_fname, use_hpi)
         logger.info('... Computing new device to head transform.')
-        dev_head_t = _convert_dev_head_t(dev_ctf_t, bti_to_nm,
-                                         ctf_head_t)
+        dev_head_t = np.dot(ctf_head_t, np.dot(dev_ctf_t,
+                                               linalg.inv(bti_dev_t)))
 
         info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
                               'to': FIFF.FIFFV_COORD_HEAD,
