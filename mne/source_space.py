@@ -2204,7 +2204,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         min_dists.append(min_dist)
         min_idxs.append(min_idx)
         # now actually deal with distances, convert to sparse representation
-        d = np.array([dd[0] for dd in d]).ravel()  # already float32
+        d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
         idx = d > 0
         d = d[idx]
         i, j = np.meshgrid(s['vertno'], s['vertno'])
