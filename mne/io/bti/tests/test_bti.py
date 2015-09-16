@@ -120,6 +120,9 @@ def test_raw():
                 ra.save(tmp_raw_fname)
             with Raw(tmp_raw_fname) as r:
                 print(r)
+                for key in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
+                    assert_true(isinstance(r.info[key], dict))
+                    assert_equal(r.info[key]['trans'].shape, (4, 4))
         os.remove(tmp_raw_fname)
 
 
