@@ -413,9 +413,13 @@ slider_template = HTMLTemplate(u"""
 slider_full_template = Template(u"""
 <h4>{{section}}</h4>
 <div class="thumbnail">
-    <li class="{{div_klass}}" id="{{id}}">
+    <li class="slider" id="{{id}}">
         <div class="row">
             <div class="col-md-6 col-md-offset-3">
+                <div id="{{slider_id}}"></div>
+                <ul class="thumbnails">
+                    {{image_html}}
+                </ul>
                 {{html}}
             </div>
         </div>
@@ -1072,12 +1076,12 @@ class Report(object):
         sectionvar = self._sectionvars[section]
         self._sectionlabels.append(sectionvar)
         global_id = self._get_id()
-        div_klass = self._sectionvars[section]
         img_klass = self._sectionvars[section]
         name = 'slider'
 
         html = []
         slides_klass = '%s-%s' % (name, global_id)
+        div_klass = 'span12 %s' % slides_klass
 
         if isinstance(figs[0], list):
             figs = figs[0]
@@ -1114,21 +1118,18 @@ class Report(object):
                           img_klass, caption, first))
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
-        html.append(u'<div id="%s"></div>' % slider_id)
-        html.append(u'<ul class="thumbnails">')
         # Render the slices
-        html.append(u'\n'.join(slices))
-        html.append(u'</ul>')
+        image_html = u'\n'.join(slices)
         html.append(_build_html_slider(sl, slides_klass, slider_id,
                                        start_value=0))
         html = '\n'.join(html)
 
         self.html.append(
-            slider_full_template.substitute(div_klass=div_klass, id=global_id,
-                                            section=section, html=html))
+            slider_full_template.substitute(id=global_id, section=section,
+                                            slider_id=slider_id, html=html,
+                                            image_html=image_html))
 
         self.fnames.append('%s-#-%s-#-custom' % (section, sectionvar))
-        self._sectionlabels.append(sectionvar)
 
     ###########################################################################
     # HTML rendering
