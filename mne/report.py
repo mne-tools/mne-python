@@ -410,6 +410,18 @@ slider_template = HTMLTemplate(u"""
                        })</script>
 """)
 
+slider_full_template = Template(u"""
+<h4>{{section}}</h4>
+<div class="thumbnail">
+    <li class="{{div_klass}}" id="{{id}}">
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                {{html}}
+            </div>
+        </div>
+    </li>
+</div>
+""")
 
 def _build_html_slider(slices_range, slides_klass, slider_id,
                        start_value=None):
@@ -1065,12 +1077,6 @@ class Report(object):
         name = 'slider'
 
         html = []
-        html.append(u'<h4>%s</h4>\n' % section)
-        html.append(u'<div class="thumbnail">')
-        html.append(u'<li class="slider" id="%d">\n' % global_id)
-        html.append(u'<div class="row">')
-
-        html.append(u'<div class="col-md-6 col-md-offset-3">')
         slides_klass = '%s-%s' % (name, global_id)
 
         if isinstance(figs[0], list):
@@ -1078,7 +1084,6 @@ class Report(object):
         sl = np.arange(0, len(figs))
         slices = []
         img_klass = 'slideimg-%s' % name
-        div_klass = 'span12 %s' % slides_klass
 
         if isinstance(captions, float):
             assert len(figs) == len(captions)
@@ -1116,17 +1121,14 @@ class Report(object):
         html.append(u'</ul>')
         html.append(_build_html_slider(sl, slides_klass, slider_id,
                                        start_value=0))
-        html.append(u'</div>')  # div for center
-        html.append(u'</div>')  # div for grid
-        html.append(u'</div>')  # div for row
-        html.append(u'</li>\n') # for slider
-        html.append(u'</div>')  # div for the thumbnail window
-
         html = '\n'.join(html)
+
+        self.html.append(
+            slider_full_template.substitute(div_klass=div_klass, id=global_id,
+                                            section=section, html=html))
 
         self.fnames.append('%s-#-%s-#-custom' % (section, sectionvar))
         self._sectionlabels.append(sectionvar)
-        self.html.append(html)
 
     ###########################################################################
     # HTML rendering
