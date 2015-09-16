@@ -61,6 +61,8 @@ Changelog
 
     - Add :func:`mne.Epochs.apply_baseline` method to ``Epochs`` objects by `Teon Brooks`_
 
+    - Add ``preload`` argument to :func:`mne.read_epochs` to enable on-demand reads from disk by `Eric Larson`_
+
 BUG
 ~~~
 
