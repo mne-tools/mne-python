@@ -130,11 +130,13 @@ def test_add_source_space_distances():
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
     del src_new[1]['dist']
-    n_do = 20  # limit this for speed
+    n_do = 19  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
     out_name = op.join(tempdir, 'temp-src.fif')
-    add_source_space_distances(src_new)
+    n_jobs = 2
+    assert_true(n_do % n_jobs != 0)
+    add_source_space_distances(src_new, n_jobs=n_jobs)
     write_source_spaces(out_name, src_new)
     src_new = read_source_spaces(out_name)
 
