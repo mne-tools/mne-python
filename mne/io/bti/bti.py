@@ -11,9 +11,9 @@ import os.path as op
 from itertools import count
 
 import numpy as np
-from scipy import linalg
 
 from ...utils import logger, verbose, sum_squared
+from ...transforms import combine_transforms, invert_transform, apply_trans
 from ..constants import FIFF
 from ..base import _BaseRaw
 from .constants import BTI
@@ -149,7 +149,10 @@ def _convert_head_shape(idx_points, dig_points):
                   [dsin, dcos, 0., 0.],
                   [0., 0., 1., 0.],
                   [0., 0., 0., 1.]])
-    dig_points_nm = np.dot(t[:3, :3], dig_points.T).T + t[:3, 3]
+    t = {'from': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
+         'to': FIFF.FIFFV_COORD_HEAD,
+         'trans': t}
+    dig_points_nm = apply_trans(t['trans'], dig_points)
     return idx_points_nm, dig_points_nm, t
 
 
@@ -160,15 +163,17 @@ def _setup_head_shape(fname, use_hpi=True):
     ----------
     fname : str
         The absolute path to the head shape file
+    use_hpi : bool
+        Whether to treat additional hpi coils as digitization points or not.
+        If False, hpi coils will be discarded.
 
     Returns
     -------
     dig : list of dicts
         The list of dig point info structures needed for the fiff info
         structure.
-    use_hpi : bool
-        Whether to treat additional hpi coils as digitization points or not.
-        If False, hpi coils will be discarded.
+    t : dict
+        The transformation that was used.
     """
     idx_points, dig_points = _read_head_shape(fname)
     idx_points, dig_points, t = _convert_head_shape(idx_points, dig_points)
@@ -199,7 +204,10 @@ def _setup_head_shape(fname, use_hpi=True):
 
 def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
     """ Helper Function """
-    t = np.dot(bti_dev_t, np.dot(linalg.inv(dev_ctf_t), coil_trans))
+    t = combine_transforms(invert_transform(dev_ctf_t), bti_dev_t,
+                           FIFF.FIFFV_MNE_COORD_CTF_HEAD,
+                           FIFF.FIFFV_COORD_DEVICE)
+    t = np.dot(t['trans'], coil_trans)
     loc = np.roll(t.T[:, :3], 1, 0).flatten()
     return t, loc
 
@@ -1006,10 +1014,15 @@ class RawBTi(_BaseRaw):
         bti_info = _read_bti_header(pdf_fname, config_fname)
 
         # XXX indx is informed guess. Normally only one transform is stored.
-        dev_ctf_t = _correct_trans(bti_info['bti_transform'][0])
+        dev_ctf_t = {'from': FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
+                     'to': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
+                     # XXX formerly COORD_HEAD, but that was probably wrong
+                     'trans': _correct_trans(bti_info['bti_transform'][0])}
         # for old backward compatibility
         rotation_x = 0. if rotation_x is None else rotation_x
-        bti_dev_t = _get_bti_dev_t(rotation_x, translation)
+        bti_dev_t = {'from': FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
+                     'to': FIFF.FIFFV_COORD_DEVICE,
+                     'trans': _get_bti_dev_t(rotation_x, translation)}
 
         use_hpi = False  # hard coded, but marked as later option.
         logger.info('Creating Neuromag info structure ...')
@@ -1111,18 +1124,15 @@ class RawBTi(_BaseRaw):
                     'oordinates')
         info['dig'], ctf_head_t = _setup_head_shape(head_shape_fname, use_hpi)
         logger.info('... Computing new device to head transform.')
-        dev_head_t = np.dot(ctf_head_t, np.dot(dev_ctf_t,
-                                               linalg.inv(bti_dev_t)))
-
-        info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                              'to': FIFF.FIFFV_COORD_HEAD,
-                              'trans': dev_head_t}
-        info['dev_ctf_t'] = {'from': FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-                             'to': FIFF.FIFFV_COORD_HEAD,
-                             'trans': dev_ctf_t}
-        info['ctf_head_t'] = {'from': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                              'to': FIFF.FIFFV_COORD_HEAD,
-                              'trans': ctf_head_t}
+        # DEV->CTF_DEV->CTF_HEAD->HEAD
+        t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
+                               FIFF.FIFFV_COORD_DEVICE,
+                               FIFF.FIFFV_MNE_COORD_CTF_HEAD)
+        dev_head_t = combine_transforms(t, ctf_head_t,
+                                        FIFF.FIFFV_COORD_DEVICE,
+                                        FIFF.FIFFV_COORD_HEAD)
+        info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
+                    ctf_head_t=ctf_head_t)
         logger.info('Done.')
 
         if False:  # XXX : reminds us to support this as we go

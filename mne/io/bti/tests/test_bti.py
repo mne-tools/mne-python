@@ -102,6 +102,17 @@ def test_raw():
 
                 assert_array_equal(ra._data[:NCH], ex._data[:NCH])
                 assert_array_equal(ra._cals[:NCH], ex._cals[:NCH])
+
+                # check our transforms
+                for key in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
+                    if ex.info[key] is None:
+                        pass  # MNE-C doesn't convert all fields
+                    else:
+                        assert_true(ra.info[key] is not None)
+                        for ent in ('to', 'from', 'trans'):
+                            assert_allclose(ex.info[key][ent],
+                                            ra.info[key][ent])
+
                 # Make sure concatenation works
                 raw_concat = concatenate_raws([ra.copy(), ra])
                 assert_equal(raw_concat.n_times, 2 * ra.n_times)
