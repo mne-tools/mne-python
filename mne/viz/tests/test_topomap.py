@@ -22,7 +22,7 @@ from mne.time_frequency.tfr import AverageTFR
 from mne.utils import slow_test
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
-from mne.viz.topomap import _check_outlines, _onselect
+from mne.viz.topomap import _check_outlines, _onselect, plot_topomap
 
 # Set our plotters to test mode
 import matplotlib
@@ -150,7 +150,7 @@ def test_plot_topomap():
     # correspond with the EEG electrodes
     del evoked.info['dig'][85]
 
-    pos = make_eeg_layout(evoked.info).pos
+    pos = make_eeg_layout(evoked.info).pos[:, :2]
     pos, outlines = _check_outlines(pos, 'head')
     assert_true('head' in outlines.keys())
     assert_true('nose' in outlines.keys())
@@ -195,6 +195,26 @@ def test_plot_topomap():
                   times, ch_type='eeg')
     plt.close('all')
 
+    # Test error messages for invalid pos parameter
+    n_channels = len(pos)
+    data = np.ones(n_channels)
+    pos_1d = np.zeros(n_channels)
+    pos_3d = np.zeros((n_channels, 2, 2))
+    assert_raises(ValueError, plot_topomap, data, pos_1d)
+    assert_raises(ValueError, plot_topomap, data, pos_3d)
+    assert_raises(ValueError, plot_topomap, data, pos[:3, :])
+
+    pos_x = pos[:, :1]
+    pos_xyz = np.c_[pos, np.zeros(n_channels)[:, np.newaxis]]
+    assert_raises(ValueError, plot_topomap, data, pos_x)
+    assert_raises(ValueError, plot_topomap, data, pos_xyz)
+
+    # An #channels x 4 matrix should work though. In this case (x, y, width,
+    # height) is assumed.
+    pos_xywh = np.c_[pos, np.zeros((n_channels, 2))]
+    plot_topomap(data, pos_xywh)
+    plt.close('all')
+
 
 def test_plot_tfr_topomap():
     """Test plotting of TFR data
@@ -224,7 +244,3 @@ def test_plot_tfr_topomap():
     _onselect(eclick, erelease, tfr, pos, 'mag', 1, 3, 1, 3, 'RdBu_r', list())
     tfr._onselect(eclick, erelease, None, 'mean', None)
     plt.close('all')
-
-
-def test_prepare_topo_plot():
-    """Test obtaining 2D coordinates from 3D sensor locations"""

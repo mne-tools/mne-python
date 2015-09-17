@@ -227,7 +227,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
             break
 
         if len(idx):
-            plot_topomap(data, pos, vmax=None, cmap=cmap,
+            plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
                          sensors=sensors, res=res, axis=axes[proj_idx],
                          outlines=outlines, contours=contours,
                          image_interp=image_interp, show=False)
@@ -457,7 +457,28 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
     if data.ndim > 1:
         raise ValueError("Data needs to be array of shape (n_sensors,); got "
                          "shape %s." % str(data.shape))
-    elif len(data) != len(pos):
+
+    # Give a helpful error message for common mistakes regarding the position
+    # matrix.
+    pos_help = ("Electrode positions should be specified as a matrix with "
+                "shape (#channels, 2). Each row in this matrix contains the "
+                "(x, y) position of an electrode.")
+    if pos.ndim != 2:
+        error = ("{ndim}D array supplied as electrode positions, where a 2D "
+                 "array was expected").format(ndim=pos.ndim)
+        raise ValueError(error + " " + pos_help)
+    elif pos.shape[1] == 3:
+        error = ("The supplied electrode positions matrix contains 3 columns. "
+                 "Are you trying to specify XYZ coordinates? Perhaps the "
+                 "mne.channels.create_eeg_layout function is useful for you.")
+        raise ValueError(error + " " + pos_help)
+    # No error is raised in case of pos.shape[1] == 4. In this case, it is
+    # assumed the position matrix contains both (x, y) and (width, height)
+    # values, such as Layout.pos.
+    elif pos.shape[1] == 1 or pos.shape[1] > 4:
+        raise ValueError(pos_help)
+
+    if len(data) != len(pos):
         raise ValueError("Data and pos need to be of same length. Got data of "
                          "length %s, pos of length %s" % (len(data), len(pos)))
 
