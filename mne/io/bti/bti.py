@@ -1138,12 +1138,12 @@ class RawBTi(_BaseRaw):
             logger.info('Done.')
         else:
             logger.info('... no headshape file supplied, doing nothing.')
-        dev_head_t = {'trans': np.identity(4),
-                      'from': FIFF.FIFFV_COORD_DEVICE,
-                      'to': FIFF.FIFFV_COORD_HEAD}
-        ctf_head_t = {'trans': np.identity(4),
-                      'from': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                      'to': FIFF.FIFFV_COORD_HEAD}
+            dev_head_t = {'trans': np.identity(4),
+                          'from': FIFF.FIFFV_COORD_DEVICE,
+                          'to': FIFF.FIFFV_COORD_HEAD}
+            ctf_head_t = {'trans': np.identity(4),
+                          'from': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
+                          'to': FIFF.FIFFV_COORD_HEAD}
         info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
                     ctf_head_t=ctf_head_t)
 

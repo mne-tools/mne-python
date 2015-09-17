@@ -118,11 +118,14 @@ def test_raw():
                 assert_equal(raw_concat.n_times, 2 * ra.n_times)
 
                 ra.save(tmp_raw_fname)
-            with Raw(tmp_raw_fname) as r:
-                print(r)
+            with Raw(tmp_raw_fname) as re:
+                print(re)
                 for key in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
-                    assert_true(isinstance(r.info[key], dict))
-                    assert_equal(r.info[key]['trans'].shape, (4, 4))
+                    assert_true(isinstance(re.info[key], dict))
+                    this_t = re.info[key]['trans']
+                    assert_equal(this_t.shape, (4, 4))
+                    # cehck that matrix by is not identity
+                    assert_true(not np.all(this_t.dot(this_t) == this_t))
         os.remove(tmp_raw_fname)
 
 
