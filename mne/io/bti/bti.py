@@ -135,15 +135,6 @@ def _convert_head_shape(idx_points, dig_points):
     dsin = np.sqrt(1. - dcos * dcos)
     dt = dp / np.sqrt(tmp2)
 
-    idx_points_nm = np.ones((len(fp), 3), dtype='>f8')
-    for idx, f in enumerate(fp):
-        idx_points_nm[idx, 0] = dcos * f[0] - dsin * f[1] + dt
-        idx_points_nm[idx, 1] = dsin * f[0] + dcos * f[1]
-        idx_points_nm[idx, 2] = f[2]
-
-    # adjust order of fiducials to Neuromag
-    idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
-
     # do the transformation
     t = np.array([[dcos, -dsin, 0., dt],
                   [dsin, dcos, 0., 0.],
@@ -152,7 +143,20 @@ def _convert_head_shape(idx_points, dig_points):
     t = {'from': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
          'to': FIFF.FIFFV_COORD_HEAD,
          'trans': t}
-    dig_points_nm = apply_trans(t['trans'], dig_points)
+
+    idx_points_nm = np.ones((len(fp), 3), dtype='>f8')
+    for idx, f in enumerate(fp):
+        idx_points_nm[idx, 0] = dcos * f[0] - dsin * f[1] + dt
+        idx_points_nm[idx, 1] = dsin * f[0] + dcos * f[1]
+        idx_points_nm[idx, 2] = f[2]
+
+    # adjust order of fiducials to Neuromag
+    # XXX prsumably swap LPA and RPA
+    idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
+    if dig_points is not None:
+        dig_points_nm = apply_trans(t['trans'], dig_points)
+    else:
+        dig_points_nm = None
     return idx_points_nm, dig_points_nm, t
 
 
