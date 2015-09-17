@@ -106,7 +106,7 @@ def test_raw():
                 # check our transforms
                 for key in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
                     if ex.info[key] is None:
-                        pass  # MNE-C doesn't convert all fields
+                        pass
                     else:
                         assert_true(ra.info[key] is not None)
                         for ent in ('to', 'from', 'trans'):
@@ -125,7 +125,7 @@ def test_raw():
                     this_t = re.info[key]['trans']
                     assert_equal(this_t.shape, (4, 4))
                     # cehck that matrix by is not identity
-                    assert_true(not np.all(this_t.dot(this_t) == this_t))
+                    assert_true(not np.allclose(this_t, np.eye(4)))
         os.remove(tmp_raw_fname)
 
 

@@ -35,8 +35,8 @@ FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1] * 3, dtype='f4'),
 FIFF_INFO_DIG_FIELDS = ('kind', 'ident', 'r', 'coord_frame')
 FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 
-BTI_WH2500_REF_MAG = ['MxA', 'MyA', 'MzA', 'MxaA', 'MyaA', 'MzaA']
-BTI_WH2500_REF_GRAD = ['GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA']
+BTI_WH2500_REF_MAG = ('MxA', 'MyA', 'MzA', 'MxaA', 'MyaA', 'MzaA')
+BTI_WH2500_REF_GRAD = ('GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA')
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
@@ -962,32 +962,25 @@ class RawBTi(_BaseRaw):
 
     Parameters
     ----------
-    pdf_fname : str | None
-        absolute path to the processed data file (PDF)
-    config_fname : str | None
-        absolute path to system config file. If None, it is assumed to be in
-        the same directory.
-    head_shape_fname : str
-        absolute path to the head shape file. If None, it is assumed to be in
-        the same directory.
-    rotation_x : float | None
+    pdf_fname : str
+        Path to the processed data file (PDF).
+    config_fname : str
+        Path to system config file.
+    head_shape_fname : str | None
+        Path to the head shape file.
+    rotation_x : float
         Degrees to tilt x-axis for sensor frame misalignment.
-    translation : array-like
+    translation : array-like, shape (3,)
         The translation to place the origin of coordinate system
         to the center of the head.
     ecg_ch: str | None
-      The 4D name of the ECG channel. If None, the channel will be treated
-      as regular EEG channel.
+        The 4D name of the ECG channel. If None, the channel will be treated
+        as regular EEG channel.
     eog_ch: tuple of str | None
-      The 4D names of the EOG channels. If None, the channels will be treated
-      as regular EEG channels.
+        The 4D names of the EOG channels. If None, the channels will be treated
+        as regular EEG channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
-    Attributes & Methods
-    --------------------
-    See documentation for mne.io.Raw
-
     """
     @verbose
     def __init__(self, pdf_fname, config_fname='config',
@@ -1006,16 +999,17 @@ class RawBTi(_BaseRaw):
                              ' whether you are in the right directory '
                              'or pass the full name' % config_fname)
 
-        if head_shape_fname:
-            err = ValueError('Could not find the head_shape file %s. You shoul'
-                             'd check whether you are in the right directory o'
-                             'r pass the full file name.' % head_shape_fname)
-            if not op.isabs(head_shape_fname):
+        if head_shape_fname is not None:
+            orig_name = head_shape_fname
+            if not op.isfile(head_shape_fname):
                 head_shape_fname = op.join(op.dirname(pdf_fname),
                                            head_shape_fname)
 
-            if not op.exists(head_shape_fname):
-                raise err
+            if not op.isfile(head_shape_fname):
+                raise ValueError('Could not find the head_shape file "%s". '
+                                 'You should check whether you are in the '
+                                 'right directory or pass the full file name.'
+                                 % orig_name)
 
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
         bti_info = _read_bti_header(pdf_fname, config_fname)
@@ -1203,49 +1197,46 @@ class RawBTi(_BaseRaw):
 
 @verbose
 def read_raw_bti(pdf_fname, config_fname='config',
-                 head_shape_fname='hs_file', rotation_x=None,
+                 head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), ecg_ch='E31',
                  eog_ch=('E63', 'E64'), verbose=None):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
-    Note.
-    1) Currently direct inclusion of reference channel weights
-    is not supported. Please use 'mne_create_comp_data' to include
-    the weights or use the low level functions from this module to
-    include them by yourself.
-    2) The informed guess for the 4D name is E31 for the ECG channel and
-    E63, E63 for the EOG channels. Pleas check and adjust if those channels
-    are present in your dataset but 'ECG 01' and 'EOG 01', 'EOG 02' don't
-    appear in the channel names of the raw object.
+    .. note::
+        1. Currently direct inclusion of reference channel weights
+           is not supported. Please use ``mne_create_comp_data`` to include
+           the weights or use the low level functions from this module to
+           include them by yourself.
+        2. The informed guess for the 4D name is E31 for the ECG channel and
+           E63, E63 for the EOG channels. Pleas check and adjust if those
+           channels are present in your dataset but 'ECG 01' and 'EOG 01',
+           'EOG 02' don't appear in the channel names of the raw object.
 
     Parameters
     ----------
-    pdf_fname : str | None
-        absolute path to the processed data file (PDF)
-    config_fname : str | None
-        absolute path to system confnig file. If None, it is assumed to be in
-        the same directory.
-    head_shape_fname : str
-        absolute path to the head shape file. If None, it is assumed to be in
-        the same directory.
-    rotation_x : float | int | None
+    pdf_fname : str
+        Path to the processed data file (PDF).
+    config_fname : str
+        Path to system config file.
+    head_shape_fname : str | None
+        Path to the head shape file.
+    rotation_x : float
         Degrees to tilt x-axis for sensor frame misalignment.
-        If None, no adjustment will be applied.
-    translation : array-like
+    translation : array-like, shape (3,)
         The translation to place the origin of coordinate system
         to the center of the head.
-    ecg_ch : str | None
-      The 4D name of the ECG channel. If None, the channel will be treated
-      as regular EEG channel.
-    eog_ch : tuple of str | None
-      The 4D names of the EOG channels. If None, the channels will be treated
-      as regular EEG channels.
+    ecg_ch: str | None
+        The 4D name of the ECG channel. If None, the channel will be treated
+        as regular EEG channel.
+    eog_ch: tuple of str | None
+        The 4D names of the EOG channels. If None, the channels will be treated
+        as regular EEG channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    raw : Instance of RawBTi
+    raw : instance of RawBTi
         A Raw object containing BTI data.
 
     See Also
