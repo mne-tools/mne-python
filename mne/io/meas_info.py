@@ -506,6 +506,7 @@ def read_meas_info(fid, tree, verbose=None):
     meas : dict
         Node in tree that contains the info.
     """
+
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
     if len(meas) == 0:
@@ -524,6 +525,7 @@ def read_meas_info(fid, tree, verbose=None):
     #   Read measurement info
     dev_head_t = None
     ctf_head_t = None
+    dev_ctf_t = None
     meas_date = None
     highpass = None
     lowpass = None
@@ -562,12 +564,16 @@ def read_meas_info(fid, tree, verbose=None):
         elif kind == FIFF.FIFF_COORD_TRANS:
             tag = read_tag(fid, pos)
             cand = tag.data
+
             if cand['from'] == FIFF.FIFFV_COORD_DEVICE and \
                     cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 dev_head_t = cand
             elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
                     cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 ctf_head_t = cand
+            elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_DEVICE and \
+                    cand['to'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD:
+                dev_ctf_t = cand
         elif kind == FIFF.FIFF_EXPERIMENTER:
             tag = read_tag(fid, pos)
             experimenter = tag.data
@@ -865,14 +871,13 @@ def read_meas_info(fid, tree, verbose=None):
     #
     info['dev_head_t'] = dev_head_t
     info['ctf_head_t'] = ctf_head_t
-    if dev_head_t is not None and ctf_head_t is not None:
+    info['dev_ctf_t'] = dev_ctf_t
+    if dev_head_t is not None and ctf_head_t is not None and dev_ctf_t is None:
         head_ctf_trans = linalg.inv(ctf_head_t['trans'])
         dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
         info['dev_ctf_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
                              'to': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
                              'trans': dev_ctf_trans}
-    else:
-        info['dev_ctf_t'] = None
 
     #   All kinds of auxliary stuff
     info['dig'] = dig
@@ -1007,6 +1012,9 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
 
     if info['ctf_head_t'] is not None:
         write_coord_trans(fid, info['ctf_head_t'])
+
+    if info['dev_ctf_t'] is not None:
+        write_coord_trans(fid, info['dev_ctf_t'])
 
     #   Projectors
     _write_proj(fid, info['projs'])

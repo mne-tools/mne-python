@@ -150,6 +150,7 @@ class RawFIF(_BaseRaw):
         ff, tree, _ = fiff_open(fname, preload=whole_file)
         with ff as fid:
             #   Read the measurement info
+
             info, meas = read_meas_info(fid, tree)
 
             #   Locate the data of interest
