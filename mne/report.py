@@ -1081,7 +1081,8 @@ class Report(object):
 
         html = []
         slides_klass = '%s-%s' % (name, global_id)
-        div_klass = 'span12 %s' % slides_klass
+        # div_klass = 'span12 %s' % slides_klass
+        div_klass = sectionvar
 
         if isinstance(figs[0], list):
             figs = figs[0]
