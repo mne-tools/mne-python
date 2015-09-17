@@ -645,23 +645,9 @@ def get_kit_info(rawfile):
 
         # Create raw.info dict for raw fif object with SQD data
         info = _empty_info()
-        info['events'] = []
-        info['meas_id'] = None
-        info['file_id'] = None
-        info['meas_date'] = int(time.time())
-        info['projs'] = []
-        info['comps'] = []
-        info['lowpass'] = sqd['lowpass']
-        info['highpass'] = sqd['highpass']
-        info['sfreq'] = float(sqd['sfreq'])
-        info['bads'] = []
-        info['acq_pars'], info['acq_stim'] = None, None
-        info['filename'] = rawfile
-        info['ctf_head_t'] = None
-        info['dev_ctf_t'] = []
-        info['nchan'] = sqd['nchan']
-        info['dig'] = None
-        info['dev_head_t'] = None
+        info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
+                    highpass=sqd['highpass'], sfreq=float(sqd['sfreq']),
+                    filename=rawfile, nchan=sqd['nchan'])
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')

@@ -72,7 +72,6 @@ def test_crop_append():
 
 def test_raw():
     """ Test bti conversion to Raw object """
-
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,
                                          exported_fnames):
         # rx = 2 if 'linux' in pdf else 0
@@ -102,13 +101,30 @@ def test_raw():
 
                 assert_array_equal(ra._data[:NCH], ex._data[:NCH])
                 assert_array_equal(ra._cals[:NCH], ex._cals[:NCH])
+
+                # check our transforms
+                for key in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
+                    if ex.info[key] is None:
+                        pass
+                    else:
+                        assert_true(ra.info[key] is not None)
+                        for ent in ('to', 'from', 'trans'):
+                            assert_allclose(ex.info[key][ent],
+                                            ra.info[key][ent])
+
                 # Make sure concatenation works
                 raw_concat = concatenate_raws([ra.copy(), ra])
                 assert_equal(raw_concat.n_times, 2 * ra.n_times)
 
                 ra.save(tmp_raw_fname)
-            with Raw(tmp_raw_fname) as r:
-                print(r)
+            with Raw(tmp_raw_fname) as re:
+                print(re)
+                for key in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
+                    assert_true(isinstance(re.info[key], dict))
+                    this_t = re.info[key]['trans']
+                    assert_equal(this_t.shape, (4, 4))
+                    # cehck that matrix by is not identity
+                    assert_true(not np.allclose(this_t, np.eye(4)))
         os.remove(tmp_raw_fname)
 
 

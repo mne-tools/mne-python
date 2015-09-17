@@ -118,10 +118,10 @@ def read_float_matrix(fid, rows, cols):
 def read_double_matrix(fid, rows, cols):
     """ Read 64bit float matrix from bti file """
     fmt = '>' + ('d' * rows * cols)
-    return _unpack_matrix(fid, fmt, rows, cols, 'f8')
+    return _unpack_matrix(fid, fmt, rows, cols, np.float64)
 
 
 def read_transform(fid):
     """ Read 64bit float matrix transform from bti file """
     fmt = '>' + ('d' * 4 * 4)
-    return _unpack_matrix(fid, fmt, 4, 4, 'f8')
+    return _unpack_matrix(fid, fmt, 4, 4, np.float64)
