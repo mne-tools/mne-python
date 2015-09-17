@@ -28,7 +28,7 @@ from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
                        transform_surface_to)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_mri_head_t)
-from ..utils import get_subjects_dir, logger, _check_subject
+from ..utils import get_subjects_dir, logger, _check_subject, verbose
 from ..defaults import _handle_default
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
@@ -266,15 +266,17 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     return fig if img_output is None else outs
 
 
+@verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
-               ch_type=None, source=('bem', 'head'), coord_frame='head'):
+               ch_type=None, source=('bem', 'head'), coord_frame='head',
+               verbose=None):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
     ----------
     info : dict
         The measurement info.
-    trans : str | 'auto'
+    trans : str | 'auto' | dict
         The full path to the `*-trans.fif` file produced during
         coregistration.
     subject : str | None
@@ -294,6 +296,8 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         to 'bem'. Note. For single layer bems it is recommended to use 'head'.
     coord_frame : str
         Coordinate frame to use.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -306,11 +310,13 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
                          % ch_type)
 
-    if trans == 'auto':
-        # let's try to do this in MRI coordinates so they're easy to plot
-        trans = _find_trans(subject, subjects_dir)
-
-    trans = read_trans(trans)
+    if isinstance(trans, string_types):
+        if trans == 'auto':
+            # let's try to do this in MRI coordinates so they're easy to plot
+            trans = _find_trans(subject, subjects_dir)
+        trans = read_trans(trans)
+    elif not isinstance(trans, dict):
+        raise TypeError('trans must be str or dict')
 
     surfs = [get_head_surf(subject, source=source, subjects_dir=subjects_dir)]
     if ch_type is None or ch_type == 'meg':
