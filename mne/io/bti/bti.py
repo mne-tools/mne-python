@@ -995,20 +995,23 @@ class RawBTi(_BaseRaw):
             pdf_fname = op.abspath(pdf_fname)
 
         if not op.isabs(config_fname):
-            config_fname = op.join(op.dirname(pdf_fname), config_fname)
+            config_fname = op.abspath(config_fname)
 
         if not op.exists(config_fname):
             raise ValueError('Could not find the config file %s. Please check'
                              ' whether you are in the right directory '
                              'or pass the full name' % config_fname)
 
-        if not op.isabs(head_shape_fname):
-            head_shape_fname = op.join(op.dirname(pdf_fname), head_shape_fname)
-
-        if not op.exists(head_shape_fname):
-            raise ValueError('Could not find the head_shape file %s. You shoul'
+        if head_shape_fname:
+            err = ValueError('Could not find the head_shape file %s. You shoul'
                              'd check whether you are in the right directory o'
                              'r pass the full file name.' % head_shape_fname)
+            if not op.isabs(head_shape_fname):
+                head_shape_fname = op.join(op.dirname(pdf_fname),
+                                           head_shape_fname)
+
+            if not op.exists(head_shape_fname):
+                raise err
 
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
         bti_info = _read_bti_header(pdf_fname, config_fname)
@@ -1117,23 +1120,32 @@ class RawBTi(_BaseRaw):
             chs.append(chan_info)
 
         info['chs'] = chs
-
-        logger.info('... Reading digitization points from %s' %
-                    head_shape_fname)
-        logger.info('... putting digitization points in Neuromag c'
-                    'oordinates')
-        info['dig'], ctf_head_t = _setup_head_shape(head_shape_fname, use_hpi)
-        logger.info('... Computing new device to head transform.')
-        # DEV->CTF_DEV->CTF_HEAD->HEAD
-        t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
-                               FIFF.FIFFV_COORD_DEVICE,
-                               FIFF.FIFFV_MNE_COORD_CTF_HEAD)
-        dev_head_t = combine_transforms(t, ctf_head_t,
-                                        FIFF.FIFFV_COORD_DEVICE,
-                                        FIFF.FIFFV_COORD_HEAD)
+        if head_shape_fname:
+            logger.info('... Reading digitization points from %s' %
+                        head_shape_fname)
+            logger.info('... putting digitization points in Neuromag c'
+                        'oordinates')
+            info['dig'], ctf_head_t = _setup_head_shape(
+                head_shape_fname, use_hpi)
+            logger.info('... Computing new device to head transform.')
+            # DEV->CTF_DEV->CTF_HEAD->HEAD
+            t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
+                                   FIFF.FIFFV_COORD_DEVICE,
+                                   FIFF.FIFFV_MNE_COORD_CTF_HEAD)
+            dev_head_t = combine_transforms(t, ctf_head_t,
+                                            FIFF.FIFFV_COORD_DEVICE,
+                                            FIFF.FIFFV_COORD_HEAD)
+            logger.info('Done.')
+        else:
+            logger.info('... no headshape file supplied, doing nothing.')
+        dev_head_t = {'trans': np.identity(4),
+                      'from': FIFF.FIFFV_COORD_DEVICE,
+                      'to': FIFF.FIFFV_COORD_HEAD}
+        ctf_head_t = {'trans': np.identity(4),
+                      'from': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
+                      'to': FIFF.FIFFV_COORD_HEAD}
         info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
                     ctf_head_t=ctf_head_t)
-        logger.info('Done.')
 
         if False:  # XXX : reminds us to support this as we go
             # include digital weights from reference channel
