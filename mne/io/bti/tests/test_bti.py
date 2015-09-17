@@ -72,7 +72,6 @@ def test_crop_append():
 
 def test_raw():
     """ Test bti conversion to Raw object """
-
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,
                                          exported_fnames):
         # rx = 2 if 'linux' in pdf else 0
