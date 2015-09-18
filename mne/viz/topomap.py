@@ -460,8 +460,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
 
     # Give a helpful error message for common mistakes regarding the position
     # matrix.
-    pos_help = ("Electrode positions should be specified as a matrix with "
-                "shape (#channels, 2). Each row in this matrix contains the "
+    pos_help = ("Electrode positions should be specified as a 2D array with "
+                "shape (n_channels, 2). Each row in this matrix contains the "
                 "(x, y) position of an electrode.")
     if pos.ndim != 2:
         error = ("{ndim}D array supplied as electrode positions, where a 2D "
