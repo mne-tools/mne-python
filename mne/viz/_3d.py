@@ -409,7 +409,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         mlab.pipeline.surface(mesh, color=color, opacity=alpha)
 
     datas = (eeg_loc, meg_loc, car_loc, ext_loc)
-    colors = ((1., 0., 0.), (0., 0.25, 0.5), (1., 1., 0.), (0., 1., 0.))
+    colors = ((1., 0., 0.), (0., 0.25, 0.5), (1., 1., 0.), (1., 0.5, 0.))
     alphas = (1.0, 0.25, 0.5, 0.25)
     scales = (0.005, 0.0025, 0.015, 0.0075)
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
