@@ -14,6 +14,7 @@ from scipy import linalg
 from .fixes import partial
 from .utils import (verbose, logger, run_subprocess, deprecated,
                     get_subjects_dir)
+from .transforms import _ensure_trans
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
@@ -803,11 +804,7 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
 
     radius, origin_head = _fit_sphere(hsp, disp=False)
     # compute origin in device coordinates
-    trans = info['dev_head_t']
-    if trans['from'] != FIFF.FIFFV_COORD_DEVICE \
-            or trans['to'] != FIFF.FIFFV_COORD_HEAD:
-        raise RuntimeError('device to head transform not found')
-
+    trans = _ensure_trans(info['dev_head_t'], 'meg', 'head')
     head_to_dev = linalg.inv(trans['trans'])
     origin_device = 1e3 * np.dot(head_to_dev,
                                  np.r_[1e-3 * origin_head, 1.0])[:3]

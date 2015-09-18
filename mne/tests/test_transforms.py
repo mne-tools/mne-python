@@ -166,8 +166,9 @@ def test_transform_coords():
     """Test transforming coordinates
     """
     # normal trans won't work
-    assert_raises(ValueError, transform_coordinates,
-                  fname, np.eye(3), 'meg', 'fs_tal')
+    with warnings.catch_warnings(record=True):  # dep
+        assert_raises(ValueError, transform_coordinates,
+                      fname, np.eye(3), 'meg', 'fs_tal')
     # needs to have all entries
     pairs = [[FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_COORD_HEAD],
              [FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_MNE_COORD_RAS],
@@ -180,15 +181,18 @@ def test_transform_coords():
         xforms.append({'to': to, 'from': fro, 'trans': np.eye(4)})
     tempdir = _TempDir()
     all_fname = op.join(tempdir, 'all-trans.fif')
-    collect_transforms(all_fname, xforms)
+    with warnings.catch_warnings(record=True):  # dep
+        collect_transforms(all_fname, xforms)
     for fro in ['meg', 'mri']:
         for to in ['meg', 'mri', 'fs_tal', 'mni_tal']:
-            out = transform_coordinates(all_fname, np.eye(3), fro, to)
-            assert_allclose(out, np.eye(3))
-    assert_raises(ValueError,
-                  transform_coordinates, all_fname, np.eye(4), 'meg', 'meg')
-    assert_raises(ValueError,
-                  transform_coordinates, all_fname, np.eye(3), 'fs_tal', 'meg')
+            with warnings.catch_warnings(record=True):  # dep
+                out = transform_coordinates(all_fname, np.eye(3), fro, to)
+                assert_allclose(out, np.eye(3))
+    with warnings.catch_warnings(record=True):  # dep
+        assert_raises(ValueError, transform_coordinates, all_fname, np.eye(4),
+                      'meg', 'meg')
+        assert_raises(ValueError, transform_coordinates, all_fname, np.eye(3),
+                      'fs_tal', 'meg')
 
 
 run_tests_if_main()

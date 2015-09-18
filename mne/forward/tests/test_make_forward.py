@@ -16,7 +16,7 @@ from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, read_trans,
                  convert_forward_solution, setup_volume_source_space,
                  read_source_spaces, make_sphere_model,
-                 pick_types_forward, pick_info, pick_types)
+                 pick_types_forward, pick_info, pick_types, Transform)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
                        run_tests_if_main, slow_test, run_subprocess)
 from mne.forward._make_forward import _create_coils
@@ -83,8 +83,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
 def test_magnetic_dipole():
     """Test basic magnetic dipole forward calculation
     """
-    trans = {'to': FIFF.FIFFV_COORD_HEAD, 'from': FIFF.FIFFV_COORD_MRI,
-             'trans': np.eye(4)}
+    trans = Transform('mri', 'head', np.eye(4))
     info = read_info(fname_raw)
     picks = pick_types(info, meg=True, eeg=False, exclude=[])
     info = pick_info(info, picks[:12])
@@ -350,7 +349,7 @@ def test_forward_mixed_source_space():
 
     # head coordinates and mri_resolution, but wrong trans file
     vox_mri_t = vol1[0]['vox_mri_t']
-    assert_raises(RuntimeError, src_from_fwd.export_volume, fname_img,
+    assert_raises(ValueError, src_from_fwd.export_volume, fname_img,
                   mri_resolution=True, trans=vox_mri_t)
 
 

@@ -524,8 +524,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     #   if necessary
 
     # Make sure forward solution is in either the MRI or HEAD coordinate frame
-    if (fwd['coord_frame'] != FIFF.FIFFV_COORD_MRI and
-            fwd['coord_frame'] != FIFF.FIFFV_COORD_HEAD):
+    if fwd['coord_frame'] not in (FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_COORD_HEAD):
         raise ValueError('Only forward solutions computed in MRI or head '
                          'coordinates are acceptable')
 

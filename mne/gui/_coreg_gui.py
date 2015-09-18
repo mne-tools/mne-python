@@ -38,10 +38,9 @@ except:
 
 
 from ..coreg import bem_fname, trans_fname
-from ..io.constants import FIFF
 from ..forward import prepare_bem_model
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
-                          translation, scaling, rotation_angles)
+                          translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _point_cloud_error)
 from ..utils import get_subjects_dir, logger
@@ -575,10 +574,7 @@ class CoregModel(HasPrivateTraits):
         """
         if not self.can_save:
             raise RuntimeError("Not enough information for saving transform")
-        trans_matrix = self.head_mri_trans
-        trans = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
-                 'trans': trans_matrix}
-        write_trans(fname, trans)
+        write_trans(fname, Transform('head', 'mri', self.head_mri_trans))
 
 
 class CoregFrameHandler(Handler):

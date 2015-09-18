@@ -30,7 +30,7 @@ from ..forward import (compute_depth_prior, _read_forward_meas_info,
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
-from ..transforms import invert_transform, transform_surface_to
+from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc
 from ..utils import check_fname, logger, verbose
 from functools import reduce
@@ -252,14 +252,7 @@ def read_inverse_operator(fname, verbose=None):
         tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
         if tag is None:
             raise Exception('MRI/head coordinate transformation not found')
-        mri_head_t = tag.data
-        if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
-                mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
-            mri_head_t = invert_transform(mri_head_t)
-            if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
-                    mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
-                raise Exception('MRI/head coordinate transformation '
-                                'not found')
+        mri_head_t = _ensure_trans(tag.data, 'mri', 'head')
 
         inv['mri_head_t'] = mri_head_t
 
@@ -272,8 +265,8 @@ def read_inverse_operator(fname, verbose=None):
         #   Transform the source spaces to the correct coordinate frame
         #   if necessary
         #
-        if inv['coord_frame'] != FIFF.FIFFV_COORD_MRI and \
-                inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
+        if inv['coord_frame'] not in (FIFF.FIFFV_COORD_MRI,
+                                      FIFF.FIFFV_COORD_HEAD):
             raise Exception('Only inverse solutions computed in MRI or '
                             'head coordinates are acceptable')
 

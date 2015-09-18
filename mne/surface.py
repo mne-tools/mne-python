@@ -98,7 +98,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
 
 
 @verbose
-def get_meg_helmet_surf(info, trans=None):
+def get_meg_helmet_surf(info, trans=None, verbose=None):
     """Load the MEG helmet associated with the MEG sensors
 
     Parameters

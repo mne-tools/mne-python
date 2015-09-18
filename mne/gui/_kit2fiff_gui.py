@@ -11,7 +11,6 @@ from threading import Thread
 
 from ..externals.six.moves import queue
 from ..io.meas_info import _read_dig_points, _make_dig_points
-from ..io.constants import FIFF
 
 
 # allow import without traits
@@ -36,7 +35,7 @@ except:
 
 from ..io.kit.kit import RawKIT, KIT
 from ..transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
-                          get_ras_to_neuromag_trans)
+                          get_ras_to_neuromag_trans, Transform)
 from ..coreg import _decimate_points, fit_matched_points
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._viewer import (HeadViewController, headview_item, PointObject,
@@ -281,9 +280,8 @@ class Kit2FiffModel(HasPrivateTraits):
             raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
                                                self.fid[2], self.elp,
                                                self.hsp)
-            raw.info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                                      'to': FIFF.FIFFV_COORD_HEAD,
-                                      'trans': self.dev_head_trans}
+            raw.info['dev_head_t'] = Transform('meg', 'head',
+                                               self.dev_head_trans)
         return raw
 
 

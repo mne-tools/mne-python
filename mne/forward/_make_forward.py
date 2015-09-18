@@ -16,7 +16,7 @@ from ..io.meas_info import Info
 from ..io.constants import FIFF
 from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
-from ..transforms import (invert_transform, transform_surface_to, apply_trans,
+from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_mri_head_t, _print_coord_trans,
                           _coord_frame_name)
 from ..utils import logger, verbose
@@ -214,13 +214,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
         logger.info('Employing the head->MRI coordinate transform with the '
                     'BEM model.')
         # fwd_bem_set_head_mri_t: Set the coordinate transformation
-        to, fro = mri_head_t['to'], mri_head_t['from']
-        if fro == FIFF.FIFFV_COORD_HEAD and to == FIFF.FIFFV_COORD_MRI:
-            bem['head_mri_t'] = mri_head_t
-        elif fro == FIFF.FIFFV_COORD_MRI and to == FIFF.FIFFV_COORD_HEAD:
-            bem['head_mri_t'] = invert_transform(mri_head_t)
-        else:
-            raise RuntimeError('Improper coordinate transform')
+        bem['head_mri_t'] = _ensure_trans(mri_head_t, 'head', 'mri')
         logger.info('BEM model %s is now set up' % op.split(bem_extra)[1])
         logger.info('')
     return bem

@@ -13,7 +13,8 @@ from itertools import count
 import numpy as np
 
 from ...utils import logger, verbose, sum_squared
-from ...transforms import combine_transforms, invert_transform, apply_trans
+from ...transforms import (combine_transforms, invert_transform, apply_trans,
+                           Transform)
 from ..constants import FIFF
 from ..base import _BaseRaw
 from .constants import BTI
@@ -140,9 +141,7 @@ def _convert_head_shape(idx_points, dig_points):
                   [dsin, dcos, 0., 0.],
                   [0., 0., 1., 0.],
                   [0., 0., 0., 1.]])
-    t = {'from': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-         'to': FIFF.FIFFV_COORD_HEAD,
-         'trans': t}
+    t = Transform('ctf_head', 'head', t)
 
     idx_points_nm = np.ones((len(fp), 3), dtype='>f8')
     for idx, f in enumerate(fp):
@@ -209,8 +208,7 @@ def _setup_head_shape(fname, use_hpi=True):
 def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
     """ Helper Function """
     t = combine_transforms(invert_transform(dev_ctf_t), bti_dev_t,
-                           FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                           FIFF.FIFFV_COORD_DEVICE)
+                           'ctf_head', 'meg')
     t = np.dot(t['trans'], coil_trans)
     loc = np.roll(t.T[:, :3], 1, 0).flatten()
     return t, loc
@@ -1015,15 +1013,12 @@ class RawBTi(_BaseRaw):
         bti_info = _read_bti_header(pdf_fname, config_fname)
 
         # XXX indx is informed guess. Normally only one transform is stored.
-        dev_ctf_t = {'from': FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-                     'to': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                     # XXX formerly COORD_HEAD, but that was probably wrong
-                     'trans': _correct_trans(bti_info['bti_transform'][0])}
+        dev_ctf_t = Transform('ctf_meg', 'ctf_head',
+                              _correct_trans(bti_info['bti_transform'][0]))
         # for old backward compatibility
         rotation_x = 0. if rotation_x is None else rotation_x
-        bti_dev_t = {'from': FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-                     'to': FIFF.FIFFV_COORD_DEVICE,
-                     'trans': _get_bti_dev_t(rotation_x, translation)}
+        bti_dev_t = Transform('ctf_meg', 'meg',
+                              _get_bti_dev_t(rotation_x, translation))
 
         use_hpi = False  # hard coded, but marked as later option.
         logger.info('Creating Neuromag info structure ...')
@@ -1128,20 +1123,13 @@ class RawBTi(_BaseRaw):
             logger.info('... Computing new device to head transform.')
             # DEV->CTF_DEV->CTF_HEAD->HEAD
             t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
-                                   FIFF.FIFFV_COORD_DEVICE,
-                                   FIFF.FIFFV_MNE_COORD_CTF_HEAD)
-            dev_head_t = combine_transforms(t, ctf_head_t,
-                                            FIFF.FIFFV_COORD_DEVICE,
-                                            FIFF.FIFFV_COORD_HEAD)
+                                   'meg', 'ctf_head')
+            dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
             logger.info('Done.')
         else:
             logger.info('... no headshape file supplied, doing nothing.')
-            dev_head_t = {'trans': np.identity(4),
-                          'from': FIFF.FIFFV_COORD_DEVICE,
-                          'to': FIFF.FIFFV_COORD_HEAD}
-            ctf_head_t = {'trans': np.identity(4),
-                          'from': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                          'to': FIFF.FIFFV_COORD_HEAD}
+            dev_head_t = Transform('meg', 'head', np.eye(4))
+            ctf_head_t = Transform('ctf_head', 'head', np.eye(4))
         info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
                     ctf_head_t=ctf_head_t)
 
