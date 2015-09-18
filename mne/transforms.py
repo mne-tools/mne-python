@@ -14,7 +14,7 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import check_fname, logger
+from .utils import check_fname, logger, deprecated
 from .externals.six import string_types
 
 
@@ -26,25 +26,80 @@ als_ras_trans = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0],
 als_ras_trans_mm = als_ras_trans * [0.001, 0.001, 0.001, 1]
 
 
+_str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,
+                     mri=FIFF.FIFFV_COORD_MRI,
+                     mri_voxel=FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
+                     head=FIFF.FIFFV_COORD_HEAD,
+                     mni_tal=FIFF.FIFFV_MNE_COORD_MNI_TAL,
+                     ras=FIFF.FIFFV_MNE_COORD_RAS,
+                     fs_tal=FIFF.FIFFV_MNE_COORD_FS_TAL,
+                     ctf_head=FIFF.FIFFV_MNE_COORD_CTF_HEAD,
+                     ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE)
+_frame_to_str = dict((val, key) for key, val in _str_to_frame.items())
+
+_verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
+                   FIFF.FIFFV_COORD_DEVICE: 'MEG device',
+                   FIFF.FIFFV_COORD_ISOTRAK: 'isotrak',
+                   FIFF.FIFFV_COORD_HPI: 'hpi',
+                   FIFF.FIFFV_COORD_HEAD: 'head',
+                   FIFF.FIFFV_COORD_MRI: 'MRI (surface RAS)',
+                   FIFF.FIFFV_MNE_COORD_MRI_VOXEL: 'MRI voxel',
+                   FIFF.FIFFV_COORD_MRI_SLICE: 'MRI slice',
+                   FIFF.FIFFV_COORD_MRI_DISPLAY: 'MRI display',
+                   FIFF.FIFFV_MNE_COORD_CTF_DEVICE: 'CTF MEG device',
+                   FIFF.FIFFV_MNE_COORD_CTF_HEAD: 'CTF/4D/KIT head',
+                   FIFF.FIFFV_MNE_COORD_RAS: 'RAS (non-zero origin)',
+                   FIFF.FIFFV_MNE_COORD_MNI_TAL: 'MNI Talairach',
+                   FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: 'Talairach (MNI z > 0)',
+                   FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: 'Talairach (MNI z < 0)',
+                   -1: 'unknown'}
+
+
+def _to_const(cf):
+    """Helper to convert string or int coord frame into int"""
+    if isinstance(cf, string_types):
+        if cf not in _str_to_frame:
+            raise ValueError('Unknown cf %s' % cf)
+        cf = _str_to_frame[cf]
+    elif not isinstance(cf, int):
+        raise TypeError('cf must be str or int, not %s' % type(cf))
+    return cf
+
+
+class Transform(dict):
+    """A transform
+
+    Parameters
+    ----------
+    fro : str | int
+        The starting coordinate frame.
+    to : str | int
+        The ending coordinate frame.
+    trans : array-like, shape (4, 4)
+        The transformation matrix.
+    """
+    def __init__(self, fro, to, trans):
+        super(Transform, self).__init__()
+        # we could add some better sanity checks here
+        fro = _to_const(fro)
+        to = _to_const(to)
+        trans = np.asarray(trans, dtype=np.float64)
+        if trans.shape != (4, 4):
+            raise ValueError('Transformation must be shape (4, 4) not %s'
+                             % (trans.shape,))
+        self['from'] = fro
+        self['to'] = to
+        self['trans'] = trans
+
+    def __repr__(self):
+        return ('<Transform  |  %s->%s>\n%s'
+                % (_coord_frame_name(self['from']),
+                   _coord_frame_name(self['to']), self['trans']))
+
+
 def _coord_frame_name(cframe):
-    """Map integers to human-readable names"""
-    types = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
-             FIFF.FIFFV_COORD_DEVICE: 'MEG device',
-             FIFF.FIFFV_COORD_ISOTRAK: 'isotrak',
-             FIFF.FIFFV_COORD_HPI: 'hpi',
-             FIFF.FIFFV_COORD_HEAD: 'head',
-             FIFF.FIFFV_COORD_MRI: 'MRI (surface RAS)',
-             FIFF.FIFFV_MNE_COORD_MRI_VOXEL: 'MRI voxel',
-             FIFF.FIFFV_COORD_MRI_SLICE: 'MRI slice',
-             FIFF.FIFFV_COORD_MRI_DISPLAY: 'MRI display',
-             FIFF.FIFFV_MNE_COORD_CTF_DEVICE: 'CTF MEG device',
-             FIFF.FIFFV_MNE_COORD_CTF_HEAD: 'CTF/4D/KIT head',
-             FIFF.FIFFV_MNE_COORD_RAS: 'RAS (non-zero origin)',
-             FIFF.FIFFV_MNE_COORD_MNI_TAL: 'MNI Talairach',
-             FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: 'Talairach (MNI z > 0)',
-             FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: 'Talairach (MNI z < 0)',
-             -1: 'unknown'}
-    return types.get(int(cframe), 'unknown')
+    """Map integers to human-readable (verbose) names"""
+    return _verbose_frames.get(int(cframe), 'unknown')
 
 
 def _print_coord_trans(t, prefix='Coordinate transformation: '):
@@ -80,7 +135,7 @@ def apply_trans(trans, pts, move=True):
 
     Parameters
     ----------
-    trans : array, shape = (4, 4)
+    trans : array, shape = (4, 4) | instance of Transform
         Transform matrix.
     pts : array, shape = (3,) | (n, 3)
         Array with coordinates for one or n points.
@@ -92,6 +147,8 @@ def apply_trans(trans, pts, move=True):
     transformed_pts : shape = (3,) | (n, 3)
         Transformed point(s).
     """
+    if isinstance(trans, dict):
+        trans = trans['trans']
     trans = np.asarray(trans)
     pts = np.asarray(pts)
     if pts.size == 0:
@@ -229,8 +286,37 @@ def translation(x=0, y=0, z=0):
     return m
 
 
+def _ensure_trans(trans, fro='mri', to='head'):
+    """Helper to ensure we have the proper transform"""
+    if isinstance(fro, string_types):
+        from_str = fro
+        from_const = _str_to_frame[fro]
+    else:
+        from_str = _frame_to_str[fro]
+        from_const = fro
+    del fro
+    if isinstance(to, string_types):
+        to_str = to
+        to_const = _str_to_frame[to]
+    else:
+        to_str = _frame_to_str[to]
+        to_const = to
+    del to
+    err_str = 'trans must go %s<->%s, provided' % (from_str, to_str)
+    if trans is None:
+        raise ValueError('%s None' % err_str)
+    if set([trans['from'], trans['to']]) != set([from_const, to_const]):
+        raise ValueError('%s trans is %s->%s' % (err_str,
+                                                 _frame_to_str[trans['from']],
+                                                 _frame_to_str[trans['to']]))
+    if trans['from'] != from_const:
+        trans = invert_transform(trans)
+    return trans
+
+
 def _get_mri_head_t(trans):
     """Get mri_head_t (from=mri, to=head) from mri filename"""
+    print(trans)
     if isinstance(trans, string_types):
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
@@ -242,24 +328,18 @@ def _get_mri_head_t(trans):
             if t.ndim != 2 or t.shape != (4, 4):
                 raise RuntimeError('File "%s" did not have 4x4 entries'
                                    % trans)
-            mri_head_t = {'from': FIFF.FIFFV_COORD_HEAD,
-                          'to': FIFF.FIFFV_COORD_MRI, 'trans': t}
+            mri_head_t = Transform('head', 'mri', t)
     elif isinstance(trans, dict):
         mri_head_t = trans
         trans = 'dict'
     elif trans is None:
-        mri_head_t = {'from': FIFF.FIFFV_COORD_HEAD,
-                      'to': FIFF.FIFFV_COORD_MRI, 'trans': np.eye(4)}
+        mri_head_t = Transform('head', 'mri', np.eye(4))
         trans = 'identity'
     else:
         raise ValueError('trans type %s not known, must be str, dict, or None'
                          % type(trans))
     # it's usually a head->MRI transform, so we probably need to invert it
-    if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
-        mri_head_t = invert_transform(mri_head_t)
-    if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
-            mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
-        raise RuntimeError('Incorrect MRI transform provided')
+    mri_head_t = _ensure_trans(mri_head_t, 'mri', 'head')
     return mri_head_t, trans
 
 
@@ -282,6 +362,8 @@ def combine_transforms(t_first, t_second, fro, to):
     trans : dict
         Combined transformation.
     """
+    fro = _to_const(fro)
+    to = _to_const(to)
     if t_first['from'] != fro:
         raise RuntimeError('From mismatch: %s ("%s") != %s ("%s")'
                            % (t_first['from'],
@@ -298,8 +380,7 @@ def combine_transforms(t_first, t_second, fro, to):
                            % (t_second['to'],
                               _coord_frame_name(t_second['to']),
                               to, _coord_frame_name(to)))
-    return {'from': fro, 'to': to, 'trans': np.dot(t_second['trans'],
-                                                   t_first['trans'])}
+    return Transform(fro, to, np.dot(t_second['trans'], t_first['trans']))
 
 
 def read_trans(fname):
@@ -318,11 +399,7 @@ def read_trans(fname):
     See Also
     --------
     write_trans
-
-    Notes
-    -----
-    The trans dictionary has the following structure:
-    trans = {'from': int, 'to': int, 'trans': numpy.ndarray <4x4>}
+    Transform
     """
     fid, tree, directory = fiff_open(fname)
 
@@ -371,13 +448,7 @@ def invert_transform(trans):
     inv_trans : dict
         Inverse transform.
     """
-    return {'to': trans['from'], 'from': trans['to'],
-            'trans': linalg.inv(trans['trans'])}
-
-
-_frame_dict = dict(meg=FIFF.FIFFV_COORD_DEVICE,
-                   mri=FIFF.FIFFV_COORD_MRI,
-                   head=FIFF.FIFFV_COORD_HEAD)
+    return Transform(trans['to'], trans['from'], linalg.inv(trans['trans']))
 
 
 def transform_surface_to(surf, dest, trans):
@@ -399,25 +470,21 @@ def transform_surface_to(surf, dest, trans):
         Transformed source space. Data are modified in-place.
     """
     if isinstance(dest, string_types):
-        if dest not in _frame_dict:
+        if dest not in _str_to_frame:
             raise KeyError('dest must be one of %s, not "%s"'
-                           % (list(_frame_dict.keys()), dest))
-        dest = _frame_dict[dest]  # convert to integer
+                           % (list(_str_to_frame.keys()), dest))
+        dest = _str_to_frame[dest]  # convert to integer
     if surf['coord_frame'] == dest:
         return surf
 
-    if trans['to'] == surf['coord_frame'] and trans['from'] == dest:
-        trans = invert_transform(trans)
-    elif trans['from'] != surf['coord_frame'] or trans['to'] != dest:
-        raise ValueError('Cannot transform the source space using this '
-                         'coordinate transformation')
-
+    trans = _ensure_trans(trans, int(surf['coord_frame']), dest)
     surf['coord_frame'] = dest
-    surf['rr'] = apply_trans(trans['trans'], surf['rr'])
-    surf['nn'] = apply_trans(trans['trans'], surf['nn'], move=False)
+    surf['rr'] = apply_trans(trans, surf['rr'])
+    surf['nn'] = apply_trans(trans, surf['nn'], move=False)
     return surf
 
 
+@deprecated('transform_coordinates is deprecated and will be removed in v0.11')
 def transform_coordinates(filename, pos, orig, dest):
     """Transform coordinates between various MRI-related coordinate frames
 
@@ -576,6 +643,7 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
     return trans
 
 
+@deprecated('collect_transforms is deprecated and will be removed in v0.11')
 def collect_transforms(fname, xforms):
     """Collect a set of transforms in a single FIFF file
 

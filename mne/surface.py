@@ -30,7 +30,9 @@ from .externals.six import string_types
 ###############################################################################
 # AUTOMATED SURFACE FINDING
 
-def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None):
+@verbose
+def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
+                  verbose=None):
     """Load the subject head surface
 
     Parameters
@@ -47,6 +49,8 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None):
     subjects_dir : str, or None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -64,7 +68,8 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None):
                                         '%s-%s.fif' % (subject, this_source)))
         if op.exists(this_head):
             surf = read_bem_surfaces(this_head, True,
-                                     FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                                     FIFF.FIFFV_BEM_SURF_ID_HEAD,
+                                     verbose=False)
         else:
             # let's do a more sophisticated search
             path = op.join(subjects_dir, subject, 'bem')
@@ -76,7 +81,8 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None):
             for this_head in files:
                 try:
                     surf = read_bem_surfaces(this_head, True,
-                                             FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                                             FIFF.FIFFV_BEM_SURF_ID_HEAD,
+                                             verbose=False)
                 except ValueError:
                     pass
                 else:
@@ -87,10 +93,12 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None):
     if surf is None:
         raise IOError('No file matching "%s*%s" and containing a head '
                       'surface found' % (subject, this_source))
+    logger.info('Using surface from %s' % this_head)
     return surf
 
 
-def get_meg_helmet_surf(info, trans=None):
+@verbose
+def get_meg_helmet_surf(info, trans=None, verbose=None):
     """Load the MEG helmet associated with the MEG sensors
 
     Parameters
@@ -101,6 +109,8 @@ def get_meg_helmet_surf(info, trans=None):
         The head<->MRI transformation, usually obtained using
         read_trans(). Can be None, in which case the surface will
         be in head coordinates instead of MRI coordinates.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -108,9 +118,11 @@ def get_meg_helmet_surf(info, trans=None):
         The MEG helmet as a surface.
     """
     system = _get_meg_system(info)
+    logger.info('Getting helmet for system %s' % system)
     fname = op.join(op.split(__file__)[0], 'data', 'helmets',
                     system + '.fif.gz')
-    surf = read_bem_surfaces(fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET)
+    surf = read_bem_surfaces(fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET,
+                             verbose=False)
 
     # Ignore what the file says, it's in device coords and we want MRI coords
     surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE

@@ -873,11 +873,10 @@ def read_meas_info(fid, tree, verbose=None):
     info['ctf_head_t'] = ctf_head_t
     info['dev_ctf_t'] = dev_ctf_t
     if dev_head_t is not None and ctf_head_t is not None and dev_ctf_t is None:
+        from ..transforms import Transform
         head_ctf_trans = linalg.inv(ctf_head_t['trans'])
         dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
-        info['dev_ctf_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                             'to': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                             'trans': dev_ctf_trans}
+        info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 
     #   All kinds of auxliary stuff
     info['dig'] = dig
@@ -1384,6 +1383,7 @@ RAW_INFO_FIELDS = (
 
 def _empty_info():
     """Create an empty info dictionary"""
+    from ..transforms import Transform
     _none_keys = (
         'acq_pars', 'acq_stim', 'buffer_size_sec', 'ctf_head_t', 'description',
         'dev_ctf_t', 'dig', 'experimenter',
@@ -1402,8 +1402,7 @@ def _empty_info():
         info[k] = list()
     info['custom_ref_applied'] = False
     info['nchan'] = info['sfreq'] = 0
-    info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                          'to': FIFF.FIFFV_COORD_HEAD, 'trans': np.eye(4)}
+    info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
     info._check_consistency()
     return info

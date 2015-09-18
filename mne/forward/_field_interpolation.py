@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
@@ -259,12 +261,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         raise ValueError('mode must be "accurate" or "fast", not "%s"' % mode)
 
     # deal with coordinate frames here -- always go to "head" (easiest)
-    if surf['coord_frame'] == FIFF.FIFFV_COORD_MRI:
-        if trans is None or FIFF.FIFFV_COORD_MRI not in [trans['to'],
-                                                         trans['from']]:
-            raise ValueError('trans must be a Head<->MRI transform if the '
-                             'surface is not in head coordinates.')
-        surf = transform_surface_to(deepcopy(surf), 'head', trans)
+    surf = transform_surface_to(deepcopy(surf), 'head', trans)
 
     n_jobs = check_n_jobs(n_jobs)
 

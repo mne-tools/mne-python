@@ -9,7 +9,7 @@ from numpy.testing import assert_almost_equal, assert_equal, assert_allclose
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
-                 make_sphere_model)
+                 make_sphere_model, Transform)
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import rotation
@@ -209,11 +209,7 @@ def test_fit_sphere_to_headshape():
     ]
 
     # Device to head transformation (rotate .2 rad over X-axis)
-    dev_head_t = {
-        'from': FIFF.FIFFV_COORD_DEVICE,
-        'to': FIFF.FIFFV_COORD_HEAD,
-        'trans': rotation(x=0.2),
-    }
+    dev_head_t = Transform('meg', 'head', rotation(x=0.2))
 
     info = {'dig': dig, 'dev_head_t': dev_head_t}
 

@@ -35,6 +35,7 @@ Classes
    Dipole
    Label
    BiHemiLabel
+   Transform
    preprocessing.ICA
    decoding.CSP
    decoding.Scaler
@@ -722,7 +723,6 @@ Source Space Data
    save_stc_as_volume
    split_label
    stc_to_label
-   transform_coordinates
    transform_surface_to
    vertex_to_mni
    write_labels_to_annot

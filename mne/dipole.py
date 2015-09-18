@@ -9,12 +9,11 @@ from copy import deepcopy
 import re
 
 from .cov import read_cov, _get_whitener_data
-from .io.constants import FIFF
 from .io.pick import pick_types, channel_type
 from .io.proj import make_projector, _has_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
-                         apply_trans, invert_transform)
+                         apply_trans, invert_transform, Transform)
 
 from .forward._make_forward import (_get_mri_head_t, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
@@ -600,8 +599,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         logger.info('MRI transform    : %s' % trans)
         mri_head_t, trans = _get_mri_head_t(trans)
     else:
-        mri_head_t = {'from': FIFF.FIFFV_COORD_HEAD,
-                      'to': FIFF.FIFFV_COORD_MRI, 'trans': np.eye(4)}
+        mri_head_t = Transform('head', 'mri', np.eye(4))
     bem = _setup_bem(bem, bem, neeg, mri_head_t)
     if not bem['is_sphere']:
         if trans is None:

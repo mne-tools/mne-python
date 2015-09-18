@@ -19,7 +19,7 @@ from ..pick import pick_types
 from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
-                           get_ras_to_neuromag_trans)
+                           get_ras_to_neuromag_trans, Transform)
 from ..base import _BaseRaw
 from ...epochs import _BaseEpochs
 from ..constants import FIFF
@@ -511,8 +511,7 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
     elp = elp[3:]
 
     dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp)
-    dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE, 'to': FIFF.FIFFV_COORD_HEAD,
-                  'trans': trans}
+    dev_head_t = Transform('meg', 'head', trans)
 
     return dig_points, dev_head_t
 
