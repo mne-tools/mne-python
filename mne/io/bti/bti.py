@@ -151,7 +151,7 @@ def _flip_fiducials(idx_points_nm):
     return idx_points_nm
 
 
-def _processes_bti_headshape(fname, use_hpi=True):
+def _processes_bti_headshape(fname, convert=True, use_hpi=True):
     """Read index points and dig points from BTi head shape file
 
     Parameters
@@ -171,38 +171,51 @@ def _processes_bti_headshape(fname, use_hpi=True):
         The transformation that was used.
     """
     idx_points, dig_points = _read_head_shape(fname)
-
     ctf_head_t = _get_ctf_head_to_head_t(idx_points)
 
-    idx_points = apply_trans(ctf_head_t['trans'], idx_points)
-    idx_points = _flip_fiducials(idx_points)
     if dig_points is not None:
-        dig_points = apply_trans(ctf_head_t['trans'], dig_points)
-        all_points = np.r_[idx_points, dig_points].astype('>f4')
+        # dig_points = apply_trans(ctf_head_t['trans'], dig_points)
+        all_points = np.r_[idx_points, dig_points]
     else:
         all_points = idx_points
 
-    idx_idents = list(range(1, 4)) + list(range(1, (len(idx_points) + 1) - 3))
+    if convert:
+        all_points = _convert_hs_points(all_points, ctf_head_t)
+
+    dig = _points_to_dig(all_points, len(idx_points), use_hpi)
+    return dig, ctf_head_t
+
+
+def _convert_hs_points(points, t):
+    """convert to Neuromag"""
+    points = apply_trans(t['trans'], points)
+    points = _flip_fiducials(points).astype(np.float32)
+    return points
+
+
+def _points_to_dig(points, n_idx_points, use_hpi):
+    """Put points in info dig structure"""
+    idx_idents = list(range(1, 4)) + list(range(1, (n_idx_points + 1) - 3))
     dig = []
-    for idx in range(all_points.shape[0]):
+    for idx in range(points.shape[0]):
         point_info = dict(zip(FIFF_INFO_DIG_FIELDS, FIFF_INFO_DIG_DEFAULTS))
-        point_info['r'] = all_points[idx]
+        point_info['r'] = points[idx]
         if idx < 3:
             point_info['kind'] = FIFF.FIFFV_POINT_CARDINAL
             point_info['ident'] = idx_idents[idx]
-        if 2 < idx < len(idx_points) and use_hpi:
+        if 2 < idx < n_idx_points and use_hpi:
             point_info['kind'] = FIFF.FIFFV_POINT_HPI
             point_info['ident'] = idx_idents[idx]
         elif idx > 4:
             point_info['kind'] = FIFF.FIFFV_POINT_EXTRA
             point_info['ident'] = (idx + 1) - len(idx_idents)
 
-        if 2 < idx < len(idx_points) and not use_hpi:
+        if 2 < idx < n_idx_points and not use_hpi:
             pass
         else:
             dig += [point_info]
 
-    return dig, ctf_head_t
+    return dig
 
 
 def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
@@ -1118,7 +1131,7 @@ class RawBTi(_BaseRaw):
             logger.info('... putting digitization points in Neuromag c'
                         'oordinates')
             info['dig'], ctf_head_t = _processes_bti_headshape(
-                head_shape_fname, use_hpi)
+                head_shape_fname, use_hpi=use_hpi)
 
             logger.info('... Computing new device to head transform.')
             # DEV->CTF_DEV->CTF_HEAD->HEAD
@@ -1197,7 +1210,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
            include them by yourself.
         2. The informed guess for the 4D name is E31 for the ECG channel and
            E63, E63 for the EOG channels. Pleas check and adjust if those
-           channels are present in your dataset but 'ECG101' and 'EOG 01',
+           channels are present in your dataset but 'ECG 01' and 'EOG 01',
            'EOG 02' don't appear in the channel names of the raw object.
 
     Parameters
@@ -1234,4 +1247,5 @@ def read_raw_bti(pdf_fname, config_fname='config',
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
                   rotation_x=rotation_x, translation=translation,
+                #   convert=
                   verbose=verbose)
