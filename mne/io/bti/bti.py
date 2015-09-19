@@ -993,7 +993,7 @@ class RawBTi(_BaseRaw):
         The translation to place the origin of coordinate system
         to the center of the head. Ignored if convert is True.
     convert : bool
-        Convert to Neuromag or not.
+        Convert to Neuromag coordinates or not.
     ecg_ch: str | None
         The 4D name of the ECG channel. If None, the channel will be treated
         as regular EEG channel.
@@ -1037,13 +1037,14 @@ class RawBTi(_BaseRaw):
 
         dev_ctf_t = Transform('ctf_meg', 'ctf_head',
                               _correct_trans(bti_info['bti_transform'][0]))
-        # for old backward compatibility
+
+        # for old backward compatibility and external processing
         rotation_x = 0. if rotation_x is None else rotation_x
         if convert:
-            bti_dev_t = Transform('ctf_meg', 'meg',
-                                  _get_bti_dev_t(rotation_x, translation))
+            bti_dev_t = _get_bti_dev_t(rotation_x, translation)
         else:
             bti_dev_t = np.eye(4)
+        bti_dev_t = Transform('ctf_meg', 'meg', bti_dev_t)
 
         use_hpi = False  # hard coded, but marked as later option.
         logger.info('Creating Neuromag info structure ...')
@@ -1090,7 +1091,7 @@ class RawBTi(_BaseRaw):
                     if convert:
                         t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
                     loc = _trans_to_loc(t)
-                    if idx == 1:
+                    if idx == 1 and convert:
                         logger.info('... putting coil transforms in Neuromag '
                                     'coordinates')
                 chan_info['coil_trans'] = t
@@ -1247,7 +1248,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
         The translation to place the origin of coordinate system
         to the center of the head. Ignored if convert is True.
     convert : bool
-        Convert to Neuromag or not.
+        Convert to Neuromag coordinates or not.
     ecg_ch: str | None
         The 4D name of the ECG channel. If None, the channel will be treated
         as regular EEG channel.

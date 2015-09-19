@@ -152,7 +152,7 @@ def test_raw():
 
 
 def test_no_conversion():
-    """ Test bti conversion to Raw object """
+    """ Test bti no-conversion option """
     for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
         raw = read_raw_bti(pdf, config, hs, convert=False)
         raw_con = read_raw_bti(pdf, config, hs, convert=True)
@@ -174,7 +174,6 @@ def test_no_conversion():
             if ii > 10:
                 break
 
-        chs = bti_info['chs']
         ch_map = dict((ch['chan_label'],
                        ch['coil_trans']) for ch in bti_info['chs'])
 
