@@ -171,7 +171,10 @@ def _processes_bti_headshape(fname, convert=True, use_hpi=True):
         The transformation that was used.
     """
     idx_points, dig_points = _read_head_shape(fname)
-    ctf_head_t = _get_ctf_head_to_head_t(idx_points)
+    if convert:
+        ctf_head_t = _get_ctf_head_to_head_t(idx_points)
+    else:
+        ctf_head_t = Transform('ctf_head', 'ctf_head', np.eye(4))
 
     if dig_points is not None:
         # dig_points = apply_trans(ctf_head_t['trans'], dig_points)
@@ -223,8 +226,12 @@ def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
     t = combine_transforms(invert_transform(dev_ctf_t), bti_dev_t,
                            'ctf_head', 'meg')
     t = np.dot(t['trans'], coil_trans)
-    loc = np.roll(t.T[:, :3], 1, 0).flatten()
-    return t, loc
+    return t
+
+
+def _trans_to_loc(t):
+    """put coil_trans in loc vector"""
+    return np.roll(t.T[:, :3], 1, 0).flatten()
 
 
 def _correct_offset(fid):
@@ -980,10 +987,13 @@ class RawBTi(_BaseRaw):
     head_shape_fname : str | None
         Path to the head shape file.
     rotation_x : float
-        Degrees to tilt x-axis for sensor frame misalignment.
+        Degrees to tilt x-axis for sensor frame misalignment. Ignored
+        if convert is True.
     translation : array-like, shape (3,)
         The translation to place the origin of coordinate system
-        to the center of the head.
+        to the center of the head. Ignored if convert is True.
+    convert : bool
+        Convert to Neuromag or not.
     ecg_ch: str | None
         The 4D name of the ECG channel. If None, the channel will be treated
         as regular EEG channel.
@@ -996,8 +1006,8 @@ class RawBTi(_BaseRaw):
     @verbose
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
-                 translation=(0.0, 0.02, 0.11), ecg_ch='E31',
-                 eog_ch=('E63', 'E64'), verbose=None):
+                 translation=(0.0, 0.02, 0.11), convert=True,
+                 ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
 
         if not op.isabs(pdf_fname):
             pdf_fname = op.abspath(pdf_fname)
@@ -1029,8 +1039,11 @@ class RawBTi(_BaseRaw):
                               _correct_trans(bti_info['bti_transform'][0]))
         # for old backward compatibility
         rotation_x = 0. if rotation_x is None else rotation_x
-        bti_dev_t = Transform('ctf_meg', 'meg',
-                              _get_bti_dev_t(rotation_x, translation))
+        if convert:
+            bti_dev_t = Transform('ctf_meg', 'meg',
+                                  _get_bti_dev_t(rotation_x, translation))
+        else:
+            bti_dev_t = np.eye(4)
 
         use_hpi = False  # hard coded, but marked as later option.
         logger.info('Creating Neuromag info structure ...')
@@ -1074,7 +1087,9 @@ class RawBTi(_BaseRaw):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
                 if t is not None:
                     t = _correct_trans(t)
-                    t, loc = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
+                    if convert:
+                        t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
+                    loc = _trans_to_loc(t)
                     if idx == 1:
                         logger.info('... putting coil transforms in Neuromag '
                                     'coordinates')
@@ -1128,16 +1143,20 @@ class RawBTi(_BaseRaw):
         if head_shape_fname:
             logger.info('... Reading digitization points from %s' %
                         head_shape_fname)
-            logger.info('... putting digitization points in Neuromag c'
-                        'oordinates')
+            if convert:
+                logger.info('... putting digitization points in Neuromag c'
+                            'oordinates')
             info['dig'], ctf_head_t = _processes_bti_headshape(
-                head_shape_fname, use_hpi=use_hpi)
+                head_shape_fname, convert=convert, use_hpi=use_hpi)
 
             logger.info('... Computing new device to head transform.')
             # DEV->CTF_DEV->CTF_HEAD->HEAD
-            t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
-                                   'meg', 'ctf_head')
-            dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
+            if convert:
+                t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
+                                       'meg', 'ctf_head')
+                dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
+            else:
+                dev_head_t = Transform('meg', 'head', np.eye(4))
             logger.info('Done.')
         else:
             logger.info('... no headshape file supplied, doing nothing.')
@@ -1199,8 +1218,8 @@ class RawBTi(_BaseRaw):
 @verbose
 def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
-                 translation=(0.0, 0.02, 0.11), ecg_ch='E31',
-                 eog_ch=('E63', 'E64'), verbose=None):
+                 translation=(0.0, 0.02, 0.11), convert=True,
+                 ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     .. note::
@@ -1222,10 +1241,13 @@ def read_raw_bti(pdf_fname, config_fname='config',
     head_shape_fname : str | None
         Path to the head shape file.
     rotation_x : float
-        Degrees to tilt x-axis for sensor frame misalignment.
+        Degrees to tilt x-axis for sensor frame misalignment. Ignored
+        if convert is True.
     translation : array-like, shape (3,)
         The translation to place the origin of coordinate system
-        to the center of the head.
+        to the center of the head. Ignored if convert is True.
+    convert : bool
+        Convert to Neuromag or not.
     ecg_ch: str | None
         The 4D name of the ECG channel. If None, the channel will be treated
         as regular EEG channel.
@@ -1247,5 +1269,5 @@ def read_raw_bti(pdf_fname, config_fname='config',
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
                   rotation_x=rotation_x, translation=translation,
-                #   convert=
+                  convert=convert,
                   verbose=verbose)

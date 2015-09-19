@@ -14,7 +14,8 @@ from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.io import Raw as Raw
 from mne.io.bti.bti import (_read_config, _processes_bti_headshape,
-                            _read_data, _read_bti_header, _get_bti_dev_t)
+                            _read_data, _read_bti_header, _get_bti_dev_t,
+                            _correct_trans)
 from mne.io import read_raw_bti
 from mne import concatenate_raws
 from mne.utils import run_tests_if_main
@@ -148,6 +149,43 @@ def test_raw():
             # cehck that matrix by is not identity
             assert_true(not np.allclose(this_t, np.eye(4)))
         os.remove(tmp_raw_fname)
+
+
+def test_no_conversion():
+    """ Test bti conversion to Raw object """
+    for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
+        raw = read_raw_bti(pdf, config, hs, convert=False)
+        raw_con = read_raw_bti(pdf, config, hs, convert=True)
+
+        bti_info = _read_bti_header(pdf, config)
+        dev_ctf_t = _correct_trans(bti_info['bti_transform'][0])
+        assert_array_equal(dev_ctf_t, raw.info['dev_ctf_t']['trans'])
+        assert_array_equal(raw.info['dev_head_t']['trans'], np.eye(4))
+        assert_array_equal(raw.info['ctf_head_t']['trans'], np.eye(4))
+        dig, t = _processes_bti_headshape(hs, convert=False, use_hpi=False)
+        assert_array_equal(t['trans'], np.eye(4))
+
+        for ii, (old, new, con) in enumerate(zip(
+                dig, raw.info['dig'], raw_con.info['dig'])):
+            assert_equal(old['ident'], new['ident'])
+            assert_array_equal(old['r'], new['r'])
+            assert_true(not np.allclose(old['r'], con['r']))
+
+            if ii > 10:
+                break
+
+        chs = bti_info['chs']
+        ch_map = dict((ch['chan_label'],
+                       ch['coil_trans']) for ch in bti_info['chs'])
+
+        for ii, ch_label in enumerate(raw.bti_ch_labels):
+            if not ch_label.startswith('A'):
+                continue
+            t1 = _correct_trans(ch_map[ch_label])
+            t2 = raw.info['chs'][ii]['coil_trans']
+            t3 = raw_con.info['chs'][ii]['coil_trans']
+            assert_array_equal(t1, t2)
+            assert_true(not np.allclose(t1, t3))
 
 
 def test_setup_headshape():
