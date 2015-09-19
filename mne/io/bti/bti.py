@@ -1012,7 +1012,6 @@ class RawBTi(_BaseRaw):
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
         bti_info = _read_bti_header(pdf_fname, config_fname)
 
-        # XXX indx is informed guess. Normally only one transform is stored.
         dev_ctf_t = Transform('ctf_meg', 'ctf_head',
                               _correct_trans(bti_info['bti_transform'][0]))
         # for old backward compatibility
@@ -1120,6 +1119,7 @@ class RawBTi(_BaseRaw):
                         'oordinates')
             info['dig'], ctf_head_t = _setup_head_shape(
                 head_shape_fname, use_hpi)
+
             logger.info('... Computing new device to head transform.')
             # DEV->CTF_DEV->CTF_HEAD->HEAD
             t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
@@ -1197,7 +1197,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
            include them by yourself.
         2. The informed guess for the 4D name is E31 for the ECG channel and
            E63, E63 for the EOG channels. Pleas check and adjust if those
-           channels are present in your dataset but 'ECG 01' and 'EOG 01',
+           channels are present in your dataset but 'ECG101' and 'EOG 01',
            'EOG 02' don't appear in the channel names of the raw object.
 
     Parameters
