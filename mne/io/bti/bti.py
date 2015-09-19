@@ -126,7 +126,7 @@ def _read_head_shape(fname):
     return idx_points, dig_points
 
 
-def _convert_head_shape(idx_points, dig_points):
+def _get_ctf_head_to_head_t(idx_points):
     """ Helper function """
 
     fp = idx_points.astype('>f8')
@@ -141,25 +141,17 @@ def _convert_head_shape(idx_points, dig_points):
                   [dsin, dcos, 0., 0.],
                   [0., 0., 1., 0.],
                   [0., 0., 0., 1.]])
-    t = Transform('ctf_head', 'head', t)
+    return Transform('ctf_head', 'head', t)
 
-    idx_points_nm = np.ones((len(fp), 3), dtype='>f8')
-    for idx, f in enumerate(fp):
-        idx_points_nm[idx, 0] = dcos * f[0] - dsin * f[1] + dt
-        idx_points_nm[idx, 1] = dsin * f[0] + dcos * f[1]
-        idx_points_nm[idx, 2] = f[2]
 
+def _flip_fiducials(idx_points_nm):
     # adjust order of fiducials to Neuromag
-    # XXX prsumably swap LPA and RPA
+    # XXX presumably swap LPA and RPA
     idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
-    if dig_points is not None:
-        dig_points_nm = apply_trans(t['trans'], dig_points)
-    else:
-        dig_points_nm = None
-    return idx_points_nm, dig_points_nm, t
+    return idx_points_nm
 
 
-def _setup_head_shape(fname, use_hpi=True):
+def _processes_bti_headshape(fname, use_hpi=True):
     """Read index points and dig points from BTi head shape file
 
     Parameters
@@ -179,8 +171,16 @@ def _setup_head_shape(fname, use_hpi=True):
         The transformation that was used.
     """
     idx_points, dig_points = _read_head_shape(fname)
-    idx_points, dig_points, t = _convert_head_shape(idx_points, dig_points)
-    all_points = np.r_[idx_points, dig_points].astype('>f4')
+
+    ctf_head_t = _get_ctf_head_to_head_t(idx_points)
+
+    idx_points = apply_trans(ctf_head_t['trans'], idx_points)
+    idx_points = _flip_fiducials(idx_points)
+    if dig_points is not None:
+        dig_points = apply_trans(ctf_head_t['trans'], dig_points)
+        all_points = np.r_[idx_points, dig_points].astype('>f4')
+    else:
+        all_points = idx_points
 
     idx_idents = list(range(1, 4)) + list(range(1, (len(idx_points) + 1) - 3))
     dig = []
@@ -202,7 +202,7 @@ def _setup_head_shape(fname, use_hpi=True):
         else:
             dig += [point_info]
 
-    return dig, t
+    return dig, ctf_head_t
 
 
 def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
@@ -949,8 +949,8 @@ def _read_data(info, start=None, stop=None):
 def _correct_trans(t):
     """Helper to convert to a transformation matrix"""
     t = np.array(t, np.float64)
-    t[:3, :3] *= t[3, :3][:, np.newaxis]
-    t[3, :3] = 0.
+    t[:3, :3] *= t[3, :3][:, np.newaxis]  # apply scalings
+    t[3, :3] = 0.  # remove them
     assert t[3, 3] == 1.
     return t
 
@@ -1117,7 +1117,7 @@ class RawBTi(_BaseRaw):
                         head_shape_fname)
             logger.info('... putting digitization points in Neuromag c'
                         'oordinates')
-            info['dig'], ctf_head_t = _setup_head_shape(
+            info['dig'], ctf_head_t = _processes_bti_headshape(
                 head_shape_fname, use_hpi)
 
             logger.info('... Computing new device to head transform.')

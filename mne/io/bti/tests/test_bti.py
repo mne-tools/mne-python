@@ -13,7 +13,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.io import Raw as Raw
-from mne.io.bti.bti import (_read_config, _setup_head_shape,
+from mne.io.bti.bti import (_read_config, _processes_bti_headshape,
                             _read_data, _read_bti_header, _get_bti_dev_t)
 from mne.io import read_raw_bti
 from mne import concatenate_raws
@@ -93,7 +93,6 @@ def test_transforms():
         assert_array_equal(dev_head_t_new['trans'], dev_head_t_old['trans'])
 
 
-
 def test_raw():
     """ Test bti conversion to Raw object """
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,
@@ -111,8 +110,7 @@ def test_raw():
                                   ra.info['dev_head_t']['trans'], 7)
         dig1, dig2 = [np.array([d['r'] for d in r_.info['dig']])
                       for r_ in (ra, ex)]
-        assert_array_equal(dig1, dig2)
-
+        assert_array_almost_equal(dig1, dig2, 18)
         coil1, coil2 = [np.concatenate([d['coil_trans'].flatten()
                         for d in r_.info['chs'][:NCH]])
                         for r_ in (ra, ex)]
@@ -151,10 +149,11 @@ def test_raw():
             assert_true(not np.allclose(this_t, np.eye(4)))
         os.remove(tmp_raw_fname)
 
+
 def test_setup_headshape():
     """ Test reading bti headshape """
     for hs in hs_fnames:
-        dig, t = _setup_head_shape(hs)
+        dig, t = _processes_bti_headshape(hs)
         expected = set(['kind', 'ident', 'r'])
         found = set(reduce(lambda x, y: list(x) + list(y),
                            [d.keys() for d in dig]))
