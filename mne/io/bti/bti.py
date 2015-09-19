@@ -151,7 +151,7 @@ def _flip_fiducials(idx_points_nm):
     return idx_points_nm
 
 
-def _processes_bti_headshape(fname, convert=True, use_hpi=True):
+def _process_bti_headshape(fname, convert=True, use_hpi=True):
     """Read index points and dig points from BTi head shape file
 
     Parameters
@@ -1147,7 +1147,7 @@ class RawBTi(_BaseRaw):
             if convert:
                 logger.info('... putting digitization points in Neuromag c'
                             'oordinates')
-            info['dig'], ctf_head_t = _processes_bti_headshape(
+            info['dig'], ctf_head_t = _process_bti_headshape(
                 head_shape_fname, convert=convert, use_hpi=use_hpi)
 
             logger.info('... Computing new device to head transform.')

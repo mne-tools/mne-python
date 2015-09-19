@@ -13,7 +13,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.io import Raw as Raw
-from mne.io.bti.bti import (_read_config, _processes_bti_headshape,
+from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_data, _read_bti_header, _get_bti_dev_t,
                             _correct_trans)
 from mne.io import read_raw_bti
@@ -162,7 +162,7 @@ def test_no_conversion():
         assert_array_equal(dev_ctf_t, raw.info['dev_ctf_t']['trans'])
         assert_array_equal(raw.info['dev_head_t']['trans'], np.eye(4))
         assert_array_equal(raw.info['ctf_head_t']['trans'], np.eye(4))
-        dig, t = _processes_bti_headshape(hs, convert=False, use_hpi=False)
+        dig, t = _process_bti_headshape(hs, convert=False, use_hpi=False)
         assert_array_equal(t['trans'], np.eye(4))
 
         for ii, (old, new, con) in enumerate(zip(
@@ -190,7 +190,7 @@ def test_no_conversion():
 def test_setup_headshape():
     """ Test reading bti headshape """
     for hs in hs_fnames:
-        dig, t = _processes_bti_headshape(hs)
+        dig, t = _process_bti_headshape(hs)
         expected = set(['kind', 'ident', 'r'])
         found = set(reduce(lambda x, y: list(x) + list(y),
                            [d.keys() for d in dig]))
