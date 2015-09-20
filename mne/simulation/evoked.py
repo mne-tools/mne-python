@@ -12,7 +12,7 @@ from ..forward import apply_forward
 from ..utils import check_random_state, verbose, _time_mask, deprecated
 
 
-@deprecated('"generate_evoked" is deprecated and will be removed in'
+@deprecated('"generate_evoked" is deprecated and will be removed in '
             'MNE-0.11. Please use simulate_evoked instead')
 def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None,
                     tmax=None, iir_filter=None, random_state=None,
@@ -57,7 +57,7 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None,
 
 
 @verbose
-def simulate_evoked(fwd, stc, info, cov, snr=3, tmin=None, tmax=None,
+def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
                     iir_filter=None, random_state=None, verbose=None):
     """Generate noisy evoked data
 
@@ -98,7 +98,7 @@ def simulate_evoked(fwd, stc, info, cov, snr=3, tmin=None, tmax=None,
     return evoked_noise
 
 
-@deprecated('"generate_noise_evoked" is deprecated and will be removed in'
+@deprecated('"generate_noise_evoked" is deprecated and will be removed in '
             'MNE-0.11. Please use simulate_noise_evoked instead')
 def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     """Creates noise as a multivariate Gaussian
@@ -107,12 +107,12 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
 
     Parameters
     ----------
-    evoked : evoked object
-        an instance of evoked used as template
-    cov : Covariance object
-        The noise covariance
+    evoked : instance of Evoked
+        An instance of evoked used as template.
+    cov : instance of Covariance
+        The noise covariance.
     iir_filter : None | array
-        IIR filter coefficients (denominator)
+        IIR filter coefficients (denominator as it is an AR filter).
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
 
@@ -122,7 +122,7 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
         an instance of evoked
     """
     from scipy.signal import lfilter
-    noise = copy.deepcopy(evoked)
+    noise = evoked.copy()
     noise_cov = pick_channels_cov(cov, include=noise.info['ch_names'])
     rng = check_random_state(random_state)
     n_channels = np.zeros(noise.info['nchan'])

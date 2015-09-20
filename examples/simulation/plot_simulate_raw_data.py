@@ -9,7 +9,7 @@ Generate simulated raw data
 #
 # License: BSD (3-clause)
 
-
+import numpy as np
 from mne import (read_proj, read_forward_solution, read_cov,
                  pick_types_forward)
 from mne.io import Raw
@@ -23,6 +23,7 @@ print(__doc__)
 data_path = sample.data_path()
 
 raw = Raw(data_path + '/MEG/sample/sample_audvis_raw.fif')
+raw.crop(0., 60.)  # only 60s of data is enough
 proj = read_proj(data_path + '/MEG/sample/sample_audvis_ecg_proj.fif')
 raw.info['projs'] += proj
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
@@ -38,8 +39,15 @@ cov = read_cov(cov_fname)
 bem_fname = (data_path +
              '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif')
 
-
 # Generate times series for 2 dipoles
+
+rng = np.random.RandomState(42)
+
+
+def data_fun(times):
+    """Function to generate random sine source time courses around 10Hz"""
+    return 1e-9 * np.sin(2. * np.pi * (10. + 2. * rng.randn(1)) * times)
+
 stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=raw.times,
                           random_state=42)
 

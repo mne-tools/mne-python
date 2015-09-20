@@ -119,7 +119,7 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
     """Generate sparse (n_dipoles) sources time courses from data_fun
 
     This function randomly selects n_dipoles vertices in the whole cortex
-    or one single vertex in each label if labels isnot None. It uses data_fun
+    or one single vertex in each label if labels is not None. It uses data_fun
     to generate waveforms for each vertex.
 
     Parameters
@@ -130,8 +130,11 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
         Number of dipoles to simulate.
     times : array
         Time array
-    data_fun :  function
-        Function to generate the waveforms. The default is `np.sin`
+    data_fun : callable
+        Function to generate the waveforms. The default is `np.sin`.
+        The function should take as input the array of time samples
+        in seconds and return an array of the same length containing
+        the time courses.
     labels : None | list of Labels
         The labels. The default is None, otherwise its size must be n_dipoles.
     random_state : None | int | np.random.RandomState
@@ -145,12 +148,8 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
     rng = check_random_state(random_state)
 
     data = np.zeros((n_dipoles, len(times)))
-    rnd = rng.randint(n_dipoles * 3, size=n_dipoles) / 2 + .5  # XXX
     for i_dip in range(n_dipoles):
-        data[i_dip, :] = data_fun(np.linspace(-np.pi * rnd[i_dip],
-                                              np.pi * rnd[i_dip],
-                                              len(times)))  # XXX
-    data *= 1e-9  # XXX do it in a function like simulate_data
+        data[i_dip, :] = data_fun(times)
 
     if labels is None:
         n_dipoles_lh = n_dipoles // 2

@@ -13,8 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from mne import (read_proj, read_forward_solution, read_cov, read_label,
-                 pick_types_forward, pick_types, read_evokeds)
-from mne.io import Raw
+                 pick_types_forward, pick_types)
+from mne.io import Raw, read_info
 from mne.datasets import sample
 from mne.time_frequency import fit_iir_model_raw
 from mne.viz import plot_sparse_source_estimates
@@ -37,37 +37,34 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 fwd = read_forward_solution(fwd_fname, force_fixed=True, surf_ori=True)
 fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
-
 cov = read_cov(cov_fname)
-
-condition = 'Left Auditory'
-evoked_template = read_evokeds(ave_fname, condition=condition, baseline=None)
-evoked_template.pick_types(meg=True, eeg=True, exclude=raw.info['bads'])
+info = read_info(ave_fname)
 
 label_names = ['Aud-lh', 'Aud-rh']
 labels = [read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
           for ln in label_names]
 
 ###############################################################################
-# Generate source time courses and the correspond evoked data
-snr = 6  # dB
-tmin = -0.1
-sfreq = raw.info['sfreq']  # Hz
-tstep = 1. / sfreq
-n_samples = 600
-times = np.arange(n_samples, dtype=np.float) * tstep + tmin
+# Generate source time courses from 2 dipoles and the correspond evoked data
 
-# Generate times series for 2 dipoles
+times = np.arange(300, dtype=np.float) / raw.info['sfreq'] - 0.1
+rng = np.random.RandomState(42)
+
+
+def data_fun(times):
+    """Function to generate random source time courses"""
+    return (1e-9 * np.sin(30. * times) *
+            np.exp(- (times - 0.15 + 0.05 * rng.randn(1)) ** 2 / 0.01))
+
 stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
-                          random_state=42, labels=labels)
-stc._data *= 100 * 1e-9  # use nAm as unit
+                          random_state=42, labels=labels, data_fun=data_fun)
 
 ###############################################################################
 # Generate noisy evoked data
 picks = pick_types(raw.info, meg=True, exclude='bads')
 iir_filter = fit_iir_model_raw(raw, order=5, picks=picks, tmin=60, tmax=180)[1]
-evoked = simulate_evoked(fwd, stc, evoked_template, cov, snr,
-                         tmin=0.0, tmax=0.2, iir_filter=iir_filter)
+snr = 6.  # dB
+evoked = simulate_evoked(fwd, stc, info, cov, snr, iir_filter=iir_filter)
 
 ###############################################################################
 # Plot

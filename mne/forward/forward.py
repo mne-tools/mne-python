@@ -1120,7 +1120,7 @@ def apply_forward(fwd, stc, info=None, start=None, stop=None,
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : dict
+    info : instance of mne.io.meas_info.Info
         Measurement info to generate the evoked.
     start : int, optional
         Index of first time sample (index not time is seconds).
@@ -1128,7 +1128,7 @@ def apply_forward(fwd, stc, info=None, start=None, stop=None,
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    evoked_template : Evoked object
+    evoked_template : Evoked object (deprecated)
         Evoked object used as template to generate the output argument.
 
     Returns
@@ -1141,19 +1141,19 @@ def apply_forward(fwd, stc, info=None, start=None, stop=None,
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
     if evoked_template is None and info is None:
-        raise ValueError('You have to provide an info dictionary.')
+        raise ValueError('You have to provide the info parameter.')
 
     if evoked_template is not None and not isinstance(evoked_template, Info):
         warnings.warn('The "evoked_template" parameter is being deprecated '
                       'and will be removed in MNE-0.11. '
-                      'Please provide evoked.info instead',
+                      'Please provide info parameter instead',
                       DeprecationWarning)
         info = evoked_template.info
 
     if info is not None and not isinstance(info, Info):
         warnings.warn('The "evoked_template" parameter is being deprecated '
                       'and will be removed in MNE-0.11. '
-                      'Please provide evoked.info instead',
+                      'Please provide info parameter instead',
                       DeprecationWarning)
         info = info.info
 
@@ -1177,6 +1177,9 @@ def apply_forward(fwd, stc, info=None, start=None, stop=None,
     evoked.last = evoked.first + evoked.data.shape[1] - 1
 
     return evoked
+
+
+# XXX : apply_forward_raw should take info and not raw_template
 
 
 @verbose
