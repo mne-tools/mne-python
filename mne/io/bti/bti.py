@@ -126,7 +126,7 @@ def _read_head_shape(fname):
     return idx_points, dig_points
 
 
-def _convert_head_shape(idx_points, dig_points):
+def _get_ctf_head_to_head_t(idx_points):
     """ Helper function """
 
     fp = idx_points.astype('>f8')
@@ -141,25 +141,17 @@ def _convert_head_shape(idx_points, dig_points):
                   [dsin, dcos, 0., 0.],
                   [0., 0., 1., 0.],
                   [0., 0., 0., 1.]])
-    t = Transform('ctf_head', 'head', t)
+    return Transform('ctf_head', 'head', t)
 
-    idx_points_nm = np.ones((len(fp), 3), dtype='>f8')
-    for idx, f in enumerate(fp):
-        idx_points_nm[idx, 0] = dcos * f[0] - dsin * f[1] + dt
-        idx_points_nm[idx, 1] = dsin * f[0] + dcos * f[1]
-        idx_points_nm[idx, 2] = f[2]
 
+def _flip_fiducials(idx_points_nm):
     # adjust order of fiducials to Neuromag
-    # XXX prsumably swap LPA and RPA
+    # XXX presumably swap LPA and RPA
     idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
-    if dig_points is not None:
-        dig_points_nm = apply_trans(t['trans'], dig_points)
-    else:
-        dig_points_nm = None
-    return idx_points_nm, dig_points_nm, t
+    return idx_points_nm
 
 
-def _setup_head_shape(fname, use_hpi=True):
+def _process_bti_headshape(fname, convert=True, use_hpi=True):
     """Read index points and dig points from BTi head shape file
 
     Parameters
@@ -179,30 +171,54 @@ def _setup_head_shape(fname, use_hpi=True):
         The transformation that was used.
     """
     idx_points, dig_points = _read_head_shape(fname)
-    idx_points, dig_points, t = _convert_head_shape(idx_points, dig_points)
-    all_points = np.r_[idx_points, dig_points].astype('>f4')
+    if convert:
+        ctf_head_t = _get_ctf_head_to_head_t(idx_points)
+    else:
+        ctf_head_t = Transform('ctf_head', 'ctf_head', np.eye(4))
 
-    idx_idents = list(range(1, 4)) + list(range(1, (len(idx_points) + 1) - 3))
+    if dig_points is not None:
+        # dig_points = apply_trans(ctf_head_t['trans'], dig_points)
+        all_points = np.r_[idx_points, dig_points]
+    else:
+        all_points = idx_points
+
+    if convert:
+        all_points = _convert_hs_points(all_points, ctf_head_t)
+
+    dig = _points_to_dig(all_points, len(idx_points), use_hpi)
+    return dig, ctf_head_t
+
+
+def _convert_hs_points(points, t):
+    """convert to Neuromag"""
+    points = apply_trans(t['trans'], points)
+    points = _flip_fiducials(points).astype(np.float32)
+    return points
+
+
+def _points_to_dig(points, n_idx_points, use_hpi):
+    """Put points in info dig structure"""
+    idx_idents = list(range(1, 4)) + list(range(1, (n_idx_points + 1) - 3))
     dig = []
-    for idx in range(all_points.shape[0]):
+    for idx in range(points.shape[0]):
         point_info = dict(zip(FIFF_INFO_DIG_FIELDS, FIFF_INFO_DIG_DEFAULTS))
-        point_info['r'] = all_points[idx]
+        point_info['r'] = points[idx]
         if idx < 3:
             point_info['kind'] = FIFF.FIFFV_POINT_CARDINAL
             point_info['ident'] = idx_idents[idx]
-        if 2 < idx < len(idx_points) and use_hpi:
+        if 2 < idx < n_idx_points and use_hpi:
             point_info['kind'] = FIFF.FIFFV_POINT_HPI
             point_info['ident'] = idx_idents[idx]
         elif idx > 4:
             point_info['kind'] = FIFF.FIFFV_POINT_EXTRA
             point_info['ident'] = (idx + 1) - len(idx_idents)
 
-        if 2 < idx < len(idx_points) and not use_hpi:
+        if 2 < idx < n_idx_points and not use_hpi:
             pass
         else:
             dig += [point_info]
 
-    return dig, t
+    return dig
 
 
 def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
@@ -210,8 +226,12 @@ def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
     t = combine_transforms(invert_transform(dev_ctf_t), bti_dev_t,
                            'ctf_head', 'meg')
     t = np.dot(t['trans'], coil_trans)
-    loc = np.roll(t.T[:, :3], 1, 0).flatten()
-    return t, loc
+    return t
+
+
+def _trans_to_loc(t):
+    """put coil_trans in loc vector"""
+    return np.roll(t.T[:, :3], 1, 0).flatten()
 
 
 def _correct_offset(fid):
@@ -949,8 +969,8 @@ def _read_data(info, start=None, stop=None):
 def _correct_trans(t):
     """Helper to convert to a transformation matrix"""
     t = np.array(t, np.float64)
-    t[:3, :3] *= t[3, :3][:, np.newaxis]
-    t[3, :3] = 0.
+    t[:3, :3] *= t[3, :3][:, np.newaxis]  # apply scalings
+    t[3, :3] = 0.  # remove them
     assert t[3, 3] == 1.
     return t
 
@@ -967,10 +987,13 @@ class RawBTi(_BaseRaw):
     head_shape_fname : str | None
         Path to the head shape file.
     rotation_x : float
-        Degrees to tilt x-axis for sensor frame misalignment.
+        Degrees to tilt x-axis for sensor frame misalignment. Ignored
+        if convert is True.
     translation : array-like, shape (3,)
         The translation to place the origin of coordinate system
-        to the center of the head.
+        to the center of the head. Ignored if convert is True.
+    convert : bool
+        Convert to Neuromag coordinates or not.
     ecg_ch: str | None
         The 4D name of the ECG channel. If None, the channel will be treated
         as regular EEG channel.
@@ -983,8 +1006,8 @@ class RawBTi(_BaseRaw):
     @verbose
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
-                 translation=(0.0, 0.02, 0.11), ecg_ch='E31',
-                 eog_ch=('E63', 'E64'), verbose=None):
+                 translation=(0.0, 0.02, 0.11), convert=True,
+                 ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
 
         if not op.isabs(pdf_fname):
             pdf_fname = op.abspath(pdf_fname)
@@ -1012,13 +1035,16 @@ class RawBTi(_BaseRaw):
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
         bti_info = _read_bti_header(pdf_fname, config_fname)
 
-        # XXX indx is informed guess. Normally only one transform is stored.
         dev_ctf_t = Transform('ctf_meg', 'ctf_head',
                               _correct_trans(bti_info['bti_transform'][0]))
-        # for old backward compatibility
+
+        # for old backward compatibility and external processing
         rotation_x = 0. if rotation_x is None else rotation_x
-        bti_dev_t = Transform('ctf_meg', 'meg',
-                              _get_bti_dev_t(rotation_x, translation))
+        if convert:
+            bti_dev_t = _get_bti_dev_t(rotation_x, translation)
+        else:
+            bti_dev_t = np.eye(4)
+        bti_dev_t = Transform('ctf_meg', 'meg', bti_dev_t)
 
         use_hpi = False  # hard coded, but marked as later option.
         logger.info('Creating Neuromag info structure ...')
@@ -1062,8 +1088,10 @@ class RawBTi(_BaseRaw):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
                 if t is not None:
                     t = _correct_trans(t)
-                    t, loc = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
-                    if idx == 1:
+                    if convert:
+                        t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
+                    loc = _trans_to_loc(t)
+                    if idx == 1 and convert:
                         logger.info('... putting coil transforms in Neuromag '
                                     'coordinates')
                 chan_info['coil_trans'] = t
@@ -1116,15 +1144,20 @@ class RawBTi(_BaseRaw):
         if head_shape_fname:
             logger.info('... Reading digitization points from %s' %
                         head_shape_fname)
-            logger.info('... putting digitization points in Neuromag c'
-                        'oordinates')
-            info['dig'], ctf_head_t = _setup_head_shape(
-                head_shape_fname, use_hpi)
+            if convert:
+                logger.info('... putting digitization points in Neuromag c'
+                            'oordinates')
+            info['dig'], ctf_head_t = _process_bti_headshape(
+                head_shape_fname, convert=convert, use_hpi=use_hpi)
+
             logger.info('... Computing new device to head transform.')
             # DEV->CTF_DEV->CTF_HEAD->HEAD
-            t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
-                                   'meg', 'ctf_head')
-            dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
+            if convert:
+                t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
+                                       'meg', 'ctf_head')
+                dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
+            else:
+                dev_head_t = Transform('meg', 'head', np.eye(4))
             logger.info('Done.')
         else:
             logger.info('... no headshape file supplied, doing nothing.')
@@ -1186,8 +1219,8 @@ class RawBTi(_BaseRaw):
 @verbose
 def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
-                 translation=(0.0, 0.02, 0.11), ecg_ch='E31',
-                 eog_ch=('E63', 'E64'), verbose=None):
+                 translation=(0.0, 0.02, 0.11), convert=True,
+                 ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     .. note::
@@ -1209,10 +1242,13 @@ def read_raw_bti(pdf_fname, config_fname='config',
     head_shape_fname : str | None
         Path to the head shape file.
     rotation_x : float
-        Degrees to tilt x-axis for sensor frame misalignment.
+        Degrees to tilt x-axis for sensor frame misalignment. Ignored
+        if convert is True.
     translation : array-like, shape (3,)
         The translation to place the origin of coordinate system
-        to the center of the head.
+        to the center of the head. Ignored if convert is True.
+    convert : bool
+        Convert to Neuromag coordinates or not.
     ecg_ch: str | None
         The 4D name of the ECG channel. If None, the channel will be treated
         as regular EEG channel.
@@ -1234,4 +1270,5 @@ def read_raw_bti(pdf_fname, config_fname='config',
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
                   rotation_x=rotation_x, translation=translation,
+                  convert=convert,
                   verbose=verbose)
