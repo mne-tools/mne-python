@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+from .constants import FIFF
 from .open import fiff_open, show_fiff, _fiff_get_fid
 from .meas_info import read_fiducials, write_fiducials, read_info, write_info
 
@@ -21,6 +22,7 @@ from . import kit
 from . import pick
 
 from .array import RawArray
+from .base import _BaseRaw
 from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .edf import read_raw_edf

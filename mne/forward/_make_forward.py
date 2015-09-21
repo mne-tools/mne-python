@@ -363,6 +363,98 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     return eegels, eegnames
 
 
+def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
+                         bem_extra='', trans='', info_extra='',
+                         meg=True, eeg=True, ignore_ref=False, fname=None,
+                         overwrite=False):
+    """Helper to prepare for forward computation"""
+
+    # Read the source locations
+    logger.info('')
+
+    if not isinstance(src, string_types):
+        if not isinstance(src, SourceSpaces):
+            raise TypeError('src must be a string or SourceSpaces')
+        # let's make a copy in case we modify something
+        src = src.copy()
+    else:
+        if not op.isfile(src):
+            raise IOError('Source space file "%s" not found' % src)
+        logger.info('Reading %s...' % src)
+        src = read_source_spaces(src, verbose=False)
+
+    nsource = sum(s['nuse'] for s in src)
+    if nsource == 0:
+        raise RuntimeError('No sources are active in these source spaces. '
+                           '"do_all" option should be used.')
+    logger.info('Read %d source spaces a total of %d active source locations'
+                % (len(src), nsource))
+    # Delete some keys to clean up the source space:
+    for key in ['working_dir', 'command_line']:
+        if key in src.info:
+            del src.info[key]
+
+    # Read the MRI -> head coordinate transformation
+    logger.info('')
+    _print_coord_trans(mri_head_t)
+
+    # make a new dict with the relevant information
+    arg_list = [info_extra, trans, src, bem_extra, fname,  meg, eeg,
+                mindist, overwrite, n_jobs, verbose]
+    cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
+    mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
+    info = Info(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
+                ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
+                mri_file=trans, mri_id=mri_id, meas_file=info_extra,
+                meas_id=None, working_dir=os.getcwd(),
+                command_line=cmd, bads=info['bads'], mri_head_t=mri_head_t)
+    logger.info('')
+
+    megcoils, compcoils, megnames, meg_info = [], [], [], []
+    eegels, eegnames = [], []
+
+    if meg and len(pick_types(info, ref_meg=False, exclude=[])) > 0:
+        megcoils, compcoils, megnames, meg_info = \
+            _prep_meg_channels(info, ignore_ref=ignore_ref)
+    if eeg and len(pick_types(info, meg=False, eeg=True, ref_meg=False,
+                              exclude=[])) > 0:
+        eegels, eegnames = _prep_eeg_channels(info)
+
+    # Check that some channels were found
+    if len(megcoils + eegels) == 0:
+        raise RuntimeError('No MEG or EEG channels found.')
+
+    # pick out final info
+    info = pick_info(info, pick_types(info, meg=meg, eeg=eeg, ref_meg=False,
+                                      exclude=[]))
+
+    # Transform the source spaces into the appropriate coordinates
+    # (will either be HEAD or MRI)
+    for s in src:
+        transform_surface_to(s, FIFF.FIFFV_COORD_HEAD, mri_head_t)
+    logger.info('Source spaces are now in %s coordinates.'
+                % _coord_frame_name(FIFF.FIFFV_COORD_HEAD))
+
+    # Prepare the BEM model
+    bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t)
+
+    # Circumvent numerical problems by excluding points too close to the skull
+    if not bem['is_sphere']:
+        inner_skull = _bem_find_surface(bem, 'inner_skull')
+        _filter_source_spaces(inner_skull, mindist, mri_head_t, src, n_jobs)
+        logger.info('')
+
+    rr = np.concatenate([s['rr'][s['vertno']] for s in src])
+
+    # deal with free orientations:
+    source_nn = np.tile(np.eye(3), (len(rr), 1))
+    update_kwargs = dict(nchan=len(info['ch_names']), nsource=len(rr),
+                         info=info, src=src, source_nn=source_nn,
+                         source_rr=rr, surf_ori=False, mri_head_t=mri_head_t)
+    return megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, \
+        info, update_kwargs, bem
+
+
 @verbose
 def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
                           eeg=True, mindist=0.0, ignore_ref=False,
@@ -433,21 +525,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     # read the transformation from MRI to HEAD coordinates
     # (could also be HEAD to MRI)
     mri_head_t, trans = _get_mri_head_t(trans)
-
-    if not isinstance(src, string_types):
-        if not isinstance(src, SourceSpaces):
-            raise TypeError('src must be a string or SourceSpaces')
-        src_extra = 'list'
-    else:
-        src_extra = src
-        if not op.isfile(src):
-            raise IOError('Source space file "%s" not found' % src)
-    if isinstance(bem, dict):
-        bem_extra = 'dict'
-    else:
-        bem_extra = bem
-        if not op.isfile(bem):
-            raise IOError('BEM file "%s" not found' % bem)
+    bem_extra = 'dict' if isinstance(bem, dict) else bem
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'
                       % fname)
@@ -455,22 +533,14 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
         raise TypeError('info should be a dict or string')
     if isinstance(info, string_types):
         info_extra = op.split(info)[1]
-        info_extra_long = info
         info = read_info(info, verbose=False)
     else:
         info_extra = 'info dict'
-        info_extra_long = info_extra
-    arg_list = [info_extra, trans, src_extra, bem_extra, fname,  meg, eeg,
-                mindist, overwrite, n_jobs, verbose]
-    cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
-
-    # set default forward solution coordinate frame to HEAD
-    coord_frame = FIFF.FIFFV_COORD_HEAD
 
     # Report the setup
     logger.info('Source space                 : %s' % src)
     logger.info('MRI -> head transform source : %s' % trans)
-    logger.info('Measurement data             : %s' % info_extra_long)
+    logger.info('Measurement data             : %s' % info_extra)
     if isinstance(bem, dict) and bem['is_sphere']:
         logger.info('Sphere model                 : origin at %s mm'
                     % (bem['r0'],))
@@ -479,104 +549,35 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
         logger.info('BEM model                    : %s' % bem_extra)
         logger.info('Accurate field computations')
     logger.info('Do computations in %s coordinates',
-                _coord_frame_name(coord_frame))
+                _coord_frame_name(FIFF.FIFFV_COORD_HEAD))
     logger.info('Free source orientations')
     logger.info('Destination for the solution : %s' % fname)
 
-    # Read the source locations
-    logger.info('')
-    if isinstance(src, string_types):
-        logger.info('Reading %s...' % src)
-        src = read_source_spaces(src, verbose=False)
-    else:
-        # let's make a copy in case we modify something
-        src = src.copy()
-    nsource = sum(s['nuse'] for s in src)
-    if nsource == 0:
-        raise RuntimeError('No sources are active in these source spaces. '
-                           '"do_all" option should be used.')
-    logger.info('Read %d source spaces a total of %d active source locations'
-                % (len(src), nsource))
-
-    # Read the MRI -> head coordinate transformation
-    logger.info('')
-    _print_coord_trans(mri_head_t)
-
-    # make a new dict with the relevant information
-    mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
-    info = Info(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
-                ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
-                mri_file=trans, mri_id=mri_id, meas_file=info_extra_long,
-                meas_id=None, working_dir=os.getcwd(),
-                command_line=cmd, bads=info['bads'])
-    logger.info('')
-
-    megcoils, compcoils, megnames, meg_info = [], [], [], []
-    eegels, eegnames = [], []
-
-    if meg and len(pick_types(info, ref_meg=False)) > 0:
-        megcoils, compcoils, megnames, meg_info = \
-            _prep_meg_channels(info, ignore_ref=ignore_ref, verbose=verbose)
-    if eeg and len(pick_types(info, meg=False, eeg=True, ref_meg=False)) > 0:
-        eegels, eegnames = _prep_eeg_channels(info, verbose=verbose)
-
-    # Check that some channels were found
-    if len(megcoils + eegels) == 0:
-        raise RuntimeError('No MEG or EEG channels found.')
-
-    # Transform the source spaces into the appropriate coordinates
-    # (will either be HEAD or MRI)
-    for s in src:
-        transform_surface_to(s, coord_frame, mri_head_t)
-    logger.info('Source spaces are now in %s coordinates.'
-                % _coord_frame_name(coord_frame))
-
-    # Prepare the BEM model
-    bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t)
-
-    # Circumvent numerical problems by excluding points too close to the skull
-    if not bem['is_sphere']:
-        inner_skull = _bem_find_surface(bem, 'inner_skull')
-        _filter_source_spaces(inner_skull, mindist, mri_head_t, src, n_jobs)
-        logger.info('')
+    megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
+        update_kwargs, bem = _prepare_for_forward(
+            src, mri_head_t, info, bem, mindist, n_jobs, bem_extra, trans,
+            info_extra, meg, eeg, ignore_ref, fname, overwrite)
+    del (src, mri_head_t, trans, info_extra, bem_extra, mindist,
+         meg, eeg, ignore_ref)
 
     # Time to do the heavy lifting: MEG first, then EEG
     coil_types = ['meg', 'eeg']
     coils = [megcoils, eegels]
     ccoils = [compcoils, None]
     infos = [meg_info, None]
-    rr = np.concatenate([s['rr'][s['vertno']] for s in src])
     megfwd, eegfwd = _compute_forwards(rr, bem, coils, ccoils,
                                        infos, coil_types, n_jobs)
 
-    # merge forwards into one (creates two Forward objects)
-    megfwd = _to_forward_dict(megfwd, None, megnames, coord_frame,
-                              FIFF.FIFFV_MNE_FREE_ORI)
-    eegfwd = _to_forward_dict(eegfwd, None, eegnames, coord_frame,
-                              FIFF.FIFFV_MNE_FREE_ORI)
-    fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
+    # merge forwards
+    fwd = _merge_meg_eeg_fwds(_to_forward_dict(megfwd, megnames),
+                              _to_forward_dict(eegfwd, eegnames),
+                              verbose=False)
     logger.info('')
-
-    # pick out final dict info
-    picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False, exclude=[])
-    info = pick_info(info, picks)
-    source_rr = np.concatenate([s['rr'][s['vertno']] for s in src])
-    # deal with free orientations:
-    nsource = fwd['sol']['data'].shape[1] // 3
-    source_nn = np.tile(np.eye(3), (nsource, 1))
 
     # Don't transform the source spaces back into MRI coordinates (which is
     # done in the C code) because mne-python assumes forward solution source
-    # spaces are in head coords. We will delete some keys to clean up the
-    # source space, though:
-    for key in ['working_dir', 'command_line']:
-        if key in src.info:
-            del src.info[key]
-    fwd.update(dict(nchan=fwd['sol']['data'].shape[0], nsource=nsource,
-                    info=info, src=src, source_nn=source_nn,
-                    source_rr=source_rr, surf_ori=False,
-                    mri_head_t=mri_head_t))
-    fwd['info']['mri_head_t'] = mri_head_t
+    # spaces are in head coords.
+    fwd.update(**update_kwargs)
     if fname is not None:
         logger.info('writing %s...', fname)
         write_forward_solution(fname, fwd, overwrite, verbose=False)
@@ -585,8 +586,11 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     return fwd
 
 
-def _to_forward_dict(fwd, fwd_grad, names, coord_frame, source_ori):
+def _to_forward_dict(fwd, names, fwd_grad=None,
+                     coord_frame=FIFF.FIFFV_COORD_HEAD,
+                     source_ori=FIFF.FIFFV_MNE_FREE_ORI):
     """Convert forward solution matrices to dicts"""
+    assert names is not None
     if len(fwd) == 0:
         return None
     sol = dict(data=fwd.T, nrow=fwd.shape[1], ncol=fwd.shape[0],
