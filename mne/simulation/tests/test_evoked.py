@@ -15,6 +15,7 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked
 from mne import read_cov
 from mne.io import Raw
 from mne import pick_types_forward, read_evokeds
+from mne.utils import run_tests_if_main
 
 warnings.simplefilter('always')
 
@@ -67,3 +68,5 @@ def test_simulate_evoked():
     stc_bad.vertices[0][0] = mv + 1
     assert_raises(RuntimeError, simulate_evoked, fwd, stc_bad,
                   evoked_template.info, cov, snr, tmin=0.0, tmax=0.2)
+
+run_tests_if_main()

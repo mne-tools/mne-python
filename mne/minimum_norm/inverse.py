@@ -30,7 +30,7 @@ from ..forward import (compute_depth_prior, _read_forward_meas_info,
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
-from ..transforms import invert_transform, transform_surface_to
+from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc
 from ..utils import check_fname, logger, verbose
 from functools import reduce
@@ -103,6 +103,10 @@ def read_inverse_operator(fname, verbose=None):
     -------
     inv : instance of InverseOperator
         The inverse operator.
+
+    See Also
+    --------
+    write_inverse_operator, make_inverse_operator
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 
@@ -248,14 +252,7 @@ def read_inverse_operator(fname, verbose=None):
         tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
         if tag is None:
             raise Exception('MRI/head coordinate transformation not found')
-        mri_head_t = tag.data
-        if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
-                mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
-            mri_head_t = invert_transform(mri_head_t)
-            if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
-                    mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
-                raise Exception('MRI/head coordinate transformation '
-                                'not found')
+        mri_head_t = _ensure_trans(tag.data, 'mri', 'head')
 
         inv['mri_head_t'] = mri_head_t
 
@@ -268,8 +265,8 @@ def read_inverse_operator(fname, verbose=None):
         #   Transform the source spaces to the correct coordinate frame
         #   if necessary
         #
-        if inv['coord_frame'] != FIFF.FIFFV_COORD_MRI and \
-                inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
+        if inv['coord_frame'] not in (FIFF.FIFFV_COORD_MRI,
+                                      FIFF.FIFFV_COORD_HEAD):
             raise Exception('Only inverse solutions computed in MRI or '
                             'head coordinates are acceptable')
 
@@ -323,6 +320,10 @@ def write_inverse_operator(fname, inv, verbose=None):
         The inverse operator.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    read_inverse_operator
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 
@@ -754,6 +755,11 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
     -------
     stc : SourceEstimate | VolSourceEstimate
         The source estimates
+
+    See Also
+    --------
+    apply_inverse_raw : Apply inverse operator to raw object
+    apply_inverse_epochs : Apply inverse operator to epochs object
     """
     _check_reference(evoked)
     method = _check_method(method)
@@ -851,6 +857,11 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     -------
     stc : SourceEstimate | VolSourceEstimate
         The source estimates.
+
+    See Also
+    --------
+    apply_inverse_epochs : Apply inverse operator to epochs object
+    apply_inverse : Apply inverse operator to evoked object
     """
     _check_reference(raw)
     method = _check_method(method)
@@ -1019,6 +1030,11 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     -------
     stc : list of SourceEstimate or VolSourceEstimate
         The source estimates for all epochs.
+
+    See Also
+    --------
+    apply_inverse_raw : Apply inverse operator to raw object
+    apply_inverse : Apply inverse operator to evoked object
     """
     _check_reference(epochs)
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
@@ -1268,6 +1284,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     gain_info, gain, noise_cov, whitener, n_nzero = \
         _prepare_forward(forward, info, noise_cov, rank=rank)
+    forward['info']._check_consistency()
 
     #
     # 5. Compose the depth-weighting matrix
@@ -1405,7 +1422,9 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                   source_nn=forward['source_nn'].copy(),
                   src=deepcopy(forward['src']), fmri_prior=None)
     inv_info = deepcopy(forward['info'])
-    inv_info['bads'] = deepcopy(info['bads'])
+    inv_info['bads'] = [bad for bad in info['bads']
+                        if bad in inv_info['ch_names']]
+    inv_info._check_consistency()
     inv_op['units'] = 'Am'
     inv_op['info'] = inv_info
 

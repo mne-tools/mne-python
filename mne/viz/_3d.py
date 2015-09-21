@@ -22,13 +22,14 @@ import base64
 import numpy as np
 from scipy import linalg
 
-from ..io.constants import FIFF
 from ..io.pick import pick_types
+from ..io.constants import FIFF
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
                        transform_surface_to)
 from ..transforms import (read_trans, _find_trans, apply_trans,
-                          combine_transforms, _get_mri_head_t)
-from ..utils import get_subjects_dir, logger, _check_subject
+                          combine_transforms, _get_mri_head_t, _ensure_trans,
+                          invert_transform)
+from ..utils import get_subjects_dir, logger, _check_subject, verbose
 from ..defaults import _handle_default
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
@@ -266,17 +267,19 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     return fig if img_output is None else outs
 
 
+@verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
-               ch_type=None, source=('bem', 'head'), coord_frame='head'):
+               ch_type=None, source=('bem', 'head'), coord_frame='head',
+               meg_sensors=False, dig=False, verbose=None):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
     ----------
     info : dict
         The measurement info.
-    trans : str | 'auto'
-        The full path to the `*-trans.fif` file produced during
-        coregistration.
+    trans : str | 'auto' | dict
+        The full path to the head<->MRI transform ``*-trans.fif`` file
+        produced during coregistration.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
@@ -293,74 +296,127 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         then look for `'$SUBJECT*$SOURCE.fif'` in the same directory. Defaults
         to 'bem'. Note. For single layer bems it is recommended to use 'head'.
     coord_frame : str
-        Coordinate frame to use.
+        Coordinate frame to use, 'head', 'meg', or 'mri'.
+    meg_sensors : bool
+        If True, plot MEG sensors as points in addition to showing the helmet.
+    dig : bool
+        If True, plot the digitization points.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     fig : instance of mlab.Figure
         The mayavi figure.
     """
-    if coord_frame not in ['head', 'meg']:
+    if coord_frame not in ['head', 'meg', 'mri']:
         raise ValueError('coord_frame must be "head" or "meg"')
     if ch_type not in [None, 'eeg', 'meg']:
         raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
                          % ch_type)
 
-    if trans == 'auto':
-        # let's try to do this in MRI coordinates so they're easy to plot
-        trans = _find_trans(subject, subjects_dir)
+    if isinstance(trans, string_types):
+        if trans == 'auto':
+            # let's try to do this in MRI coordinates so they're easy to plot
+            trans = _find_trans(subject, subjects_dir)
+        trans = read_trans(trans)
+    elif not isinstance(trans, dict):
+        raise TypeError('trans must be str or dict')
+    head_mri_t = _ensure_trans(trans, 'head', 'mri')
+    del trans
 
-    trans = read_trans(trans)
-
+    # both the head and helmet will be in MRI coordinates after this
     surfs = [get_head_surf(subject, source=source, subjects_dir=subjects_dir)]
     if ch_type is None or ch_type == 'meg':
-        surfs.append(get_meg_helmet_surf(info, trans))
+        surfs.append(get_meg_helmet_surf(info, head_mri_t))
     if coord_frame == 'meg':
-        meg_trans = combine_transforms(info['dev_head_t'], trans,
-                                       FIFF.FIFFV_COORD_DEVICE,
-                                       FIFF.FIFFV_COORD_MRI)
-        surfs = [transform_surface_to(surf, 'meg', meg_trans)
-                 for surf in surfs]
+        surf_trans = combine_transforms(info['dev_head_t'], head_mri_t,
+                                        'meg', 'mri')
+    elif coord_frame == 'head':
+        surf_trans = head_mri_t
+    else:  # coord_frame == 'mri'
+        surf_trans = None
+    surfs = [transform_surface_to(surf, coord_frame, surf_trans)
+             for surf in surfs]
+    del surf_trans
 
-    # Plot them
+    # determine points
+    eeg_loc = meg_loc = ext_loc = car_loc = list()
+    if ch_type is None or ch_type == 'eeg':
+        eeg_loc = np.array([l['eeg_loc'][:, 0] for l in info['chs']
+                            if l['eeg_loc'] is not None])
+        if len(eeg_loc) > 0:
+            # Transform EEG electrodes from head coordinates if necessary
+            if coord_frame == 'meg':
+                eeg_loc = apply_trans(invert_transform(info['dev_head_t']),
+                                      eeg_loc)
+            elif coord_frame == 'mri':
+                eeg_loc = apply_trans(invert_transform(head_mri_t), eeg_loc)
+        else:
+            # only warn if EEG explicitly requested, or EEG channels exist but
+            # no locations are provided
+            if (ch_type is not None or
+                    len(pick_types(info, meg=False, eeg=True)) > 0):
+                warnings.warn('EEG electrode locations not found. '
+                              'Cannot plot EEG electrodes.')
+    if meg_sensors:
+        meg_loc = np.array([info['chs'][k]['loc'][:3]
+                           for k in pick_types(info)])
+        if len(meg_loc) > 0:
+            # Transform MEG coordinates from meg if necessary
+            if coord_frame == 'head':
+                meg_loc = apply_trans(info['dev_head_t'], meg_loc)
+            elif coord_frame == 'mri':
+                t = combine_transforms(info['dev_head_t'], head_mri_t,
+                                       'meg', 'mri')
+                meg_loc = apply_trans(t, meg_loc)
+        else:
+            warnings.warn('MEG electrodes not found. '
+                          'Cannot plot MEG locations.')
+    if dig:
+        ext_loc = np.array([d['r'] for d in info['dig']
+                           if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
+        car_loc = np.array([d['r'] for d in info['dig']
+                            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL])
+        if coord_frame == 'meg':
+            t = invert_transform(info['dev_head_t'])
+            ext_loc = apply_trans(t, ext_loc)
+            car_loc = apply_trans(t, car_loc)
+        elif coord_frame == 'mri':
+            ext_loc = apply_trans(head_mri_t, ext_loc)
+            car_loc = apply_trans(head_mri_t, car_loc)
+        if len(car_loc) == len(ext_loc) == 0:
+            warnings.warn('Digitization points not found. '
+                          'Cannot plot digitization.')
+
+    # do the plotting, surfaces then points
     from mayavi import mlab
-    alphas = [1.0, 0.5]
-    colors = [(0.6, 0.6, 0.6), (0.0, 0.0, 0.6)]
-
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
-    for ii, surf in enumerate(surfs):
-
+    alphas = [1.0, 0.5]  # head, helmet
+    colors = [(0.6, 0.6, 0.6), (0.0, 0.0, 0.6)]
+    for surf, alpha, color in zip(surfs, alphas, colors):
         x, y, z = surf['rr'].T
         nn = surf['nn']
         # make absolutely sure these are normalized for Mayavi
         nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
 
         # Make a solid surface
-        alpha = alphas[ii]
         with warnings.catch_warnings(record=True):  # traits
             mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
         mesh.data.point_data.normals = nn
         mesh.data.cell_data.normals = None
-        mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
+        mlab.pipeline.surface(mesh, color=color, opacity=alpha)
 
-    if ch_type is None or ch_type == 'eeg':
-        eeg_locs = [l['eeg_loc'][:, 0] for l in info['chs']
-                    if l['eeg_loc'] is not None]
-
-        if len(eeg_locs) > 0:
-            eeg_loc = np.array(eeg_locs)
-
-            # Transform EEG electrodes to MRI coordinates
-            eeg_loc = apply_trans(trans['trans'], eeg_loc)
-
+    datas = (eeg_loc, meg_loc, car_loc, ext_loc)
+    colors = ((1., 0., 0.), (0., 0.25, 0.5), (1., 1., 0.), (1., 0.5, 0.))
+    alphas = (1.0, 0.25, 0.5, 0.25)
+    scales = (0.005, 0.0025, 0.015, 0.0075)
+    for data, color, alpha, scale in zip(datas, colors, alphas, scales):
+        if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
-                mlab.points3d(eeg_loc[:, 0], eeg_loc[:, 1], eeg_loc[:, 2],
-                              color=(1.0, 0.0, 0.0), scale_factor=0.005)
-        else:
-            warnings.warn('EEG electrode locations not found. '
-                          'Cannot plot EEG electrodes.')
-
+                mlab.points3d(data[:, 0], data[:, 1], data[:, 2],
+                              color=color, scale_factor=scale, opacity=alpha)
     mlab.view(90, 90)
     return fig
 

@@ -14,6 +14,7 @@ from scipy import linalg
 from .fixes import partial
 from .utils import (verbose, logger, run_subprocess, deprecated,
                     get_subjects_dir)
+from .transforms import _ensure_trans, apply_trans
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
@@ -769,14 +770,14 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
         Measurement info.
     dig_kinds : tuple of int
         Kind of digitization points to use in the fitting. These can be
-        any kind defined in io.constants.FIFF:
+        any kind defined in io.constants.FIFF::
+
             FIFFV_POINT_CARDINAL
             FIFFV_POINT_HPI
             FIFFV_POINT_EEG
-            FIFFV_POINT_ECG
             FIFFV_POINT_EXTRA
-        Defaults to (FIFFV_POINT_EXTRA,).
 
+        Defaults to (FIFFV_POINT_EXTRA,).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -791,6 +792,9 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     """
     # get head digization points of the specified kind
     hsp = [p['r'] for p in info['dig'] if p['kind'] in dig_kinds]
+    if any(p['coord_frame'] != FIFF.FIFFV_COORD_HEAD for p in info['dig']):
+        raise RuntimeError('Digitization points not in head coordinates, '
+                           'contact mne-python developers')
 
     # exclude some frontal points (nose etc.)
     hsp = [p for p in hsp if not (p[2] < 0 and p[1] > 0)]
@@ -799,18 +803,13 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
         raise ValueError('No head digitization points of the specified '
                          'kinds (%s) found.' % dig_kinds)
 
-    hsp = 1e3 * np.array(hsp)
-
-    radius, origin_head = _fit_sphere(hsp, disp=False)
+    radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
     # compute origin in device coordinates
-    trans = info['dev_head_t']
-    if trans['from'] != FIFF.FIFFV_COORD_DEVICE \
-            or trans['to'] != FIFF.FIFFV_COORD_HEAD:
-        raise RuntimeError('device to head transform not found')
-
-    head_to_dev = linalg.inv(trans['trans'])
-    origin_device = 1e3 * np.dot(head_to_dev,
-                                 np.r_[1e-3 * origin_head, 1.0])[:3]
+    head_to_dev = _ensure_trans(info['dev_head_t'], 'head', 'meg')
+    origin_device = apply_trans(head_to_dev, origin_head)
+    radius *= 1e3
+    origin_head *= 1e3
+    origin_device *= 1e3
 
     logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm' % radius)
     logger.info('Origin head coordinates:'.ljust(30) +
@@ -822,25 +821,28 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
 
 
 def _fit_sphere(points, disp='auto'):
-    """Aux function to fit points to a sphere"""
-    from scipy.optimize import fmin_powell
+    """Aux function to fit a sphere to an arbitrary set of points"""
+    from scipy.optimize import fmin_cobyla
     if isinstance(disp, string_types) and disp == 'auto':
         disp = True if logger.level <= 20 else False
     # initial guess for center and radius
-    xradius = (np.max(points[:, 0]) - np.min(points[:, 0])) / 2.
-    yradius = (np.max(points[:, 1]) - np.min(points[:, 1])) / 2.
-
-    radius_init = (xradius + yradius) / 2.
-    center_init = np.array([0.0, 0.0, np.max(points[:, 2]) - radius_init])
+    radii = (np.max(points, axis=1) - np.min(points, axis=1)) / 2.
+    radius_init = radii.mean()
+    center_init = np.median(points, axis=0)
 
     # optimization
-    x0 = np.r_[center_init, radius_init]
+    x0 = np.concatenate([center_init, [radius_init]])
 
-    def cost_fun(x, points):
-        return np.sum((np.sqrt(np.sum((points - x[:3]) ** 2, axis=1)) -
-                      x[3]) ** 2)
+    def cost_fun(center_rad):
+        d = points - center_rad[:3]
+        d = (np.sqrt(np.sum(d * d, axis=1)) - center_rad[3])
+        return np.sum(d * d)
 
-    x_opt = fmin_powell(cost_fun, x0, args=(points,), disp=disp)
+    def constraint(center_rad):
+        return center_rad[3]  # radius must be >= 0
+
+    x_opt = fmin_cobyla(cost_fun, x0, constraint, rhobeg=radius_init,
+                        rhoend=radius_init * 1e-6, disp=disp)
 
     origin = x_opt[:3]
     radius = x_opt[3]
@@ -986,6 +988,10 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
     surf: list | dict
         A list of dictionaries that each contain a surface. If s_id
         is not None, only the requested surface will be returned.
+
+    See Also
+    --------
+    write_bem_surfaces, write_bem_solution, make_bem_model
     """
     from .surface import _complete_surface_info
     # Default coordinate frame
@@ -1115,6 +1121,11 @@ def read_bem_solution(fname, verbose=None):
     -------
     bem : dict
         The BEM solution.
+
+    See Also
+    --------
+    write_bem_solution, read_bem_surfaces, write_bem_surfaces,
+    make_bem_solution
     """
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
     logger.info('Loading surfaces...')
@@ -1243,6 +1254,10 @@ def write_bem_surface(fname, surf):
         File to write
     surf : dict
         A surface structured as obtained with read_bem_surfaces
+
+    See Also
+    --------
+    read_bem_surfaces
     """
     write_bem_surfaces(fname, surf)
 
@@ -1294,6 +1309,10 @@ def write_bem_solution(fname, bem):
         The filename to use.
     bem : dict
         The BEM model with solution to save.
+
+    See Also
+    --------
+    read_bem_solution
     """
     with start_file(fname) as fid:
         start_block(fid, FIFF.FIFFB_BEM)

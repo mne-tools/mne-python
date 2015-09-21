@@ -16,7 +16,7 @@ from ..io.meas_info import Info
 from ..io.constants import FIFF
 from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
-from ..transforms import (invert_transform, transform_surface_to, apply_trans,
+from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_mri_head_t, _print_coord_trans,
                           _coord_frame_name)
 from ..utils import logger, verbose
@@ -28,13 +28,16 @@ from ..externals.six import string_types
 
 
 @verbose
-def _read_coil_defs(fname=None, verbose=None):
+def _read_coil_defs(fname=None, elekta_defs=False, verbose=None):
     """Read a coil definition file.
 
     Parameters
     ----------
     fname : str
         The name of the file from which coil definitions are read.
+    elekta_defs : bool
+        If true, use Elekta's coil definitions for numerical integration
+        (from Abramowitz and Stegun section 25.4.62).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -49,7 +52,12 @@ def _read_coil_defs(fname=None, verbose=None):
         position vector.
     """
     if fname is None:
-        fname = op.join(op.split(__file__)[0], '..', 'data', 'coil_def.dat')
+        if not elekta_defs:
+            fname = op.join(op.split(__file__)[0], '..', 'data',
+                            'coil_def.dat')
+        else:
+            fname = op.join(op.split(__file__)[0], '..', 'data',
+                            'coil_def_Elekta.dat')
     big_val = 0.5
     with open(fname, 'r') as fid:
         lines = fid.readlines()
@@ -59,7 +67,7 @@ def _read_coil_defs(fname=None, verbose=None):
             line = lines.pop()
             if line[0] != '#':
                 vals = np.fromstring(line, sep=' ')
-                assert len(vals) == 7
+                assert len(vals) in (6, 7)  # newer numpy can truncate comment
                 start = line.find('"')
                 end = len(line.strip()) - 1
                 assert line.strip()[end] == '"'
@@ -206,99 +214,153 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
         logger.info('Employing the head->MRI coordinate transform with the '
                     'BEM model.')
         # fwd_bem_set_head_mri_t: Set the coordinate transformation
-        to, fro = mri_head_t['to'], mri_head_t['from']
-        if fro == FIFF.FIFFV_COORD_HEAD and to == FIFF.FIFFV_COORD_MRI:
-            bem['head_mri_t'] = mri_head_t
-        elif fro == FIFF.FIFFV_COORD_MRI and to == FIFF.FIFFV_COORD_HEAD:
-            bem['head_mri_t'] = invert_transform(mri_head_t)
-        else:
-            raise RuntimeError('Improper coordinate transform')
+        bem['head_mri_t'] = _ensure_trans(mri_head_t, 'head', 'mri')
         logger.info('BEM model %s is now set up' % op.split(bem_extra)[1])
         logger.info('')
     return bem
 
 
 @verbose
-def _prep_channels(info, meg=True, eeg=True, ignore_ref=False, exclude=(),
-                   accurate=True, verbose=None):
-    """Prepare coil definitions for forward calculation"""
-    # accuracy param only affects MEG channels
+def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
+                       elekta_defs=False, verbose=None):
+    """Prepare MEG coil definitions for forward calculation
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement information dictionary
+    accurate : bool
+        If true (default) then use `accurate` coil definitions (more
+        integration points)
+    exclude : list of str | str
+        List of channels to exclude. If 'bads', exclude channels in
+        info['bads']
+    ignore_ref : bool
+        If true, ignore compensation coils
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+
+    Returns
+    -------
+    megcoils : list of dict
+        Information for each prepped MEG coil
+    compcoils : list of dict
+        Information for each prepped MEG coil
+    megnames : list of str
+        Name of each prepped MEG coil
+    meginfo : Info
+        Information subselected for just the set of MEG coils
+    """
+
     if accurate:
         accuracy = FIFF.FWD_COIL_ACCURACY_ACCURATE
     else:
         accuracy = FIFF.FWD_COIL_ACCURACY_NORMAL
     info_extra = 'info'
     meg_info = None
-    megnames, eegnames, megcoils, eegels, compcoils = [], [], [], [], []
-    # MEG channels
-    if meg:
-        picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
-                           exclude=exclude)
-        nmeg = len(picks)
-        if nmeg > 0:
-            megchs = pick_info(info, picks)['chs']
-            megnames = [info['ch_names'][p] for p in picks]
-            logger.info('Read %3d MEG channels from %s'
-                        % (len(picks), info_extra))
+    megnames, megcoils, compcoils = [], [], []
 
-        # comp channels
-        if not ignore_ref:
-            picks = pick_types(info, meg=False, ref_meg=True, exclude=exclude)
-            ncomp = len(picks)
-            if (ncomp > 0):
-                compchs = pick_info(info, picks)['chs']
-                logger.info('Read %3d MEG compensation channels from %s'
-                            % (ncomp, info_extra))
-                # We need to check to make sure these are NOT KIT refs
-                if _has_kit_refs(info, picks):
-                    err = ('Cannot create forward solution with KIT '
-                           'reference channels. Consider using '
-                           '"ignore_ref=True" in calculation')
-                    raise NotImplementedError(err)
-        else:
-            ncomp = 0
-        _print_coord_trans(info['dev_head_t'])
-        # make info structure to allow making compensator later
-        ncomp_data = len(info['comps'])
-        ref_meg = True if not ignore_ref else False
-        picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
-        meg_info = pick_info(info, picks) if nmeg > 0 else None
+    # Find MEG channels
+    picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
+                       exclude=exclude)
+
+    # Make sure MEG coils exist
+    nmeg = len(picks)
+    if nmeg <= 0:
+        raise RuntimeError('Could not find any MEG channels')
+
+    # Get channel info and names for MEG channels
+    megchs = pick_info(info, picks)['chs']
+    megnames = [info['ch_names'][p] for p in picks]
+    logger.info('Read %3d MEG channels from %s'
+                % (len(picks), info_extra))
+
+    # Get MEG compensation channels
+    if not ignore_ref:
+        picks = pick_types(info, meg=False, ref_meg=True, exclude=exclude)
+        ncomp = len(picks)
+        if (ncomp > 0):
+            compchs = pick_info(info, picks)['chs']
+            logger.info('Read %3d MEG compensation channels from %s'
+                        % (ncomp, info_extra))
+            # We need to check to make sure these are NOT KIT refs
+            if _has_kit_refs(info, picks):
+                err = ('Cannot create forward solution with KIT reference '
+                       'channels. Consider using "ignore_ref=True" in '
+                       'calculation')
+                raise NotImplementedError(err)
     else:
-        logger.info('MEG not requested. MEG channels omitted.')
-        nmeg = 0
+        ncomp = 0
 
-    # EEG channels
-    if eeg:
-        picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                           exclude=exclude)
-        neeg = len(picks)
-        if neeg > 0:
-            eegchs = pick_info(info, picks)['chs']
-            eegnames = [info['ch_names'][p] for p in picks]
-            logger.info('Read %3d EEG channels from %s'
-                        % (len(picks), info_extra))
-    else:
-        neeg = 0
-        logger.info('EEG not requested. EEG channels omitted.')
+    _print_coord_trans(info['dev_head_t'])
 
-    if neeg <= 0 and nmeg <= 0:
-        raise RuntimeError('Could not find any MEG or EEG channels')
+    # Make info structure to allow making compensator later
+    ncomp_data = len(info['comps'])
+    ref_meg = True if not ignore_ref else False
+    picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
+    meg_info = pick_info(info, picks) if nmeg > 0 else None
 
     # Create coil descriptions with transformation to head or MRI frame
+    templates = _read_coil_defs(elekta_defs=elekta_defs)
+
+    megcoils = _create_coils(megchs, accuracy, info['dev_head_t'], 'meg',
+                             templates)
+    if ncomp > 0:
+        logger.info('%d compensation data sets in %s' % (ncomp_data,
+                                                         info_extra))
+        compcoils = _create_coils(compchs, FIFF.FWD_COIL_ACCURACY_NORMAL,
+                                  info['dev_head_t'], 'meg', templates)
+    logger.info('Head coordinate MEG coil definitions created.')
+
+    return megcoils, compcoils, megnames, meg_info
+
+
+@verbose
+def _prep_eeg_channels(info, exclude=(), verbose=None):
+    """Prepare EEG electrode definitions for forward calculation
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement information dictionary
+    exclude : list of str | str
+        List of channels to exclude. If 'bads', exclude channels in
+        info['bads']
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+
+    Returns
+    -------
+    eegels : list of dict
+        Information for each prepped EEG electrode
+    eegnames : list of str
+        Name of each prepped EEG electrode
+    """
+    eegnames, eegels = [], []
+    info_extra = 'info'
+
+    # Find EEG electrodes
+    picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                       exclude=exclude)
+
+    # Make sure EEG electrodes exist
+    neeg = len(picks)
+    if neeg <= 0:
+        raise RuntimeError('Could not find any EEG channels')
     templates = _read_coil_defs()
-    if nmeg > 0 and ncomp > 0:  # Compensation channel information
-        logger.info('%d compensation data sets in %s'
-                    % (ncomp_data, info_extra))
-    if nmeg > 0:
-        megcoils = _create_coils(megchs, accuracy,
-                                 info['dev_head_t'], 'meg', templates)
-        if ncomp > 0:
-            compcoils = _create_coils(compchs, FIFF.FWD_COIL_ACCURACY_NORMAL,
-                                      info['dev_head_t'], 'meg', templates)
-    if neeg > 0:
-        eegels = _create_coils(eegchs, coil_type='eeg', coilset=templates)
+
+    # Get channel info and names for EEG channels
+    eegchs = pick_info(info, picks)['chs']
+    eegnames = [info['ch_names'][p] for p in picks]
+    logger.info('Read %3d EEG channels from %s' % (len(picks), info_extra))
+
+    # Create EEG electrode descriptions
+    eegels = _create_coils(eegchs, coil_type='eeg', coilset=templates)
     logger.info('Head coordinate coil definitions created.')
-    return megcoils, compcoils, eegels, megnames, eegnames, meg_info
+
+    return eegels, eegnames
 
 
 @verbose
@@ -351,6 +413,10 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     -------
     fwd : instance of Forward
         The forward solution.
+
+    See Also
+    --------
+    do_forward_solution
 
     Notes
     -----
@@ -445,8 +511,18 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
                 command_line=cmd, bads=info['bads'])
     logger.info('')
 
-    megcoils, compcoils, eegels, megnames, eegnames, meg_info = \
-        _prep_channels(info, meg, eeg, ignore_ref)
+    megcoils, compcoils, megnames, meg_info = [], [], [], []
+    eegels, eegnames = [], []
+
+    if meg and len(pick_types(info, ref_meg=False)) > 0:
+        megcoils, compcoils, megnames, meg_info = \
+            _prep_meg_channels(info, ignore_ref=ignore_ref, verbose=verbose)
+    if eeg and len(pick_types(info, meg=False, eeg=True, ref_meg=False)) > 0:
+        eegels, eegnames = _prep_eeg_channels(info, verbose=verbose)
+
+    # Check that some channels were found
+    if len(megcoils + eegels) == 0:
+        raise RuntimeError('No MEG or EEG channels found.')
 
     # Transform the source spaces into the appropriate coordinates
     # (will either be HEAD or MRI)

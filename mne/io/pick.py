@@ -84,6 +84,10 @@ def pick_channels(ch_names, include, exclude=[]):
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
 
+    See Also
+    --------
+    pick_channels_regexp, pick_types
+
     Returns
     -------
     sel : array of int
@@ -91,6 +95,8 @@ def pick_channels(ch_names, include, exclude=[]):
     """
     if len(np.unique(ch_names)) != len(ch_names):
         raise RuntimeError('ch_names is not a unique list, picking is unsafe')
+    _check_excludes_includes(include)
+    _check_excludes_includes(exclude)
     sel = []
     for k, name in enumerate(ch_names):
         if (len(include) == 0 or name in include) and name not in exclude:
@@ -118,6 +124,10 @@ def pick_channels_regexp(ch_names, regexp):
     -------
     sel : array of int
         Indices of good channels.
+
+    See Also
+    --------
+    pick_channels
 
     Examples
     --------
@@ -192,6 +202,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info, not %s'
                         % type(info))
+    info._check_consistency()
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
 
@@ -284,7 +295,7 @@ def pick_info(info, sel=[], copy=True):
     ----------
     info : dict
         Info structure from evoked or raw data.
-    sel : list of int
+    sel : list of int | None
         Indices of channels to include.
     copy : bool
         If copy is False, info is modified inplace.
@@ -294,19 +305,30 @@ def pick_info(info, sel=[], copy=True):
     res : dict
         Info structure restricted to a selection of channels.
     """
+    info._check_consistency()
     if copy:
         info = deepcopy(info)
-
-    if len(sel) == 0:
+    if sel is None:
+        return info
+    elif len(sel) == 0:
         raise ValueError('No channels match the selection.')
 
     info['chs'] = [info['chs'][k] for k in sel]
     info['ch_names'] = [info['ch_names'][k] for k in sel]
     info['nchan'] = len(sel)
-
-    # Check if bads_channels are included, otherwise
-    # remove info['bads']
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
+
+    comps = deepcopy(info['comps'])
+    for c in comps:
+        row_idx = [k for k, n in enumerate(c['data']['row_names'])
+                   if n in info['ch_names']]
+        row_names = [c['data']['row_names'][i] for i in row_idx]
+        rowcals = c['rowcals'][row_idx]
+        c['rowcals'] = rowcals
+        c['data']['nrow'] = len(row_names)
+        c['data']['row_names'] = row_names
+        c['data']['data'] = c['data']['data'][row_idx]
+    info['comps'] = comps
 
     return info
 
@@ -345,6 +367,8 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     if len(include) == 0 and len(exclude) == 0:
         return orig
 
+    exclude = _check_excludes_includes(exclude, info=orig.info,
+                                       allow_bads=True)
     sel = pick_channels(orig.info['ch_names'], include=include,
                         exclude=exclude)
 
@@ -375,8 +399,9 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     include : list of string
         List of channels to include (if empty, include all available).
         Defaults to [].
-    exclude : list of string
+    exclude : list of string | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
+        If 'bads', then exclude bad channels in orig.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -386,8 +411,11 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
         Forward solution restricted to selected channels. If include and
         exclude are empty it returns orig without copy.
     """
+    orig['info']._check_consistency()
     if len(include) == 0 and len(exclude) == 0:
         return orig
+    exclude = _check_excludes_includes(exclude,
+                                       info=orig['info'], allow_bads=True)
 
     # Allow for possibility of channel ordering in forward solution being
     # different from that of the M/EEG file it is based on.
@@ -505,6 +533,7 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     res : dict
         Covariance solution restricted to selected channels.
     """
+    exclude = orig['bads'] if exclude == 'bads' else exclude
     sel = pick_channels(orig['names'], include=include, exclude=exclude)
     res = deepcopy(orig)
     res['dim'] = len(sel)
@@ -560,3 +589,35 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False):
              ref_meg=ref_meg))
         )
     return picks_list
+
+
+def _check_excludes_includes(chs, info=None, allow_bads=False):
+    """Ensure that inputs to exclude/include are list-like or "bads".
+
+    Parameters
+    ----------
+    chs : any input, should be list, tuple, string
+        The channels passed to include or exclude.
+    allow_bads : bool
+        Allow the user to supply "bads" as a string for auto exclusion.
+
+    Returns
+    -------
+    chs : list
+        Channels to be excluded/excluded. If allow_bads, and chs=="bads",
+        this will be the bad channels found in 'info'.
+    """
+    from .meas_info import Info
+    if not isinstance(chs, (list, tuple, np.ndarray)):
+        if allow_bads is True:
+            if not isinstance(info, Info):
+                raise ValueError('Supply an info object if allow_bads is true')
+            elif chs != 'bads':
+                raise ValueError('If chs is a string, it must be "bads"')
+            else:
+                chs = info['bads']
+        else:
+            raise ValueError(
+                'include/exclude must be list, tuple, ndarray, or "bads". ' +
+                'You provided type {0}'.format(type(chs)))
+    return chs

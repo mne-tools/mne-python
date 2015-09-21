@@ -5,16 +5,15 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six import string_types
 import os
 import copy
 from math import ceil
+import warnings
+
 import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import csr_matrix, coo_matrix
-import warnings
 
-from ._hdf5 import read_hdf5, write_hdf5
 from .filter import resample
 from .evoked import _get_peak
 from .parallel import parallel_func
@@ -24,8 +23,10 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask)
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
-from .externals.six.moves import zip
 from .io.base import ToDataFrameMixin
+from .externals.six.moves import zip
+from .externals.six import string_types
+from .externals.h5io import read_hdf5, write_hdf5
 
 
 def _read_stc(filename):
@@ -319,7 +320,7 @@ def read_source_estimate(fname, subject=None):
         kwargs['tmin'] = 0.0
         kwargs['tstep'] = 1.0
     elif ftype == 'h5':
-        kwargs = read_hdf5(fname + '-stc.h5')
+        kwargs = read_hdf5(fname + '-stc.h5', title='mnepython')
 
     if ftype != 'volume':
         # Make sure the vertices are ordered
@@ -991,7 +992,7 @@ class SourceEstimate(_BaseSourceEstimate):
             write_hdf5(fname + '-stc.h5',
                        dict(vertices=self.vertices, data=self.data,
                             tmin=self.tmin, tstep=self.tstep,
-                            subject=self.subject))
+                            subject=self.subject), title='mnepython')
         logger.info('[done]')
 
     def __repr__(self):
@@ -1150,8 +1151,8 @@ class SourceEstimate(_BaseSourceEstimate):
               and flip is a sing-flip vector based on the vertex normals. This
               procedure assures that the phase does not randomly change by 180
               degrees from one stc to the next.
-
             - 'max': Max value within each label.
+
 
         Parameters
         ----------
@@ -1733,11 +1734,11 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                                      verbose=verbose)
 
     def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
-                     colormap='hot', time_label='time=%02.f ms',
-                     smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-                     transparent=True, alpha=1.0, time_viewer=False,
+                     colormap='auto', time_label='time=%02.f ms',
+                     smoothing_steps=10,
+                     transparent=None, alpha=1.0, time_viewer=False,
                      config_opts={}, subjects_dir=None, figure=None,
-                     views='lat', colorbar=True):
+                     views='lat', colorbar=True, clim='auto'):
         """Plot surface source estimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1761,20 +1762,15 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         hemi : str, 'lh' | 'rh' | 'split' | 'both'
             The hemisphere to display. Using 'both' or 'split' requires
             PySurfer version 0.4 or above.
-        colormap : str
-            The type of colormap to use.
+        colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+            Name of colormap to use. See `plot_source_estimates`.
         time_label : str
             How to print info about the time instant visualized.
         smoothing_steps : int
             The amount of smoothing.
-        fmin : float
-            The minimum value to display.
-        fmid : float
-            The middle value on the colormap.
-        fmax : float
-            The maximum value for the colormap.
-        transparent : bool
+        transparent : bool | None
             If True, use a linear transparency between fmin and fmid.
+            None will choose automatically based on colormap type.
         alpha : float
             Alpha value to apply globally to the overlay.
         time_viewer : bool
@@ -1792,6 +1788,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             View to use. See surfer.Brain().
         colorbar : bool
             If True, display colorbar on scene.
+        clim : str | dict
+            Colorbar properties specification. See `plot_source_estimates`.
 
         Returns
         -------
@@ -1814,12 +1812,11 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         return plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
                                      colormap=colormap, time_label=time_label,
                                      smoothing_steps=smoothing_steps,
-                                     fmin=fmin, fmid=fmid, fmax=fmax,
                                      transparent=transparent, alpha=alpha,
                                      time_viewer=time_viewer,
                                      config_opts=config_opts,
                                      subjects_dir=subjects_dir, figure=figure,
-                                     views=views, colorbar=colorbar)
+                                     views=views, colorbar=colorbar, clim=clim)
 
 
 ###############################################################################
@@ -2828,8 +2825,8 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
           and flip is a sing-flip vector based on the vertex normals. This
           procedure assures that the phase does not randomly change by 180
           degrees from one stc to the next.
-
         - 'max': Max value within each label.
+
 
     Parameters
     ----------
@@ -2851,10 +2848,9 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     Returns
     -------
-    label_tc : array | list (or generator) of array,
-               shape=(len(labels), n_times)
+    label_tc : array | list (or generator) of array, shape=(len(labels), n_times)
         Extracted time course for each label and source estimate.
-    """
+    """  # noqa
     # convert inputs to lists
     if isinstance(stcs, SourceEstimate):
         stcs = [stcs]

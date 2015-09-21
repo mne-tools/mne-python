@@ -31,7 +31,7 @@ from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_mri_head_t,
-                         _coord_frame_name)
+                         _coord_frame_name, Transform)
 from .externals.six import string_types
 
 
@@ -307,8 +307,7 @@ class SourceSpaces(list):
 
                 # combine transforms, from HEAD to MRI_VOXEL
                 affine = combine_transforms(head_mri_t, affine,
-                                            FIFF.FIFFV_COORD_HEAD,
-                                            FIFF.FIFFV_MNE_COORD_MRI_VOXEL)
+                                            'head', 'mri_voxel')
 
             # loop through the surface source spaces
             if include_surfaces:
@@ -511,6 +510,10 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     -------
     src : SourceSpaces
         The source spaces.
+
+    See Also
+    --------
+    write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
@@ -897,6 +900,10 @@ def write_source_spaces(fname, src, verbose=None):
         The source spaces (as returned by read_source_spaces).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    read_source_spaces
     """
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
 
@@ -1170,22 +1177,16 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 
     # extract the MRI_VOXEL to MRI transform
     t_orig = nt_orig[1]
-    vox_mri_t = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
-                 'to': FIFF.FIFFV_COORD_MRI,
-                 'trans': t_orig}
+    vox_mri_t = Transform('mri_voxel', 'mri', t_orig)
 
     # invert MRI_VOXEL to MRI to get the MRI to MRI_VOXEL transform
     mri_vox_t = invert_transform(vox_mri_t)
 
     # construct an MRI to RAS transform
-    mri_ras_t = combine_transforms(mri_vox_t, vox_ras_t,
-                                   FIFF.FIFFV_COORD_MRI,
-                                   FIFF.FIFFV_MNE_COORD_RAS)
+    mri_ras_t = combine_transforms(mri_vox_t, vox_ras_t, 'mri', 'ras')
 
     # construct the MRI to MNI transform
-    mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t,
-                                   FIFF.FIFFV_COORD_MRI,
-                                   FIFF.FIFFV_MNE_COORD_MNI_TAL)
+    mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
     return mri_mni_t
 
 
@@ -1565,8 +1566,7 @@ def _make_voxel_ras_trans(move, ras, voxel_size):
     assert rot.shape[0] == 3
     assert rot.shape[1] == 3
     trans = np.c_[np.r_[rot, np.zeros((1, 3))], np.r_[move, 1.0]]
-    t = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL, 'to': FIFF.FIFFV_COORD_MRI,
-         'trans': trans}
+    t = Transform('mri_voxel', 'mri', trans)
     return t
 
 
@@ -1870,12 +1870,10 @@ def _add_interpolator(s, mri_name, add_interpolator):
                   mri_depth=mri_depth))
     trans = header['vox2ras_tkr'].copy()
     trans[:3, :] /= 1000.0
-    s['vox_mri_t'] = {'trans': trans, 'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
-                      'to': FIFF.FIFFV_COORD_MRI}  # ras_tkr
+    s['vox_mri_t'] = Transform('mri_voxel', 'mri', trans)  # ras_tkr
     trans = linalg.inv(np.dot(header['vox2ras_tkr'], header['ras2vox']))
     trans[:3, 3] /= 1000.0
-    s['mri_ras_t'] = {'trans': trans, 'from': FIFF.FIFFV_COORD_MRI,
-                      'to': FIFF.FIFFV_MNE_COORD_RAS}  # ras
+    s['mri_ras_t'] = Transform('mri', 'ras', trans)  # ras
     s['mri_volume_name'] = mri_name
     nvox = mri_width * mri_height * mri_depth
     if not add_interpolator:
@@ -1892,8 +1890,7 @@ def _add_interpolator(s, mri_name, add_interpolator):
     #
     combo_trans = combine_transforms(s['vox_mri_t'],
                                      invert_transform(s['src_mri_t']),
-                                     FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
-                                     FIFF.FIFFV_MNE_COORD_MRI_VOXEL)
+                                     'mri_voxel', 'mri_voxel')
     combo_trans['trans'] = combo_trans['trans'].astype(np.float32)
 
     logger.info('Setting up interpolation...')
@@ -2196,7 +2193,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         min_dists.append(min_dist)
         min_idxs.append(min_idx)
         # now actually deal with distances, convert to sparse representation
-        d = np.array([dd[0] for dd in d]).ravel()  # already float32
+        d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
         idx = d > 0
         d = d[idx]
         i, j = np.meshgrid(s['vertno'], s['vertno'])

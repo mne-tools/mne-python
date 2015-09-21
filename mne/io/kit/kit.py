@@ -19,7 +19,7 @@ from ..pick import pick_types
 from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
-                           get_ras_to_neuromag_trans)
+                           get_ras_to_neuromag_trans, Transform)
 from ..base import _BaseRaw
 from ...epochs import _BaseEpochs
 from ..constants import FIFF
@@ -71,6 +71,13 @@ class RawKIT(_BaseRaw):
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Notes
+    -----
+    ``elp`` and ``hsp`` are usually the exported text files (*.txt) from the
+    Polhemus FastScan system. hsp refers to the headshape surface points. elp
+    refers to the points in head-space that corresponds to the HPI points.
+    Currently, '*.elp' and '*.hsp' files are NOT supported.
 
     See Also
     --------
@@ -317,6 +324,13 @@ class EpochsKIT(_BaseEpochs):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
+    Notes
+    -----
+    ``elp`` and ``hsp`` are usually the exported text files (*.txt) from the
+    Polhemus FastScan system. hsp refers to the headshape surface points. elp
+    refers to the points in head-space that corresponds to the HPI points.
+    Currently, '*.elp' and '*.hsp' files are NOT supported.
+
     See Also
     --------
     mne.Epochs : Documentation of attribute and methods.
@@ -497,8 +511,7 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
     elp = elp[3:]
 
     dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp)
-    dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE, 'to': FIFF.FIFFV_COORD_HEAD,
-                  'trans': trans}
+    dev_head_t = Transform('meg', 'head', trans)
 
     return dig_points, dev_head_t
 
@@ -631,23 +644,9 @@ def get_kit_info(rawfile):
 
         # Create raw.info dict for raw fif object with SQD data
         info = _empty_info()
-        info['events'] = []
-        info['meas_id'] = None
-        info['file_id'] = None
-        info['meas_date'] = int(time.time())
-        info['projs'] = []
-        info['comps'] = []
-        info['lowpass'] = sqd['lowpass']
-        info['highpass'] = sqd['highpass']
-        info['sfreq'] = float(sqd['sfreq'])
-        info['bads'] = []
-        info['acq_pars'], info['acq_stim'] = None, None
-        info['filename'] = rawfile
-        info['ctf_head_t'] = None
-        info['dev_ctf_t'] = []
-        info['nchan'] = sqd['nchan']
-        info['dig'] = None
-        info['dev_head_t'] = None
+        info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
+                    highpass=sqd['highpass'], sfreq=float(sqd['sfreq']),
+                    filename=rawfile, nchan=sqd['nchan'])
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')

@@ -65,7 +65,9 @@ _deprecation_ignores = [
     'generate_stc',  # deprecated
     'generate_evoked',  # deprecated
     'generate_noise_evoked',  # deprecated
-    'mne.gui.coregistration'  # deprecated
+    'mne.gui.coregistration',  # deprecated
+    'mne.utils.plot_topo',
+    'mne.viz.plot_image_epochs',  # deprecated
 ]
 
 

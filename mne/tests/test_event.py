@@ -8,7 +8,7 @@ import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, io, pick_channels)
-from mne.utils import _TempDir
+from mne.utils import _TempDir, run_tests_if_main
 from mne.event import define_target_events, merge_events
 
 warnings.simplefilter('always')
@@ -154,7 +154,7 @@ def test_find_events():
 
     stim_channel = 'STI 014'
     stim_channel_idx = pick_channels(raw.info['ch_names'],
-                                     include=stim_channel)
+                                     include=[stim_channel])
 
     # test digital masking
     raw._data[stim_channel_idx, :5] = np.arange(5)
@@ -317,3 +317,23 @@ def test_define_events():
     n_target_ = events_[events_[:, 2] == 42].shape[0]
 
     assert_true(n_target_ == (n_target - n_miss))
+
+    events = np.array([[0, 0, 1],
+                       [375, 0, 2],
+                       [500, 0, 1],
+                       [875, 0, 3],
+                       [1000, 0, 1],
+                       [1375, 0, 3],
+                       [1100, 0, 1],
+                       [1475, 0, 2],
+                       [1500, 0, 1],
+                       [1875, 0, 2]])
+    true_lag_nofill = [1500., 1500., 1500.]
+    true_lag_fill = [1500., np.nan, np.nan, 1500., 1500.]
+    n, lag_nofill = define_target_events(events, 1, 2, 250., 1.4, 1.6, 5)
+    n, lag_fill = define_target_events(events, 1, 2, 250., 1.4, 1.6, 5, 99)
+
+    assert_array_equal(true_lag_fill, lag_fill)
+    assert_array_equal(true_lag_nofill, lag_nofill)
+
+run_tests_if_main()

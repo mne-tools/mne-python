@@ -94,7 +94,7 @@ scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should match results above
 
 # And using reuglarized csp with Ledoit-Wolf estimator
-csp = CSP(n_components=n_components, reg='lws')
+csp = CSP(n_components=n_components, reg='ledoit_wolf')
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should get better results than above

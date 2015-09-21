@@ -347,11 +347,13 @@ def _read_forward_meas_info(tree, fid):
         raise ValueError('MEG/head coordinate transformation not found')
 
     info['bads'] = read_bad_channels(fid, parent_meg)
+    # clean up our bad list, old versions could have non-existent bads
+    info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
 
     # Check if a custom reference has been applied
     tag = find_tag(fid, parent_mri, FIFF.FIFF_CUSTOM_REF)
     info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
-
+    info._check_consistency()
     return info
 
 
@@ -423,6 +425,10 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     -------
     fwd : instance of Forward
         The forward solution.
+
+    See Also
+    --------
+    write_forward_solution, make_forward_solution
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
@@ -518,8 +524,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     #   if necessary
 
     # Make sure forward solution is in either the MRI or HEAD coordinate frame
-    if (fwd['coord_frame'] != FIFF.FIFFV_COORD_MRI and
-            fwd['coord_frame'] != FIFF.FIFFV_COORD_HEAD):
+    if fwd['coord_frame'] not in (FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_COORD_HEAD):
         raise ValueError('Only forward solutions computed in MRI or head '
                          'coordinates are acceptable')
 
@@ -689,6 +694,10 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         If True, overwrite destination file (if it exists).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    read_forward_solution
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
@@ -855,6 +864,7 @@ def write_forward_meas_info(fid, info):
     info : instance of mne.io.meas_info.Info
         The measurement info.
     """
+    info._check_consistency()
     #
     # Information from the MEG file
     #
@@ -1261,6 +1271,10 @@ def restrict_forward_to_stc(fwd, stc):
     -------
     fwd_out : dict
         Restricted forward operator.
+
+    See Also
+    --------
+    restrict_forward_to_label
     """
 
     fwd_out = deepcopy(fwd)
@@ -1304,6 +1318,10 @@ def restrict_forward_to_label(fwd, labels):
     -------
     fwd_out : dict
         Restricted forward operator.
+
+    See Also
+    --------
+    restrict_forward_to_stc
     """
 
     if not isinstance(labels, list):
@@ -1420,6 +1438,10 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         Override the SUBJECTS_DIR environment variable.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    forward.make_forward_solution
 
     Returns
     -------

@@ -48,7 +48,104 @@ def _summarize_str(st):
 
 
 class Info(dict):
-    """ Info class to nicely represent info dicts
+    """Information about the recording.
+
+    This data structure behaves like a dictionary. It contains all meta-data
+    that is available for a recording.
+
+    The attributes listed below are the possible dictionary entries:
+
+    Attributes
+    ----------
+    bads : list of str
+        List of bad (noisy/broken) channels, by name. These channels will by
+        default be ignored by many processing steps.
+    ch_names : list of str
+        The names of the channels.
+    chs	: list of dict
+        A list of channel information structures.
+        See: :ref:`faq` for details.
+    comps : list of dict
+        CTF software gradient compensation data.
+        See: :ref:`faq` for details.
+    custom_ref_applied : bool
+        Whether a custom (=other than average) reference has been applied to
+        the EEG data. This flag is checked by some algorithms that require an
+        average reference to be set.
+    events : list of dict
+        Event list, usually extracted from the stim channels.
+        See: :ref:`faq` for details.
+    hpi_results : list of dict
+        Head position indicator (HPI) digitization points.
+        See: :ref:`faq` for details.
+    meas_date : list of int
+        The first element of this list is a POSIX timestamp (milliseconds since
+        1970-01-01 00:00:00) denoting the date and time at which the
+        measurement was taken.
+        TODO: what are the other fields?
+    nchan : int
+        Number of channels.
+    projs : list of dict
+        List of SSP operators that operate on the data.
+        See: :ref:`faq` for details.
+    sfreq : float
+        Sampling frequency in Hertz.
+        See: :ref:`faq` for details.
+    acq_pars : str | None
+        MEG system acquition parameters.
+    acq_stim : str | None
+        TODO: What is this?
+    buffer_size_sec : float | None
+        Buffer size (in seconds) when reading the raw data in chunks.
+    ctf_head_t : dict | None
+        The transformation from 4D/CTF head coordinates to Neuromag head
+        coordinates. This is only present in 4D/CTF data.
+        See: :ref:`faq` for details.
+    description : str | None
+        String description of the recording.
+    dev_ctf_t : dict | None
+        The transformation from device coordinates to 4D/CTF head coordinates.
+        This is only present in 4D/CTF data.
+        See: :ref:`faq` for details.
+    dev_head_t : dict | None
+        The device to head transformation.
+        See: :ref:`faq` for details.
+    dig : list of dict | None
+        The Polhemus digitization data in head coordinates.
+        See: :ref:`faq` for details.
+    experimentor : str | None
+        Name of the person that ran the experiment.
+    file_id	: dict | None
+        The fif ID datastructure of the measurement file.
+        See: :ref:`faq` for details.
+    filename : str | None
+        The name of the file that provided the raw data.
+    highpass : float | None
+        Highpass corner frequency in Hertz. Zero indicates a DC recording.
+    hpi_meas : list of dict | None
+        HPI measurements.
+        TODO: What is this exactly?
+    hpi_subsystem: | None
+        TODO: What is this?
+    line_freq : float | None
+        Frequency of the power line in Hertz.
+    lowpass : float | None
+        Lowpass corner frequency in Hertz.
+    meas_id : dict | None
+        The ID assigned to this measurement by the acquisition system or during
+        file conversion.
+        See: :ref:`faq` for details.
+    proj_id : int | None
+        ID number of the project the experiment belongs to.
+    proj_name : str | None
+        Name of the project the experiment belongs to.
+    subject_info : dict | None
+        Information about the subject.
+        See: :ref:`subject_info` for details
+    proc_history : list of dict | None | not present in dict
+        The SSS info, the CTC correction and the calibaraions from the SSS
+        processing logs inside of a raw file.
+        See: :ref:`faq` for details.
     """
 
     def copy(self):
@@ -108,6 +205,23 @@ class Info(dict):
     def _anonymize(self):
         if self.get('subject_info') is not None:
             del self['subject_info']
+
+    def _check_consistency(self):
+        """Do some self-consistency checks and datatype tweaks"""
+        missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
+        if len(missing) > 0:
+            raise RuntimeError('bad channel(s) %s marked do not exist in info'
+                               % (missing,))
+        chs = [ch['ch_name'] for ch in self['chs']]
+        if len(self['ch_names']) != len(chs) or any(
+                ch_1 != ch_2 for ch_1, ch_2 in zip(self['ch_names'], chs)) or \
+                self['nchan'] != len(chs):
+            raise RuntimeError('info channel name inconsistency detected, '
+                               'please notify mne-python developers')
+        # make sure we have the proper datatypes
+        for key in ('sfreq', 'highpass', 'lowpass'):
+            if self.get(key) is not None:
+                self[key] = float(self[key])
 
 
 def read_fiducials(fname):
@@ -392,6 +506,7 @@ def read_meas_info(fid, tree, verbose=None):
     meas : dict
         Node in tree that contains the info.
     """
+
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
     if len(meas) == 0:
@@ -410,6 +525,7 @@ def read_meas_info(fid, tree, verbose=None):
     #   Read measurement info
     dev_head_t = None
     ctf_head_t = None
+    dev_ctf_t = None
     meas_date = None
     highpass = None
     lowpass = None
@@ -448,12 +564,16 @@ def read_meas_info(fid, tree, verbose=None):
         elif kind == FIFF.FIFF_COORD_TRANS:
             tag = read_tag(fid, pos)
             cand = tag.data
+
             if cand['from'] == FIFF.FIFFV_COORD_DEVICE and \
                     cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 dev_head_t = cand
             elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
                     cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 ctf_head_t = cand
+            elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_DEVICE and \
+                    cand['to'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD:
+                dev_ctf_t = cand
         elif kind == FIFF.FIFF_EXPERIMENTER:
             tag = read_tag(fid, pos)
             experimenter = tag.data
@@ -751,14 +871,12 @@ def read_meas_info(fid, tree, verbose=None):
     #
     info['dev_head_t'] = dev_head_t
     info['ctf_head_t'] = ctf_head_t
-    if dev_head_t is not None and ctf_head_t is not None:
+    info['dev_ctf_t'] = dev_ctf_t
+    if dev_head_t is not None and ctf_head_t is not None and dev_ctf_t is None:
+        from ..transforms import Transform
         head_ctf_trans = linalg.inv(ctf_head_t['trans'])
         dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
-        info['dev_ctf_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                             'to': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                             'trans': dev_ctf_trans}
-    else:
-        info['dev_ctf_t'] = None
+        info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 
     #   All kinds of auxliary stuff
     info['dig'] = dig
@@ -768,6 +886,7 @@ def read_meas_info(fid, tree, verbose=None):
     info['acq_pars'] = acq_pars
     info['acq_stim'] = acq_stim
     info['custom_ref_applied'] = custom_ref_applied
+    info._check_consistency()
 
     return info, meas
 
@@ -792,6 +911,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     -----
     Tags are written in a particular order for compatibility with maxfilter.
     """
+    info._check_consistency()
 
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
@@ -891,6 +1011,9 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
 
     if info['ctf_head_t'] is not None:
         write_coord_trans(fid, info['ctf_head_t'])
+
+    if info['dev_ctf_t'] is not None:
+        write_coord_trans(fid, info['dev_ctf_t'])
 
     #   Projectors
     _write_proj(fid, info['projs'])
@@ -1119,6 +1242,8 @@ def _merge_info(infos, verbose=None):
     info : instance of Info
         The merged info object.
     """
+    for info in infos:
+        info._check_consistency()
     info = Info()
     ch_names = _merge_dict_values(infos, 'ch_names')
     duplicates = set([ch for ch in ch_names if ch_names.count(ch) > 1])
@@ -1158,7 +1283,7 @@ def _merge_info(infos, verbose=None):
 
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
-
+    info._check_consistency()
     return info
 
 
@@ -1181,7 +1306,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         specified, the channel info will be updated with the channel
         positions. Default is None. If DigMontage is specified, the
         digitizer information will be updated. A list of unique montages,
-        can be specifed and applied to the info.
+        can be specifed and applied to the info. See also the documentation of
+        :func:`mne.channels.read_montage` for more information.
 
     Notes
     -----
@@ -1246,8 +1372,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
 
 
 RAW_INFO_FIELDS = (
-    'acq_pars', 'acq_stim', 'bads', 'ch_names', 'chs', 'comps',
-    'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
+    'acq_pars', 'acq_stim', 'bads', 'buffer_size_sec', 'ch_names', 'chs',
+    'comps', 'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
     'dev_head_t', 'dig', 'experimenter', 'events',
     'file_id', 'filename', 'highpass', 'hpi_meas', 'hpi_results',
     'hpi_subsystem', 'line_freq', 'lowpass', 'meas_date', 'meas_id', 'nchan',
@@ -1257,8 +1383,9 @@ RAW_INFO_FIELDS = (
 
 def _empty_info():
     """Create an empty info dictionary"""
+    from ..transforms import Transform
     _none_keys = (
-        'acq_pars', 'acq_stim', 'ctf_head_t', 'description',
+        'acq_pars', 'acq_stim', 'buffer_size_sec', 'ctf_head_t', 'description',
         'dev_ctf_t', 'dig', 'experimenter',
         'file_id', 'filename', 'highpass', 'hpi_subsystem', 'line_freq',
         'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
@@ -1275,7 +1402,7 @@ def _empty_info():
         info[k] = list()
     info['custom_ref_applied'] = False
     info['nchan'] = info['sfreq'] = 0
-    info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                          'to': FIFF.FIFFV_COORD_HEAD, 'trans': np.eye(4)}
+    info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
+    info._check_consistency()
     return info

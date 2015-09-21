@@ -19,10 +19,10 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne.datasets import testing
 from mne.io.constants import FIFF
-from mne.io import Raw, concatenate_raws, read_raw_fif
+from mne.io import Raw, RawArray, concatenate_raws, read_raw_fif
 from mne.io.tests.test_raw import _test_concat
 from mne import (concatenate_events, find_events, equalize_channels,
-                 compute_proj_raw, pick_types, pick_channels)
+                 compute_proj_raw, pick_types, pick_channels, create_info)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip, cPickle as pickle
@@ -809,9 +809,9 @@ def test_resample():
     raw3 = raw.copy()
     raw4 = raw.copy()
     raw1 = concatenate_raws([raw1, raw2])
-    raw1.resample(10)
-    raw3.resample(10)
-    raw4.resample(10)
+    raw1.resample(10.)
+    raw3.resample(10.)
+    raw4.resample(10.)
     raw3 = concatenate_raws([raw3, raw4])
     assert_array_equal(raw1._data, raw3._data)
     assert_array_equal(raw1._first_samps, raw3._first_samps)
@@ -820,6 +820,63 @@ def test_resample():
     assert_equal(raw1.first_samp, raw3.first_samp)
     assert_equal(raw1.last_samp, raw3.last_samp)
     assert_equal(raw1.info['sfreq'], raw3.info['sfreq'])
+
+    # test resampling of stim channel
+
+    # basic decimation
+    stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    assert_allclose(raw.resample(8.)._data,
+                    [[1, 1, 0, 0, 1, 1, 0, 0]])
+
+    # decimation of multiple stim channels
+    raw = RawArray(2 * [stim], create_info(2, len(stim), 2 * ['stim']))
+    assert_allclose(raw.resample(8.)._data,
+                    [[1, 1, 0, 0, 1, 1, 0, 0],
+                     [1, 1, 0, 0, 1, 1, 0, 0]])
+
+    # decimation that could potentially drop events if the decimation is
+    # done naively
+    stim = [0, 0, 0, 1, 1, 0, 0, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    assert_allclose(raw.resample(4.)._data,
+                    [[0, 1, 1, 0]])
+
+    # two events are merged in this case (warning)
+    stim = [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw.resample(8.)
+        assert_true(len(w) == 1)
+
+    # events are dropped in this case (warning)
+    stim = [0, 1, 1, 0, 0, 1, 1, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw.resample(4.)
+        assert_true(len(w) == 1)
+
+    # test resampling events: this should no longer give a warning
+    stim = [0, 1, 1, 0, 0, 1, 1, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    events = find_events(raw)
+    raw, events = raw.resample(4., events=events)
+    assert_equal(events, np.array([[0, 0, 1], [2, 0, 1]]))
+
+    # test copy flag
+    stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    raw_resampled = raw.resample(4., copy=True)
+    assert_true(raw_resampled is not raw)
+    raw_resampled = raw.resample(4., copy=False)
+    assert_true(raw_resampled is raw)
+
+    # resample should still work even when no stim channel is present
+    raw = RawArray(np.random.randn(1, 100), create_info(1, 100, ['eeg']))
+    raw.resample(10)
+    assert_true(len(raw) == 10)
 
 
 @testing.requires_testing_data
@@ -830,9 +887,23 @@ def test_hilbert():
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
 
+    raw_filt = raw.copy()
+    raw_filt.filter(10, 20)
+    raw_filt_2 = raw_filt.copy()
+
     raw2 = raw.copy()
+    raw3 = raw.copy()
     raw.apply_hilbert(picks)
     raw2.apply_hilbert(picks, envelope=True, n_jobs=2)
+
+    # Test custom n_fft
+    raw_filt.apply_hilbert(picks)
+    raw_filt_2.apply_hilbert(picks, n_fft=raw_filt_2.n_times + 1000)
+    assert_equal(raw_filt._data.shape, raw_filt_2._data.shape)
+    assert_allclose(raw_filt._data[:, 50:-50], raw_filt_2._data[:, 50:-50],
+                    atol=1e-13, rtol=1e-2)
+    assert_raises(ValueError, raw3.apply_hilbert, picks,
+                  n_fft=raw3.n_times - 100)
 
     env = np.abs(raw._data[picks, :])
     assert_allclose(env, raw2._data[picks, :], rtol=1e-2, atol=1e-13)
@@ -895,6 +966,37 @@ def test_raw_index_as_time():
     # Have to add small amount of time because we truncate via int casting
     i1 = raw.time_as_index(raw.index_as_time([100.0001], False), False)
     assert_equal(i1[0], 100)
+
+
+def test_add_channels():
+    """Test raw splitting / re-appending channel types
+    """
+    raw = Raw(test_fif_fname).crop(0, 1).preload_data()
+    raw_nopre = Raw(test_fif_fname, preload=False)
+    raw_eeg_meg = raw.pick_types(meg=True, eeg=True, copy=True)
+    raw_eeg = raw.pick_types(meg=False, eeg=True, copy=True)
+    raw_meg = raw.pick_types(meg=True, eeg=False, copy=True)
+    raw_stim = raw.pick_types(meg=False, eeg=False, stim=True, copy=True)
+    raw_new = raw_meg.add_channels([raw_eeg, raw_stim], copy=True)
+    assert_true(all(ch in raw_new.ch_names
+                    for ch in raw_stim.ch_names + raw_meg.ch_names))
+    raw_new = raw_meg.add_channels([raw_eeg], copy=True)
+
+    assert_true(ch in raw_new.ch_names for ch in raw.ch_names)
+    assert_array_equal(raw_new[:, :][0], raw_eeg_meg[:, :][0])
+    assert_array_equal(raw_new[:, :][1], raw[:, :][1])
+    assert_true(all(ch not in raw_new.ch_names for ch in raw_stim.ch_names))
+
+    # Now test errors
+    raw_badsf = raw_eeg.copy()
+    raw_badsf.info['sfreq'] = 3.1415927
+    raw_eeg = raw_eeg.crop(.5)
+
+    assert_raises(AssertionError, raw_meg.add_channels, [raw_nopre])
+    assert_raises(RuntimeError, raw_meg.add_channels, [raw_badsf])
+    assert_raises(AssertionError, raw_meg.add_channels, [raw_eeg])
+    assert_raises(ValueError, raw_meg.add_channels, [raw_meg])
+    assert_raises(AssertionError, raw_meg.add_channels, raw_badsf)
 
 
 @testing.requires_testing_data
@@ -1032,6 +1134,7 @@ def test_pick_channels_mixin():
     assert_equal(ch_names, raw.ch_names)
     assert_equal(len(ch_names), len(raw._cals))
     assert_equal(len(ch_names), raw._data.shape[0])
+    assert_raises(ValueError, raw.pick_channels, ch_names[0])
 
     raw = Raw(fif_fname, preload=False)
     assert_raises(RuntimeError, raw.pick_channels, ch_names)

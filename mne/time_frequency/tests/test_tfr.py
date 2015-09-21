@@ -11,6 +11,9 @@ from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
 from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
 from mne.time_frequency.tfr import AverageTFR, read_tfrs, write_tfrs
 
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 event_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
@@ -52,19 +55,29 @@ def test_time_frequency():
     times = epochs.times
     nave = len(data)
 
+    epochs_nopicks = Epochs(raw, events, event_id, tmin, tmax,
+                            baseline=(None, 0))
+
     freqs = np.arange(6, 20, 5)  # define frequencies of interest
     n_cycles = freqs / 4.
 
     # Test first with a single epoch
     power, itc = tfr_morlet(epochs[0], freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
+    # Now compute evoked
     evoked = epochs.average()
     power_evoked = tfr_morlet(evoked, freqs, n_cycles, use_fft=True,
                               return_itc=False)
     assert_raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
+    # Test picks argument
+    power_picks, itc_picks = tfr_morlet(epochs_nopicks, freqs=freqs,
+                                        n_cycles=n_cycles, use_fft=True,
+                                        return_itc=True, picks=picks)
     # the actual data arrays here are equivalent, too...
+    assert_array_almost_equal(power.data, power_picks.data)
+    assert_array_almost_equal(itc.data, itc_picks.data)
     assert_array_almost_equal(power.data, power_evoked.data)
 
     print(itc)  # test repr
@@ -150,7 +163,7 @@ def test_tfr_multitaper():
     dat = noise + signal
 
     reject = dict(grad=4000.)
-    events = np.empty((n_epochs, 3))
+    events = np.empty((n_epochs, 3), int)
     first_event_sample = 100
     event_id = dict(sin50hz=1)
     for k in range(n_epochs):
@@ -162,9 +175,16 @@ def test_tfr_multitaper():
     freqs = np.arange(5, 100, 3, dtype=np.float)
     power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                 time_bandwidth=4.0)
+    picks = np.arange(len(ch_names))
+    power_picks, itc_picks = tfr_multitaper(epochs, freqs=freqs,
+                                            n_cycles=freqs / 2.,
+                                            time_bandwidth=4.0, picks=picks)
     power_evoked = tfr_multitaper(epochs.average(), freqs=freqs,
                                   n_cycles=freqs / 2., time_bandwidth=4.0,
                                   return_itc=False)
+    # test picks argument
+    assert_array_almost_equal(power.data, power_picks.data)
+    assert_array_almost_equal(itc.data, itc_picks.data)
     # one is squared magnitude of the average (evoked) and
     # the other is average of the squared magnitudes (epochs PSD)
     # so values shouldn't match, but shapes should
@@ -229,6 +249,8 @@ def test_io():
     tfr3 = read_tfrs(fname, condition='test-A')
     assert_equal(tfr.comment, tfr3.comment)
 
+    assert_true(isinstance(tfr.info, io.meas_info.Info))
+
     tfrs = read_tfrs(fname, condition=None)
     assert_equal(len(tfrs), 2)
     tfr4 = tfrs[1]
@@ -239,8 +261,6 @@ def test_io():
 
 def test_plot():
     """Test TFR plotting."""
-    import matplotlib
-    matplotlib.use('Agg')  # for testing don't use X server
     import matplotlib.pyplot as plt
 
     data = np.zeros((3, 2, 3))
@@ -258,7 +278,47 @@ def test_plot():
     tfr.plot(picks=[0, 1, 2], axes=[ax, ax2, ax3])
     plt.close('all')
 
-    tfr.plot_topo()
+    tfr.plot_topo(picks=[1, 2])
     plt.close('all')
+
+    tfr.plot_topo(picks=[1, 2])
+    plt.close('all')
+
+
+def test_add_channels():
+    """Test tfr splitting / re-appending channel types
+    """
+    data = np.zeros((6, 2, 3))
+    times = np.array([.1, .2, .3])
+    freqs = np.array([.10, .20])
+    info = mne.create_info(
+        ['MEG 001', 'MEG 002', 'MEG 003', 'EEG 001', 'EEG 002', 'STIM 001'],
+        1000., ['mag', 'mag', 'mag', 'eeg', 'eeg', 'stim'])
+    tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
+                     nave=20, comment='test', method='crazy-tfr')
+    tfr_eeg = tfr.pick_types(meg=False, eeg=True, copy=True)
+    tfr_meg = tfr.pick_types(meg=True, copy=True)
+    tfr_stim = tfr.pick_types(meg=False, stim=True, copy=True)
+    tfr_eeg_meg = tfr.pick_types(meg=True, eeg=True, copy=True)
+    tfr_new = tfr_meg.add_channels([tfr_eeg, tfr_stim], copy=True)
+    assert_true(all(ch in tfr_new.ch_names
+                    for ch in tfr_stim.ch_names + tfr_meg.ch_names))
+    tfr_new = tfr_meg.add_channels([tfr_eeg], copy=True)
+
+    assert_true(ch in tfr_new.ch_names for ch in tfr.ch_names)
+    assert_array_equal(tfr_new.data, tfr_eeg_meg.data)
+    assert_true(all(ch not in tfr_new.ch_names
+                    for ch in tfr_stim.ch_names))
+
+    # Now test errors
+    tfr_badsf = tfr_eeg.copy()
+    tfr_badsf.info['sfreq'] = 3.1415927
+    tfr_eeg = tfr_eeg.crop(-.1, .1)
+
+    assert_raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])
+    assert_raises(AssertionError, tfr_meg.add_channels, [tfr_eeg])
+    assert_raises(ValueError, tfr_meg.add_channels, [tfr_meg])
+    assert_raises(AssertionError, tfr_meg.add_channels, tfr_badsf)
+
 
 run_tests_if_main()

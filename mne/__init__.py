@@ -71,16 +71,16 @@ from .label import (read_label, label_sign_flip,
 from .misc import parse_config, read_reject_parameters
 from .coreg import (create_default_subject, scale_bem, scale_mri, scale_labels,
                     scale_source_space)
-from .transforms import (transform_coordinates, read_trans, write_trans,
-                         transform_surface_to)
+from .transforms import (read_trans, write_trans,
+                         transform_surface_to, Transform)
 from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
 from .selection import read_selection
 from .dipole import read_dipole, Dipole, fit_dipole
-from . import channels
 from .channels import equalize_channels, rename_channels, find_layout
 
 from . import beamformer
+from . import channels
 from . import commands
 from . import connectivity
 from . import coreg

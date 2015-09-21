@@ -440,7 +440,7 @@ def test_compute_covariance_auto_reg():
         picks=picks[:10],  # we need a few channels for numerical reasons
         # in PCA/FA.
         baseline=(-0.2, -0.1), proj=True, reject=reject, preload=True)
-    epochs.crop(None, 0)[:10]
+    epochs = epochs.crop(None, 0)[:10]
 
     method_params = dict(factor_analysis=dict(iter_n_components=[3]),
                          pca=dict(iter_n_components=[3]))

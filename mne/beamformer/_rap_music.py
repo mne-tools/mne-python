@@ -224,6 +224,10 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
         The residual a.k.a. data not explained by the dipoles.
         Only returned if return_residual is True.
 
+    See Also
+    --------
+    mne.fit_dipole
+
     Notes
     -----
     The references are:

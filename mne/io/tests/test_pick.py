@@ -5,7 +5,7 @@ import os.path as op
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
-                 pick_info, __file__)
+                 pick_info, pick_channels, __file__)
 
 from mne.io.meas_info import create_info
 from mne.io.array import RawArray
@@ -15,6 +15,7 @@ from mne.io.constants import FIFF
 from mne.io import Raw
 from mne.datasets import testing
 from mne.forward.tests import test_forward
+from mne.utils import run_tests_if_main
 
 
 def test_pick_channels_regexp():
@@ -40,7 +41,7 @@ def test_pick_seeg():
     for i, t in enumerate(types):
         assert_equal(channel_type(info, i), types[i])
     raw = RawArray(np.zeros((len(names), 10)), info)
-    events = np.array([[1, 0, 0], [2, 0, 0]]).astype('d')
+    events = np.array([[1, 0, 0], [2, 0, 0]])
     epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
     e_seeg = evoked.pick_types(meg=False, seeg=True, copy=True)
@@ -124,6 +125,10 @@ def test_picks_by_channels():
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
     raw = RawArray(test_data, info)
 
+    # Make sure checks for list input work.
+    assert_raises(ValueError, pick_channels, ch_names, 'MEG 001')
+    assert_raises(ValueError, pick_channels, ch_names, ['MEG 001'], 'hi')
+
     pick_list = _picks_by_type(raw.info)
     assert_equal(len(pick_list), 1)
     assert_equal(pick_list[0][0], 'mag')
@@ -164,3 +169,18 @@ def test_clean_info_bads():
 
     assert_equal(info_eeg['bads'], eeg_bad_ch)
     assert_equal(info_meg['bads'], meg_bad_ch)
+
+    info = pick_info(raw.info, picks_meg)
+    info._check_consistency()
+    info['bads'] += ['EEG 053']
+    assert_raises(RuntimeError, info._check_consistency)
+    info = pick_info(raw.info, picks_meg)
+    info._check_consistency()
+    info['ch_names'][0] += 'f'
+    assert_raises(RuntimeError, info._check_consistency)
+    info = pick_info(raw.info, picks_meg)
+    info._check_consistency()
+    info['nchan'] += 1
+    assert_raises(RuntimeError, info._check_consistency)
+
+run_tests_if_main()

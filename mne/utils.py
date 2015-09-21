@@ -1025,6 +1025,7 @@ known_config_types = [
     'MNE_DATASETS_SOMATO_PATH',
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
+    'MNE_DATASETS_BRAINSTORM_PATH',
     'MNE_DATASETS_TESTING_PATH',
     'MNE_LOGGING_LEVEL',
     'MNE_USE_CUDA',
@@ -1063,6 +1064,10 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     -------
     value : dict | str | None
         The preference key value.
+
+    See Also
+    --------
+    set_config
     """
 
     if key is not None and not isinstance(key, string_types):
@@ -1112,6 +1117,10 @@ def set_config(key, value, home_dir=None):
     home_dir : str | None
         The folder that contains the .mne config folder.
         If None, it is found automatically.
+
+    See Also
+    --------
+    get_config
     """
     if not isinstance(key, string_types):
         raise TypeError('key must be a string')
@@ -1410,7 +1419,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
                     # to complete download method
                     logger.info('Resuming download failed. Attempting to '
                                 'restart downloading the entire file.')
-                    _fetch_file(url, resume=False)
+                    local_file.close()
+                    _fetch_file(url, file_name, resume=False)
                 else:
                     _chunk_read(data, local_file, initial_size=local_file_size,
                                 verbose_bool=verbose_bool)
@@ -1482,8 +1492,25 @@ def _url_to_local_path(url, path):
     return destination
 
 
-def _get_stim_channel(stim_channel):
-    """Helper to determine the appropriate stim_channel"""
+def _get_stim_channel(stim_channel, info):
+    """Helper to determine the appropriate stim_channel
+
+    First, 'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2', etc.
+    are read. If these are not found, it will fall back to 'STI 014' if
+    present, then fall back to the first channel of type 'stim', if present.
+
+    Parameters
+    ----------
+    stim_channel : str | list of str | None
+        The stim channel selected by the user.
+    info : instance of Info
+        An information structure containing information about the channels.
+
+    Returns
+    -------
+    stim_channel : str | list of str
+        The name of the stim channel(s) to use
+    """
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
             if not isinstance(stim_channel, string_types):
@@ -1496,13 +1523,24 @@ def _get_stim_channel(stim_channel):
     stim_channel = list()
     ch_count = 0
     ch = get_config('MNE_STIM_CHANNEL')
-    while(ch is not None):
+    while(ch is not None and ch in info['ch_names']):
         stim_channel.append(ch)
         ch_count += 1
         ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
-    if ch_count == 0:
-        stim_channel = ['STI 014']
-    return stim_channel
+    if ch_count > 0:
+        return stim_channel
+
+    if 'STI 014' in info['ch_names']:
+        return ['STI 014']
+
+    from .io.pick import pick_types
+    stim_channel = pick_types(info, meg=False, ref_meg=False, stim=True)
+    if len(stim_channel) > 0:
+        stim_channel = [info['ch_names'][ch_] for ch_ in stim_channel]
+        return stim_channel
+
+    raise ValueError("No stim channels found. Consider specifying them "
+                     "manually using the 'stim_channel' parameter.")
 
 
 def _check_fname(fname, overwrite):
@@ -1777,3 +1815,50 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
         mask |= isclose(times, tmin)
         mask |= isclose(times, tmax)
     return mask
+
+
+def _get_fast_dot():
+    """"Helper to get fast dot"""
+    try:
+        from sklearn.utils.extmath import fast_dot
+    except ImportError:
+        fast_dot = np.dot
+    return fast_dot
+
+
+def random_permutation(n_samples, random_state=None):
+    """Helper to emulate the randperm matlab function.
+
+    It returns a vector containing a random permutation of the
+    integers between 0 and n_samples-1. It returns the same random numbers
+    than randperm matlab function whenever the random_state is the same
+    as the matlab's random seed.
+
+    This function is useful for comparing against matlab scripts
+    which use the randperm function.
+
+    Note: the randperm(n_samples) matlab function generates a random
+    sequence between 1 and n_samples, whereas
+    random_permutation(n_samples, random_state) function generates
+    a random sequence between 0 and n_samples-1, that is:
+    randperm(n_samples) = random_permutation(n_samples, random_state) - 1
+
+    Parameters
+    ----------
+    n_samples : int
+        End point of the sequence to be permuted (excluded, i.e., the end point
+        is equal to n_samples-1)
+    random_state : int | None
+        Random seed for initializing the pseudo-random number generator.
+
+    Returns
+    -------
+    randperm : ndarray, int
+        Randomly permuted sequence between 0 and n-1.
+    """
+    rng = check_random_state(random_state)
+    idx = rng.rand(n_samples)
+
+    randperm = np.argsort(idx)
+
+    return randperm

@@ -1,5 +1,5 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#         Romain Trachel <romain.trachel@inria.fr>
+#         Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -11,7 +11,7 @@ from numpy.testing import assert_array_almost_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, slow_test
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
@@ -23,6 +23,7 @@ event_id = dict(aud_l=1, vis_l=3)
 start, stop = 0, 8
 
 
+@slow_test
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
     """
@@ -30,7 +31,7 @@ def test_csp():
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
-    picks = picks[1:13:3]
+    picks = picks[2:9:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
@@ -40,6 +41,7 @@ def test_csp():
     csp = CSP(n_components=n_components)
 
     csp.fit(epochs_data, epochs.events[:, -1])
+
     y = epochs.events[:, -1]
     X = csp.fit_transform(epochs_data, y)
     assert_true(csp.filters_.shape == (n_channels, n_channels))
@@ -57,6 +59,17 @@ def test_csp():
     sources = csp.transform(epochs_data)
     assert_true(sources.shape[1] == n_components)
 
+    epochs.pick_types(meg='mag', copy=False)
+
+    # test plot patterns
+    components = np.arange(n_components)
+    csp.plot_patterns(epochs.info, components=components, res=12,
+                      show=False)
+
+    # test plot filters
+    csp.plot_filters(epochs.info, components=components, res=12,
+                     show=False)
+
 
 @requires_sklearn
 def test_regularized_csp():
@@ -73,7 +86,7 @@ def test_regularized_csp():
     n_channels = epochs_data.shape[1]
 
     n_components = 3
-    reg_cov = [None, 0.05, 'lws', 'oas']
+    reg_cov = [None, 0.05, 'ledoit_wolf', 'oas']
     for reg in reg_cov:
         csp = CSP(n_components=n_components, reg=reg)
         csp.fit(epochs_data, epochs.events[:, -1])

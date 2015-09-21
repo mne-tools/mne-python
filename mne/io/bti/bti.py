@@ -9,9 +9,12 @@
 
 import os.path as op
 from itertools import count
+
 import numpy as np
 
 from ...utils import logger, verbose, sum_squared
+from ...transforms import (combine_transforms, invert_transform, apply_trans,
+                           Transform)
 from ..constants import FIFF
 from ..base import _BaseRaw
 from .constants import BTI
@@ -19,8 +22,6 @@ from .read import (read_int32, read_int16, read_str, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix)
-from .transforms import (bti_identity_trans, bti_to_vv_trans,
-                         bti_to_vv_coil_trans, inverse_trans, merge_trans)
 from ..meas_info import _empty_info, RAW_INFO_FIELDS
 from ...externals import six
 
@@ -35,11 +36,41 @@ FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1] * 3, dtype='f4'),
 FIFF_INFO_DIG_FIELDS = ('kind', 'ident', 'r', 'coord_frame')
 FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 
-BTI_WH2500_REF_MAG = ['MxA', 'MyA', 'MzA', 'MxaA', 'MyaA', 'MzaA']
-BTI_WH2500_REF_GRAD = ['GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA']
+BTI_WH2500_REF_MAG = ('MxA', 'MyA', 'MzA', 'MxaA', 'MyaA', 'MzaA')
+BTI_WH2500_REF_GRAD = ('GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA')
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
+
+
+def _get_bti_dev_t(adjust=0., translation=(0.0, 0.02, 0.11)):
+    """Get the general Magnes3600WH to Neuromag coordinate transform
+
+    Parameters
+    ----------
+    adjust : float | None
+        Degrees to tilt x-axis for sensor frame misalignment.
+        If None, no adjustment will be applied.
+    translation : array-like
+        The translation to place the origin of coordinate system
+        to the center of the head.
+
+    Returns
+    -------
+    m_nm_t : ndarray
+        4 x 4 rotation, translation, scaling matrix.
+    """
+    flip_t = np.array([[0., -1., 0.],
+                       [1., 0., 0.],
+                       [0., 0., 1.]])
+    rad = np.deg2rad(adjust)
+    adjust_t = np.array([[1., 0., 0.],
+                         [0., np.cos(rad), -np.sin(rad)],
+                         [0., np.sin(rad), np.cos(rad)]])
+    m_nm_t = np.eye(4)
+    m_nm_t[:3, :3] = np.dot(flip_t, adjust_t)
+    m_nm_t[:3, 3] = translation
+    return m_nm_t
 
 
 def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
@@ -95,7 +126,7 @@ def _read_head_shape(fname):
     return idx_points, dig_points
 
 
-def _convert_head_shape(idx_points, dig_points):
+def _get_ctf_head_to_head_t(idx_points):
     """ Helper function """
 
     fp = idx_points.astype('>f8')
@@ -105,89 +136,102 @@ def _convert_head_shape(idx_points, dig_points):
     dsin = np.sqrt(1. - dcos * dcos)
     dt = dp / np.sqrt(tmp2)
 
-    idx_points_nm = np.ones((len(fp), 3), dtype='>f8')
-    for idx, f in enumerate(fp):
-        idx_points_nm[idx, 0] = dcos * f[0] - dsin * f[1] + dt
-        idx_points_nm[idx, 1] = dsin * f[0] + dcos * f[1]
-        idx_points_nm[idx, 2] = f[2]
+    # do the transformation
+    t = np.array([[dcos, -dsin, 0., dt],
+                  [dsin, dcos, 0., 0.],
+                  [0., 0., 1., 0.],
+                  [0., 0., 0., 1.]])
+    return Transform('ctf_head', 'head', t)
 
+
+def _flip_fiducials(idx_points_nm):
     # adjust order of fiducials to Neuromag
+    # XXX presumably swap LPA and RPA
     idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
-
-    t = bti_identity_trans('>f8')
-    t[0, 0] = dcos
-    t[0, 1] = -dsin
-    t[1, 0] = dsin
-    t[1, 1] = dcos
-    t[0, 3] = dt
-
-    dig_points_nm = np.dot(t[BTI.T_ROT_IX], dig_points.T).T
-    dig_points_nm += t[BTI.T_TRANS_IX].T
-
-    return idx_points_nm, dig_points_nm, t
+    return idx_points_nm
 
 
-def _setup_head_shape(fname, use_hpi=True):
+def _process_bti_headshape(fname, convert=True, use_hpi=True):
     """Read index points and dig points from BTi head shape file
 
     Parameters
     ----------
     fname : str
         The absolute path to the head shape file
+    use_hpi : bool
+        Whether to treat additional hpi coils as digitization points or not.
+        If False, hpi coils will be discarded.
 
     Returns
     -------
     dig : list of dicts
         The list of dig point info structures needed for the fiff info
         structure.
-    use_hpi : bool
-        Whether to treat additional hpi coils as digitization points or not.
-        If False, hpi coils will be discarded.
+    t : dict
+        The transformation that was used.
     """
     idx_points, dig_points = _read_head_shape(fname)
-    idx_points, dig_points, t = _convert_head_shape(idx_points, dig_points)
-    all_points = np.r_[idx_points, dig_points].astype('>f4')
+    if convert:
+        ctf_head_t = _get_ctf_head_to_head_t(idx_points)
+    else:
+        ctf_head_t = Transform('ctf_head', 'ctf_head', np.eye(4))
 
-    idx_idents = list(range(1, 4)) + list(range(1, (len(idx_points) + 1) - 3))
+    if dig_points is not None:
+        # dig_points = apply_trans(ctf_head_t['trans'], dig_points)
+        all_points = np.r_[idx_points, dig_points]
+    else:
+        all_points = idx_points
+
+    if convert:
+        all_points = _convert_hs_points(all_points, ctf_head_t)
+
+    dig = _points_to_dig(all_points, len(idx_points), use_hpi)
+    return dig, ctf_head_t
+
+
+def _convert_hs_points(points, t):
+    """convert to Neuromag"""
+    points = apply_trans(t['trans'], points)
+    points = _flip_fiducials(points).astype(np.float32)
+    return points
+
+
+def _points_to_dig(points, n_idx_points, use_hpi):
+    """Put points in info dig structure"""
+    idx_idents = list(range(1, 4)) + list(range(1, (n_idx_points + 1) - 3))
     dig = []
-    for idx in range(all_points.shape[0]):
+    for idx in range(points.shape[0]):
         point_info = dict(zip(FIFF_INFO_DIG_FIELDS, FIFF_INFO_DIG_DEFAULTS))
-        point_info['r'] = all_points[idx]
+        point_info['r'] = points[idx]
         if idx < 3:
             point_info['kind'] = FIFF.FIFFV_POINT_CARDINAL
             point_info['ident'] = idx_idents[idx]
-        if 2 < idx < len(idx_points) and use_hpi:
+        if 2 < idx < n_idx_points and use_hpi:
             point_info['kind'] = FIFF.FIFFV_POINT_HPI
             point_info['ident'] = idx_idents[idx]
         elif idx > 4:
             point_info['kind'] = FIFF.FIFFV_POINT_EXTRA
             point_info['ident'] = (idx + 1) - len(idx_idents)
 
-        if 2 < idx < len(idx_points) and not use_hpi:
+        if 2 < idx < n_idx_points and not use_hpi:
             pass
         else:
             dig += [point_info]
 
-    return dig, t
+    return dig
 
 
-def _convert_coil_trans(coil_trans, bti_trans, bti_to_nm):
+def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
     """ Helper Function """
-    t = bti_to_vv_coil_trans(coil_trans, bti_trans, bti_to_nm)
-    loc = np.roll(t.copy().T, 1, 0)[:, :3].flatten()
+    t = combine_transforms(invert_transform(dev_ctf_t), bti_dev_t,
+                           'ctf_head', 'meg')
+    t = np.dot(t['trans'], coil_trans)
+    return t
 
-    return t, loc
 
-
-def _convert_dev_head_t(bti_trans, bti_to_nm, m_h_nm_h):
-    """ Helper Function """
-    nm_to_m_sensor = inverse_trans(bti_identity_trans(), bti_to_nm)
-    nm_sensor_m_head = merge_trans(bti_trans, nm_to_m_sensor)
-
-    nm_dev_head_t = merge_trans(m_h_nm_h, nm_sensor_m_head)
-    nm_dev_head_t[3, :3] = 0.
-
-    return nm_dev_head_t
+def _trans_to_loc(t):
+    """put coil_trans in loc vector"""
+    return np.roll(t.T[:, :3], 1, 0).flatten()
 
 
 def _correct_offset(fid):
@@ -861,8 +905,8 @@ def _read_bti_header(pdf_fname, config_fname):
     info['chs'] = [chans[pos] for pos in by_index]
 
     by_name = [(i, d['name']) for i, d in enumerate(info['chs'])]
-    a_chs = filter(lambda c: c[1].startswith('A'), by_name)
-    other_chs = filter(lambda c: not c[1].startswith('A'), by_name)
+    a_chs = [c for c in by_name if c[1].startswith('A')]
+    other_chs = [c for c in by_name if not c[1].startswith('A')]
     by_name = sorted(a_chs, key=lambda c: int(c[1][1:])) + sorted(other_chs)
 
     by_name = [idx[0] for idx in by_name]
@@ -922,71 +966,85 @@ def _read_data(info, start=None, stop=None):
     return data[:, info['order']].T.astype(np.float64)
 
 
+def _correct_trans(t):
+    """Helper to convert to a transformation matrix"""
+    t = np.array(t, np.float64)
+    t[:3, :3] *= t[3, :3][:, np.newaxis]  # apply scalings
+    t[3, :3] = 0.  # remove them
+    assert t[3, 3] == 1.
+    return t
+
+
 class RawBTi(_BaseRaw):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     Parameters
     ----------
-    pdf_fname : str | None
-        absolute path to the processed data file (PDF)
-    config_fname : str | None
-        absolute path to system config file. If None, it is assumed to be in
-        the same directory.
-    head_shape_fname : str
-        absolute path to the head shape file. If None, it is assumed to be in
-        the same directory.
-    rotation_x : float | int | None
-        Degrees to tilt x-axis for sensor frame misalignment.
-        If None, no adjustment will be applied.
-    translation : array-like
+    pdf_fname : str
+        Path to the processed data file (PDF).
+    config_fname : str
+        Path to system config file.
+    head_shape_fname : str | None
+        Path to the head shape file.
+    rotation_x : float
+        Degrees to tilt x-axis for sensor frame misalignment. Ignored
+        if convert is True.
+    translation : array-like, shape (3,)
         The translation to place the origin of coordinate system
-        to the center of the head.
+        to the center of the head. Ignored if convert is True.
+    convert : bool
+        Convert to Neuromag coordinates or not.
     ecg_ch: str | None
-      The 4D name of the ECG channel. If None, the channel will be treated
-      as regular EEG channel.
+        The 4D name of the ECG channel. If None, the channel will be treated
+        as regular EEG channel.
     eog_ch: tuple of str | None
-      The 4D names of the EOG channels. If None, the channels will be treated
-      as regular EEG channels.
+        The 4D names of the EOG channels. If None, the channels will be treated
+        as regular EEG channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
-    Attributes & Methods
-    --------------------
-    See documentation for mne.io.Raw
-
     """
     @verbose
     def __init__(self, pdf_fname, config_fname='config',
-                 head_shape_fname='hs_file', rotation_x=None,
-                 translation=(0.0, 0.02, 0.11), ecg_ch='E31',
-                 eog_ch=('E63', 'E64'), verbose=None):
+                 head_shape_fname='hs_file', rotation_x=0.,
+                 translation=(0.0, 0.02, 0.11), convert=True,
+                 ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
 
         if not op.isabs(pdf_fname):
             pdf_fname = op.abspath(pdf_fname)
 
         if not op.isabs(config_fname):
-            config_fname = op.join(op.dirname(pdf_fname), config_fname)
+            config_fname = op.abspath(config_fname)
 
         if not op.exists(config_fname):
             raise ValueError('Could not find the config file %s. Please check'
                              ' whether you are in the right directory '
                              'or pass the full name' % config_fname)
 
-        if not op.isabs(head_shape_fname):
-            head_shape_fname = op.join(op.dirname(pdf_fname), head_shape_fname)
+        if head_shape_fname is not None:
+            orig_name = head_shape_fname
+            if not op.isfile(head_shape_fname):
+                head_shape_fname = op.join(op.dirname(pdf_fname),
+                                           head_shape_fname)
 
-        if not op.exists(head_shape_fname):
-            raise ValueError('Could not find the head_shape file %s. You shoul'
-                             'd check whether you are in the right directory o'
-                             'r pass the full file name.' % head_shape_fname)
+            if not op.isfile(head_shape_fname):
+                raise ValueError('Could not find the head_shape file "%s". '
+                                 'You should check whether you are in the '
+                                 'right directory or pass the full file name.'
+                                 % orig_name)
 
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
         bti_info = _read_bti_header(pdf_fname, config_fname)
 
-        # XXX indx is informed guess. Normally only one transform is stored.
-        dev_ctf_t = bti_info['bti_transform'][0].astype('>f8')
-        bti_to_nm = bti_to_vv_trans(adjust=rotation_x,
-                                    translation=translation, dtype='>f8')
+        dev_ctf_t = Transform('ctf_meg', 'ctf_head',
+                              _correct_trans(bti_info['bti_transform'][0]))
+
+        # for old backward compatibility and external processing
+        rotation_x = 0. if rotation_x is None else rotation_x
+        if convert:
+            bti_dev_t = _get_bti_dev_t(rotation_x, translation)
+        else:
+            bti_dev_t = np.eye(4)
+        bti_dev_t = Transform('ctf_meg', 'meg', bti_dev_t)
 
         use_hpi = False  # hard coded, but marked as later option.
         logger.info('Creating Neuromag info structure ...')
@@ -1029,9 +1087,11 @@ class RawBTi(_BaseRaw):
             if any(chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
                 if t is not None:
-                    t, loc = _convert_coil_trans(t.astype('>f8'), dev_ctf_t,
-                                                 bti_to_nm)
-                    if idx == 1:
+                    t = _correct_trans(t)
+                    if convert:
+                        t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
+                    loc = _trans_to_loc(t)
+                    if idx == 1 and convert:
                         logger.info('... putting coil transforms in Neuromag '
                                     'coordinates')
                 chan_info['coil_trans'] = t
@@ -1081,26 +1141,30 @@ class RawBTi(_BaseRaw):
             chs.append(chan_info)
 
         info['chs'] = chs
+        if head_shape_fname:
+            logger.info('... Reading digitization points from %s' %
+                        head_shape_fname)
+            if convert:
+                logger.info('... putting digitization points in Neuromag c'
+                            'oordinates')
+            info['dig'], ctf_head_t = _process_bti_headshape(
+                head_shape_fname, convert=convert, use_hpi=use_hpi)
 
-        logger.info('... Reading digitization points from %s' %
-                    head_shape_fname)
-        logger.info('... putting digitization points in Neuromag c'
-                    'oordinates')
-        info['dig'], ctf_head_t = _setup_head_shape(head_shape_fname, use_hpi)
-        logger.info('... Computing new device to head transform.')
-        dev_head_t = _convert_dev_head_t(dev_ctf_t, bti_to_nm,
-                                         ctf_head_t)
-
-        info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                              'to': FIFF.FIFFV_COORD_HEAD,
-                              'trans': dev_head_t}
-        info['dev_ctf_t'] = {'from': FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-                             'to': FIFF.FIFFV_COORD_HEAD,
-                             'trans': dev_ctf_t}
-        info['ctf_head_t'] = {'from': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
-                              'to': FIFF.FIFFV_COORD_HEAD,
-                              'trans': ctf_head_t}
-        logger.info('Done.')
+            logger.info('... Computing new device to head transform.')
+            # DEV->CTF_DEV->CTF_HEAD->HEAD
+            if convert:
+                t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
+                                       'meg', 'ctf_head')
+                dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
+            else:
+                dev_head_t = Transform('meg', 'head', np.eye(4))
+            logger.info('Done.')
+        else:
+            logger.info('... no headshape file supplied, doing nothing.')
+            dev_head_t = Transform('meg', 'head', np.eye(4))
+            ctf_head_t = Transform('ctf_head', 'head', np.eye(4))
+        info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
+                    ctf_head_t=ctf_head_t)
 
         if False:  # XXX : reminds us to support this as we go
             # include digital weights from reference channel
@@ -1154,49 +1218,49 @@ class RawBTi(_BaseRaw):
 
 @verbose
 def read_raw_bti(pdf_fname, config_fname='config',
-                 head_shape_fname='hs_file', rotation_x=None,
-                 translation=(0.0, 0.02, 0.11), ecg_ch='E31',
-                 eog_ch=('E63', 'E64'), verbose=None):
+                 head_shape_fname='hs_file', rotation_x=0.,
+                 translation=(0.0, 0.02, 0.11), convert=True,
+                 ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
-    Note.
-    1) Currently direct inclusion of reference channel weights
-    is not supported. Please use 'mne_create_comp_data' to include
-    the weights or use the low level functions from this module to
-    include them by yourself.
-    2) The informed guess for the 4D name is E31 for the ECG channel and
-    E63, E63 for the EOG channels. Pleas check and adjust if those channels
-    are present in your dataset but 'ECG 01' and 'EOG 01', 'EOG 02' don't
-    appear in the channel names of the raw object.
+    .. note::
+        1. Currently direct inclusion of reference channel weights
+           is not supported. Please use ``mne_create_comp_data`` to include
+           the weights or use the low level functions from this module to
+           include them by yourself.
+        2. The informed guess for the 4D name is E31 for the ECG channel and
+           E63, E63 for the EOG channels. Pleas check and adjust if those
+           channels are present in your dataset but 'ECG 01' and 'EOG 01',
+           'EOG 02' don't appear in the channel names of the raw object.
 
     Parameters
     ----------
-    pdf_fname : str | None
-        absolute path to the processed data file (PDF)
-    config_fname : str | None
-        absolute path to system confnig file. If None, it is assumed to be in
-        the same directory.
-    head_shape_fname : str
-        absolute path to the head shape file. If None, it is assumed to be in
-        the same directory.
-    rotation_x : float | int | None
-        Degrees to tilt x-axis for sensor frame misalignment.
-        If None, no adjustment will be applied.
-    translation : array-like
+    pdf_fname : str
+        Path to the processed data file (PDF).
+    config_fname : str
+        Path to system config file.
+    head_shape_fname : str | None
+        Path to the head shape file.
+    rotation_x : float
+        Degrees to tilt x-axis for sensor frame misalignment. Ignored
+        if convert is True.
+    translation : array-like, shape (3,)
         The translation to place the origin of coordinate system
-        to the center of the head.
-    ecg_ch : str | None
-      The 4D name of the ECG channel. If None, the channel will be treated
-      as regular EEG channel.
-    eog_ch : tuple of str | None
-      The 4D names of the EOG channels. If None, the channels will be treated
-      as regular EEG channels.
+        to the center of the head. Ignored if convert is True.
+    convert : bool
+        Convert to Neuromag coordinates or not.
+    ecg_ch: str | None
+        The 4D name of the ECG channel. If None, the channel will be treated
+        as regular EEG channel.
+    eog_ch: tuple of str | None
+        The 4D names of the EOG channels. If None, the channels will be treated
+        as regular EEG channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    raw : Instance of RawBTi
+    raw : instance of RawBTi
         A Raw object containing BTI data.
 
     See Also
@@ -1206,4 +1270,5 @@ def read_raw_bti(pdf_fname, config_fname='config',
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
                   rotation_x=rotation_x, translation=translation,
+                  convert=convert,
                   verbose=verbose)

@@ -50,10 +50,8 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None,
     evoked : Evoked object
         The simulated evoked data
     """
-    evoked = apply_forward(fwd, stc, evoked.info)  # verbose
-    noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
-    evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin, tmax=tmax)
-    return evoked_noise
+    return simulate_evoked(fwd, stc, evoked.info, cov, str, trmin,
+                           tmax, iir_fliter, random_state, verbose)
 
 
 @verbose
@@ -70,7 +68,7 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     info : dict
         Measurement info to generate the evoked.
     cov : Covariance object
-        The noise covariance
+        The noise covariance.
     snr : float
         signal to noise ratio in dB. It corresponds to
         10 * log10( var(signal) / var(noise) ).
@@ -92,9 +90,13 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     evoked : Evoked object
         The simulated evoked data
     """
-    evoked = apply_forward(fwd, stc, info)  # verbose
-    noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
-    evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin, tmax=tmax)
+    evoked = apply_forward(fwd, stc, info)
+    if snr < np.inf:
+        noise = generate_noise_evoked(evoked, cov, iir_filter, random_state)
+        evoked_noise = add_noise_evoked(evoked, noise, snr,
+                                        tmin=tmin, tmax=tmax)
+    else:
+        evoked_noise = evoked
     return evoked_noise
 
 
@@ -121,17 +123,7 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     noise : evoked object
         an instance of evoked
     """
-    from scipy.signal import lfilter
-    noise = evoked.copy()
-    noise_cov = pick_channels_cov(cov, include=noise.info['ch_names'])
-    rng = check_random_state(random_state)
-    n_channels = np.zeros(noise.info['nchan'])
-    n_samples = evoked.data.shape[1]
-    c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
-    noise.data = rng.multivariate_normal(n_channels, c, n_samples).T
-    if iir_filter is not None:
-        noise.data = lfilter([1], iir_filter, noise.data, axis=-1)
-    return noise
+    return simulate_noise_evoked(evoked, cov, iir_filter, random_state)
 
 
 def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
@@ -155,17 +147,27 @@ def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     noise : evoked object
         an instance of evoked
     """
-    from scipy.signal import lfilter
-    noise = copy.deepcopy(evoked)
-    noise_cov = pick_channels_cov(cov, include=noise.info['ch_names'])
-    rng = check_random_state(random_state)
-    n_channels = np.zeros(noise.info['nchan'])
-    n_samples = evoked.data.shape[1]
-    c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
-    noise.data = rng.multivariate_normal(n_channels, c, n_samples).T
-    if iir_filter is not None:
-        noise.data = lfilter([1], iir_filter, noise.data, axis=-1)
+    noise = evoked.copy()
+    noise.data = _generate_noise(evoked.info, cov, iir_filter, random_state,
+                                 evoked.data.shape[1])[0]
     return noise
+
+
+def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
+    """Helper to create spatially colored and temporally IIR-filtered noise"""
+    from scipy.signal import lfilter
+    noise_cov = pick_channels_cov(cov, include=info['ch_names'], exclude=[])
+    rng = check_random_state(random_state)
+    mu_channels = np.zeros(info['nchan'])
+    c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
+    noise = rng.multivariate_normal(mu_channels, c, n_samples).T
+    if iir_filter is not None:
+        if zi is None:
+            zi = np.zeros((info['nchan'], len(iir_filter) - 1))
+        noise, zf = lfilter([1], iir_filter, noise, axis=-1, zi=zi)
+    else:
+        zf = None
+    return noise, zf
 
 
 def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):

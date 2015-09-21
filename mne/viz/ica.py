@@ -512,7 +512,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     evoked.plot(axes=axes, show=show)
     for ax in fig.axes:
-        [l.set_color('r') for l in ax.get_lines()]
+        for l in ax.get_lines():
+            l.set_color('r')
     fig.canvas.draw()
     evoked_cln.plot(axes=axes, show=show)
     tight_layout(fig=fig)
@@ -530,7 +531,6 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                       block):
     """Function for plotting the ICA components as raw array."""
     import matplotlib.pyplot as plt
-    plt.ion()
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
     if picks is None:
@@ -644,7 +644,6 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                          title, block):
     """Function for plotting the components as epochs."""
     import matplotlib.pyplot as plt
-    plt.ion()  # Turn interactive mode on to avoid warnings.
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True)
@@ -751,7 +750,7 @@ def _label_clicked(pos, params):
         for ii, data_ in zip(ic_idx, this_data):
             ax.set_title('IC #%03d ' % ii + ch_type, fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
-            plot_topomap(data_.flatten(), pos, axis=ax, show=False)[0]
+            plot_topomap(data_.flatten(), pos, axis=ax, show=False)
             ax.set_yticks([])
             ax.set_xticks([])
             ax.set_frame_on(False)

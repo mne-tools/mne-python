@@ -59,6 +59,25 @@ _version_doc = """Get version of the local {name} dataset
 """
 
 
+_bst_license_text = """
+License
+-------
+This tutorial dataset (EEG and MRI data) remains a property of the MEG Lab,
+McConnell Brain Imaging Center, Montreal Neurological Institute,
+McGill University, Canada. Its use and transfer outside the Brainstorm
+tutorial, e.g. for research purposes, is prohibited without written consent
+from the MEG Lab.
+
+If you reference this dataset in your publications, please:
+1) aknowledge its authors: Elizabeth Bock, Esther Florin, Francois Tadel and
+Sylvain Baillet
+2) cite Brainstorm as indicated on the website:
+http://neuroimage.usc.edu/brainstorm
+
+For questions, please contact Francois Tadel (francois.tadel@mcgill.ca).
+"""
+
+
 def _dataset_version(path, name):
     """Get the version of the dataset"""
     ver_fname = op.join(path, 'version.txt')
@@ -128,12 +147,14 @@ def _do_path_update(path, update_path, key, name):
 
 
 def _data_path(path=None, force_update=False, update_path=True, download=True,
-               name=None, check_version=False, return_version=False):
+               name=None, check_version=False, return_version=False,
+               archive_name=None):
     """Aux function
     """
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
            'spm': 'MNE_DATASETS_SPM_FACE_PATH',
            'somato': 'MNE_DATASETS_SOMATO_PATH',
+           'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
            'testing': 'MNE_DATASETS_TESTING_PATH',
            'fake': 'MNE_DATASETS_FAKE_PATH',
            }[name]
@@ -146,10 +167,13 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='mne-testing-data-master.tar.gz',
         fake='foo.tgz',
     )
+    if archive_name is not None:
+        archive_names.update(archive_name)
     folder_names = dict(
         sample='MNE-sample-data',
         spm='MNE-spm-face',
         somato='MNE-somato-data',
+        brainstorm='MNE-brainstorm-data',
         testing='MNE-testing-data',
         fake='foo',
     )
@@ -157,6 +181,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample="https://s3.amazonaws.com/mne-python/datasets/%s",
         spm='https://s3.amazonaws.com/mne-python/datasets/%s',
         somato='https://s3.amazonaws.com/mne-python/datasets/%s',
+        brainstorm='https://copy.com/ZTHXXFcuIZycvRoA/brainstorm/%s',
         testing='https://github.com/mne-tools/mne-testing-data/archive/'
                 'master.tar.gz',
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
@@ -166,6 +191,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='f73186795af820428e5e8e779ce5bfcf',
         spm='3e9e83c642136e5b720e2ecc5dcc3244',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
+        brainstorm=None,
         testing=None,
         fake='3194e9f7b46039bb050a74f3e1ae9908',
     )
@@ -181,6 +207,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         url = url % archive_name
 
     folder_path = op.join(path, folder_name)
+    if name == 'brainstorm':
+        extract_path = folder_path
+        folder_path = op.join(folder_path, archive_names[name].split('.')[0])
 
     rm_archive = False
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
@@ -188,6 +217,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     if not op.exists(folder_path) and not download:
         return ''
     if not op.exists(folder_path) or force_update:
+        if name == 'brainstorm':
+            answer = input('%sAgree (y/[n])? ' % _bst_license_text)
+            if answer.lower() != 'y':
+                raise RuntimeError('You must agree to the license to use this '
+                                   'dataset')
         logger.info('Downloading or reinstalling '
                     'data archive %s at location %s' % (archive_name, path))
 
@@ -235,7 +269,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         logger.info('(please be patient, this can take some time)')
         for ext in ['gz', 'bz2']:  # informed guess (and the only 2 options).
             try:
-                tarfile.open(archive_name, 'r:%s' % ext).extractall(path=path)
+                if name != 'brainstorm':
+                    extract_path = path
+                tf = tarfile.open(archive_name, 'r:%s' % ext)
+                tf.extractall(path=extract_path)
+                tf.close()
                 break
             except tarfile.ReadError as err:
                 logger.info('%s is %s trying "bz2"' % (archive_name, err))
@@ -280,6 +318,11 @@ def has_dataset(name):
                 'somato': 'MNE-somato-data',
                 'testing': 'MNE-testing-data',
                 'fake': 'foo',
+                'brainstorm': 'MNE_brainstorm-data',
                 }[name]
-    dp = _data_path(download=False, name=name, check_version=False)
+    archive_name = None
+    if name == 'brainstorm':
+        archive_name = dict(brainstorm='bst_raw')
+    dp = _data_path(download=False, name=name, check_version=False,
+                    archive_name=archive_name)
     return dp.endswith(endswith)

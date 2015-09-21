@@ -223,6 +223,11 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     itc : AverageTFR
         The intertrial coherence. Only returned if return_itc is True.
 
+    See Also
+    --------
+    cwt : Compute time-frequency decomposition with user-provided wavelets
+    cwt_morlet, multitaper_psd
+
     Notes
     -----
     .. versionadded:: 0.9.0

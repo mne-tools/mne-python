@@ -20,7 +20,7 @@ from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
 
 from mne.viz import (plot_topo, plot_topo_image_epochs, _get_presser,
-                     mne_analyze_colormap)
+                     mne_analyze_colormap, plot_evoked_topo)
 from mne.viz.topo import _plot_update_evoked_topo
 
 # Set our plotters to test mode
@@ -76,7 +76,7 @@ def test_plot_topo():
     import matplotlib.pyplot as plt
     # Show topography
     evoked = _get_epochs().average()
-    plot_topo(evoked)  # should auto-find layout
+    plot_evoked_topo(evoked)  # should auto-find layout
     warnings.simplefilter('always', UserWarning)
     picked_evoked = evoked.pick_channels(evoked.ch_names[:3], copy=True)
     picked_evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
@@ -104,8 +104,8 @@ def test_plot_topo():
         bools = [True] * len(params['projs'])
         _plot_update_evoked_topo(params, bools)
     # should auto-generate layout
-    plot_topo(picked_evoked_eeg.copy(),
-              fig_background=np.zeros((4, 3, 3)), proj=True)
+    plot_evoked_topo(picked_evoked_eeg.copy(),
+                     fig_background=np.zeros((4, 3, 3)), proj=True)
     plt.close('all')
 
 

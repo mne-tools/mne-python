@@ -23,7 +23,8 @@ from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import get_score_funcs
 from mne.io.meas_info import Info
-from mne.utils import set_log_file, _TempDir, requires_sklearn, slow_test
+from mne.utils import (set_log_file, _TempDir, requires_sklearn, slow_test,
+                       run_tests_if_main)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -574,3 +575,5 @@ def test_ica_twice():
                    n_pca_components=1.0, random_state=0)
         ica2.fit(raw_new, picks=picks, decim=3)
         assert_equal(ica1.n_components_, ica2.n_components_)
+
+run_tests_if_main()

@@ -143,10 +143,11 @@ class Label(object):
 
     Labels can be combined with the ``+`` operator:
 
-         - Duplicate vertices are removed.
-         - If duplicate vertices have conflicting position values, an error
-           is raised.
-         - Values of duplicate vertices are summed.
+        * Duplicate vertices are removed.
+        * If duplicate vertices have conflicting position values, an error
+          is raised.
+        * Values of duplicate vertices are summed.
+
 
     Parameters
     ----------
@@ -633,7 +634,7 @@ class Label(object):
         ----------
         vertices : ndarray of int, shape (n_vertices,) | None
             The set of vertices to compare the label to. If None, equals to
-            ```np.arange(10242)```. Defaults to None.
+            ``np.arange(10242)``. Defaults to None.
 
         Returns
         -------
@@ -656,7 +657,7 @@ class Label(object):
             source space.
         vertices : ndarray of int, shape (n_vertices,) | None
             The set of vertices to compare the label to. If None, equals to
-            ```np.arange(10242)```. Defaults to None.
+            ``np.arange(10242)``. Defaults to None.
 
         Returns
         -------
@@ -711,7 +712,6 @@ class BiHemiLabel(object):
     subject : str | None
         Subject the label is from.
     """
-    hemi = 'both'
 
     def __init__(self, lh, rh, name=None, color=None):
         if lh.subject != rh.subject:
@@ -722,6 +722,7 @@ class BiHemiLabel(object):
         self.name = name
         self.subject = lh.subject
         self.color = color
+        self.hemi = 'both'
 
     def __repr__(self):
         temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
@@ -1545,11 +1546,11 @@ def _read_annot(fname):
             n_entries = np.fromfile(fid, '>i4', 1)[0]
             ctab = np.zeros((n_entries, 5), np.int)
             length = np.fromfile(fid, '>i4', 1)[0]
-            np.fromfile(fid, "|S%d" % length, 1)[0]  # Orig table path
+            np.fromfile(fid, "|S%d" % length, 1)  # Orig table path
             entries_to_read = np.fromfile(fid, '>i4', 1)[0]
             names = list()
             for i in range(entries_to_read):
-                np.fromfile(fid, '>i4', 1)[0]  # Structure
+                np.fromfile(fid, '>i4', 1)  # Structure
                 name_length = np.fromfile(fid, '>i4', 1)[0]
                 name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
                 names.append(name)

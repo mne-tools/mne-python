@@ -503,7 +503,10 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     (array([ 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]), [1, 0], 0)
 
     """  # noqa
-    from scipy.signal import filter_dict, iirfilter, iirdesign
+    from scipy.signal import iirfilter, iirdesign
+    known_filters = ('bessel', 'butter', 'butterworth', 'cauer', 'cheby1',
+                     'cheby2', 'chebyshev1', 'chebyshev2', 'chebyshevi',
+                     'chebyshevii', 'ellip', 'elliptic')
     a = None
     b = None
     # if the filter has been designed, we're good to go
@@ -515,7 +518,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
             raise RuntimeError('ftype must be an entry in iir_params if ''b'' '
                                'and ''a'' are not specified')
         ftype = iir_params['ftype']
-        if ftype not in filter_dict:
+        if ftype not in known_filters:
             raise RuntimeError('ftype must be in filter_dict from '
                                'scipy.signal (e.g., butter, cheby1, etc.) not '
                                '%s' % ftype)
@@ -625,6 +628,10 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     -------
     xf : array
         x filtered.
+
+    See Also
+    --------
+    low_pass_filter, high_pass_filter
 
     Notes
     -----
@@ -841,6 +848,11 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     xf : array
         x filtered.
 
+    See Also
+    --------
+    resample
+    band_pass_filter, high_pass_filter
+
     Notes
     -----
     The frequency response is (approximately) given by::
@@ -926,6 +938,10 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     -------
     xf : array
         x filtered.
+
+    See Also
+    --------
+    low_pass_filter, band_pass_filter
 
     Notes
     -----
@@ -1289,6 +1305,7 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
         raise TypeError(err)
 
     # make sure our arithmetic will work
+    x = np.asanyarray(x)
     ratio = float(up) / down
     if axis < 0:
         axis = x.ndim + axis
@@ -1344,6 +1361,61 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
         y = y.swapaxes(axis, orig_last_axis)
 
     return y
+
+
+def _resample_stim_channels(stim_data, up, down):
+    """Resample stim channels, carefully.
+
+    Parameters
+    ----------
+    stim_data : 1D array, shape (n_samples,) |
+                2D array, shape (n_stim_channels, n_samples)
+        Stim channels to resample.
+    up : float
+        Factor to upsample by.
+    down : float
+        Factor to downsample by.
+
+    Returns
+    -------
+    stim_resampled : 2D array, shape (n_stim_channels, n_samples_resampled)
+        The resampled stim channels
+
+    Note
+    ----
+    The approach taken here is equivalent to the approach in the C-code.
+    See the decimate_stimch function in MNE/mne_browse_raw/save.c
+    """
+    stim_data = np.atleast_2d(stim_data)
+    n_stim_channels, n_samples = stim_data.shape
+
+    ratio = float(up) / down
+    resampled_n_samples = int(round(n_samples * ratio))
+
+    stim_resampled = np.zeros((n_stim_channels, resampled_n_samples))
+
+    # Figure out which points in old data to subsample protect against
+    # out-of-bounds, which can happen (having one sample more than
+    # expected) due to padding
+    sample_picks = np.minimum(
+        (np.arange(resampled_n_samples) / ratio).astype(int),
+        n_samples - 1
+    )
+
+    # Create windows starting from sample_picks[i], ending at sample_picks[i+1]
+    windows = zip(sample_picks, np.r_[sample_picks[1:], n_samples])
+
+    # Use the first non-zero value in each window
+    for window_i, window in enumerate(windows):
+        for stim_num, stim in enumerate(stim_data):
+            nonzero = stim[window[0]:window[1]].nonzero()[0]
+            if len(nonzero) > 0:
+                val = stim[window[0] + nonzero[0]]
+            else:
+                val = stim[window[0]]
+            stim_resampled[stim_num, window_i] = val
+
+    return stim_resampled
 
 
 def detrend(x, order=1, axis=-1):
@@ -1443,6 +1515,10 @@ class FilterMixin(object):
             done using polynomial fits instead of FIR/IIR filtering.
             This parameter is thus used to determine the length of the
             window over which a 5th-order polynomial smoothing is used.
+
+        See Also
+        --------
+        mne.io.Raw.filter
 
         Notes
         -----

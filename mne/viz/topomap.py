@@ -11,6 +11,7 @@ from __future__ import print_function
 
 import math
 import copy
+from functools import partial
 
 import numpy as np
 from scipy import linalg
@@ -20,9 +21,10 @@ from ..io.constants import FIFF
 from ..io.pick import pick_types
 from ..utils import _clean_names, _time_mask, verbose, logger
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
-                    _check_delayed_ssp, _draw_proj_checkbox)
+                    _check_delayed_ssp, _draw_proj_checkbox, figure_nobar)
 from ..time_frequency import compute_epochs_psd
 from ..defaults import _handle_default
+from ..channels.layout import _find_topomap_coords
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -58,12 +60,20 @@ def _prepare_topo_plot(inst, ch_type, layout):
             raise ValueError("No channels of type %r" % ch_type)
 
         if layout is None:
-            from ..channels.layout import _find_topomap_coords
             pos = _find_topomap_coords(info, picks)
         else:
             names = [n.upper() for n in layout.names]
-            pos = [layout.pos[names.index(info['ch_names'][k].upper())]
-                   for k in picks]
+            pos = list()
+            for pick in picks:
+                this_name = info['ch_names'][pick].upper()
+                if this_name in names:
+                    pos.append(layout.pos[names.index(this_name)])
+                else:
+                    logger.warning('Failed to locate %s channel positions from'
+                                   ' layout. Inferring channel positions from '
+                                   'data.' % ch_type)
+                    pos = _find_topomap_coords(info, picks)
+                    break
 
     ch_names = [info['ch_names'][k] for k in picks]
     if merge_grads:
@@ -136,15 +146,17 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
         multiple topomaps at a time).
     show : bool
         Show figure if True.
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
@@ -215,7 +227,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
             break
 
         if len(idx):
-            plot_topomap(data, pos, vmax=None, cmap=cmap,
+            plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
                          sensors=sensors, res=res, axis=axes[proj_idx],
                          outlines=outlines, contours=contours,
                          image_interp=image_interp, show=False)
@@ -237,7 +249,7 @@ def _check_outlines(pos, outlines, head_pos=None):
     pos = np.array(pos, float)[:, :2]  # ensure we have a copy
     head_pos = dict() if head_pos is None else head_pos
     if not isinstance(head_pos, dict):
-        raise TypeError('sensor_pos must be dict or None')
+        raise TypeError('head_pos must be dict or None')
     head_pos = copy.deepcopy(head_pos)
     for key in head_pos.keys():
         if key not in ('center', 'scale'):
@@ -248,7 +260,7 @@ def _check_outlines(pos, outlines, head_pos=None):
             raise ValueError('head_pos["%s"] must have shape (2,), not '
                              '%s' % (key, head_pos[key].shape))
 
-    if outlines in ('head', None):
+    if outlines in ('head', 'skirt', None):
         radius = 0.5
         l = np.linspace(0, 2 * np.pi, 101)
         head_x = np.cos(l) * radius
@@ -263,23 +275,42 @@ def _check_outlines(pos, outlines, head_pos=None):
         # shift and scale the electrode positions
         if 'center' not in head_pos:
             head_pos['center'] = 0.5 * (pos.max(axis=0) + pos.min(axis=0))
-        if 'scale' not in head_pos:
-            # The default is to make the points occupy a slightly smaller
-            # proportion (0.85) of the total width and height
-            # this number was empirically determined (seems to work well)
-            head_pos['scale'] = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
         pos -= head_pos['center']
-        pos *= head_pos['scale']
 
-        # Define the outline of the head, ears and nose
-        outlines = dict()
         if outlines is not None:
-            outlines.update(head=(head_x, head_y), nose=(nose_x, nose_y),
-                            ear_left=(ear_x, ear_y),
-                            ear_right=(-ear_x, ear_y))
+            # Define the outline of the head, ears and nose
+            outlines_dict = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
+                                 ear_left=(ear_x, ear_y),
+                                 ear_right=(-ear_x, ear_y))
+        else:
+            outlines_dict = dict()
 
-        outlines['mask_pos'] = head_x, head_y
-        outlines['autoshrink'] = True
+        if outlines == 'skirt':
+            if 'scale' not in head_pos:
+                # By default, fit electrodes inside the head circle
+                head_pos['scale'] = 1.0 / (pos.max(axis=0) - pos.min(axis=0))
+            pos *= head_pos['scale']
+
+            # Make the figure encompass slightly more than all points
+            mask_scale = 1.25 * (pos.max(axis=0) - pos.min(axis=0))
+
+            outlines_dict['autoshrink'] = False
+            outlines_dict['mask_pos'] = (mask_scale[0] * head_x,
+                                         mask_scale[1] * head_y)
+            outlines_dict['clip_radius'] = (mask_scale / 2.)
+        else:
+            if 'scale' not in head_pos:
+                # The default is to make the points occupy a slightly smaller
+                # proportion (0.85) of the total width and height
+                # this number was empirically determined (seems to work well)
+                head_pos['scale'] = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
+            pos *= head_pos['scale']
+            outlines_dict['autoshrink'] = True
+            outlines_dict['mask_pos'] = head_x, head_y
+            outlines_dict['clip_radius'] = (0.5, 0.5)
+
+        outlines = outlines_dict
+
     elif isinstance(outlines, dict):
         if 'mask_pos' not in outlines:
             raise ValueError('You must specify the coordinates of the image'
@@ -336,7 +367,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
                  contours=6, image_interp='bilinear', show=True,
-                 head_pos=None):
+                 head_pos=None, onselect=None):
     """Plot a topographic map as image
 
     Parameters
@@ -345,15 +376,14 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         The data values to plot.
     pos : array, shape = (n_points, 2)
         For each data point, the x and y coordinates.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+        If callable, the output equals vmin(data). Defaults to None.
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
     cmap : matplotlib colormap
         Colormap.
     sensors : bool | str
@@ -382,15 +412,17 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                 linewidth=0, markersize=4)
 
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     image_mask : ndarray of bool, shape (res, res) | None
         The image mask to cover the interpolated surface. If None, it will be
         computed from the outline.
@@ -406,6 +438,10 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
+    onselect : callable | None
+        Handle for a function that is called when the user selects a set of
+        channels by rectangle selection (matplotlib ``RectangleSelector``). If
+        None interactive selection is disabled. Defaults to None.
 
     Returns
     -------
@@ -415,15 +451,36 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         The fieldlines.
     """
     import matplotlib.pyplot as plt
+    from matplotlib.widgets import RectangleSelector
 
     data = np.asarray(data)
     if data.ndim > 1:
-        err = ("Data needs to be array of shape (n_sensors,); got shape "
-               "%s." % str(data.shape))
-        raise ValueError(err)
-    elif len(data) != len(pos):
-        err = ("Data and pos need to be of same length. Got data of shape %s, "
-               "pos of shape %s." % (str(), str()))
+        raise ValueError("Data needs to be array of shape (n_sensors,); got "
+                         "shape %s." % str(data.shape))
+
+    # Give a helpful error message for common mistakes regarding the position
+    # matrix.
+    pos_help = ("Electrode positions should be specified as a 2D array with "
+                "shape (n_channels, 2). Each row in this matrix contains the "
+                "(x, y) position of an electrode.")
+    if pos.ndim != 2:
+        error = ("{ndim}D array supplied as electrode positions, where a 2D "
+                 "array was expected").format(ndim=pos.ndim)
+        raise ValueError(error + " " + pos_help)
+    elif pos.shape[1] == 3:
+        error = ("The supplied electrode positions matrix contains 3 columns. "
+                 "Are you trying to specify XYZ coordinates? Perhaps the "
+                 "mne.channels.create_eeg_layout function is useful for you.")
+        raise ValueError(error + " " + pos_help)
+    # No error is raised in case of pos.shape[1] == 4. In this case, it is
+    # assumed the position matrix contains both (x, y) and (width, height)
+    # values, such as Layout.pos.
+    elif pos.shape[1] == 1 or pos.shape[1] > 4:
+        raise ValueError(pos_help)
+
+    if len(data) != len(pos):
+        raise ValueError("Data and pos need to be of same length. Got data of "
+                         "length %s, pos of length %s" % (len(data), len(pos)))
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
@@ -497,10 +554,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
 
     if _is_default_outlines:
         from matplotlib import patches
-        # remove nose offset and tweak
-        patch_ = patches.Circle((0.5, 0.4687), radius=.46,
-                                clip_on=True,
-                                transform=ax.transAxes)
+        patch_ = patches.Ellipse((0, 0),
+                                 2 * outlines['clip_radius'][0],
+                                 2 * outlines['clip_radius'][1],
+                                 clip_on=True,
+                                 transform=ax.transData)
     if _is_default_outlines or patch is not None:
         im.set_clip_path(patch_)
         # ax.set_clip_path(patch_)
@@ -525,21 +583,26 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         for k, (x, y) in outlines_.items():
             if 'mask' in k:
                 continue
-            ax.plot(x, y, color='k', linewidth=linewidth)
+            ax.plot(x, y, color='k', linewidth=linewidth, clip_on=False)
 
     if show_names:
         if show_names is True:
-            def show_names(x):
+            def _show_names(x):
                 return x
+        else:
+            _show_names = show_names
         show_idx = np.arange(len(names)) if mask is None else np.where(mask)[0]
         for ii, (p, ch_id) in enumerate(zip(pos, names)):
             if ii not in show_idx:
                 continue
-            ch_id = show_names(ch_id)
+            ch_id = _show_names(ch_id)
             ax.text(p[0], p[1], ch_id, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
 
     plt.subplots_adjust(top=.95)
+
+    if onselect is not None:
+        ax.RS = RectangleSelector(ax, onselect=onselect)
     if show:
         plt.show()
     return im, cont
@@ -623,15 +686,14 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+        If callable, the output equals vmin(data). Defaults to None.
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
     cmap : matplotlib colormap
         Colormap.
     sensors : bool | str
@@ -644,15 +706,17 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         Title to use.
     show : bool
         Show figure if True.
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
@@ -748,7 +812,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean', layout=None,
-                     vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
+                     vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None):
@@ -794,18 +858,19 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         file is inferred from the data; if no appropriate layout file
         was found, the layout is automatically generated from the sensor
         locations.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
-    cmap : matplotlib colormap
-        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-        'Reds'.
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data) or in case
+        data contains only positive values 0. If callable, the output equals
+        vmin(data). Defaults to None.
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range. If None, the
+        maximum value is used. If callable, the output equals vmax(data).
+        Defaults to None.
+    cmap : matplotlib colormap | None
+        Colormap. If None and the plotted data is all positive, defaults to
+        'Reds'. If None and data contains also negative values, defaults to
+        'RdBu_r'. Defaults to None.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
         plot format string (e.g., 'r+' for red plusses). If True, a circle will
@@ -832,15 +897,17 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The axes to plot to. If None the axes is defined automatically.
     show : bool
         Show figure if True.
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn.
-        If dict, each key refers to a tuple of x and y positions.
-        The values in 'mask_pos' will serve as image mask. If None, nothing
-        will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-        field will trigger automated shrinking of the positions due to
-        points outside the outline. Moreover, a matplotlib patch object can
-        be passed for advanced masking options, either directly or as a
-        function that returns patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     head_pos : dict | None
         If None (default), the sensors are positioned such that they span
         the head circle. If dict, can have entries 'center' (tuple) and
@@ -890,7 +957,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    norm = False if np.min(data) < 0 else True
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
+    if cmap is None:
+        cmap = 'Reds' if norm else 'RdBu_r'
 
     if axes is None:
         fig = plt.figure()
@@ -905,10 +975,16 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     if title is not None:
         ax.set_title(title)
+    fig_wrapper = list()
+    selection_callback = partial(_onselect, tfr=tfr, pos=pos, ch_type=ch_type,
+                                 itmin=itmin, itmax=itmax, ifmin=ifmin,
+                                 ifmax=ifmax, cmap=cmap, fig=fig_wrapper,
+                                 layout=layout)
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axis=ax, cmap=cmap, image_interp='bilinear',
-                         contours=False, names=names, show=False)
+                         contours=False, names=names, show_names=show_names,
+                         show=False, onselect=selection_callback)
 
     if colorbar:
         divider = make_axes_locatable(ax)
@@ -953,15 +1029,14 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         be specified for Neuromag data). If possible, the correct layout file
         is inferred from the data; if no appropriate layout file was found, the
         layout is automatically generated from the sensor locations.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+        If callable, the output equals vmin(data). Defaults to None.
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
     cmap : matplotlib colormap
         Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
         'Reds'.
@@ -1011,15 +1086,17 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
             dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                  linewidth=0, markersize=4)
 
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
@@ -1040,6 +1117,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         same length as ``times`` (unless ``times`` is None). If instance of
         Axes, ``times`` must be a float or a list of one float.
         Defaults to None.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+       The figure.
     """
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(evoked, ch_type)
@@ -1163,6 +1245,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
                               outlines=outlines, image_mask=image_mask,
                               contours=contours, image_interp=image_interp,
                               show=False)
+
         images.append(tp)
         if cn is not None:
             contours_.append(cn)
@@ -1252,15 +1335,14 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
                  (12, 30, 'Beta'), (30, 45, 'Gamma')]
 
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
+        If None np.min(data) is used. If callable, the output equals
+        vmin(data).
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
     proj : bool
         Apply projection.
     n_fft : int
@@ -1294,15 +1376,17 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn.
-        If dict, each key refers to a tuple of x and y positions.
-        The values in 'mask_pos' will serve as image mask. If None, nothing
-        will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-        field will trigger automated shrinking of the positions due to
-        points outside the outline. Moreover, a matplotlib patch object can
-        be passed for advanced masking options, either directly or as a
-        function that returns patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     show : bool
         Show figure if True.
     verbose : bool, str, int, or None
@@ -1351,15 +1435,14 @@ def plot_psds_topomap(
     agg_fun : callable
         The function used to aggregate over frequencies.
         Defaults to np.sum. if normalize is True, else np.mean.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
+        If None np.min(data) is used. If callable, the output equals
+        vmin(data).
+    vmax : float | callable | None
+        The value specifying the upper bound of the color range.
+        If None, the maximum absolute value is used. If callable, the output
+        equals vmax(data). Defaults to None.
     bands : list of tuple | None
         The lower and upper frequency and the name for that band. If None,
         (default) expands to:
@@ -1379,15 +1462,17 @@ def plot_psds_topomap(
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn.
-        If dict, each key refers to a tuple of x and y positions.
-        The values in 'mask_pos' will serve as image mask. If None, nothing
-        will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-        field will trigger automated shrinking of the positions due to
-        points outside the outline. Moreover, a matplotlib patch object can
-        be passed for advanced masking options, either directly or as a
-        function that returns patches (required for multi-axis plots).
+    outlines : 'head' | 'skirt' | dict | None
+        The outlines to be drawn. If 'head', the default head scheme will be
+        drawn. If 'skirt' the head scheme will be drawn, but sensors are
+        allowed to be plotted outside of the head circle. If dict, each key
+        refers to a tuple of x and y positions, the values in 'mask_pos' will
+        serve as image mask, and the 'autoshrink' (bool) field will trigger
+        automated shrinking of the positions due to points outside the outline.
+        Alternatively, a matplotlib patch object can be passed for advanced
+        masking options, either directly or as a function that returns patches
+        (required for multi-axis plots). If None, nothing will be drawn.
+        Defaults to 'head'.
     show : bool
         Show figure if True.
 
@@ -1435,3 +1520,69 @@ def plot_psds_topomap(
     if show:
         plt.show()
     return fig
+
+
+def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
+              cmap, fig, layout=None):
+    """Callback called from topomap for drawing average tfr over channels."""
+    import matplotlib.pyplot as plt
+    pos, _ = _check_outlines(pos, outlines='head', head_pos=None)
+    ax = eclick.inaxes
+    xmin = min(eclick.xdata, erelease.xdata)
+    xmax = max(eclick.xdata, erelease.xdata)
+    ymin = min(eclick.ydata, erelease.ydata)
+    ymax = max(eclick.ydata, erelease.ydata)
+    indices = [i for i in range(len(pos)) if pos[i][0] < xmax and
+               pos[i][0] > xmin and pos[i][1] < ymax and pos[i][1] > ymin]
+    for idx, circle in enumerate(ax.artists):
+        if idx in indices:
+            circle.set_color('r')
+        else:
+            circle.set_color('black')
+    plt.gcf().canvas.draw()
+    if not indices:
+        return
+    data = tfr.data
+    if ch_type == 'mag':
+        picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
+        data = np.mean(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
+        chs = [tfr.ch_names[picks[x]] for x in indices]
+    elif ch_type == 'grad':
+        picks = pick_types(tfr.info, meg=ch_type, ref_meg=False)
+        from ..channels.layout import _pair_grad_sensors
+        grads = _pair_grad_sensors(tfr.info, layout=layout,
+                                   topomap_coords=False)
+        idxs = list()
+        for idx in indices:
+            idxs.append(grads[idx * 2])
+            idxs.append(grads[idx * 2 + 1])  # pair of grads
+        data = np.mean(data[idxs, ifmin:ifmax, itmin:itmax], axis=0)
+        chs = [tfr.ch_names[x] for x in idxs]
+    elif ch_type == 'eeg':
+        picks = pick_types(tfr.info, meg=False, eeg=True, ref_meg=False)
+        data = np.mean(data[indices, ifmin:ifmax, itmin:itmax], axis=0)
+        chs = [tfr.ch_names[picks[x]] for x in indices]
+    logger.info('Averaging TFR over channels ' + str(chs))
+    if len(fig) == 0:
+        fig.append(figure_nobar())
+    if not plt.fignum_exists(fig[0].number):
+        fig[0] = figure_nobar()
+    ax = fig[0].add_subplot(111)
+    itmax = min(itmax, len(tfr.times) - 1)
+    ifmax = min(ifmax, len(tfr.freqs) - 1)
+    extent = (tfr.times[itmin] * 1e3, tfr.times[itmax] * 1e3, tfr.freqs[ifmin],
+              tfr.freqs[ifmax])
+
+    title = 'Average over %d %s channels.' % (len(chs), ch_type)
+    ax.set_title(title)
+    ax.set_xlabel('Time (ms)')
+    ax.set_ylabel('Frequency (Hz)')
+    img = ax.imshow(data, extent=extent, aspect="auto", origin="lower",
+                    cmap=cmap)
+    if len(fig[0].get_axes()) < 2:
+        fig[0].get_axes()[1].cbar = fig[0].colorbar(mappable=img)
+    else:
+        fig[0].get_axes()[1].cbar.on_mappable_changed(mappable=img)
+    fig[0].canvas.draw()
+    plt.figure(fig[0].number)
+    plt.show()

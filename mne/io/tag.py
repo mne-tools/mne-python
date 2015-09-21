@@ -204,9 +204,10 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
         If tuple, the shape of the stored matrix. Only to be used with
         data stored as a vector (not implemented for matrices yet).
     rlims : tuple | None
-        If tuple, the first and last rows to retrieve. Note that data are
-        assumed to be stored row-major in the file. Only to be used with
-        data stored as a vector (not implemented for matrices yet).
+        If tuple, the first (inclusive) and last (exclusive) rows to retrieve.
+        Note that data are assumed to be stored row-major in the file. Only to
+        be used with data stored as a vector (not implemented for matrices
+        yet).
 
     Returns
     -------
@@ -403,17 +404,15 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 tag.data['r'] = np.fromstring(fid.read(12), dtype=">f4")
                 tag.data['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
             elif tag.type == FIFF.FIFFT_COORD_TRANS_STRUCT:
-                tag.data = dict()
-                tag.data['from'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-                tag.data['to'] = int(np.fromstring(fid.read(4), dtype=">i4"))
+                from ..transforms import Transform
+                fro = int(np.fromstring(fid.read(4), dtype=">i4"))
+                to = int(np.fromstring(fid.read(4), dtype=">i4"))
                 rot = np.fromstring(fid.read(36), dtype=">f4").reshape(3, 3)
                 move = np.fromstring(fid.read(12), dtype=">f4")
-                tag.data['trans'] = np.r_[np.c_[rot, move],
-                                          np.array([[0], [0], [0], [1]]).T]
-                #
+                trans = np.r_[np.c_[rot, move],
+                              np.array([[0], [0], [0], [1]]).T]
+                tag.data = Transform(fro, to, trans)
                 # Skip over the inverse transformation
-                # It is easier to just use inverse of trans in Matlab
-                #
                 fid.seek(12 * 4, 1)
             elif tag.type == FIFF.FIFFT_CH_INFO_STRUCT:
                 d = dict()

@@ -34,8 +34,6 @@ from gzip import GzipFile
 # Misc
 
 class gzip_open(GzipFile):  # python2.6 doesn't have context managing
-    def __init__(self, *args, **kwargs):
-        return GzipFile.__init__(self, *args, **kwargs)
 
     def __enter__(self):
         if hasattr(GzipFile, '__enter__'):

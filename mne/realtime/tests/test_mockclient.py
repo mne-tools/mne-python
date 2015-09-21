@@ -75,7 +75,7 @@ def test_find_events():
 
     stim_channel = 'STI 014'
     stim_channel_idx = pick_channels(raw.info['ch_names'],
-                                     include=stim_channel)
+                                     include=[stim_channel])
 
     # Reset some data for ease of comparison
     raw._first_samps[0] = 0

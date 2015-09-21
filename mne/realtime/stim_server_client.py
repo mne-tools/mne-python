@@ -94,6 +94,10 @@ class StimServer(object):
         The port to which the stimulation server must bind to.
     n_clients : int
         The number of clients which will connect to the server.
+
+    See Also
+    --------
+    StimClient
     """
 
     def __init__(self, ip='localhost', port=4218, n_clients=1):
@@ -206,6 +210,10 @@ class StimServer(object):
             The trigger to be added to the queue for sending to StimClient.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+
+        See Also
+        --------
+        StimClient.get_trigger
         """
 
         for client in self._clients:
@@ -230,6 +238,10 @@ class StimClient(object):
         Communication timeout in seconds.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    StimServer
     """
 
     @verbose
@@ -275,6 +287,10 @@ class StimClient(object):
             maximum time to wait for a valid trigger from the server
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+
+        See Also
+        --------
+        StimServer.add_trigger
         """
         start_time = time.time()  # init delay counter. Will stop iterations
 

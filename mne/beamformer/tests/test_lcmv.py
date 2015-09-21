@@ -361,8 +361,9 @@ def test_tf_lcmv():
     # the underlying raw object
     epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                                   baseline=(None, 0), preload=True)
-    assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward, noise_covs,
-                  tmin, tmax, tstep, win_lengths, freq_bins)
+    with warnings.catch_warnings(record=True):  # not enough samples
+        assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward,
+                      noise_covs, tmin, tmax, tstep, win_lengths, freq_bins)
 
     with warnings.catch_warnings(record=True):  # not enough samples
         # Pass only one epoch to test if subtracting evoked

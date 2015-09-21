@@ -7,9 +7,9 @@ import warnings
 from scipy.signal import resample as sp_resample
 
 from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
-                        band_stop_filter, resample, construct_iir_filter,
-                        notch_filter, detrend, _overlap_add_filter,
-                        _smart_pad)
+                        band_stop_filter, resample, _resample_stim_channels,
+                        construct_iir_filter, notch_filter, detrend,
+                        _overlap_add_filter, _smart_pad)
 
 from mne import set_log_file
 from mne.utils import _TempDir, sum_squared, run_tests_if_main, slow_test
@@ -154,6 +154,37 @@ def test_resample():
     x_3 = x.swapaxes(0, 2)
     x_3_rs = resample(x_3, 1, 2, 10, 0)
     assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
+
+    # make sure we cast to array if necessary
+    assert_array_equal(resample([0, 0], 2, 1), [0., 0., 0., 0.])
+
+
+def test_resample_stim_channel():
+    """Test resampling of stim channels"""
+
+    # Downsampling
+    assert_array_equal(
+        _resample_stim_channels([1, 0, 0, 0, 2, 0, 0, 0], 1, 2),
+        [[1, 0, 2, 0]])
+    assert_array_equal(
+        _resample_stim_channels([1, 0, 0, 0, 2, 0, 0, 0], 1, 1.5),
+        [[1, 0, 0, 2, 0]])
+    assert_array_equal(
+        _resample_stim_channels([1, 0, 0, 1, 2, 0, 0, 1], 1, 2),
+        [[1, 1, 2, 1]])
+
+    # Upsampling
+    assert_array_equal(
+        _resample_stim_channels([1, 2, 3], 2, 1), [[1, 1, 2, 2, 3, 3]])
+    assert_array_equal(
+        _resample_stim_channels([1, 2, 3], 2.5, 1), [[1, 1, 1, 2, 2, 3, 3, 3]])
+
+    # Proper number of samples in stim channel resampling from io/base.py
+    data_chunk = np.zeros((1, 315600))
+    for new_data_len in (52598, 52599, 52600, 52601, 315599, 315600):
+        new_data = _resample_stim_channels(data_chunk, new_data_len,
+                                           data_chunk.shape[1])
+        assert_equal(new_data.shape[1], new_data_len)
 
 
 @slow_test
@@ -331,6 +362,9 @@ def test_cuda():
     a4 = resample(a, 2, 1, n_jobs='cuda', npad=0)
     assert_array_almost_equal(a3, a4, 14)
     assert_array_almost_equal(a1, a2, 14)
+    assert_array_equal(resample([0, 0], 2, 1, n_jobs='cuda'), [0., 0., 0., 0.])
+    assert_array_equal(resample(np.zeros(2, np.float32), 2, 1, n_jobs='cuda'),
+                       [0., 0., 0., 0.])
 
 
 def test_detrend():

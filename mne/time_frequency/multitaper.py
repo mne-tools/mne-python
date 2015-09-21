@@ -491,6 +491,10 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
     freqs : array
         The frequency points in Hz of the PSD.
 
+    See Also
+    --------
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd
+
     Notes
     -----
     .. versionadded:: 0.9.0

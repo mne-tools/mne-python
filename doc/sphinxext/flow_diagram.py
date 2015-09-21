@@ -119,7 +119,7 @@ def generate_flow_diagram(app):
                                '<BR ALIGN="LEFT"/>'.join(edge[2].split('\n')) +
                                '<BR ALIGN="LEFT"/></I>>')
         e.attr['fontsize'] = edge_size
-    g.get_node
+
     # Change colors
     for these_nodes, color in zip((sensor_space, source_space),
                                   (sensor_color, source_color)):
