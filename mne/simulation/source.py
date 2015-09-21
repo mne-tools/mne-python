@@ -114,7 +114,8 @@ def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
     return stc
 
 
-def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
+def simulate_sparse_stc(src, n_dipoles, times,
+                        data_fun=lambda t: 1e-7 * np.sin(t),
                         labels=None, random_state=None):
     """Generate sparse (n_dipoles) sources time courses from data_fun
 
@@ -131,10 +132,10 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
     times : array
         Time array
     data_fun : callable
-        Function to generate the waveforms. The default is `np.sin`.
-        The function should take as input the array of time samples
-        in seconds and return an array of the same length containing
-        the time courses.
+        Function to generate the waveforms. The default is ``1e-7 * np.sin``
+        (100 nAm sinusoid). The function should take as input the array of
+        time samples in seconds and return an array of the same length
+        containing the time courses.
     labels : None | list of Labels
         The labels. The default is None, otherwise its size must be n_dipoles.
     random_state : None | int | np.random.RandomState

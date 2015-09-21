@@ -1,5 +1,6 @@
-# Author: Mark Wronkiewicz <wronk@uw.edu>
-#         Yousra Bekhti <yousra.bekhti@gmail.com>
+# Authors: Mark Wronkiewicz <wronk@uw.edu>
+#          Yousra Bekhti <yousra.bekhti@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -11,7 +12,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_true, assert_raises
 
-from mne import (read_forward_solution, read_source_spaces,
+from mne import (read_forward_solution, read_source_spaces, pick_types,
                  read_bem_solution, pick_types_forward, read_trans)
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
@@ -25,8 +26,7 @@ fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 bem_fname = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-1280-1280-1280-bem-sol.fif')
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                    'data', 'test_raw.fif')
+raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 cov_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-cov.fif')
 trans_fname = op.join(data_path, 'MEG', 'sample',
@@ -42,36 +42,35 @@ src_fname = op.join(data_path, 'subjects', 'sample', 'bem',
 def test_simulate_raw():
     """Test simulation of raw data"""
     # Create object necessary to simulate raw
-    raw_template = Raw(raw_fname)
-    info = raw_template.info
+    raw = Raw(raw_fname).crop(0., 0.5).preload_data()
+    picks_data = pick_types(raw.info, meg=True, eeg=True)[::11]
+    picks_other = pick_types(raw.info, meg=False, eeg=False,
+                             stim=True, eog=True, ecg=True)
+    all_picks = np.unique(np.concatenate((picks_data, picks_other)))
+    raw.pick_channels([raw.ch_names[p] for p in all_picks])
+
     fwd = read_forward_solution(fwd_fname, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True, eeg=True,
-                             exclude=raw_template.info['bads'])
+                             exclude=raw.info['bads'])
     trans = read_trans(trans_fname)
     src = read_source_spaces(src_fname)
     bem = read_bem_solution(bem_fname)
 
-    tmin = 0.0
-
-    sfreq = info['sfreq']  # Hz
+    sfreq = raw.info['sfreq']  # Hz
     tstep = 1. / sfreq
-    n_samples = 100
-    times = np.arange(tmin, tmin + tstep * n_samples, tstep)
+    n_samples = len(raw.times) // 10
+    times = np.arange(0, n_samples) * tstep
 
     # Simulate STC
     stc = simulate_sparse_stc(fwd['src'], 1, times, random_state=42)
 
-    raw_times = stc.times - stc.times[0]
-
     # Test raw simulation with basic parameters
-    raw_sim = simulate_raw(info, stc, trans, src, bem, raw_times,
-                           random_state=42)
+    raw_sim = simulate_raw(raw, stc, trans, src, bem, random_state=42)
     assert_array_almost_equal(raw_sim.info['sfreq'], 1. / stc.tstep,
                               err_msg='Raw and STC tstep must be equal')
 
     # Test raw simulation with parameters as filename where possible
-    raw_sim_2 = simulate_raw(info, stc, trans_fname, src_fname, bem_fname,
-                             raw_times)
+    raw_sim_2 = simulate_raw(raw, stc, trans_fname, src_fname, bem_fname)
 
     # Some numerical imprecision
     assert_array_almost_equal(raw_sim_2._data, raw_sim._data, decimal=5)
@@ -80,15 +79,15 @@ def test_simulate_raw():
     # TODO: Make head positions that are more reasonable than simple 1mm
     #       deviations
     head_pos_sim = dict()
-    shifts = [[0.001, 0., -0.001], [-0.001, 0.001, 0.], [0., -0.001, 0.001]]
+    shifts = [[0.001, 0., -0.001], [-0.001, 0.001, 0.]]
 
-    for time_key, shift in zip(raw_times[0:len(shifts)], shifts):
+    for time_key, shift in zip(raw.times[:len(shifts)], shifts):
         # Create 4x4 matrix transform and normalize
-        temp_trans = deepcopy(info['dev_head_t'])
+        temp_trans = deepcopy(raw.info['dev_head_t'])
         temp_trans['trans'][:3, 3] += shift
         head_pos_sim[time_key] = temp_trans['trans']
 
-    raw_sim_3 = simulate_raw(info, stc, trans, src, bem, raw_times, ecg=True,
+    raw_sim_3 = simulate_raw(raw, stc, trans, src, bem, ecg=True,
                              blink=True, head_pos=head_pos_sim)
 
     # Check that EOG channels exist and are not zero
@@ -98,12 +97,11 @@ def test_simulate_raw():
     # TODO: Eventually, add ECG channels. Testing data raw file doesn't contain
     #       ECG channels yet.
 
-    # Make extreme transform and make sure tests fail
+    # Make impossible transform (translate up into helmet) and ensure failure
     head_pos_sim_err = deepcopy(head_pos_sim)
-    head_pos_sim_err[0.0][:, 3] = 1.  # 1m translation in all directions at t=0
-    assert_raises(simulate_raw(info, stc, trans, src, bem, raw_times,
-                               ecg=False, blink=False,
-                               head_pos=head_pos_sim_err))
+    head_pos_sim_err[0.][2, 3] -= 0.1  # z trans upward 10cm
+    assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, bem,
+                  ecg=False, blink=False, head_pos=head_pos_sim_err)
 
     # Test IO on processed data
     tempdir = _TempDir()
@@ -115,5 +113,10 @@ def test_simulate_raw():
     # Some numerical imprecision since save uses 'single' fmt
     assert_allclose(raw_sim_loaded._data[:, :], raw_sim._data[:, :], rtol=1e-6,
                     atol=1e-20)
+
+    # XXX test that EEG-only, MEG-only both work, along with ecg/eog options
+    # Test spherical BEM
+    # Figure out why tmax=0.5 doesn't work
+    # improve coverage / test quality
 
 run_tests_if_main()

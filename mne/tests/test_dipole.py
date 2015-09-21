@@ -232,7 +232,7 @@ def test_accuracy():
     data[-1, -1] = 1.
     data *= amp
     stc = SourceEstimate(data, vertices, 0., 1e-3, 'sample')
-    sim = generate_evoked(fwd, stc, evoked, cov=None, snr=np.inf)
+    sim = simulate_evoked(fwd, stc, evoked.info, cov=None, snr=np.inf)
 
     cov = make_ad_hoc_cov(evoked.info)
     dip = fit_dipole(sim, cov, bem, min_dist=0.001)[0]

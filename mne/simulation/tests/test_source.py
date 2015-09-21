@@ -1,4 +1,5 @@
 import os.path as op
+import warnings
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -44,7 +45,8 @@ def test_simulate_stc():
     tstep = 1e-3
 
     stc_data = np.ones((len(labels), n_times))
-    stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
+    with warnings.catch_warnings(record=True):
+        stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
 
     for label in labels:
         if label.hemi == 'lh':
@@ -64,7 +66,8 @@ def test_simulate_stc():
     # test with function
     def fun(x):
         return x ** 2
-    stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
+    with warnings.catch_warnings(record=True):
+        stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
 
     # the first label has value 0, the second value 2, the third value 6
 
@@ -112,7 +115,7 @@ def test_simulate_sparse_stc():
 
 @testing.requires_testing_data
 def test_generate_stc_single_hemi():
-    """ Test generation of source estimate """
+    """ Test generation of source estimate, single hemi """
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     labels_single_hemi = [read_label(op.join(data_path, 'MEG', 'sample',
                                              'labels', '%s.label' % label))
@@ -131,7 +134,8 @@ def test_generate_stc_single_hemi():
     tstep = 1e-3
 
     stc_data = np.ones((len(labels_single_hemi), n_times))
-    stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
+    with warnings.catch_warnings(record=True):
+        stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
 
     for label in labels_single_hemi:
         if label.hemi == 'lh':
@@ -151,7 +155,8 @@ def test_generate_stc_single_hemi():
     # test with function
     def fun(x):
         return x ** 2
-    stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
+    with warnings.catch_warnings(record=True):
+        stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
 
     # the first label has value 0, the second value 2, the third value 6
 

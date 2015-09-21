@@ -39,8 +39,8 @@ lambda2 = 1.0 / snr ** 2
 
 
 @testing.requires_testing_data
-def generate_evoked():
-    """ Simulate evoked data """
+def _simulate_evoked():
+    """Simulate evoked data """
 
     raw = Raw(raw_fname)
     fwd = read_forward_solution(fwd_fname, force_fixed=True)
@@ -63,14 +63,16 @@ def generate_evoked():
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
-    evoked = simulate_evoked(fwd, stc, evoked_template.info, cov, snr,
-                             tmin=0.0, tmax=0.2, iir_filter=iir_filter)
+    with warnings.catch_warnings(record=True):  # positive semidef
+        evoked = simulate_evoked(fwd, stc, evoked_template.info, cov, snr,
+                                 tmin=0.0, tmax=0.2, iir_filter=iir_filter)
 
     return evoked, stc
 
 
 def test_metrics():
-    evoked, stc = generate_evoked()
+    """Test simulation metrics"""
+    evoked, stc = _simulate_evoked()
     inverse_operator = read_inverse_operator(inv_fname)
 
     stc1 = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")

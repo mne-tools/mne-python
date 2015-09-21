@@ -50,8 +50,8 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None,
     evoked : Evoked object
         The simulated evoked data
     """
-    return simulate_evoked(fwd, stc, evoked.info, cov, str, trmin,
-                           tmax, iir_fliter, random_state, verbose)
+    return simulate_evoked(fwd, stc, evoked.info, cov, snr, tmin,
+                           tmax, iir_filter, random_state, verbose)
 
 
 @verbose
@@ -92,7 +92,7 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     """
     evoked = apply_forward(fwd, stc, info)
     if snr < np.inf:
-        noise = generate_noise_evoked(evoked, cov, iir_filter, random_state)
+        noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
         evoked_noise = add_noise_evoked(evoked, noise, snr,
                                         tmin=tmin, tmax=tmax)
     else:
