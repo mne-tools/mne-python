@@ -155,6 +155,7 @@ class _GeneralizationAcrossTime(object):
         parallel, p_time_gen, n_jobs = parallel_func(_fit_slices, n_jobs)
         n_chunks = min(X.shape[2], n_jobs)
         splits = np.array_split(self.train_times_['slices'], n_chunks)
+        splits = [split for split in splits if len(split)]
 
         def f(x):
             return np.unique(np.concatenate(x))
