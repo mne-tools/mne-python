@@ -365,10 +365,11 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     return eegels, eegnames
 
 
+@verbose
 def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                          bem_extra='', trans='', info_extra='',
                          meg=True, eeg=True, ignore_ref=False, fname=None,
-                         overwrite=False):
+                         overwrite=False, verbose=None):
     """Helper to prepare for forward computation"""
 
     # Read the source locations

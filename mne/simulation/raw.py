@@ -174,14 +174,14 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         del ts
 
     if isinstance(src, string_types):
-        src = read_source_spaces(src, verbose=verbose)
+        src = read_source_spaces(src, verbose=False)
     if isinstance(bem, string_types):
-        bem = read_bem_solution(bem, verbose)
+        bem = read_bem_solution(bem, verbose=False)
     if isinstance(cov, string_types):
         if cov == 'simple':
             cov = make_ad_hoc_cov(info, verbose=False)
         else:
-            cov = read_cov(cov)
+            cov = read_cov(cov, verbose=False)
     assert np.array_equal(offsets, np.unique(offsets))
     assert len(offsets) == len(dev_head_ts)
     approx_events = int((len(times) / info['sfreq']) /
@@ -210,8 +210,9 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     meg_picks = pick_types(info, meg=True, eeg=False, exclude=[])  # for CHPI
     fwd_info = pick_info(info, meeg_picks)
     fwd_info['projs'] = []  # Ensure no 'projs' applied
-    logger.info('Setting up raw data simulation using %s head position%s'
-                % (len(dev_head_ts), 's' if len(dev_head_ts) != 1 else ''))
+    logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
+                % (len(dev_head_ts), 's' if len(dev_head_ts) != 1 else '',
+                   interp))
 
     if isinstance(stc, VolSourceEstimate):
         verts = [stc.vertices]
@@ -262,8 +263,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         del blink_kernel, blink_rate, noise
     if ecg:
         ecg_rr = np.array([[-R, 0, -3 * R]])
-        max_beats = int(np.ceil(times[-1] * 70. / 60.))
-        cardiac_idx = np.cumsum(rng.uniform(60. / 70., 60. / 50., max_beats) *
+        max_beats = int(np.ceil(times[-1] * 80. / 60.))
+        cardiac_idx = np.cumsum(rng.uniform(60. / 80., 60. / 40., max_beats) *
                                 info['sfreq']).astype(int)
         cardiac_idx = cardiac_idx[cardiac_idx < len(times)]
         cardiac_data = np.zeros(len(times))
@@ -287,6 +288,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         event_ch = pick_channels(info['ch_names'],
                                  _get_stim_channel(None, raw.info))[0]
         raw_data[event_ch, :] = 0.
+        logger.info('Event information will be stored in "%s"'
+                    % raw.ch_names[event_ch])
+    else:
+        logger.info('Event information will not be stored')
     used = np.zeros(len(times), bool)
     stc_indices = np.arange(len(times)) % len(stc.times)
     raw_data[meeg_picks, :] = 0.
@@ -415,7 +420,7 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
     logger.info('Setting up forward solutions')
     megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
         update_kwargs, bem = _prepare_for_forward(
-            src, mri_head_t, info, bem, mindist, n_jobs)
+            src, mri_head_t, info, bem, mindist, n_jobs, verbose=False)
     del (src, mindist)
 
     eegfwd = _compute_forwards(rr, bem, [eegels], [None],

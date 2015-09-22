@@ -122,8 +122,8 @@ def test_simulate_raw_sphere():
     raw_sim_meeg = simulate_raw(raw.pick_types(meg=True, eeg=True, copy=True),
                                 stc, trans, src, sphere, cov=None,
                                 ecg=True, blink=True, random_state=seed)
-    assert_array_equal(np.concatenate((raw_sim_meg[:][0], raw_sim_eeg[:][0])),
-                       raw_sim_meeg[:][0])
+    assert_allclose(np.concatenate((raw_sim_meg[:][0], raw_sim_eeg[:][0])),
+                    raw_sim_meeg[:][0], rtol=1e-7, atol=1e-20)
     del raw_sim_meg, raw_sim_eeg, raw_sim_meeg
 
     # Make impossible transform (translate up into helmet) and ensure failure
@@ -136,6 +136,7 @@ def test_simulate_raw_sphere():
                   head_pos=head_pos_sim_err)
 
 
+@testing.requires_testing_data
 def test_simulate_raw_bem():
     """Test simulation of raw data with BEM"""
     seed = 42

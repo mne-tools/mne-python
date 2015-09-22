@@ -4,55 +4,73 @@ Generate simulated raw data
 ==============================
 
 """
-# Author: Yousra Bekhti <yousra.bekhti@gmail.com>
-#         Mark Wronkiewicz <wronk.mark@gmail.com>
+# Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
+#          Mark Wronkiewicz <wronk.mark@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
 import numpy as np
-from mne import (read_proj, read_forward_solution, read_cov,
-                 pick_types_forward)
+import matplotlib.pyplot as plt
+
+from mne import read_source_spaces, find_events, Epochs, compute_covariance
 from mne.io import Raw
 from mne.datasets import sample
 from mne.simulation import simulate_sparse_stc, simulate_raw
 
 print(__doc__)
 
-###############################################################################
-# Load real data as templates
 data_path = sample.data_path()
-
-raw = Raw(data_path + '/MEG/sample/sample_audvis_raw.fif')
-raw.crop(0., 60.)  # only 60s of data is enough
-proj = read_proj(data_path + '/MEG/sample/sample_audvis_ecg_proj.fif')
-raw.info['projs'] += proj
-raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
-
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
-
-fwd = read_forward_solution(fwd_fname, force_fixed=True, surf_ori=True)
-fwd = pick_types_forward(fwd, meg=True, eeg=True)
-
-cov = read_cov(cov_fname)
-
+raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+src_fname = data_path + '/subjects/sample/bem/sample-oct-6-src.fif'
 bem_fname = (data_path +
              '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif')
 
-# Generate times series for 2 dipoles
+# Load real data as the template
+raw = Raw(raw_fname).crop(0., 60., copy=False)  # 60 sec is enough
 
-rng = np.random.RandomState(42)
+##############################################################################
+# Generate dipole time series
+n_dipoles = 4  # number of dipoles to create
+dur = 2.  # duration of each epoch/event
+n = 0  # harmonic number
 
 
 def data_fun(times):
-    """Function to generate random sine source time courses around 10Hz"""
-    return 1e-9 * np.sin(2. * np.pi * (10. + 2. * rng.randn(1)) * times)
+    """Generate time-staggered sinusoids at harmonics of 10Hz"""
+    global n
+    n_samp = len(times)
+    window = np.zeros(n_samp)
+    start, stop = [int(ii * float(n_samp) / (2 * n_dipoles))
+                   for ii in (2 * n, 2 * n + 1)]
+    window[start:stop] = 1.
+    n += 1
+    data = 50e-9 * np.sin(2. * np.pi * 10. * n * times)
+    data *= window
+    return data
 
-stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=raw.times,
-                          random_state=42)
+times = raw.times[:int(raw.info['sfreq'] * dur)]
+src = read_source_spaces(src_fname)
+stc = simulate_sparse_stc(src, n_dipoles=n_dipoles, times=times,
+                          data_fun=data_fun, random_state=0)
+# look at our source data
+fig, ax = plt.subplots(1)
+ax.plot(times, 1e9 * stc.data.T)
+ax.set(ylabel='Amplitude (nAm)', xlabel='Time (sec)')
+fig.show()
 
-trans = fwd['mri_head_t']
-src = fwd['src']
-raw_sim = simulate_raw(raw, stc, trans, src, bem_fname,
-                       ecg=True, blink=True, n_jobs=2)
+##############################################################################
+# Simulate raw data
+raw_sim = simulate_raw(raw, stc, trans_fname, src, bem_fname,
+                       ecg=True, blink=True, n_jobs=2, verbose=True)
 raw_sim.plot()
+
+##############################################################################
+# Plot evoked data
+events = find_events(raw_sim)
+events[:, 2] = 1
+epochs = Epochs(raw_sim, events, 1, -0.2, dur)
+cov = compute_covariance(epochs, method='empirical')  # quick calculation
+evoked = epochs.average()
+evoked.plot_white(cov)
