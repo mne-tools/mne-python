@@ -316,7 +316,6 @@ def _ensure_trans(trans, fro='mri', to='head'):
 
 def _get_mri_head_t(trans):
     """Get mri_head_t (from=mri, to=head) from mri filename"""
-    print(trans)
     if isinstance(trans, string_types):
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
