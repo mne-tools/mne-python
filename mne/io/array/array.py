@@ -18,14 +18,14 @@ class RawArray(_BaseRaw):
     data : array, shape (n_channels, n_times)
         The channels' time series.
     info : instance of Info
-        Info dictionary. Consider using ``create_info`` to populate
+        Info dictionary. Consider using `create_info` to populate
         this structure.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     See Also
     --------
-    mne.EpochsArray, mne.EvokedArray
+    EpochsArray, EvokedArray, create_info
     """
     @verbose
     def __init__(self, data, info, verbose=None):

@@ -518,8 +518,7 @@ class UpdateChannelsMixin(object):
             comp_class = type(self)
         if not all(isinstance(inst, comp_class) for inst in add_list):
             raise AssertionError('All input data must be of same type')
-        data = [getattr(self, data_name)] + [getattr(inst, data_name)
-                                             for inst in add_list]
+        data = [getattr(inst, data_name) for inst in [self] + add_list]
 
         # Make sure that all dimensions other than channel axis are the same
         compare_axes = [i for i in range(data[0].ndim) if i != con_axis]
@@ -539,6 +538,9 @@ class UpdateChannelsMixin(object):
             out = self
         setattr(out, data_name, data)
         out.info = new_info
+        if isinstance(self, _BaseRaw):
+            out._cals = np.concatenate([getattr(inst, '_cals')
+                                        for inst in [self] + add_list])
         return out
 
 

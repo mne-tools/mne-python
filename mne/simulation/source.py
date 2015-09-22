@@ -145,6 +145,10 @@ def simulate_sparse_stc(src, n_dipoles, times,
     -------
     stc : SourceEstimate
         The generated source time courses.
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     rng = check_random_state(random_state)
 
@@ -156,8 +160,11 @@ def simulate_sparse_stc(src, n_dipoles, times,
         n_dipoles_lh = n_dipoles // 2
         n_dipoles_rh = n_dipoles - n_dipoles_lh
 
-        vertno_lh = rng.randint(len(src[0]['vertno']), size=n_dipoles_lh)
-        vertno_rh = rng.randint(len(src[1]['vertno']), size=n_dipoles_rh)
+        # ensure unique vertex sets
+        vertno_lh = rng.permutation(np.arange(len(src[0]['vertno'])))
+        vertno_lh = np.sort(vertno_lh[:n_dipoles_lh])
+        vertno_rh = rng.permutation(np.arange(len(src[1]['vertno'])))
+        vertno_rh = np.sort(vertno_rh[:n_dipoles_rh])
         vertno = [src[0]['vertno'][[vertno_lh]], src[1]['vertno'][[vertno_rh]]]
 
         lh_data = list(data[:n_dipoles_lh])

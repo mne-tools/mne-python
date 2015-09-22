@@ -818,7 +818,7 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
     return Bs
 
 
-@verbose
+# @verbose
 def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
                       n_jobs, verbose=None):
     """Compute the MEG and EEG forward solutions.

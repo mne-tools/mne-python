@@ -29,7 +29,7 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     stc2 : SourceEstimate
         First source estimate for comparison.
     metric : str
-        Metric to calculate. 'rms' or 'cosine'.
+        Metric to calculate, 'rms' or 'cosine'.
 
     Returns
     -------
@@ -39,8 +39,13 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     Notes
     -----
     Metric calculation has multiple options:
-    rms: Root mean square of difference between stc data matrices.
-    cosine: Normalized correlation of all elements in stc data matrices.
+
+        * rms: Root mean square of difference between stc data matrices.
+        * cosine: Normalized correlation of all elements in stc data matrices.
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     known_metrics = ['rms', 'cosine']
     if metric not in known_metrics:

@@ -32,7 +32,7 @@ fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 fwd = read_forward_solution(fwd_fname, force_fixed=True, surf_ori=True)
-fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
+fwd = pick_types_forward(fwd, meg=True, eeg=True)
 
 cov = read_cov(cov_fname)
 
@@ -53,7 +53,6 @@ stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=raw.times,
 
 trans = fwd['mri_head_t']
 src = fwd['src']
-raw_sim = simulate_raw(info=raw.info, stc=stc, trans=trans, src=src,
-                       bem=bem_fname, times=raw.times)
-
+raw_sim = simulate_raw(raw, stc, trans, src, bem_fname,
+                       ecg=True, blink=True, n_jobs=2)
 raw_sim.plot()

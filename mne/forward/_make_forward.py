@@ -23,7 +23,7 @@ from ..utils import logger, verbose
 from ..source_space import (read_source_spaces, _filter_source_spaces,
                             SourceSpaces)
 from ..surface import _normalize_vectors
-from ..bem import read_bem_solution, _bem_find_surface
+from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
 
 
@@ -201,6 +201,8 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
     if isinstance(bem, string_types):
         logger.info('Setting up the BEM model using %s...\n' % bem_extra)
         bem = read_bem_solution(bem)
+    if not isinstance(bem, ConductorModel):
+        raise TypeError('bem must be a ConductorModel')
     if bem['is_sphere']:
         logger.info('Using the sphere model.\n')
         if len(bem['layers']) == 0:

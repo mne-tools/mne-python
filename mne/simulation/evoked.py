@@ -89,6 +89,10 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     -------
     evoked : Evoked object
         The simulated evoked data
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     evoked = apply_forward(fwd, stc, info)
     if snr < np.inf:
@@ -146,6 +150,10 @@ def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     -------
     noise : evoked object
         an instance of evoked
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     noise = evoked.copy()
     noise.data = _generate_noise(evoked.info, cov, iir_filter, random_state,
@@ -158,12 +166,12 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     from scipy.signal import lfilter
     noise_cov = pick_channels_cov(cov, include=info['ch_names'], exclude=[])
     rng = check_random_state(random_state)
-    mu_channels = np.zeros(info['nchan'])
     c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
+    mu_channels = np.zeros(len(c))
     noise = rng.multivariate_normal(mu_channels, c, n_samples).T
     if iir_filter is not None:
         if zi is None:
-            zi = np.zeros((info['nchan'], len(iir_filter) - 1))
+            zi = np.zeros((len(c), len(iir_filter) - 1))
         noise, zf = lfilter([1], iir_filter, noise, axis=-1, zi=zi)
     else:
         zf = None

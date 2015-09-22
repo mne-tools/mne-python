@@ -90,7 +90,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     events : array | None
         Events to show with vertical bars.
     duration : float
-        Time window (sec) to plot in a given time.
+        Time window (sec) to plot. The lesser of this value and the duration
+        of the raw file will be used.
     start : float
         Initial time to show (can be changed dynamically once plotted).
     n_channels : int
@@ -273,6 +274,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                            % key)
 
     # set up projection and data parameters
+    duration = min(raw.times[-1], float(duration))
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,

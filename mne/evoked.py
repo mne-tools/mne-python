@@ -900,7 +900,7 @@ class EvokedArray(Evoked):
 
     See Also
     --------
-    EpochsArray, io.RawArray
+    EpochsArray, io.RawArray, create_info
     """
 
     @verbose

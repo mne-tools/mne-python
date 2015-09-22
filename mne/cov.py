@@ -275,7 +275,7 @@ def make_ad_hoc_cov(info, verbose=None):
     -----
     .. versionadded:: 0.9.0
     """
-    info = pick_info(info, pick_types(info, meg=True, eeg=True))
+    info = pick_info(info, pick_types(info, meg=True, eeg=True, exclude=[]))
     info._check_consistency()
 
     # Standard deviations to be used
