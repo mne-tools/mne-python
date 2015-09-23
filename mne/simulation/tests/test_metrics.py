@@ -8,17 +8,17 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_almost_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import warnings
 
+from mne import (read_forward_solution, read_cov, pick_types_forward,
+                 read_evokeds)
 from mne.datasets import testing
-from mne import read_forward_solution
-from mne.simulation import simulate_sparse_stc, simulate_evoked
-from mne import read_cov
+from mne.simulation import (simulate_sparse_stc, simulate_evoked,
+                            source_estimate_quantification)
 from mne.io import Raw
-from mne import pick_types_forward, read_evokeds
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator)
-from mne.simulation import source_estimate_quantification
+from mne.utils import run_tests_if_main
 
 warnings.simplefilter('always')
 
@@ -88,3 +88,12 @@ def test_metrics():
     assert_true(E2_rms == 0.)
     assert_almost_equal(E1_cos, 0.)
     assert_almost_equal(E2_cos, 0.)
+    stc_bad = stc2.copy().crop(0, 1)
+    assert_raises(ValueError, source_estimate_quantification, stc1, stc_bad)
+    stc_bad = stc2.copy()
+    stc_bad.times -= 0.1
+    assert_raises(ValueError, source_estimate_quantification, stc1, stc_bad)
+    assert_raises(ValueError, source_estimate_quantification, stc1, stc2,
+                  metric='foo')
+
+run_tests_if_main()

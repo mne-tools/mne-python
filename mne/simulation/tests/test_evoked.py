@@ -5,7 +5,7 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises
 import warnings
 
@@ -68,5 +68,10 @@ def test_simulate_evoked():
     stc_bad.vertices[0][0] = mv + 1
     assert_raises(RuntimeError, simulate_evoked, fwd, stc_bad,
                   evoked_template.info, cov, snr, tmin=0.0, tmax=0.2)
+    evoked_1 = simulate_evoked(fwd, stc, evoked_template.info, cov, np.inf,
+                               tmin=0.0, tmax=0.2)
+    evoked_2 = simulate_evoked(fwd, stc, evoked_template.info, cov, np.inf,
+                               tmin=0.0, tmax=0.2)
+    assert_array_equal(evoked_1.data, evoked_2.data)
 
 run_tests_if_main()

@@ -6,7 +6,7 @@
 
 import numpy as np
 
-from ..source_estimate import SourceEstimate
+from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..utils import check_random_state, deprecated, logger
 from ..externals.six.moves import zip
 
@@ -157,18 +157,12 @@ def simulate_sparse_stc(src, n_dipoles, times,
         data[i_dip, :] = data_fun(times)
 
     if labels is None:
-        n_dipoles_lh = n_dipoles // 2
-        n_dipoles_rh = n_dipoles - n_dipoles_lh
-
-        # ensure unique vertex sets
-        vertno_lh = rng.permutation(np.arange(len(src[0]['vertno'])))
-        vertno_lh = np.sort(vertno_lh[:n_dipoles_lh])
-        vertno_rh = rng.permutation(np.arange(len(src[1]['vertno'])))
-        vertno_rh = np.sort(vertno_rh[:n_dipoles_rh])
-        vertno = [src[0]['vertno'][[vertno_lh]], src[1]['vertno'][[vertno_rh]]]
-
-        lh_data = list(data[:n_dipoles_lh])
-        rh_data = list(data[n_dipoles_lh:])
+        # can be vol or surface source space
+        offsets = np.linspace(0, n_dipoles, len(src) + 1).astype(int)
+        n_dipoles_ss = np.diff(offsets)
+        vs = [s['vertno'][np.sort(rng.choice(s['nuse'], n_dip, replace=False))]
+              for n_dip, s in zip(n_dipoles_ss, src)]
+        datas = data
     else:
         if n_dipoles != len(labels):
             logger.warning('The number of labels is different from the number '
@@ -177,39 +171,31 @@ def simulate_sparse_stc(src, n_dipoles, times,
         labels = labels[:n_dipoles] if n_dipoles < len(labels) else labels
 
         vertno = [[], []]
-        lh_data = list()
-        rh_data = list()
+        lh_data = [np.empty((0, data.shape[1]))]
+        rh_data = [np.empty((0, data.shape[1]))]
         for i, label in enumerate(labels):
             lh_vertno, rh_vertno = select_source_in_label(src, label, rng)
             vertno[0] += lh_vertno
             vertno[1] += rh_vertno
             if len(lh_vertno) != 0:
-                lh_data.append(np.atleast_2d(data[i]))
+                lh_data.append(data[i][np.newaxis])
             elif len(rh_vertno) != 0:
-                rh_data.append(np.atleast_2d(data[i]))
+                rh_data.append(data[i][np.newaxis])
             else:
                 raise ValueError('No vertno found.')
-        vertno = [np.array(v, dtype='int64') for v in vertno]
-        lh_data, rh_data = [np.concatenate(dd) if len(dd) != 0 else []
-                            for dd in [lh_data, rh_data]]
+        vs = [np.array(v) for v in vertno]
+        datas = [np.concatenate(d) for d in [lh_data, rh_data]]
+        # need to sort each hemi by vertex number
+        for ii in range(2):
+            order = np.argsort(vs[ii])
+            vs[ii] = vs[ii][order]
+            datas[ii] = datas[ii][order]
+        datas = np.concatenate(datas)
 
-    # the data is in the order left, right
-    data = list()
-    if len(vertno[0]) != 0:
-        idx = np.argsort(vertno[0])
-        vertno[0] = vertno[0][idx]
-        data.append(np.array(lh_data)[idx])
-
-    if len(vertno[1]) != 0:
-        idx = np.argsort(vertno[1])
-        vertno[1] = vertno[1][idx]
-        data.append(np.array(rh_data)[idx])
-
-    data = np.array(np.concatenate(data))
-
-    tmin, tstep = times[0], np.diff(times)[0]
-    stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep)
-
+    tmin, tstep = times[0], np.diff(times[:2])[0]
+    assert datas.shape == data.shape
+    cls = SourceEstimate if len(vs) == 2 else VolSourceEstimate
+    stc = cls(datas, vertices=vs, tmin=tmin, tstep=tstep)
     return stc
 
 

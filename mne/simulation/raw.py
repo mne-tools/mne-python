@@ -102,7 +102,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     .. versionadded:: 0.10.0
     """
-
     if not isinstance(raw, _BaseRaw):
         raise TypeError('raw should be an instance of Raw')
     times, info, first_samp = raw.times, raw.info, raw.first_samp
@@ -114,12 +113,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         raise ValueError('stc and info must have same sample rate')
     if len(stc.times) <= 2:  # to ensure event encoding works
         raise ValueError('stc must have at least three time points')
-
-    # Only use cHPI if custom frequency is in HPI information
-    if chpi and np.all(['custom_ref' in x.keys()
-                        for x in info['hpi_meas'][0]['hpi_coils']]):
-        raise ValueError("`custom_ref` must be in "
-                         "info['hpi_meas'][0]['hpi_coils'] to use cHPI")
 
     stim = False if len(pick_types(info, meg=False, stim=True)) == 0 else True
 
@@ -147,27 +140,24 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
             dev_head_ts = [head_pos[float(tt)] for tt in ts]
         else:
             raise TypeError('unknown head_pos type %s' % type(head_pos))
-        if not (ts >= 0).all():  # pathological if not
-            raise RuntimeError('Cannot have t < 0 in transform file')
-        tend = times[-1]
         bad = ts < 0
         if bad.any():
             raise RuntimeError('All position times must be >= 0, found %s/%s'
                                '< 0' % (bad.sum(), len(bad)))
-        bad = ts > tend
+        bad = ts > times[-1]
         if bad.any():
             raise RuntimeError('All position times must be <= t_end (%0.1f '
                                'sec), found %s/%s bad values (is this a split '
-                               'file?)' % (tend, bad.sum(), len(bad)))
+                               'file?)' % (times[-1], bad.sum(), len(bad)))
         if ts[0] > 0:
             ts = np.r_[[0.], ts]
             dev_head_ts.insert(0, info['dev_head_t']['trans'])
         dev_head_ts = [{'trans': d, 'to': info['dev_head_t']['to'],
                         'from': info['dev_head_t']['from']}
                        for d in dev_head_ts]
-        if ts[-1] < tend:
+        if ts[-1] < times[-1]:
             dev_head_ts.append(dev_head_ts[-1])
-            ts = np.r_[ts, [tend]]
+            ts = np.r_[ts, [times[-1]]]
         offsets = raw.time_as_index(ts)
         offsets[-1] = len(times)  # fix for roundoff error
         assert offsets[-2] != offsets[-1]
@@ -195,6 +185,12 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                 ('custom_ref' not in info['hpi_meas'][0]['hpi_coils'][0]):
             raise RuntimeError('cHPI information not found in'
                                'raw.info["hpi_meas"], cannut use chpi=True')
+        # this shouldn't happen, eventually we could add the transforms
+        # necessary to put it in head coords
+        if not all([d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+                    for d in info['dig']
+                    if d['kind'] == FIFF.FIFFV_POINT_HPI]):
+            raise RuntimeError('cHPI coordinate frame incorrect')
         hpi_freqs = np.array([x['custom_ref'][0]
                              for x in info['hpi_meas'][0]['hpi_coils']])
         n_freqs = len(hpi_freqs)
@@ -214,10 +210,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                 % (len(dev_head_ts), 's' if len(dev_head_ts) != 1 else '',
                    interp))
 
-    if isinstance(stc, VolSourceEstimate):
-        verts = [stc.vertices]
-    else:
-        verts = stc.vertices
+    verts = stc.vertices
+    verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
     src = _restrict_source_space_to(src, verts)
 
     # array used to store result
@@ -227,7 +221,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     R, r0 = fit_sphere_to_headshape(info, verbose=False)[:2]
     R /= 1000.
     r0 /= 1000.
-    ecg_rr = blink_rr = exg_bem = None
+    ecg_rr = blink_rr = exg_bem = chpi_rrs = None
     if blink or ecg:
         exg_bem = make_sphere_model(r0, head_radius=R,
                                     relative_radii=(0.99, 1.),
@@ -297,14 +291,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     ecg = ecg and len(meg_picks) > 0
     chpi = chpi and len(meg_picks) > 0
     if chpi:
-        assert all([d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
-                    for d in info['dig'] if d['kind'] == FIFF.FIFFV_POINT_HPI])
         chpi_rrs = np.array([d['r'] for d in info['dig']
                             if d['kind'] == FIFF.FIFFV_POINT_HPI])
         chpi_nns = chpi_rrs / np.sqrt(np.sum(chpi_rrs * chpi_rrs,
                                              axis=1))[:, np.newaxis]
-    else:
-        chpi_rrs = None
     for fi, (fwd, fwd_blink, fwd_ecg, fwd_chpi) in \
         enumerate(_iter_forward_solutions(
             fwd_info, trans, src, bem, exg_bem, dev_head_ts, mindist,
@@ -327,10 +317,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
         if src_sel is None:
             src_sel = _stc_src_sel(fwd['src'], stc)
-            if isinstance(stc, VolSourceEstimate):
-                verts = [stc.vertices]
-            else:
-                verts = stc.vertices
+            verts = stc.vertices
+            verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
             diff_ = sum([len(v) for v in verts]) - len(src_sel)
             if diff_ != 0:
                 warnings.warn('%s STC vertices omitted due to fwd calculation'

@@ -13,11 +13,12 @@ from numpy.testing import assert_allclose, assert_array_equal
 from nose.tools import assert_true, assert_raises
 
 from mne import (read_source_spaces, pick_types, read_trans, read_cov,
-                 make_sphere_model, create_info)
+                 make_sphere_model, create_info, setup_volume_source_space)
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.io import Raw, RawArray
-from mne.utils import _TempDir, slow_test, run_tests_if_main
+from mne.time_frequency import compute_raw_psd
+from mne.utils import _TempDir, run_tests_if_main
 
 warnings.simplefilter('always')
 
@@ -30,11 +31,25 @@ trans_fname = op.join(data_path, 'MEG', 'sample',
 bem_path = op.join(data_path, 'subjects', 'sample', 'bem')
 src_fname = op.join(bem_path, 'sample-oct-2-src.fif')
 bem_fname = op.join(bem_path, 'sample-320-320-320-bem-sol.fif')
+raw_chpi_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
+
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')  # for a different raw
+
+
+def _make_stc(raw, src):
+    """Helper to make a STC"""
+    seed = 42
+    sfreq = raw.info['sfreq']  # Hz
+    tstep = 1. / sfreq
+    n_samples = len(raw.times) // 10
+    times = np.arange(0, n_samples) * tstep
+    stc = simulate_sparse_stc(src, 10, times, random_state=seed)
+    return stc
 
 
 def _get_data():
     """Helper to get some starting data"""
-    seed = 42
     # raw with ECG channel
     raw = Raw(raw_fname).crop(0., 5.0).preload_data()
     ecg = RawArray(np.zeros((1, len(raw.times))),
@@ -47,16 +62,10 @@ def _get_data():
     src = read_source_spaces(src_fname)
     trans = read_trans(trans_fname)
     sphere = make_sphere_model('auto', 'auto', raw.info)
-
-    sfreq = raw.info['sfreq']  # Hz
-    tstep = 1. / sfreq
-    n_samples = len(raw.times) // 10
-    times = np.arange(0, n_samples) * tstep
-    stc = simulate_sparse_stc(src, 10, times, random_state=seed)
+    stc = _make_stc(raw, src)
     return raw, src, stc, trans, sphere
 
 
-@slow_test
 @testing.requires_testing_data
 def test_simulate_raw_sphere():
     """Test simulation of raw data with sphere model"""
@@ -66,13 +75,14 @@ def test_simulate_raw_sphere():
 
     # head pos
     head_pos_sim = dict()
+    # these will be at 1., 2., ... sec
     shifts = [[0.001, 0., -0.001], [-0.001, 0.001, 0.]]
 
-    for time_key, shift in zip(raw.times[:len(shifts)], shifts):
+    for time_key, shift in enumerate(shifts):
         # Create 4x4 matrix transform and normalize
         temp_trans = deepcopy(raw.info['dev_head_t'])
         temp_trans['trans'][:3, 3] += shift
-        head_pos_sim[time_key] = temp_trans['trans']
+        head_pos_sim[time_key + 1.] = temp_trans['trans']
 
     #
     # Test raw simulation with basic parameters
@@ -127,13 +137,44 @@ def test_simulate_raw_sphere():
                     raw_sim_meeg[:][0], rtol=1e-7, atol=1e-20)
     del raw_sim_meg, raw_sim_eeg, raw_sim_meeg
 
+    # check that different interpolations are similar given small movements
+    raw_sim_cos = simulate_raw(raw, stc, trans, src, sphere,
+                               head_pos=head_pos_sim,
+                               random_state=seed)
+    raw_sim_lin = simulate_raw(raw, stc, trans, src, sphere,
+                               head_pos=head_pos_sim, interp='linear',
+                               random_state=seed)
+    assert_allclose(raw_sim_cos[:][0], raw_sim_lin[:][0],
+                    rtol=1e-5, atol=1e-20)
+    del raw_sim_cos, raw_sim_lin
+
     # Make impossible transform (translate up into helmet) and ensure failure
     head_pos_sim_err = deepcopy(head_pos_sim)
-    head_pos_sim_err[0.][2, 3] -= 0.1  # z trans upward 10cm
+    head_pos_sim_err[1.][2, 3] -= 0.1  # z trans upward 10cm
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
                   ecg=False, blink=False, head_pos=head_pos_sim_err)
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src,
                   bem_fname, ecg=False, blink=False,
+                  head_pos=head_pos_sim_err)
+    # other degenerate conditions
+    assert_raises(TypeError, simulate_raw, 'foo', stc, trans, src, sphere)
+    assert_raises(TypeError, simulate_raw, raw, 'foo', trans, src, sphere)
+    assert_raises(ValueError, simulate_raw, raw, stc.copy().crop(0, 0),
+                  trans, src, sphere)
+    stc_bad = stc.copy()
+    stc_bad.tstep += 0.1
+    assert_raises(ValueError, simulate_raw, raw, stc_bad, trans, src, sphere)
+    assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
+                  chpi=True)  # no cHPI info
+    assert_raises(ValueError, simulate_raw, raw, stc, trans, src, sphere,
+                  interp='foo')
+    assert_raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
+                  head_pos=1.)
+    assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
+                  head_pos=hp_fname)  # ends up with t>t_end
+    head_pos_sim_err = deepcopy(head_pos_sim)
+    head_pos_sim_err[-1.] = head_pos_sim_err[1.]  # negative time
+    assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
                   head_pos=head_pos_sim_err)
 
 
@@ -148,13 +189,41 @@ def test_simulate_raw_bem():
     raw_sim_bem = simulate_raw(raw, stc, trans, src, bem_fname, cov=None,
                                ecg=True, blink=True, random_state=seed,
                                n_jobs=2)
-    # some radial components might not match that well, so just make sure that
-    # most components have high correlation
+    # some components (especially radial) might not match that well,
+    # so just make sure that most components have high correlation
     assert_array_equal(raw_sim_sph.ch_names, raw_sim_bem.ch_names)
     picks = pick_types(raw.info, meg=True, eeg=True)
     n_ch = len(picks)
     corr = np.corrcoef(raw_sim_sph[picks][0], raw_sim_bem[picks][0])
     assert_array_equal(corr.shape, (2 * n_ch, 2 * n_ch))
     assert_true(np.median(np.diag(corr[:n_ch, -n_ch:])) > 0.9)
+
+
+@testing.requires_testing_data
+def test_simulate_raw_chpi():
+    """Test simulation of raw data with cHPI"""
+    with warnings.catch_warnings(record=True):  # MaxShield
+        raw = Raw(raw_chpi_fname, allow_maxshield=True)
+    sphere = make_sphere_model('auto', 'auto', raw.info)
+    # make sparse spherical source space
+    sphere_vol = tuple(sphere['r0'] * 1000.) + (sphere.radius * 1000.,)
+    src = setup_volume_source_space('sample', sphere=sphere_vol, pos=70.)
+    stc = _make_stc(raw, src)
+    # simulate data with cHPI on
+    raw_sim = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=False)
+    raw_chpi = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=True)
+    # XXX we need to test that the cHPI signals are actually in the correct
+    # place, but that should be a subsequent enhancement (not trivial to do so)
+    psd_sim, freqs_sim = compute_raw_psd(raw_sim)
+    psd_chpi, freqs_chpi = compute_raw_psd(raw_chpi)
+    assert_array_equal(freqs_sim, freqs_chpi)
+    hpi_freqs = np.array([x['custom_ref'][0]
+                          for x in raw.info['hpi_meas'][0]['hpi_coils']])
+    freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f)) for f in hpi_freqs])
+    picks_meg = pick_types(raw.info, meg=True, eeg=False)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    assert_allclose(psd_sim[picks_eeg], psd_chpi[picks_eeg])
+    assert_true((psd_chpi[picks_meg][:, freq_idx] >
+                 100 * psd_sim[picks_meg][:, freq_idx]).all())
 
 run_tests_if_main()
