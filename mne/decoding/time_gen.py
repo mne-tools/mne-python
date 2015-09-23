@@ -153,7 +153,7 @@ class _GeneralizationAcrossTime(object):
         # Parallel across training time
         # TODO: JRK: Chunking times points needs to be simplified
         parallel, p_time_gen, n_jobs = parallel_func(_fit_slices, n_jobs)
-        n_chunks = min(X.shape[2], n_jobs)
+        n_chunks = min(len(self.train_times_['slices']), n_jobs)
         splits = np.array_split(self.train_times_['slices'], n_chunks)
 
         def f(x):
