@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 import copy
+import warnings
 
 import numpy as np
 
@@ -168,7 +169,9 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     rng = check_random_state(random_state)
     c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
     mu_channels = np.zeros(len(c))
-    noise = rng.multivariate_normal(mu_channels, c, n_samples).T
+    # we almost always get a positive semidefinite warning here, so squash it
+    with warnings.catch_warnings(record=True):
+        noise = rng.multivariate_normal(mu_channels, c, n_samples).T
     if iir_filter is not None:
         if zi is None:
             zi = np.zeros((len(c), len(iir_filter) - 1))

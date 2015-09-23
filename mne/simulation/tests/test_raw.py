@@ -18,7 +18,8 @@ from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.io import Raw, RawArray
 from mne.time_frequency import compute_raw_psd
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, requires_scipy_version
+
 
 warnings.simplefilter('always')
 
@@ -199,6 +200,7 @@ def test_simulate_raw_bem():
     assert_true(np.median(np.diag(corr[:n_ch, -n_ch:])) > 0.9)
 
 
+@requires_scipy_version('0.12')
 @testing.requires_testing_data
 def test_simulate_raw_chpi():
     """Test simulation of raw data with cHPI"""

@@ -27,7 +27,7 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     stc1 : SourceEstimate
         First source estimate for comparison.
     stc2 : SourceEstimate
-        First source estimate for comparison.
+        Second source estimate for comparison.
     metric : str
         Metric to calculate, 'rms' or 'cosine'.
 
@@ -59,10 +59,10 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
 
     # Calculate root mean square difference between two matrices
     if metric == 'rms':
-        return np.sqrt(np.mean((data1 - data2) ** 2))
+        score = np.sqrt(np.mean((data1 - data2) ** 2))
 
     # Calculate correlation coefficient between matrix elements
     elif metric == 'cosine':
-        score = (np.correlate(data1.flatten(), data2.flatten()) /
-                 (norm(data1) * norm(data2)))
-        return 1 - score
+        score = 1. - (np.dot(data1.flatten(), data2.flatten()) /
+                      (norm(data1) * norm(data2)))
+    return score

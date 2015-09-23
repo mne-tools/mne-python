@@ -1,7 +1,10 @@
 """
-==============================
+===========================
 Generate simulated raw data
-==============================
+===========================
+
+This example generates raw data by repeating a desired source
+activation multiple times.
 
 """
 # Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
@@ -28,12 +31,12 @@ bem_fname = (data_path +
              '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif')
 
 # Load real data as the template
-raw = Raw(raw_fname).crop(0., 60., copy=False)  # 60 sec is enough
+raw = Raw(raw_fname).crop(0., 30., copy=False)  # 30 sec is enough
 
 ##############################################################################
 # Generate dipole time series
 n_dipoles = 4  # number of dipoles to create
-dur = 2.  # duration of each epoch/event
+epoch_duration = 2.  # duration of each epoch/event
 n = 0  # harmonic number
 
 
@@ -46,11 +49,11 @@ def data_fun(times):
                    for ii in (2 * n, 2 * n + 1)]
     window[start:stop] = 1.
     n += 1
-    data = 50e-9 * np.sin(2. * np.pi * 10. * n * times)
+    data = 10e-9 * np.sin(2. * np.pi * 10. * n * times)
     data *= window
     return data
 
-times = raw.times[:int(raw.info['sfreq'] * dur)]
+times = raw.times[:int(raw.info['sfreq'] * epoch_duration)]
 src = read_source_spaces(src_fname)
 stc = simulate_sparse_stc(src, n_dipoles=n_dipoles, times=times,
                           data_fun=data_fun, random_state=0)
@@ -68,9 +71,8 @@ raw_sim.plot()
 
 ##############################################################################
 # Plot evoked data
-events = find_events(raw_sim)
-events[:, 2] = 1
-epochs = Epochs(raw_sim, events, 1, -0.2, dur)
-cov = compute_covariance(epochs, method='empirical')  # quick calculation
+events = find_events(raw_sim)  # only 1 pos, so event number == 1
+epochs = Epochs(raw_sim, events, 1, -0.2, epoch_duration)
+cov = compute_covariance(epochs, tmax=0., method='empirical')  # quick calc
 evoked = epochs.average()
 evoked.plot_white(cov)

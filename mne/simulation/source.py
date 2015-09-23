@@ -189,7 +189,8 @@ def simulate_sparse_stc(src, n_dipoles, times,
         for ii in range(2):
             order = np.argsort(vs[ii])
             vs[ii] = vs[ii][order]
-            datas[ii] = datas[ii][order]
+            if len(order) > 0:  # fix for old numpy
+                datas[ii] = datas[ii][order]
         datas = np.concatenate(datas)
 
     tmin, tstep = times[0], np.diff(times[:2])[0]

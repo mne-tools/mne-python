@@ -63,10 +63,8 @@ def _simulate_evoked():
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
-    with warnings.catch_warnings(record=True):  # positive semidef
-        evoked = simulate_evoked(fwd, stc, evoked_template.info, cov, snr,
-                                 tmin=0.0, tmax=0.2, iir_filter=iir_filter)
-
+    evoked = simulate_evoked(fwd, stc, evoked_template.info, cov, snr,
+                             tmin=0.0, tmax=0.2, iir_filter=iir_filter)
     return evoked, stc
 
 
