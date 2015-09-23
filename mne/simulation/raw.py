@@ -93,7 +93,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     Notes
     -----
     Events coded with the number of the forward solution used will be placed
-    in the raw files in the trigger channel STI101 at the t=0 times of the
+    in the raw files in the trigger channel at the t=0 times of the
     SourceEstimates.
 
     The resulting SNR will be determined by the structure of the noise
@@ -224,11 +224,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     raw_data = np.zeros((len(info['ch_names']), len(times)))
 
     # figure out our cHPI, ECG, and blink dipoles
-    dig = info['dig']
-    assert all([d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
-                for d in dig if d['kind'] == FIFF.FIFFV_POINT_HPI])
-    chpi_rrs = np.array([d['r'] for d in dig
-                        if d['kind'] == FIFF.FIFFV_POINT_HPI])
     R, r0 = fit_sphere_to_headshape(info, verbose=False)[:2]
     R /= 1000.
     r0 /= 1000.
@@ -298,11 +293,16 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     hpi_mag = 70e-9
     last_fwd = last_fwd_chpi = last_fwd_blink = last_fwd_ecg = src_sel = None
     zf = None  # final filter conditions for the noise
-    chpi_nns = chpi_rrs / np.sqrt(np.sum(chpi_rrs * chpi_rrs,
-                                         axis=1))[:, np.newaxis]
     # don't process these any more if no MEG present
     ecg = ecg and len(meg_picks) > 0
     chpi = chpi and len(meg_picks) > 0
+    if chpi:
+        assert all([d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+                    for d in info['dig'] if d['kind'] == FIFF.FIFFV_POINT_HPI])
+        chpi_rrs = np.array([d['r'] for d in info['dig']
+                            if d['kind'] == FIFF.FIFFV_POINT_HPI])
+        chpi_nns = chpi_rrs / np.sqrt(np.sum(chpi_rrs * chpi_rrs,
+                                             axis=1))[:, np.newaxis]
     for fi, (fwd, fwd_blink, fwd_ecg, fwd_chpi) in \
         enumerate(_iter_forward_solutions(
             fwd_info, trans, src, bem, exg_bem, dev_head_ts, mindist,
@@ -408,7 +408,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
             fwd, fwd_blink, fwd_ecg, fwd_chpi
     assert used.all()
     logger.info('Done')
-
     raw = RawArray(raw_data, info)
     return raw
 

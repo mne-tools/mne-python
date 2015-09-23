@@ -4,7 +4,7 @@
 
 import os.path as op
 import numpy as np
-from nose.tools import assert_raises, assert_in
+from nose.tools import assert_raises, assert_true
 from numpy.testing import assert_equal, assert_allclose
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
@@ -76,7 +76,7 @@ def test_io_bem():
     assert_raises(RuntimeError, read_bem_solution, fname_bem_3)
     temp_sol = op.join(tempdir, 'temp-sol.fif')
     sol = read_bem_solution(fname_bem_sol_3)
-    assert_in('BEM', repr(sol))
+    assert_true('BEM' in repr(sol))
     write_bem_solution(temp_sol, sol)
     sol_read = read_bem_solution(temp_sol)
     _compare_bem_solutions(sol, sol_read)
@@ -92,12 +92,12 @@ def test_make_sphere_model():
     # here we just make sure it works -- the functionality is actually
     # tested more extensively e.g. in the forward and dipole code
     bem = make_sphere_model('auto', 'auto', info)
-    assert_in('3 layers', repr(bem))
-    assert_in('Sphere ', repr(bem))
-    assert_in(' mm', repr(bem))
+    assert_true('3 layers' in repr(bem))
+    assert_true('Sphere ' in repr(bem))
+    assert_true(' mm' in repr(bem))
     bem = make_sphere_model('auto', None, info)
-    assert_in('no layers', repr(bem))
-    assert_in('Sphere ', repr(bem))
+    assert_true('no layers' in repr(bem))
+    assert_true('Sphere ' in repr(bem))
 
 
 @testing.requires_testing_data

@@ -39,7 +39,8 @@ def _get_data():
     raw = Raw(raw_fname).crop(0., 5.0).preload_data()
     ecg = RawArray(np.zeros((1, len(raw.times))),
                    create_info(['ECG 063'], raw.info['sfreq'], 'ecg'))
-    for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass', 'dig'):
+    for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass',
+                'filename', 'dig'):
         ecg.info[key] = raw.info[key]
     raw.add_channels([ecg])
 
