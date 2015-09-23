@@ -4,12 +4,12 @@ from __future__ import print_function
 from nose.plugins.skip import SkipTest
 from nose.tools import assert_true
 from os import path as op
+import sys
 import inspect
 import warnings
 import imp
 
 from pkgutil import walk_packages
-from importlib import import_module
 from inspect import getsource
 
 import mne
@@ -156,10 +156,13 @@ def test_tabs():
     """Test that there are no tabs in our source files"""
     for importer, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
         if not ispkg and modname not in _tab_ignores:
-            source = getsource(import_module(modname))
+            # mod = importlib.import_module(modname)  # not py26 compatible!
+            __import__(modname)  # because we don't import e.g. mne.tests w/mne
+            mod = sys.modules[modname]
+            source = getsource(mod)
             assert_true('\t' not in source,
-                        '"%s" has tabs, please remove or add to ignore list'
-                        % modname)
+                        '"%s" has tabs, please remove them or add it to the'
+                        'ignore list' % modname)
 
 
 run_tests_if_main()
