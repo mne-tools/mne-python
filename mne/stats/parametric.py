@@ -265,7 +265,7 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
         with a subjects X conditions scheme where the first
         factor repeats slowest::
 
-                        A1B1 A1B2 A2B1 B2B2
+                        A1B1 A1B2 A2B1 A2B2
             subject 1   1.34 2.53 0.97 1.74
             subject ... .... .... .... ....
             subject k   2.45 7.90 3.09 4.76
