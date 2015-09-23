@@ -202,7 +202,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
         logger.info('Setting up the BEM model using %s...\n' % bem_extra)
         bem = read_bem_solution(bem)
     if not isinstance(bem, ConductorModel):
-        raise TypeError('bem must be a ConductorModel')
+        raise TypeError('bem must be a string or ConductorModel')
     if bem['is_sphere']:
         logger.info('Using the sphere model.\n')
         if len(bem['layers']) == 0:

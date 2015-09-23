@@ -303,6 +303,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                             if d['kind'] == FIFF.FIFFV_POINT_HPI])
         chpi_nns = chpi_rrs / np.sqrt(np.sum(chpi_rrs * chpi_rrs,
                                              axis=1))[:, np.newaxis]
+    else:
+        chpi_rrs = None
     for fi, (fwd, fwd_blink, fwd_ecg, fwd_chpi) in \
         enumerate(_iter_forward_solutions(
             fwd_info, trans, src, bem, exg_bem, dev_head_ts, mindist,
@@ -476,7 +478,7 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
         fwd.update(**update_kwargs)
 
-        fwd_blink = fwd_ecg = None
+        fwd_blink = fwd_ecg = fwd_chpi = None
         if blink_rrs is not None:
             megblink = _compute_forwards(blink_rrs, exg_bem, [megcoils],
                                          [compcoils], [meg_info], ['meg'],
@@ -488,7 +490,8 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
                                        [compcoils], [meg_info], ['meg'],
                                        n_jobs, verbose=False)[0]
             fwd_ecg = _to_forward_dict(megecg, megnames)
-        fwd_chpi = _magnetic_dipole_field_vec(chpi_rrs, megcoils).T
+        if chpi_rrs is not None:
+            fwd_chpi = _magnetic_dipole_field_vec(chpi_rrs, megcoils).T
         yield fwd, fwd_blink, fwd_ecg, fwd_chpi
 
 
