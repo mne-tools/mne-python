@@ -1098,7 +1098,7 @@ class ICA(ContainsMixin):
         start, stop = _check_start_stop(raw, start, stop)
 
         picks = pick_types(raw.info, meg=False, include=self.ch_names,
-                           exclude='bads')
+                           exclude='bads', ref_meg=False)
 
         data = raw[picks, start:stop][0]
         data, _ = self._pre_whiten(data, raw.info, picks)
