@@ -154,8 +154,13 @@ def test_raw():
 def test_info_no_rename():
     """ Test bti no-conversion option """
     for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
-        raw = read_raw_bti(pdf, config, hs, convert=False)
-        raw_con = read_raw_bti(pdf, config, hs, convert=True)
+        info, bti_info = _get_bti_info(
+            pdf_fname=pdf, config_fname=config, head_shape_fname=hs,
+            rotation_x=0.0, translation=(0.0, 0.02, 0.11), convert=False,
+            ecg_ch='E31', eog_ch=('E63', 'E64'),
+            rename_channels=False)
+        assert_equal(info['ch_names'],
+                     [ch['ch_name'] for ch in info['chs']])
 
 
 def test_no_conversion():
