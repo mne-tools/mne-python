@@ -1230,10 +1230,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                        'printed out \nby the 4D \'print_table\' routine.')
 
     # check that the info is complete
-    assert set(RAW_INFO_FIELDS) == set(info.keys())
-
-    # check nchan is correct
-    assert len(info['ch_names']) == info['nchan']
+    info._check_consistency()
     return info, bti_info
 
 
