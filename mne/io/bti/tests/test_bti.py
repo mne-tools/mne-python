@@ -15,7 +15,7 @@ from nose.tools import assert_true, assert_raises, assert_equal
 from mne.io import Raw as Raw
 from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_data, _read_bti_header, _get_bti_dev_t,
-                            _correct_trans)
+                            _correct_trans, _get_bti_info)
 from mne.io import read_raw_bti
 from mne import concatenate_raws
 from mne.utils import run_tests_if_main
@@ -149,6 +149,13 @@ def test_raw():
             # cehck that matrix by is not identity
             assert_true(not np.allclose(this_t, np.eye(4)))
         os.remove(tmp_raw_fname)
+
+
+def test_info_no_rename():
+    """ Test bti no-conversion option """
+    for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
+        raw = read_raw_bti(pdf, config, hs, convert=False)
+        raw_con = read_raw_bti(pdf, config, hs, convert=True)
 
 
 def test_no_conversion():
