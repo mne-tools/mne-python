@@ -354,6 +354,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         decim : int
             The amount to decimate data.
+        jitter : int
+            Apply a jitter to where the decimation starts
         copy : bool
             If True, operate on and return a copy of the Epochs object.
 
@@ -388,12 +390,17 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  'of %g Hz. The decim=%i parameter will result in a sampling '
                  'frequency of %g Hz, which can cause aliasing artifacts.'
                  % (lowpass, decim, new_sfreq))  # > 50% nyquist lim
+        if jitter >= decim:
+            warnings.warn('The jitter=%i is not lower than the decim=%i '
+                          'parameter. Some decimated samples will be lost'
+                          % (jitter, decim))
 
         epochs._decim *= decim
         start_idx = int(round(epochs._raw_times[0] * (epochs.info['sfreq'] *
                                                       epochs._decim)))
         i_start = start_idx % epochs._decim
-        decim_slice = slice(i_start, len(epochs._raw_times), epochs._decim)
+        decim_slice = slice(i_start + jitter, len(epochs._raw_times),
+                            epochs._decim)
         epochs.info['sfreq'] = new_sfreq
         if epochs.preload:
             epochs._data = epochs._data[:, :, decim_slice].copy()
