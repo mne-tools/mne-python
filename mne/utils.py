@@ -639,6 +639,14 @@ if version < required_version:
     raise ImportError
 """
 
+_sklearn_0_15_call = """
+required_version = '0.15'
+import sklearn
+version = LooseVersion(sklearn.__version__)
+if version < required_version:
+    raise ImportError
+"""
+
 _mayavi_call = """
 from mayavi import mlab
 mlab.options.backend = 'test'
@@ -666,6 +674,8 @@ if not has_nibabel() and not has_freesurfer():
 
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
+requires_sklearn_0_15 = partial(requires_module, name='sklearn',
+                                call=_sklearn_0_15_call)
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
 requires_freesurfer = partial(requires_module, name='Freesurfer',

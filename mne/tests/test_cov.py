@@ -23,21 +23,11 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  pick_channels_cov, pick_channels, pick_types, pick_info,
                  make_ad_hoc_cov)
 from mne.io import Raw
-from mne.utils import _TempDir, slow_test, requires_module, run_tests_if_main
+from mne.utils import (_TempDir, slow_test, requires_sklearn_0_15,
+                       run_tests_if_main)
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type
-from mne.fixes import partial
 
-_recent_sklearn_call = """
-required_version = '0.15'
-import sklearn
-version = LooseVersion(sklearn.__version__)
-if version < required_version:
-    raise ImportError
-"""
-
-requires_sklearn_0_15 = partial(requires_module, name='sklearn',
-                                call=_recent_sklearn_call)
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')

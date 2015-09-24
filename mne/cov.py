@@ -63,10 +63,30 @@ class Covariance(dict):
 
     """Noise covariance matrix.
 
+    .. warning:: This class should not be instantiated directly, but
+                 instead should be created using a covariance reading or
+                 computation function.
+
     Parameters
     ----------
-    fname : string
-        The name of the raw file.
+    data : array-like
+        The data.
+    names : list of str
+        Channel names.
+    bads : list of str
+        Bad channels.
+    projs : list
+        Projection vectors.
+    nfree : int
+        Degrees of freedom.
+    eig : array-like | None
+        Eigenvalues.
+    eigvec : array-like | None
+        Eigenvectors.
+    method : str | None
+        The method used to compute the covariance.
+    loglik : float
+        The log likelihood.
 
     Attributes
     ----------
@@ -76,17 +96,26 @@ class Covariance(dict):
         List of channels' names.
     nfree : int
         Number of degrees of freedom i.e. number of time points used.
+
+    See Also
+    --------
+    compute_covariance
+    compute_raw_data_covariance
+    make_ad_hoc_cov
+    read_cov
     """
 
-    def __init__(self, fname):
+    def __init__(self, data, names, bads, projs, nfree, eig=None, eigvec=None,
+                 method=None, loglik=None):
         """Init of covariance."""
-        if fname is None:
-            return
-
-        # Reading
-        fid, tree, _ = fiff_open(fname)
-        self.update(_read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV))
-        fid.close()
+        diag = True if data.ndim == 1 else False
+        self.update(data=data, dim=len(data), names=names, bads=bads,
+                    nfree=nfree, eig=eig, eigvec=eigvec, diag=diag,
+                    projs=projs, kind=FIFF.FIFFV_MNE_NOISE_COV)
+        if method is not None:
+            self['method'] = method
+        if loglik is not None:
+            self['loglik'] = loglik
 
     @property
     def data(self):
@@ -118,6 +147,7 @@ class Covariance(dict):
         try:
             _write_cov(fid, self)
         except Exception as inst:
+            fid.close()
             os.remove(fname)
             raise inst
 
@@ -248,8 +278,10 @@ def read_cov(fname, verbose=None):
     write_cov, compute_covariance, compute_raw_data_covariance
     """
     check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
-
-    return Covariance(fname)
+    f, tree = fiff_open(fname)[:2]
+    with f as fid:
+        return Covariance(**_read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV,
+                                      limited=True))
 
 
 ###############################################################################
@@ -290,12 +322,8 @@ def make_ad_hoc_cov(info, verbose=None):
     for meg, eeg, val in zip(('grad', 'mag', False), (False, False, True),
                              (grad_std, mag_std, eeg_std)):
         data[pick_types(info, meg=meg, eeg=eeg)] = val * val
-    cov = Covariance(None)
-    cov.update(kind=FIFF.FIFFV_MNE_NOISE_COV, diag=True, dim=len(data),
-               names=info['ch_names'], data=data, projs=info['projs'],
-               bads=info['bads'], nfree=0, eig=None, eigvec=None,
-               info=info)
-    return cov
+    return Covariance(data, info['ch_names'], info['bads'], info['projs'],
+                      nfree=0)
 
 
 def _check_n_samples(n_samples, n_chan):
@@ -407,21 +435,11 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     logger.info("Number of samples used : %d" % n_samples)
     logger.info('[done]')
 
-    cov = Covariance(None)
-
     ch_names = [raw.info['ch_names'][k] for k in picks]
+    bads = [b for b in raw.info['bads'] if b in ch_names]
+    projs = cp.deepcopy(raw.info['projs'])
     # XXX : do not compute eig and eigvec now (think it's better...)
-    eig = None
-    eigvec = None
-
-    #   Store structure for fif
-    cov.update(kind=FIFF.FIFFV_MNE_NOISE_COV, diag=False, dim=len(data),
-               names=ch_names, data=data,
-               projs=cp.deepcopy(raw.info['projs']),
-               bads=raw.info['bads'], nfree=n_samples, eig=eig,
-               eigvec=eigvec)
-
-    return cov
+    return Covariance(data, ch_names, bads, projs, nfree=n_samples)
 
 
 @verbose
@@ -723,11 +741,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     covs = list()
     for this_method, data in cov_data.items():
-        cov = Covariance(None)
-        cov.update(kind=1, diag=False, dim=len(data['data']), names=ch_names,
-                   data=data.pop('data'), projs=projs, bads=info['bads'],
-                   nfree=n_samples_tot, eig=None, eigvec=None)
-
+        cov = Covariance(data.pop('data'), ch_names, info['bads'], projs,
+                         nfree=n_samples_tot)
         logger.info('Number of samples used : %d' % n_samples_tot)
         logger.info('[done]')
 
@@ -973,13 +988,10 @@ def _get_covariance_classes():
         def fit(self, X):
             EmpiricalCovariance.fit(self, X)
             self.covariance_ = 0.5 * (self.covariance_ + self.covariance_.T)
-            cov_ = Covariance(None)
-            cov_['data'] = self.covariance_
-            cov_['names'] = self.info['ch_names']
-            cov_['nfree'] = len(self.covariance_)
-            cov_['bads'] = self.info['bads']
-            cov_['projs'] = self.info['projs']
-            cov_['diag'] = False
+            cov_ = Covariance(
+                data=self.covariance_, names=self.info['ch_names'],
+                bads=self.info['bads'], projs=self.info['projs'],
+                nfree=len(self.covariance_))
             cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
                               eeg=self.eeg, proj=False,
                               exclude='bads')  # ~proj == important!!
@@ -1541,7 +1553,7 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
 
 
 @verbose
-def _read_cov(fid, node, cov_kind, verbose=None):
+def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
@@ -1596,7 +1608,7 @@ def _read_cov(fid, node, cov_kind, verbose=None):
                 else:
                     #   Diagonal is stored
                     data = tag.data
-                    diagmat = True
+                    diag = True
                     logger.info('    %d x %d diagonal covariance (kind = '
                                 '%d) found.' % (dim, dim, cov_kind))
 
@@ -1609,11 +1621,11 @@ def _read_cov(fid, node, cov_kind, verbose=None):
                     data[np.tril(np.ones((dim, dim))) > 0] = vals
                     data = data + data.T
                     data.flat[::dim + 1] /= 2.0
-                    diagmat = False
+                    diag = False
                     logger.info('    %d x %d full covariance (kind = %d) '
                                 'found.' % (dim, dim, cov_kind))
                 else:
-                    diagmat = False
+                    diag = False
                     data = tag.data
                     logger.info('    %d x %d sparse covariance (kind = %d)'
                                 ' found.' % (dim, dim, cov_kind))
@@ -1635,13 +1647,17 @@ def _read_cov(fid, node, cov_kind, verbose=None):
             bads = read_bad_channels(fid, this)
 
             #   Put it together
-            cov = dict(kind=cov_kind, diag=diagmat, dim=dim, names=names,
+            assert dim == len(data)
+            assert data.ndim == (1 if diag else 2)
+            cov = dict(kind=cov_kind, diag=diag, dim=dim, names=names,
                        data=data, projs=projs, bads=bads, nfree=nfree, eig=eig,
                        eigvec=eigvec)
             if score is not None:
                 cov['loglik'] = score
             if method is not None:
                 cov['method'] = method
+            if limited:
+                del cov['kind'], cov['dim'], cov['diag']
 
             return cov
 
