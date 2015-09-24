@@ -16,7 +16,7 @@ from numpy.testing import assert_raises
 
 from mne import io, read_events, Epochs, pick_types, read_cov
 from mne.viz.utils import _fake_click
-from mne.utils import slow_test
+from mne.utils import slow_test, run_tests_if_main
 from mne.channels import read_layout
 
 # Set our plotters to test mode
@@ -123,3 +123,7 @@ def test_plot_evoked():
         evoked_sss = evoked.copy()
         evoked_sss.info['proc_history'] = [dict(max_info=None)]
         evoked_sss.plot_white(cov)
+        evoked_sss.plot_white(cov_fname)
+        plt.close('all')
+
+run_tests_if_main()

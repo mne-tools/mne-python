@@ -53,6 +53,10 @@ def _get_data():
     """Helper to get some starting data"""
     # raw with ECG channel
     raw = Raw(raw_fname).crop(0., 5.0).preload_data()
+    data_picks = pick_types(raw.info, meg=True, eeg=True)
+    other_picks = pick_types(raw.info, meg=False, stim=True, eog=True)
+    picks = np.sort(np.concatenate((data_picks[::16], other_picks)))
+    raw = raw.pick_channels([raw.ch_names[p] for p in picks])
     ecg = RawArray(np.zeros((1, len(raw.times))),
                    create_info(['ECG 063'], raw.info['sfreq'], 'ecg'))
     for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass',
@@ -184,7 +188,6 @@ def test_simulate_raw_bem():
     """Test simulation of raw data with BEM"""
     seed = 42
     raw, src, stc, trans, sphere = _get_data()
-    raw = Raw(raw_fname).crop(0., 5.0).preload_data()
     raw_sim_sph = simulate_raw(raw, stc, trans, src, sphere, cov=None,
                                ecg=True, blink=True, random_state=seed)
     raw_sim_bem = simulate_raw(raw, stc, trans, src, bem_fname, cov=None,

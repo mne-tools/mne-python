@@ -1,5 +1,4 @@
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -8,7 +7,8 @@ from nose.tools import assert_true
 from mne.datasets import testing
 from mne import read_label, read_forward_solution, pick_types_forward
 from mne.label import Label
-from mne.simulation.source import generate_stc, simulate_sparse_stc
+from mne.simulation.source import simulate_stc, simulate_sparse_stc
+from mne.utils import run_tests_if_main
 
 
 data_path = testing.data_path(download=False)
@@ -45,8 +45,7 @@ def test_simulate_stc():
     tstep = 1e-3
 
     stc_data = np.ones((len(labels), n_times))
-    with warnings.catch_warnings(record=True):
-        stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
+    stc = simulate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
 
     for label in labels:
         if label.hemi == 'lh':
@@ -66,8 +65,7 @@ def test_simulate_stc():
     # test with function
     def fun(x):
         return x ** 2
-    with warnings.catch_warnings(record=True):
-        stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
+    stc = simulate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
 
     # the first label has value 0, the second value 2, the third value 6
 
@@ -134,8 +132,7 @@ def test_generate_stc_single_hemi():
     tstep = 1e-3
 
     stc_data = np.ones((len(labels_single_hemi), n_times))
-    with warnings.catch_warnings(record=True):
-        stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
+    stc = simulate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
 
     for label in labels_single_hemi:
         if label.hemi == 'lh':
@@ -155,8 +152,7 @@ def test_generate_stc_single_hemi():
     # test with function
     def fun(x):
         return x ** 2
-    with warnings.catch_warnings(record=True):
-        stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
+    stc = simulate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
 
     # the first label has value 0, the second value 2, the third value 6
 
@@ -201,3 +197,5 @@ def test_simulate_sparse_stc_single_hemi():
 
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
+
+run_tests_if_main()

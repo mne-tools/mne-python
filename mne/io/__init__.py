@@ -5,7 +5,6 @@
 #
 # License: BSD (3-clause)
 
-from .constants import FIFF
 from .open import fiff_open, show_fiff, _fiff_get_fid
 from .meas_info import read_fiducials, write_fiducials, read_info, write_info
 

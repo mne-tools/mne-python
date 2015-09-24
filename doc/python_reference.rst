@@ -876,6 +876,7 @@ Simulation
 
    simulate_evoked
    simulate_raw
+   simulate_stc
    simulate_sparse_stc
    select_source_in_label
 

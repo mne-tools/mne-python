@@ -448,7 +448,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
     ----------
     evoked : instance of mne.Evoked
         The evoked response.
-    noise_cov : list | instance of Covariance
+    noise_cov : list | instance of Covariance | str
         The noise covariance as computed by ``mne.cov.compute_covariance``.
     show : bool
         Show figure if True.
@@ -491,7 +491,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     """
 
-    from ..cov import whiten_evoked  # recursive import
+    from ..cov import whiten_evoked, read_cov  # recursive import
     from ..cov import _estimate_rank_meeg_cov
     import matplotlib.pyplot as plt
     if scalings is None:
@@ -500,6 +500,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     ch_used = [ch for ch in ['eeg', 'grad', 'mag'] if ch in evoked]
     has_meg = 'mag' in ch_used and 'grad' in ch_used
 
+    if isinstance(noise_cov, string_types):
+        noise_cov = read_cov(noise_cov)
     if not isinstance(noise_cov, (list, tuple)):
         noise_cov = [noise_cov]
 

@@ -49,7 +49,7 @@ def data_fun(times):
                    for ii in (2 * n, 2 * n + 1)]
     window[start:stop] = 1.
     n += 1
-    data = 10e-9 * np.sin(2. * np.pi * 10. * n * times)
+    data = 25e-9 * np.sin(2. * np.pi * 10. * n * times)
     data *= window
     return data
 
@@ -65,8 +65,9 @@ fig.show()
 
 ##############################################################################
 # Simulate raw data
-raw_sim = simulate_raw(raw, stc, trans_fname, src, bem_fname,
-                       ecg=True, blink=True, n_jobs=2, verbose=True)
+raw_sim = simulate_raw(raw, stc, trans_fname, src, bem_fname, cov='simple',
+                       iir_filter=[0.2, -0.2, 0.04], ecg=True, blink=True,
+                       n_jobs=2, verbose=True)
 raw_sim.plot()
 
 ##############################################################################

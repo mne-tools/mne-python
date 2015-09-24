@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Mark Wronkiewicz <wronk@uw.edu>
 #          Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -14,7 +15,8 @@ from ..io.pick import pick_types, pick_info, pick_channels
 from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
-from ..io import RawArray, _BaseRaw, get_chpi_positions, FIFF
+from ..io import RawArray, _BaseRaw, get_chpi_positions
+from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
                        _prepare_for_forward, _prep_meg_channels,
@@ -29,8 +31,8 @@ from ..externals.six import string_types
 @verbose
 def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
-                 mindist=1.0, interp='cos2', n_jobs=1, random_state=None,
-                 verbose=None):
+                 mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
+                 random_state=None, verbose=None):
     """Simulate raw data with head movements
 
     Parameters
@@ -85,6 +87,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         Either 'cos2', 'linear', or 'zero', the type of forward-solution
         interpolation to use between forward solutions at different
         head positions.
+    iir_filter : None | array
+        IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     n_jobs : int
         Number of jobs to use.
     random_state : None | int | np.random.RandomState
@@ -123,7 +127,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
            and 17 blinks/minute based on the low (reading) and high (resting)
            blink rates from [1]_.
         2. The activation kernel is a 250 ms Hanning window.
-        3. The activated dipole is located near the nasion.
+        3. Two activated dipoles are located in the z=0 plane (in head
+           coordinates) at ±30 degrees away from the y axis (nasion).
         4. Activations affect MEG and EEG channels.
 
     For ECG artifacts:
@@ -134,7 +139,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
            varying durations and scales to make a more complex waveform.
         3. The activated dipole is located one (estimated) head radius to
            the left (-x) of head center and three head radii below (+z)
-           head center.
+           head center; this dipole is oriented in the +x direction.
         4. Activations only affect MEG channels.
 
     .. versionadded:: 0.10.0
@@ -142,7 +147,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     References
     ----------
     .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
-           subjects" Movment Disorders, 1997 Nov;12(6):1028-34.
+           subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
     """
     if not isinstance(raw, _BaseRaw):
         raise TypeError('raw should be an instance of Raw')
@@ -263,18 +268,22 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     R, r0 = fit_sphere_to_headshape(info, verbose=False)[:2]
     R /= 1000.
     r0 /= 1000.
-    ecg_rr = blink_rr = exg_bem = chpi_rrs = None
+    ecg_rr = blink_rrs = exg_bem = chpi_rrs = None
     if blink or ecg:
         exg_bem = make_sphere_model(r0, head_radius=R,
-                                    relative_radii=(0.99, 1.),
-                                    sigmas=(0.33, 0.33), verbose=False)
+                                    relative_radii=(0.97, 0.98, 0.99, 1.),
+                                    sigmas=(0.33, 1.0, 0.004, 0.33),
+                                    verbose=False)
     if blink:
-        blink_rr = [d['r'] for d in info['dig']
-                    if d['ident'] == FIFF.FIFFV_POINT_NASION][0]
-        blink_rr = blink_rr - r0
-        blink_rr = (blink_rr / np.sqrt(np.sum(blink_rr * blink_rr)) *
-                    0.98 * R)[np.newaxis, :]
-        blink_rr += r0
+        # place dipoles at 45 degree angles in z=0 plane
+        blink_rrs = np.array([[np.cos(np.pi / 3.), np.sin(np.pi / 3.), 0.],
+                              [-np.cos(np.pi / 3.), np.sin(np.pi / 3), 0.]])
+        blink_rrs /= np.sqrt(np.sum(blink_rrs *
+                                    blink_rrs, axis=1))[:, np.newaxis]
+        blink_rrs *= 0.96 * R
+        blink_rrs += r0
+        # oriented upward
+        blink_nns = np.array([[0., 0., 1.], [0., 0., 1.]])
         # Blink times drawn from an inhomogeneous poisson process
         # by 1) creating the rate and 2) pulling random numbers
         blink_rate = (1 + np.cos(2 * np.pi * 1. / 60. * times)) / 2.
@@ -342,15 +351,22 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     for fi, (fwd, fwd_blink, fwd_ecg, fwd_chpi) in \
         enumerate(_iter_forward_solutions(
             fwd_info, trans, src, bem, exg_bem, dev_head_ts, mindist,
-            chpi_rrs, blink_rr, ecg_rr, n_jobs)):
+            chpi_rrs, blink_rrs, ecg_rr, n_jobs)):
         # must be fixed orientation
+        # XXX eventually we could speed this up by allowing the forward
+        # solution code to only compute the normal direction
         fwd = convert_forward_solution(fwd, surf_ori=True,
                                        force_fixed=True, verbose=False)
-        # just use one arbitrary direction
         if blink:
-            fwd_blink = fwd_blink['sol']['data'][:, ::3]
+            fwd_blink = fwd_blink['sol']['data']
+            for ii in range(len(blink_rrs)):
+                fwd_blink[:, ii] = np.dot(fwd_blink[:, 3 * ii:3 * (ii + 1)],
+                                          blink_nns[ii])
+            fwd_blink = fwd_blink[:, :len(blink_rrs)]
+            fwd_blink = fwd_blink.sum(axis=1)[:, np.newaxis]
+        # just use one arbitrary direction
         if ecg:
-            fwd_ecg = fwd_ecg['sol']['data'][:, ::3]
+            fwd_ecg = fwd_ecg['sol']['data'][:, [0]]
 
         # align cHPI magnetic dipoles in approx. radial direction
         if chpi:
@@ -416,7 +432,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
             # add sensor noise, ECG, blink, cHPI
             if cov is not None:
-                noise, zf = _generate_noise(fwd_info, cov, [1, -1, 0.2], rng,
+                noise, zf = _generate_noise(fwd_info, cov, iir_filter, rng,
                                             len(stc_idxs), zi=zf)
                 raw_data[meeg_picks, time_sl] += noise
             if blink:

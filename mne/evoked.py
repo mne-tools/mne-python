@@ -678,7 +678,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        noise_cov : list | instance of Covariance
+        noise_cov : list | instance of Covariance | str
             The noise covariance as computed by ``mne.cov.compute_covariance``.
         show : bool
             Whether to show the figure or not. Defaults to True.

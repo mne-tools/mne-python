@@ -125,7 +125,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
 
     Parameters
     ----------
-    src : list of dict
+    src : instance of SourceSpaces
         The source space.
     n_dipoles : int
         Number of dipoles to simulate.
@@ -201,7 +201,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
 
 
 @deprecated('"generate_stc" is deprecated and will be removed in'
-            'MNE-0.11. Please use simulate_sparse_stc instead')
+            'MNE-0.11. Please use simulate_stc instead')
 def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
     """Generate sources time courses from waveforms and labels
 
@@ -239,7 +239,46 @@ def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
     stc : SourceEstimate
         The generated source time courses.
     """
+    return simulate_stc(src, labels, stc_data, tmin, tstep, value_fun)
 
+
+def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
+    """Simulate sources time courses from waveforms and labels
+
+    This function generates a source estimate with extended sources by
+    filling the labels with the waveforms given in stc_data.
+
+    By default, the vertices within a label are assigned the same waveform.
+    The waveforms can be scaled for each vertex by using the label values
+    and value_fun. E.g.,
+
+    # create a source label where the values are the distance from the center
+    labels = circular_source_labels('sample', 0, 10, 0)
+
+    # sources with decaying strength (x will be the distance from the center)
+    fun = lambda x: exp(- x / 10)
+    stc = generate_stc(fwd, labels, stc_data, tmin, tstep, fun)
+
+    Parameters
+    ----------
+    src : list of dict
+        The source space
+    labels : list of Labels
+        The labels
+    stc_data : array (shape: len(labels) x n_times)
+        The waveforms
+    tmin : float
+        The beginning of the timeseries
+    tstep : float
+        The time step (1 / sampling frequency)
+    value_fun : function
+        Function to apply to the label values
+
+    Returns
+    -------
+    stc : SourceEstimate
+        The generated source time courses.
+    """
     if len(labels) != len(stc_data):
         raise ValueError('labels and stc_data must have the same length')
 
