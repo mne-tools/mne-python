@@ -20,7 +20,7 @@ from mne.io import read_raw_bti
 from mne import concatenate_raws
 from mne.utils import run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
-
+from mne.externals import six
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
 
@@ -201,6 +201,19 @@ def test_no_conversion():
             t3 = raw_con.info['chs'][ii]['coil_trans']
             assert_array_equal(t1, t2)
             assert_true(not np.allclose(t1, t3))
+
+
+def test_bytes_io():
+    """ Test bti no-conversion option """
+    for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
+        with open(pdf) as fid:
+            pdf = six.BytesIO(fid.read())
+        with open(config) as fid:
+            config = six.BytesIO(fid.read())
+        with open(hs) as fid:
+            hs = six.BytesIO(fid.read())
+        raw = read_raw_bti(pdf, config, hs, convert=True)
+        repr(raw)  # basic use
 
 
 def test_setup_headshape():

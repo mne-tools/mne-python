@@ -22,7 +22,7 @@ from .read import (read_int32, read_int16, read_str, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix)
-from ..meas_info import _empty_info, RAW_INFO_FIELDS
+from ..meas_info import _empty_info
 from ...externals import six
 
 FIFF_INFO_CHS_FIELDS = ('loc', 'ch_name', 'unit_mul', 'coil_trans',
@@ -41,6 +41,28 @@ BTI_WH2500_REF_GRAD = ('GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA')
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
+
+
+class bytes_io_mock_context():
+
+    def __init__(self, target):
+        self.target = target
+
+    def __enter__(self):
+        return self.target
+
+    def __exit__(self, type, value, tb):
+        pass
+
+
+def bti_open(fname, *args, **kwargs):
+    """Handle bytes io"""
+    if isinstance(fname, six.string_types):
+        return open(fname, *args, **kwargs)
+    elif isinstance(fname, six.BytesIO):
+        return bytes_io_mock_context(fname)
+    else:
+        raise RuntimeError('Cannot mock this.')
 
 
 def _get_bti_dev_t(adjust=0., translation=(0.0, 0.02, 0.11)):
@@ -117,7 +139,8 @@ def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
 
 def _read_head_shape(fname):
     """ Helper Function """
-    with open(fname, 'rb') as fid:
+
+    with bti_open(fname, 'rb') as fid:
         fid.seek(BTI.FILE_HS_N_DIGPOINTS)
         _n_dig_points = read_int32(fid)
         idx_points = read_double_matrix(fid, BTI.DATA_N_IDX_POINTS, 3)
@@ -256,7 +279,8 @@ def _read_config(fname):
         The config blocks found.
 
     """
-    with open(fname, 'rb') as fid:
+
+    with bti_open(fname, 'rb') as fid:
         cfg = dict()
         cfg['hdr'] = {'version': read_int16(fid),
                       'site_name': read_str(fid, 32),
@@ -795,7 +819,7 @@ def _read_ch_config(fid):
 def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     """ Read bti PDF header
     """
-    with open(pdf_fname, 'rb') as fid:
+    with bti_open(pdf_fname, 'rb') as fid:
         fid.seek(-8, 2)
         start = fid.tell()
         header_position = read_int64(fid)
@@ -958,8 +982,9 @@ def _read_data(info, start=None, stop=None):
     if any([start < 0, stop > total_slices, start >= stop]):
         raise RuntimeError('Invalid data range supplied:'
                            ' %d, %d' % (start, stop))
+    fname = info['pdf_fname']
 
-    with open(info['pdf_fname'], 'rb') as fid:
+    with bti_open(fname, 'rb') as fid:
         fid.seek(info['bytes_per_slice'] * start, 0)
         cnt = (stop - start) * info['total_chans']
         shape = [stop - start, info['total_chans']]
@@ -1037,18 +1062,21 @@ class RawBTi(_BaseRaw):
 def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                   translation, convert, ecg_ch, eog_ch, rename_channels=True,
                   sort_by_ch_name=True):
-    if not op.isabs(pdf_fname):
-        pdf_fname = op.abspath(pdf_fname)
 
-    if not op.isabs(config_fname):
-        config_fname = op.abspath(config_fname)
+    if not isinstance(pdf_fname, six.BytesIO):
+        if not op.isabs(pdf_fname):
+            pdf_fname = op.abspath(pdf_fname)
 
-    if not op.exists(config_fname):
-        raise ValueError('Could not find the config file %s. Please check'
-                         ' whether you are in the right directory '
-                         'or pass the full name' % config_fname)
+    if not isinstance(config_fname, six.BytesIO):
+        if not op.isabs(config_fname):
+            config_fname = op.abspath(config_fname)
 
-    if head_shape_fname is not None:
+        if not op.exists(config_fname):
+            raise ValueError('Could not find the config file %s. Please check'
+                             ' whether you are in the right directory '
+                             'or pass the full name' % config_fname)
+
+    if head_shape_fname is not None and not isinstance(pdf_fname, six.BytesIO):
         orig_name = head_shape_fname
         if not op.isfile(head_shape_fname):
             head_shape_fname = op.join(op.dirname(pdf_fname),
