@@ -792,7 +792,7 @@ def _read_ch_config(fid):
     return cfg
 
 
-def _read_bti_header(pdf_fname, config_fname):
+def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     """ Read bti PDF header
     """
     with open(pdf_fname, 'rb') as fid:
@@ -899,19 +899,25 @@ def _read_bti_header(pdf_fname, config_fname):
         else:
             ch['cal'] = ch['scale'] * ch['gain']
 
-    by_index = [(i, d['index']) for i, d in enumerate(chans)]
-    by_index.sort(key=lambda c: c[1])
-    by_index = [idx[0] for idx in by_index]
-    info['chs'] = [chans[pos] for pos in by_index]
+    if sort_by_ch_name:
+        by_index = [(i, d['index']) for i, d in enumerate(chans)]
+        by_index.sort(key=lambda c: c[1])
+        by_index = [idx[0] for idx in by_index]
+        chs = [chans[pos] for pos in by_index]
 
-    by_name = [(i, d['name']) for i, d in enumerate(info['chs'])]
-    a_chs = [c for c in by_name if c[1].startswith('A')]
-    other_chs = [c for c in by_name if not c[1].startswith('A')]
-    by_name = sorted(a_chs, key=lambda c: int(c[1][1:])) + sorted(other_chs)
+        sort_by_name_idx = [(i, d['name']) for i, d in enumerate(chs)]
+        a_chs = [c for c in sort_by_name_idx if c[1].startswith('A')]
+        other_chs = [c for c in sort_by_name_idx if not c[1].startswith('A')]
+        sort_by_name_idx = sorted(
+            a_chs, key=lambda c: int(c[1][1:])) + sorted(other_chs)
 
-    by_name = [idx[0] for idx in by_name]
-    info['chs'] = [chans[pos] for pos in by_name]
-    info['order'] = by_name
+        sort_by_name_idx = [idx[0] for idx in sort_by_name_idx]
+
+        info['chs'] = [chans[pos] for pos in sort_by_name_idx]
+        info['order'] = sort_by_name_idx
+    else:
+        info['chs'] = chans
+        info['order'] = Ellipsis
 
     # finally add some important fields from the config
     info['e_table'] = cfg['user_blocks'][BTI.UB_B_E_TABLE_USED]
@@ -1029,7 +1035,8 @@ class RawBTi(_BaseRaw):
 
 
 def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
-                  translation, convert, ecg_ch, eog_ch, rename_channels=True):
+                  translation, convert, ecg_ch, eog_ch, rename_channels=True,
+                  sort_by_ch_name=True):
     if not op.isabs(pdf_fname):
         pdf_fname = op.abspath(pdf_fname)
 
@@ -1054,7 +1061,8 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                              % orig_name)
 
     logger.info('Reading 4D PDF file %s...' % pdf_fname)
-    bti_info = _read_bti_header(pdf_fname, config_fname)
+    bti_info = _read_bti_header(
+        pdf_fname, config_fname, sort_by_ch_name=sort_by_ch_name)
 
     dev_ctf_t = Transform('ctf_meg', 'ctf_head',
                           _correct_trans(bti_info['bti_transform'][0]))

@@ -151,16 +151,20 @@ def test_raw():
         os.remove(tmp_raw_fname)
 
 
-def test_info_no_rename():
-    """ Test bti no-conversion option """
+def test_info_no_rename_no_reorder():
+    """ Test private renaming and reordering option """
     for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
         info, bti_info = _get_bti_info(
             pdf_fname=pdf, config_fname=config, head_shape_fname=hs,
             rotation_x=0.0, translation=(0.0, 0.02, 0.11), convert=False,
             ecg_ch='E31', eog_ch=('E63', 'E64'),
-            rename_channels=False)
+            rename_channels=False, sort_by_ch_name=False)
         assert_equal(info['ch_names'],
                      [ch['ch_name'] for ch in info['chs']])
+        assert_equal([n for n in info['ch_names'] if n.startswith('A')][:5],
+                     ['A22', 'A2', 'A104', 'A241', 'A138'])
+        assert_equal([n for n in info['ch_names'] if n.startswith('A')][-5:],
+                     ['A133', 'A158', 'A44', 'A134', 'A216'])
 
 
 def test_no_conversion():
