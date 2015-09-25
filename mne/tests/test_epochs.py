@@ -281,11 +281,11 @@ def test_decim():
     info['lowpass'] = sfreq_new / float(decim)
     epochs = EpochsArray(data, info, events)
     data_epochs = epochs.decimate(decim, copy=True).get_data()
-    data_epochs_2 = epochs.decimate(dec_1).decimate(dec_2).get_data()
-    data_epochs_3 = epochs.decimate(decim, offset=1, copy=True).get_data()
+    data_epochs_2 = epochs.decimate(decim, offset=1, copy=True).get_data()
+    data_epochs_3 = epochs.decimate(dec_1).decimate(dec_2).get_data()
     assert_array_equal(data_epochs, data[:, :, ::decim])
-    assert_array_equal(data_epochs, data_epochs_2)
-    assert_array_equal(data_epochs_3, data[:, :, 1::decim])
+    assert_array_equal(data_epochs_2, data[:, :, 1::decim])
+    assert_array_equal(data_epochs, data_epochs_3)
 
     # Now let's do it with some real data
     raw, events, picks = _get_data()
