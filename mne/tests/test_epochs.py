@@ -282,8 +282,10 @@ def test_decim():
     epochs = EpochsArray(data, info, events)
     data_epochs = epochs.decimate(decim, copy=True).get_data()
     data_epochs_2 = epochs.decimate(dec_1).decimate(dec_2).get_data()
+    data_epochs_3 = epochs.decimate(decim, offset=1, copy=True).get_data()
     assert_array_equal(data_epochs, data[:, :, ::decim])
     assert_array_equal(data_epochs, data_epochs_2)
+    assert_array_equal(data_epochs_3, data[:, :, 1::decim])
 
     # Now let's do it with some real data
     raw, events, picks = _get_data()
@@ -292,6 +294,7 @@ def test_decim():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=False)
     assert_raises(ValueError, epochs.decimate, -1)
+    assert_raises(ValueError, epochs.decimate, 1, 2)
     expected_data = epochs.get_data()[:, :, ::decim]
     expected_times = epochs.times[::decim]
     for preload in (True, False):

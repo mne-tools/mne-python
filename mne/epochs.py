@@ -355,7 +355,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         decim : int
             The amount to decimate data.
         offset : int
-            Apply an offset to where the decimation starts. The offset is in samples, at the original sampling rate.
+            Apply an offset to where the decimation starts.
+            The offset is in samples, at the original sampling rate.
         copy : bool
             If True, operate on and return a copy of the Epochs object.
 
