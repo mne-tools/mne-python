@@ -29,7 +29,7 @@ picks = mne.pick_types(raw.info, meg=True, eeg=True, stim=False, eog=True,
 reject = dict(eeg=80e-6, eog=150e-6)
 
 # Compute the covariance from the raw data
-cov = mne.compute_raw_data_covariance(raw, picks=picks, reject=reject)
+cov = mne.compute_raw_covariance(raw, picks=picks, reject=reject)
 print(cov)
 
 ###############################################################################

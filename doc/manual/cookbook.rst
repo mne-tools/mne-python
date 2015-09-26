@@ -347,9 +347,9 @@ ways:
 - Employ empty room data (collected without the subject) to
   calculate the full noise covariance matrix. This is recommended
   for analyzing ongoing spontaneous activity. This can be done using
-  :func:`mne.compute_raw_data_covariance` as::
+  :func:`mne.compute_raw_covariance` as::
 
-      >>> cov = mne.compute_raw_data_covariance(raw_erm)
+      >>> cov = mne.compute_raw_covariance(raw_erm)
 
 - Employ a section of continuous raw data collected in the presence
   of the subject to calculate the full noise covariance matrix. This
@@ -360,7 +360,7 @@ ways:
   (``*> 200 s``) segment of data with epileptic spikes present provided
   that the spikes occur infrequently and that the segment is apparently
   stationary with respect to background brain activity. This can also
-  use :func:`mne.compute_raw_data_covariance`.
+  use :func:`mne.compute_raw_covariance`.
 
 See :ref:`covariance` for more information.
 

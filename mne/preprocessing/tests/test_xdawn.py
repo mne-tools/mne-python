@@ -7,7 +7,7 @@ import os.path as op
 from nose.tools import (assert_equal, assert_raises)
 from numpy.testing import assert_array_equal
 from mne import (io, Epochs, read_events, pick_types,
-                 compute_raw_data_covariance)
+                 compute_raw_covariance)
 from mne.utils import requires_sklearn, run_tests_if_main
 from mne.preprocessing.xdawn import Xdawn
 
@@ -56,7 +56,7 @@ def test_xdawn_fit():
 
     # ========== with signal cov provided ====================
     # provide covariance object
-    signal_cov = compute_raw_data_covariance(raw, picks=picks)
+    signal_cov = compute_raw_covariance(raw, picks=picks)
     xd = Xdawn(n_components=2, correct_overlap=False,
                signal_cov=signal_cov, reg=None)
     xd.fit(epochs)

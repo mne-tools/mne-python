@@ -512,7 +512,7 @@ Covariance
    :template: function.rst
 
    compute_covariance
-   compute_raw_data_covariance
+   compute_raw_covariance
    make_ad_hoc_cov
    read_cov
    write_cov
