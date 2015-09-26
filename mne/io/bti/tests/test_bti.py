@@ -208,11 +208,11 @@ def test_bytes_io():
     for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
         raw = read_raw_bti(pdf, config, hs, convert=True)
 
-        with open(pdf) as fid:
+        with open(pdf, 'rb') as fid:
             pdf = six.BytesIO(fid.read())
-        with open(config) as fid:
+        with open(config, 'rb') as fid:
             config = six.BytesIO(fid.read())
-        with open(hs) as fid:
+        with open(hs, 'rb') as fid:
             hs = six.BytesIO(fid.read())
         raw2 = read_raw_bti(pdf, config, hs, convert=True)
         repr(raw2)
