@@ -269,7 +269,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
         If baseline is equal ot (None, None) all the time
         interval is used. If None, no correction is applied.
     preload : bool
-        Preload epochs or not
+        Preload epochs or not.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
