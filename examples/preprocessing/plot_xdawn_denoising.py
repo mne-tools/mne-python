@@ -12,7 +12,7 @@ evoked response.
 WARNING: As this denoising method exploits the known events to
 maximize SNR of the contrast between conditions it can lead to overfit.
 To avoid a statistical analysis problem you should split epochs used
-in fit with the one used in apply method.
+in fit with the ones used in apply method.
 
 References
 ----------
