@@ -4,8 +4,8 @@
 =============================
 
 ERP decoding with Xdawn. For each event type, a set of spatial Xdawn filters
-are trained and apply on the signal. Channels are concatenated and rescaled to
-create features vectors that will be fed into a Logistic Regression.
+are trained and applied on the signal. Channels are concatenated and rescaled
+to create features vectors that will be fed into a Logistic Regression.
 
 References
 ----------

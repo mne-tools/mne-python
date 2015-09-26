@@ -3,11 +3,16 @@
  XDAWN Denoising
 ================
 
-Xdawn filters are trained from epochs, signal is projected in the sources
+XDAWN filters are trained from epochs, signal is projected in the sources
 space and then projected back in the sensor space using only the first two
-xdawn components. The process is similar to an ICA, but is
+XDAWN components. The process is similar to an ICA, but is
 supervised in order to maximize the signal to signal + noise ratio of the
 evoked response.
+
+WARNING: As this denoising method exploits the known events to
+maximize SNR of the contrast between conditions it can lead to overfit.
+To avoid a statistical analysis problem you should split epochs used
+in fit with the one used in apply method.
 
 References
 ----------
