@@ -18,7 +18,7 @@ from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
                      _undo_scaling_cov)
 
 from mne import (read_cov, write_cov, Epochs, merge_events,
-                 find_events, compute_raw_data_covariance,
+                 find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_channels, pick_types, pick_info,
                  make_ad_hoc_cov)
@@ -98,7 +98,7 @@ def test_cov_estimation_on_raw_segment():
     """
     tempdir = _TempDir()
     raw = Raw(raw_fname, preload=False)
-    cov = compute_raw_data_covariance(raw)
+    cov = compute_raw_covariance(raw)
     cov_mne = read_cov(erm_cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
     assert_true(linalg.norm(cov.data - cov_mne.data, ord='fro') /
@@ -113,7 +113,7 @@ def test_cov_estimation_on_raw_segment():
 
     # test with a subset of channels
     picks = pick_channels(raw.ch_names, include=raw.ch_names[:5])
-    cov = compute_raw_data_covariance(raw, picks=picks)
+    cov = compute_raw_covariance(raw, picks=picks)
     assert_true(cov_mne.ch_names[:5] == cov.ch_names)
     assert_true(linalg.norm(cov.data - cov_mne.data[picks][:, picks],
                 ord='fro') / linalg.norm(cov.data, ord='fro') < 1e-4)
@@ -121,7 +121,7 @@ def test_cov_estimation_on_raw_segment():
     raw_2 = raw.crop(0, 1)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        cov = compute_raw_data_covariance(raw_2)
+        cov = compute_raw_covariance(raw_2)
     assert_true(len(w) == 1)
 
 
@@ -264,12 +264,12 @@ def test_rank():
     raw_sss = Raw(hp_fif_fname)
     raw_sss.add_proj(compute_proj_raw(raw_sss))
 
-    cov_sample = compute_raw_data_covariance(raw_sample)
-    cov_sample_proj = compute_raw_data_covariance(
+    cov_sample = compute_raw_covariance(raw_sample)
+    cov_sample_proj = compute_raw_covariance(
         raw_sample.copy().apply_proj())
 
-    cov_sss = compute_raw_data_covariance(raw_sss)
-    cov_sss_proj = compute_raw_data_covariance(
+    cov_sss = compute_raw_covariance(raw_sss)
+    cov_sss_proj = compute_raw_covariance(
         raw_sss.copy().apply_proj())
 
     picks_all_sample = pick_types(raw_sample.info, meg=True, eeg=True)

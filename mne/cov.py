@@ -33,6 +33,7 @@ from .defaults import _handle_default
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_sklearn_version, _time_mask)
+from .utils import deprecated
 
 from .externals.six.moves import zip
 from .externals.six import string_types
@@ -100,7 +101,7 @@ class Covariance(dict):
     See Also
     --------
     compute_covariance
-    compute_raw_data_covariance
+    compute_raw_covariance
     make_ad_hoc_cov
     read_cov
     """
@@ -275,7 +276,7 @@ def read_cov(fname, verbose=None):
 
     See Also
     --------
-    write_cov, compute_covariance, compute_raw_data_covariance
+    write_cov, compute_covariance, compute_raw_covariance
     """
     check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
     f, tree = fiff_open(fname)[:2]
@@ -338,10 +339,20 @@ def _check_n_samples(n_samples, n_chan):
         logger.warning(text)
 
 
+@deprecated('"compute_raw_data_covariance" is deprecated and will be '
+            'removed in MNE-0.11. Please use compute_raw_covariance instead')
 @verbose
 def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
                                 reject=None, flat=None, picks=None,
                                 verbose=None):
+    return compute_raw_covariance(raw, tmin, tmax, tstep,
+                                  reject, flat, picks, verbose)
+
+
+@verbose
+def compute_raw_covariance(raw, tmin=None, tmax=None, tstep=0.2,
+                           reject=None, flat=None, picks=None,
+                           verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance
@@ -557,7 +568,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     See Also
     --------
-    compute_raw_data_covariance : Estimate noise covariance from raw data
+    compute_raw_covariance : Estimate noise covariance from raw data
 
     References
     ----------

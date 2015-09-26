@@ -31,7 +31,7 @@ efficient sensor selection in a P300 BCI. In Signal Processing Conference,
 # License: BSD (3-clause)
 
 
-from mne import (io, compute_raw_data_covariance, read_events, pick_types,
+from mne import (io, compute_raw_covariance, read_events, pick_types,
                  Epochs)
 from mne.datasets import sample
 from mne.preprocessing import Xdawn
@@ -65,7 +65,7 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
 plot_epochs_image(epochs['vis_r'], picks=[230], vmin=-500, vmax=500)
 
 # Estimates signal covariance
-signal_cov = compute_raw_data_covariance(raw, picks=picks)
+signal_cov = compute_raw_covariance(raw, picks=picks)
 
 # Xdawn instance
 xd = Xdawn(n_components=2, signal_cov=signal_cov)

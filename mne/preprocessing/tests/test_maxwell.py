@@ -9,7 +9,7 @@ from numpy.testing import (assert_equal, assert_allclose,
                            assert_array_almost_equal)
 from nose.tools import assert_true, assert_raises
 
-from mne import compute_raw_data_covariance, pick_types
+from mne import compute_raw_covariance, pick_types
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.forward._make_forward import _prep_meg_channels
@@ -142,8 +142,8 @@ def test_maxwell_filter_additional():
                     rtol=1e-6, atol=1e-20)
 
     # Test rank of covariance matrices for raw and SSS processed data
-    cov_raw = compute_raw_data_covariance(raw)
-    cov_sss = compute_raw_data_covariance(raw_sss)
+    cov_raw = compute_raw_covariance(raw)
+    cov_sss = compute_raw_covariance(raw_sss)
 
     scalings = None
     cov_raw_rank = _estimate_rank_meeg_cov(cov_raw['data'], raw.info, scalings)
