@@ -559,7 +559,7 @@ def _tessellate_sphere(mylevel):
                 /\           Normalize a, b, c
                /  \
              b/____\c        Construct new triangles
-             /\    /\	       [0,b,a]
+             /\    /\        [0,b,a]
             /  \  /  \       [b,1,c]
            /____\/____\      [a,b,c]
           0     a      2     [a,c,2]

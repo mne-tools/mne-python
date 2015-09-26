@@ -11,7 +11,7 @@ from ..utils import logger, verbose
 
 
 @verbose
-def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
+def compute_raw_psd(raw, tmin=0., tmax=None, picks=None, fmin=0,
                     fmax=np.inf, n_fft=2048, n_overlap=0,
                     proj=False, n_jobs=1, verbose=None):
     """Compute power spectral density with average periodograms.
@@ -22,8 +22,9 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
         The raw data.
     tmin : float
         Minimum time instant to consider (in seconds).
-    tmax : float
-        Maximum time instant to consider (in seconds).
+    tmax : float | None
+        Maximum time instant to consider (in seconds). None will use the
+        end of the file.
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
@@ -52,6 +53,7 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
         The frequencies
     """
     from scipy.signal import welch
+    tmax = raw.times[-1] if tmax is None else tmax
     start, stop = raw.time_as_index([tmin, tmax])
     if picks is not None:
         data, times = raw[picks, start:(stop + 1)]

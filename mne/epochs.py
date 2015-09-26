@@ -1829,7 +1829,7 @@ class EpochsArray(_BaseEpochs):
 
     See Also
     --------
-    io.RawArray, EvokedArray
+    io.RawArray, EvokedArray, create_info
     """
 
     @verbose

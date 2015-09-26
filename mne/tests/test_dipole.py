@@ -10,7 +10,7 @@ from mne import (read_dipole, read_forward_solution,
                  transform_surface_to, make_sphere_model, pick_types,
                  pick_info, EvokedArray, read_source_spaces, make_ad_hoc_cov,
                  make_forward_solution)
-from mne.simulation import generate_evoked
+from mne.simulation import simulate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
                        run_subprocess)
@@ -90,7 +90,7 @@ def test_dipole_fitting():
     nv = sum(len(v) for v in vertices)
     stc = SourceEstimate(amp * np.eye(nv), vertices, 0, 0.001)
     with warnings.catch_warnings(record=True):  # semi-def cov
-        evoked = generate_evoked(fwd, stc, evoked, cov, snr=20,
+        evoked = simulate_evoked(fwd, stc, evoked, cov, snr=20,
                                  random_state=rng)
     # For speed, let's use a subset of channels (strange but works)
     picks = np.sort(np.concatenate([
@@ -232,7 +232,7 @@ def test_accuracy():
     data[-1, -1] = 1.
     data *= amp
     stc = SourceEstimate(data, vertices, 0., 1e-3, 'sample')
-    sim = generate_evoked(fwd, stc, evoked, cov=None, snr=np.inf)
+    sim = simulate_evoked(fwd, stc, evoked.info, cov=None, snr=np.inf)
 
     cov = make_ad_hoc_cov(evoked.info)
     dip = fit_dipole(sim, cov, bem, min_dist=0.001)[0]

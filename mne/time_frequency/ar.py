@@ -132,8 +132,8 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
 
     .. math::
 
-        H(\\exp^{jw}) = \\frac{1}{a[0] + a[1]\\exp{-jw} + ...
-                                  + a[n]\\exp{-jnw}}
+        H(e^{jw}) = \\frac{1}{a[0] + a[1]e^{-jw} + ...
+                                  + a[n]e^{-jnw}}
 
     Parameters
     ----------

@@ -874,8 +874,10 @@ Simulation
    :toctree: generated/
    :template: function.rst
 
-   generate_evoked
-   generate_sparse_stc
+   simulate_evoked
+   simulate_raw
+   simulate_stc
+   simulate_sparse_stc
    select_source_in_label
 
 Decoding

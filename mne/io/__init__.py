@@ -21,6 +21,7 @@ from . import kit
 from . import pick
 
 from .array import RawArray
+from .base import _BaseRaw
 from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .edf import read_raw_edf

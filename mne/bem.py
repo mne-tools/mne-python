@@ -39,6 +39,30 @@ from .externals.six import string_types
 #
 
 
+class ConductorModel(dict):
+    """BEM or sphere model"""
+    def __repr__(self):
+        if self['is_sphere']:
+            center = ', '.join('%0.1f' % (x * 1000.) for x in self['r0'])
+            pl = '' if len(self['layers']) == 1 else 's'
+            rad = self.radius
+            if rad is None:  # no radius / MEG only
+                extra = 'Sphere (no layers): r0=[%s] mm' % center
+            else:
+                extra = ('Sphere (%s layer%s): r0=[%s] R=%1.f mm'
+                         % (len(self['layers']) - 1, pl, center, rad * 1000.))
+        else:
+            pl = '' if len(self['surfs']) == 1 else 's'
+            extra = ('BEM (%s layer%s)' % (len(self['surfs']), pl))
+        return '<ConductorModel  |  %s>' % extra
+
+    @property
+    def radius(self):
+        if not self['is_sphere']:
+            raise RuntimeError('radius undefined for BEM')
+        return None if len(self['layers']) == 0 else self['layers'][-1]['rad']
+
+
 def _calc_beta(rk, rk_norm, rk1, rk1_norm):
     """These coefficients are used to calculate the magic vector omega"""
     rkk1 = rk1[0] - rk[0]
@@ -263,7 +287,7 @@ def make_bem_solution(surfs, verbose=None):
 
     Returns
     -------
-    bem : dict
+    bem : instance of ConductorModel
         The BEM solution.
 
     Notes
@@ -283,7 +307,7 @@ def make_bem_solution(surfs, verbose=None):
         # Load the surfaces
         logger.info('Loading surfaces...')
         surfs = read_bem_surfaces(surfs)
-    bem = dict(surfs=surfs)
+    bem = ConductorModel(is_sphere=False, surfs=surfs)
     _add_gamma_multipliers(bem)
     if len(bem['surfs']) == 3:
         logger.info('Three-layer model surfaces loaded.')
@@ -491,7 +515,8 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     Returns
     -------
     surfaces : list of dict
-        The BEM surfaces.
+        The BEM surfaces. Use `make_bem_solution` to turn these into a
+        `ConductorModel` suitable for forward calculation.
 
     Notes
     -----
@@ -686,8 +711,8 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 
     Returns
     -------
-    sphere : dict
-        A spherical BEM.
+    sphere : instance of ConductorModel
+        The resulting spherical conductor model.
 
     Notes
     -----
@@ -714,8 +739,8 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
             r0 = r0_fit / 1000.
         if isinstance(head_radius, string_types):
             head_radius = head_radius_fit / 1000.
-    sphere = dict(r0=np.array(r0), is_sphere=True,
-                  coord_frame=FIFF.FIFFV_COORD_HEAD)
+    sphere = ConductorModel(is_sphere=True, r0=np.array(r0),
+                            coord_frame=FIFF.FIFFV_COORD_HEAD)
     sphere['layers'] = list()
     if head_radius is not None:
         # Eventually these could be configurable...
@@ -724,17 +749,16 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         order = np.argsort(relative_radii)
         relative_radii = relative_radii[order]
         sigmas = sigmas[order]
-        layers = sphere['layers']
         for rel_rad, sig in zip(relative_radii, sigmas):
             # sort layers by (relative) radius, and scale radii
             layer = dict(rad=rel_rad, sigma=sig)
             layer['rel_rad'] = layer['rad'] = rel_rad
-            layers.append(layer)
+            sphere['layers'].append(layer)
 
         # scale the radii
-        R = layers[-1]['rad']
-        rR = layers[-1]['rel_rad']
-        for layer in layers:
+        R = sphere['layers'][-1]['rad']
+        rR = sphere['layers'][-1]['rel_rad']
+        for layer in sphere['layers']:
             layer['rad'] /= R
             layer['rel_rad'] /= rR
 
@@ -744,16 +768,18 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 
         # Scale the relative radii
         for k in range(len(relative_radii)):
-            layers[k]['rad'] = (head_radius * layers[k]['rel_rad'])
+            sphere['layers'][k]['rad'] = (head_radius *
+                                          sphere['layers'][k]['rel_rad'])
         rv = _fwd_eeg_fit_berg_scherg(sphere, 200, 3)
         logger.info('\nEquiv. model fitting -> RV = %g %%' % (100 * rv))
         for k in range(3):
             logger.info('mu%d = %g    lambda%d = %g'
                         % (k + 1, sphere['mu'][k], k + 1,
-                           layers[-1]['sigma'] * sphere['lambda'][k]))
+                           sphere['layers'][-1]['sigma'] *
+                           sphere['lambda'][k]))
         logger.info('Set up EEG sphere model with scalp radius %7.1f mm\n'
                     % (1000 * head_radius,))
-    return sphere
+    return ConductorModel(sphere)
 
 
 # #############################################################################
@@ -1119,7 +1145,7 @@ def read_bem_solution(fname, verbose=None):
 
     Returns
     -------
-    bem : dict
+    bem : instance of ConductorModel
         The BEM solution.
 
     See Also
@@ -1148,7 +1174,7 @@ def read_bem_solution(fname, verbose=None):
         logger.info('Homogeneous model surface loaded.')
 
     # convert from surfaces to solution
-    bem = dict(surfs=bem_surfs)
+    bem = ConductorModel(is_sphere=False, surfs=bem_surfs)
     logger.info('\nLoading the solution matrix...\n')
     f, tree, _ = fiff_open(fname)
     with f as fid:
@@ -1212,7 +1238,6 @@ def _add_gamma_multipliers(bem):
     assert len(bem['surfs']) == len(bem['field_mult'])
     bem['gamma'] = ((sigma[1:] - sigma[:-1])[np.newaxis, :] /
                     (sigma[1:] + sigma[:-1])[:, np.newaxis])
-    bem['is_sphere'] = False
 
 
 _surf_dict = {'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
@@ -1307,7 +1332,7 @@ def write_bem_solution(fname, bem):
     ----------
     fname : str
         The filename to use.
-    bem : dict
+    bem : instance of ConductorModel
         The BEM model with solution to save.
 
     See Also

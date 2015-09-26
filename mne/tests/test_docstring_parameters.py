@@ -2,10 +2,17 @@
 from __future__ import print_function
 
 from nose.plugins.skip import SkipTest
+from nose.tools import assert_true
 from os import path as op
+import sys
 import inspect
 import warnings
 import imp
+
+from pkgutil import walk_packages
+from inspect import getsource
+
+import mne
 from mne.utils import run_tests_if_main
 
 public_modules = [
@@ -61,9 +68,17 @@ _deprecation_ignores = [
     'mne.fixes._in1d',  # fix function
     'mne.utils.plot_epochs_trellis',  # deprecated
     'mne.utils.write_bem_surface',  # deprecated
+    'generate_sparse_stc',  # deprecated
+    'generate_stc',  # deprecated
+    'generate_evoked',  # deprecated
+    'generate_noise_evoked',  # deprecated
     'mne.gui.coregistration',  # deprecated
     'mne.utils.plot_topo',
     'mne.viz.plot_image_epochs',  # deprecated
+]
+
+_tab_ignores = [
+    'mne.channels.tests.test_montage',  # demo data has a tab
 ]
 
 
@@ -135,6 +150,19 @@ def test_docstring_parameters():
     msg = '\n' + '\n'.join(sorted(list(set(incorrect))))
     if len(incorrect) > 0:
         raise AssertionError(msg)
+
+
+def test_tabs():
+    """Test that there are no tabs in our source files"""
+    for importer, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
+        if not ispkg and modname not in _tab_ignores:
+            # mod = importlib.import_module(modname)  # not py26 compatible!
+            __import__(modname)  # because we don't import e.g. mne.tests w/mne
+            mod = sys.modules[modname]
+            source = getsource(mod)
+            assert_true('\t' not in source,
+                        '"%s" has tabs, please remove them or add it to the'
+                        'ignore list' % modname)
 
 
 run_tests_if_main()

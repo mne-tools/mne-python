@@ -32,7 +32,7 @@ from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_ch_info, write_name_list,
                         write_string, start_file, end_file, write_id)
 from ..io.base import _BaseRaw
-from ..evoked import Evoked, write_evokeds
+from ..evoked import Evoked, write_evokeds, EvokedArray
 from ..epochs import Epochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi,
@@ -1109,8 +1109,8 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
-                  verbose=None):
+def apply_forward(fwd, stc, info=None, start=None, stop=None,
+                  verbose=None, evoked_template=None):
     """
     Project source space currents to sensor space using a forward operator.
 
@@ -1130,14 +1130,16 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    evoked_template : Evoked object
-        Evoked object used as template to generate the output argument.
+    info : instance of mne.io.meas_info.Info
+        Measurement info to generate the evoked.
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    evoked_template : Evoked object (deprecated)
+        Evoked object used as template to generate the output argument.
 
     Returns
     -------
@@ -1148,31 +1150,46 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
+    if evoked_template is None and info is None:
+        raise ValueError('You have to provide the info parameter.')
+
+    if evoked_template is not None and not isinstance(evoked_template, Info):
+        warnings.warn('The "evoked_template" parameter is being deprecated '
+                      'and will be removed in MNE-0.11. '
+                      'Please provide info parameter instead',
+                      DeprecationWarning)
+        info = evoked_template.info
+
+    if info is not None and not isinstance(info, Info):
+        warnings.warn('The "evoked_template" parameter is being deprecated '
+                      'and will be removed in MNE-0.11. '
+                      'Please provide info parameter instead',
+                      DeprecationWarning)
+        info = info.info
 
     # make sure evoked_template contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
-        if ch_name not in evoked_template.ch_names:
+        if ch_name not in info['ch_names']:
             raise ValueError('Channel %s of forward operator not present in '
                              'evoked_template.' % ch_name)
 
     # project the source estimate to the sensor space
     data, times = _apply_forward(fwd, stc, start, stop)
 
-    # store sensor data in an Evoked object using the template
-    evoked = deepcopy(evoked_template)
-
-    evoked.nave = 1
-    evoked.data = data
-    evoked.times = times
-
+    # fill the measurement info
     sfreq = float(1.0 / stc.tstep)
+    info_out = _fill_measurement_info(info, fwd, sfreq)
+
+    evoked = EvokedArray(data, info_out, times[0], nave=1)
+
+    evoked.times = times
     evoked.first = int(np.round(evoked.times[0] * sfreq))
     evoked.last = evoked.first + evoked.data.shape[1] - 1
 
-    # fill the measurement info
-    evoked.info = _fill_measurement_info(evoked.info, fwd, sfreq)
-
     return evoked
+
+
+# XXX : apply_forward_raw should take info and not raw_template
 
 
 @verbose

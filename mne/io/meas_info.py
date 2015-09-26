@@ -62,7 +62,7 @@ class Info(dict):
         default be ignored by many processing steps.
     ch_names : list of str
         The names of the channels.
-    chs	: list of dict
+    chs : list of dict
         A list of channel information structures.
         See: :ref:`faq` for details.
     comps : list of dict
@@ -115,7 +115,7 @@ class Info(dict):
         See: :ref:`faq` for details.
     experimentor : str | None
         Name of the person that ran the experiment.
-    file_id	: dict | None
+    file_id : dict | None
         The fif ID datastructure of the measurement file.
         See: :ref:`faq` for details.
     filename : str | None

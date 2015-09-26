@@ -78,7 +78,7 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
     tmin, tstep = times.min(), 1 / evoked.info['sfreq']
     stc = mne.SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep)
 
-    sim_evoked = mne.simulation.generate_evoked(forward, stc, evoked,
+    sim_evoked = mne.simulation.simulate_evoked(forward, stc, evoked.info,
                                                 noise_cov, snr=20,
                                                 random_state=rng)
 
@@ -128,9 +128,8 @@ def test_rap_music_simulated():
         _get_data()
 
     n_dipoles = 2
-    with warnings.catch_warnings(record=True):  # not positive semidef
-        sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
-                                    n_dipoles, evoked.times)
+    sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
+                                n_dipoles, evoked.times)
     # Check dipoles for fixed ori
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)

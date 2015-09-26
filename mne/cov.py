@@ -275,7 +275,7 @@ def make_ad_hoc_cov(info, verbose=None):
     -----
     .. versionadded:: 0.9.0
     """
-    info = pick_info(info, pick_types(info, meg=True, eeg=True))
+    info = pick_info(info, pick_types(info, meg=True, eeg=True, exclude=[]))
     info._check_consistency()
 
     # Standard deviations to be used
@@ -1519,7 +1519,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
     if picks is None:
         picks = pick_types(evoked.info, meg=True, eeg=True)
     W = _get_whitener_data(evoked.info, noise_cov, picks,
-                           diag, rank, scalings, evoked.nave)
+                           diag=diag, rank=rank, scalings=scalings)
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
 
