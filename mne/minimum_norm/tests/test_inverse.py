@@ -15,7 +15,7 @@ from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution,
-                 convert_forward_solution)
+                 convert_forward_solution, Covariance)
 from mne.io import Raw
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
@@ -429,12 +429,13 @@ def test_inverse_operator_volume():
 @slow_test
 @testing.requires_testing_data
 def test_io_inverse_operator():
-    """Test IO of inverse_operator with GZip
+    """Test IO of inverse_operator
     """
     tempdir = _TempDir()
     inverse_operator = read_inverse_operator(fname_inv)
     x = repr(inverse_operator)
     assert_true(x)
+    assert_true(isinstance(inverse_operator['noise_cov'], Covariance))
     # just do one example for .gz, as it should generalize
     _compare_io(inverse_operator, '.gz')
 
@@ -445,6 +446,18 @@ def test_io_inverse_operator():
         write_inverse_operator(inv_badname, inverse_operator)
         read_inverse_operator(inv_badname)
     assert_true(len(w) == 2)
+
+    # make sure we can write and read
+    inv_fname = op.join(tempdir, 'test-inv.fif')
+    args = (10, 1. / 9., 'dSPM')
+    inv_prep = prepare_inverse_operator(inverse_operator, *args)
+    write_inverse_operator(inv_fname, inv_prep)
+    inv_read = read_inverse_operator(inv_fname)
+    _compare(inverse_operator, inv_read)
+    inv_read_prep = prepare_inverse_operator(inv_read, *args)
+    _compare(inv_prep, inv_read_prep)
+    inv_prep_prep = prepare_inverse_operator(inv_prep, *args)
+    _compare(inv_prep, inv_prep_prep)
 
 
 @testing.requires_testing_data

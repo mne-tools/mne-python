@@ -23,7 +23,7 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         write_coord_trans, write_string)
 
 from ..io.pick import channel_type, pick_info, pick_types
-from ..cov import prepare_noise_cov, _read_cov, _write_cov
+from ..cov import prepare_noise_cov, _read_cov, _write_cov, Covariance
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
                        compute_orient_prior, convert_forward_solution)
@@ -76,7 +76,7 @@ def _pick_channels_inverse_operator(ch_names, inv):
     an inverse operator
     """
     sel = []
-    for name in inv['noise_cov']['names']:
+    for name in inv['noise_cov'].ch_names:
         if name in ch_names:
             sel.append(ch_names.index(name))
         else:
@@ -215,7 +215,8 @@ def read_inverse_operator(fname, verbose=None):
         #
         #   Read the covariance matrices
         #
-        inv['noise_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
+        inv['noise_cov'] = Covariance(
+            **_read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV, limited=True))
         logger.info('    Noise covariance matrix read.')
 
         inv['source_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
@@ -465,7 +466,7 @@ def _check_ch_names(inv, info):
 
     inv_ch_names = inv['eigen_fields']['col_names']
 
-    if inv['noise_cov']['names'] != inv_ch_names:
+    if inv['noise_cov'].ch_names != inv_ch_names:
         raise ValueError('Channels in inverse operator eigen fields do not '
                          'match noise covariance channels.')
     data_ch_names = info['ch_names']
@@ -1168,7 +1169,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         Bad channels in info['bads'] are not used.
     forward : dict
         Forward operator.
-    noise_cov : Covariance
+    noise_cov : instance of Covariance
         The noise covariance matrix.
     loose : None | float in [0, 1]
         Value that weights the source variances of the dipole components
