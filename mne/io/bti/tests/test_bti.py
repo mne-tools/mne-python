@@ -204,16 +204,19 @@ def test_no_conversion():
 
 
 def test_bytes_io():
-    """ Test bti no-conversion option """
+    """ Test bti bytes-io API """
     for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
+        raw = read_raw_bti(pdf, config, hs, convert=True)
+
         with open(pdf) as fid:
             pdf = six.BytesIO(fid.read())
         with open(config) as fid:
             config = six.BytesIO(fid.read())
         with open(hs) as fid:
             hs = six.BytesIO(fid.read())
-        raw = read_raw_bti(pdf, config, hs, convert=True)
-        repr(raw)  # basic use
+        raw2 = read_raw_bti(pdf, config, hs, convert=True)
+        repr(raw2)
+        assert_array_equal(raw._data, raw2._data)
 
 
 def test_setup_headshape():

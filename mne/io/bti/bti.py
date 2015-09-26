@@ -983,13 +983,17 @@ def _read_data(info, start=None, stop=None):
         raise RuntimeError('Invalid data range supplied:'
                            ' %d, %d' % (start, stop))
     fname = info['pdf_fname']
-
     with bti_open(fname, 'rb') as fid:
         fid.seek(info['bytes_per_slice'] * start, 0)
         cnt = (stop - start) * info['total_chans']
         shape = [stop - start, info['total_chans']]
-        data = np.fromfile(fid, dtype=info['dtype'],
-                           count=cnt).astype('f4').reshape(shape)
+
+        if isinstance(fid, six.BytesIO):
+            data = np.fromstring(fid.getvalue(),
+                                 dtype=info['dtype'], count=cnt)
+        else:
+            data = np.fromfile(fid, dtype=info['dtype'], count=cnt)
+        data = data.astype('f4').reshape(shape)
 
     for ch in info['chs']:
         data[:, ch['index']] *= ch['cal']
@@ -1050,6 +1054,11 @@ class RawBTi(_BaseRaw):
         assert len(data) == len(info['ch_names'])
         self._projector_hashes = [None]
         self.bti_ch_labels = [c['chan_label'] for c in bti_info['chs']]
+
+        # make Raw repr work if we have a BytesIO as input
+        if isinstance(pdf_fname, six.BytesIO):
+            pdf_fname = repr(pdf_fname)
+
         super(RawBTi, self).__init__(
             info, data, filenames=[pdf_fname], verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
