@@ -9,7 +9,7 @@ def _unpack_matrix(fid, rows, cols, dtype, out_dtype):
     """ Aux Function """
     dtype = np.dtype(dtype)
 
-    string = fid.read(dtype.itemsize * rows * cols)
+    string = fid.read(int(dtype.itemsize * rows * cols))
     out = np.fromstring(string, dtype=dtype).reshape(
         rows, cols).astype(out_dtype)
     return out
@@ -20,6 +20,7 @@ def _unpack_simple(fid, dtype, out_dtype):
     dtype = np.dtype(dtype)
     string = fid.read(dtype.itemsize)
     out = np.fromstring(string, dtype=dtype).astype(out_dtype)
+
     if len(out) > 0:
         out = out[0]
     return out
@@ -30,15 +31,15 @@ def read_str(fid, count=1):
     dtype = np.dtype('>S%i' % count)
     string = fid.read(dtype.itemsize)
     data = np.fromstring(string, dtype=dtype)[0]
-    bytestr = b('').join(data[0:data.index(b('\x00')) if
-                         b('\x00') in data else count])
+    bytestr = b('').join([data[0:data.index(b('\x00')) if
+                          b('\x00') in data else count]])
 
     return str(bytestr.decode('ascii'))  # Return native str type for Py2/3
 
 
 def read_char(fid, count=1):
     " Read character from bti file """
-    return _unpack_simple(fid, '>S%s' % count, np.str)
+    return _unpack_simple(fid, '>S%s' % count, 'S')
 
 
 def read_bool(fid):
