@@ -13,7 +13,6 @@ import glob
 import numpy as np
 from scipy import linalg
 
-from . import read_surface
 from .fixes import partial
 from .utils import (verbose, logger, run_subprocess, deprecated,
                     get_subjects_dir)
@@ -1414,6 +1413,7 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
         5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
         6. Run this script
     """
+    from . import read_surface
     env = os.environ.copy()
 
     if subject:
