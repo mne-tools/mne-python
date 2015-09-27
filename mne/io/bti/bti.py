@@ -22,7 +22,7 @@ from .read import (read_int32, read_int16, read_str, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix)
-from ..meas_info import _empty_info, RAW_INFO_FIELDS
+from ..meas_info import _empty_info
 from ...externals import six
 
 FIFF_INFO_CHS_FIELDS = ('loc', 'ch_name', 'unit_mul', 'coil_trans',
@@ -41,6 +41,28 @@ BTI_WH2500_REF_GRAD = ('GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA')
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
+
+
+class _bytes_io_mock_context():
+
+    def __init__(self, target):
+        self.target = target
+
+    def __enter__(self):
+        return self.target
+
+    def __exit__(self, type, value, tb):
+        pass
+
+
+def _bti_open(fname, *args, **kwargs):
+    """Handle bytes io"""
+    if isinstance(fname, six.string_types):
+        return open(fname, *args, **kwargs)
+    elif isinstance(fname, six.BytesIO):
+        return _bytes_io_mock_context(fname)
+    else:
+        raise RuntimeError('Cannot mock this.')
 
 
 def _get_bti_dev_t(adjust=0., translation=(0.0, 0.02, 0.11)):
@@ -117,7 +139,8 @@ def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
 
 def _read_head_shape(fname):
     """ Helper Function """
-    with open(fname, 'rb') as fid:
+
+    with _bti_open(fname, 'rb') as fid:
         fid.seek(BTI.FILE_HS_N_DIGPOINTS)
         _n_dig_points = read_int32(fid)
         idx_points = read_double_matrix(fid, BTI.DATA_N_IDX_POINTS, 3)
@@ -256,7 +279,8 @@ def _read_config(fname):
         The config blocks found.
 
     """
-    with open(fname, 'rb') as fid:
+
+    with _bti_open(fname, 'rb') as fid:
         cfg = dict()
         cfg['hdr'] = {'version': read_int16(fid),
                       'site_name': read_str(fid, 32),
@@ -792,10 +816,10 @@ def _read_ch_config(fid):
     return cfg
 
 
-def _read_bti_header(pdf_fname, config_fname):
+def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     """ Read bti PDF header
     """
-    with open(pdf_fname, 'rb') as fid:
+    with _bti_open(pdf_fname, 'rb') as fid:
         fid.seek(-8, 2)
         start = fid.tell()
         header_position = read_int64(fid)
@@ -899,19 +923,25 @@ def _read_bti_header(pdf_fname, config_fname):
         else:
             ch['cal'] = ch['scale'] * ch['gain']
 
-    by_index = [(i, d['index']) for i, d in enumerate(chans)]
-    by_index.sort(key=lambda c: c[1])
-    by_index = [idx[0] for idx in by_index]
-    info['chs'] = [chans[pos] for pos in by_index]
+    if sort_by_ch_name:
+        by_index = [(i, d['index']) for i, d in enumerate(chans)]
+        by_index.sort(key=lambda c: c[1])
+        by_index = [idx[0] for idx in by_index]
+        chs = [chans[pos] for pos in by_index]
 
-    by_name = [(i, d['name']) for i, d in enumerate(info['chs'])]
-    a_chs = [c for c in by_name if c[1].startswith('A')]
-    other_chs = [c for c in by_name if not c[1].startswith('A')]
-    by_name = sorted(a_chs, key=lambda c: int(c[1][1:])) + sorted(other_chs)
+        sort_by_name_idx = [(i, d['name']) for i, d in enumerate(chs)]
+        a_chs = [c for c in sort_by_name_idx if c[1].startswith('A')]
+        other_chs = [c for c in sort_by_name_idx if not c[1].startswith('A')]
+        sort_by_name_idx = sorted(
+            a_chs, key=lambda c: int(c[1][1:])) + sorted(other_chs)
 
-    by_name = [idx[0] for idx in by_name]
-    info['chs'] = [chans[pos] for pos in by_name]
-    info['order'] = by_name
+        sort_by_name_idx = [idx[0] for idx in sort_by_name_idx]
+
+        info['chs'] = [chans[pos] for pos in sort_by_name_idx]
+        info['order'] = sort_by_name_idx
+    else:
+        info['chs'] = chans
+        info['order'] = Ellipsis
 
     # finally add some important fields from the config
     info['e_table'] = cfg['user_blocks'][BTI.UB_B_E_TABLE_USED]
@@ -952,13 +982,18 @@ def _read_data(info, start=None, stop=None):
     if any([start < 0, stop > total_slices, start >= stop]):
         raise RuntimeError('Invalid data range supplied:'
                            ' %d, %d' % (start, stop))
-
-    with open(info['pdf_fname'], 'rb') as fid:
+    fname = info['pdf_fname']
+    with _bti_open(fname, 'rb') as fid:
         fid.seek(info['bytes_per_slice'] * start, 0)
         cnt = (stop - start) * info['total_chans']
         shape = [stop - start, info['total_chans']]
-        data = np.fromfile(fid, dtype=info['dtype'],
-                           count=cnt).astype('f4').reshape(shape)
+
+        if isinstance(fid, six.BytesIO):
+            data = np.fromstring(fid.getvalue(),
+                                 dtype=info['dtype'], count=cnt)
+        else:
+            data = np.fromfile(fid, dtype=info['dtype'], count=cnt)
+        data = data.astype('f4').reshape(shape)
 
     for ch in info['chs']:
         data[:, ch['index']] *= ch['cal']
@@ -1009,9 +1044,39 @@ class RawBTi(_BaseRaw):
                  translation=(0.0, 0.02, 0.11), convert=True,
                  ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
 
+        info, bti_info = _get_bti_info(
+            pdf_fname=pdf_fname, config_fname=config_fname,
+            head_shape_fname=head_shape_fname, rotation_x=rotation_x,
+            translation=translation, convert=convert, ecg_ch=ecg_ch,
+            eog_ch=eog_ch)
+        logger.info('Reading raw data from %s...' % pdf_fname)
+        data = _read_data(bti_info)
+        assert len(data) == len(info['ch_names'])
+        self._projector_hashes = [None]
+        self.bti_ch_labels = [c['chan_label'] for c in bti_info['chs']]
+
+        # make Raw repr work if we have a BytesIO as input
+        if isinstance(pdf_fname, six.BytesIO):
+            pdf_fname = repr(pdf_fname)
+
+        super(RawBTi, self).__init__(
+            info, data, filenames=[pdf_fname], verbose=verbose)
+        logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
+                    self.first_samp, self.last_samp,
+                    float(self.first_samp) / info['sfreq'],
+                    float(self.last_samp) / info['sfreq']))
+        logger.info('Ready.')
+
+
+def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
+                  translation, convert, ecg_ch, eog_ch, rename_channels=True,
+                  sort_by_ch_name=True):
+
+    if not isinstance(pdf_fname, six.BytesIO):
         if not op.isabs(pdf_fname):
             pdf_fname = op.abspath(pdf_fname)
 
+    if not isinstance(config_fname, six.BytesIO):
         if not op.isabs(config_fname):
             config_fname = op.abspath(config_fname)
 
@@ -1020,200 +1085,190 @@ class RawBTi(_BaseRaw):
                              ' whether you are in the right directory '
                              'or pass the full name' % config_fname)
 
-        if head_shape_fname is not None:
-            orig_name = head_shape_fname
-            if not op.isfile(head_shape_fname):
-                head_shape_fname = op.join(op.dirname(pdf_fname),
-                                           head_shape_fname)
+    if head_shape_fname is not None and not isinstance(pdf_fname, six.BytesIO):
+        orig_name = head_shape_fname
+        if not op.isfile(head_shape_fname):
+            head_shape_fname = op.join(op.dirname(pdf_fname),
+                                       head_shape_fname)
 
-            if not op.isfile(head_shape_fname):
-                raise ValueError('Could not find the head_shape file "%s". '
-                                 'You should check whether you are in the '
-                                 'right directory or pass the full file name.'
-                                 % orig_name)
+        if not op.isfile(head_shape_fname):
+            raise ValueError('Could not find the head_shape file "%s". '
+                             'You should check whether you are in the '
+                             'right directory or pass the full file name.'
+                             % orig_name)
 
-        logger.info('Reading 4D PDF file %s...' % pdf_fname)
-        bti_info = _read_bti_header(pdf_fname, config_fname)
+    logger.info('Reading 4D PDF file %s...' % pdf_fname)
+    bti_info = _read_bti_header(
+        pdf_fname, config_fname, sort_by_ch_name=sort_by_ch_name)
 
-        dev_ctf_t = Transform('ctf_meg', 'ctf_head',
-                              _correct_trans(bti_info['bti_transform'][0]))
+    dev_ctf_t = Transform('ctf_meg', 'ctf_head',
+                          _correct_trans(bti_info['bti_transform'][0]))
 
-        # for old backward compatibility and external processing
-        rotation_x = 0. if rotation_x is None else rotation_x
+    # for old backward compatibility and external processing
+    rotation_x = 0. if rotation_x is None else rotation_x
+    if convert:
+        bti_dev_t = _get_bti_dev_t(rotation_x, translation)
+    else:
+        bti_dev_t = np.eye(4)
+    bti_dev_t = Transform('ctf_meg', 'meg', bti_dev_t)
+
+    use_hpi = False  # hard coded, but marked as later option.
+    logger.info('Creating Neuromag info structure ...')
+    info = _empty_info()
+    date = bti_info['processes'][0]['timestamp']
+    info['meas_date'] = [date, 0]
+    info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
+    info['nchan'] = len(bti_info['chs'])
+
+    # browse processing info for filter specs.
+    hp, lp = 0.0, info['sfreq'] * 0.4  # find better default
+    for proc in bti_info['processes']:
+        if 'filt' in proc['process_type']:
+            for step in proc['processing_steps']:
+                if 'high_freq' in step:
+                    hp, lp = step['high_freq'], step['low_freq']
+                elif 'hp' in step['process_type']:
+                    hp = step['freq']
+                elif 'lp' in step['process_type']:
+                    lp = step['freq']
+
+    info['highpass'] = hp
+    info['lowpass'] = lp
+    info['acq_pars'] = info['acq_stim'] = info['hpi_subsystem'] = None
+    info['events'], info['hpi_results'], info['hpi_meas'] = [], [], []
+    chs = []
+
+    bti_ch_names = [ch['name'] for ch in bti_info['chs']]
+    neuromag_ch_names = _rename_channels(
+        bti_ch_names, ecg_ch=ecg_ch, eog_ch=eog_ch)
+    ch_mapping = zip(bti_ch_names, neuromag_ch_names)
+
+    logger.info('... Setting channel info structure.')
+    for idx, (chan_4d, chan_neuromag) in enumerate(ch_mapping):
+        chan_info = dict(zip(FIFF_INFO_CHS_FIELDS, FIFF_INFO_CHS_DEFAULTS))
+        chan_info['ch_name'] = chan_neuromag if rename_channels else chan_4d
+        chan_info['logno'] = idx + BTI.FIFF_LOGNO
+        chan_info['scanno'] = idx + 1
+        chan_info['cal'] = bti_info['chs'][idx]['scale']
+
+        if any(chan_4d.startswith(k) for k in ('A', 'M', 'G')):
+            t, loc = bti_info['chs'][idx]['coil_trans'], None
+            if t is not None:
+                t = _correct_trans(t)
+                if convert:
+                    t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
+                loc = _trans_to_loc(t)
+                if idx == 1 and convert:
+                    logger.info('... putting coil transforms in Neuromag '
+                                'coordinates')
+            chan_info['coil_trans'] = t
+            if loc is not None:
+                chan_info['loc'] = loc.astype('>f4')
+
+        if chan_4d.startswith('A'):
+            chan_info['kind'] = FIFF.FIFFV_MEG_CH
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_MAG
+            chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+            chan_info['unit'] = FIFF.FIFF_UNIT_T
+
+        elif chan_4d.startswith('M'):
+            chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_MAG
+            chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+            chan_info['unit'] = FIFF.FIFF_UNIT_T
+
+        elif chan_4d.startswith('G'):
+            chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
+            chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+            chan_info['unit'] = FIFF.FIFF_UNIT_T_M
+            if chan_4d in ('GxxA', 'GyyA'):
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA
+            elif chan_4d in ('GyxA', 'GzxA', 'GzyA'):
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF
+
+        elif chan_4d.startswith('EEG'):
+            chan_info['kind'] = FIFF.FIFFV_EEG_CH
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
+            chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+            chan_info['unit'] = FIFF.FIFF_UNIT_V
+
+        elif chan_4d == 'RESPONSE':
+            chan_info['kind'] = FIFF.FIFFV_RESP_CH
+        elif chan_4d == 'TRIGGER':
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
+        elif chan_4d.startswith('EOG'):
+            chan_info['kind'] = FIFF.FIFFV_EOG_CH
+        elif chan_4d == ecg_ch:
+            chan_info['kind'] = FIFF.FIFFV_ECG_CH
+        elif chan_4d.startswith('X'):
+            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+        elif chan_4d == 'UACurrent':
+            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+
+        chs.append(chan_info)
+
+    info['chs'] = chs
+    info['ch_names'] = neuromag_ch_names if rename_channels else bti_ch_names
+
+    if head_shape_fname:
+        logger.info('... Reading digitization points from %s' %
+                    head_shape_fname)
         if convert:
-            bti_dev_t = _get_bti_dev_t(rotation_x, translation)
+            logger.info('... putting digitization points in Neuromag c'
+                        'oordinates')
+        info['dig'], ctf_head_t = _process_bti_headshape(
+            head_shape_fname, convert=convert, use_hpi=use_hpi)
+
+        logger.info('... Computing new device to head transform.')
+        # DEV->CTF_DEV->CTF_HEAD->HEAD
+        if convert:
+            t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
+                                   'meg', 'ctf_head')
+            dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
         else:
-            bti_dev_t = np.eye(4)
-        bti_dev_t = Transform('ctf_meg', 'meg', bti_dev_t)
-
-        use_hpi = False  # hard coded, but marked as later option.
-        logger.info('Creating Neuromag info structure ...')
-        info = _empty_info()
-        date = bti_info['processes'][0]['timestamp']
-        info['meas_date'] = [date, 0]
-        info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
-        info['nchan'] = len(bti_info['chs'])
-
-        # browse processing info for filter specs.
-        hp, lp = 0.0, info['sfreq'] * 0.4  # find better default
-        for proc in bti_info['processes']:
-            if 'filt' in proc['process_type']:
-                for step in proc['processing_steps']:
-                    if 'high_freq' in step:
-                        hp, lp = step['high_freq'], step['low_freq']
-                    elif 'hp' in step['process_type']:
-                        hp = step['freq']
-                    elif 'lp' in step['process_type']:
-                        lp = step['freq']
-
-        info['highpass'] = hp
-        info['lowpass'] = lp
-        info['acq_pars'] = info['acq_stim'] = info['hpi_subsystem'] = None
-        info['events'], info['hpi_results'], info['hpi_meas'] = [], [], []
-        chs = []
-
-        ch_names = [ch['name'] for ch in bti_info['chs']]
-        self.bti_ch_labels = [c['chan_label'] for c in bti_info['chs']]
-        info['ch_names'] = _rename_channels(ch_names)
-        ch_mapping = zip(ch_names, info['ch_names'])
-        logger.info('... Setting channel info structure.')
-        for idx, (chan_4d, chan_vv) in enumerate(ch_mapping):
-            chan_info = dict(zip(FIFF_INFO_CHS_FIELDS, FIFF_INFO_CHS_DEFAULTS))
-            chan_info['ch_name'] = chan_vv
-            chan_info['logno'] = idx + BTI.FIFF_LOGNO
-            chan_info['scanno'] = idx + 1
-            chan_info['cal'] = bti_info['chs'][idx]['scale']
-
-            if any(chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')):
-                t, loc = bti_info['chs'][idx]['coil_trans'], None
-                if t is not None:
-                    t = _correct_trans(t)
-                    if convert:
-                        t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
-                    loc = _trans_to_loc(t)
-                    if idx == 1 and convert:
-                        logger.info('... putting coil transforms in Neuromag '
-                                    'coordinates')
-                chan_info['coil_trans'] = t
-                if loc is not None:
-                    chan_info['loc'] = loc.astype('>f4')
-
-            if chan_vv.startswith('MEG'):
-                chan_info['kind'] = FIFF.FIFFV_MEG_CH
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_MAG
-                chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-                chan_info['unit'] = FIFF.FIFF_UNIT_T
-
-            elif chan_vv.startswith('RFM'):
-                chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_MAG
-                chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-                chan_info['unit'] = FIFF.FIFF_UNIT_T
-
-            elif chan_vv.startswith('RFG'):
-                chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
-                chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-                chan_info['unit'] = FIFF.FIFF_UNIT_T_M
-                if chan_4d in ('GxxA', 'GyyA'):
-                    chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA
-                elif chan_4d in ('GyxA', 'GzxA', 'GzyA'):
-                    chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF
-
-            elif chan_vv.startswith('EEG'):
-                chan_info['kind'] = FIFF.FIFFV_EEG_CH
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
-                chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-                chan_info['unit'] = FIFF.FIFF_UNIT_V
-
-            elif chan_vv == 'STI 013':
-                chan_info['kind'] = FIFF.FIFFV_RESP_CH
-            elif chan_vv == 'STI 014':
-                chan_info['kind'] = FIFF.FIFFV_STIM_CH
-            elif chan_vv.startswith('EOG'):
-                chan_info['kind'] = FIFF.FIFFV_EOG_CH
-            elif chan_vv == 'ECG 001':
-                chan_info['kind'] = FIFF.FIFFV_ECG_CH
-            elif chan_vv.startswith('EXT'):
-                chan_info['kind'] = FIFF.FIFFV_MISC_CH
-            elif chan_vv.startswith('UTL'):
-                chan_info['kind'] = FIFF.FIFFV_MISC_CH
-
-            chs.append(chan_info)
-
-        info['chs'] = chs
-        if head_shape_fname:
-            logger.info('... Reading digitization points from %s' %
-                        head_shape_fname)
-            if convert:
-                logger.info('... putting digitization points in Neuromag c'
-                            'oordinates')
-            info['dig'], ctf_head_t = _process_bti_headshape(
-                head_shape_fname, convert=convert, use_hpi=use_hpi)
-
-            logger.info('... Computing new device to head transform.')
-            # DEV->CTF_DEV->CTF_HEAD->HEAD
-            if convert:
-                t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
-                                       'meg', 'ctf_head')
-                dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
-            else:
-                dev_head_t = Transform('meg', 'head', np.eye(4))
-            logger.info('Done.')
-        else:
-            logger.info('... no headshape file supplied, doing nothing.')
             dev_head_t = Transform('meg', 'head', np.eye(4))
-            ctf_head_t = Transform('ctf_head', 'head', np.eye(4))
-        info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
-                    ctf_head_t=ctf_head_t)
+        logger.info('Done.')
+    else:
+        logger.info('... no headshape file supplied, doing nothing.')
+        dev_head_t = Transform('meg', 'head', np.eye(4))
+        ctf_head_t = Transform('ctf_head', 'head', np.eye(4))
+    info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
+                ctf_head_t=ctf_head_t)
 
-        if False:  # XXX : reminds us to support this as we go
-            # include digital weights from reference channel
-            comps = info['comps'] = list()
-            weights = bti_info['weights']
+    if False:  # XXX : reminds us to support this as we go
+        # include digital weights from reference channel
+        comps = info['comps'] = list()
+        weights = bti_info['weights']
 
-            def by_name(x):
-                return x[1]
-            chn = dict(ch_mapping)
-            columns = [chn[k] for k in weights['dsp_ch_names']]
-            rows = [chn[k] for k in weights['ch_names']]
-            col_order, col_names = zip(*sorted(enumerate(columns),
-                                               key=by_name))
-            row_order, row_names = zip(*sorted(enumerate(rows), key=by_name))
-            # for some reason the C code would invert the signs, so we follow.
-            mat = -weights['dsp_wts'][row_order, :][:, col_order]
-            comp_data = dict(data=mat,
-                             col_names=col_names,
-                             row_names=row_names,
-                             nrow=mat.shape[0], ncol=mat.shape[1])
-            comps += [dict(data=comp_data, ctfkind=101,
-                           #  no idea how to calibrate, just ones.
-                           rowcals=np.ones(mat.shape[0], dtype='>f4'),
-                           colcals=np.ones(mat.shape[1], dtype='>f4'),
-                           save_calibrated=0)]
-        else:
-            logger.warning('Warning. Currently direct inclusion of 4D weight t'
-                           'ables is not supported. For critical use cases '
-                           '\nplease take into account the MNE command '
-                           '\'mne_create_comp_data\' to include weights as '
-                           'printed out \nby the 4D \'print_table\' routine.')
+        def by_name(x):
+            return x[1]
+        chn = dict(ch_mapping)
+        columns = [chn[k] for k in weights['dsp_ch_names']]
+        rows = [chn[k] for k in weights['ch_names']]
+        col_order, col_names = zip(*sorted(enumerate(columns),
+                                           key=by_name))
+        row_order, row_names = zip(*sorted(enumerate(rows), key=by_name))
+        # for some reason the C code would invert the signs, so we follow.
+        mat = -weights['dsp_wts'][row_order, :][:, col_order]
+        comp_data = dict(data=mat,
+                         col_names=col_names,
+                         row_names=row_names,
+                         nrow=mat.shape[0], ncol=mat.shape[1])
+        comps += [dict(data=comp_data, ctfkind=101,
+                       #  no idea how to calibrate, just ones.
+                       rowcals=np.ones(mat.shape[0], dtype='>f4'),
+                       colcals=np.ones(mat.shape[1], dtype='>f4'),
+                       save_calibrated=0)]
+    else:
+        logger.warning('Warning. Currently direct inclusion of 4D weight t'
+                       'ables is not supported. For critical use cases '
+                       '\nplease take into account the MNE command '
+                       '\'mne_create_comp_data\' to include weights as '
+                       'printed out \nby the 4D \'print_table\' routine.')
 
-        # check that the info is complete
-        assert set(RAW_INFO_FIELDS) == set(info.keys())
-
-        # check nchan is correct
-        assert len(info['ch_names']) == info['nchan']
-
-        logger.info('Reading raw data from %s...' % pdf_fname)
-        data = _read_data(bti_info)
-        assert len(data) == len(info['ch_names'])
-        self._projector_hashes = [None]
-        super(RawBTi, self).__init__(
-            info, data, filenames=[pdf_fname], verbose=verbose)
-        logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
-                    self.first_samp, self.last_samp,
-                    float(self.first_samp) / info['sfreq'],
-                    float(self.last_samp) / info['sfreq']))
-        logger.info('Ready.')
+    # check that the info is complete
+    info._check_consistency()
+    return info, bti_info
 
 
 @verbose

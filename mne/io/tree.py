@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import struct
 import numpy as np
 
 from .constants import FIFF
@@ -148,7 +147,7 @@ def copy_tree(fidin, in_id, nodes, fidout):
                 fidin.seek(d.pos, 0)
 
                 s = fidin.read(4 * 4)
-                tag = Tag(*struct.unpack(">iIii", s))
+                tag = Tag(*np.fromstring(s, dtype=('>i4,>I4,>i4,>i4'))[0])
                 tag.data = np.fromstring(fidin.read(tag.size), dtype='>B')
 
                 _write(fidout, tag.data, tag.kind, 1, tag.type, '>B')

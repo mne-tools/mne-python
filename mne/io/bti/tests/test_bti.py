@@ -15,12 +15,12 @@ from nose.tools import assert_true, assert_raises, assert_equal
 from mne.io import Raw as Raw
 from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_data, _read_bti_header, _get_bti_dev_t,
-                            _correct_trans)
+                            _correct_trans, _get_bti_info)
 from mne.io import read_raw_bti
 from mne import concatenate_raws
 from mne.utils import run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
-
+from mne.externals import six
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
 
@@ -151,6 +151,22 @@ def test_raw():
         os.remove(tmp_raw_fname)
 
 
+def test_info_no_rename_no_reorder():
+    """ Test private renaming and reordering option """
+    for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
+        info, bti_info = _get_bti_info(
+            pdf_fname=pdf, config_fname=config, head_shape_fname=hs,
+            rotation_x=0.0, translation=(0.0, 0.02, 0.11), convert=False,
+            ecg_ch='E31', eog_ch=('E63', 'E64'),
+            rename_channels=False, sort_by_ch_name=False)
+        assert_equal(info['ch_names'],
+                     [ch['ch_name'] for ch in info['chs']])
+        assert_equal([n for n in info['ch_names'] if n.startswith('A')][:5],
+                     ['A22', 'A2', 'A104', 'A241', 'A138'])
+        assert_equal([n for n in info['ch_names'] if n.startswith('A')][-5:],
+                     ['A133', 'A158', 'A44', 'A134', 'A216'])
+
+
 def test_no_conversion():
     """ Test bti no-conversion option """
     for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
@@ -185,6 +201,22 @@ def test_no_conversion():
             t3 = raw_con.info['chs'][ii]['coil_trans']
             assert_array_equal(t1, t2)
             assert_true(not np.allclose(t1, t3))
+
+
+def test_bytes_io():
+    """ Test bti bytes-io API """
+    for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
+        raw = read_raw_bti(pdf, config, hs, convert=True)
+
+        with open(pdf, 'rb') as fid:
+            pdf = six.BytesIO(fid.read())
+        with open(config, 'rb') as fid:
+            config = six.BytesIO(fid.read())
+        with open(hs, 'rb') as fid:
+            hs = six.BytesIO(fid.read())
+        raw2 = read_raw_bti(pdf, config, hs, convert=True)
+        repr(raw2)
+        assert_array_equal(raw._data, raw2._data)
 
 
 def test_setup_headshape():
