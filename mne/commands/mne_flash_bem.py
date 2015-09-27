@@ -73,8 +73,8 @@ def run():
     show = options.show
 
     if options.subject is None:
-      parser.print_help()
-      raise RuntimeError('The subject argument must be set')
+        parser.print_help()
+        raise RuntimeError('The subject argument must be set')
 
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
                    noflash30=noflash30, noconvert=noconvert, unwarp=unwarp,
