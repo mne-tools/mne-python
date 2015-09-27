@@ -1369,23 +1369,22 @@ def write_bem_solution(fname, bem):
 
 def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
                    unwarp=False, show=False):
-    """
-    Create 3-Layers BEM model from Flash MRI images
+    """Create 3-Layers BEM model from Flash MRI images
 
     Parameters
     -----------
     subject : string
-        Subject name
+        Subject name.
     subjects_dir : string
-        Directory containing subjects data (Freesurfer SUBJECTS_DIR)
+        Directory containing subjects data (Freesurfer SUBJECTS_DIR).
     noflash30 : bool
-        Skip the 30-degree flip angle data
+        Skip the 30-degree flip angle data.
     noconvert : bool
         Assume that the Flash MRI images have already been converted
-        to mgz files
+        to mgz files.
     show : bool
         Show surfaces in 3D to visually inspect all three BEM
-        surfaces (recommended)
+        surfaces (recommended).
 
     Notes
     -----
@@ -1470,11 +1469,9 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
                 if op.isfile(dest_file):
                     logger.info("The file %s is already there")
                 else:
-                    cmd = ['mri_convert',
-                           sample_file,
-                           dest_file]
+                    cmd = ['mri_convert', sample_file, dest_file]
                     run_subprocess(cmd, env=env, stdout=sys.stdout)
-                    echos_done = echos_done + 1
+                    echos_done += 1
     # Step 1b : Run grad_unwarp on converted files
     os.chdir(op.join(mri_dir, "flash"))
     files = glob.glob("mef*.mgz")
