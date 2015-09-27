@@ -7,7 +7,6 @@ from __future__ import print_function
 
 import socket
 import time
-import struct
 from ..externals.six.moves import StringIO
 import threading
 
@@ -43,7 +42,7 @@ def _recv_tag_raw(sock):
     if len(s) != 16:
         raise RuntimeError('Not enough bytes received, something is wrong. '
                            'Make sure the mne_rt_server is running.')
-    tag = Tag(*struct.unpack(">iiii", s))
+    tag = Tag(*np.fromstring(s, '>i4'))
     n_received = 0
     rec_buff = [s]
     while n_received < tag.size:

@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import struct
 import os
 import gzip
 import numpy as np
@@ -142,7 +141,7 @@ def read_tag_info(fid):
     s = fid.read(4 * 4)
     if len(s) == 0:
         return None
-    tag = Tag(*struct.unpack(">iiii", s))
+    tag = Tag(*np.fromstring(s, '>i4'))
     if tag.next == 0:
         fid.seek(tag.size, 1)
     elif tag.next > 0:
@@ -218,7 +217,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
         fid.seek(pos, 0)
 
     s = fid.read(4 * 4)
-    tag = Tag(*struct.unpack(">iIii", s))
+    tag = Tag(*np.fromstring(s, '>i4'))
 
     #
     #   The magic hexadecimal values
@@ -469,7 +468,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 tag.data = list()
                 for _ in range(tag.size // 16 - 1):
                     s = fid.read(4 * 4)
-                    tag.data.append(Tag(*struct.unpack(">iIii", s)))
+                    tag.data.append(Tag(* np.fromstring(s, '>i4')))
             elif tag.type == FIFF.FIFFT_JULIAN:
                 tag.data = int(np.fromstring(fid.read(4), dtype=">i4"))
                 tag.data = jd2jcal(tag.data)
