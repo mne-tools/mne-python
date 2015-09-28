@@ -411,9 +411,10 @@ slider_template = HTMLTemplate(u"""
 """)
 
 slider_full_template = Template(u"""
+<li class="{{div_klass}}" id="{{id}}">
 <h4>{{section}}</h4>
 <div class="thumbnail">
-    <li class="slider" id="{{id}}">
+    <ul><li class="slider">
         <div class="row">
             <div class="col-md-6 col-md-offset-3">
                 <div id="{{slider_id}}"></div>
@@ -421,11 +422,14 @@ slider_full_template = Template(u"""
                     {{image_html}}
                 </ul>
                 {{html}}
+                </div>
             </div>
         </div>
-    </li>
+    </li></ul>
 </div>
+</li>
 """)
+
 
 def _build_html_slider(slices_range, slides_klass, slider_id,
                        start_value=None):
@@ -1081,8 +1085,7 @@ class Report(object):
 
         html = []
         slides_klass = '%s-%s' % (name, global_id)
-        # div_klass = 'span12 %s' % slides_klass
-        div_klass = sectionvar
+        div_klass = 'span12 %s' % slides_klass
 
         if isinstance(figs[0], list):
             figs = figs[0]
@@ -1125,8 +1128,10 @@ class Report(object):
                                        start_value=0))
         html = '\n'.join(html)
 
+        slider_klass = sectionvar
         self.html.append(
             slider_full_template.substitute(id=global_id, section=section,
+                                            div_klass=slider_klass,
                                             slider_id=slider_id, html=html,
                                             image_html=image_html))
 
