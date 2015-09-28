@@ -57,7 +57,6 @@ def test_coreg_model():
     lpa_distance = model.lpa_distance
     nasion_distance = model.nasion_distance
     rpa_distance = model.rpa_distance
-    avg_point_distance = np.mean(model.point_distance)
 
     model.fit_auricular_points()
     old_x = lpa_distance ** 2 + rpa_distance ** 2
@@ -70,6 +69,15 @@ def test_coreg_model():
              model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
+    # By default, use_eeg_locations==True
+    avg_point_distance = np.mean(model.point_distance)
+    model.fit_hsp_points()
+    assert_true(np.mean(model.point_distance) < avg_point_distance)
+
+    # Repeat test without EEG electrode locations
+    model.use_eeg_locations = False
+    model.apply_eeg_filter()
+    avg_point_distance = np.mean(model.point_distance)
     model.fit_hsp_points()
     assert_true(np.mean(model.point_distance) < avg_point_distance)
 
