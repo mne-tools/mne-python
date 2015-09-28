@@ -9,7 +9,7 @@ from nose.tools import assert_raises, assert_equal, assert_true
 import warnings
 
 from mne.io import read_info, Raw
-from mne.io.chpi import _rot_to_quat, _quat_to_rot, get_chpi_positions
+from mne.chpi import _rot_to_quat, _quat_to_rot, get_chpi_positions
 from mne.utils import run_tests_if_main, _TempDir
 from mne.datasets import testing
 

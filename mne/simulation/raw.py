@@ -15,7 +15,8 @@ from ..io.pick import pick_types, pick_info, pick_channels
 from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
-from ..io import RawArray, _BaseRaw, get_chpi_positions
+from ..io import RawArray, _BaseRaw
+from ..chpi import get_chpi_positions
 from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,

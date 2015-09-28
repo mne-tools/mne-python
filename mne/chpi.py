@@ -5,10 +5,10 @@
 import numpy as np
 from os import path as op
 
-from .pick import pick_types
-from .base import _BaseRaw
-from ..utils import verbose
-from ..externals.six import string_types
+from .io.pick import pick_types
+from .io.base import _BaseRaw
+from .utils import verbose
+from .externals.six import string_types
 
 
 @verbose

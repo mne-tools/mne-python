@@ -81,6 +81,7 @@ from .channels import equalize_channels, rename_channels, find_layout
 
 from . import beamformer
 from . import channels
+from . import chpi
 from . import commands
 from . import connectivity
 from . import coreg
@@ -89,6 +90,7 @@ from . import datasets
 from . import epochs
 from . import externals
 from . import io
+io.get_chpi_positions = chpi.get_chpi_positions  # for backward compat
 from . import filter
 from . import gui
 from . import minimum_norm
