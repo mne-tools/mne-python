@@ -286,6 +286,7 @@ class InstSource(HasPrivateTraits):
     points_filter = Any(desc="Index to select a subset of the head shape "
                         "points")
     n_omitted = Property(Int, depends_on=['points_filter'])
+    n_omitted_types = Property(depends_on=['n_omitted'])
 
     # head shape, where EEG is included but can be filtered out
     inst_points = Property(depends_on='inst', desc="Head shape points in the "
@@ -320,6 +321,21 @@ class InstSource(HasPrivateTraits):
             return np.sum(self.points_filter == False)  # noqa
 
     @cached_property
+    def _get_n_omitted_types(self):
+        if self.points_filter is None:
+            return dict(EEG=0, HSP=0)
+        elif np.sum(self.points_filter) == len(self.points_filter):
+            return dict(EEG=0, HSP=0)
+        else:
+            omitted_types = self.points_type[~self.points_filter]  # noqa
+            # use minlength-parameter, assumes EXTRA is the largest!
+            n_omitted = np.bincount(omitted_types,
+                                    minlength=FIFF.FIFFV_POINT_EXTRA + 1)
+            return dict(EEG=n_omitted[FIFF.FIFFV_POINT_EEG],
+                        HSP=n_omitted[FIFF.FIFFV_POINT_EXTRA])
+            # returns dict hard-coded to only specify EEG and EXTRA points
+
+    @cached_property
     def _get_inst(self):
         if self.file:
             return read_info(self.file)
@@ -338,7 +354,7 @@ class InstSource(HasPrivateTraits):
     @cached_property
     def _get_inst_points(self):
         if not self.inst:
-            return np.zeros((1, 3))  # why not just None?
+            return np.zeros((0, 3))  # why not just None?
 
         points = np.array([d['r'] for d in self.inst['dig']
                            if (d['kind'] == FIFF.FIFFV_POINT_EXTRA or
@@ -348,7 +364,7 @@ class InstSource(HasPrivateTraits):
     @cached_property
     def _get_points_type(self):
         if not self.inst:
-            return np.zeros((1, 3))  # why not just None?
+            return np.zeros((0, 3), dtype=np.int)  # FIFFV_POINTs are ints
 
         points_type = np.array([d['kind'] for d in self.inst['dig']
                                 if (d['kind'] == FIFF.FIFFV_POINT_EXTRA or

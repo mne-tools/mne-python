@@ -106,7 +106,6 @@ class CoregModel(HasPrivateTraits):
     has_fid_data = Property(Bool, depends_on=['mri_origin', 'hsp.nasion'],
                             desc="Required fiducials data is present.")
     has_pts_data = Property(Bool, depends_on=['mri.points', 'hsp.points'])
-    dig_points = Property(depends_on=['hsp.inst_points'])
 
     # MRI dependent
     mri_origin = Property(depends_on=['mri.nasion', 'scale'],
@@ -340,6 +339,8 @@ class CoregModel(HasPrivateTraits):
             self.mri.subject = 'fsaverage'
 
     def apply_eeg_filter(self):
+        """Either in- or exclude EEG locations in head shape points,
+        depending on the setting of the tickbox."""
         with warnings.catch_warnings(record=True):  # comp to None in Traits
             if self.hsp.points_filter is None:
                 self.hsp.points_filter = \
@@ -1381,9 +1382,15 @@ class CoregFrame(HasTraits):
         if self.model.hsp.n_omitted == 0:
             return "No points omitted"
         elif self.model.hsp.n_omitted == 1:
-            return "1 point omitted"
+            omit_str = "1 point"
         else:
-            return "%i points omitted" % self.model.hsp.n_omitted
+            omit_str = "%i points" % self.model.hsp.n_omitted
+
+        omit_str += " out of %d omitted (HSP: %d; EEG: %d)" % \
+                    (len(self.model.hsp.inst_points),
+                     self.model.hsp.n_omitted_types['HSP'],
+                     self.model.hsp.n_omitted_types['EEG'])
+        return omit_str
 
     def _omit_points_fired(self):
         distance = self.distance / 1000.
