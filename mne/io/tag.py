@@ -218,7 +218,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
 
     s = fid.read(4 * 4)
 
-    tag = Tag(*np.fromstring(s, dtype=('>i4,>I4,>i4,>i4'))[0])
+    tag = Tag(*np.fromstring(s, dtype='>i4,>u4,>i4,>i4')[0])
 
     #
     #   The magic hexadecimal values
@@ -470,7 +470,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 for _ in range(tag.size // 16 - 1):
                     s = fid.read(4 * 4)
                     tag.data.append(Tag(*np.fromstring(
-                        s, dtype=('>i4,>I4,>i4,>i4'))[0]))
+                        s, dtype='>i4,>u4,>i4,>i4')[0]))
             elif tag.type == FIFF.FIFFT_JULIAN:
                 tag.data = int(np.fromstring(fid.read(4), dtype=">i4"))
                 tag.data = jd2jcal(tag.data)
