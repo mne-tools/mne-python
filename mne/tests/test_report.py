@@ -222,6 +222,30 @@ def test_add_htmls_to_section():
     assert_true(html in html_compare)
 
 
+def test_add_slider_to_section():
+    """Test adding a slider with a series of images to mne report.
+    """
+    tempdir = _TempDir()
+    from matplotlib import pyplot as plt
+    report = Report(info_fname=raw_fname,
+                    subject='sample', subjects_dir=subjects_dir)
+    section = 'slider_section'
+    figs = list()
+    figs.append(plt.figure())
+    plt.plot([1, 2, 3])
+    plt.close('all')
+    figs.append(plt.figure())
+    plt.plot([3, 2, 1])
+    plt.close('all')
+    report.add_slider_to_section(figs, section=section)
+    report.save(op.join(tempdir, 'report.html'), open_browser=False)
+
+    assert_raises(NotImplementedError, report.add_slider_to_section,
+                  [figs, figs])
+    assert_raises(ValueError, report.add_slider_to_section, figs, ['wug'])
+    assert_raises(TypeError, report.add_slider_to_section, figs, 'wug')
+
+
 def test_validate_input():
     report = Report()
     items = ['a', 'b', 'c']

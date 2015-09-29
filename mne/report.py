@@ -49,9 +49,14 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 def _scene_to_fig(fig):
     from scipy.misc import imread
     import matplotlib.pyplot as plt
-    from mayavi import mlab  # noqa, mlab imported
-    import mayavi
-
+    mayavi = None
+    try:
+        from mayavi import mlab  # noqa, mlab imported
+        import mayavi
+    except:  # on some systems importing Mayavi raises SystemExit (!)
+        warnings.warn('Could not import mayavi. Trying to render '
+                      '`mayavi.core.scene.Scene` figure instances'
+                      ' will throw an error.')
     tempdir = _TempDir()
     temp_fname = op.join(tempdir, 'test')
     if fig.scene is not None:
@@ -64,6 +69,8 @@ def _scene_to_fig(fig):
     fig = plt.figure()
     plt.imshow(img)
     plt.axis('off')
+
+    return fig
 
 
 def _fig_to_img(function=None, fig=None, image_format='png',
@@ -848,13 +855,13 @@ class Report(object):
         """
         mayavi = None
         try:
-            # on some version mayavi.core won't be exposed unless ...
             from mayavi import mlab  # noqa, mlab imported
             import mayavi
         except:  # on some systems importing Mayavi raises SystemExit (!)
             warnings.warn('Could not import mayavi. Trying to render '
                           '`mayavi.core.scene.Scene` figure instances'
                           ' will throw an error.')
+
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
         _check_scale(scale)
@@ -1048,7 +1055,7 @@ class Report(object):
             Each figure in the list can be an instance of
             matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
             or np.ndarray (images read in using scipy.imread).
-        captions : list of str | float | None
+        captions : list of str | list of float | None
             A list of captions to the figures. If float, a str will be
             constructed as `%f s`. If None, it will default to
             `Data slice %d`.
@@ -1093,16 +1100,17 @@ class Report(object):
         slices = []
         img_klass = 'slideimg-%s' % name
 
-        if isinstance(captions, float):
-            assert len(figs) == len(captions)
-            captions = ['%0.3f s' % caption for caption in captions]
-        elif captions is None:
+        if captions is None:
             captions = ['Data slice %d' % ii for ii in sl]
-        elif isinstance(captions[0], str):
-            pass
+        elif isinstance(captions, (list, tuple)):
+            if len(figs) != len(captions):
+                raise ValueError('Captions must be the same length as the '
+                                 'number of slides.')
+            if isinstance(captions[0], (float, int)):
+                captions = ['%0.3f s' % caption for caption in captions]
         else:
-            raise TypeError('Captions must be iterable of float, str, '
-                            'or None. Got %s' % type(captions))
+            raise TypeError('Captions must be None or an iterable of '
+                            'float, int, str, Got %s' % type(captions))
         for ii, (fig, caption) in enumerate(zip(figs, captions)):
             mayavi = None
             try:
