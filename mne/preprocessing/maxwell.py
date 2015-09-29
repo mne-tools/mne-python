@@ -32,8 +32,15 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     ext_order : int
         Order of external component of spherical expansion
     st_dur : float | None
-        If not None, apply spatiotemporal tSSS with specified buffer duration
-        (in seconds). Elekta's default is 10.0 seconds in MaxFilter v2.2
+        If not None, apply spatiotemporal SSS with specified buffer duration
+        (in seconds). Elekta's default is 10.0 seconds in MaxFilter v2.2.
+        Spatiotemporal SSS acts as implicitly as a high-pass filter where the
+        cut-off frequency is 1/st_dur Hz. For this (and other) reasons, longer
+        buffers are generally better as long as your system can handle the
+        higher memory usage. To ensure that each window is processed
+        identically, choose a buffer length that divides evenly into your data.
+        Any data at the trailing edge that doesn't fit evenly into a whole
+        buffer window will be lumped into the previous buffer.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -146,20 +153,19 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         # Generate time points to break up data in to windows
         lims = raw.time_as_index(np.arange(times[0], times[-1], st_dur))
         len_last_buf = raw.times[-1] - raw.index_as_time(lims[-1])[0]
-        if len_last_buf >= st_dur:
+        if len_last_buf == st_dur:
             lims = np.concatenate([lims, [len(raw.times)]])
         else:
-            # Truncate signal if final window is not present
-            raw_sss.crop(lims[0] / raw.info['sfreq'],
-                         lims[-1] / raw.info['sfreq'], copy=False)
+            # len_last_buf < st_dur so fold it into the previous buffer
+            lims[-1] = len(raw.times)
             logger.info('Spatiotemporal window did not fit evenly into raw '
-                        'object. The final %0.2f seconds were truncated.' %
-                        len_last_buf)
+                        'object. The final %0.2f seconds were lumped onto '
+                        'the previous window.' % len_last_buf)
 
         # Loop through buffer windows of data
         for win in zip(lims[:-1], lims[1:]):
 
-            # Compute SSP-like projector
+            # Compute SSP-like projector. Set overlap limit to 0.02
             proj = _overlap_projector(recon[:, win[0]:win[1]],
                                       resid[:, win[0]:win[1]], 0.02,
                                       (win[0] / raw.info['sfreq'],
