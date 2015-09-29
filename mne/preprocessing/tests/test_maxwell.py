@@ -194,7 +194,8 @@ def test_bads_reconstruction():
     bench_rms = np.sqrt(np.mean(raw_sss._data[meg_chs, :] ** 2, axis=1))
     error = raw_sss._data[meg_chs, :] - sss_bench._data[meg_chs, :]
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
-    assert_true(np.mean(bench_rms / error_rms) >= 1000, 'SNR < 1000')
+    assert_true(np.mean(bench_rms / error_rms) >= 1000,
+                'SNR (%0.1f) < 1000' % np.mean(bench_rms / error_rms))
 
 
 @testing.requires_testing_data
@@ -226,10 +227,11 @@ def test_spatiotemporal_maxwell():
                     rtol=1e-12, atol=1e-4, err_msg='Spatiotemporal (tSSS) '
                     'maxwell filtered data at standard origin incorrect.')
 
-    # Confirm SNR is above 500. Single precision is part of discrepancy
+    # Confirm SNR is above 250. Single precision is part of discrepancy
     bench_rms = np.sqrt(np.mean(tsss_bench._data[picks, :] ** 2, axis=1))
     error = raw_tsss._data[picks, :] - tsss_bench._data[picks, :]
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
-    assert_true(np.mean(bench_rms / error_rms) >= 500, 'SNR < 500')
+    assert_true(np.mean(bench_rms / error_rms) >= 250,
+                'SNR (%0.1f) < 250' % np.mean(bench_rms / error_rms))
 
 run_tests_if_main()

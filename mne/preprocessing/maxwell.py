@@ -9,6 +9,7 @@ import numpy as np
 from scipy.linalg import pinv, svd, qr, norm, orth
 from math import factorial
 
+from .. import pick_types
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..io.write import _generate_meas_id, _date_now
@@ -81,8 +82,6 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # See mathworld.wolfram.com/SphericalHarmonic.html for more discussion.
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
-    if len(raw.info['bads']) > 0:
-        raise RuntimeError('Maxwell filter does not yet handle bad channels.')
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
     if 'dev_head_t' not in raw.info.keys():
@@ -99,16 +98,13 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
                                                    verbose=False)
 
     # Create coil list and pick MEG channels
-    picks = [raw.info['ch_names'].index(coil['chname'])
-             for coil in all_coils]
-    coils = [all_coils[ci] for ci in picks]
     raw.load_data()
 
     # Get indices of channels to use in multipolar moment calculation
     good_chs = pick_types(raw.info, meg=True, exclude='bads')
     # Get indices of MEG channels
     meg_chs = pick_types(raw.info, meg=True, exclude=[])
-	data, times = raw[picks, :]
+    data, times = raw[good_chs, :]
 
     meg_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
                                                    elekta_defs=True)
@@ -127,7 +123,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     S_in_good, S_out_good = S_in[good_chs, :], S_out[good_chs, :]
     S_in_good_norm = np.sqrt(np.sum(S_in_good * S_in_good, axis=0))[:,
                                                                     np.newaxis]
-
+    S_out_good_norm = \
+        np.sqrt(np.sum(S_out_good * S_out_good, axis=0))[:, np.newaxis]
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
     S_tot_good = np.c_[S_in_good, S_out_good]
     S_tot_good /= np.sqrt(np.sum(S_tot_good * S_tot_good, axis=0))[np.newaxis,
@@ -137,18 +134,28 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
     mm = np.dot(pS_tot_good, data * coil_scale[good_chs][:, np.newaxis])
     # Reconstruct data from internal space (Eq. 38)
-    recon = np.dot(S_in, mm[:S_in.shape[1], :]) / coil_scale[:, np.newaxis]
+    recon = np.dot(S_in, mm[:S_in.shape[1], :] / S_in_good_norm)
 
     raw_sss = raw.copy()
+    raw_sss._data[meg_chs, :] = recon[:, 0:raw_sss.n_times] /\
+        coil_scale[:, np.newaxis]
+
+    # Reset 'bads' for any MEG channels since they've been reconstructed
+    bad_inds = [raw_sss.info['ch_names'].index(ch)
+                for ch in raw_sss.info['bads']]
+    raw_sss.info['bads'] = [raw_sss.info['ch_names'][bi] for bi in bad_inds
+                            if bi not in meg_chs]
+
+    # Reconstruct raw file object with spatiotemporal processed data
     if st_dur is not None:
         if st_dur > times[-1]:
             raise ValueError('st_dur (%0.1fs) longer than length of signal in '
                              'raw (%0.1fs).' % (st_dur, times[-1]))
         logger.info('Processing data using tSSS with st_dur=%s' % st_dur)
         # Reconstruct data from external space and compute residual
-        recon_out = np.dot(S_out, mm[S_in.shape[1]:, :]) /\
+        recon_out = np.dot(S_out, mm[S_in.shape[1]:, :] / S_out_good_norm) /\
             coil_scale[:, np.newaxis]
-        resid = data - (recon + recon_out)
+        resid = data - (raw_sss._data[meg_chs, :] + recon_out)
 
         # Generate time points to break up data in to windows
         lims = raw.time_as_index(np.arange(times[0], times[-1], st_dur))
@@ -166,19 +173,18 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         for win in zip(lims[:-1], lims[1:]):
 
             # Compute SSP-like projector. Set overlap limit to 0.02
-            proj = _overlap_projector(recon[:, win[0]:win[1]],
+            proj = _overlap_projector(raw_sss._data[meg_chs, win[0]:win[1]],
                                       resid[:, win[0]:win[1]], 0.02,
                                       (win[0] / raw.info['sfreq'],
                                        win[1] / raw.info['sfreq']))
 
             # Apply projector according to Eq. 12 in [2]_
-            recon[:, win[0]:win[1]] = \
-                np.dot(proj, recon[:, win[0]:win[1]].T).T
+            raw_sss._data[:, win[0]:win[1]] = \
+                np.dot(proj, raw_sss._data[:, win[0]:win[1]].T).T
 
-    # Return reconstructed raw file object with spatiotemporal processed data
+    # Update info
     raw_sss = _update_sss_info(raw_sss, origin, int_order, ext_order,
                                data.shape[0])
-    raw_sss._data[picks, :] = recon[:, 0:raw_sss.n_times]
 
     return raw_sss
 
