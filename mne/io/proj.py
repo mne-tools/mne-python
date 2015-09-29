@@ -162,7 +162,7 @@ class ProjMixin(object):
                 for ii, e in enumerate(self._data):
                     self._data[ii] = self._project_epoch(e)
             else:
-                self.preload_data()  # will automatically apply
+                self.load_data()  # will automatically apply
         else:  # Evoked
             self.data = np.dot(self._projector, self.data)
         logger.info('SSP projectors applied...')

@@ -57,7 +57,7 @@ def test_read_pdf():
 def test_crop_append():
     """ Test crop and append raw """
     raw = read_raw_bti(pdf_fnames[0], config_fnames[0], hs_fnames[0])
-    raw.preload_data()  # currently does nothing
+    raw.load_data()  # currently does nothing
     y, t = raw[:]
     t0, t1 = 0.25 * t[-1], 0.75 * t[-1]
     mask = (t0 <= t) * (t <= t1)

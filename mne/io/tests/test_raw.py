@@ -13,7 +13,7 @@ def _test_concat(reader, *args):
         raw1 = reader(*args, preload=preload)
         raw2 = reader(*args, preload=preload)
         raw1.append(raw2)
-        raw1.preload_data()
+        raw1.load_data()
         if data is None:
             data = raw1[:, :][0]
         assert_allclose(data, raw1[:, :][0])
@@ -25,13 +25,13 @@ def _test_concat(reader, *args):
                 print(first_preload, preloads, last_preload)
                 raw1 = raw.crop(0, 0.4999)
                 if preloads[0]:
-                    raw1.preload_data()
+                    raw1.load_data()
                 raw2 = raw.crop(0.5, None)
                 if preloads[1]:
-                    raw2.preload_data()
+                    raw2.load_data()
                 raw1.append(raw2)
                 if last_preload:
-                    raw1.preload_data()
+                    raw1.load_data()
                 assert_allclose(data, raw1[:, :][0])
 
 

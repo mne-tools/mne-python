@@ -132,7 +132,7 @@ def test_read_segment():
     for preload in (buffer_fname, True, False):  # false here means "delayed"
         raw2 = read_raw_edf(edf_path, stim_channel=None, preload=preload)
         if preload is False:
-            raw2.preload_data()
+            raw2.load_data()
         raw2_file = op.join(tempdir, 'test2-raw.fif')
         raw2.save(raw2_file, overwrite=True)
         data2, times2 = raw2[:139, :]

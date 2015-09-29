@@ -75,7 +75,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
                            'channels.')
     logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
 
-    raw.preload_data()
+    raw.load_data()
 
     # Get indices of channels to use in multipolar moment calculation
     good_chs = pick_types(raw.info, meg=True, exclude='bads')

@@ -201,7 +201,7 @@ def test_decim():
         # split between init and afterward, with preload in between
         epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_1,
                         preload=preload)
-        epochs.preload_data()
+        epochs.load_data()
         epochs = epochs.decimate(dec_2)
         assert_allclose(epochs.get_data(), expected_data)
         assert_allclose(epochs.get_data(), expected_data)
@@ -209,7 +209,7 @@ def test_decim():
         assert_array_equal(epochs.times, expected_times)
         epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_2,
                         preload=preload)
-        epochs.preload_data()
+        epochs.load_data()
         epochs = epochs.decimate(dec_1)
         assert_allclose(epochs.get_data(), expected_data)
         assert_allclose(epochs.get_data(), expected_data)
@@ -227,7 +227,7 @@ def test_decim():
         # decimate afterward, with preload in between
         epochs = Epochs(raw, events, event_id, tmin, tmax,
                         preload=preload)
-        epochs.preload_data()
+        epochs.load_data()
         epochs.decimate(decim)
         assert_allclose(epochs.get_data(), expected_data)
         assert_allclose(epochs.get_data(), expected_data)
@@ -560,7 +560,7 @@ def test_read_write_epochs():
         assert_equal(epochs.drop_log, epochs_read.drop_log)
 
         # Test that having a single time point works
-        epochs.preload_data()
+        epochs.load_data()
         epochs.crop(0, 0, copy=False)
         assert_equal(len(epochs.times), 1)
         assert_equal(epochs.get_data().shape[-1], 1)
@@ -1348,7 +1348,7 @@ def test_delayed_epochs():
                                     picks=picks, proj=proj, reject=reject,
                                     preload=preload, decim=decim)
                     if ii == 1:
-                        epochs.preload_data()
+                        epochs.load_data()
                     picks_data = pick_types(epochs.info, meg=True, eeg=True)
                     evoked = epochs.average(picks=picks_data)
                     if proj is True:

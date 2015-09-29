@@ -39,7 +39,7 @@ def test_maxwell_filter():
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, preload=False, proj=False,
                   allow_maxshield=True).crop(0., 1., False)
-    raw.preload_data()
+    raw.load_data()
     with warnings.catch_warnings(record=True):  # maxshield, naming
         sss_std = Raw(sss_std_fname, preload=True, proj=False,
                       allow_maxshield=True)
@@ -124,7 +124,7 @@ def test_maxwell_filter_additional():
                   allow_maxshield=True).crop(0., 2., False)
 
     # Get MEG channels, compute Maxwell filtered data
-    raw.preload_data()
+    raw.load_data()
     raw.pick_types(meg=True, eeg=False)
     int_order, ext_order = 8, 3
     raw_sss = maxwell.maxwell_filter(raw, int_order=int_order,
@@ -168,7 +168,7 @@ def test_bads_reconstruction():
         raw = Raw(raw_fname, preload=False, proj=False,
                   allow_maxshield=True).crop(0., 1., False)
 
-    raw.preload_data()
+    raw.load_data()
 
     # Set 30 random bad MEG channels (20 grad, 10 mag)
     bads = ['MEG0912', 'MEG1722', 'MEG2213', 'MEG0132', 'MEG1312', 'MEG0432',

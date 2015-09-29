@@ -65,9 +65,9 @@ def test_hash_raw():
     raw = read_raw_fif(fif_fname)
     assert_raises(RuntimeError, raw.__hash__)
     raw = Raw(fif_fname).crop(0, 0.5, False)
-    raw.preload_data()
+    raw.load_data()
     raw_2 = Raw(fif_fname).crop(0, 0.5, False)
-    raw_2.preload_data()
+    raw_2.load_data()
     assert_equal(hash(raw), hash(raw_2))
     # do NOT use assert_equal here, failing output is terrible
     assert_equal(pickle.dumps(raw), pickle.dumps(raw_2))
@@ -197,8 +197,8 @@ def test_multiple_files():
     # split file
     tempdir = _TempDir()
     raw = Raw(fif_fname).crop(0, 10, False)
-    raw.preload_data()
-    raw.preload_data()  # test no operation
+    raw.load_data()
+    raw.load_data()  # test no operation
     split_size = 3.  # in seconds
     sfreq = raw.info['sfreq']
     nsamp = (raw.last_samp - raw.first_samp)
@@ -395,7 +395,7 @@ def test_io_raw():
 
     # Let's construct a simple test for IO first
     raw = Raw(fif_fname).crop(0, 3.5, False)
-    raw.preload_data()
+    raw.load_data()
     # put in some data that we know the values of
     data = np.random.randn(raw._data.shape[0], raw._data.shape[1])
     raw._data[:, :] = data
@@ -655,7 +655,7 @@ def test_filter():
     """Test filtering (FIR and IIR) and Raw.apply_function interface
     """
     raw = Raw(fif_fname).crop(0, 7, False)
-    raw.preload_data()
+    raw.load_data()
     sig_dec = 11
     sig_dec_notch = 12
     sig_dec_notch_fit = 12
@@ -773,7 +773,7 @@ def test_resample():
     """
     tempdir = _TempDir()
     raw = Raw(fif_fname).crop(0, 3, False)
-    raw.preload_data()
+    raw.load_data()
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample
@@ -971,7 +971,7 @@ def test_raw_index_as_time():
 def test_add_channels():
     """Test raw splitting / re-appending channel types
     """
-    raw = Raw(test_fif_fname).crop(0, 1).preload_data()
+    raw = Raw(test_fif_fname).crop(0, 1).load_data()
     raw_nopre = Raw(test_fif_fname, preload=False)
     raw_eeg_meg = raw.pick_types(meg=True, eeg=True, copy=True)
     raw_eeg = raw.pick_types(meg=False, eeg=True, copy=True)

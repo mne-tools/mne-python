@@ -116,7 +116,7 @@ def test_read_segment():
     assert_array_almost_equal(raw1._data, raw3._data)
     raw4 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
                         preload=False)
-    raw4.preload_data()
+    raw4.load_data()
     buffer_fname = op.join(tempdir, 'buffer')
     assert_array_almost_equal(raw1._data, raw4._data)
     raw5 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',

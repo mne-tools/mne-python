@@ -28,7 +28,7 @@ def test_io_egi():
         warnings.simplefilter('always', category=RuntimeWarning)
         raw = read_raw_egi(egi_fname, include=None)
         assert_true('RawEGI' in repr(raw))
-        raw.preload_data()  # currently does nothing
+        raw.load_data()  # currently does nothing
         assert_equal(len(w), 1)
         assert_true(w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
