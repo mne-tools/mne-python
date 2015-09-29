@@ -96,6 +96,14 @@ class Transform(dict):
                 % (_coord_frame_name(self['from']),
                    _coord_frame_name(self['to']), self['trans']))
 
+    @property
+    def from_str(self):
+        return _coord_frame_name(self['from'])
+
+    @property
+    def to_str(self):
+        return _coord_frame_name(self['to'])
+
 
 def _coord_frame_name(cframe):
     """Map integers to human-readable (verbose) names"""
@@ -155,11 +163,7 @@ def apply_trans(trans, pts, move=True):
         return pts.copy()
 
     # apply rotation & scale
-    if pts.ndim == 1:
-        out_pts = np.dot(trans[:3, :3], pts)
-    else:
-        out_pts = np.dot(pts, trans[:3, :3].T)
-
+    out_pts = np.dot(pts, trans[:3, :3].T)
     # apply translation
     if move is True:
         transl = trans[:3, 3]

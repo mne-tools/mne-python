@@ -19,7 +19,7 @@ from mne import (read_forward_solution, make_forward_solution,
                  pick_types_forward, pick_info, pick_types, Transform)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
                        run_tests_if_main, slow_test, run_subprocess)
-from mne.forward._make_forward import _create_coils
+from mne.forward._make_forward import _create_meg_coils
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
 from mne.forward import Forward
 from mne.source_space import (get_volume_labels_from_aseg,
@@ -87,7 +87,7 @@ def test_magnetic_dipole():
     info = read_info(fname_raw)
     picks = pick_types(info, meg=True, eeg=False, exclude=[])
     info = pick_info(info, picks[:12])
-    coils = _create_coils(info['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL, trans)
+    coils = _create_meg_coils(info['chs'], 'normal', trans)
     # magnetic dipole at device origin
     r0 = np.array([0., 13., -6.])
     for ch, coil in zip(info['chs'], coils):

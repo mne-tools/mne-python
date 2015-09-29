@@ -14,11 +14,15 @@ from nose.tools import assert_true, assert_raises
 
 from mne import (read_source_spaces, pick_types, read_trans, read_cov,
                  make_sphere_model, create_info, setup_volume_source_space)
+from mne.chpi import (_calculate_chpi_positions, get_chpi_positions,
+                      _get_hpi_info)
+from mne.tests.test_chpi import _compare_positions
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.io import Raw, RawArray
 from mne.time_frequency import compute_raw_psd
-from mne.utils import _TempDir, run_tests_if_main, requires_scipy_version
+from mne.utils import (_TempDir, run_tests_if_main, requires_scipy_version,
+                       slow_test)
 
 
 warnings.simplefilter('always')
@@ -32,10 +36,9 @@ trans_fname = op.join(data_path, 'MEG', 'sample',
 bem_path = op.join(data_path, 'subjects', 'sample', 'bem')
 src_fname = op.join(bem_path, 'sample-oct-2-src.fif')
 bem_fname = op.join(bem_path, 'sample-320-320-320-bem-sol.fif')
-raw_chpi_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')  # for a different raw
+raw_chpi_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
+pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_subsampled.pos')
 
 
 def _make_stc(raw, src):
@@ -176,7 +179,7 @@ def test_simulate_raw_sphere():
     assert_raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
                   head_pos=1.)
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
-                  head_pos=hp_fname)  # ends up with t>t_end
+                  head_pos=pos_fname)  # ends up with t>t_end
     head_pos_sim_err = deepcopy(head_pos_sim)
     head_pos_sim_err[-1.] = head_pos_sim_err[1.]  # negative time
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
@@ -203,6 +206,7 @@ def test_simulate_raw_bem():
     assert_true(np.median(np.diag(corr[:n_ch, -n_ch:])) > 0.9)
 
 
+@slow_test
 @requires_scipy_version('0.12')
 @testing.requires_testing_data
 def test_simulate_raw_chpi():
@@ -216,19 +220,25 @@ def test_simulate_raw_chpi():
     stc = _make_stc(raw, src)
     # simulate data with cHPI on
     raw_sim = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=False)
-    raw_chpi = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=True)
-    # XXX we need to test that the cHPI signals are actually in the correct
-    # place, but that should be a subsequent enhancement (not trivial to do so)
+    # need to trim extra samples off this one
+    raw_chpi = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=True,
+                            head_pos=pos_fname)
+    # test that the cHPI signals make some reasonable values
     psd_sim, freqs_sim = compute_raw_psd(raw_sim)
     psd_chpi, freqs_chpi = compute_raw_psd(raw_chpi)
     assert_array_equal(freqs_sim, freqs_chpi)
-    hpi_freqs = np.array([x['custom_ref'][0]
-                          for x in raw.info['hpi_meas'][0]['hpi_coils']])
+    hpi_freqs = _get_hpi_info(raw.info)[0]
     freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f)) for f in hpi_freqs])
     picks_meg = pick_types(raw.info, meg=True, eeg=False)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
-    assert_allclose(psd_sim[picks_eeg], psd_chpi[picks_eeg])
+    assert_allclose(psd_sim[picks_eeg], psd_chpi[picks_eeg], atol=1e-20)
     assert_true((psd_chpi[picks_meg][:, freq_idx] >
                  100 * psd_sim[picks_meg][:, freq_idx]).all())
+    # test localization based on cHPI information
+    trans_sim, rot_sim, t_sim = _calculate_chpi_positions(raw_chpi)
+    trans, rot, t = get_chpi_positions(pos_fname)
+    t -= raw.first_samp / raw.info['sfreq']
+    _compare_positions((trans, rot, t), (trans_sim, rot_sim, t_sim),
+                       max_dist=0.005)
 
 run_tests_if_main()

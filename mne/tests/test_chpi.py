@@ -9,11 +9,12 @@ from nose.tools import assert_raises, assert_equal, assert_true
 import warnings
 
 from mne.io import read_info, Raw
-from mne.chpi import _rot_to_quat, _quat_to_rot, get_chpi_positions
-from mne.utils import run_tests_if_main, _TempDir
+from mne.chpi import (_rot_to_quat, _quat_to_rot, get_chpi_positions,
+                      _calculate_chpi_positions, _angle_between_quats)
+from mne.utils import run_tests_if_main, _TempDir, slow_test
 from mne.datasets import testing
 
-base_dir = op.join(op.dirname(__file__), '..', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 test_fif_fname = op.join(base_dir, 'test_raw.fif')
 ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
@@ -21,6 +22,7 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 
 data_path = testing.data_path(download=False)
 raw_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
+pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 sss_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_sss.fif')
 
 warnings.simplefilter('always')
@@ -38,6 +40,16 @@ def test_quaternions():
         rot = rot[np.newaxis, np.newaxis, :, :]
         assert_allclose(rot, _quat_to_rot(_rot_to_quat(rot)),
                         rtol=1e-5, atol=1e-5)
+
+    # let's make sure our angle function works in some reasonable way
+    for ii in range(3):
+        for jj in range(3):
+            a = np.zeros(3)
+            b = np.zeros(3)
+            a[ii] = 1.
+            b[jj] = 1.
+            expected = np.pi if ii != jj else 0.
+            assert_allclose(_angle_between_quats(a, b), expected, atol=1e-5)
 
 
 def test_get_chpi():
@@ -75,4 +87,48 @@ def test_hpi_info():
         assert_equal(len(raw_2.info['hpi_subsystem']),
                      len(raw.info['hpi_subsystem']))
 
-run_tests_if_main(False)
+
+def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
+    """Compare estimated cHPI positions"""
+    from scipy.interpolate import interp1d
+    trans, rot, t = a
+    trans_est, rot_est, t_est = b
+    quats_est = _rot_to_quat(rot_est)
+
+    # maxfilter produces some times that are implausibly large (weird)
+    use_mask = (t >= t_est[0]) & (t <= t_est[-1])
+    t = t[use_mask]
+    trans = trans[use_mask]
+    quats = _rot_to_quat(rot)
+    quats = quats[use_mask]
+
+    # double-check our angle function
+    for q in (quats, quats_est):
+        angles = _angle_between_quats(q, q)
+        assert_allclose(angles, 0., atol=1e-5)
+
+    # < 3 mm translation difference between MF and our estimation
+    trans_est_interp = interp1d(t_est, trans_est, axis=0)(t)
+    assert_true(((np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1)))
+                 <= max_dist).all())
+
+    # < 5 degrees rotation difference between MF and our estimation
+    # (note that the interpolation will make this slightly worse)
+    quats_est_interp = interp1d(t_est, quats_est, axis=0)(t)
+    assert_true((_angle_between_quats(quats_est_interp, quats)
+                 <= max_angle / 180. * np.pi).all())
+
+
+@slow_test
+@testing.requires_testing_data
+def test_calculate_chpi_positions():
+    """Test calculation of cHPI positions
+    """
+    trans, rot, t = get_chpi_positions(pos_fname)
+    with warnings.catch_warnings(record=True):
+        raw = Raw(raw_fif_fname, allow_maxshield=True, preload=True)
+    t -= raw.first_samp / raw.info['sfreq']
+    trans_est, rot_est, t_est = _calculate_chpi_positions(raw)
+    _compare_positions((trans, rot, t), (trans_est, rot_est, t_est))
+
+run_tests_if_main()
