@@ -40,15 +40,12 @@ def test_maxwell_filter():
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     with warnings.catch_warnings(record=True):  # maxshield
-        raw = Raw(raw_fname, preload=False, proj=False,
-                  allow_maxshield=True).crop(0., 1., False)
+        raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
     raw.load_data()
     with warnings.catch_warnings(record=True):  # maxshield, naming
-        sss_std = Raw(sss_std_fname, preload=True, proj=False,
-                      allow_maxshield=True)
-        sss_nonStd = Raw(sss_nonstd_fname, preload=True, proj=False,
-                         allow_maxshield=True)
-        raw_err = Raw(raw_fname, preload=False, proj=True,
+        sss_std = Raw(sss_std_fname, allow_maxshield=True)
+        sss_nonStd = Raw(sss_nonstd_fname, allow_maxshield=True)
+        raw_err = Raw(raw_fname, proj=True,
                       allow_maxshield=True).crop(0., 0.1, False)
     assert_raises(RuntimeError, maxwell_filter, raw_err)
 
@@ -79,26 +76,27 @@ def test_maxwell_filter():
     raw_sss = maxwell_filter(raw, origin=[0., 0., 40.],
                              int_order=int_order, ext_order=ext_order)
 
-    assert_array_almost_equal(raw_sss._data[picks, :], sss_std._data[picks, :],
+    sss_std_data = sss_std[picks][0]
+    assert_array_almost_equal(raw_sss[picks][0], sss_std_data,
                               decimal=11, err_msg='Maxwell filtered data at '
                               'standard origin incorrect.')
 
     # Confirm SNR is above 100
-    bench_rms = np.sqrt(np.mean(sss_std._data[picks, :] ** 2, axis=1))
-    error = raw_sss._data[picks, :] - sss_std._data[picks, :]
+    bench_rms = np.sqrt(np.mean(sss_std_data * sss_std_data, axis=1))
+    error = raw_sss[picks][0] - sss_std_data
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
     assert_true(np.mean(bench_rms / error_rms) > 1000, 'SNR < 1000')
 
     # Test sss computation at non-standard head origin
     raw_sss = maxwell_filter(raw, origin=[0., 20., 20.],
                              int_order=int_order, ext_order=ext_order)
-    assert_array_almost_equal(raw_sss._data[picks, :],
-                              sss_nonStd._data[picks, :], decimal=11,
+    sss_nonStd_data = sss_nonStd[picks][0]
+    assert_array_almost_equal(raw_sss[picks][0], sss_nonStd_data, decimal=11,
                               err_msg='Maxwell filtered data at non-std '
                               'origin incorrect.')
     # Confirm SNR is above 100
-    bench_rms = np.sqrt(np.mean(sss_nonStd._data[picks, :] ** 2, axis=1))
-    error = raw_sss._data[picks, :] - sss_nonStd._data[picks, :]
+    bench_rms = np.sqrt(np.mean(sss_nonStd_data * sss_nonStd_data, axis=1))
+    error = raw_sss[picks][0] - sss_nonStd_data
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
     assert_true(np.mean(bench_rms / error_rms) > 1000, 'SNR < 1000')
 
@@ -128,8 +126,7 @@ def test_maxwell_filter_additional():
 
     with warnings.catch_warnings(record=True):  # maxshield
         # Use 2.0 seconds of data to get stable cov. estimate
-        raw = Raw(raw_fname, preload=False, proj=False,
-                  allow_maxshield=True).crop(0., 2., False)
+        raw = Raw(raw_fname, allow_maxshield=True).crop(0., 2., False)
 
     # Get MEG channels, compute Maxwell filtered data
     raw.load_data()
@@ -145,7 +142,7 @@ def test_maxwell_filter_additional():
                          allow_maxshield=True)
 
     # Some numerical imprecision since save uses 'single' fmt
-    assert_allclose(raw_sss_loaded._data[:, :], raw_sss._data[:, :],
+    assert_allclose(raw_sss_loaded[:][0], raw_sss[:][0],
                     rtol=1e-6, atol=1e-20)
 
     # Test rank of covariance matrices for raw and SSS processed data
@@ -167,16 +164,12 @@ def test_bads_reconstruction():
     """Test reconstruction of channels marked as bad"""
 
     with warnings.catch_warnings(record=True):  # maxshield, naming
-        sss_bench = Raw(sss_bad_recon_fname, preload=True, proj=False,
-                        allow_maxshield=True)
+        sss_bench = Raw(sss_bad_recon_fname, allow_maxshield=True)
 
     raw_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 
     with warnings.catch_warnings(record=True):  # maxshield
-        raw = Raw(raw_fname, preload=False, proj=False,
-                  allow_maxshield=True).crop(0., 1., False)
-
-    raw.load_data()
+        raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
 
     # Set 30 random bad MEG channels (20 grad, 10 mag)
     bads = ['MEG0912', 'MEG1722', 'MEG2213', 'MEG0132', 'MEG1312', 'MEG0432',
@@ -189,18 +182,21 @@ def test_bads_reconstruction():
     # Compute Maxwell filtered data
     raw_sss = maxwell_filter(raw)
     meg_chs = pick_types(raw_sss.info)
+    non_meg_chs = np.setdiff1d(np.arange(len(raw.ch_names)), meg_chs)
+    sss_bench_data = sss_bench[meg_chs][0]
 
     # Some numerical imprecision since save uses 'single' fmt
-    assert_allclose(raw_sss._data[meg_chs, :], sss_bench._data[meg_chs, :],
+    assert_allclose(raw_sss[meg_chs][0], sss_bench_data,
                     rtol=1e-12, atol=1e-4, err_msg='Maxwell filtered data '
                     'with reconstructed bads is incorrect.')
 
     # Confirm SNR is above 1000
-    bench_rms = np.sqrt(np.mean(raw_sss._data[meg_chs, :] ** 2, axis=1))
-    error = raw_sss._data[meg_chs, :] - sss_bench._data[meg_chs, :]
+    bench_rms = np.sqrt(np.mean(raw_sss[meg_chs][0] ** 2, axis=1))
+    error = raw_sss[meg_chs][0] - sss_bench_data
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
     assert_true(np.mean(bench_rms / error_rms) >= 1000,
                 'SNR (%0.1f) < 1000' % np.mean(bench_rms / error_rms))
+    assert_allclose(raw_sss[non_meg_chs][0], raw[non_meg_chs][0])
 
 
 @slow_test
@@ -211,10 +207,9 @@ def test_spatiotemporal_maxwell():
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, preload=False, proj=False,
                   allow_maxshield=True)
-    raw.preload_data()
 
     with warnings.catch_warnings(record=True):  # maxshield, naming
-        tsss_bench = Raw(sss_spatiotemporal_fname, preload=True, proj=False,
+        tsss_bench = Raw(sss_spatiotemporal_fname, proj=False,
                          allow_maxshield=True)
 
     # Create coils
@@ -222,23 +217,27 @@ def test_spatiotemporal_maxwell():
                                                    elekta_defs=True)
     picks = [raw.info['ch_names'].index(ch) for ch in [coil['chname']
                                                        for coil in all_coils]]
+    tsss_bench_data = tsss_bench[picks, :][0]
+    del tsss_bench
 
     # Test that window is less than length of data
     assert_raises(ValueError, maxwell_filter, raw, st_dur=1000.)
 
     # Test sss computation at the standard head origin
     raw_tsss = maxwell_filter(raw, st_dur=10.)
-
-    assert_allclose(raw_tsss._data[picks, :], tsss_bench._data[picks, :],
+    assert_allclose(raw_tsss[picks][0], tsss_bench_data,
                     rtol=1e-12, atol=1e-4, err_msg='Spatiotemporal (tSSS) '
                     'maxwell filtered data at standard origin incorrect.')
 
     # Confirm SNR is above 250. Single precision is part of discrepancy
-    bench_rms = np.sqrt(np.mean(tsss_bench._data[picks, :] ** 2, axis=1))
-    error = raw_tsss._data[picks, :] - tsss_bench._data[picks, :]
-    error_rms = np.sqrt(np.mean(error ** 2, axis=1))
+    bench_rms = np.sqrt(np.mean(tsss_bench_data * tsss_bench_data, axis=1))
+    error = raw_tsss[picks][0] - tsss_bench_data
+    error_rms = np.sqrt(np.mean(error * error, axis=1))
     assert_true(np.mean(bench_rms / error_rms) >= 250,
                 'SNR (%0.1f) < 250' % np.mean(bench_rms / error_rms))
+    # Confirm we didn't modify other channels
+    non_picks = np.setdiff1d(np.arange(len(raw.ch_names)), picks)
+    assert_allclose(raw[non_picks][0], raw_tsss[non_picks][0])
 
     # Degenerate cases
     assert_raises(ValueError, maxwell_filter, raw, st_dur=10., st_corr=0.)
