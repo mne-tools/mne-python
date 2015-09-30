@@ -46,37 +46,35 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 # PLOTTING FUNCTIONS
 
 
-def _scene_to_fig(fig):
-    from scipy.misc import imread
-    import matplotlib.pyplot as plt
-    mayavi = None
-    try:
-        from mayavi import mlab  # noqa, mlab imported
-        import mayavi
-    except:  # on some systems importing Mayavi raises SystemExit (!)
-        warnings.warn('Could not import mayavi. Trying to render '
-                      '`mayavi.core.scene.Scene` figure instances'
-                      ' will throw an error.')
-    tempdir = _TempDir()
-    temp_fname = op.join(tempdir, 'test')
-    if fig.scene is not None:
-        fig.scene.save_png(temp_fname)
-        img = imread(temp_fname)
-    else:  # Testing mode
-        img = np.zeros((2, 2, 3))
-
-    mayavi.mlab.close(fig)
-    fig = plt.figure()
-    plt.imshow(img)
-    plt.axis('off')
-
-    return fig
-
-
 def _fig_to_img(function=None, fig=None, image_format='png',
                 scale=None, **kwargs):
     """Wrapper function to plot figure and create a binary image"""
+
     import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+    if not isinstance(fig, Figure) and function is None:
+        from scipy.misc import imread
+        mayavi = None
+        try:
+            from mayavi import mlab  # noqa, mlab imported
+            import mayavi
+        except:  # on some systems importing Mayavi raises SystemExit (!)
+            warnings.warn('Could not import mayavi. Trying to render '
+                          '`mayavi.core.scene.Scene` figure instances'
+                          ' will throw an error.')
+        tempdir = _TempDir()
+        temp_fname = op.join(tempdir, 'test')
+        if fig.scene is not None:
+            fig.scene.save_png(temp_fname)
+            img = imread(temp_fname)
+        else:  # Testing mode
+            img = np.zeros((2, 2, 3))
+
+        mayavi.mlab.close(fig)
+        fig = plt.figure()
+        plt.imshow(img)
+        plt.axis('off')
+
     if function is not None:
         plt.close('all')
         fig = function(**kwargs)
@@ -429,7 +427,6 @@ slider_full_template = Template(u"""
                     {{image_html}}
                 </ul>
                 {{html}}
-                </div>
             </div>
         </div>
     </li></ul>
@@ -853,14 +850,6 @@ class Report(object):
                              image_format='png', scale=None, comments=None):
         """Auxiliary method for `add_section` and `add_figs_to_section`.
         """
-        mayavi = None
-        try:
-            from mayavi import mlab  # noqa, mlab imported
-            import mayavi
-        except:  # on some systems importing Mayavi raises SystemExit (!)
-            warnings.warn('Could not import mayavi. Trying to render '
-                          '`mayavi.core.scene.Scene` figure instances'
-                          ' will throw an error.')
 
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
@@ -872,8 +861,6 @@ class Report(object):
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
 
-            if mayavi is not None and isinstance(fig, mayavi.core.scene.Scene):
-                fig = _scene_to_fig(fig)
             img = _fig_to_img(fig=fig, scale=scale,
                               image_format=image_format)
             html = image_template.substitute(img=img, id=global_id,
@@ -1061,7 +1048,7 @@ class Report(object):
             `Data slice %d`.
         section : str
             Name of the section. If section already exists, the figures
-            will be appended to the end of the section
+            will be appended to the end of the section.
         scale : float | None | callable
             Scale the images maintaining the aspect ratio.
             If None, no scaling is applied. If float, scale will determine
@@ -1112,17 +1099,6 @@ class Report(object):
             raise TypeError('Captions must be None or an iterable of '
                             'float, int, str, Got %s' % type(captions))
         for ii, (fig, caption) in enumerate(zip(figs, captions)):
-            mayavi = None
-            try:
-                # on some version mayavi.core won't be exposed unless ...
-                from mayavi import mlab  # noqa, mlab imported
-                import mayavi
-            except:  # on some systems importing Mayavi raises SystemExit (!)
-                warnings.warn('Could not import mayavi. Trying to render '
-                              '`mayavi.core.scene.Scene` figure instances'
-                              ' will throw an error.')
-            if mayavi is not None and isinstance(fig, mayavi.core.scene.Scene):
-                fig = _scene_to_fig(fig)
             img = _fig_to_img(fig=fig, scale=scale, image_format=image_format)
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
