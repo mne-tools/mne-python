@@ -317,10 +317,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if preload_at_end:
             assert self._data is None
             assert self.preload is False
-            self.preload_data()
+            self.load_data()
 
-    def preload_data(self):
-        """Preload the data if not already preloaded
+    def load_data(self):
+        """Load the data if not already preloaded
 
         Returns
         -------

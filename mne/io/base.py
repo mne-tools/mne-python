@@ -425,8 +425,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         raise NotImplementedError
 
     @verbose
-    def preload_data(self, verbose=None):
-        """Preload raw data
+    def load_data(self, verbose=None):
+        """Load raw data
 
         Parameters
         ----------
@@ -440,7 +440,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
-        This function will preload raw data if it was not already preloaded.
+        This function will load raw data if it was not already preloaded.
         If data were already preloaded, it will do nothing.
         """
         if not self.preload:

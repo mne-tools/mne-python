@@ -75,7 +75,7 @@ def test_plot_ica_sources():
     import matplotlib.pyplot as plt
     raw = io.Raw(raw_fname, preload=False)
     raw.crop(0, 1, copy=False)
-    raw.preload_data()
+    raw.load_data()
     picks = _get_picks(raw)
     epochs = _get_epochs()
     raw.pick_channels([raw.ch_names[k] for k in picks])
