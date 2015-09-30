@@ -292,7 +292,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     logger.info('Coordinate transformation:')
     for d in (dev_head_t[0, :3], dev_head_t[1, :3], dev_head_t[2, :3],
               dev_head_t[:3, 3] * 1000.):
-        logger.info('{:8.4f} {:8.4f} {:8.4f}'.format(*d))
+        logger.info('{0:8.4f} {1:8.4f} {2:8.4f}'.format(*d))
     logger.info('Using %s HPI coils: %s Hz'
                 % (n_freqs, ' '.join(str(int(s)) for s in hpi_freqs)))
     # Set up amplitude fits
@@ -409,14 +409,14 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
             else:
                 start, end = '(', ')'
             log_str = (start +
-                       '{:6.1f} {:6.1f} {:6.1f} / ' +
-                       '{:6.1f} {:6.1f} {:6.1f} / ' +
-                       'g = {:0.3f} err = {:4.1f} ' +
+                       '{0:6.1f} {1:6.1f} {2:6.1f} / ' +
+                       '{3:6.1f} {4:6.1f} {5:6.1f} / ' +
+                       'g = {6:0.3f} err = {7:4.1f} ' +
                        end)
             if ii <= 2:
-                log_str += ' '.join(['{:6.3f}'] * 3)
+                log_str += '{8:6.3f} {9:6.3f} {10:6.3f}'
             elif ii == 3:
-                log_str += ' '. join(['{:6.1f}'] * 3)
+                log_str += '{8:6.1f} {9:6.1f} {10:6.1f}'
             vals = np.concatenate((1000 * orig_head_rrs[ii],
                                    1000 * this_head_rrs[ii],
                                    [gs[ii], errs[ii]]))

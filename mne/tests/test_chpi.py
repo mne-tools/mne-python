@@ -88,7 +88,7 @@ def test_hpi_info():
                      len(raw.info['hpi_subsystem']))
 
 
-def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
+def _compare_positions(a, b, max_dist=0.004, max_angle=5.):
     """Compare estimated cHPI positions"""
     from scipy.interpolate import interp1d
     trans, rot, t = a
@@ -107,16 +107,17 @@ def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
         angles = _angle_between_quats(q, q)
         assert_allclose(angles, 0., atol=1e-5)
 
-    # < 3 mm translation difference between MF and our estimation
+    # < 4 mm translation difference between MF and our estimation
     trans_est_interp = interp1d(t_est, trans_est, axis=0)(t)
-    assert_true(((np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1)))
-                 <= max_dist).all())
+    worst = np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1)).max()
+    assert_true(worst <= max_dist, '%0.1f > %0.1f mm'
+                % (1000 * worst, 1000 * max_dist))
 
     # < 5 degrees rotation difference between MF and our estimation
     # (note that the interpolation will make this slightly worse)
     quats_est_interp = interp1d(t_est, quats_est, axis=0)(t)
-    assert_true((_angle_between_quats(quats_est_interp, quats)
-                 <= max_angle / 180. * np.pi).all())
+    worst = 180 * _angle_between_quats(quats_est_interp, quats).max() / np.pi
+    assert_true(worst <= max_angle, '%0.1f > %0.1f deg' % (worst, max_angle,))
 
 
 @slow_test
@@ -128,7 +129,7 @@ def test_calculate_chpi_positions():
     with warnings.catch_warnings(record=True):
         raw = Raw(raw_fif_fname, allow_maxshield=True, preload=True)
     t -= raw.first_samp / raw.info['sfreq']
-    trans_est, rot_est, t_est = _calculate_chpi_positions(raw)
+    trans_est, rot_est, t_est = _calculate_chpi_positions(raw, verbose='debug')
     _compare_positions((trans, rot, t), (trans_est, rot_est, t_est))
 
 run_tests_if_main()
