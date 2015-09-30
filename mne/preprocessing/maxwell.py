@@ -6,7 +6,7 @@
 
 from __future__ import division
 import numpy as np
-from scipy.linalg import pinv, svd, qr, norm, orth
+from scipy import linalg
 from math import factorial
 
 from .. import pick_types
@@ -99,22 +99,20 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     all_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
                                                    elekta_defs=True,
                                                    verbose=False)
-
-    # Create coil list and pick MEG channels
-    raw.load_data()
+    raw_sss = raw.copy().load_data()
+    del raw
+    times = raw_sss.times
 
     # Get indices of channels to use in multipolar moment calculation
-    good_chs = pick_types(raw.info, meg=True, exclude='bads')
+    good_chs = pick_types(raw_sss.info, meg=True, exclude='bads')
     # Get indices of MEG channels
-    meg_chs = pick_types(raw.info, meg=True, exclude=[])
-    data, times = raw[good_chs, :]
-
-    meg_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
+    meg_picks = pick_types(raw_sss.info, meg=True, exclude=[])
+    meg_coils, _, _, meg_info = _prep_meg_channels(raw_sss.info, accurate=True,
                                                    elekta_defs=True)
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
-    coil_scale = np.ones(len(meg_coils))
+    coil_scale = np.ones((len(meg_coils), 1))
     coil_scale[np.array([coil['coil_class'] == 1.0
                          for coil in meg_coils])] = 100.
 
@@ -122,6 +120,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
     # Compute in/out bases and create copies containing only good chs
     S_in, S_out = _sss_basis(origin, meg_coils, int_order, ext_order)
+    n_in = S_in.shape[1]
 
     S_in_good, S_out_good = S_in[good_chs, :], S_out[good_chs, :]
     S_in_good_norm = np.sqrt(np.sum(S_in_good * S_in_good, axis=0))[:,
@@ -132,22 +131,21 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     S_tot_good = np.c_[S_in_good, S_out_good]
     S_tot_good /= np.sqrt(np.sum(S_tot_good * S_tot_good, axis=0))[np.newaxis,
                                                                    :]
-    pS_tot_good = pinv(S_tot_good, cond=1e-15)
+    pS_tot_good = linalg.pinv(S_tot_good, cond=1e-15)
 
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
-    mm = np.dot(pS_tot_good, data * coil_scale[good_chs][:, np.newaxis])
+    # XXX eventually we can refactor this to work in chunks
+    data = raw_sss[good_chs][0]
+    mm = np.dot(pS_tot_good, data * coil_scale[good_chs])
     # Reconstruct data from internal space (Eq. 38)
-    recon = np.dot(S_in, mm[:S_in.shape[1], :] / S_in_good_norm)
-
-    raw_sss = raw.copy()
-    raw_sss._data[meg_chs, :] = recon[:, 0:raw_sss.n_times] /\
-        coil_scale[:, np.newaxis]
+    raw_sss._data[meg_picks] = np.dot(S_in, mm[:n_in] / S_in_good_norm)
+    raw_sss._data[meg_picks] /= coil_scale
 
     # Reset 'bads' for any MEG channels since they've been reconstructed
     bad_inds = [raw_sss.info['ch_names'].index(ch)
                 for ch in raw_sss.info['bads']]
     raw_sss.info['bads'] = [raw_sss.info['ch_names'][bi] for bi in bad_inds
-                            if bi not in meg_chs]
+                            if bi not in meg_picks]
 
     # Reconstruct raw file object with spatiotemporal processed data
     if st_dur is not None:
@@ -155,41 +153,49 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
             raise ValueError('st_dur (%0.1fs) longer than length of signal in '
                              'raw (%0.1fs).' % (st_dur, times[-1]))
         logger.info('Processing data using tSSS with st_dur=%s' % st_dur)
-        # Reconstruct data from external space and compute residual
-        recon_out = np.dot(S_out, mm[S_in.shape[1]:, :] / S_out_good_norm) /\
-            coil_scale[:, np.newaxis]
-        resid = data - (raw_sss._data[meg_chs, :] + recon_out)
 
         # Generate time points to break up data in to windows
-        lims = raw.time_as_index(np.arange(times[0], times[-1], st_dur))
-        len_last_buf = raw.times[-1] - raw.index_as_time(lims[-1])[0]
+        lims = raw_sss.time_as_index(np.arange(times[0], times[-1], st_dur))
+        len_last_buf = raw_sss.times[-1] - raw_sss.index_as_time(lims[-1])[0]
         if len_last_buf == st_dur:
-            lims = np.concatenate([lims, [len(raw.times)]])
+            lims = np.concatenate([lims, [len(raw_sss.times)]])
         else:
             # len_last_buf < st_dur so fold it into the previous buffer
-            lims[-1] = len(raw.times)
+            lims[-1] = len(raw_sss.times)
             logger.info('Spatiotemporal window did not fit evenly into raw '
                         'object. The final %0.2f seconds were lumped onto '
                         'the previous window.' % len_last_buf)
 
         # Loop through buffer windows of data
         for win in zip(lims[:-1], lims[1:]):
+            # Reconstruct data from external space and compute residual
+            resid = data[:, win[0]:win[1]]
+            resid -= raw_sss._data[meg_picks, win[0]:win[1]]
+            resid -= np.dot(S_out, mm[n_in:, win[0]:win[1]] /
+                            S_out_good_norm) / coil_scale
+            _check_finite(resid)
             # Compute SSP-like projector. Set overlap limit to 0.02
-            this_data = raw_sss._data[meg_chs, win[0]:win[1]]
-            V = _overlap_projector(this_data, resid[:, win[0]:win[1]],
-                                   st_corr)
+            this_data = raw_sss._data[meg_picks, win[0]:win[1]]
+            _check_finite(this_data)
+            V = _overlap_projector(this_data, resid, st_corr)
             # Apply projector according to Eq. 12 in [2]_
             logger.info('    Projecting out %s tSSS components for %s-%s'
-                        % (V.shape[1], win[0] / raw.info['sfreq'],
-                           win[1] / raw.info['sfreq']))
+                        % (V.shape[1], win[0] / raw_sss.info['sfreq'],
+                           win[1] / raw_sss.info['sfreq']))
             this_data -= np.dot(np.dot(this_data, V), V.T)
-            raw_sss._data[meg_chs, win[0]:win[1]] = this_data
+            raw_sss._data[meg_picks, win[0]:win[1]] = this_data
 
     # Update info
     raw_sss = _update_sss_info(raw_sss, origin, int_order, ext_order,
-                               data.shape[0])
+                               len(good_chs))
 
     return raw_sss
+
+
+def _check_finite(data):
+    """Helper to ensure data is finite"""
+    if not np.isfinite(data).all():
+        raise RuntimeError('data contains non-finite numbers')
 
 
 def _sph_harm(order, degree, az, pol):
@@ -581,6 +587,18 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
     return raw
 
 
+def _orth_overwrite(A):
+    """Helper to create a slightly more efficient 'orth'"""
+    # adapted from scipy/linalg/decomp_svd.py
+    u, s = linalg.svd(A, overwrite_a=True, full_matrices=False,
+                      check_finite=False)[:2]
+    M, N = A.shape
+    eps = np.finfo(float).eps
+    tol = max(M, N) * np.amax(s) * eps
+    num = np.sum(s > tol, dtype=int)
+    return u[:, :num]
+
+
 def _overlap_projector(data_int, data_res, corr):
     """Calculate projector for removal of subspace intersection in tSSS"""
     # corr necessary to deal with noise when finding identical signal
@@ -594,17 +612,19 @@ def _overlap_projector(data_int, data_res, corr):
     # Normalize data, then compute orth to get temporal bases. Matrices
     # must have shape (n_samps x effective_rank) when passed into svd
     # computation
+    Q_int = linalg.qr(_orth_overwrite((data_int / np.linalg.norm(data_int)).T),
+                      overwrite_a=True, mode='economic',
+                      check_finite=False)[0].T
+    Q_res = linalg.qr(_orth_overwrite((data_res / np.linalg.norm(data_res)).T),
+                      overwrite_a=True, mode='economic', check_finite=False)[0]
     assert data_int.shape[1] > 0
-    Q_int = qr(orth((data_int / norm(data_int)).T),
-               overwrite_a=True, mode='economic')[0]
-    Q_res = qr(orth((data_res / norm(data_res)).T),
-               overwrite_a=True, mode='economic')[0]
-    C_mat = np.dot(Q_int.T, Q_res)
+    C_mat = np.dot(Q_int, Q_res)
     del Q_int
 
     # Compute angles between subspace and which bases to keep
-    S_intersect, Vh_intersect = svd(C_mat, overwrite_a=True,
-                                    full_matrices=False)[1:]
+    S_intersect, Vh_intersect = linalg.svd(C_mat, overwrite_a=True,
+                                           full_matrices=False,
+                                           check_finite=False)[1:]
     del C_mat
     intersect_mask = (S_intersect >= corr)
     del S_intersect

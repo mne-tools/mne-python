@@ -33,7 +33,7 @@ sss_spatiotemporal_fname = op.join(data_path, 'SSS',
 
 
 @testing.requires_testing_data
-def test_maxwell_filter():
+def _test_maxwell_filter():
     """Test multipolar moment and Maxwell filter"""
 
     # TODO: Future tests integrate with mne/io/tests/test_proc_history
@@ -112,7 +112,7 @@ def test_maxwell_filter():
 
 
 @testing.requires_testing_data
-def test_maxwell_filter_additional():
+def _test_maxwell_filter_additional():
     """Test processing of Maxwell filtered data"""
 
     # TODO: Future tests integrate with mne/io/tests/test_proc_history
@@ -160,7 +160,7 @@ def test_maxwell_filter_additional():
 
 @slow_test
 @testing.requires_testing_data
-def test_bads_reconstruction():
+def _test_bads_reconstruction():
     """Test reconstruction of channels marked as bad"""
 
     with warnings.catch_warnings(record=True):  # maxshield, naming
@@ -205,18 +205,13 @@ def test_spatiotemporal_maxwell():
     """Test spatiotemporal (tSSS) processing"""
     # Load raw testing data
     with warnings.catch_warnings(record=True):  # maxshield
-        raw = Raw(raw_fname, preload=False, proj=False,
-                  allow_maxshield=True)
+        raw = Raw(raw_fname, allow_maxshield=True)
 
     with warnings.catch_warnings(record=True):  # maxshield, naming
-        tsss_bench = Raw(sss_spatiotemporal_fname, proj=False,
-                         allow_maxshield=True)
+        tsss_bench = Raw(sss_spatiotemporal_fname, allow_maxshield=True)
 
     # Create coils
-    all_coils, _, _, meg_info = _prep_meg_channels(raw.info, ignore_ref=True,
-                                                   elekta_defs=True)
-    picks = [raw.info['ch_names'].index(ch) for ch in [coil['chname']
-                                                       for coil in all_coils]]
+    picks = pick_types(raw.info)
     tsss_bench_data = tsss_bench[picks, :][0]
     del tsss_bench
 
