@@ -37,7 +37,7 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose, _time_mask)
+                     logger, verbose, _time_mask, deprecated)
 from ..viz import plot_raw, plot_raw_psd
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -445,9 +445,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         This function will load raw data if it was not already preloaded.
         If data were already preloaded, it will do nothing.
         """
-        if not self.preload:
-            self._preload_data(True)
-        return self.load_data()
+        return self.load_data(verbose=verbose)
 
     def load_data(self, verbose=None):
         """Load raw data

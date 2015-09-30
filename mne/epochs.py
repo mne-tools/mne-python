@@ -40,7 +40,7 @@ from .fixes import in1d
 from .viz import (plot_epochs, _drop_log_stats,
                   plot_epochs_psd, plot_epochs_psd_topomap)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, check_random_state, object_hash, deprecated)
+                    _time_mask, check_random_state, object_hash)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
