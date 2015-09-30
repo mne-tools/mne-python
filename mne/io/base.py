@@ -425,6 +425,30 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         raise NotImplementedError
 
     @verbose
+    @deprecated("This method has been renamed 'load_data' and will be removed "
+                "in v0.11.")
+    def preload_data(self, verbose=None):
+        """Preload raw data
+
+        Parameters
+        ----------
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        raw : instance of Raw
+            The raw object with data.
+
+        Notes
+        -----
+        This function will load raw data if it was not already preloaded.
+        If data were already preloaded, it will do nothing.
+        """
+        if not self.preload:
+            self._preload_data(True)
+        return self
+
     def load_data(self, verbose=None):
         """Load raw data
 
@@ -442,6 +466,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         This function will load raw data if it was not already preloaded.
         If data were already preloaded, it will do nothing.
+
+        .. versionadded:: 0.10.0
         """
         if not self.preload:
             self._preload_data(True)
