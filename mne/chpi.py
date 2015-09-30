@@ -183,7 +183,7 @@ def _fit_magnetic_dipole(B_orig, w, coils, x0):
     objective = partial(_magnetic_dipole_objective, B=B, B2=B2,
                         w=w, coils=coils)
     x = fmin_cobyla(objective, x0, (), rhobeg=1e-2, rhoend=1e-4, disp=False)
-    return x
+    return x, 1. - objective(x) / B2
 
 
 def _chpi_objective(x, est_pos_dev, hpi_head_rrs):
@@ -317,7 +317,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         data_diff = np.dot(model, X).T - this_data
         data_diff *= data_diff
         this_data *= this_data
-        gs = (1 - np.sqrt(data_diff.sum(axis=1) / this_data.sum(axis=1)))
+        g_chan = (1 - np.sqrt(data_diff.sum(axis=1) / this_data.sum(axis=1)))
         g_sin = (1 - np.sqrt(data_diff.sum() / this_data.sum()))
         del data_diff, this_data
         X_sin, X_cos = X[:n_freqs], X[n_freqs:2 * n_freqs]
@@ -343,9 +343,11 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         #    in device coordinates
         #
         logger.info('HPI amplitude correlation %s: %s (%s chnls > 0.95)'
-                    % (t, g_sin, (gs > 0.95).sum()))
-        est_pos_dev = np.array([_fit_magnetic_dipole(f, whitener, coils, pos)
-                                for f, pos in zip(s_fit, est_pos_dev)])
+                    % (t, g_sin, (g_chan > 0.95).sum()))
+        outs = [_fit_magnetic_dipole(f, whitener, coils, pos)
+                for f, pos in zip(s_fit, est_pos_dev)]
+        est_pos_dev = np.array([o[0] for o in outs])
+        g_coils = [o[1] for o in outs]
         these_dists = cdist(est_pos_dev, est_pos_dev)
         these_dists = np.abs(orig_dists - these_dists)
         # there is probably a better algorithm for finding the bad ones...
@@ -389,7 +391,6 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                                            this_head_rrs) ** 2, axis=1)) / dt)
         logger.info('Hpi fit OK, movements [mm/s] = ' +
                     ' / '.join(['%0.1f'] * n_freqs) % vs)
-        gs = [0] * n_freqs  # XXX eventually calculate this
         errs = [0] * n_freqs  # XXX eventually calculate this
         e = 0.  # XXX eventually calculate this
         d = 100 * np.sqrt(np.sum(last_quat[3:] - dev_head_quat[3:]) ** 2)  # cm
@@ -411,7 +412,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                 log_str += '{8:6.1f} {9:6.1f} {10:6.1f}'
             vals = np.concatenate((1000 * orig_head_rrs[ii],
                                    1000 * this_head_rrs[ii],
-                                   [gs[ii], errs[ii]]))
+                                   [g_coils[ii], errs[ii]]))
             if ii <= 2:
                 vals = np.concatenate((vals, this_dev_head_t[ii, :3]))
             elif ii == 3:

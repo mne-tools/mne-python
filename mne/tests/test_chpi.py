@@ -132,9 +132,9 @@ def test_calculate_chpi_positions():
     """
     trans, rot, t = get_chpi_positions(pos_fname)
     with warnings.catch_warnings(record=True):
-        raw = Raw(raw_fif_fname, allow_maxshield=True)
+        raw = Raw(raw_fif_fname, allow_maxshield=True, preload=True)
     t -= raw.first_samp / raw.info['sfreq']
-    trans_est, rot_est, t_est = _calculate_chpi_positions(raw)
+    trans_est, rot_est, t_est = _calculate_chpi_positions(raw, verbose='debug')
     _compare_positions((trans, rot, t), (trans_est, rot_est, t_est))
 
     # degenerate conditions
