@@ -14,7 +14,8 @@ from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.forward._make_forward import _prep_meg_channels
 from mne.io import Raw, proc_history
-from mne.preprocessing import maxwell
+from mne.preprocessing.maxwell import (maxwell_filter, get_num_moments,
+                                       _sss_basis)
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 
 warnings.simplefilter('always')  # Always throw warnings
@@ -49,7 +50,7 @@ def test_maxwell_filter():
                          allow_maxshield=True)
         raw_err = Raw(raw_fname, preload=False, proj=True,
                       allow_maxshield=True).crop(0., 0.1, False)
-    assert_raises(RuntimeError, maxwell.maxwell_filter, raw_err)
+    assert_raises(RuntimeError, maxwell_filter, raw_err)
 
     # Create coils
     all_coils, _, _, meg_info = _prep_meg_channels(raw.info, ignore_ref=True,
@@ -65,18 +66,18 @@ def test_maxwell_filter():
     nbases = n_int_bases + n_ext_bases
 
     # Check number of bases computed correctly
-    assert_equal(maxwell.get_num_moments(int_order, ext_order), nbases)
+    assert_equal(get_num_moments(int_order, ext_order), nbases)
 
     # Check multipolar moment basis set
-    S_in, S_out = maxwell._sss_basis(origin=np.array([0, 0, 40]), coils=coils,
-                                     int_order=int_order, ext_order=ext_order)
+    S_in, S_out = _sss_basis(origin=np.array([0, 0, 40]), coils=coils,
+                             int_order=int_order, ext_order=ext_order)
     assert_equal(S_in.shape, (ncoils, n_int_bases), 'S_in has incorrect shape')
     assert_equal(S_out.shape, (ncoils, n_ext_bases),
                  'S_out has incorrect shape')
 
     # Test sss computation at the standard head origin
-    raw_sss = maxwell.maxwell_filter(raw, origin=[0., 0., 40.],
-                                     int_order=int_order, ext_order=ext_order)
+    raw_sss = maxwell_filter(raw, origin=[0., 0., 40.],
+                             int_order=int_order, ext_order=ext_order)
 
     assert_array_almost_equal(raw_sss._data[picks, :], sss_std._data[picks, :],
                               decimal=11, err_msg='Maxwell filtered data at '
@@ -89,8 +90,8 @@ def test_maxwell_filter():
     assert_true(np.mean(bench_rms / error_rms) > 1000, 'SNR < 1000')
 
     # Test sss computation at non-standard head origin
-    raw_sss = maxwell.maxwell_filter(raw, origin=[0., 20., 20.],
-                                     int_order=int_order, ext_order=ext_order)
+    raw_sss = maxwell_filter(raw, origin=[0., 20., 20.],
+                             int_order=int_order, ext_order=ext_order)
     assert_array_almost_equal(raw_sss._data[picks, :],
                               sss_nonStd._data[picks, :], decimal=11,
                               err_msg='Maxwell filtered data at non-std '
@@ -103,8 +104,13 @@ def test_maxwell_filter():
 
     # Check against SSS functions from proc_history
     sss_info = raw_sss.info['proc_history'][0]['max_info']
-    assert_equal(maxwell.get_num_moments(int_order, 0),
+    assert_equal(get_num_moments(int_order, 0),
                  proc_history._get_sss_rank(sss_info))
+
+    # Degenerate cases
+    raw_bad = raw.copy()
+    raw_bad.info['comps'] = [0]
+    assert_raises(RuntimeError, maxwell_filter, raw_bad)
 
 
 @testing.requires_testing_data
@@ -129,8 +135,7 @@ def test_maxwell_filter_additional():
     raw.load_data()
     raw.pick_types(meg=True, eeg=False)
     int_order, ext_order = 8, 3
-    raw_sss = maxwell.maxwell_filter(raw, int_order=int_order,
-                                     ext_order=ext_order)
+    raw_sss = maxwell_filter(raw, int_order=int_order, ext_order=ext_order)
 
     # Test io on processed data
     tempdir = _TempDir()
@@ -153,7 +158,7 @@ def test_maxwell_filter_additional():
                                            scalings)
 
     assert_equal(cov_raw_rank, raw.info['nchan'])
-    assert_equal(cov_sss_rank, maxwell.get_num_moments(int_order, 0))
+    assert_equal(cov_sss_rank, get_num_moments(int_order, 0))
 
 
 @slow_test
@@ -182,7 +187,7 @@ def test_bads_reconstruction():
     raw.info['bads'] = bads
 
     # Compute Maxwell filtered data
-    raw_sss = maxwell.maxwell_filter(raw)
+    raw_sss = maxwell_filter(raw)
     meg_chs = pick_types(raw_sss.info)
 
     # Some numerical imprecision since save uses 'single' fmt
@@ -198,6 +203,7 @@ def test_bads_reconstruction():
                 'SNR (%0.1f) < 1000' % np.mean(bench_rms / error_rms))
 
 
+@slow_test
 @testing.requires_testing_data
 def test_spatiotemporal_maxwell():
     """Test spatiotemporal (tSSS) processing"""
@@ -218,10 +224,10 @@ def test_spatiotemporal_maxwell():
                                                        for coil in all_coils]]
 
     # Test that window is less than length of data
-    assert_raises(ValueError, maxwell.maxwell_filter, raw, st_dur=1000.)
+    assert_raises(ValueError, maxwell_filter, raw, st_dur=1000.)
 
     # Test sss computation at the standard head origin
-    raw_tsss = maxwell.maxwell_filter(raw, st_dur=10.)
+    raw_tsss = maxwell_filter(raw, st_dur=10.)
 
     assert_allclose(raw_tsss._data[picks, :], tsss_bench._data[picks, :],
                     rtol=1e-12, atol=1e-4, err_msg='Spatiotemporal (tSSS) '
@@ -233,5 +239,8 @@ def test_spatiotemporal_maxwell():
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
     assert_true(np.mean(bench_rms / error_rms) >= 250,
                 'SNR (%0.1f) < 250' % np.mean(bench_rms / error_rms))
+
+    # Degenerate cases
+    assert_raises(ValueError, maxwell_filter, raw, st_dur=10., st_corr=0.)
 
 run_tests_if_main()

@@ -18,7 +18,7 @@ from ..utils import verbose, logger
 
 @verbose
 def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
-                   st_dur=None, verbose=None):
+                   st_dur=None, st_corr=0.98, verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -42,6 +42,9 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         identically, choose a buffer length that divides evenly into your data.
         Any data at the trailing edge that doesn't fit evenly into a whole
         buffer window will be lumped into the previous buffer.
+    st_corr : float
+        Correlation between inner and outer subspaces to reject during
+        spatiotemporal SSS.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -84,12 +87,12 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
-    if 'dev_head_t' not in raw.info.keys():
-        raise RuntimeError("Raw.info must contain 'dev_head_t' to transform "
-                           "device to head coords")
     if len(raw.info.get('comps', [])) > 0:
         raise RuntimeError('Maxwell filter cannot handle compensated '
                            'channels.')
+    st_corr = float(st_corr)
+    if st_corr <= 0. or st_corr > 1.:
+        raise ValueError('Need 0 < st_corr <= 1., got %s' % st_corr)
     logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
 
     logger.info('Preparing coil definitions')
@@ -171,16 +174,16 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
         # Loop through buffer windows of data
         for win in zip(lims[:-1], lims[1:]):
-
             # Compute SSP-like projector. Set overlap limit to 0.02
-            proj = _overlap_projector(raw_sss._data[meg_chs, win[0]:win[1]],
-                                      resid[:, win[0]:win[1]], 0.02,
-                                      (win[0] / raw.info['sfreq'],
-                                       win[1] / raw.info['sfreq']))
-
+            this_data = raw_sss._data[meg_chs, win[0]:win[1]]
+            V = _overlap_projector(this_data, resid[:, win[0]:win[1]],
+                                   st_corr)
             # Apply projector according to Eq. 12 in [2]_
-            raw_sss._data[:, win[0]:win[1]] = \
-                np.dot(proj, raw_sss._data[:, win[0]:win[1]].T).T
+            logger.info('    Projecting out %s tSSS components for %s-%s'
+                        % (V.shape[1], win[0] / raw.info['sfreq'],
+                           win[1] / raw.info['sfreq']))
+            this_data -= np.dot(np.dot(this_data, V), V.T)
+            raw_sss._data[meg_chs, win[0]:win[1]] = this_data
 
     # Update info
     raw_sss = _update_sss_info(raw_sss, origin, int_order, ext_order,
@@ -574,17 +577,13 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
                       date=_date_now(), experimentor='')
 
     # Insert information in raw.info['proc_info']
-    if 'proc_history' in raw.info.keys():
-        raw.info['proc_history'].insert(0, proc_block)
-    else:
-        raw.info['proc_history'] = [proc_block]
-
+    raw.info['proc_history'] = [proc_block] + raw.info.get('proc_history', [])
     return raw
 
 
-def _overlap_projector(data_int, data_res, delta, tlims):
+def _overlap_projector(data_int, data_res, corr):
     """Calculate projector for removal of subspace intersection in tSSS"""
-    # delta necessary to deal with noise when finding identical signal
+    # corr necessary to deal with noise when finding identical signal
     # directions in the subspace. See the end of the Results section in [2]_
 
     # Note that the procedure here is an updated version of [2]_ (and used in
@@ -592,30 +591,26 @@ def _overlap_projector(data_int, data_res, delta, tlims):
     # directly. This provides more degrees of freedom when analyzing for
     # intersections between internal and external spaces.
 
-    # Normalize data
-    normed_data_int = data_int / norm(data_int)
-    normed_data_res = data_res / norm(data_res)
-
-    # Compute orth to get temporal bases. Matrices must have shape
-    # (n_samps x effective_rank) when passed into svd computation
-    assert normed_data_int.shape[1] > 0
-    orth_int = orth(normed_data_int.T)
-    orth_res = orth(normed_data_res.T)
-
-    Q_int, _ = qr(orth_int, mode='economic')
-    Q_res, _ = qr(orth_res, mode='economic')
-
+    # Normalize data, then compute orth to get temporal bases. Matrices
+    # must have shape (n_samps x effective_rank) when passed into svd
+    # computation
+    assert data_int.shape[1] > 0
+    Q_int = qr(orth((data_int / norm(data_int)).T),
+               overwrite_a=True, mode='economic')[0]
+    Q_res = qr(orth((data_res / norm(data_res)).T),
+               overwrite_a=True, mode='economic')[0]
     C_mat = np.dot(Q_int.T, Q_res)
+    del Q_int
 
     # Compute angles between subspace and which bases to keep
-    _, S_intersect, Vh_intersect = svd(C_mat, full_matrices=False)
-    intersect_inds = S_intersect >= (1 - delta)
-    logger.info('    Projecting out %s tSSS components for %s-%s'
-                % ((intersect_inds).sum(), tlims[0], tlims[1]))
+    S_intersect, Vh_intersect = svd(C_mat, overwrite_a=True,
+                                    full_matrices=False)[1:]
+    del C_mat
+    intersect_mask = (S_intersect >= corr)
+    del S_intersect
 
     # Compute projection operator as (I-LL_T) Eq. 12 in [2]_
     # V_principal should be shape (n_time_pts x n_retained_inds)
-    V_principal = np.dot(Q_res, Vh_intersect.T)[:, intersect_inds]
-    proj = np.eye(len(V_principal)) - np.dot(V_principal, V_principal.T)
-
-    return proj
+    Vh_intersect = Vh_intersect[intersect_mask].T
+    V_principal = np.dot(Q_res, Vh_intersect)
+    return V_principal
