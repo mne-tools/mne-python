@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Create 3-Layers BEM model from Flash MRI images
 
-This program assumes that both Freesurfer/FSL, and MNE, including MNE's
-Matlab Toolbox, are installed properly.
+This program assumes that FreeSurfer and MNE are installed and
+sourced properly.
 
 This function extracts the BEM surfaces (outer skull, inner skull, and
 outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30

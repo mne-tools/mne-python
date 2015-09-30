@@ -1372,23 +1372,27 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
 
     Parameters
     -----------
-    subject : string
+    subject : str
         Subject name.
-    subjects_dir : string
+    subjects_dir : str
         Directory containing subjects data (Freesurfer SUBJECTS_DIR).
     noflash30 : bool
         Skip the 30-degree flip angle data.
     noconvert : bool
         Assume that the Flash MRI images have already been converted
         to mgz files.
+    unwarp : bool
+        Run grad_unwarp with -unwarp option on each of the converted
+        data sets. It requires FreeSurfer's MATLAB toolbox to be properly
+        installed.
     show : bool
         Show surfaces in 3D to visually inspect all three BEM
         surfaces (recommended).
 
     Notes
     -----
-    This program assumes that both Freesurfer/FSL, and MNE, including MNE's
-    Matlab Toolbox, are installed properly.
+    This program assumes that FreeSurfer and MNE are installed and
+    sourced properly.
 
     This function extracts the BEM surfaces (outer skull, inner skull, and
     outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
