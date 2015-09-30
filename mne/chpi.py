@@ -43,12 +43,12 @@ def get_chpi_positions(raw, t_step=None, verbose=None):
 
     Returns
     -------
-    translation : array
-        A 2-dimensional array of head position vectors (n_time x 3).
-    rotation : array
-        A 3-dimensional array of rotation matrices (n_time x 3 x 3).
-    t : array
-        The time points associated with each position (n_time).
+    translation : ndarray, shape (N, 3)
+        Translations at each time point.
+    rotation : ndarray, shape (N, 3, 3)
+        Rotations at each time point.
+    t : ndarray, shape (N,)
+        The time points.
 
     Notes
     -----
@@ -105,7 +105,7 @@ def _quats_to_trans_rot_t(quats):
 
     See Also
     --------
-    calculate_chpi_positions, get_chpi_positions
+    _calculate_chpi_positions, get_chpi_positions
     """
     t = quats[:, 0].copy()
     rotation = _quat_to_rot(quats[:, 1:4])
@@ -165,16 +165,6 @@ def _get_hpi_info(info):
         raise RuntimeError('cHPI coordinate frame incorrect')
     hpi_rrs = np.array([d['r'] for d in hpi_dig])[pos_order]
     hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
-    # hpi_res_dig = hpi_result['dig_points']
-    # hpi_res_rrs = apply_trans(hpi_result['coord_trans'],
-    #                           np.array([h['r'] for h in hpi_res_dig]))
-    # assert hpi_result['coord_trans']['to'] == FIFF.FIFFV_COORD_HEAD
-    # assert hpi_result['coord_trans']['from'] == FIFF.FIFFV_COORD_DEVICE
-    # assert all(h['kind'] == FIFF.FIFFV_POINT_HPI for h in hpi_res_dig)
-    # print(1000 * np.sqrt(np.sum((hpi_res_rrs - hpi_rrs) ** 2, axis=1)))
-    # print(hpi_rrs)
-    # print(hpi_res_rrs)
-    # np.testing.assert_allclose(hpi_res_rrs, hpi_rrs)
     return hpi_freqs, hpi_rrs, pos_order
 
 
@@ -204,20 +194,13 @@ def _chpi_objective(x, est_pos_dev, hpi_head_rrs):
     return np.sum(d * d)
 
 
-# def _chpi_constraint(x):
-#     """Constrain quaternions to be unit length"""
-#     pos = 1. - np.sum(x[:3] * x[:3])
-#     return pos
-
-
 def _fit_chpi_pos(est_pos_dev, hpi_head_rrs, x0):
     """Fit rotation and translation parameters for cHPI coils"""
     from scipy.optimize import fmin_cobyla
     denom = np.sum((hpi_head_rrs - np.mean(hpi_head_rrs, axis=0)) ** 2)
     objective = partial(_chpi_objective, est_pos_dev=est_pos_dev,
                         hpi_head_rrs=hpi_head_rrs)
-    x = fmin_cobyla(objective, x0, (),  # _chpi_constraint
-                    rhobeg=1e-2, rhoend=1e-6, disp=False)
+    x = fmin_cobyla(objective, x0, (), rhobeg=1e-2, rhoend=1e-6, disp=False)
     return x, 1. - objective(x) / denom
 
 
@@ -273,6 +256,10 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     -----
     The number of time points ``N`` will depend on the velocity of head
     movements as well as ``t_step_max`` and ``t_step_min``.
+
+    See Also
+    --------
+    get_chpi_positions
     """
     from scipy.spatial.distance import cdist
     hpi_freqs, orig_head_rrs, order = _get_hpi_info(raw.info)
@@ -372,7 +359,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                 if use_mask.sum() == 0:
                     break  # failure
                 # exclude next worst point
-                exclude = np.where(use_mask)[0][np.argmin(d.sum(axis=0))]
+                badness = these_dists[use_mask][:, use_mask].sum(axis=0)
+                exclude = np.where(use_mask)[0][np.argmax(badness)]
                 use_mask[exclude] = False
         good = use_mask.sum() >= 3
         if not good:
@@ -401,8 +389,12 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                                            this_head_rrs) ** 2, axis=1)) / dt)
         logger.info('Hpi fit OK, movements [mm/s] = ' +
                     ' / '.join(['%0.1f'] * n_freqs) % vs)
-        gs = [0] * n_freqs  # XXX eventually calculate and add this
-        errs = [0] * n_freqs  # XXX eventually calculate and add this, too
+        gs = [0] * n_freqs  # XXX eventually calculate this
+        errs = [0] * n_freqs  # XXX eventually calculate this
+        e = 0.  # XXX eventually calculate this
+        d = 100 * np.sqrt(np.sum(last_quat[3:] - dev_head_quat[3:]) ** 2)  # cm
+        r = _angle_between_quats(last_quat[:3], dev_head_quat[:3]) / dt
+        v = d / dt  # cm/sec
         for ii in range(n_freqs):
             if use_mask[ii]:
                 start, end = ' ', '/'
@@ -425,10 +417,6 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
             elif ii == 3:
                 vals = np.concatenate((vals, this_dev_head_t[:3, 3] * 1000.))
             logger.debug(log_str.format(*vals))
-        e = 0.  # XXX eventually calculate this, too
-        d = 100 * np.sqrt(np.sum(last_quat[3:] - dev_head_quat[3:]) ** 2)  # cm
-        r = _angle_between_quats(last_quat[:3], dev_head_quat[:3]) / dt
-        v = d / dt  # cm/sec
         logger.info('#t = %0.3f, #e = %0.2f cm, #g = %0.3f, #v = %0.2f cm/s, '
                     '#r = %0.2f rad/s, #d = %0.2f cm' % (t, e, g, v, r, d))
         quats.append(np.concatenate(([t], dev_head_quat, [g], [1. - g], [v])))
