@@ -9,9 +9,10 @@ from nose.tools import assert_raises, assert_equal, assert_true
 import warnings
 
 from mne.io import read_info, Raw
+from mne.io.constants import FIFF
 from mne.chpi import (_rot_to_quat, _quat_to_rot, get_chpi_positions,
                       _calculate_chpi_positions, _angle_between_quats)
-from mne.utils import run_tests_if_main, _TempDir, slow_test
+from mne.utils import run_tests_if_main, _TempDir, slow_test, set_log_file
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -67,6 +68,10 @@ def test_get_chpi():
     # run through input checking
     assert_raises(TypeError, get_chpi_positions, 1)
     assert_raises(ValueError, get_chpi_positions, hp_fname, [1])
+    raw_no_chpi = Raw(test_fif_fname)
+    assert_raises(RuntimeError, get_chpi_positions, raw_no_chpi)
+    assert_raises(ValueError, get_chpi_positions, raw, t_step='foo')
+    assert_raises(IOError, get_chpi_positions, 'foo')
 
 
 @testing.requires_testing_data
@@ -127,9 +132,34 @@ def test_calculate_chpi_positions():
     """
     trans, rot, t = get_chpi_positions(pos_fname)
     with warnings.catch_warnings(record=True):
-        raw = Raw(raw_fif_fname, allow_maxshield=True, preload=True)
+        raw = Raw(raw_fif_fname, allow_maxshield=True)
     t -= raw.first_samp / raw.info['sfreq']
     trans_est, rot_est, t_est = _calculate_chpi_positions(raw)
     _compare_positions((trans, rot, t), (trans_est, rot_est, t_est))
+
+    # degenerate conditions
+    raw_no_chpi = Raw(test_fif_fname)
+    assert_raises(RuntimeError, _calculate_chpi_positions, raw_no_chpi)
+    raw_bad = raw.copy()
+    for d in raw_bad.info['dig']:
+        if d['kind'] == FIFF.FIFFV_POINT_HPI:
+            d['coord_frame'] = 999
+            break
+    assert_raises(RuntimeError, _calculate_chpi_positions, raw_bad)
+    raw_bad = raw.copy()
+    for d in raw_bad.info['dig']:
+        if d['kind'] == FIFF.FIFFV_POINT_HPI:
+            d['r'] = np.ones(3)
+    raw_bad.crop(0, 1., copy=False)
+    tempdir = _TempDir()
+    log_file = op.join(tempdir, 'temp_log.txt')
+    set_log_file(log_file, overwrite=True)
+    try:
+        _calculate_chpi_positions(raw_bad)
+    finally:
+        set_log_file()
+    with open(log_file, 'r') as fid:
+        for line in fid:
+            assert_true('0/5 acceptable' in line)
 
 run_tests_if_main()

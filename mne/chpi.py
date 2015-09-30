@@ -64,8 +64,7 @@ def get_chpi_positions(raw, t_step=None, verbose=None):
         # for simplicity, we'll sample at 1 sec intervals like maxfilter
         if t_step is None:
             t_step = 1.0
-        if not np.isscalar(t_step):
-            raise TypeError('t_step must be a scalar or None')
+        t_step = float(t_step)
         picks = pick_types(raw.info, meg=False, ref_meg=False,
                            chpi=True, exclude=[])
         if len(picks) == 0:
@@ -356,7 +355,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
             d = (these_dists[use_mask][:, use_mask] <= dist_limit)
             good = d.all()
             if not good:
-                if use_mask.sum() == 0:
+                if use_mask.sum() == 2:
+                    use_mask[:] = False
                     break  # failure
                 # exclude next worst point
                 badness = these_dists[use_mask][:, use_mask].sum(axis=0)
@@ -422,4 +422,6 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         quats.append(np.concatenate(([t], dev_head_quat, [g], [1. - g], [v])))
         last_time = t
         last_head_rrs = this_head_rrs.copy()
-    return _quats_to_trans_rot_t(np.array(quats))
+    quats = np.array(quats)
+    quats = np.zeros((0, 10)) if quats.size == 0 else quats
+    return _quats_to_trans_rot_t(quats)
