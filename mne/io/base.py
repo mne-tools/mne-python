@@ -444,7 +444,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         If data were already preloaded, it will do nothing.
         """
         if not self.preload:
-            self._load_data(True)
+            self._preload_data(True)
         return self
 
     def _preload_data(self, preload):
