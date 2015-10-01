@@ -8,6 +8,7 @@ from __future__ import division
 import numpy as np
 from scipy import linalg
 from math import factorial
+import inspect
 
 from .. import pick_types
 from ..forward._compute_forward import _concatenate_coils
@@ -587,11 +588,16 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
     return raw
 
 
+check_disable = dict()  # not available on really old versions of SciPy
+if 'check_finite' in inspect.getargspec(linalg.svd)[0]:
+    check_disable['check_finite'] = False
+
+
 def _orth_overwrite(A):
     """Helper to create a slightly more efficient 'orth'"""
     # adapted from scipy/linalg/decomp_svd.py
     u, s = linalg.svd(A, overwrite_a=True, full_matrices=False,
-                      check_finite=False)[:2]
+                      **check_disable)[:2]
     M, N = A.shape
     eps = np.finfo(float).eps
     tol = max(M, N) * np.amax(s) * eps
@@ -613,10 +619,9 @@ def _overlap_projector(data_int, data_res, corr):
     # must have shape (n_samps x effective_rank) when passed into svd
     # computation
     Q_int = linalg.qr(_orth_overwrite((data_int / np.linalg.norm(data_int)).T),
-                      overwrite_a=True, mode='economic',
-                      check_finite=False)[0].T
+                      overwrite_a=True, mode='economic', **check_disable)[0].T
     Q_res = linalg.qr(_orth_overwrite((data_res / np.linalg.norm(data_res)).T),
-                      overwrite_a=True, mode='economic', check_finite=False)[0]
+                      overwrite_a=True, mode='economic', **check_disable)[0]
     assert data_int.shape[1] > 0
     C_mat = np.dot(Q_int, Q_res)
     del Q_int
@@ -624,7 +629,7 @@ def _overlap_projector(data_int, data_res, corr):
     # Compute angles between subspace and which bases to keep
     S_intersect, Vh_intersect = linalg.svd(C_mat, overwrite_a=True,
                                            full_matrices=False,
-                                           check_finite=False)[1:]
+                                           **check_disable)[1:]
     del C_mat
     intersect_mask = (S_intersect >= corr)
     del S_intersect
