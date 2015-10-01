@@ -90,7 +90,6 @@ from . import datasets
 from . import epochs
 from . import externals
 from . import io
-io.get_chpi_positions = get_chpi_positions  # for backward compat
 from . import filter
 from . import gui
 from . import minimum_norm

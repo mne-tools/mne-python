@@ -464,14 +464,14 @@ class deprecated(object):
         # FIXME: we should probably reset __new__ for full generality
         init = cls.__init__
 
-        def wrapped(*args, **kwargs):
+        def deprecation_wrapped(*args, **kwargs):
             warnings.warn(msg, category=DeprecationWarning)
             return init(*args, **kwargs)
-        cls.__init__ = wrapped
+        cls.__init__ = deprecation_wrapped
 
-        wrapped.__name__ = '__init__'
-        wrapped.__doc__ = self._update_doc(init.__doc__)
-        wrapped.deprecated_original = init
+        deprecation_wrapped.__name__ = '__init__'
+        deprecation_wrapped.__doc__ = self._update_doc(init.__doc__)
+        deprecation_wrapped.deprecated_original = init
 
         return cls
 
@@ -482,15 +482,15 @@ class deprecated(object):
         if self.extra:
             msg += "; %s" % self.extra
 
-        def wrapped(*args, **kwargs):
+        def deprecation_wrapped(*args, **kwargs):
             warnings.warn(msg, category=DeprecationWarning)
             return fun(*args, **kwargs)
 
-        wrapped.__name__ = fun.__name__
-        wrapped.__dict__ = fun.__dict__
-        wrapped.__doc__ = self._update_doc(fun.__doc__)
+        deprecation_wrapped.__name__ = fun.__name__
+        deprecation_wrapped.__dict__ = fun.__dict__
+        deprecation_wrapped.__doc__ = self._update_doc(fun.__doc__)
 
-        return wrapped
+        return deprecation_wrapped
 
     def _update_doc(self, olddoc):
         newdoc = "DEPRECATED"
