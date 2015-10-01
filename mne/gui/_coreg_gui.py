@@ -338,6 +338,9 @@ class CoregModel(HasPrivateTraits):
         elif 'fsaverage' in self.mri.subject_source.subjects:
             self.mri.subject = 'fsaverage'
 
+    def _use_eeg_locations_changed(self):
+        self.apply_eeg_filter()
+
     def apply_eeg_filter(self):
         """Either in- or exclude EEG locations in head shape points,
         depending on the setting of the tickbox."""
@@ -376,6 +379,7 @@ class CoregModel(HasPrivateTraits):
             logger.info("Coregistration: Reset excluded head shape points")
             with warnings.catch_warnings(record=True):  # Traits None comp
                 self.hsp.points_filter = None
+                self.apply_eeg_filter()  # Don't forget the EEG
 
         if distance <= 0:
             return
@@ -1398,10 +1402,6 @@ class CoregFrame(HasTraits):
 
     def _reset_omit_points_fired(self):
         self.model.omit_hsp_points(0, reset=True)
-        self.model.apply_eeg_filter()  # Don't forget the EEG
-
-    def _use_eeg_locations_fired(self):
-        self.model.apply_eeg_filter()
 
     @on_trait_change('model.mri.tris')
     def _on_mri_src_change(self):

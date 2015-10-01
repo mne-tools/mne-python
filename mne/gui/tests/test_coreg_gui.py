@@ -70,13 +70,11 @@ def test_coreg_model():
     assert_true(new_x < old_x)
 
     # By default, use_eeg_locations==True
-    avg_point_distance = np.mean(model.point_distance)
-    model.fit_hsp_points()
-    assert_true(np.mean(model.point_distance) < avg_point_distance)
-
-    # Repeat test without EEG electrode locations
+    assert_equal(len(model.hsp.points), 139)  # dipoints + EEG
     model.use_eeg_locations = False
-    model.apply_eeg_filter()
+    assert_equal(len(model.hsp.points), 78)  # dipoints only
+
+    # Perform the fit test without EEG points only
     avg_point_distance = np.mean(model.point_distance)
     model.fit_hsp_points()
     assert_true(np.mean(model.point_distance) < avg_point_distance)
@@ -155,6 +153,17 @@ def test_coreg_model_with_fsaverage():
     model.omit_hsp_points(0.02, reset=True)
     assert_equal(model.hsp.n_omitted, 1)
 
+    # test that omission also works then EEG locs are used,
+    # and resetting the omission when EEG locs are NOT used
+    # does NOT enable the EEG locs.
+    model.use_eeg_locations = True
+    model.omit_hsp_points(0.02, reset=True)
+    assert_equal(model.hsp.n_omitted, 1)
+    model.use_eeg_locations = False
+    model.omit_hsp_points(0.02, reset=True)
+    assert_equal(model.hsp.n_omitted_types['HSP'], 1)
+    assert_equal(model.hsp.n_omitted_types['EEG'], 61)
+
     # scale with 1 parameter
     model.n_scale_params = 1
 
@@ -185,8 +194,8 @@ def test_coreg_model_with_fsaverage():
     model.fit_scale_hsp_points()
     assert_true(np.mean(model.point_distance) < avg_point_distance_1param)
 
-    # test switching raw disables point omission
-    assert_equal(model.hsp.n_omitted, 1)
+    # test switching raw disables point omission and possible disabling of EEG
+    assert_equal(model.hsp.n_omitted, 62)  # 1 HSP due to dist and 61 EEG
     with warnings.catch_warnings(record=True):
         model.hsp.file = kit_raw_path
     assert_equal(model.hsp.n_omitted, 0)
