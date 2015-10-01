@@ -762,7 +762,8 @@ def fix_mag_coil_types(info):
 
     Neuromag Vectorview systems can contain magnetometers with two
     different coil sizes (3022 and 3023 vs. 3024). The systems
-    incorporating coils of type 3024 were introduced last. At some sites
+    incorporating coils of type 3024 were introduced last and are used at
+    the majority of MEG sites. At some sites with 3024 magnetometers,
     the data files have still defined the magnetometers to be of type
     3022 to ensure compatibility with older versions of Neuromag software.
     In the MNE software as well as in the present version of Neuromag
