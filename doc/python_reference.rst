@@ -373,6 +373,7 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   fix_mag_coil_types
    read_montage
    read_dig_montage
    read_layout

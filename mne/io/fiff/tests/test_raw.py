@@ -46,8 +46,34 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
+def test_fix_types():
+    """Test fixing of channel types
+    """
+    for fname, change in ((hp_fif_fname, True), (test_fif_fname, False),
+                          (ctf_fname, False)):
+        raw = Raw(fname)
+        mag_picks = pick_types(raw.info, meg='mag')
+        other_picks = np.setdiff1d(np.arange(len(raw.ch_names)), mag_picks)
+        # we don't actually have any files suffering from this problem, so
+        # fake it
+        if change:
+            for ii in mag_picks:
+                raw.info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T2
+        orig_types = np.array([ch['coil_type'] for ch in raw.info['chs']])
+        raw.fix_mag_coil_types()
+        new_types = np.array([ch['coil_type'] for ch in raw.info['chs']])
+        if not change:
+            assert_array_equal(orig_types, new_types)
+        else:
+            assert_array_equal(orig_types[other_picks], new_types[other_picks])
+            assert_true((orig_types[mag_picks] != new_types[mag_picks]).all())
+            assert_true((new_types[mag_picks] ==
+                         FIFF.FIFFV_COIL_VV_MAG_T3).all())
+
+
 def test_concat():
-    """Test RawFIF concatenation"""
+    """Test RawFIF concatenation
+    """
     # we trim the file to save lots of memory and some time
     tempdir = _TempDir()
     raw = read_raw_fif(test_fif_fname)
