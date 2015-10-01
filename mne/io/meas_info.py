@@ -758,8 +758,8 @@ def read_meas_info(fid, tree, verbose=None):
                     hc['slopes'] = read_tag(fid, pos).data
                 elif kind == FIFF.FIFF_HPI_CORR_COEFF:
                     hc['corr_coeff'] = read_tag(fid, pos).data
-                elif kind == FIFF.FIFF_CUSTOM_REF:
-                    hc['custom_ref'] = read_tag(fid, pos).data
+                elif kind == FIFF.FIFF_HPI_COIL_FREQ:
+                    hc['coil_freq'] = read_tag(fid, pos).data
             hcs.append(hc)
         hm['hpi_coils'] = hcs
         hms.append(hm)
@@ -980,9 +980,9 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             if hpi_coil.get('corr_coeff') is not None:
                 write_float(fid, FIFF.FIFF_HPI_CORR_COEFF,
                             hpi_coil['corr_coeff'])
-            if hpi_coil.get('custom_ref') is not None:
-                write_float(fid, FIFF.FIFF_CUSTOM_REF,
-                            hpi_coil['custom_ref'])
+            if hpi_coil.get('coil_freq') is not None:
+                write_float(fid, FIFF.FIFF_HPI_COIL_FREQ,
+                            hpi_coil['coil_freq'])
             end_block(fid, FIFF.FIFFB_HPI_COIL)
         end_block(fid, FIFF.FIFFB_HPI_MEAS)
 

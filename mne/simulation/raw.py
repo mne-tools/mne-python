@@ -15,7 +15,8 @@ from ..io.pick import pick_types, pick_info, pick_channels
 from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
-from ..io import RawArray, _BaseRaw, get_chpi_positions
+from ..io import RawArray, _BaseRaw
+from ..chpi import get_chpi_positions, _get_hpi_info
 from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
@@ -226,28 +227,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     logger.info('Provided parameters will provide approximately %s event%s'
                 % (approx_events, '' if approx_events == 1 else 's'))
 
-    # Get chpi freqs and reorder
-    if chpi:
-        if len(info['hpi_meas']) == 0 or \
-                ('custom_ref' not in info['hpi_meas'][0]['hpi_coils'][0]):
-            raise RuntimeError('cHPI information not found in'
-                               'raw.info["hpi_meas"], cannut use chpi=True')
-        # this shouldn't happen, eventually we could add the transforms
-        # necessary to put it in head coords
-        if not all([d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
-                    for d in info['dig']
-                    if d['kind'] == FIFF.FIFFV_POINT_HPI]):
-            raise RuntimeError('cHPI coordinate frame incorrect')
-        hpi_freqs = np.array([x['custom_ref'][0]
-                             for x in info['hpi_meas'][0]['hpi_coils']])
-        n_freqs = len(hpi_freqs)
-        order = [x['number'] - 1 for x in info['hpi_meas'][0]['hpi_coils']]
-        assert np.array_equal(np.unique(order), np.arange(n_freqs))
-        hpi_freqs = hpi_freqs[order]
-        hpi_order = info['hpi_results'][0]['order'] - 1
-        assert np.array_equal(np.unique(hpi_order), np.arange(n_freqs))
-        hpi_freqs = hpi_freqs[hpi_order]
-
     # Extract necessary info
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=[])  # for sim
     meg_picks = pick_types(info, meg=True, eeg=False, exclude=[])  # for CHPI
@@ -268,7 +247,14 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     R, r0 = fit_sphere_to_headshape(info, verbose=False)[:2]
     R /= 1000.
     r0 /= 1000.
-    ecg_rr = blink_rrs = exg_bem = chpi_rrs = None
+    ecg_rr = blink_rrs = exg_bem = hpi_rrs = None
+    ecg = ecg and len(meg_picks) > 0
+    chpi = chpi and len(meg_picks) > 0
+    if chpi:
+        hpi_freqs, hpi_rrs = _get_hpi_info(raw.info)[:2]
+        hpi_nns = hpi_rrs / np.sqrt(np.sum(hpi_rrs * hpi_rrs,
+                                           axis=1))[:, np.newaxis]
+
     if blink or ecg:
         exg_bem = make_sphere_model(r0, head_radius=R,
                                     relative_radii=(0.97, 0.98, 0.99, 1.),
@@ -341,17 +327,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     last_fwd = last_fwd_chpi = last_fwd_blink = last_fwd_ecg = src_sel = None
     zf = None  # final filter conditions for the noise
     # don't process these any more if no MEG present
-    ecg = ecg and len(meg_picks) > 0
-    chpi = chpi and len(meg_picks) > 0
-    if chpi:
-        chpi_rrs = np.array([d['r'] for d in info['dig']
-                            if d['kind'] == FIFF.FIFFV_POINT_HPI])
-        chpi_nns = chpi_rrs / np.sqrt(np.sum(chpi_rrs * chpi_rrs,
-                                             axis=1))[:, np.newaxis]
     for fi, (fwd, fwd_blink, fwd_ecg, fwd_chpi) in \
         enumerate(_iter_forward_solutions(
             fwd_info, trans, src, bem, exg_bem, dev_head_ts, mindist,
-            chpi_rrs, blink_rrs, ecg_rr, n_jobs)):
+            hpi_rrs, blink_rrs, ecg_rr, n_jobs)):
         # must be fixed orientation
         # XXX eventually we could speed this up by allowing the forward
         # solution code to only compute the normal direction
@@ -370,10 +349,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
         # align cHPI magnetic dipoles in approx. radial direction
         if chpi:
-            for ii in range(len(chpi_rrs)):
+            for ii in range(len(hpi_rrs)):
                 fwd_chpi[:, ii] = np.dot(fwd_chpi[:, 3 * ii:3 * (ii + 1)],
-                                         chpi_nns[ii])
-            fwd_chpi = fwd_chpi[:, :len(chpi_rrs)].copy()
+                                         hpi_nns[ii])
+            fwd_chpi = fwd_chpi[:, :len(hpi_rrs)].copy()
 
         if src_sel is None:
             src_sel = _stc_src_sel(fwd['src'], stc)
@@ -444,7 +423,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                     _interp(last_fwd_ecg, fwd_ecg, ecg_data[:, time_sl],
                             this_interp)
             if chpi:
-                sinusoids = np.zeros((n_freqs, len(stc_idxs)))
+                sinusoids = np.zeros((len(hpi_freqs), len(stc_idxs)))
                 for fidx, freq in enumerate(hpi_freqs):
                     sinusoids[fidx] = 2 * np.pi * freq * this_t
                     sinusoids[fidx] = hpi_mag * np.sin(sinusoids[fidx])
@@ -463,7 +442,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
 
 def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
-                            mindist, chpi_rrs, blink_rrs, ecg_rrs, n_jobs):
+                            mindist, hpi_rrs, blink_rrs, ecg_rrs, n_jobs):
     """Calculate a forward solution for a subject"""
     mri_head_t, trans = _get_mri_head_t(trans)
     logger.info('Setting up forward solutions')
@@ -538,8 +517,8 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
                                        [compcoils], [meg_info], ['meg'],
                                        n_jobs, verbose=False)[0]
             fwd_ecg = _to_forward_dict(megecg, megnames)
-        if chpi_rrs is not None:
-            fwd_chpi = _magnetic_dipole_field_vec(chpi_rrs, megcoils).T
+        if hpi_rrs is not None:
+            fwd_chpi = _magnetic_dipole_field_vec(hpi_rrs, megcoils).T
         yield fwd, fwd_blink, fwd_ecg, fwd_chpi
 
 

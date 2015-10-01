@@ -61,20 +61,11 @@ def get_name(func):
     return '.'.join(parts)
 
 
-# functions to ignore # of args b/c we deprecated a name and moved it
-# to the end
-_deprecation_ignores = [
+# functions to ignore args / docstring of
+_docstring_ignores = [
     'mne.io.write',  # always ignore these
     'mne.fixes._in1d',  # fix function
-    'mne.utils.plot_epochs_trellis',  # deprecated
-    'mne.utils.write_bem_surface',  # deprecated
-    'generate_sparse_stc',  # deprecated
-    'generate_stc',  # deprecated
-    'generate_evoked',  # deprecated
-    'generate_noise_evoked',  # deprecated
-    'mne.gui.coregistration',  # deprecated
-    'mne.utils.plot_topo',
-    'mne.viz.plot_image_epochs',  # deprecated
+    'mne.gui.coregistration',  # deprecated single argument w/None
 ]
 
 _tab_ignores = [
@@ -108,7 +99,8 @@ def check_parameters_match(func, doc=None):
     if len(param_names) != len(args):
         bad = str(sorted(list(set(param_names) - set(args)) +
                          list(set(args) - set(param_names))))
-        if not any(d in name_ for d in _deprecation_ignores):
+        if not any(d in name_ for d in _docstring_ignores) and \
+                'deprecation_wrapped' not in func.__code__.co_name:
             incorrect += [name_ + ' arg mismatch: ' + bad]
     else:
         for n1, n2 in zip(param_names, args):

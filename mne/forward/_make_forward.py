@@ -18,13 +18,17 @@ from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_mri_head_t, _print_coord_trans,
-                          _coord_frame_name)
+                          _coord_frame_name, Transform)
 from ..utils import logger, verbose
 from ..source_space import (read_source_spaces, _filter_source_spaces,
                             SourceSpaces)
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
+
+
+_accuracy_dict = dict(normal=FIFF.FWD_COIL_ACCURACY_NORMAL,
+                      accurate=FIFF.FWD_COIL_ACCURACY_ACCURATE)
 
 
 @verbose
@@ -108,50 +112,43 @@ def _read_coil_defs(fname=None, elekta_defs=False, verbose=None):
 def _create_meg_coil(coilset, ch, acc, t):
     """Create a coil definition using templates, transform if necessary"""
     # Also change the coordinate frame if so desired
+    if t is None:
+        t = Transform('meg', 'meg', np.eye(4))  # identity, no change
 
     if ch['kind'] not in [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH]:
         raise RuntimeError('%s is not a MEG channel' % ch['ch_name'])
 
     # Simple linear search from the coil definitions
-    d = None
     for coil in coilset['coils']:
         if coil['coil_type'] == (ch['coil_type'] & 0xFFFF) and \
                 coil['accuracy'] == acc:
-            d = coil
-
-    if d is None:
+            break
+    else:
         raise RuntimeError('Desired coil definition not found '
                            '(type = %d acc = %d)' % (ch['coil_type'], acc))
 
-    # Create the result
-    res = dict(chname=ch['ch_name'], desc=None, coil_class=d['coil_class'],
-               accuracy=d['accuracy'], base=d['base'], size=d['size'],
-               type=ch['coil_type'], w=d['w'])
-
-    if d['desc']:
-        res['desc'] = d['desc']
-
     # Apply a coordinate transformation if so desired
-    coil_trans = ch['coil_trans'].copy()  # make sure we don't botch it
-    if t is not None:
-        coil_trans = np.dot(t['trans'], coil_trans)
-        res['coord_frame'] = t['to']
-    else:
-        res['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+    coil_trans = np.dot(t['trans'], ch['coil_trans'])
 
-    res['rmag'] = apply_trans(coil_trans, d['rmag'])
-    res['cosmag'] = apply_trans(coil_trans, d['cosmag'], False)
+    # Create the result
+    res = dict(chname=ch['ch_name'], coil_class=coil['coil_class'],
+               accuracy=coil['accuracy'], base=coil['base'], size=coil['size'],
+               type=ch['coil_type'], w=coil['w'], desc=coil['desc'],
+               coord_frame=t['to'], rmag=apply_trans(coil_trans, coil['rmag']),
+               cosmag=apply_trans(coil_trans, coil['cosmag'], False))
     res.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
                ez=coil_trans[:3, 2], r0=coil_trans[:3, 3])
     return res
 
 
-def _create_eeg_el(ch, t):
+def _create_eeg_el(ch, t=None):
     """Create an electrode definition, transform coords if necessary"""
     if ch['kind'] != FIFF.FIFFV_EEG_CH:
         raise RuntimeError('%s is not an EEG channel. Cannot create an '
                            'electrode definition.' % ch['ch_name'])
-    if t is not None and t['from'] != FIFF.FIFFV_COORD_HEAD:
+    if t is None:
+        t = Transform('head', 'head', np.eye(4))  # identity, no change
+    if t.from_str != 'head':
         raise RuntimeError('Inappropriate coordinate transformation')
 
     r0ex = ch['eeg_loc'][:, :2]
@@ -161,37 +158,28 @@ def _create_eeg_el(ch, t):
         w = np.array([1., -1.])
 
     # Optional coordinate transformation
-    r0ex = r0ex.T.copy()
-    if t is not None:
-        r0ex = apply_trans(t['trans'], r0ex)
-        coord_frame = t['to']
-    else:
-        coord_frame = FIFF.FIFFV_COORD_HEAD
+    r0ex = apply_trans(t['trans'], r0ex.T)
 
     # The electrode location
     cosmag = r0ex.copy()
     _normalize_vectors(cosmag)
     res = dict(chname=ch['ch_name'], coil_class=FIFF.FWD_COILC_EEG, w=w,
-               accuracy=FIFF.FWD_COIL_ACCURACY_NORMAL, type=ch['coil_type'],
-               coord_frame=coord_frame, rmag=r0ex, cosmag=cosmag)
+               accuracy=_accuracy_dict['normal'], type=ch['coil_type'],
+               coord_frame=t['to'], rmag=r0ex, cosmag=cosmag)
     return res
 
 
-def _create_coils(chs, acc=None, t=None, coil_type='meg', coilset=None):
+def _create_meg_coils(chs, acc=None, t=None, coilset=None):
     """Create a set of MEG or EEG coils in the head coordinate frame"""
-    if coilset is None:  # auto-read defs if not supplied
-        coilset = _read_coil_defs()
-    coils = list()
-    if coil_type == 'meg':
-        for ch in chs:
-            coils.append(_create_meg_coil(coilset, ch, acc, t))
-    elif coil_type == 'eeg':
-        for ch in chs:
-            coils.append(_create_eeg_el(ch, t))
-    else:
-        raise RuntimeError('unknown coil type')
-    assert coils[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+    acc = _accuracy_dict[acc] if isinstance(acc, string_types) else acc
+    coilset = _read_coil_defs(verbose=False) if coilset is None else coilset
+    coils = [_create_meg_coil(coilset, ch, acc, t) for ch in chs]
     return coils
+
+
+def _create_eeg_els(chs):
+    """Create a set of MEG or EEG coils in the head coordinate frame"""
+    return [_create_eeg_el(ch) for ch in chs]
 
 
 @verbose
@@ -255,10 +243,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         Information subselected for just the set of MEG coils
     """
 
-    if accurate:
-        accuracy = FIFF.FWD_COIL_ACCURACY_ACCURATE
-    else:
-        accuracy = FIFF.FWD_COIL_ACCURACY_NORMAL
+    accuracy = 'accurate' if accurate else 'normal'
     info_extra = 'info'
     meg_info = None
     megnames, megcoils, compcoils = [], [], []
@@ -306,13 +291,13 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     # Create coil descriptions with transformation to head or MRI frame
     templates = _read_coil_defs(elekta_defs=elekta_defs)
 
-    megcoils = _create_coils(megchs, accuracy, info['dev_head_t'], 'meg',
-                             templates)
+    megcoils = _create_meg_coils(megchs, accuracy, info['dev_head_t'],
+                                 templates)
     if ncomp > 0:
         logger.info('%d compensation data sets in %s' % (ncomp_data,
                                                          info_extra))
-        compcoils = _create_coils(compchs, FIFF.FWD_COIL_ACCURACY_NORMAL,
-                                  info['dev_head_t'], 'meg', templates)
+        compcoils = _create_meg_coils(compchs, 'normal', info['dev_head_t'],
+                                      templates)
     logger.info('Head coordinate MEG coil definitions created.')
 
     return megcoils, compcoils, megnames, meg_info
@@ -351,7 +336,6 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     neeg = len(picks)
     if neeg <= 0:
         raise RuntimeError('Could not find any EEG channels')
-    templates = _read_coil_defs()
 
     # Get channel info and names for EEG channels
     eegchs = pick_info(info, picks)['chs']
@@ -359,7 +343,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     logger.info('Read %3d EEG channels from %s' % (len(picks), info_extra))
 
     # Create EEG electrode descriptions
-    eegels = _create_coils(eegchs, coil_type='eeg', coilset=templates)
+    eegels = _create_eeg_els(eegchs)
     logger.info('Head coordinate coil definitions created.')
 
     return eegels, eegnames
@@ -434,9 +418,9 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     # Transform the source spaces into the appropriate coordinates
     # (will either be HEAD or MRI)
     for s in src:
-        transform_surface_to(s, FIFF.FIFFV_COORD_HEAD, mri_head_t)
+        transform_surface_to(s, 'head', mri_head_t)
     logger.info('Source spaces are now in %s coordinates.'
-                % _coord_frame_name(FIFF.FIFFV_COORD_HEAD))
+                % _coord_frame_name(s['coord_frame']))
 
     # Prepare the BEM model
     bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t)

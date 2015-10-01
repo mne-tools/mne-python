@@ -28,7 +28,7 @@ from .io.pick import (pick_types, pick_channels,
                       pick_types_forward, pick_channels_cov,
                       pick_channels_evoked, pick_info)
 from .io.base import concatenate_raws
-from .io.chpi import get_chpi_positions
+from .chpi import get_chpi_positions
 from .io.meas_info import create_info
 from .io.kit import read_epochs_kit
 from .bem import (make_sphere_model, make_bem_model, make_bem_solution,
@@ -81,6 +81,7 @@ from .channels import equalize_channels, rename_channels, find_layout
 
 from . import beamformer
 from . import channels
+from . import chpi
 from . import commands
 from . import connectivity
 from . import coreg
