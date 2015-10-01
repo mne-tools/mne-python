@@ -1,4 +1,5 @@
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #          Jussi Nurminen <jnu@iki.fi>
 
 
@@ -44,8 +45,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         Any data at the trailing edge that doesn't fit evenly into a whole
         buffer window will be lumped into the previous buffer.
     st_corr : float
-        Correlation between inner and outer subspaces to reject during
-        spatiotemporal SSS.
+        Correlation limit between inner and outer subspaces used to reject
+        ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -175,10 +176,12 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
             resid -= np.dot(S_out, mm[n_in:, win[0]:win[1]] /
                             S_out_good_norm) / coil_scale
             _check_finite(resid)
+
             # Compute SSP-like projector. Set overlap limit to 0.02
             this_data = raw_sss._data[meg_picks, win[0]:win[1]]
             _check_finite(this_data)
             V = _overlap_projector(this_data, resid, st_corr)
+
             # Apply projector according to Eq. 12 in [2]_
             logger.info('    Projecting out %s tSSS components for %s-%s'
                         % (V.shape[1], win[0] / raw_sss.info['sfreq'],

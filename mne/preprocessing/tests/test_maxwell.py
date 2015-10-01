@@ -28,8 +28,6 @@ sss_nonstd_fname = op.join(data_path, 'SSS',
                            'test_move_anon_raw_simp_nonStdOrigin_sss.fif')
 sss_bad_recon_fname = op.join(data_path, 'SSS',
                               'test_move_anon_raw_bad_recon_sss.fif')
-sss_spatiotemporal_fname = op.join(data_path, 'SSS',
-                                   'test_move_anon_raw_spatiotemporal_sss.fif')
 
 
 @testing.requires_testing_data
@@ -206,32 +204,51 @@ def test_spatiotemporal_maxwell():
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True)
 
-    with warnings.catch_warnings(record=True):  # maxshield, naming
-        tsss_bench = Raw(sss_spatiotemporal_fname, allow_maxshield=True)
-
     # Create coils
     picks = pick_types(raw.info)
-    tsss_bench_data = tsss_bench[picks, :][0]
-    del tsss_bench
 
     # Test that window is less than length of data
     assert_raises(ValueError, maxwell_filter, raw, st_dur=1000.)
 
-    # Test sss computation at the standard head origin
-    raw_tsss = maxwell_filter(raw, st_dur=10.)
-    assert_allclose(raw_tsss[picks][0], tsss_bench_data,
-                    rtol=1e-12, atol=1e-4, err_msg='Spatiotemporal (tSSS) '
-                    'maxwell filtered data at standard origin incorrect.')
+    # Check both 4 and 10 seconds because Elekta handles them differently
+    # This is to ensure that std/non-std tSSS windows are correctly handled
+    st_durs = [4., 10.]
+    for st_dur in st_durs:
+        # Load tSSS data depending on st_dur and get data
+        tSSS_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_' +
+                             'spatiotemporal_%0ds_sss.fif' % st_dur)
 
-    # Confirm SNR is above 250. Single precision is part of discrepancy
-    bench_rms = np.sqrt(np.mean(tsss_bench_data * tsss_bench_data, axis=1))
-    error = raw_tsss[picks][0] - tsss_bench_data
-    error_rms = np.sqrt(np.mean(error * error, axis=1))
-    assert_true(np.mean(bench_rms / error_rms) >= 250,
-                'SNR (%0.1f) < 250' % np.mean(bench_rms / error_rms))
-    # Confirm we didn't modify other channels
+        with warnings.catch_warnings(record=True):  # maxshield, naming
+            tsss_bench = Raw(tSSS_fname, allow_maxshield=True)
+            # Because Elekta's tSSS sometimes(!) lumps the tail window of data
+            # onto the previous buffer if it's shorter than st_dur, we have to
+            # crop the data here to compensate for Elekta's tSSS behavior.
+            if st_dur == 10.:
+                tsss_bench.crop(0, st_dur, copy=False)
+        tsss_bench_data = tsss_bench[picks, :][0]
+        del tsss_bench
+
+        # Test sss computation at the standard head origin. Same cropping issue
+        # as mentioned above.
+        if st_dur == 10.:
+            raw_tsss = maxwell_filter(raw.crop(0, st_dur), st_dur=st_dur)
+        else:
+            raw_tsss = maxwell_filter(raw, st_dur=st_dur)
+        assert_allclose(raw_tsss[picks][0], tsss_bench_data,
+                        rtol=1e-12, atol=1e-4, err_msg='Spatiotemporal (tSSS) '
+                        'maxwell filtered data at standard origin incorrect.')
+
+        # Confirm SNR is above 500. Single precision is part of discrepancy
+        bench_rms = np.sqrt(np.mean(tsss_bench_data * tsss_bench_data, axis=1))
+        error = raw_tsss[picks][0] - tsss_bench_data
+        error_rms = np.sqrt(np.mean(error * error, axis=1))
+        assert_true(np.mean(bench_rms / error_rms) >= 500,
+                    'SNR (%0.1f) < 500' % np.mean(bench_rms / error_rms))
+
+    # Confirm we didn't modify other channels (like EEG chs)
     non_picks = np.setdiff1d(np.arange(len(raw.ch_names)), picks)
-    assert_allclose(raw[non_picks][0], raw_tsss[non_picks][0])
+    assert_allclose(raw[non_picks, 0:raw_tsss.n_times][0],
+                    raw_tsss[non_picks, 0:raw_tsss.n_times][0])
 
     # Degenerate cases
     assert_raises(ValueError, maxwell_filter, raw, st_dur=10., st_corr=0.)
