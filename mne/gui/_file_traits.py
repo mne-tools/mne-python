@@ -364,7 +364,7 @@ class InstSource(HasPrivateTraits):
     @cached_property
     def _get_points_type(self):
         if not self.inst:
-            return np.zeros((0, 3), dtype=np.int)  # FIFFV_POINTs are ints
+            return np.array([], dtype=np.int)  # FIFFV_POINTs are ints
 
         points_type = np.array([d['kind'] for d in self.inst['dig']
                                 if (d['kind'] == FIFF.FIFFV_POINT_EXTRA or
