@@ -744,3 +744,39 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
     ch_connectivity = sparse.csr_matrix(ch_connectivity)
     return ch_connectivity
+
+
+def fix_mag_coil_types(info):
+    """Fix Elekta magnetometer coil types
+
+    Parameters
+    ----------
+    info : dict
+        The info dict to correct. Corrections are done in-place.
+
+    Notes
+    -----
+    This function changes magnetometer coil types 3022 (T1: SQ20483N) and
+    3023 (T2: SQ20483-A) to 3024 (T3: SQ20950N) in the channel definition
+    records in the info structure.
+
+    Neuromag Vectorview systems can contain magnetometers with two
+    different coil sizes (3022 and 3023 vs. 3024). The systems
+    incorporating coils of type 3024 were introduced last. At some sites
+    the data files have still defined the magnetometers to be of type
+    3022 to ensure compatibility with older versions of Neuromag software.
+    In the MNE software as well as in the present version of Neuromag
+    software coil type 3024 is fully supported. Therefore, it is now safe
+    to upgrade the data files to use the true coil type.
+
+    .. note:: The effect of the difference between the coil sizes on the
+              current estimates computed by the MNE software is very small.
+              Therefore the use of mne_fix_mag_coil_types is not mandatory.
+    """
+    picks = pick_types(info, meg='mag')
+    for ii in picks:
+        ch = info['chs'][ii]
+        if ch['coil_type'] in (FIFF.FIFFV_COIL_VV_MAG_T1,
+                               FIFF.FIFFV_COIL_VV_MAG_T2):
+            ch['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
+    info._check_consistency()
