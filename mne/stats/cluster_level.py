@@ -229,17 +229,14 @@ def _get_components(x_in, connectivity, return_list=True):
     connectivity = sparse.coo_matrix((data, (row, col)), shape=shape)
     _, components = cs_graph_components(connectivity)
     if return_list:
-        start = min(components)
-        stop = max(components)
-        comp_list = [list() for i in
-                     range(start, stop + 1, 1)]
+        start = np.min(components)
+        stop = np.max(components)
+        comp_list = [list() for i in range(start, stop + 1, 1)]
         mask = np.zeros(len(comp_list), dtype=bool)
         for ii, comp in enumerate(components):
             comp_list[comp].append(ii)
             mask[comp] += x_in[ii]
         clusters = [np.array(k) for k, m in zip(comp_list, mask) if m]
-        # logger.info("-- number of components : %d"
-        #             % np.unique(components).size)
         return clusters
     else:
         return components
