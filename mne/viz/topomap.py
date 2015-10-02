@@ -1144,7 +1144,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     elif times == "peaks":
         gfp = evoked.data.std(axis=0)
         order = int(evoked.info["sfreq"] / 5.)
-        times = evoked.times[argrelmax(gfp, order=order)]
+        times = evoked.times[signal.argrelmax(gfp, order=order)]
     elif np.isscalar(times):
         times = [times]
     times = np.array(times)
