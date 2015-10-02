@@ -755,7 +755,7 @@ def _update_sensor_geometry(info, cal_chans):
         info['chs'][ch_ind]['loc'] = cal_chan['loc']
 
     # Deal with numerical precision giving values slightly more than 1.
-    ang_shift[ang_shift > 1.] = 1.
+    np.clip(ang_shift, -1., 1., ang_shift)
     ang_shift = np.rad2deg(np.arccos(ang_shift))  # Convert to degrees
 
     # Log quantification of sensor changes
@@ -771,6 +771,9 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalance,
                      head_frame=True):
     """Compute multipolar moments for point-like magnetometers (in fine cal)"""
 
+    # Permeability of free space for scaling
+    u0 = 4 * np.pi * 1e-7
+
     # Construct 'coils' with r, weights, normal vecs, # integration pts, and
     # channel type.
     if imbalance.ndim == 1:
@@ -781,8 +784,8 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalance,
                          imbalance.shape[1])
 
     # Initialize internal multipolar moment space for point-like magnetometers
-    S_in_all = np.zeros((len(info['chs']), (int_order + 1) ** 2 - 1))
-    S_out_all = np.zeros((len(info['chs']), (ext_order + 1) ** 2 - 1))
+    S_in_all = np.zeros((len(info['chs']), get_num_moments(int_order, 0)))
+    S_out_all = np.zeros((len(info['chs']), get_num_moments(0, ext_order)))
 
     # Coil_type values for x, y, z point magnetometers
     pt_types = [FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X,
@@ -805,4 +808,5 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalance,
         S_in_all += S_in_add * imbalance[:, dir_ind][:, np.newaxis]
         S_out_all += S_out_add * imbalance[:, dir_ind][:, np.newaxis]
 
-    return S_in_all, S_out_all
+    # Return point-like mag bases scaled by u0
+    return S_in_all * u0, S_out_all * u0
