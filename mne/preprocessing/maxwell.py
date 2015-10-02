@@ -1,4 +1,5 @@
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #          Jussi Nurminen <jnu@iki.fi>
 
 
@@ -6,19 +7,20 @@
 
 from __future__ import division
 import numpy as np
-from scipy.linalg import pinv
+from scipy import linalg
 from math import factorial
+import inspect
 
 from .. import pick_types
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..io.write import _generate_meas_id, _date_now
-from ..utils import logger, verbose
+from ..utils import verbose, logger
 
 
 @verbose
 def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
-                   verbose=None):
+                   st_dur=None, st_corr=0.98, verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -32,6 +34,19 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         Order of internal component of spherical expansion
     ext_order : int
         Order of external component of spherical expansion
+    st_dur : float | None
+        If not None, apply spatiotemporal SSS with specified buffer duration
+        (in seconds). Elekta's default is 10.0 seconds in MaxFilter v2.2.
+        Spatiotemporal SSS acts as implicitly as a high-pass filter where the
+        cut-off frequency is 1/st_dur Hz. For this (and other) reasons, longer
+        buffers are generally better as long as your system can handle the
+        higher memory usage. To ensure that each window is processed
+        identically, choose a buffer length that divides evenly into your data.
+        Any data at the trailing edge that doesn't fit evenly into a whole
+        buffer window will be lumped into the previous buffer.
+    st_corr : float
+        Correlation limit between inner and outer subspaces used to reject
+        ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -44,10 +59,11 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     -----
     .. versionadded:: 0.10
 
-    Equation numbers refer to Taulu and Kajola, 2005 [1]_.
+    Equation numbers refer to Taulu and Kajola, 2005 [1]_ unless otherwise
+    noted.
 
-    This code was adapted and relicensed (with BSD form) with permission from
-    Jussi Nurminen.
+    Some of this code was adapted and relicensed (with BSD form) with
+    permission from Jussi Nurminen.
 
     References
     ----------
@@ -56,6 +72,12 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
            Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
 
            http://lib.tkk.fi/Diss/2008/isbn9789512295654/article2.pdf
+
+    .. [2] Taulu S. and Simola J. "Spatiotemporal signal space separation
+           method for rejecting nearby interference in MEG measurements,"
+           Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
+
+           http://lib.tkk.fi/Diss/2008/isbn9789512295654/article3.pdf
     """
 
     # There are an absurd number of different possible notations for spherical
@@ -67,28 +89,32 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
-    if 'dev_head_t' not in raw.info.keys():
-        raise RuntimeError("Raw.info must contain 'dev_head_t' to transform "
-                           "device to head coords")
     if len(raw.info.get('comps', [])) > 0:
         raise RuntimeError('Maxwell filter cannot handle compensated '
                            'channels.')
+    st_corr = float(st_corr)
+    if st_corr <= 0. or st_corr > 1.:
+        raise ValueError('Need 0 < st_corr <= 1., got %s' % st_corr)
     logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
 
-    raw.load_data()
+    logger.info('Preparing coil definitions')
+    all_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
+                                                   elekta_defs=True,
+                                                   verbose=False)
+    raw_sss = raw.copy().load_data()
+    del raw
+    times = raw_sss.times
 
     # Get indices of channels to use in multipolar moment calculation
-    good_chs = pick_types(raw.info, meg=True, exclude='bads')
+    good_chs = pick_types(raw_sss.info, meg=True, exclude='bads')
     # Get indices of MEG channels
-    meg_chs = pick_types(raw.info, meg=True, exclude=[])
-    data, _ = raw[good_chs, :]
-
-    meg_coils, _, _, meg_info = _prep_meg_channels(raw.info, accurate=True,
+    meg_picks = pick_types(raw_sss.info, meg=True, exclude=[])
+    meg_coils, _, _, meg_info = _prep_meg_channels(raw_sss.info, accurate=True,
                                                    elekta_defs=True)
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
-    coil_scale = np.ones(len(meg_coils))
+    coil_scale = np.ones((len(meg_coils), 1))
     coil_scale[np.array([coil['coil_class'] == 1.0
                          for coil in meg_coils])] = 100.
 
@@ -96,35 +122,84 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
     # Compute in/out bases and create copies containing only good chs
     S_in, S_out = _sss_basis(origin, meg_coils, int_order, ext_order)
+    n_in = S_in.shape[1]
 
     S_in_good, S_out_good = S_in[good_chs, :], S_out[good_chs, :]
     S_in_good_norm = np.sqrt(np.sum(S_in_good * S_in_good, axis=0))[:,
                                                                     np.newaxis]
-
+    S_out_good_norm = \
+        np.sqrt(np.sum(S_out_good * S_out_good, axis=0))[:, np.newaxis]
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
     S_tot_good = np.c_[S_in_good, S_out_good]
     S_tot_good /= np.sqrt(np.sum(S_tot_good * S_tot_good, axis=0))[np.newaxis,
                                                                    :]
-    pS_tot_good = pinv(S_tot_good, cond=1e-15)
+    pS_tot_good = linalg.pinv(S_tot_good, cond=1e-15)
 
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
-    mm = np.dot(pS_tot_good, data * coil_scale[good_chs][:, np.newaxis])
-
+    # XXX eventually we can refactor this to work in chunks
+    data = raw_sss[good_chs][0]
+    mm = np.dot(pS_tot_good, data * coil_scale[good_chs])
     # Reconstruct data from internal space (Eq. 38)
-    recon = np.dot(S_in, mm[:S_in.shape[1], :] / S_in_good_norm)
-
-    # Return reconstructed raw file object
-    raw_sss = _update_sss_info(raw.copy(), origin, int_order, ext_order,
-                               data.shape[0])
-    raw_sss._data[meg_chs, :] = recon / coil_scale[:, np.newaxis]
+    raw_sss._data[meg_picks] = np.dot(S_in, mm[:n_in] / S_in_good_norm)
+    raw_sss._data[meg_picks] /= coil_scale
 
     # Reset 'bads' for any MEG channels since they've been reconstructed
     bad_inds = [raw_sss.info['ch_names'].index(ch)
                 for ch in raw_sss.info['bads']]
     raw_sss.info['bads'] = [raw_sss.info['ch_names'][bi] for bi in bad_inds
-                            if bi not in meg_chs]
+                            if bi not in meg_picks]
+
+    # Reconstruct raw file object with spatiotemporal processed data
+    if st_dur is not None:
+        if st_dur > times[-1]:
+            raise ValueError('st_dur (%0.1fs) longer than length of signal in '
+                             'raw (%0.1fs).' % (st_dur, times[-1]))
+        logger.info('Processing data using tSSS with st_dur=%s' % st_dur)
+
+        # Generate time points to break up data in to windows
+        lims = raw_sss.time_as_index(np.arange(times[0], times[-1], st_dur))
+        len_last_buf = raw_sss.times[-1] - raw_sss.index_as_time(lims[-1])[0]
+        if len_last_buf == st_dur:
+            lims = np.concatenate([lims, [len(raw_sss.times)]])
+        else:
+            # len_last_buf < st_dur so fold it into the previous buffer
+            lims[-1] = len(raw_sss.times)
+            logger.info('Spatiotemporal window did not fit evenly into raw '
+                        'object. The final %0.2f seconds were lumped onto '
+                        'the previous window.' % len_last_buf)
+
+        # Loop through buffer windows of data
+        for win in zip(lims[:-1], lims[1:]):
+            # Reconstruct data from external space and compute residual
+            resid = data[:, win[0]:win[1]]
+            resid -= raw_sss._data[meg_picks, win[0]:win[1]]
+            resid -= np.dot(S_out, mm[n_in:, win[0]:win[1]] /
+                            S_out_good_norm) / coil_scale
+            _check_finite(resid)
+
+            # Compute SSP-like projector. Set overlap limit to 0.02
+            this_data = raw_sss._data[meg_picks, win[0]:win[1]]
+            _check_finite(this_data)
+            V = _overlap_projector(this_data, resid, st_corr)
+
+            # Apply projector according to Eq. 12 in [2]_
+            logger.info('    Projecting out %s tSSS components for %s-%s'
+                        % (V.shape[1], win[0] / raw_sss.info['sfreq'],
+                           win[1] / raw_sss.info['sfreq']))
+            this_data -= np.dot(np.dot(this_data, V), V.T)
+            raw_sss._data[meg_picks, win[0]:win[1]] = this_data
+
+    # Update info
+    raw_sss = _update_sss_info(raw_sss, origin, int_order, ext_order,
+                               len(good_chs))
 
     return raw_sss
+
+
+def _check_finite(data):
+    """Helper to ensure data is finite"""
+    if not np.isfinite(data).all():
+        raise RuntimeError('data contains non-finite numbers')
 
 
 def _sph_harm(order, degree, az, pol):
@@ -512,9 +587,58 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
                       date=_date_now(), experimentor='')
 
     # Insert information in raw.info['proc_info']
-    if 'proc_history' in raw.info.keys():
-        raw.info['proc_history'].insert(0, proc_block)
-    else:
-        raw.info['proc_history'] = [proc_block]
-
+    raw.info['proc_history'] = [proc_block] + raw.info.get('proc_history', [])
     return raw
+
+
+check_disable = dict()  # not available on really old versions of SciPy
+if 'check_finite' in inspect.getargspec(linalg.svd)[0]:
+    check_disable['check_finite'] = False
+
+
+def _orth_overwrite(A):
+    """Helper to create a slightly more efficient 'orth'"""
+    # adapted from scipy/linalg/decomp_svd.py
+    u, s = linalg.svd(A, overwrite_a=True, full_matrices=False,
+                      **check_disable)[:2]
+    M, N = A.shape
+    eps = np.finfo(float).eps
+    tol = max(M, N) * np.amax(s) * eps
+    num = np.sum(s > tol, dtype=int)
+    return u[:, :num]
+
+
+def _overlap_projector(data_int, data_res, corr):
+    """Calculate projector for removal of subspace intersection in tSSS"""
+    # corr necessary to deal with noise when finding identical signal
+    # directions in the subspace. See the end of the Results section in [2]_
+
+    # Note that the procedure here is an updated version of [2]_ (and used in
+    # Elekta's tSSS) that uses residuals instead of internal/external spaces
+    # directly. This provides more degrees of freedom when analyzing for
+    # intersections between internal and external spaces.
+
+    # Normalize data, then compute orth to get temporal bases. Matrices
+    # must have shape (n_samps x effective_rank) when passed into svd
+    # computation
+    Q_int = linalg.qr(_orth_overwrite((data_int / np.linalg.norm(data_int)).T),
+                      overwrite_a=True, mode='economic', **check_disable)[0].T
+    Q_res = linalg.qr(_orth_overwrite((data_res / np.linalg.norm(data_res)).T),
+                      overwrite_a=True, mode='economic', **check_disable)[0]
+    assert data_int.shape[1] > 0
+    C_mat = np.dot(Q_int, Q_res)
+    del Q_int
+
+    # Compute angles between subspace and which bases to keep
+    S_intersect, Vh_intersect = linalg.svd(C_mat, overwrite_a=True,
+                                           full_matrices=False,
+                                           **check_disable)[1:]
+    del C_mat
+    intersect_mask = (S_intersect >= corr)
+    del S_intersect
+
+    # Compute projection operator as (I-LL_T) Eq. 12 in [2]_
+    # V_principal should be shape (n_time_pts x n_retained_inds)
+    Vh_intersect = Vh_intersect[intersect_mask].T
+    V_principal = np.dot(Q_res, Vh_intersect)
+    return V_principal
