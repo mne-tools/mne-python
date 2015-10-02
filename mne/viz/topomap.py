@@ -1141,6 +1141,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             times = np.linspace(evoked.times[0], evoked.times[-1], 10)
         else:
             times = np.linspace(evoked.times[0], evoked.times[-1], len(axes))
+    elif times == "peaks":
+        gfp = evoked.data.std(axis=0)
+        order = int(evoked.info["sfreq"] / 5.)
+        times = evoked.times[argrelmax(gfp, order=order)]
     elif np.isscalar(times):
         times = [times]
     times = np.array(times)
@@ -1149,11 +1153,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if len(times) > 20:
         raise RuntimeError('Too many plots requested. Please pass fewer '
                            'than 20 time instants.')
-
-    if times == "peaks":
-        gfp = evoked.data.std(axis=0)
-        order = int(evoked.info["sfreq"] / 5.)
-        times = evoked.times[argrelmax(gfp, order=order)]
 
     n_times = len(times)
     nax = n_times + bool(colorbar)
