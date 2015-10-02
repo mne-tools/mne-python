@@ -15,7 +15,7 @@ from functools import partial
 
 import numpy as np
 from scipy import linalg
-from scipy.signal import argrelmax
+from scipy import signal
 
 from ..baseline import rescale
 from ..io.constants import FIFF
