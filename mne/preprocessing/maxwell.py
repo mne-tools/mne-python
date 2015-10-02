@@ -9,7 +9,7 @@
 from __future__ import division
 from copy import deepcopy
 import numpy as np
-from scipy.linalg import pinv
+from scipy import linalg
 from math import factorial
 import inspect
 
@@ -18,14 +18,14 @@ from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..io.constants import FIFF
 from ..io.write import _generate_meas_id, _date_now
-from ..io.pick import channel_type
+from ..io.pick import channel_type, pick_info
 from ..utils import verbose, logger
 
 
 @verbose
 def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
-                   fine_cal_fname=None, st_dur=None, st_corr=0.98, 
-				   verbose=None):
+                   fine_cal_fname=None, st_dur=None, st_corr=0.98,
+                   verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -95,15 +95,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # See mathworld.wolfram.com/SphericalHarmonic.html for more discussion.
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
-    # TODO: Exclude 'bads' in multipolar moment calc, add back during
-    # reconstruction
-    if len(raw.info['bads']) > 0:
-        raise RuntimeError('Maxwell filter does not yet handle bad channels.')
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
-    if 'dev_head_t' not in raw.info.keys():
-        raise RuntimeError("Raw.info must contain 'dev_head_t' to transform "
-                           "device to head coords")
     if len(raw.info.get('comps', [])) > 0:
         raise RuntimeError('Maxwell filter cannot handle compensated '
                            'channels.')
@@ -115,9 +108,9 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     # If necessary, load fine calibration and overwrite sensor geometry
     if fine_cal_fname is not None:
         cal_chans = _read_fine_cal(raw.info, fine_cal_fname)
-        raw.info = _update_sens_geometry(raw.info, cal_chans)
-    
-	raw_sss = raw.copy().load_data()
+        raw.info = _update_sensor_geometry(raw.info, cal_chans)
+
+    raw_sss = raw.copy().load_data()
     del raw
     times = raw_sss.times
 
@@ -129,20 +122,12 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     meg_coils, _, _, meg_info = _prep_meg_channels(raw_sss.info, accurate=True,
                                                    elekta_defs=True)
 
-    # Create coil list and pick MEG channels
-    picks = [raw.info['ch_names'].index(coil['chname'])
-             for coil in all_coils]
-    coils = [all_coils[ci] for ci in picks]
-    raw.preload_data()
-
-    data, _ = raw[picks, :]
-
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
     mag_scale = 100.
-    coil_scale = np.ones((len(picks), 1))
+    coil_scale = np.ones((len(meg_picks), 1))
     coil_scale[np.array([coil['coil_class'] == 1.0
-                         for coil in coils])] = mag_scale
+                         for coil in meg_coils])] = mag_scale
 
     # Compute multipolar moment bases
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
@@ -152,9 +137,12 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     if fine_cal_fname is not None:
-        mag_inds = pick_types(raw.info, meg='mag')
-        grad_inds = pick_types(raw.info, meg='grad')
-        grad_info = pick_info(raw.info, grad_inds)
+        logger.info('Fine calibration file used in Maxwell filter: ' +
+                    fine_cal_fname)
+
+        mag_inds = pick_types(raw_sss.info, meg='mag')
+        grad_inds = pick_types(raw_sss.info, meg='grad')
+        grad_info = pick_info(raw_sss.info, grad_inds)
 
         # Compute point-like mags to incorporate gradiometer imbalance
         grad_imbalances = np.array([ch['calib_coeff'] for ch in cal_chans
@@ -172,8 +160,11 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
         S_in[mag_inds, :] /= mag_calib_coeffs
         S_out[mag_inds, :] /= mag_calib_coeffs
 
-    # Combine internal and external spaces
-    S_tot = np.c_[S_in, S_out]
+    S_in_good, S_out_good = S_in[good_chs, :], S_out[good_chs, :]
+    S_in_good_norm = np.sqrt(np.sum(S_in_good * S_in_good, axis=0))[:,
+                                                                    np.newaxis]
+    S_out_good_norm = \
+        np.sqrt(np.sum(S_out_good * S_out_good, axis=0))[:, np.newaxis]
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
     S_tot_good = np.c_[S_in_good, S_out_good]
@@ -698,9 +689,6 @@ def _overlap_projector(data_int, data_res, corr):
 
 def _read_fine_cal(info, fine_cal_fname):
     """Read sensor locations and calib. coeffs from fine calibration file."""
-
-    logger.info('Fine calibration file used in Maxwell filter: ' +
-                fine_cal_fname)
 
     # Read new sensor locations
     with open(fine_cal_fname, 'r') as fid:

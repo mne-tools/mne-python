@@ -39,13 +39,10 @@ int_order, ext_order = 8, 3
 
 @testing.requires_testing_data
 def test_maxwell_filter():
-    """Test multipolar moment and Maxwell filter
+    """Test multipolar moment and Maxwell filter"""
 
-    Notes
-    -----
-    Elekta MaxFilter uses single precision, so expect filtered results to
-    differ slightly.
-    """
+    # Note: Elekta MaxFilter uses single precision, so expect filtered results
+    # to differ slightly.
 
     # TODO: Future tests integrate with mne/io/tests/test_proc_history
 
@@ -270,13 +267,10 @@ def test_spatiotemporal_maxwell():
 
 @testing.requires_testing_data
 def test_maxwell_filter_fine_calibration():
-    """Test fine calibration feature of Maxwell filter
+    """Test fine calibration feature of Maxwell filter"""
 
-    Notes
-    -----
-    Elekta MaxFilter uses single precision, so expect filtered results to
-    differ slightly.
-    """
+    # Note: Elekta MaxFilter uses single precision, so expect filtered results
+    # to differ slightly.
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     with warnings.catch_warnings(record=True):  # maxshield
@@ -295,9 +289,9 @@ def test_maxwell_filter_fine_calibration():
                                                        for coil in all_coils]]
 
     # Test 1D SSS fine calibration
-    raw_sss = maxwell.maxwell_filter(raw, origin=[0., 0., 40.],
-                                     int_order=int_order, ext_order=ext_order,
-                                     fine_cal_fname=fine_cal_fname)
+    raw_sss = maxwell_filter(raw, origin=[0., 0., 40.], int_order=int_order,
+                             ext_order=ext_order,
+                             fine_cal_fname=fine_cal_fname)
     assert_array_almost_equal(raw_sss._data[picks, :],
                               sss_fine_cal._data[picks, :], decimal=11,
                               err_msg='Maxwell filtered data with fine '
@@ -310,9 +304,9 @@ def test_maxwell_filter_fine_calibration():
     assert_true(np.mean(bench_rms / error_rms) >= 100, 'SNR < 100')
 
     # Test 3D SSS fine calibration
-    raw_sss = maxwell.maxwell_filter(raw, origin=[0., 0., 40.],
-                                     int_order=int_order, ext_order=ext_order,
-                                     fine_cal_fname=fine_cal_fname_3d)
+    raw_sss = maxwell_filter(raw, origin=[0., 0., 40.], int_order=int_order,
+                             ext_order=ext_order,
+                             fine_cal_fname=fine_cal_fname_3d)
     assert_array_almost_equal(raw_sss._data[picks, :],
                               sss_fine_cal._data[picks, :], decimal=11,
                               err_msg='Maxwell filtered data with fine '

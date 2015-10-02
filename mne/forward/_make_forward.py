@@ -301,13 +301,12 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     else:
         transform = None
 
-    megcoils = _create_coils(megchs, accuracy, transform, 'meg', templates)
+    megcoils = _create_meg_coils(megchs, accuracy, transform, templates)
 
     if ncomp > 0:
         logger.info('%d compensation data sets in %s' % (ncomp_data,
                                                          info_extra))
-        compcoils = _create_coils(compchs, FIFF.FWD_COIL_ACCURACY_NORMAL,
-                                  transform, 'meg', templates)
+        compcoils = _create_meg_coils(compchs, 'normal', transform, templates)
 
     # Check that coordinate frame is correct and log it
     if head_frame:
@@ -353,7 +352,6 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     neeg = len(picks)
     if neeg <= 0:
         raise RuntimeError('Could not find any EEG channels')
-    templates = _read_coil_defs()
 
     # Get channel info and names for EEG channels
     eegchs = pick_info(info, picks)['chs']
@@ -361,7 +359,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     logger.info('Read %3d EEG channels from %s' % (len(picks), info_extra))
 
     # Create EEG electrode descriptions
-    eegels = _create_coils(eegchs, coil_type='eeg', coilset=templates)
+    eegels = _create_eeg_els(eegchs)
     logger.info('Head coordinate coil definitions created.')
 
     return eegels, eegnames
