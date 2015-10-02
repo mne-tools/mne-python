@@ -14,7 +14,7 @@ import copy
 from functools import partial
 
 import numpy as np
-from scipy import linalg, signal
+from scipy import linalg
 
 from ..baseline import rescale
 from ..io.constants import FIFF
@@ -1141,9 +1141,13 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         else:
             times = np.linspace(evoked.times[0], evoked.times[-1], len(axes))
     elif times == "peaks":
+        from scipy.signal import argrelmax
         gfp = evoked.data.std(axis=0)
         order = int(evoked.info["sfreq"] / 5.)
-        times = evoked.times[signal.argrelmax(gfp, order=order)]
+        peaks = argrelmax(gfp, order=order)
+        if len(peaks) > 10:  # max 10 peaks
+            peaks = peaks[np.sort((-gfp[peaks]).argsort()[:10])]
+        times = evoked.times[peaks]
     elif np.isscalar(times):
         times = [times]
     times = np.array(times)
