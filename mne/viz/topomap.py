@@ -15,6 +15,7 @@ from functools import partial
 
 import numpy as np
 from scipy import linalg
+from scipy.signal import argrelmax
 
 from ..baseline import rescale
 from ..io.constants import FIFF
@@ -1000,7 +1001,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     return fig
 
 
-def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
+def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
                         res=64, size=1, cbar_fmt='%3.1f',
@@ -1015,11 +1016,12 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
     ----------
     evoked : Evoked
         The Evoked object.
-    times : float | array of floats | None.
-        The time point(s) to plot. If None, the number of ``axes`` determines
+    times : float | array of floats | "auto" | "peaks".
+        The time point(s) to plot. If "auto", the number of ``axes`` determines
         the amount of time point(s). If ``axes`` is also None, 10 topographies
         will be shown with a regular time spacing between the first and last
-        time instant.
+        time instant. If "peaks", finds time points automatically by checking for
+        local maxima in Global Field Power.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.
@@ -1134,7 +1136,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
 
     if isinstance(axes, plt.Axes):
         axes = [axes]
-    if times is None:
+    if times is "auto":
         if axes is None:
             times = np.linspace(evoked.times[0], evoked.times[-1], 10)
         else:
@@ -1147,6 +1149,12 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
     if len(times) > 20:
         raise RuntimeError('Too many plots requested. Please pass fewer '
                            'than 20 time instants.')
+
+    if times == "peaks":
+        gfp = evoked.data.std(axis=0)
+        order = int(evoked.info["sfreq"] / 5.)
+        times = evoked.times[argrelmax(gfp, order=order)]
+
     n_times = len(times)
     nax = n_times + bool(colorbar)
     width = size * nax
