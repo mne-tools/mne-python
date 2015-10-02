@@ -14,8 +14,7 @@ import copy
 from functools import partial
 
 import numpy as np
-from scipy import linalg
-from scipy import signal
+from scipy import linalg, signal
 
 from ..baseline import rescale
 from ..io.constants import FIFF
