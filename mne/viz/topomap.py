@@ -1145,7 +1145,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             peaks = peaks[np.sort((-peaks).argsort()[:10])]
         times = evoked.times[peaks]
         if len(times) == 0:
-            times = "auto"
+            times = evoked.times[gfp.argmax()]
 
     if times == "auto":
         if axes is None:
