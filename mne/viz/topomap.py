@@ -1019,8 +1019,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         The time point(s) to plot. If "auto", the number of ``axes`` determines
         the amount of time point(s). If ``axes`` is also None, 10 topographies
         will be shown with a regular time spacing between the first and last
-        time instant. If "peaks", finds time points automatically by checking for
-        local maxima in Global Field Power.
+        time instant. If "peaks", finds time points automatically by checking 
+        for local maxima in Global Field Power.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.
@@ -1135,22 +1135,28 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     if isinstance(axes, plt.Axes):
         axes = [axes]
-    if times is "auto":
-        if axes is None:
-            times = np.linspace(evoked.times[0], evoked.times[-1], 10)
-        else:
-            times = np.linspace(evoked.times[0], evoked.times[-1], len(axes))
-    elif times == "peaks":
+
+    if times == "peaks":
         from scipy.signal import argrelmax
         gfp = evoked.data.std(axis=0)
         order = int(evoked.info["sfreq"] / 5.)
         peaks = argrelmax(gfp, order=order)
-        if len(peaks) > 10:  # max 10 peaks
-            peaks = peaks[np.sort((-gfp[peaks]).argsort()[:10])]
+        if len(peaks) > 10:
+            peaks = peaks[np.sort((-peaks).argsort()[:10])]
         times = evoked.times[peaks]
+        if len(times) == 0:
+            times = "auto"
+
+    if times == "auto":
+        if axes is None:
+            times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+        else:
+            times = np.linspace(evoked.times[0], evoked.times[-1], len(axes))
     elif np.isscalar(times):
         times = [times]
+
     times = np.array(times)
+
     if times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
     if len(times) > 20:
