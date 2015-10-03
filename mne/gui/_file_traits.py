@@ -11,7 +11,7 @@ from ..externals.six.moves import map
 
 # allow import without traits
 try:
-    from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
+    from traits.api import (HasTraits, HasPrivateTraits, cached_property,
                             on_trait_change, Array, Bool, Button, DelegatesTo,
                             Directory, Enum, Event, File, Instance, Int, List,
                             Property, Str)
@@ -21,7 +21,7 @@ try:
 except:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = object
-    cached_property = on_trait_change = Any = Array = Bool = Button = \
+    cached_property = on_trait_change = Array = Bool = Button = \
         DelegatesTo = Directory = Enum = Event = File = Instance = \
         Int = List = Property = Str = View = Item = VGroup = trait_wraith
 
@@ -283,11 +283,6 @@ class InstSource(HasPrivateTraits):
     inst_dir = Property(depends_on='file')
     inst = Property(depends_on='file')
 
-    points_filter = Any(desc="Index to select a subset of the head shape "
-                        "points")
-    n_omitted = Property(Int, depends_on=['points_filter'])
-    n_omitted_types = Property(depends_on=['n_omitted'])
-
     # head shape, where EEG is included but can be filtered out
     inst_points = Property(depends_on='inst', desc="Head shape points in the "
                            "inst file(n x 3 array)")
@@ -295,8 +290,10 @@ class InstSource(HasPrivateTraits):
     points_type = Property(depends_on='inst_points',
                            desc="A list of point types ('Extra', 'EEG', ...)"
                            "(n x 3 array) from the inst file")
-    points = Property(depends_on=['inst_points', 'points_filter'], desc="Head "
-                      "shape points selected by the filter (n x 3 array)")
+    # NB "points_type" might also be called "inst_points_type" as it pertains
+    # to the non-transformed and un-omitted set of all head points in the file.
+    # However, we drop the "inst_" here since it will ALSO be valid for the
+    # set of transformed and filtered "points" used in the CoregModel later.
 
     # fiducials
     fid_dig = Property(depends_on='inst', desc="Fiducial points "
@@ -312,28 +309,6 @@ class InstSource(HasPrivateTraits):
 
     view = View(VGroup(Item('file'),
                        Item('inst_fname', show_label=False, style='readonly')))
-
-    @cached_property
-    def _get_n_omitted(self):
-        if self.points_filter is None:
-            return 0
-        else:
-            return np.sum(self.points_filter == False)  # noqa
-
-    @cached_property
-    def _get_n_omitted_types(self):
-        if self.points_filter is None:
-            return dict(EEG=0, HSP=0)
-        elif np.sum(self.points_filter) == len(self.points_filter):
-            return dict(EEG=0, HSP=0)
-        else:
-            omitted_types = self.points_type[~self.points_filter]  # noqa
-            # use minlength-parameter, assumes EXTRA is the largest!
-            n_omitted = np.bincount(omitted_types,
-                                    minlength=FIFF.FIFFV_POINT_EXTRA + 1)
-            return dict(EEG=n_omitted[FIFF.FIFFV_POINT_EEG],
-                        HSP=n_omitted[FIFF.FIFFV_POINT_EXTRA])
-            # returns dict hard-coded to only specify EEG and EXTRA points
 
     @cached_property
     def _get_inst(self):
@@ -370,13 +345,6 @@ class InstSource(HasPrivateTraits):
                                 if (d['kind'] == FIFF.FIFFV_POINT_EXTRA or
                                 d['kind'] == FIFF.FIFFV_POINT_EEG)])
         return points_type
-
-    @cached_property
-    def _get_points(self):
-        if self.points_filter is None:
-            return self.inst_points
-        else:
-            return self.inst_points[self.points_filter]
 
     @cached_property
     def _get_fid_dig(self):

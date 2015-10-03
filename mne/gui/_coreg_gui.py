@@ -19,7 +19,7 @@ try:
     from mayavi.tools.mlab_scene_model import MlabSceneModel
     from pyface.api import (error, confirm, warning, OK, YES, information,
                             FileDialog, GUI)
-    from traits.api import (Bool, Button, cached_property, DelegatesTo,
+    from traits.api import (Any, Bool, Button, cached_property, DelegatesTo,
                             Directory, Enum, Float, HasTraits,
                             HasPrivateTraits, Instance, Int, on_trait_change,
                             Property, Str)
@@ -30,7 +30,7 @@ try:
 except:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = Handler = object
-    cached_property = on_trait_change = MayaviScene = MlabSceneModel =\
+    cached_property = on_trait_change = Any = MayaviScene = MlabSceneModel =\
         Bool = Button = DelegatesTo = Directory = Enum = Float = Instance =\
         Int = Property = Str = View = Item = Group = HGroup = VGroup = VGrid =\
         EnumEditor = Label = TextEditor = Action = UndoButton = CancelButton =\
@@ -80,6 +80,20 @@ class CoregModel(HasPrivateTraits):
     mri = Instance(MRIHeadWithFiducialsModel, ())
     hsp = Instance(InstSource, ())
 
+    # this is needed to trigger a filter update when the head shape source
+    # is changed; or is there another way to trigger _inst_points_changed?
+    inst_points = DelegatesTo('hsp')
+
+    # head shape points relevant to the Model depend on the filter
+    points_filter = Any(desc="Index to select a subset of the head shape "
+                        "points")
+    n_omitted = Property(Int, depends_on=['points_filter'])
+    n_omitted_types = Property(depends_on=['n_omitted'])
+
+    points = Property(depends_on=['inst_points', 'points_filter'],
+                      desc="Head shape points selected by the filter "
+                      "(n x 3 array)")
+
     # parameters
     grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
                       "head outwards to compensate for hair on the digitizer "
@@ -105,7 +119,7 @@ class CoregModel(HasPrivateTraits):
                                  'scale_z'])
     has_fid_data = Property(Bool, depends_on=['mri_origin', 'hsp.nasion'],
                             desc="Required fiducials data is present.")
-    has_pts_data = Property(Bool, depends_on=['mri.points', 'hsp.points'])
+    has_pts_data = Property(Bool, depends_on=['mri.points', 'points'])
 
     # MRI dependent
     mri_origin = Property(depends_on=['mri.nasion', 'scale'],
@@ -132,7 +146,7 @@ class CoregModel(HasPrivateTraits):
     processed_mri_points = Property(depends_on=['mri.points', 'grow_hair'])
     transformed_mri_points = Property(depends_on=['processed_mri_points',
                                                   'mri_scale_trans'])
-    transformed_hsp_points = Property(depends_on=['hsp.points',
+    transformed_hsp_points = Property(depends_on=['points',
                                                   'head_mri_trans'])
     transformed_mri_lpa = Property(depends_on=['mri.lpa', 'mri_scale_trans'])
     transformed_hsp_lpa = Property(depends_on=['hsp.lpa', 'head_mri_trans'])
@@ -163,6 +177,47 @@ class CoregModel(HasPrivateTraits):
     points_eval_str = Property(depends_on='point_distance')
 
     @cached_property
+    def _get_points(self):
+        if self.points_filter is None:
+            return self.hsp.inst_points
+        else:
+            return self.hsp.inst_points[self.points_filter]
+
+    def _get_points_filter(self):
+        if self.points_filter is None:
+            return self.hsp.inst_points
+        else:
+            return self.hsp.inst_points[self.points_filter]
+
+    @cached_property
+    def _get_n_omitted(self):
+        if self.points_filter is None:
+            return 0
+        else:
+            return np.sum(self.points_filter == False)  # noqa
+
+    @cached_property
+    def _get_n_omitted_types(self):
+        if self.points_filter is None:
+            return dict(EEG=0, HSP=0)
+        elif np.sum(self.points_filter) == len(self.points_filter):
+            return dict(EEG=0, HSP=0)
+        else:
+            omitted_types = self.hsp.points_type[~self.points_filter]  # noqa
+            # use minlength-parameter, assumes EXTRA is the largest!
+            n_omitted = np.bincount(omitted_types,
+                                    minlength=FIFF.FIFFV_POINT_EXTRA + 1)
+            return dict(EEG=n_omitted[FIFF.FIFFV_POINT_EEG],
+                        HSP=n_omitted[FIFF.FIFFV_POINT_EXTRA])
+            # returns dict hard-coded to only specify EEG and EXTRA points
+
+    def _inst_points_changed(self):
+        self.reset_traits(('points_filter',))
+        # This feels a bit hacky, but I cannot figure out another way to
+        # make sure the current value of the EEG-tickbox (Y/N) is observed?
+        self._use_eeg_locations_changed()
+
+    @cached_property
     def _get_can_prepare_bem_model(self):
         return self.subject_has_bem and self.n_scale_params > 0
 
@@ -172,7 +227,7 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_has_pts_data(self):
-        has = (np.any(self.mri.points) and np.any(self.hsp.points))
+        has = (np.any(self.mri.points) and np.any(self.points))
         return has
 
     @cached_property
@@ -268,7 +323,7 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_transformed_hsp_points(self):
-        return apply_trans(self.head_mri_trans, self.hsp.points)
+        return apply_trans(self.head_mri_trans, self.points)
 
     @cached_property
     def _get_transformed_hsp_lpa(self):
@@ -345,16 +400,16 @@ class CoregModel(HasPrivateTraits):
         """Either in- or exclude EEG locations in head shape points,
         depending on the setting of the tickbox."""
         with warnings.catch_warnings(record=True):  # comp to None in Traits
-            if self.hsp.points_filter is None:
-                self.hsp.points_filter = \
+            if self.points_filter is None:
+                self.points_filter = \
                     np.ones(len(self.hsp.inst_points), np.bool8)
 
         eeg_filter = self.hsp.points_type == FIFF.FIFFV_POINT_EEG
         nEEG = np.sum(eeg_filter)
-        self.hsp.points_filter[eeg_filter] = self.use_eeg_locations
-        # Without the following explicit array copy, the hsp.points_filter-
+        self.points_filter[eeg_filter] = self.use_eeg_locations
+        # Without the following explicit array copy, the points_filter-
         # trait does not get invalidated. Which sucks.
-        self.hsp.points_filter = self.hsp.points_filter[:]
+        self.points_filter = self.points_filter[:]
 
         # Log what's happening
         log_str = dict(True="Coregistration: Including {:d} EEG points",
@@ -378,7 +433,7 @@ class CoregModel(HasPrivateTraits):
         if reset:
             logger.info("Coregistration: Reset excluded head shape points")
             with warnings.catch_warnings(record=True):  # Traits None comp
-                self.hsp.points_filter = None
+                self.points_filter = None
                 self.apply_eeg_filter()  # Don't forget the EEG
 
         if distance <= 0:
@@ -394,17 +449,17 @@ class CoregModel(HasPrivateTraits):
                     "distance >= %.3f m.", n_excluded, distance)
 
         # combine the new filter with the previous filter
-        old_filter = self.hsp.points_filter
+        old_filter = self.points_filter
         if old_filter is None:
             new_filter = new_sub_filter
         else:
             # Must explicitly copy the existing filter to invalidate it
-            new_filter = self.hsp.points_filter[:]
+            new_filter = self.points_filter[:]
             new_filter[old_filter] = new_sub_filter
 
         # set the filter
         with warnings.catch_warnings(record=True):  # comp to None in Traits
-            self.hsp.points_filter = new_filter
+            self.points_filter = new_filter
 
     def fit_auricular_points(self):
         "Find rotation to fit LPA and RPA"
@@ -440,7 +495,7 @@ class CoregModel(HasPrivateTraits):
 
     def fit_hsp_points(self):
         "Find rotation to fit head shapes"
-        src_pts = self.hsp.points - self.hsp.nasion
+        src_pts = self.points - self.hsp.nasion
 
         tgt_pts = self.processed_mri_points - self.mri.nasion
         tgt_pts *= self.scale
@@ -487,7 +542,7 @@ class CoregModel(HasPrivateTraits):
 
     def fit_scale_hsp_points(self):
         "Find MRI scaling and rotation to match head shape points"
-        src_pts = self.hsp.points - self.hsp.nasion
+        src_pts = self.points - self.hsp.nasion
 
         tgt_pts = self.processed_mri_points - self.mri.nasion
 
@@ -1240,7 +1295,7 @@ class CoregFrame(HasTraits):
                          "procedure.")
     reset_omit_points = Button(label='Reset Omission', desc="Reset the "
                                "omission of head shape points to include all.")
-    omitted_info = Property(Str, depends_on=['model.hsp.n_omitted'])
+    omitted_info = Property(Str, depends_on=['model.n_omitted'])
 
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
@@ -1339,7 +1394,7 @@ class CoregFrame(HasTraits):
         p = PointObject(view='cloud', scene=self.scene, color=color,
                         point_scale=point_scale, resolution=5)
         self.hsp_obj = p
-        self.model.hsp.sync_trait('points', p, mutual=False)
+        self.model.sync_trait('points', p, mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
@@ -1383,17 +1438,17 @@ class CoregFrame(HasTraits):
 
     @cached_property
     def _get_omitted_info(self):
-        if self.model.hsp.n_omitted == 0:
+        if self.model.n_omitted == 0:
             return "No points omitted"
-        elif self.model.hsp.n_omitted == 1:
+        elif self.model.n_omitted == 1:
             omit_str = "1 point"
         else:
-            omit_str = "%i points" % self.model.hsp.n_omitted
+            omit_str = "%i points" % self.model.n_omitted
 
         omit_str += " out of %d omitted (HSP: %d; EEG: %d)" % \
                     (len(self.model.hsp.inst_points),
-                     self.model.hsp.n_omitted_types['HSP'],
-                     self.model.hsp.n_omitted_types['EEG'])
+                     self.model.n_omitted_types['HSP'],
+                     self.model.n_omitted_types['EEG'])
         return omit_str
 
     def _omit_points_fired(self):
