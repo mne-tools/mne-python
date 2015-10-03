@@ -424,7 +424,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         raise NotImplementedError
 
-    @verbose
     @deprecated("This method has been renamed 'load_data' and will be removed "
                 "in v0.11.")
     def preload_data(self, verbose=None):
@@ -447,6 +446,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         return self.load_data(verbose=verbose)
 
+    @verbose
     def load_data(self, verbose=None):
         """Load raw data
 

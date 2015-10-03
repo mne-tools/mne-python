@@ -66,15 +66,6 @@ _docstring_ignores = [
     'mne.io.write',  # always ignore these
     'mne.fixes._in1d',  # fix function
     'mne.gui.coregistration',  # deprecated single argument w/None
-    'mne.utils.plot_epochs_trellis',  # deprecated
-    'mne.utils.write_bem_surface',  # deprecated
-    'generate_sparse_stc',  # deprecated
-    'generate_stc',  # deprecated
-    'generate_evoked',  # deprecated
-    'generate_noise_evoked',  # deprecated
-    'mne.gui.coregistration',  # deprecated
-    'mne.utils.plot_topo',
-    'mne.viz.plot_image_epochs',  # deprecated
 ]
 
 _tab_ignores = [
