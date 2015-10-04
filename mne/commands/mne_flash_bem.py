@@ -59,6 +59,9 @@ def run():
                       action="store_true", default=False,
                       help=("Run grad_unwarp with -unwarp <type> option on "
                             "each of the converted data sets"))
+    parser.add_option("-o", "--overwrite", dest="overwrite",
+                      action="store_true", default=False,
+                      help="Write over existing .surf files in bem folder")
     parser.add_option("-v", "--view", dest="show", action="store_true",
                       help="Show BEM model in 3D for visual inspection",
                       default=False)
@@ -70,6 +73,7 @@ def run():
     noflash30 = options.noflash30
     noconvert = options.noconvert
     unwarp = options.unwarp
+    overwrite = options.overwrite
     show = options.show
 
     if options.subject is None:
@@ -78,7 +82,7 @@ def run():
 
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
                    no_flash30=noflash30, no_convert=noconvert, unwarp=unwarp,
-                   show=show)
+                   overwrite=overwrite, show=show)
 
 is_main = (__name__ == '__main__')
 if is_main:

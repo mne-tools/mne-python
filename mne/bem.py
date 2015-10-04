@@ -1367,7 +1367,7 @@ def write_bem_solution(fname, bem):
 # Create 3-Layers BEM model from Flash MRI images
 
 def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
-                   unwarp=False, show=False):
+                   unwarp=False, overwrite=False, show=False):
     """Create 3-Layers BEM model from Flash MRI images
 
     Parameters
@@ -1385,9 +1385,10 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
         Run grad_unwarp with -unwarp option on each of the converted
         data sets. It requires FreeSurfer's MATLAB toolbox to be properly
         installed.
+    overwrite : bool
+        Write over existing .surf files in bem folder.
     show : bool
-        Show surfaces in 3D to visually inspect all three BEM
-        surfaces (recommended).
+        Show surfaces to visually inspect all three BEM surfaces (recommended).
 
     Notes
     -----
@@ -1603,10 +1604,29 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
         logger.info("Deleted the brain COR volume")
     shutil.rmtree('flash5')
     logger.info("Deleted the flash5 COR volume")
+    # Create symbolic links to the .surf files in the bem folder
+    logger.info("\n---- Creating symbolic links ----")
+    os.chdir(bem_dir)
+    for surf in surfs:
+        surf = surf + '.surf'
+        if not overwrite and op.exists(surf):
+            skip_symlink = True
+        else:
+            if op.exists(surf):
+                os.remove(surf)
+            os.symlink(op.join('flash', surf), op.join(surf))
+            skip_symlink = False
+    if skip_symlink:
+        logger.info("Unable to create all symbolic links to .surf files "
+                    "in bem folder. Use --overwrite option to recreate them.")
+        dest = op.join(bem_dir, 'flash')
+    else:
+        logger.info("Symbolic links to .surf files created in bem folder")
+        dest = bem_dir
     logger.info("\nThank you for waiting.\nThe BEM triangulations for this "
                 "subject are now available at:\n%s.\nWe hope the BEM meshes "
                 "created will facilitate your MEG and EEG data analyses."
-                % op.join(bem_dir, 'flash'))
+                % dest)
     # Show computed BEM surfaces
     if show:
         os.chdir(op.join(bem_dir, 'flash'))
