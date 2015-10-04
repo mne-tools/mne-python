@@ -77,7 +77,7 @@ def run():
         raise RuntimeError('The subject argument must be set')
 
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
-                   noflash30=noflash30, noconvert=noconvert, unwarp=unwarp,
+                   no_flash30=noflash30, no_convert=noconvert, unwarp=unwarp,
                    show=show)
 
 is_main = (__name__ == '__main__')

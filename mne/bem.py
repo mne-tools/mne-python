@@ -1366,7 +1366,7 @@ def write_bem_solution(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
+def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
                    unwarp=False, show=False):
     """Create 3-Layers BEM model from Flash MRI images
 
@@ -1376,9 +1376,9 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
         Subject name.
     subjects_dir : str
         Directory containing subjects data (Freesurfer SUBJECTS_DIR).
-    noflash30 : bool
+    no_flash30 : bool
         Skip the 30-degree flip angle data.
-    noconvert : bool
+    no_convert : bool
         Assume that the Flash MRI images have already been converted
         to mgz files.
     unwarp : bool
@@ -1402,7 +1402,7 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
     should be, as usual, in the subject's mri directory.
 
     Before running this script do the following:
-    (unless the --noconvert option is specified)
+    (unless the --no_convert option is specified)
 
         1. Copy all of your FLASH images in a single directory <source> and
            create a directory <dest> to hold the output of mne_organize_dicom
@@ -1440,10 +1440,10 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
     if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
         os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'))
     echos_done = 0
-    if not noconvert:
+    if not no_convert:
         logger.info("\n---- Converting Flash images ----")
         echos = ['001', '002', '003', '004', '005', '006', '007', '008']
-        if noflash30:
+        if no_flash30:
             flashes = ['05']
         else:
             flashes = ['05', '30']
@@ -1493,7 +1493,7 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
     if not op.exists("parameter_maps"):
         os.makedirs("parameter_maps")
     # Step 2 : Create the parameter maps
-    if not noflash30:
+    if not no_flash30:
         logger.info("\n---- Creating the parameter maps ----")
         if unwarp:
             files = glob.glob("mef05*u.mgz")
@@ -1543,20 +1543,20 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
     run_subprocess(cmd, env=env, stdout=sys.stdout)
     # Step 5b and c : Convert the mgz volumes into COR
     os.chdir(mri_dir)
-    convertT1 = False
+    convert_T1 = False
     if op.isdir('T1'):
         if len(glob.glob('T1/COR*')) == 0:
-            convertT1 = True
+            convert_T1 = True
     else:
-        convertT1 = True
-    convertbrain = False
+        convert_T1 = True
+    convert_brain = False
     if op.isdir('brain'):
         if len(glob.glob('brain/COR*')) == 0:
-            convertbrain = True
+            convert_brain = True
     else:
-        convertbrain = True
+        convert_brain = True
     logger.info("\n---- Converting T1 volume into COR format ----")
-    if convertT1:
+    if convert_T1:
         if not op.isfile('T1.mgz'):
             raise RuntimeError("Both T1 mgz and T1 COR volumes missing.")
         os.makedirs('T1')
@@ -1565,7 +1565,7 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
     else:
         logger.info("T1 volume is already in COR format")
     logger.info("\n---- Converting brain volume into COR format ----")
-    if convertbrain:
+    if convert_brain:
         if not op.isfile('brain.mgz'):
             raise RuntimeError("Both brain mgz and brain COR volumes missing.")
         os.makedirs('brain')
@@ -1595,10 +1595,10 @@ def make_flash_bem(subject, subjects_dir, noflash30=False, noconvert=False,
     os.chdir(bem_dir)
     os.remove('inner_skull_tmp.tri')
     os.chdir(mri_dir)
-    if convertT1:
+    if convert_T1:
         shutil.rmtree('T1')
         logger.info("Deleted the T1 COR volume")
-    if convertbrain:
+    if convert_brain:
         shutil.rmtree('brain')
         logger.info("Deleted the brain COR volume")
     shutil.rmtree('flash5')
