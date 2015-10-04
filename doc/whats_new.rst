@@ -75,6 +75,8 @@ Changelog
 
     - Add source space morphing in :func:`morph_source_spaces` by `Eric Larson`_
 
+   - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
+
 BUG
 ~~~
 
@@ -213,7 +215,6 @@ Changelog
    - Add support for capturing sensor positions when clicking on an image by `Chris Holdgraf`_
 
    - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
-
 
 BUG
 ~~~

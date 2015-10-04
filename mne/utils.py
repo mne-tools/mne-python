@@ -31,7 +31,6 @@ import numpy as np
 import scipy
 from scipy import linalg, sparse
 
-
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
@@ -1883,3 +1882,19 @@ def random_permutation(n_samples, random_state=None):
     randperm = np.argsort(idx)
 
     return randperm
+
+
+def compute_corr(x, y):
+    """Compute pearson correlations between a vector and a matrix"""
+    if len(x) == 0 or len(y) == 0:
+        raise ValueError('x or y has zero length')
+    fast_dot = _get_fast_dot()
+    X = np.array(x, float)
+    Y = np.array(y, float)
+    X -= X.mean(0)
+    Y -= Y.mean(0)
+    x_sd = X.std(0, ddof=1)
+    # if covariance matrix is fully expanded, Y needs a transpose / brodcasting
+    # else Y is correct
+    y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
+    return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)

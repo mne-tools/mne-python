@@ -10,7 +10,6 @@ import os.path as op
 import warnings
 
 from nose.tools import assert_true, assert_raises, assert_equal
-from copy import deepcopy
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
@@ -21,10 +20,15 @@ from mne import io, Epochs, read_events, pick_types
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
-from mne.preprocessing.ica import get_score_funcs
+from mne.preprocessing.ica import get_score_funcs, corrmap
 from mne.io.meas_info import Info
 from mne.utils import (set_log_file, _TempDir, requires_sklearn, slow_test,
                        run_tests_if_main)
+
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -290,7 +294,7 @@ def test_ica_additional():
     epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                         baseline=(None, 0), preload=True)
 
-    test_cov2 = deepcopy(test_cov)
+    test_cov2 = test_cov.copy()
     ica = ICA(noise_cov=test_cov2, n_components=3, max_pca_components=4,
               n_pca_components=4)
     assert_true(ica.info is None)
@@ -303,7 +307,16 @@ def test_ica_additional():
               n_pca_components=4)
     assert_raises(RuntimeError, ica.save, '')
     with warnings.catch_warnings(record=True):
-        ica.fit(raw, picks=None, start=start, stop=stop2)
+        ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
+
+    # test corrmap
+    ica2 = ica.copy()
+    corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks', plot=True,
+            ch_type="mag")
+    corrmap([ica, ica2], (0, 0), threshold=2, plot=False)
+    assert_true(ica.labels_["blinks"] == ica2.labels_["blinks"])
+    assert_true(0 in ica.labels_["blinks"])
+    plt.close('all')
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:

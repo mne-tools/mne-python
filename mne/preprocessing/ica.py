@@ -6,6 +6,7 @@
 
 from inspect import getargspec, isfunction
 from collections import namedtuple
+from copy import deepcopy
 
 import os
 import json
@@ -33,11 +34,16 @@ from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
                    plot_ica_sources, plot_ica_overlay)
+from ..viz.utils import (_prepare_trellis, tight_layout,
+                         _setup_vmin_vmax)
+from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
+                           plot_topomap)
+
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_sklearn_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-                     _get_fast_dot)
+                     _get_fast_dot, compute_corr)
 from ..filter import band_pass_filter
 from .bads import find_outliers
 from .ctps_ import ctps
@@ -173,6 +179,10 @@ class ICA(ContainsMixin):
         The measurement info copied from the object fitted.
     `n_samples_` : int
         the number of samples used on fit.
+    `labels_` : dict
+        A dictionary of independent component indices, grouped by types of
+        independent components. This attribute is set by some of the artifact
+        detection functions.
     """
     @verbose
     def __init__(self, n_components=None, max_pca_components=None,
@@ -748,11 +758,11 @@ class ICA(ContainsMixin):
             Callable taking as arguments either two input arrays
             (e.g. Pearson correlation) or one input
             array (e. g. skewness) and returns a float. For convenience the
-            most common score_funcs are available via string labels: Currently,
-            all distance metrics from scipy.spatial and all functions from
-            scipy.stats taking compatible input arguments are supported. These
-            function have been modified to support iteration over the rows of a
-            2D array.
+            most common score_funcs are available via string labels:
+            Currently, all distance metrics from scipy.spatial and All
+            functions from scipy.stats taking compatible input arguments are
+            supported. These function have been modified to support iteration
+            over the rows of a 2D array.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -935,7 +945,10 @@ class ICA(ContainsMixin):
             raise ValueError('Method "%s" not supported.' % method)
         # sort indices by scores
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
-        return list(ecg_idx), scores
+        if not hasattr(self, 'labels_'):
+            self.labels_ = dict()
+        self.labels_['ecg'] = list(ecg_idx)
+        return self.labels_['ecg'], scores
 
     @verbose
     def find_bads_eog(self, inst, ch_name=None, threshold=3.0,
@@ -1024,7 +1037,10 @@ class ICA(ContainsMixin):
         if len(scores) == 1:
             scores = scores[0]
 
-        return eog_idx, scores
+        if not hasattr(self, 'labels_'):
+            self.labels_ = dict()
+        self.labels_['eog'] = list(eog_idx)
+        return self.labels_['eog'], scores
 
     def apply(self, inst, include=None, exclude=None,
               n_pca_components=None, start=None, stop=None,
@@ -1251,12 +1267,22 @@ class ICA(ContainsMixin):
 
         try:
             _write_ica(fid, self)
-        except Exception as inst:
+        except Exception:
             os.remove(fname)
-            raise inst
+            raise
         end_file(fid)
 
         return self
+
+    def copy(self):
+        """Copy the ICA object
+
+        Returns
+        -------
+        ica : instance of ICA
+            The copied object.
+        """
+        return deepcopy(self)
 
     def plot_components(self, picks=None, ch_type=None, res=64, layout=None,
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
@@ -1834,12 +1860,13 @@ def read_ica(fname):
 
     try:
         info, meas = read_meas_info(fid, tree)
-        info['filename'] = fname
     except ValueError:
         logger.info('Could not find the measurement info. \n'
                     'Functionality requiring the info won\'t be'
                     ' available.')
         info = None
+    else:
+        info['filename'] = fname
 
     ica_data = dir_tree_find(tree, FIFF.FIFFB_ICA)
     if len(ica_data) == 0:
@@ -2141,3 +2168,283 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
         raise ValueError('Must specify both pass bands')
 
     return sources, target
+
+
+# #############################################################################
+# CORRMAP
+
+def _get_ica_map(ica, components=None):
+    """Get ICA topomap for components"""
+    fast_dot = _get_fast_dot()
+    if components is None:
+        components = list(range(ica.n_components_))
+    maps = fast_dot(ica.mixing_matrix_[:, components].T,
+                    ica.pca_components_[:ica.n_components_])
+    return maps
+
+
+def _find_max_corrs(all_maps, target, threshold):
+    """Compute correlations betwen template and target components"""
+    all_corrs = [compute_corr(target, subj.T) for subj in all_maps]
+    abs_corrs = [np.abs(a) for a in all_corrs]
+    corr_polarities = [np.sign(a) for a in all_corrs]
+
+    if threshold <= 1:
+        max_corrs = [list(np.nonzero(s_corr > threshold)[0])
+                     for s_corr in abs_corrs]
+    else:
+        max_corrs = [list(find_outliers(s_corr, threshold=threshold))
+                     for s_corr in abs_corrs]
+
+    am = [l[i] for l, i_s in zip(abs_corrs, max_corrs)
+          for i in i_s]
+    median_corr_with_target = np.median(am) if len(am) > 0 else 0
+
+    polarities = [l[i] for l, i_s in zip(corr_polarities, max_corrs)
+                  for i in i_s]
+
+    maxmaps = [l[i] for l, i_s in zip(all_maps, max_corrs)
+               for i in i_s]
+
+    if len(maxmaps) == 0:
+        return [], 0, 0, []
+    newtarget = np.zeros(maxmaps[0].size)
+    std_of_maps = np.std(np.asarray(maxmaps))
+    mean_of_maps = np.std(np.asarray(maxmaps))
+    for maxmap, polarity in zip(maxmaps, polarities):
+        newtarget += (maxmap / std_of_maps - mean_of_maps) * polarity
+
+    newtarget /= len(maxmaps)
+    newtarget *= std_of_maps
+
+    sim_i_o = np.abs(np.corrcoef(target, newtarget)[1, 0])
+
+    return newtarget, median_corr_with_target, sim_i_o, max_corrs
+
+
+def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
+                  layout, cmap, contours):
+    """Customized ica.plot_components for corrmap"""
+    import matplotlib.pyplot as plt
+
+    title = 'Detected components'
+    if label is not None:
+        title += ' of type ' + label
+
+    picks = list(range(len(data)))
+
+    p = 20
+    if len(picks) > p:  # plot components by sets of 20
+        n_components = len(picks)
+        figs = [_plot_corrmap(data[k:k + p], subjs[k:k + p],
+                indices[k:k + p], ch_type, ica, label, show,
+                outlines=outlines, layout=layout, cmap=cmap,
+                contours=contours)
+                for k in range(0, n_components, p)]
+        return figs
+    elif np.isscalar(picks):
+        picks = [picks]
+
+    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
+        ica, ch_type, layout)
+    pos, outlines = _check_outlines(pos, outlines)
+
+    data = np.atleast_2d(data)
+    data = data[:, data_picks]
+
+    # prepare data for iteration
+    fig, axes = _prepare_trellis(len(picks), max_col=5)
+    fig.suptitle(title)
+
+    if merge_grads:
+        from ..channels.layout import _merge_grad_data
+    for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
+        ttl = 'Subj. {0}, IC {1}'.format(subject, idx)
+        ax.set_title(ttl, fontsize=12)
+        data_ = _merge_grad_data(data_) if merge_grads else data_
+        vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
+        plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
+                     res=64, axis=ax, cmap=cmap, outlines=outlines,
+                     image_mask=None, contours=contours, show=False,
+                     image_interp='bilinear')[0]
+        ax.set_yticks([])
+        ax.set_xticks([])
+        ax.set_frame_on(False)
+    tight_layout(fig=fig)
+    fig.subplots_adjust(top=0.8)
+    fig.canvas.draw()
+    if show is True:
+        plt.show()
+    return fig
+
+
+@verbose
+def corrmap(icas, template, threshold="auto", label=None,
+            ch_type="eeg", plot=True, show=True, verbose=None, outlines='head',
+            layout=None, sensors=True, contours=6, cmap='RdBu_r'):
+    """Find similar Independent Components across subjects by map similarity.
+
+    Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
+    match to a supplied template. Typically, feed it a list of fitted ICAs and
+    a template IC, for example, the blink for the first subject, to identify
+    specific ICs across subjects.
+
+    The specific procedure consists of two iterations. In a first step, the
+    maps best correlating with the template are identified. In the step, the
+    analysis is repeated with the mean of the maps identified in the first
+    stage.
+
+    Outputs a list of fitted ICAs with the indices of the marked ICs in a
+    specified field.
+
+    The original Corrmap website: www.debener.de/corrmap/corrmapplugin1.html
+
+    Parameters
+    ----------
+    icas : list of mne.preprocessing.ICA
+        A list of fitted ICA objects.
+    template : tuple
+        A tuple with two elements (int, int) representing the list indices of
+        the set from which the template should be chosen, and the template.
+        E.g., if template=(1, 0), the first IC of the 2nd ICA object is used.
+    threshold : "auto" | list of float | float
+        Correlation threshold for identifying ICs
+        If "auto", search for the best map by trying all correlations between
+        0.6 and 0.95. In the original proposal, lower values are considered,
+        but this is not yet implemented.
+        If list of floats, search for the best map in the specified range of
+        correlation strengths. As correlation values, must be between 0 and 1
+        If float > 0, select ICs correlating better than this.
+        If float > 1, use find_outliers to identify ICs within subjects (not in
+        original Corrmap)
+        Defaults to "auto".
+    label : None | str
+        If not None, categorised ICs are stored in a dictionary "labels_" under
+        the given name. Preexisting entries will be appended to
+        (excluding repeats), not overwritten. If None, a dry run is performed.
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+            The channel type to plot. Defaults to 'eeg'.
+    plot : bool
+        Should constructed template and selected maps be plotted? Defaults
+        to True.
+    show : bool
+        Show figures if True.
+    layout : None | Layout | list of Layout
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). Or a list of Layout if projections
+        are from different sensor types.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses). If True, a circle will be
+        used (via .add_artist). Defaults to True.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', a head scheme will be drawn. If
+        dict, each key refers to a tuple of x and y positions. The values in
+        'mask_pos' will serve as image mask. If None, nothing will be drawn.
+        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
+        trigger automated shrinking of the positions due to points outside the
+        outline. Moreover, a matplotlib patch object can be passed for
+        advanced masking options, either directly or as a function that returns
+        patches (required for multi-axis plots).
+    layout : None | Layout | list of Layout
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). Or a list of Layout if projections
+        are from different sensor types.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses). If True, a circle will be
+        used (via .add_artist). Defaults to True.
+    contours : int | False | None
+        The number of contour lines to draw. If 0, no contours will be drawn.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    template_fig : fig
+        Figure showing the mean template.
+    labelled_ics : fig
+        Figure showing the labelled ICs in all ICA decompositions.
+    """
+    if not isinstance(plot, bool):
+        raise ValueError("`plot` must be of type `bool`")
+
+    if threshold == 'auto':
+        threshold = np.arange(60, 95, dtype=np.float64) / 100.
+
+    all_maps = [_get_ica_map(ica) for ica in icas]
+
+    target = all_maps[template[0]][template[1]]
+
+    if plot is True:
+        ttl = 'Template from subj. {0}'.format(str(template[0]))
+        template_fig = icas[template[0]].plot_components(
+            picks=template[1], ch_type=ch_type, title=ttl, outlines=outlines,
+            cmap=cmap, contours=contours, layout=layout, show=show)
+        template_fig.subplots_adjust(top=0.8)
+        template_fig.canvas.draw()
+
+    # first run: use user-selected map
+    if isinstance(threshold, (int, float)):
+        if len(all_maps) == 0 or len(target) == 0:
+            logger.info('No component detected using find_outliers.'
+                        ' Consider using threshold="auto"')
+            return icas
+        nt, mt, s, mx = _find_max_corrs(all_maps, target, threshold)
+    elif len(threshold) > 1:
+        paths = [_find_max_corrs(all_maps, target, t) for t in threshold]
+        # find iteration with highest avg correlation with target
+        nt, mt, s, mx = paths[np.argmax([path[2] for path in paths])]
+
+    # second run: use output from first run
+    if isinstance(threshold, (int, float)):
+        if len(all_maps) == 0 or len(nt) == 0:
+            if threshold > 1:
+                logger.info('No component detected using find_outliers. '
+                            'Consider using threshold="auto"')
+            return icas
+        nt, mt, s, mx = _find_max_corrs(all_maps, nt, threshold)
+    elif len(threshold) > 1:
+        paths = [_find_max_corrs(all_maps, nt, t) for t in threshold]
+        # find iteration with highest avg correlation with target
+        nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
+
+    allmaps, indices, subjs, nones = [list() for _ in range(4)]
+    logger.info('Median correlation with constructed map: %0.3f' % mt)
+    if plot is True:
+        logger.info('Displaying selected ICs per subject.')
+
+    for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
+        if (label is not None) and (not hasattr(ica, 'labels_')):
+            ica.labels_ = dict()
+        if len(max_corr) > 0:
+            if isinstance(max_corr[0], np.ndarray):
+                max_corr = max_corr[0]
+            if label is not None:
+                ica.labels_[label] = list(set(list(max_corr) +
+                                          ica.labels_.get(label, list())))
+            if plot is True:
+                allmaps.extend(_get_ica_map(ica, components=max_corr))
+                subjs.extend([ii] * len(max_corr))
+                indices.extend(max_corr)
+        else:
+            nones.append(ii)
+
+    if len(nones) == 0:
+        logger.info('At least 1 IC detected for each subject.')
+    else:
+        logger.info('No maps selected for subject(s) ' +
+                    ', '.join([str(x) for x in nones]) +
+                    ', consider a more liberal threshold.')
+
+    if plot is True:
+        labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
+                                     label, outlines=outlines, cmap=cmap,
+                                     contours=contours, layout=layout,
+                                     show=show)
+
+    return None if plot is False else template_fig, labelled_ics
