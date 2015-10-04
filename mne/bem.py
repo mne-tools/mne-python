@@ -281,7 +281,7 @@ def make_bem_solution(surfs, verbose=None):
     Parameters
     ----------
     surfs : list of dict
-        The BEM surfaces to use (output from make_bem_model)
+        The BEM surfaces to use (`from make_bem_model`)
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -496,9 +496,8 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
                    subjects_dir=None, verbose=None):
     """Create a BEM model for a subject
 
-    Note. To get a single layer bem corresponding to the --homog flag in the C
-    command line tool set the ``connectivity`` accordingly
-
+    .. note:: To get a single layer bem corresponding to the --homog flag in
+              the command line tool set the ``connectivity`` accordingly
 
     Parameters
     ----------
