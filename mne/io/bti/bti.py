@@ -1085,7 +1085,8 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                              ' whether you are in the right directory '
                              'or pass the full name' % config_fname)
 
-    if head_shape_fname is not None and not isinstance(pdf_fname, six.BytesIO):
+    if head_shape_fname is not None and not isinstance(
+            head_shape_fname, six.BytesIO):
         orig_name = head_shape_fname
         if not op.isfile(head_shape_fname):
             head_shape_fname = op.join(op.dirname(pdf_fname),

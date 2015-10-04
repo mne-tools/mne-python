@@ -281,7 +281,7 @@ def make_bem_solution(surfs, verbose=None):
     Parameters
     ----------
     surfs : list of dict
-        The BEM surfaces to use.
+        The BEM surfaces to use (`from make_bem_model`)
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -496,12 +496,16 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
                    subjects_dir=None, verbose=None):
     """Create a BEM model for a subject
 
+    .. note:: To get a single layer bem corresponding to the --homog flag in
+              the command line tool set the ``connectivity`` accordingly
+
     Parameters
     ----------
     subject : str
         The subject.
     ico : int | None
         The surface ico downsampling to use, e.g. 5=20484, 4=5120, 3=1280.
+        If None, no subsampling is applied.
     conductivity : array of int, shape (3,) or (1,)
         The conductivities to use for each shell. Should be a single element
         for a one-layer model, or three elements for a three-layer model.
