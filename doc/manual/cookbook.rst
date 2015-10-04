@@ -269,6 +269,10 @@ The variability across publications may depend on individual variations
 but, more importantly, on the precision of the skull compartment
 segmentation.
 
+.. note:: To produce single layer BEM models (--homog flag in the C command
+          line tools) pas a list with one single conductivity value,
+          e.g. ``[0.3]`` to the ``conductivities`` parameter.
+
 Using this model, the BEM solution can be computed using
 :func:`mne.make_bem_solution`` as::
 
@@ -281,6 +285,10 @@ BEM model meshes are correctly positioned using *e.g.*, :class:`mne.Report`.
 .. note:: Up to this point all processing stages depend on the
           anatomical (geometrical) information only and thus remain
           identical across different MEG studies.
+
+.. note:: If you use custom head models you might need to set the ``ico`` 
+          parameter to ``None`` and skip subsampling.
+
 
 .. _CHDBEHDC:
 
