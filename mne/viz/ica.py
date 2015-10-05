@@ -537,8 +537,8 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
         picks = range(len(orig_data))
     types = ['misc' for _ in picks]
     picks = list(sorted(picks))
-    eog_chs = pick_types(raw.info, meg=False, eog=True)
-    ecg_chs = pick_types(raw.info, meg=False, ecg=True)
+    eog_chs = pick_types(raw.info, meg=False, eog=True, ref_meg=False)
+    ecg_chs = pick_types(raw.info, meg=False, ecg=True, ref_meg=False)
     data = [orig_data[pick] for pick in picks]
     c_names = ['ICA %03d' % x for x in range(len(orig_data))]
     for eog_idx in eog_chs:
@@ -645,8 +645,8 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     """Function for plotting the components as epochs."""
     import matplotlib.pyplot as plt
     data = ica._transform_epochs(epochs, concatenate=True)
-    eog_chs = pick_types(epochs.info, meg=False, eog=True)
-    ecg_chs = pick_types(epochs.info, meg=False, ecg=True)
+    eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
+    ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
     c_names = ['ICA %03d' % x for x in range(ica.n_components_)]
     ch_types = np.repeat('misc', ica.n_components_)
     for eog_idx in eog_chs:
