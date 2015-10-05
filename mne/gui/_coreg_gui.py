@@ -84,14 +84,19 @@ class CoregModel(HasPrivateTraits):
     # is changed; or is there another way to trigger _inst_points_changed?
     inst_points = DelegatesTo('hsp')
 
+    # EEG point-related parameters
+    use_eeg_locations = Bool(True, label="Use EEG electrode locations "
+                             "as head shape points")
+
     # head shape points relevant to the Model depend on the filter
     points_filter = Any(desc="Index to select a subset of the head shape "
                         "points")
+
     omitted_info = Property(depends_on=['points_filter'])
 
-    points = Property(depends_on=['inst_points', 'points_filter'],
-                      desc="Head shape points selected by the filter "
-                      "(n x 3 array)")
+    points = Property(depends_on=['inst_points', 'points_filter',
+                      'use_eeg_locations'], desc="Head shape points selected "
+                      "by the filter (n x 3 array)")
 
     # parameters
     grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
@@ -166,10 +171,6 @@ class CoregModel(HasPrivateTraits):
     point_distance = Property(depends_on=['transformed_mri_points',
                                           'transformed_hsp_points'])
 
-    # EEG point-related parameters
-    use_eeg_locations = Bool(True, label="Use EEG electrode locations "
-                             "as head shape points")
-
     # fit property info strings
     fid_eval_str = Property(depends_on=['lpa_distance', 'nasion_distance',
                                         'rpa_distance'])
@@ -177,10 +178,20 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_points(self):
-        if self.points_filter is None:
-            return self.hsp.inst_points
-        else:
-            return self.hsp.inst_points[self.points_filter]
+        with warnings.catch_warnings(record=True):  # comp to None in Traits
+            if self.points_filter is None:
+                self.points_filter = \
+                    np.ones(len(self.hsp.inst_points), np.bool8)
+
+        # Apply the status of the Use EEG-tickbox
+        eeg_filter = self.hsp.points_type == FIFF.FIFFV_POINT_EEG
+        self.points_filter[eeg_filter] = self.use_eeg_locations
+
+        # This will lead to a recursion due to omit_info depending on filter
+        # But without invalidating the filter, omit_info is not updated
+        # self.points_filter = self.points_filter[:]
+
+        return self.hsp.inst_points[self.points_filter]
 
     @cached_property
     def _get_omitted_info(self):
@@ -199,9 +210,6 @@ class CoregModel(HasPrivateTraits):
 
     def _inst_points_changed(self):
         self.reset_traits(('points_filter',))
-        # This feels a bit hacky, but I cannot figure out another way to
-        # make sure the current value of the EEG-tickbox (Y/N) is observed?
-        self._use_eeg_locations_changed()
 
     @cached_property
     def _get_can_prepare_bem_model(self):
@@ -379,29 +387,6 @@ class CoregModel(HasPrivateTraits):
         elif 'fsaverage' in self.mri.subject_source.subjects:
             self.mri.subject = 'fsaverage'
 
-    def _use_eeg_locations_changed(self):
-        self.apply_eeg_filter()
-
-    def apply_eeg_filter(self):
-        """Either in- or exclude EEG locations in head shape points,
-        depending on the setting of the tickbox."""
-        with warnings.catch_warnings(record=True):  # comp to None in Traits
-            if self.points_filter is None:
-                self.points_filter = \
-                    np.ones(len(self.hsp.inst_points), np.bool8)
-
-        eeg_filter = self.hsp.points_type == FIFF.FIFFV_POINT_EEG
-        nEEG = np.sum(eeg_filter)
-        self.points_filter[eeg_filter] = self.use_eeg_locations
-        # Without the following explicit array copy, the points_filter-
-        # trait does not get invalidated. Which sucks.
-        self.points_filter = self.points_filter[:]
-
-        # Log what's happening
-        log_str = dict(True="Coregistration: Including {:d} EEG points",
-                       False="Coregistration: Excluding {:d} EEG points")
-        logger.info(log_str[str(self.use_eeg_locations)].format(nEEG))
-
     def omit_hsp_points(self, distance=0, reset=False):
         """Exclude head shape points that are far away from the MRI head
 
@@ -420,7 +405,6 @@ class CoregModel(HasPrivateTraits):
             logger.info("Coregistration: Reset excluded head shape points")
             with warnings.catch_warnings(record=True):  # Traits None comp
                 self.points_filter = None
-                self.apply_eeg_filter()  # Don't forget the EEG
 
         if distance <= 0:
             return
