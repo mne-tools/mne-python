@@ -1418,7 +1418,6 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
         5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
         6. Run this script
     """
-    from . import read_surface
     from .viz.misc import plot_bem
     env = os.environ.copy()
 
