@@ -182,12 +182,6 @@ class CoregModel(HasPrivateTraits):
         else:
             return self.hsp.inst_points[self.points_filter]
 
-    def _get_points_filter(self):
-        if self.points_filter is None:
-            return self.hsp.inst_points
-        else:
-            return self.hsp.inst_points[self.points_filter]
-
     @cached_property
     def _get_omitted_info(self):
         if self.points_filter is None:
