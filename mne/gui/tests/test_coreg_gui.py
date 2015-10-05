@@ -142,27 +142,31 @@ def test_coreg_model_with_fsaverage():
     nasion_distance = model.nasion_distance
     rpa_distance = model.rpa_distance
     avg_point_distance = np.mean(model.point_distance)
+    n_omitted = sum(model.omitted_info.values())
+    print(model.omitted_info.keys())
+    print(model.omitted_info.values())
+    print(n_omitted)
 
     # test hsp point omission
     model.trans_y = -0.008
     model.fit_auricular_points()
     model.omit_hsp_points(0.02)
-    assert_equal(model.n_omitted, 1)
+    assert_equal(sum(model.omitted_info.values()), 1)
     model.omit_hsp_points(reset=True)
-    assert_equal(model.n_omitted, 0)
+    assert_equal(sum(model.omitted_info.values()), 0)
     model.omit_hsp_points(0.02, reset=True)
-    assert_equal(model.n_omitted, 1)
+    assert_equal(sum(model.omitted_info.values()), 1)
 
     # test that omission also works then EEG locs are used,
     # and resetting the omission when EEG locs are NOT used
     # does NOT enable the EEG locs.
     model.use_eeg_locations = True
     model.omit_hsp_points(0.02, reset=True)
-    assert_equal(model.n_omitted, 1)
+    assert_equal(sum(model.omitted_info.values()), 1)
     model.use_eeg_locations = False
     model.omit_hsp_points(0.02, reset=True)
-    assert_equal(model.n_omitted_types['HSP'], 1)
-    assert_equal(model.n_omitted_types['EEG'], 61)
+    assert_equal(model.omitted_info['HSP'], 1)
+    assert_equal(model.omitted_info['EEG'], 61)
 
     # scale with 1 parameter
     model.n_scale_params = 1
@@ -195,12 +199,12 @@ def test_coreg_model_with_fsaverage():
     assert_true(np.mean(model.point_distance) < avg_point_distance_1param)
 
     # test switching raw disables point omission but leaves EEG selector as is
-    assert_equal(model.n_omitted, 62)  # 1 HSP due to dist and 61 EEG
+    assert_equal(sum(model.omitted_info.values()), 62)  # 1 HSP (dist), 61 EEG
     with warnings.catch_warnings(record=True):
         model.hsp.file = kit_raw_path  # KIT data has no EEG points
-    assert_equal(model.n_omitted, 0)  # all HSPs back on-line
+    assert_equal(sum(model.omitted_info.values()), 0)  # all HSPs back on-line
     model.hsp.file = raw_path  # back to sample data with EEG
-    assert_equal(model.n_omitted, 61)  # since EEG selector off
+    assert_equal(sum(model.omitted_info.values()), 61)  # EEG selector off
 
 
 run_tests_if_main()
