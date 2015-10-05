@@ -100,17 +100,15 @@ class RawBrainVision(_BaseRaw):
         self.set_brainvision_events(events)
 
         # load data
-        if preload:
-            self.preload = preload
-            logger.info('Reading raw data from %s...' % vhdr_fname)
-            self._data, _ = self._read_segment()
-            if reference is not None:
+        self._preload_data(preload=preload)
+        if reference is not None:
+            if preload:
                 add_reference_channels(self, reference, copy=False)
-            assert len(self._data) == self.info['nchan']
-            logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
-                        % (self.first_samp, self.last_samp,
-                           float(self.first_samp) / self.info['sfreq'],
-                           float(self.last_samp) / self.info['sfreq']))
+                assert len(self._data) == self.info['nchan']
+            else:
+                raise ValueError('`preload` must be set to True if `reference`'
+                                 ' is not None.')
+
         logger.info('Ready.')
 
     def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
@@ -208,6 +206,15 @@ class RawBrainVision(_BaseRaw):
         times = np.arange(start, stop, dtype=float) / sfreq
 
         return data, times
+
+    def _preload_data(self, preload):
+        """This function actually preloads the data"""
+        if preload:
+            logger.info('Reading raw data from %s...' % self.info['filename'])
+            self._data = self._read_segment()[0]
+            assert len(self._data) == self.info['nchan']
+            self.preload = True
+            self.close()
 
     def get_brainvision_events(self):
         """Retrieve the events associated with the Brain Vision Raw object
