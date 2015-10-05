@@ -2446,5 +2446,6 @@ def corrmap(icas, template, threshold="auto", label=None,
                                      label, outlines=outlines, cmap=cmap,
                                      contours=contours, layout=layout,
                                      show=show)
+        return template_fig, labelled_ics
 
-    return None if plot is False else template_fig, labelled_ics
+    return None
