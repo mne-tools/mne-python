@@ -220,7 +220,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 for h in hline:
                     ax.axhline(h, color='r', linestyle='--', linewidth=2)
     if plot_type == 'butterfly':
-        params = dict(evoked=evoked, axes=axes, texts=texts, lines=lines,
+        params = dict(axes=axes, texts=texts, lines=lines,
                       ch_names=evoked.ch_names, idxs=idxs, need_draw=False,
                       path_effects=path_effects, selectors=selectors)
         fig.canvas.mpl_connect('pick_event',
@@ -234,9 +234,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
-        params = dict(fig=fig, projs=evoked.info['projs'], axes=axes,
-                      types=types, units=units, scalings=scalings, unit=unit,
-                      ch_types_used=ch_types_used, picks=picks,
+        params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
+                      axes=axes, types=types, units=units, scalings=scalings,
+                      unit=unit, ch_types_used=ch_types_used, picks=picks,
                       plot_update_proj_callback=_plot_update_evoked,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
