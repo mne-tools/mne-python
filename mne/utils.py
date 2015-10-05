@@ -1894,7 +1894,7 @@ def compute_corr(x, y):
     X -= X.mean(0)
     Y -= Y.mean(0)
     x_sd = X.std(0, ddof=1)
-    # if covariance matrix is fully expanded, Y needs a transpose / brodcasting
-    # else Y is correct
+    # if covariance matrix is fully expanded, Y needs a
+    # transpose / broadcasting else Y is correct
     y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
     return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
