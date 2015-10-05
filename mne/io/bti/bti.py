@@ -1169,18 +1169,24 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         if chan_4d.startswith('A'):
             chan_info['kind'] = FIFF.FIFFV_MEG_CH
             chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_MAG
-            chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+            chan_info['coord_frame'] = (
+                FIFF.FIFFV_COORD_DEVICE if convert else
+                FIFF.FIFFV_MNE_COORD_4D_HEAD)
             chan_info['unit'] = FIFF.FIFF_UNIT_T
 
         elif chan_4d.startswith('M'):
             chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
             chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_MAG
-            chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+            chan_info['coord_frame'] = (
+                FIFF.FIFFV_COORD_DEVICE if convert else
+                FIFF.FIFFV_MNE_COORD_4D_HEAD)
             chan_info['unit'] = FIFF.FIFF_UNIT_T
 
         elif chan_4d.startswith('G'):
             chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
-            chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+            chan_info['coord_frame'] = (
+                FIFF.FIFFV_COORD_DEVICE if convert else
+                FIFF.FIFFV_MNE_COORD_4D_HEAD)
             chan_info['unit'] = FIFF.FIFF_UNIT_T_M
             if chan_4d in ('GxxA', 'GyyA'):
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA
@@ -1190,7 +1196,9 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         elif chan_4d.startswith('EEG'):
             chan_info['kind'] = FIFF.FIFFV_EEG_CH
             chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
-            chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+            chan_info['coord_frame'] = (
+                FIFF.FIFFV_COORD_HEAD if convert else
+                FIFF.FIFFV_MNE_COORD_4D_HEAD)
             chan_info['unit'] = FIFF.FIFF_UNIT_V
 
         elif chan_4d == 'RESPONSE':

@@ -17,6 +17,7 @@ from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_data, _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info)
 from mne.io import read_raw_bti
+from mne.io.constants import FIFF
 from mne import concatenate_raws
 from mne.utils import run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
@@ -201,6 +202,12 @@ def test_no_conversion():
             t3 = raw_con.info['chs'][ii]['coil_trans']
             assert_array_equal(t1, t2)
             assert_true(not np.allclose(t1, t3))
+            assert_equal(
+                raw_con.info['chs'][0]['coord_frame'],
+                FIFF.FIFFV_COORD_DEVICE)
+            assert_equal(
+                raw.info['chs'][0]['coord_frame'],
+                FIFF.FIFFV_MNE_COORD_4D_HEAD)
 
 
 def test_bytes_io():
