@@ -450,7 +450,7 @@ def test_compute_corr():
     r = compute_corr(x, y.T)
     r2 = np.array([np.corrcoef(x, y[i])[0, 1]
                    for i in range(len(y))])
-    assert_allclose(r, r2, atol=1e-3)
+    assert_allclose(r, r2)
     assert_raises(ValueError, compute_corr, [1, 2], [])
 
 
