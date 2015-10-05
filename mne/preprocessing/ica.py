@@ -2432,6 +2432,8 @@ def corrmap(icas, template, threshold="auto", label=None,
                 subjs.extend([ii] * len(max_corr))
                 indices.extend(max_corr)
         else:
+            if label not in ica.labels_.keys():
+                ica.labels_[label] = []
             nones.append(ii)
 
     if len(nones) == 0:
@@ -2447,5 +2449,5 @@ def corrmap(icas, template, threshold="auto", label=None,
                                      contours=contours, layout=layout,
                                      show=show)
         return template_fig, labelled_ics
-
-    return None
+    else:
+        return None

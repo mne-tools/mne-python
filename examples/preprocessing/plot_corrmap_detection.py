@@ -57,7 +57,7 @@ all_epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
 all_epochs = [all_epochs[start:stop] for start, stop in
               [(0, 100), (101, 200), (201, 300)]]
 
-icas = [ICA(n_components=20, random_state=0).fit(epochs)
+icas = [ICA(n_components=20, random_state=1).fit(epochs)
         for epochs in all_epochs]
 
 # 2) Use corrmap to identify the maps best corresponding
@@ -66,7 +66,7 @@ icas = [ICA(n_components=20, random_state=0).fit(epochs)
 
 template = (0, 0)
 fig_template, fig_detected = corrmap(icas, template=template, label="blinks",
-                                     show=True)
+                                     show=True, threshold=.8)
 
 # 3) Zeroing the identified blink components for all data sets
 #    results in individually cleaned data sets. Specific components
