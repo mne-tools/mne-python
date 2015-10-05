@@ -23,6 +23,7 @@ from ..utils import logger
 from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
+from matplotlib.widgets import SpanSelector
 
 
 def _butterfly_onpick(event, params):
@@ -58,6 +59,12 @@ def _butterfly_on_button_press(event, params):
             text.set_path_effects([])
             event.canvas.draw()
     params['need_draw'] = False
+
+
+def _butterfly_onselect(xmin, xmax, ch_type, evoked):
+    """Function for drawing topomaps from the selected area."""
+    times = np.linspace(xmin, xmax, 5)  # five time points
+    evoked.plot_topomap(times=times * 1e-3, ch_type=ch_type)
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
@@ -136,10 +143,11 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         evoked = evoked.copy()
         evoked.apply_proj()
 
-    times = 1e3 * evoked.times  # time in miliseconds
-    texts = []
-    idxs = []
-    lines = []
+    times = 1e3 * evoked.times  # time in milliseconds
+    texts = list()
+    idxs = list()
+    lines = list()
+    selectors = list()  # for keeping reference to span_selectors
     path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
                                            alpha=0.75)]
     for ax, t in zip(axes, ch_types_used):
@@ -162,6 +170,14 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     ax._get_lines.color_cycle = iter(colors)
                 else:
                     ax._get_lines.color_cycle = cycle(['k'])
+
+                callback_onselect = partial(_butterfly_onselect, ch_type=t,
+                                            evoked=evoked)
+                selectors.append(SpanSelector(ax, callback_onselect,
+                                              'horizontal', minspan=10,
+                                              useblit=True,
+                                              rectprops=dict(alpha=0.5,
+                                                             facecolor='red')))
             # Set amplitude scaling
             D = this_scaling * evoked.data[idx, :]
             if plot_type == 'butterfly':
@@ -204,9 +220,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 for h in hline:
                     ax.axhline(h, color='r', linestyle='--', linewidth=2)
     if plot_type == 'butterfly':
-        params = dict(axes=axes, texts=texts, lines=lines,
+        params = dict(evoked=evoked, axes=axes, texts=texts, lines=lines,
                       ch_names=evoked.ch_names, idxs=idxs, need_draw=False,
-                      path_effects=path_effects)
+                      path_effects=path_effects, selectors=selectors)
         fig.canvas.mpl_connect('pick_event',
                                partial(_butterfly_onpick, params=params))
         fig.canvas.mpl_connect('button_press_event',
@@ -218,9 +234,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
-        params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
-                      axes=axes, types=types, units=units, scalings=scalings,
-                      unit=unit, ch_types_used=ch_types_used, picks=picks,
+        params = dict(fig=fig, projs=evoked.info['projs'], axes=axes,
+                      types=types, units=units, scalings=scalings, unit=unit,
+                      ch_types_used=ch_types_used, picks=picks,
                       plot_update_proj_callback=_plot_update_evoked,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
@@ -237,6 +253,10 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None):
     """Plot evoked data
+
+    Left click to a line shows the channel name. Selecting an area by clicking
+    and holding left mouse button draws a series of scalp plots of the painted
+    area.
 
     Note: If bad channels are not excluded they are shown in red.
 
