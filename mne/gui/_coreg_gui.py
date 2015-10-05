@@ -87,8 +87,7 @@ class CoregModel(HasPrivateTraits):
     # head shape points relevant to the Model depend on the filter
     points_filter = Any(desc="Index to select a subset of the head shape "
                         "points")
-    n_omitted = Property(Int, depends_on=['points_filter'])
-    n_omitted_types = Property(depends_on=['n_omitted'])
+    omitted_info = Property(depends_on=['points_filter'])
 
     points = Property(depends_on=['inst_points', 'points_filter'],
                       desc="Head shape points selected by the filter "
@@ -190,14 +189,7 @@ class CoregModel(HasPrivateTraits):
             return self.hsp.inst_points[self.points_filter]
 
     @cached_property
-    def _get_n_omitted(self):
-        if self.points_filter is None:
-            return 0
-        else:
-            return np.sum(self.points_filter == False)  # noqa
-
-    @cached_property
-    def _get_n_omitted_types(self):
+    def _get_omitted_info(self):
         if self.points_filter is None:
             return dict(EEG=0, HSP=0)
         elif np.sum(self.points_filter) == len(self.points_filter):
@@ -1234,7 +1226,7 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                       Label("Use EEG electrode locations "
                                             "as head shape points"),
                                       show_labels=False),
-                               Item('omitted_info', style='readonly',
+                               Item('omitted_string', style='readonly',
                                     show_label=False),
                                label='Head Shape Source (Raw/Epochs/Evoked)',
                                show_border=True, show_labels=False),
@@ -1295,7 +1287,7 @@ class CoregFrame(HasTraits):
                          "procedure.")
     reset_omit_points = Button(label='Reset Omission', desc="Reset the "
                                "omission of head shape points to include all.")
-    omitted_info = Property(Str, depends_on=['model.n_omitted'])
+    omitted_string = Property(Str, depends_on=['model.omitted_info'])
 
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
@@ -1437,18 +1429,19 @@ class CoregFrame(HasTraits):
         return self.hsp_always_visible or self.lock_fiducials
 
     @cached_property
-    def _get_omitted_info(self):
-        if self.model.n_omitted == 0:
+    def _get_omitted_string(self):
+        n_omitted = sum(self.model.omitted_info.values())
+        if n_omitted == 0:
             return "No points omitted"
-        elif self.model.n_omitted == 1:
+        elif n_omitted == 1:
             omit_str = "1 point"
         else:
-            omit_str = "%i points" % self.model.n_omitted
+            omit_str = "%i points" % n_omitted
 
         omit_str += " out of %d omitted (HSP: %d; EEG: %d)" % \
                     (len(self.model.hsp.inst_points),
-                     self.model.n_omitted_types['HSP'],
-                     self.model.n_omitted_types['EEG'])
+                     self.model.omitted_info['HSP'],
+                     self.model.omitted_info['EEG'])
         return omit_str
 
     def _omit_points_fired(self):
