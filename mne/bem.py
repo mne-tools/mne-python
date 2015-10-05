@@ -1419,6 +1419,7 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
         6. Run this script
     """
     from . import read_surface
+    from .viz.misc import plot_bem
     env = os.environ.copy()
 
     if subject:
@@ -1629,16 +1630,5 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
                 % dest)
     # Show computed BEM surfaces
     if show:
-        os.chdir(op.join(bem_dir, 'flash'))
-        fnames = ['outer_skin.surf', 'outer_skull.surf', 'inner_skull.surf']
-        head_col = (0.95, 0.83, 0.83)  # light pink
-        skull_col = (0.91, 0.89, 0.67)
-        brain_col = (0.67, 0.89, 0.91)  # light blue
-        colors = [head_col, skull_col, brain_col]
-        from mayavi import mlab
-        mlab.clf()
-        for fname, c in zip(fnames, colors):
-            points, faces = read_surface(fname)
-            mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                                 faces, color=c, opacity=0.3)
-        mlab.show()
+        plot_bem(subject=subject, subjects_dir=subjects_dir,
+                 orientation='coronal', slices=None, show=True)
