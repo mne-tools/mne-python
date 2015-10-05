@@ -816,9 +816,8 @@ def _read_ch_config(fid):
     return cfg
 
 
-def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
-    """ Read bti PDF header
-    """
+def _read_bti_header_pdf(pdf_fname):
+    """Read header from pdf file"""
     with _bti_open(pdf_fname, 'rb') as fid:
         fid.seek(-8, 2)
         start = fid.tell()
@@ -892,24 +891,35 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     info['dtype'] = DTYPES[info['data_format']]
     bps = info['dtype'].itemsize * info['total_chans']
     info['bytes_per_slice'] = bps
+    return info
+
+
+def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
+    """ Read bti PDF header
+    """
+    info = _read_bti_header_pdf(pdf_fname) if pdf_fname else dict()
 
     cfg = _read_config(config_fname)
     info['bti_transform'] = cfg['transforms']
 
     # augment channel list by according info from config.
     # get channels from config present in PDF
-    chans = info['chs']
-    chans_cfg = [c for c in cfg['chs'] if c['chan_no']
-                 in [c_['chan_no'] for c_ in chans]]
+    chans = info.get('chs', None)
+    if chans:
+        chans_cfg = [c for c in cfg['chs'] if c['chan_no']
+                     in [c_['chan_no'] for c_ in chans]]
 
-    # check all pdf chanels are present in config
-    match = [c['chan_no'] for c in chans_cfg] == \
-            [c['chan_no'] for c in chans]
+        # check all pdf chanels are present in config
+        match = [c['chan_no'] for c in chans_cfg] == \
+                [c['chan_no'] for c in chans]
 
-    if not match:
-        raise RuntimeError('Could not match raw data channels with'
-                           ' config channels. Some of the channels'
-                           ' found are not described in config.')
+        if not match:
+            raise RuntimeError('Could not match raw data channels with'
+                               ' config channels. Some of the channels'
+                               ' found are not described in config.')
+    else:
+        chans_cfg = cfg['chs']
+        chans = [dict() for d in chans_cfg]
 
     # transfer channel info from config to channel info
     for ch, ch_cfg in zip(chans, chans_cfg):
@@ -918,10 +928,13 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         ch['name'] = ch_cfg['name']
         ch['coil_trans'] = (ch_cfg['dev'].get('transform', None)
                             if 'dev' in ch_cfg else None)
-        if info['data_format'] <= 2:
-            ch['cal'] = ch['scale'] * ch['upb'] * (ch['gain'] ** -1)
+        if pdf_fname:
+            if info['data_format'] <= 2:
+                ch['cal'] = ch['scale'] * ch['upb'] * (ch['gain'] ** -1)
+            else:
+                ch['cal'] = ch['scale'] * ch['gain']
         else:
-            ch['cal'] = ch['scale'] * ch['gain']
+            ch['scale'] = 1.0
 
     if sort_by_ch_name:
         by_index = [(i, d['index']) for i, d in enumerate(chans)]
@@ -1072,7 +1085,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                   translation, convert, ecg_ch, eog_ch, rename_channels=True,
                   sort_by_ch_name=True):
 
-    if not isinstance(pdf_fname, six.BytesIO):
+    if not isinstance(pdf_fname, six.BytesIO) and pdf_fname is not None:
         if not op.isabs(pdf_fname):
             pdf_fname = op.abspath(pdf_fname)
 
@@ -1116,13 +1129,19 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     use_hpi = False  # hard coded, but marked as later option.
     logger.info('Creating Neuromag info structure ...')
     info = _empty_info()
-    date = bti_info['processes'][0]['timestamp']
-    info['meas_date'] = [date, 0]
-    info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
+    if pdf_fname:
+        date = bti_info['processes'][0]['timestamp']
+        info['meas_date'] = [date, 0]
+        info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
+    else:  # for some use case we just want a partial info with channel geom.
+        info['meas_date'] = None
+        info['sfreq'] = None
+        bti_info['processes'] = list()
     info['nchan'] = len(bti_info['chs'])
 
     # browse processing info for filter specs.
-    hp, lp = 0.0, info['sfreq'] * 0.4  # find better default
+    # find better default
+    hp, lp = (0.0, info['sfreq'] * 0.4) if pdf_fname else (None, None)
     for proc in bti_info['processes']:
         if 'filt' in proc['process_type']:
             for step in proc['processing_steps']:

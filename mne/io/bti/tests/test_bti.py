@@ -17,11 +17,15 @@ from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_data, _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info)
 from mne.io import read_raw_bti
+from mne import pick_types
+from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne import concatenate_raws
 from mne.utils import run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
 from mne.externals import six
+from mne.fixes import partial
+
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
 
@@ -170,20 +174,36 @@ def test_info_no_rename_no_reorder():
 
 def test_no_conversion():
     """ Test bti no-conversion option """
-    for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
-        raw = read_raw_bti(pdf, config, hs, convert=False)
-        raw_con = read_raw_bti(pdf, config, hs, convert=True)
 
+    get_info = partial(
+        _get_bti_info,
+        pdf_fname=None,  # test skipping no pdf
+        rotation_x=0.0, translation=(0.0, 0.02, 0.11), convert=False,
+        ecg_ch='E31', eog_ch=('E63', 'E64'),
+        rename_channels=False, sort_by_ch_name=False)
+
+    for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
+        raw_info, _ = get_info(
+            config_fname=config, head_shape_fname=hs, convert=False)
+        raw_info_con = read_raw_bti(
+            pdf_fname=pdf,
+            config_fname=config, head_shape_fname=hs, convert=True).info
+
+        pick_info(raw_info_con,
+                  pick_types(raw_info_con, meg=True, ref_meg=True),
+                  copy=False)
+        pick_info(raw_info,
+                  pick_types(raw_info, meg=True, ref_meg=True), copy=False)
         bti_info = _read_bti_header(pdf, config)
         dev_ctf_t = _correct_trans(bti_info['bti_transform'][0])
-        assert_array_equal(dev_ctf_t, raw.info['dev_ctf_t']['trans'])
-        assert_array_equal(raw.info['dev_head_t']['trans'], np.eye(4))
-        assert_array_equal(raw.info['ctf_head_t']['trans'], np.eye(4))
+        assert_array_equal(dev_ctf_t, raw_info['dev_ctf_t']['trans'])
+        assert_array_equal(raw_info['dev_head_t']['trans'], np.eye(4))
+        assert_array_equal(raw_info['ctf_head_t']['trans'], np.eye(4))
         dig, t = _process_bti_headshape(hs, convert=False, use_hpi=False)
         assert_array_equal(t['trans'], np.eye(4))
 
         for ii, (old, new, con) in enumerate(zip(
-                dig, raw.info['dig'], raw_con.info['dig'])):
+                dig, raw_info['dig'], raw_info_con['dig'])):
             assert_equal(old['ident'], new['ident'])
             assert_array_equal(old['r'], new['r'])
             assert_true(not np.allclose(old['r'], con['r']))
@@ -194,19 +214,21 @@ def test_no_conversion():
         ch_map = dict((ch['chan_label'],
                        ch['coil_trans']) for ch in bti_info['chs'])
 
-        for ii, ch_label in enumerate(raw.bti_ch_labels):
+        for ii, ch_label in enumerate(raw_info['ch_names']):
             if not ch_label.startswith('A'):
                 continue
             t1 = _correct_trans(ch_map[ch_label])
-            t2 = raw.info['chs'][ii]['coil_trans']
-            t3 = raw_con.info['chs'][ii]['coil_trans']
+            t2 = raw_info['chs'][ii]['coil_trans']
+            t3 = raw_info_con['chs'][ii]['coil_trans']
             assert_array_equal(t1, t2)
             assert_true(not np.allclose(t1, t3))
+            idx_a = raw_info_con['ch_names'].index('MEG 001')
+            idx_b = raw_info['ch_names'].index('A22')
             assert_equal(
-                raw_con.info['chs'][0]['coord_frame'],
+                raw_info_con['chs'][idx_a]['coord_frame'],
                 FIFF.FIFFV_COORD_DEVICE)
             assert_equal(
-                raw.info['chs'][0]['coord_frame'],
+                raw_info['chs'][idx_b]['coord_frame'],
                 FIFF.FIFFV_MNE_COORD_4D_HEAD)
 
 
