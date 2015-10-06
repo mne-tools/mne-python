@@ -329,7 +329,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
-        This function operates inplace.
+        This function operates in-place.
 
         .. versionadded:: 0.10.0
         """

@@ -67,6 +67,8 @@ Changelog
 
     - Big rewrite of simulation module by `Yousra Bekhti`_, `Mark Wronkiewicz`_, `Eric Larson`_ and `Alex Gramfort`_. Allows to simulate raw with artefacts (ECG, EOG) and evoked data, exploiting the forward solution. See :func:`mne.simulation.simulate_raw`, :func:`mne.simulation.simulate_evoked` and :func:`mne.simulation.simulate_sparse_stc`
 
+    - Add :func:`mne.Epochs.load_data` method to :class:`mne.Epochs` by `Teon Brooks`_
+
 BUG
 ~~~
 
@@ -96,6 +98,8 @@ API
     - Deprecated and renamed :func:`mne.viz.plot_image_epochs` for :func:`mne.plot.plot_epochs_image` by `Teon Brooks`_
 
     - ``picks`` argument has been added to :func:`mne.time_frequency.tfr_morlet`, :func:`mne.time_frequency.tfr_multitaper` by `Teon Brooks`_
+
+    - :func:`mne.io.Raw.preload_data` has been deprecated for :func:`mne.io.Raw.load_data` by `Teon Brooks`_
 
 .. _changes_0_9:
 
