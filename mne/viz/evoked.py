@@ -78,9 +78,14 @@ def _butterfly_onselect(xmin, xmax, ch_type, evoked):
     if merge_grads:
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
-        title = 'Average RMS %0.3fs - %0.3fs' % (xmin, xmax)
+        title = 'Average RMS over gradiometer pairs: %0.3fs - %0.3fs' % (xmin,
+                                                                         xmax)
+    elif ch_type == 'grad':
+        title = 'Average over gradiometers: %0.3fs - %0.3fs' % (xmin, xmax)
+    elif ch_type == 'mag':
+        title = 'Average over magnetometers: %0.3fs - %0.3fs' % (xmin, xmax)
     else:
-        title = 'Average %0.3fs - %0.3fs' % (xmin, xmax)
+        title = 'Average over EEG channels: %0.3fs - %0.3fs' % (xmin, xmax)
     data = np.average(data, axis=1)
 
     fig = plt.figure()
