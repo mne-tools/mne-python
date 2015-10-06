@@ -341,10 +341,12 @@ def test_split_files():
     """
     tempdir = _TempDir()
     raw_1 = Raw(fif_fname, preload=True)
+    assert_allclose(raw_1.info['buffer_size_sec'], 10., atol=1e-2)  # samp rate
     split_fname = op.join(tempdir, 'split_raw.fif')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
     raw_2 = Raw(split_fname)
+    assert_allclose(raw_2.info['buffer_size_sec'], 1., atol=1e-2)  # samp rate
     data_1, times_1 = raw_1[:, :]
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
