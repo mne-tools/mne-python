@@ -1325,6 +1325,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
 
 @verbose
 def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
+                            tmin=None, tmax=None,
                             proj=False, n_fft=256, ch_type=None,
                             n_overlap=0, layout=None,
                             cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
@@ -1351,6 +1352,10 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         The value specifying the upper bound of the color range.
         If None, the maximum absolute value is used. If callable, the output
         equals vmax(data). Defaults to None.
+    tmin : float | None
+        Start time to consider.
+    tmax : float | None
+        End time to consider.
     proj : bool
         Apply projection.
     n_fft : int
@@ -1412,6 +1417,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         epochs, ch_type, layout)
 
     psds, freqs = compute_epochs_psd(epochs, picks=picks, n_fft=n_fft,
+                                     tmin=tmin, tmax=tmax,
                                      n_overlap=n_overlap, proj=proj,
                                      n_jobs=n_jobs)
     psds = np.mean(psds, axis=0)
