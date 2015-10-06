@@ -593,6 +593,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
     info = params['info']
     n_channels = params['n_channels']
     params['bad_color'] = bad_color
+    labels = params['ax'].yaxis.get_ticklabels()
     # do the plotting
     tick_list = list()
     for ii in range(n_channels):
@@ -621,6 +622,10 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
             lines[ii].set_zorder(this_z)
             vars(lines[ii])['ch_name'] = ch_name
             vars(lines[ii])['def_color'] = color[params['types'][inds[ch_ind]]]
+
+            # set label color
+            this_color = bad_color if ch_name in info['bads'] else 'black'
+            labels[ii].set_color(this_color)
         else:
             # "remove" lines
             lines[ii].set_xdata([])
