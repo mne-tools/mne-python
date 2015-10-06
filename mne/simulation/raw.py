@@ -29,6 +29,15 @@ from ..utils import logger, verbose, check_random_state
 from ..externals.six import string_types
 
 
+def _log_ch(start, info, ch):
+    """Helper to log channel information"""
+    if ch is not None:
+        extra, just, ch = ' stored on channel:', 50, info['ch_names'][ch]
+    else:
+        extra, just, ch = ' not stored', 0, ''
+    logger.info((start + extra).ljust(just) + ch)
+
+
 @verbose
 def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
@@ -153,6 +162,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     if not isinstance(raw, _BaseRaw):
         raise TypeError('raw should be an instance of Raw')
     times, info, first_samp = raw.times, raw.info, raw.first_samp
+    raw_verbose = raw.verbose
 
     # Check for common flag errors and try to override
     if not isinstance(stc, _BaseSourceEstimate):
@@ -251,10 +261,12 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     ecg = ecg and len(meg_picks) > 0
     chpi = chpi and len(meg_picks) > 0
     if chpi:
-        hpi_freqs, hpi_rrs = _get_hpi_info(raw.info)[:2]
+        hpi_freqs, hpi_rrs, hpi_pick, hpi_on = _get_hpi_info(info)[:4]
         hpi_nns = hpi_rrs / np.sqrt(np.sum(hpi_rrs * hpi_rrs,
                                            axis=1))[:, np.newaxis]
-
+        # turn on cHPI in file
+        raw_data[hpi_pick, :] = hpi_on
+        _log_ch('cHPI status bits enbled and', info, hpi_pick)
     if blink or ecg:
         exg_bem = make_sphere_model(r0, head_radius=R,
                                     relative_radii=(0.97, 0.98, 0.99, 1.),
@@ -285,7 +297,11 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         ch = pick_types(info, meg=False, eeg=False, eog=True)
         noise = rng.randn(blink_data.shape[1]) * 5e-6
         if len(ch) >= 1:
-            raw_data[ch[-1], :] = blink_data * 1e3 + noise
+            ch = ch[-1]
+            raw_data[ch, :] = blink_data * 1e3 + noise
+        else:
+            ch = None
+        _log_ch('Blinks simulated and trace', info, ch)
         del blink_kernel, blink_rate, noise
     if ecg:
         ecg_rr = np.array([[-R, 0, -3 * R]])
@@ -308,18 +324,21 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         ch = pick_types(info, meg=False, eeg=False, ecg=True)
         noise = rng.randn(ecg_data.shape[1]) * 1.5e-5
         if len(ch) >= 1:
-            raw_data[ch[-1], :] = ecg_data * 2e3 + noise
+            ch = ch[-1]
+            raw_data[ch, :] = ecg_data * 2e3 + noise
+        else:
+            ch = None
+        _log_ch('ECG simulated and trace', info, ch)
         del cardiac_data, cardiac_kernel, max_beats, cardiac_idx
 
     stc_event_idx = np.argmin(np.abs(stc.times))
     if stim:
         event_ch = pick_channels(info['ch_names'],
-                                 _get_stim_channel(None, raw.info))[0]
+                                 _get_stim_channel(None, info))[0]
         raw_data[event_ch, :] = 0.
-        logger.info('Event information will be stored in "%s"'
-                    % raw.ch_names[event_ch])
     else:
-        logger.info('Event information will not be stored')
+        event_ch = None
+    _log_ch('Event information', info, event_ch)
     used = np.zeros(len(times), bool)
     stc_indices = np.arange(len(times)) % len(stc.times)
     raw_data[meeg_picks, :] = 0.
@@ -436,8 +455,9 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
             fwd, fwd_blink, fwd_ecg, fwd_chpi
     assert used.all()
+    raw = RawArray(raw_data, info, verbose=False)
+    raw.verbose = raw_verbose
     logger.info('Done')
-    raw = RawArray(raw_data, info)
     return raw
 
 

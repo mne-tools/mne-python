@@ -6,7 +6,7 @@ import numpy as np
 from os import path as op
 from scipy import linalg
 
-from .io.pick import pick_types
+from .io.pick import pick_types, pick_channels
 from .io.base import _BaseRaw
 from .io.constants import FIFF
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
@@ -164,7 +164,11 @@ def _get_hpi_info(info):
         raise RuntimeError('cHPI coordinate frame incorrect')
     hpi_rrs = np.array([d['r'] for d in hpi_dig])[pos_order]
     hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
-    return hpi_freqs, hpi_rrs, pos_order
+    # how cHPI active is indicated in the FIF file
+    hpi_sub = info['hpi_subsystem']
+    hpi_pick = pick_channels(info['ch_names'], [hpi_sub['event_channel']])[0]
+    hpi_on = np.sum([coil['event_bits'][0] for coil in hpi_sub['hpi_coils']])
+    return hpi_freqs, hpi_rrs, hpi_pick, hpi_on, pos_order
 
 
 def _magnetic_dipole_objective(x, B, B2, w, coils):
@@ -261,7 +265,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     get_chpi_positions
     """
     from scipy.spatial.distance import cdist
-    hpi_freqs, orig_head_rrs, order = _get_hpi_info(raw.info)
+    hpi_freqs, orig_head_rrs, hpi_pick, hpi_on, order = _get_hpi_info(raw.info)
     sfreq, ch_names = raw.info['sfreq'], raw.info['ch_names']
     # initial transforms
     dev_head_t = raw.info['dev_head_t']['trans']
@@ -291,6 +295,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
     # Set up magnetic dipole fits
     picks = pick_types(raw.info, meg=True, eeg=False)
+    picks_chpi = np.concatenate([picks, [hpi_pick]])
     logger.info('Found %s total and %s good MEG channels'
                 % (len(ch_names), len(picks)))
     megchs = [ch for ci, ch in enumerate(raw.info['chs']) if ci in picks]
@@ -312,7 +317,12 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        this_data = raw[picks, start:start + n_window][0]
+        meg_chpi_data = raw[picks_chpi, start:start + n_window][0]
+        this_data = meg_chpi_data[:-1]
+        chpi_data = meg_chpi_data[-1]
+        if not (chpi_data == hpi_on).all():
+            logger.info('HPI not turned on (t=%7.3f)' % t)
+            continue
         X = np.dot(inv_model, this_data.T)
         data_diff = np.dot(model, X).T - this_data
         data_diff *= data_diff

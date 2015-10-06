@@ -1294,13 +1294,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             stop = self.last_samp + 1 - self.first_samp
         else:
             stop = int(np.floor(tmax * self.info['sfreq']))
-
-        if buffer_size_sec is None:
-            if 'buffer_size_sec' in self.info:
-                buffer_size_sec = self.info['buffer_size_sec']
-            else:
-                buffer_size_sec = 10.0
-        buffer_size = int(np.ceil(buffer_size_sec * self.info['sfreq']))
+        buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
@@ -1782,6 +1776,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if not all(idx == events[:, 0]):
             raise ValueError('event sample numbers must be integers')
         self._data[pick, idx - self.first_samp] += events[:, 2]
+
+    def _get_buffer_size(self, buffer_size_sec=None):
+        """Helper to get the buffer size"""
+        if buffer_size_sec is None:
+            if 'buffer_size_sec' in self.info:
+                buffer_size_sec = self.info['buffer_size_sec']
+            else:
+                buffer_size_sec = 10.0
+        return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
