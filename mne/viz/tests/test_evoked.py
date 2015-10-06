@@ -15,6 +15,7 @@ from numpy.testing import assert_raises
 
 
 from mne import io, read_events, Epochs, pick_types, read_cov
+from mne.viz.evoked import _butterfly_onselect
 from mne.viz.utils import _fake_click
 from mne.utils import slow_test, run_tests_if_main
 from mne.channels import read_layout
@@ -112,6 +113,7 @@ def test_plot_evoked():
         plt.close('all')
 
         evoked.plot_topo()  # should auto-find layout
+        _butterfly_onselect(0, 200, 'mag', evoked)  # test averaged topomap
         plt.close('all')
 
         cov = read_cov(cov_fname)
