@@ -23,7 +23,7 @@ from ..utils import logger
 from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
-from matplotlib.widgets import SpanSelector
+from .topomap import _prepare_topo_plot, plot_topomap
 
 
 def _butterfly_onpick(event, params):
@@ -63,8 +63,30 @@ def _butterfly_on_button_press(event, params):
 
 def _butterfly_onselect(xmin, xmax, ch_type, evoked):
     """Function for drawing topomaps from the selected area."""
-    times = np.linspace(xmin, xmax, 5)  # five time points
-    evoked.plot_topomap(times=times * 1e-3, ch_type=ch_type)
+    import matplotlib.pyplot as plt
+    plt.ion()
+    times = evoked.times
+    xmin *= 0.001
+    xmin = times.flat[np.abs(times - xmin).argmin()]
+    minidx = np.where(times == xmin)[0][0]
+    xmax *= 0.001
+    xmax = times.flat[np.abs(times - xmax).argmin()]
+    maxidx = np.where(times == xmax)[0][0]
+    picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked, ch_type,
+                                                             layout=None)
+    data = evoked.data[picks, minidx:maxidx]
+    if merge_grads:
+        from ..channels.layout import _merge_grad_data
+        data = _merge_grad_data(data)
+        title = 'Average RMS %0.3fs - %0.3fs' % (xmin, xmax)
+    else:
+        title = 'Average %0.3fs - %0.3fs' % (xmin, xmax)
+    data = np.average(data, axis=1)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    fig.suptitle(title)
+    plot_topomap(data, pos, axis=ax)
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
@@ -84,6 +106,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
+    from matplotlib.widgets import SpanSelector
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
@@ -255,8 +278,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     """Plot evoked data
 
     Left click to a line shows the channel name. Selecting an area by clicking
-    and holding left mouse button draws a series of scalp plots of the painted
-    area.
+    and holding left mouse button plots a topographic map of the painted area.
 
     Note: If bad channels are not excluded they are shown in red.
 

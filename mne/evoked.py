@@ -349,8 +349,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Plot evoked data as butterfly plots
 
         Left click to a line shows the channel name. Selecting an area by
-        clicking and holding left mouse button draws a series of scalp plots of
-        the painted area.
+        clicking and holding left mouse button plots a topographic map of the
+        painted area.
 
         Note: If bad channels are not excluded they are shown in red.
 
