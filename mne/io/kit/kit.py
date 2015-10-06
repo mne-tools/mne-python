@@ -213,8 +213,6 @@ class RawKIT(_BaseRaw):
         # RawFIF and RawEDF think of "stop" differently, easiest to increment
         # here and refactor later
         stop += 1
-        sel = np.arange(self.info['nchan'])[idx]
-
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             data_offset = KIT.RAW_OFFSET
@@ -254,7 +252,7 @@ class RawKIT(_BaseRaw):
             stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
             data_ = np.vstack((data_, stim_ch))
         data[:, offset:offset + (stop - start)] = \
-            np.dot(mult, data_) if mult is not None else data_[sel]
+            np.dot(mult, data_) if mult is not None else data_[idx]
 
 
 class EpochsKIT(_BaseEpochs):

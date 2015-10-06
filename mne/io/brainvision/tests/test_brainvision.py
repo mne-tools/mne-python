@@ -10,14 +10,13 @@ import inspect
 
 from nose.tools import assert_equal, assert_raises, assert_true
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_allclose)
 
-import mne
 from mne.utils import _TempDir, run_tests_if_main
-from mne import pick_types, concatenate_raws
+from mne import pick_types, concatenate_raws, find_events
 from mne.io.constants import FIFF
-from mne.io import Raw
-from mne.io import read_raw_brainvision
+from mne.io import Raw, read_raw_brainvision
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -44,8 +43,8 @@ def test_brainvision_data():
     """Test reading raw Brain Vision files
     """
     assert_raises(IOError, read_raw_brainvision, vmrk_path)
-    assert_raises(TypeError, read_raw_brainvision, vhdr_path, montage,
-                  preload=True, scale="0")
+    assert_raises(ValueError, read_raw_brainvision, vhdr_path, montage,
+                  preload=True, scale="foo")
     raw_py = read_raw_brainvision(vhdr_path, montage, eog=eog, preload=True)
     raw_py.load_data()  # currently does nothing
     assert_true('RawBrainVision' in repr(raw_py))
@@ -142,14 +141,14 @@ def test_events():
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, response_trig_shift=np.nan)
 
-    mne_events = mne.find_events(raw, stim_channel='STI 014')
+    mne_events = find_events(raw, stim_channel='STI 014')
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 
     # modify events and check that stim channel is updated
     index = events[:, 2] == 255
     events = events[index]
     raw.set_brainvision_events(events)
-    mne_events = mne.find_events(raw, stim_channel='STI 014')
+    mne_events = find_events(raw, stim_channel='STI 014')
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 
     # remove events
@@ -157,9 +156,11 @@ def test_events():
     ch_name = raw.info['chs'][-2]['ch_name']
     events = np.empty((0, 3))
     raw.set_brainvision_events(events)
-    assert_equal(raw.info['nchan'], nchan - 1)
-    assert_equal(len(raw._data), nchan - 1)
-    assert_equal(raw.info['chs'][-1]['ch_name'], ch_name)
+    assert_equal(raw.info['nchan'], nchan)
+    assert_equal(len(raw._data), nchan)
+    assert_equal(raw.info['chs'][-2]['ch_name'], ch_name)
+    assert_equal(len(find_events(raw, 'STI 014')), 0)
+    assert_allclose(raw[-1][0], 0.)
     fname = op.join(tempdir, 'evt_raw.fif')
     raw.save(fname)
 

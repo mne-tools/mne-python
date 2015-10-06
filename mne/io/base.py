@@ -411,6 +411,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Offset. Data should be stored in something like::
 
                 data[:, offset:offset + (start - stop + 1)] = r[idx]
+
         fi : int
             The file index that must be read from.
         start : int
