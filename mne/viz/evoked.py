@@ -203,7 +203,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                             evoked=evoked)
                 selectors.append(SpanSelector(ax, callback_onselect,
                                               'horizontal', minspan=10,
-                                              useblit=True,
+                                              useblit=False,
                                               rectprops=dict(alpha=0.5,
                                                              facecolor='red')))
             # Set amplitude scaling
