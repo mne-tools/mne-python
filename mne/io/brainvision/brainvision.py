@@ -235,7 +235,8 @@ def _synthesize_stim_channel(events, start, stop):
     onset = events[:, 0]
     offset = onset + events[:, 1]
     idx = np.logical_and(onset < stop, offset > start)
-    events = events[idx]
+    if idx.sum() > 0:  # fix for old numpy
+        events = events[idx]
 
     # make onset relative to buffer
     events[:, 0] -= start
