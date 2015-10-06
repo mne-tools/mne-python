@@ -69,7 +69,7 @@ Changelog
 
     - Add :func:`mne.Epochs.load_data` method to :class:`mne.Epochs` by `Teon Brooks`_
 
-    - Add support for drawing scalp maps by selecting an area in :func:`mne.Evoked.plot` by `Jaakko Leppakangas`_
+    - Add support for drawing topomaps by selecting an area in :func:`mne.Evoked.plot` by `Jaakko Leppakangas`_
 
 BUG
 ~~~
