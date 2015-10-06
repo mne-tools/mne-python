@@ -87,16 +87,17 @@ class CoregModel(HasPrivateTraits):
     # EEG point-related parameters
     use_eeg_locations = Bool(True, label="Use EEG electrode locations "
                              "as head shape points")
-
     # head shape points relevant to the Model depend on the filter
     points_filter = Any(desc="Index to select a subset of the head shape "
                         "points")
+    omitted_info = Any(desc="Dictionary with number of various points omitted")
 
-    omitted_info = Property(depends_on=['points_filter'])
-
-    points = Property(depends_on=['inst_points', 'points_filter',
-                      'use_eeg_locations'], desc="Head shape points selected "
-                      "by the filter (n x 3 array)")
+    points = Property(depends_on=[
+                      'inst_points',  # if points source changed
+                      'points_filter',  # if filter changed (e.g. omit)
+                      'use_eeg_locations'],  # if tick box switched
+                      desc="Head shape points selected by the filter "
+                      "(n x 3 array)")
 
     # parameters
     grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
@@ -183,33 +184,28 @@ class CoregModel(HasPrivateTraits):
                 self.points_filter = \
                     np.ones(len(self.hsp.inst_points), np.bool8)
 
-        # Apply the status of the Use EEG-tickbox
+        # Apply the status of the Use EEG-tickbox.
         eeg_filter = self.hsp.points_type == FIFF.FIFFV_POINT_EEG
         self.points_filter[eeg_filter] = self.use_eeg_locations
 
-        # This will lead to a recursion due to omit_info depending on filter
-        # But without invalidating the filter, omit_info is not updated
-        # self.points_filter = self.points_filter[:]
+        # Set the omitted_info-trait to reflect the current points-selection
+        if np.sum(self.points_filter) == len(self.points_filter):
+            self.omitted_info = dict(n_total=0, n_eeg=0, n_hsp=0)
+        else:
+            omitted_types = self.hsp.points_type[~self.points_filter]  # noqa
+
+            # WARNING!
+            # use of minlength-parameter, assumes EXTRA is the largest!
+            n_omitted = np.bincount(omitted_types,
+                                    minlength=FIFF.FIFFV_POINT_EXTRA + 1)
+            self.omitted_info = dict(n_total=np.sum(n_omitted),
+                                     n_eeg=n_omitted[FIFF.FIFFV_POINT_EEG],
+                                     n_hsp=n_omitted[FIFF.FIFFV_POINT_EXTRA])
 
         return self.hsp.inst_points[self.points_filter]
 
-    @cached_property
-    def _get_omitted_info(self):
-        if self.points_filter is None:
-            return dict(EEG=0, HSP=0)
-        elif np.sum(self.points_filter) == len(self.points_filter):
-            return dict(EEG=0, HSP=0)
-        else:
-            omitted_types = self.hsp.points_type[~self.points_filter]  # noqa
-            # use minlength-parameter, assumes EXTRA is the largest!
-            n_omitted = np.bincount(omitted_types,
-                                    minlength=FIFF.FIFFV_POINT_EXTRA + 1)
-            return dict(EEG=n_omitted[FIFF.FIFFV_POINT_EEG],
-                        HSP=n_omitted[FIFF.FIFFV_POINT_EXTRA])
-            # returns dict hard-coded to only specify EEG and EXTRA points
-
     def _inst_points_changed(self):
-        self.reset_traits(('points_filter',))
+        self.reset_traits(('points_filter',))  # sets it to default value=None
 
     @cached_property
     def _get_can_prepare_bem_model(self):
@@ -1408,18 +1404,17 @@ class CoregFrame(HasTraits):
 
     @cached_property
     def _get_omitted_string(self):
-        n_omitted = sum(self.model.omitted_info.values())
-        if n_omitted == 0:
+        if self.model.omitted_info['n_total'] == 0:
             return "No points omitted"
-        elif n_omitted == 1:
+        elif self.model.omitted_info['n_total'] == 1:
             omit_str = "1 point"
         else:
-            omit_str = "%i points" % n_omitted
+            omit_str = "%i points" % self.model.omitted_info['n_total']
 
         omit_str += " out of %d omitted (HSP: %d; EEG: %d)" % \
                     (len(self.model.hsp.inst_points),
-                     self.model.omitted_info['HSP'],
-                     self.model.omitted_info['EEG'])
+                     self.model.omitted_info['n_hsp'],
+                     self.model.omitted_info['n_eeg'])
         return omit_str
 
     def _omit_points_fired(self):
