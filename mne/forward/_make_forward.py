@@ -169,7 +169,7 @@ def _create_eeg_el(ch, t=None):
 
 
 def _create_meg_coils(chs, acc=None, t=None, coilset=None):
-    """Create a set of MEG or EEG coils in the head coordinate frame"""
+    """Create a set of MEG coils in the head coordinate frame"""
     acc = _accuracy_dict[acc] if isinstance(acc, string_types) else acc
     coilset = _read_coil_defs(verbose=False) if coilset is None else coilset
     coils = [_create_meg_coil(coilset, ch, acc, t) for ch in chs]
@@ -177,7 +177,7 @@ def _create_meg_coils(chs, acc=None, t=None, coilset=None):
 
 
 def _create_eeg_els(chs):
-    """Create a set of MEG or EEG coils in the head coordinate frame"""
+    """Create a set of EEG electrodes in the head coordinate frame"""
     return [_create_eeg_el(ch) for ch in chs]
 
 
@@ -283,8 +283,6 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
                 raise NotImplementedError(err)
     else:
         ncomp = 0
-
-    _print_coord_trans(info['dev_head_t'])
 
     # Make info structure to allow making compensator later
     ncomp_data = len(info['comps'])
