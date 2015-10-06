@@ -24,8 +24,7 @@ from ..utils import verbose, logger
 
 @verbose
 def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
-                   fine_cal_fname=None, st_dur=None, st_corr=0.98,
-                   verbose=None):
+                   fine_cal=None, st_dur=None, st_corr=0.98, verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -52,7 +51,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     st_corr : float
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
-    fine_cal_fname : str | None
+    fine_cal : str | None
         If not none, filename of fine calibration file. File can have 1D or 3D
         gradiometer imbalance correction.
     verbose : bool, str, int, or None
@@ -106,8 +105,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
 
     # If necessary, load fine calibration and overwrite sensor geometry
-    if fine_cal_fname is not None:
-        cal_chans = _read_fine_cal(raw.info, fine_cal_fname)
+    if fine_cal is not None:
+        cal_chans = _read_fine_cal(raw.info, fine_cal)
         raw.info = _update_sensor_geometry(raw.info, cal_chans)
 
     raw_sss = raw.copy().load_data()
@@ -136,9 +135,9 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
     n_in = S_in.shape[1]
 
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
-    if fine_cal_fname is not None:
+    if fine_cal is not None:
         logger.info('Fine calibration file used in Maxwell filter: ' +
-                    fine_cal_fname)
+                    fine_cal)
 
         mag_inds = pick_types(raw_sss.info, meg='mag')
         grad_inds = pick_types(raw_sss.info, meg='grad')
@@ -687,16 +686,18 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
-def _read_fine_cal(info, fine_cal_fname):
+def _read_fine_cal(info, fine_cal):
     """Read sensor locations and calib. coeffs from fine calibration file."""
 
     # Read new sensor locations
-    with open(fine_cal_fname, 'r') as fid:
+    with open(fine_cal, 'r') as fid:
         cal_chans = []
         for line in fid.readlines():
             if line[0] == '#' or line[0] == '\n':
                 continue
 
+            # `vals` contains channel number, (x, y, z), x-norm 3-vec, y-norm
+            # 3-vec, z-norm 3-vec, and (1 or 3) imbalance terms
             vals = np.fromstring(line, sep=' ')
 
             # Check for correct number of items
@@ -705,11 +706,19 @@ def _read_fine_cal(info, fine_cal_fname):
 
             ch = int(vals[0].copy())  # Get channel number
             ch_name = 'MEG' + '%04d' % ch  # Zero-pad names to 4 characters
-            loc = vals[1:13].copy()  # Get orientation information
+            loc = vals[1:13].copy()  # Get orientation information for 'loc'
+
+            # Get orientation information for 'coil_trans'
+            coil_trans = np.zeros((4, 4))
+            coil_trans[3, 3] = 1.
+            coil_trans[0:3, 0:3] = loc[3:].reshape(3, 3).T
+            coil_trans[0:3, 3] = loc[:3]
+
             calib_coeff = vals[13:].copy()  # Get imbalance/calibration coeff
             ch_type = channel_type(info, info['ch_names'].index(ch_name))
 
             cal_chans.append(dict(ch=ch, ch_name=ch_name, loc=loc,
+                                  coil_trans=coil_trans,
                                   calib_coeff=calib_coeff, ch_type=ch_type))
 
     # Check that we ended up with correct number of channels
@@ -740,7 +749,9 @@ def _update_sensor_geometry(info, cal_chans):
             ang_shift[ch_ind, ang_i] = cos_ang
 
         # Adjust channel orientation with those from fine calibration
+
         info['chs'][ch_ind]['loc'] = cal_chan['loc']
+        info['chs'][ch_ind]['coil_trans'] = cal_chan['coil_trans']
 
     # Deal with numerical precision giving values slightly more than 1.
     np.clip(ang_shift, -1., 1., ang_shift)
@@ -758,9 +769,6 @@ def _update_sensor_geometry(info, cal_chans):
 def _sss_basis_point(origin, info, int_order, ext_order, imbalance,
                      head_frame=True):
     """Compute multipolar moments for point-like magnetometers (in fine cal)"""
-
-    # Permeability of free space for scaling
-    u0 = 4 * np.pi * 1e-7
 
     # Construct 'coils' with r, weights, normal vecs, # integration pts, and
     # channel type.
@@ -786,15 +794,18 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalance,
         temp_info = deepcopy(info)
         for ch in temp_info['chs']:
             ch['coil_type'] = pt_types[dir_ind]
-        coils_add, _, _, _ = _prep_meg_channels(temp_info, accurate=True,
-                                                elekta_defs=True,
-                                                head_frame=head_frame)
+        coils_add = _prep_meg_channels(temp_info, accurate=True,
+                                       elekta_defs=True,
+                                       head_frame=head_frame)[0]
 
         S_in_add, S_out_add = _sss_basis(origin, coils_add, int_order,
                                          ext_order)
-        # Scale spaces by gradiometer imbalance
-        S_in_all += S_in_add * imbalance[:, dir_ind][:, np.newaxis]
-        S_out_all += S_out_add * imbalance[:, dir_ind][:, np.newaxis]
+        S_in_all += S_in_add
+        S_out_all += S_out_add
 
-    # Return point-like mag bases scaled by u0
-    return S_in_all * u0, S_out_all * u0
+    # Scale spaces by gradiometer imbalance
+    S_in_all *= imbalance[:, [dir_ind]]
+    S_out_all *= imbalance[:, [dir_ind]]
+
+    # Return point-like mag bases
+    return S_in_all, S_out_all

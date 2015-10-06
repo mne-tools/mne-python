@@ -8,11 +8,10 @@
 #	These coil definitions were used by Samu Taulu in the Spherical Space
 #	Separation work, which was subsequently used by Elekta in Maxfilter. The only 
 #	difference is that the local z-coordinate was set to zero in Taulu's original
-#	formulation.
+#	formulation. Source of small z-coordinate offset (0.0003m) is due to manufacturing bug.
 #
 #	Issues left to be sorted out.
 #	1) Discrepancy between gradiometer base size. 16.69 in Elekta, 16.80 in MNE
-#	2) Source of small z-coordinate offset (0.0003m) is due to manufacturing bug.
 #
 #	<class>	<id> <accuracy> <np> <size> <baseline> "<description>"
 #

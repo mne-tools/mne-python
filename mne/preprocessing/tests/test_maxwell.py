@@ -18,6 +18,9 @@ from mne.preprocessing.maxwell import (_maxwell_filter as maxwell_filter,
                                        get_num_moments, _sss_basis)
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 
+# Note: Elekta MaxFilter uses single precision, so expect filtered results to
+# differ slightly.
+
 warnings.simplefilter('always')  # Always throw warnings
 
 data_path = op.join(testing.data_path(download=False))
@@ -40,9 +43,6 @@ int_order, ext_order = 8, 3
 @testing.requires_testing_data
 def test_maxwell_filter():
     """Test multipolar moment and Maxwell filter"""
-
-    # Note: Elekta MaxFilter uses single precision, so expect filtered results
-    # to differ slightly.
 
     # TODO: Future tests integrate with mne/io/tests/test_proc_history
 
@@ -269,14 +269,11 @@ def test_spatiotemporal_maxwell():
 def test_maxwell_filter_fine_calibration():
     """Test fine calibration feature of Maxwell filter"""
 
-    # Note: Elekta MaxFilter uses single precision, so expect filtered results
-    # to differ slightly.
-
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, preload=False, proj=False,
                   allow_maxshield=True).crop(0., 1., False)
-    raw.preload_data()
+    raw.load_data()
     raw.pick_types(meg=True, eeg=False)
     with warnings.catch_warnings(record=True):  # maxshield, naming
         sss_fine_cal = Raw(sss_fine_cal_fname, preload=True, proj=False,
@@ -289,34 +286,33 @@ def test_maxwell_filter_fine_calibration():
                                                        for coil in all_coils]]
 
     # Test 1D SSS fine calibration
-    raw_sss = maxwell_filter(raw, origin=[0., 0., 40.], int_order=int_order,
-                             ext_order=ext_order,
-                             fine_cal_fname=fine_cal_fname)
-    assert_array_almost_equal(raw_sss._data[picks, :],
-                              sss_fine_cal._data[picks, :], decimal=11,
-                              err_msg='Maxwell filtered data with fine '
-                              'calibration incorrect.')
+    raw_sss = maxwell_filter(raw, fine_cal=fine_cal_fname)
+    assert_allclose(raw_sss[picks, :][0], sss_fine_cal[picks, :][0],
+                    rtol=1e-12, atol=1e-4, err_msg='Maxwell filtering using '
+                    'fine calibration incorrect.')
 
-    # Confirm SNR is above 100
-    bench_rms = np.sqrt(np.mean(sss_fine_cal._data[picks, :] ** 2, axis=1))
-    error = raw_sss._data[picks, :] - sss_fine_cal._data[picks, :]
+    # Confirm SNR is above 1000
+    bench_rms = np.sqrt(np.mean(sss_fine_cal[picks, :][0] ** 2, axis=1))
+    error = raw_sss[picks, :][0] - sss_fine_cal[picks, :][0]
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
-    assert_true(np.mean(bench_rms / error_rms) >= 100, 'SNR < 100')
+    assert_true(np.mean(bench_rms / error_rms) >= 1000, 'SNR < 1000')
 
     # Test 3D SSS fine calibration
-    raw_sss = maxwell_filter(raw, origin=[0., 0., 40.], int_order=int_order,
-                             ext_order=ext_order,
-                             fine_cal_fname=fine_cal_fname_3d)
-    assert_array_almost_equal(raw_sss._data[picks, :],
-                              sss_fine_cal._data[picks, :], decimal=11,
+    raw_sss = maxwell_filter(raw, fine_cal=fine_cal_fname_3d)
+    assert_array_almost_equal(raw_sss[picks, :][0],
+                              sss_fine_cal[picks, :][0], decimal=11,
                               err_msg='Maxwell filtered data with fine '
                               'calibration incorrect.')
 
-    # Confirm SNR is above 100
-    bench_rms = np.sqrt(np.mean(sss_fine_cal._data[picks, :] ** 2, axis=1))
-    error = raw_sss._data[picks, :] - sss_fine_cal._data[picks, :]
+    assert_allclose(raw_sss[picks, :][0], sss_fine_cal[picks, :][0],
+                    rtol=1e-12, atol=1e-4, err_msg='Maxwell filtering using '
+                    'fine calibration incorrect.')
+
+    # Confirm SNR is above 1000
+    bench_rms = np.sqrt(np.mean(sss_fine_cal[picks, :][0] ** 2, axis=1))
+    error = raw_sss[picks, :][0] - sss_fine_cal[picks, :][0]
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
-    assert_true(np.mean(bench_rms / error_rms) >= 100, 'SNR < 100')
+    assert_true(np.mean(bench_rms / error_rms) >= 1000, 'SNR < 1000')
 
 
 # TODO: Eventually add simulation tests mirroring Taulu's original paper
