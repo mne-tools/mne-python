@@ -201,9 +201,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
                 callback_onselect = partial(_butterfly_onselect, ch_type=t,
                                             evoked=evoked)
+                blit = False if plt.get_backend() == 'macosx' else True
                 selectors.append(SpanSelector(ax, callback_onselect,
                                               'horizontal', minspan=10,
-                                              useblit=False,
+                                              useblit=blit,
                                               rectprops=dict(alpha=0.5,
                                                              facecolor='red')))
             # Set amplitude scaling
