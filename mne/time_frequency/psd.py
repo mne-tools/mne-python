@@ -7,7 +7,7 @@ import numpy as np
 from ..parallel import parallel_func
 from ..io.proj import make_projector_info
 from ..io.pick import pick_types
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _time_mask
 
 
 @verbose
@@ -113,8 +113,9 @@ def _check_nfft(n, n_fft, n_overlap):
 
 
 @verbose
-def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
-                       n_overlap=0, proj=False, n_jobs=1, verbose=None):
+def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
+                       tmax=None, n_fft=256, n_overlap=0, proj=False,
+                       n_jobs=1, verbose=None):
     """Compute power spectral density with average periodograms.
 
     Parameters
@@ -128,6 +129,10 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
         Min frequency of interest
     fmax : float
         Max frequency of interest
+    tmin : float | None
+        Min time of interest
+    tmax : float | None
+        Max time of interest
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs. The default value is 256.
@@ -158,7 +163,12 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
                            exclude='bads')
     n_fft, n_overlap = _check_nfft(len(epochs.times), n_fft, n_overlap)
 
-    data = epochs.get_data()[:, picks]
+    if tmin is not None or tmax is not None:
+        time_mask = _time_mask(epochs.times, tmin, tmax)
+    else:
+        time_mask = Ellipsis
+
+    data = epochs.get_data()[:, picks][..., time_mask]
     if proj:
         proj, _ = make_projector_info(epochs.info)
         if picks is not None:

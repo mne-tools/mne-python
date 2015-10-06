@@ -429,7 +429,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
 
 @verbose
-def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
+def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
+                    proj=False, n_fft=256,
                     picks=None, ax=None, color='black', area_mode='std',
                     area_alpha=0.33, n_overlap=0,
                     dB=True, n_jobs=1, show=True, verbose=None):
@@ -443,6 +444,10 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
         Start frequency to consider.
     fmax : float
         End frequency to consider.
+    tmin : float | None
+        Start time to consider.
+    tmax : float | None
+        End time to consider.
     proj : bool
         Apply projection.
     n_fft : int
@@ -484,7 +489,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
         psds, freqs = compute_epochs_psd(epochs, picks=picks, fmin=fmin,
-                                         fmax=fmax, n_fft=n_fft,
+                                         fmax=fmax, tmin=tmin, tmax=tmax,
+                                         n_fft=n_fft,
                                          n_overlap=n_overlap, proj=proj,
                                          n_jobs=n_jobs)
 

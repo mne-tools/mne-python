@@ -1,6 +1,6 @@
 import numpy as np
 import os.path as op
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true
 
 from mne import io, pick_types, Epochs, read_events
@@ -67,7 +67,7 @@ def test_psd_epochs():
 
     n_fft = 512  # the FFT size (n_fft). Ideally a power of 2
 
-    tmin, tmax, event_id = -1, 1, 1
+    tmin, tmax, event_id = -0.5, 0.5, 1
     include = []
     raw.info['bads'] += ['MEG 2443']  # bads
 
@@ -76,15 +76,30 @@ def test_psd_epochs():
                        stim=False, include=include, exclude='bads')
 
     events = read_events(event_fname)
+
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(grad=4000e-13, eog=150e-6), proj=False,
                     preload=True)
 
+    tmin_full, tmax_full = -1, 1
+    epochs_full = Epochs(raw, events[:10], event_id, tmax=tmax_full,
+                         tmin=tmin_full, picks=picks,
+                         baseline=(None, 0),
+                         reject=dict(grad=4000e-13, eog=150e-6), proj=False,
+                         preload=True)
+
     picks = pick_types(epochs.info, meg='grad', eeg=False, eog=True,
                        stim=False, include=include, exclude='bads')
     psds, freqs = compute_epochs_psd(epochs[:1], fmin=2, fmax=300,
                                      n_fft=n_fft, picks=picks)
+
+    psds_t, freqs_t = compute_epochs_psd(epochs_full[:1], fmin=2, fmax=300,
+                                         tmin=tmin, tmax=tmax,
+                                         n_fft=n_fft, picks=picks)
+    # this one will fail if you add for example 0.1 to tmin
+    assert_array_almost_equal(psds, psds_t, 27)
+
     psds_proj, _ = compute_epochs_psd(epochs[:1].apply_proj(), fmin=2,
                                       fmax=300, n_fft=n_fft, picks=picks)
 
