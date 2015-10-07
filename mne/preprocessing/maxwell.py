@@ -159,8 +159,9 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
         S_tot[mag_picks, :] /= mag_cals
 
     S_tot_good = S_tot[good_picks, :]
-    S_tot_good_norm = np.sqrt(np.sum(S_tot_good * S_tot_good, axis=0))
-    S_tot_good /= S_tot_good_norm[np.newaxis, :]
+    S_tot_good_norm = np.sqrt(np.sum(S_tot_good *
+                              S_tot_good, axis=0))[np.newaxis, :]
+    S_tot_good /= S_tot_good_norm
     n_in = _get_n_moments(int_order)
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
@@ -172,11 +173,15 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
     if ctc is not None:
         data = ctc.dot(data)
     mm_norm = np.dot(pS_tot_good, data * coil_scale[good_picks])
-    mm_norm /= S_tot_good_norm[:, np.newaxis]
+    mm_norm /= S_tot_good_norm.T
 
-    # Reconstruct data from internal space (Eq. 38), first rescale S_tot
-    S_tot /= coil_scale
-    raw_sss._data[meg_picks] = np.dot(S_tot[:, :n_in], mm_norm[:n_in])
+    # Reconstruct data from internal space only (Eq. 38), first rescale S_tot
+    # XXX we should just be able to do S_tot /= coil_scale here, but
+    # on old numpy/scipy/py26 combo we get the dreaded SVD did not converge
+    # error, so we leave it split here (perf hit is hopefully minimal)
+    d = np.dot(S_tot[:, :n_in], mm_norm[:n_in])
+    d /= coil_scale
+    raw_sss._data[meg_picks] = d
 
     # Reset 'bads' for any MEG channels since they've been reconstructed
     bad_inds = [ch_names.index(ch) for ch in info['bads']]
@@ -206,10 +211,11 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
             # Reconstruct data from external space and compute residual
             resid = data[:, win[0]:win[1]]
             resid -= raw_sss._data[meg_picks, win[0]:win[1]]
-            resid -= np.dot(S_tot[:, n_in:], mm_norm[n_in:, win[0]:win[1]])
+            resid -= np.dot(S_tot[:, n_in:],
+                            mm_norm[n_in:, win[0]:win[1]]) / coil_scale
             _check_finite(resid)
 
-            # Compute SSP-like projector. Set overlap limit to 0.02
+            # Compute SSP-like projection vectors based on minimal correlation
             this_data = raw_sss._data[meg_picks, win[0]:win[1]]
             _check_finite(this_data)
             V = _overlap_projector(this_data, resid, st_corr)
