@@ -101,7 +101,7 @@ def pick_channels(ch_names, include, exclude=[]):
     for k, name in enumerate(ch_names):
         if (len(include) == 0 or name in include) and name not in exclude:
             sel.append(k)
-    return sel
+    return np.array(sel)
 
 
 def pick_channels_regexp(ch_names, regexp):
