@@ -101,6 +101,8 @@ API
 
     - :func:`mne.io.Raw.preload_data` has been deprecated for :func:`mne.io.Raw.load_data` by `Teon Brooks`_
 
+    - ``RawBrainVision`` objects now always have event channel ``'STI 014'``, and recordings with no events will have this channel set to zero by `Eric Larson`_
+
 .. _changes_0_9:
 
 Version 0.9

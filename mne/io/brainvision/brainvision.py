@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 """Conversion tool from Brain Vision EEG to FIF"""
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -36,12 +38,13 @@ class RawBrainVision(_BaseRaw):
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
-        Default is ('HEOGL', 'HEOGR', 'VEOGb').
+        Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the vhdr file. Default is None.
+        in the vhdr file. Default is ``()``.
     reference : None | str
+        **Deprecated**, use `add_reference_channel` instead.
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
@@ -67,147 +70,57 @@ class RawBrainVision(_BaseRaw):
     """
     @verbose
     def __init__(self, vhdr_fname, montage=None,
-                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None, reference=None,
+                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(), reference=None,
                  scale=1., preload=False, response_trig_shift=0, verbose=None):
-
-        if reference is not None and preload is False:
-            raise ValueError("Preload must be set to True if reference is "
-                             "specified.")
-        # Preliminary Raw attributes
-        self._events = np.empty((0, 3))
-        self.preload = False
-
         # Channel info and events
-        logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
+        logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        if not isinstance(scale, (int, float)):
-            raise TypeError('Scale factor must be an int or float. '
-                            '%s provided' % type(scale))
-        info, self._eeg_info, events = _get_eeg_info(vhdr_fname, eog, misc,
-                                                     response_trig_shift)
-        self._eeg_info['scale'] = float(scale)
-        logger.info('Creating Raw.info structure...')
+        info, fmt, self._order, events = _get_vhdr_info(
+            vhdr_fname, eog, misc, response_trig_shift, scale)
         _check_update_montage(info, montage)
         with open(info['filename'], 'rb') as f:
             f.seek(0, os.SEEK_END)
             n_samples = f.tell()
-        dtype = int(self._eeg_info['dtype'][-1])
-        last_samps = [(n_samples //
-                      (dtype * self._eeg_info['n_eeg_chan'])) - 1]
-        super(RawBrainVision, self).__init__(
-            info, last_samps=last_samps, filenames=[vhdr_fname],
-            verbose=verbose)
+        dtype_bytes = _fmt_byte_dict[fmt]
+        self.preload = False  # so the event-setting works
         self.set_brainvision_events(events)
+        last_samps = [(n_samples // (dtype_bytes * (info['nchan'] - 1))) - 1]
+        super(RawBrainVision, self).__init__(
+            info, last_samps=last_samps, filenames=[info['filename']],
+            orig_format=fmt, preload=preload, verbose=verbose)
 
-        # load data
-        if preload:
-            self.preload = preload
-            logger.info('Reading raw data from %s...' % vhdr_fname)
-            self._data, _ = self._read_segment()
-            if reference is not None:
-                add_reference_channels(self, reference, copy=False)
-            assert len(self._data) == self.info['nchan']
-            logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
-                        % (self.first_samp, self.last_samp,
-                           float(self.first_samp) / self.info['sfreq'],
-                           float(self.last_samp) / self.info['sfreq']))
-        logger.info('Ready.')
+        # add reference
+        if reference is not None:
+            warnings.warn('reference is deprecated and will be removed in '
+                          'v0.11. Use add_reference_channels instead.')
+            if preload is False:
+                raise ValueError("Preload must be set to True if reference is "
+                                 "specified.")
+            add_reference_channels(self, reference, copy=False)
 
-    def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
-                      projector=None):
-        """Read a chunk of raw data
-
-        Parameters
-        ----------
-        start : int, (optional)
-            first sample to include (first is 0). If omitted, defaults to the
-            first sample in data.
-        stop : int, (optional)
-            First sample to not include.
-            If omitted, data is included to the end.
-        sel : array, optional
-            Indices of channels to select.
-        projector : array
-            SSP operator to apply to the data.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        data : array, shape (n_channels, n_samples)
-           The data.
-        times : array, shape (n_samples,)
-            returns the time values corresponding to the samples.
-        """
-        if sel is not None:
-            if len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
-                return (666, 666)
-        if projector is not None:
-            raise NotImplementedError('Currently does not handle projections.')
-        if stop is None:
-            stop = self.last_samp + 1
-        elif stop > self.last_samp + 1:
-            stop = self.last_samp + 1
-
-        #  Initial checks
-        start = int(start)
-        stop = int(stop)
-        if start >= stop:
-            raise ValueError('No data in this range')
-
-        # assemble channel information
-        eeg_info = self._eeg_info
-        sfreq = self.info['sfreq']
-        chs = self.info['chs']
-        units = eeg_info['units']
-        if len(self._events):
-            chs = chs[:-1]
-        n_eeg = len(chs)
-        cals = np.atleast_2d([chan_info['cal'] for chan_info in chs])
-        cals *= eeg_info['scale'] * units
-
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
-                    (start, stop - 1, start / float(sfreq),
-                     (stop - 1) / float(sfreq)))
-
+    def _read_segment_file(self, data, idx, offset, fi, start, stop,
+                           cals, mult):
+        """Read a chunk of raw data"""
         # read data
-        dtype = np.dtype(eeg_info['dtype'])
-        buffer_size = (stop - start)
-        pointer = start * n_eeg * dtype.itemsize
-
-        with open(self.info['filename'], 'rb') as f:
+        n_data_ch = len(self.ch_names) - 1
+        n_times = stop - start + 1
+        pointer = start * n_data_ch * _fmt_byte_dict[self.orig_format]
+        with open(self._filenames[fi], 'rb') as f:
             f.seek(pointer)
             # extract data
-            data_buffer = np.fromfile(f, dtype=dtype,
-                                      count=buffer_size * n_eeg)
-        if eeg_info['data_orientation'] == 'MULTIPLEXED':
-            data_buffer = data_buffer.reshape((n_eeg, -1), order='F')
-        elif eeg_info['data_orientation'] == 'VECTORIZED':
-            data_buffer = data_buffer.reshape((n_eeg, -1), order='C')
+            data_buffer = np.fromfile(
+                f, dtype=_fmt_dtype_dict[self.orig_format],
+                count=n_times * n_data_ch)
+        data_buffer = data_buffer.reshape((n_data_ch, n_times),
+                                          order=self._order)
 
-        n_channels, n_times = data_buffer.shape
-        # Total number of channels
-        n_channels += int(len(self._events) > 0)
-
-        # Preallocate data array
-        data = np.empty((n_channels, n_times), dtype=np.float64)
-        data[:len(data_buffer)] = data_buffer  # cast to float64
-        data[:len(data_buffer)] *= cals.T
-        ch_idx = len(data_buffer)
+        data_ = np.empty((n_data_ch + 1, n_times), dtype=np.float64)
+        data_[:-1] = data_buffer  # cast to float64
         del data_buffer
-
-        # stim channel (if applicable)
-        if len(self._events):
-            data[ch_idx] = _synthesize_stim_channel(self._events, start, stop)
-            ch_idx += 1
-
-        if sel is not None:
-            data = data.take(sel, axis=0)
-
-        logger.info('[done]')
-        times = np.arange(start, stop, dtype=float) / sfreq
-
-        return data, times
+        data_[-1] = _synthesize_stim_channel(self._events, start, stop + 1)
+        data_ *= self._cals[:, np.newaxis]
+        data[:, offset:offset + stop - start + 1] = \
+            np.dot(mult, data_) if mult is not None else data_[idx]
 
     def get_brainvision_events(self):
         """Retrieve the events associated with the Brain Vision Raw object
@@ -221,7 +134,7 @@ class RawBrainVision(_BaseRaw):
         return self._events.copy()
 
     def set_brainvision_events(self, events):
-        """Set the events (automatically updates the synthesized stim channel)
+        """Set the events and update the synthesized stim channel
 
         Parameters
         ----------
@@ -229,45 +142,12 @@ class RawBrainVision(_BaseRaw):
             Events, each row consisting of an (onset, duration, trigger)
             sequence.
         """
-        events = np.copy(events)
-        if not events.ndim == 2 and events.shape[1] == 3:
+        events = np.array(events, int)
+        if events.ndim != 2 or events.shape[1] != 3:
             raise ValueError("[n_events x 3] shaped array required")
-
-        # update info based on presence of stim channel
-        had_events = bool(len(self._events))
-        has_events = bool(len(events))
-        if had_events and not has_events:  # remove stim channel
-            if self.info['ch_names'][-1] != 'STI 014':
-                err = "Last channel is not stim channel; info was modified"
-                raise RuntimeError(err)
-            self.info['nchan'] -= 1
-            del self.info['ch_names'][-1]
-            del self.info['chs'][-1]
-            if self.preload:
-                self._data = self._data[:-1]
-        elif has_events and not had_events:  # add stim channel
-            idx = len(self.info['chs']) + 1
-            chan_info = {'ch_name': 'STI 014',
-                         'kind': FIFF.FIFFV_STIM_CH,
-                         'coil_type': FIFF.FIFFV_COIL_NONE,
-                         'logno': idx,
-                         'scanno': idx,
-                         'cal': 1,
-                         'range': 1,
-                         'unit_mul':  0,
-                         'unit': FIFF.FIFF_UNIT_NONE,
-                         'eeg_loc': np.zeros(3),
-                         'loc': np.zeros(12)}
-            self.info['nchan'] += 1
-            self.info['ch_names'].append(chan_info['ch_name'])
-            self.info['chs'].append(chan_info)
-            if self.preload:
-                shape = (1, self._data.shape[1])
-                self._data = np.vstack((self._data, np.empty(shape)))
-
         # update events
         self._events = events
-        if has_events and self.preload:
+        if self.preload:
             start = self.first_samp
             stop = self.last_samp + 1
             self._data[-1] = _synthesize_stim_channel(events, start, stop)
@@ -355,7 +235,8 @@ def _synthesize_stim_channel(events, start, stop):
     onset = events[:, 0]
     offset = onset + events[:, 1]
     idx = np.logical_and(onset < stop, offset > start)
-    events = events[idx]
+    if idx.sum() > 0:  # fix for old numpy
+        events = events[idx]
 
     # make onset relative to buffer
     events[:, 0] -= start
@@ -372,7 +253,14 @@ def _synthesize_stim_channel(events, start, stop):
     return stim_channel
 
 
-def _get_eeg_info(vhdr_fname, eog, misc, response_trig_shift):
+_orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
+_fmt_dict = dict(INT_16='short', INT_32='int', IEEE_FLOAT_32='single')
+_fmt_byte_dict = dict(short=2, int=4, single=4)
+_fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
+_unit_dict = {'V': 1., u'µV': 1e-6}
+
+
+def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
     """Extracts all the information from the header file.
 
     Parameters
@@ -387,25 +275,24 @@ def _get_eeg_info(vhdr_fname, eog, misc, response_trig_shift):
         should correspond to the electrodes in the vhdr file.
     response_trig_shift : int | None
         Integer to shift response triggers by. None ignores response triggers.
+    scale : float
+        The scaling factor for EEG data. Units are in volts. Default scale
+        factor is 1.. For microvolts, the scale factor would be 1e-6. This is
+        used when the header file does not specify the scale factor.
 
     Returns
     -------
     info : Info
         The measurement info.
+    fmt : str
+        The data format in the file.
     edf_info : dict
         A dict containing Brain Vision specific parameters.
     events : array, shape (n_events, 3)
         Events from the corresponding vmrk file.
     """
-
-    if eog is None:
-        eog = []
-    if misc is None:
-        misc = []
+    scale = float(scale)
     info = _empty_info()
-    info['buffer_size_sec'] = 10.
-    info['filename'] = vhdr_fname
-    eeg_info = {}
 
     ext = os.path.splitext(vhdr_fname)[-1]
     if ext != '.vhdr':
@@ -420,7 +307,7 @@ def _get_eeg_info(vhdr_fname, eog, misc, response_trig_shift):
     if settings.find('[Comment]') != -1:
         params, settings = settings.split('[Comment]')
     else:
-        params, settings = settings, str()
+        params, settings = settings, ''
     cfg = configparser.ConfigParser()
     if hasattr(cfg, 'read_file'):  # newer API
         cfg.read_file(StringIO(params))
@@ -429,57 +316,44 @@ def _get_eeg_info(vhdr_fname, eog, misc, response_trig_shift):
 
     # get sampling info
     # Sampling interval is given in microsec
-    sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
-    sfreq = int(sfreq)
-    eeg_info['n_eeg_chan'] = n_eeg_chan = cfg.getint('Common Infos',
-                                                     'NumberOfChannels')
+    info['sfreq'] = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
 
     # check binary format
     assert cfg.get('Common Infos', 'DataFormat') == 'BINARY'
-    eeg_info['data_orientation'] = cfg.get('Common Infos', 'DataOrientation')
-    if not (eeg_info['data_orientation'] == 'MULTIPLEXED' or
-            eeg_info['data_orientation'] == 'VECTORIZED'):
+    order = cfg.get('Common Infos', 'DataOrientation')
+    if order not in _orientation_dict:
         raise NotImplementedError('Data Orientation %s is not supported'
-                                  % eeg_info['data_orientation'])
+                                  % order)
+    order = _orientation_dict[order]
 
-    binary_format = cfg.get('Binary Infos', 'BinaryFormat')
-    if binary_format == 'INT_16':
-        eeg_info['dtype'] = '<i2'
-    elif binary_format == 'INT_32':
-        eeg_info['dtype'] = '<i4'
-    elif binary_format == 'IEEE_FLOAT_32':
-        eeg_info['dtype'] = '<f4'
-    else:
-        raise NotImplementedError('Datatype %s is not supported'
-                                  % binary_format)
+    fmt = cfg.get('Binary Infos', 'BinaryFormat')
+    if fmt not in _fmt_dict:
+        raise NotImplementedError('Datatype %s is not supported' % fmt)
+    fmt = _fmt_dict[fmt]
 
     # load channel labels
-    ch_names = ['UNKNOWN'] * n_eeg_chan
-    cals = np.empty(n_eeg_chan)
-    cals[:] = np.nan
-    units = ['UNKNOWN'] * n_eeg_chan
+    info['nchan'] = cfg.getint('Common Infos', 'NumberOfChannels') + 1
+    ch_names = [''] * info['nchan']
+    cals = np.empty(info['nchan'])
+    ranges = np.empty(info['nchan'])
+    cals.fill(np.nan)
     for chan, props in cfg.items('Channel Infos'):
-        n = int(re.findall(r'ch(\d+)', chan)[0])
+        n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
         if len(props) < 4:
-            name, _, resolution = props
-            unit = 'V'
-        else:
-            name, _, resolution, unit = props[:4]
-        ch_names[n - 1] = name
-        if resolution == "":        # For truncated vhdrs (e.g. EEGLAB export)
-            cals[n - 1] = 0.000001  # Fill in a default
-        else:
-            cals[n - 1] = float(resolution)
+            props += ('V',)
+        name, _, resolution, unit = props[:4]
+        ch_names[n] = name
+        if resolution == "":  # For truncated vhdrs (e.g. EEGLAB export)
+            resolution = 0.000001
         unit = unit.replace('\xc2', '')  # Remove unwanted control characters
-        if u(unit) == u('\xb5V'):
-            units[n - 1] = 1e-6
-        elif unit == 'V':
-            units[n - 1] = 1.
-        else:
-            units[n - 1] = unit
-
-    eeg_info['units'] = np.asarray(units, dtype=float)
+        cals[n] = float(resolution)
+        ranges[n] = _unit_dict.get(u(unit), unit) * scale
+    ch_names[-1] = 'STI 014'
+    cals[-1] = 1.
+    ranges[-1] = 1.
+    if np.isnan(cals).any():
+        raise RuntimeError('Missing channel units')
 
     # Attempts to extract filtering info from header. If not found, both are
     # set to zero.
@@ -497,7 +371,7 @@ def _get_eeg_info(vhdr_fname, eog, misc, response_trig_shift):
     if idx:
         lowpass = []
         highpass = []
-        for i, ch in enumerate(ch_names, 1):
+        for i, ch in enumerate(ch_names[:-1], 1):
             line = settings[idx + i].split()
             assert ch in line
             highpass.append(line[5])
@@ -543,50 +417,45 @@ def _get_eeg_info(vhdr_fname, eog, misc, response_trig_shift):
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
     info['filename'] = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
-    eeg_info['marker_id'] = os.path.join(path, cfg.get('Common Infos',
-                                                       'MarkerFile'))
     info['meas_date'] = int(time.time())
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
-    info['nchan'] = nchan = n_eeg_chan
     info['ch_names'] = ch_names
-    info['sfreq'] = sfreq
-
-    idxs = range(len(ch_names))
-    for idx, ch_name, cal in zip(idxs, ch_names, cals):
-        if ch_name in eog or idx in eog or idx - nchan in eog:
+    for idx, ch_name in enumerate(ch_names):
+        if ch_name in eog or idx in eog or idx - info['nchan'] in eog:
             kind = FIFF.FIFFV_EOG_CH
             coil_type = FIFF.FIFFV_COIL_NONE
-        elif ch_name in misc or idx in misc or idx - nchan in misc:
+            unit = FIFF.FIFF_UNIT_V
+        elif ch_name in misc or idx in misc or idx - info['nchan'] in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
+            unit = FIFF.FIFF_UNIT_V
+        elif ch_name == 'STI 014':
+            kind = FIFF.FIFFV_STIM_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
+            unit = FIFF.FIFF_UNIT_NONE
         else:
             kind = FIFF.FIFFV_EEG_CH
             coil_type = FIFF.FIFFV_COIL_EEG
-        chan_info = {'ch_name': ch_name,
-                     'coil_type': coil_type,
-                     'kind': kind,
-                     'logno': idx + 1,
-                     'scanno': idx + 1,
-                     'cal': cal,
-                     'range': 1.,
-                     'unit_mul': 0.,  # always zero- mne manual pg. 273
-                     'unit': FIFF.FIFF_UNIT_V,
-                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                     'eeg_loc': np.zeros(3),
-                     'loc': np.zeros(12)}
-        info['chs'].append(chan_info)
+            unit = FIFF.FIFF_UNIT_V
+        info['chs'].append(dict(
+            ch_name=ch_name, coil_type=coil_type, kind=kind, logno=idx + 1,
+            scanno=idx + 1, cal=cals[idx], range=ranges[idx],
+            eeg_loc=np.zeros(3), loc=np.zeros(12), unit=unit,
+            unit_mul=0.,  # always zero- mne manual pg. 273
+            coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     # for stim channel
-    events = _read_vmrk_events(eeg_info['marker_id'], response_trig_shift)
-
-    return info, eeg_info, events
+    marker_id = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
+    events = _read_vmrk_events(marker_id, response_trig_shift)
+    info._check_consistency()
+    return info, fmt, order, events
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,
-                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None,
+                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
                          reference=None, scale=1., preload=False,
                          response_trig_shift=0, verbose=None):
     """Reader for Brain Vision EEG file
@@ -602,12 +471,13 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     eog : list or tuple of str
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file
-        Default is ('HEOGL', 'HEOGR', 'VEOGb').
+        Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
     misc : list or tuple of str
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the vhdr file. Default is None.
+        in the vhdr file. Default is ``()``.
     reference : None | str
+        **Deprecated**, use `add_reference_channel` instead.
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
@@ -629,7 +499,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
 
     Returns
     -------
-    raw : Instance of RawBrainVision
+    raw : instance of RawBrainVision
         A Raw object containing BrainVision data.
 
     See Also
