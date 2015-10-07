@@ -22,7 +22,7 @@ try:
     from traits.api import (Any, Bool, Button, cached_property, DelegatesTo,
                             Directory, Enum, Float, HasTraits,
                             HasPrivateTraits, Instance, Int, on_trait_change,
-                            Property, Str)
+                            Property, Str, DictStrInt)
     from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid,
                               EnumEditor, Handler, Label, TextEditor)
     from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
@@ -89,8 +89,10 @@ class CoregModel(HasPrivateTraits):
                              "as head shape points")
     # head shape points relevant to the Model depend on the filter
     points_filter = Any(desc="Index to select a subset of the head shape "
-                        "points")
-    omitted_info = Any(desc="Dictionary with number of various points omitted")
+                        "points", value=None)
+    omitted_info = DictStrInt(desc="Dictionary with number of various "
+                              "head shape points omitted",
+                              value={'n_total': 0, 'n_eeg': 0, 'n_hsp': 0})
 
     points = Property(depends_on=[
                       'inst_points',  # if points source changed
@@ -198,14 +200,16 @@ class CoregModel(HasPrivateTraits):
             # use of minlength-parameter, assumes EXTRA is the largest!
             n_omitted = np.bincount(omitted_types,
                                     minlength=FIFF.FIFFV_POINT_EXTRA + 1)
-            self.omitted_info = dict(n_total=np.sum(n_omitted),
-                                     n_eeg=n_omitted[FIFF.FIFFV_POINT_EEG],
-                                     n_hsp=n_omitted[FIFF.FIFFV_POINT_EXTRA])
+            # NB These must be int's, since we're using DictStrInt
+            self.omitted_info = \
+                dict(n_total=int(np.sum(n_omitted)),
+                     n_eeg=int(n_omitted[FIFF.FIFFV_POINT_EEG]),
+                     n_hsp=int(n_omitted[FIFF.FIFFV_POINT_EXTRA]))
 
         return self.hsp.inst_points[self.points_filter]
 
     def _inst_points_changed(self):
-        self.reset_traits(('points_filter',))  # sets it to default value=None
+        self.reset_traits(('points_filter',))  # sets it to default value=[]
 
     @cached_property
     def _get_can_prepare_bem_model(self):
