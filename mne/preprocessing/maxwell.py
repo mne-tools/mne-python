@@ -111,35 +111,33 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
     if st_corr <= 0. or st_corr > 1.:
         raise ValueError('Need 0 < st_corr <= 1., got %s' % st_corr)
     logger.info('Maxwell filtering raw data')
-    if len(raw.info['bads']) > 0:
-        logger.info('    Bad channels being reconstructed: %s'
-                    % raw.info['bads'])
-    else:
-        logger.info('    No bad channels')
     raw_sss = raw.copy().load_data(verbose=False)
     del raw
+    info, times, ch_names = raw_sss.info, raw_sss.times, raw_sss.ch_names
+
+    if len(info['bads']) > 0:
+        logger.info('    Bad channels being reconstructed: %s' % info['bads'])
+    else:
+        logger.info('    No bad channels')
 
     # If necessary, load fine calibration and overwrite sensor geometry
     if fine_cal is not None:
-        logger.info('    Using fine calibration %s' % op.basename(fine_cal))
-        cal_chans = _read_fine_cal(raw_sss.info, fine_cal)
-        raw_sss.info = _update_sensor_geometry(raw_sss.info, cal_chans)
-
-    times = raw_sss.times
+        grad_imbalances, mag_cals = _update_sensor_geometry(info, fine_cal)
 
     # Get indices of channels to use in multipolar moment calculation
-    good_picks = pick_types(raw_sss.info, meg=True, exclude='bads')
+    good_picks = pick_types(info, meg=True, exclude='bads')
     # Get indices of MEG channels
-    meg_picks = pick_types(raw_sss.info, meg=True, exclude=[])
-    meg_coils, _, _, meg_info = _prep_meg_channels(
-        raw_sss.info, accurate=True, elekta_defs=True, verbose=False)
+    meg_picks = pick_types(info, meg=True, exclude=[])
+    mag_picks = pick_types(info, meg='mag', exclude=[])
+    grad_picks = pick_types(info, meg='grad', exclude=[])
+    grad_info = pick_info(info, grad_picks)
+    meg_coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
+                                   verbose=False)[0]
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
-    mag_scale = 100.
     coil_scale = np.ones((len(meg_picks), 1))
-    coil_scale[np.array([coil['coil_class'] == 1.0
-                         for coil in meg_coils])] = mag_scale
+    coil_scale[mag_picks] = 100.
 
     # Compute multipolar moment bases
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
@@ -152,28 +150,18 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
 
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     if fine_cal is not None:
-        mag_inds = pick_types(raw_sss.info, meg='mag')
-        grad_inds = pick_types(raw_sss.info, meg='grad')
-        grad_info = pick_info(raw_sss.info, grad_inds)
-
         # Compute point-like mags to incorporate gradiometer imbalance
-        grad_imbalances = np.array([cal_chans[ii]['calib_coeff']
-                                    for ii in grad_inds])
         S_fine = _sss_basis_point(origin, grad_info, int_order, ext_order,
                                   grad_imbalances)
-
         # Add point like magnetometer data to bases.
-        S_tot[grad_inds, :] += S_fine
-
+        S_tot[grad_picks, :] += S_fine
         # Scale magnetometers by calibration coefficient
-        mag_calib_coeffs = np.array([cal_chans[ii]['calib_coeff']
-                                     for ii in mag_inds])
-        S_tot[mag_inds, :] /= mag_calib_coeffs
+        S_tot[mag_picks, :] /= mag_cals
 
     S_tot_good = S_tot[good_picks, :]
-    S_tot_good_norm = np.sqrt(np.sum(S_tot_good *
-                                     S_tot_good, axis=0))[:, np.newaxis]
-    S_tot_good /= S_tot_good_norm.T
+    S_tot_good_norm = np.sqrt(np.sum(S_tot_good * S_tot_good, axis=0))
+    S_tot_good /= S_tot_good_norm[np.newaxis, :]
+    n_in = _get_n_moments(int_order)
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
     pS_tot_good = linalg.pinv(S_tot_good, cond=1e-15)
@@ -183,18 +171,16 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
     data = raw_sss[good_picks][0]
     if ctc is not None:
         data = ctc.dot(data)
-    mm = np.dot(pS_tot_good, data * coil_scale[good_picks])
-    # Reconstruct data from internal space (Eq. 38)
-    n_in = _get_n_moments(int_order)
-    raw_sss._data[meg_picks] = np.dot(S_tot[:, :n_in],
-                                      mm[:n_in] / S_tot_good_norm[:n_in])
-    raw_sss._data[meg_picks] /= coil_scale
+    mm_norm = np.dot(pS_tot_good, data * coil_scale[good_picks])
+    mm_norm /= S_tot_good_norm[:, np.newaxis]
+
+    # Reconstruct data from internal space (Eq. 38), first rescale S_tot
+    S_tot /= coil_scale
+    raw_sss._data[meg_picks] = np.dot(S_tot[:, :n_in], mm_norm[:n_in])
 
     # Reset 'bads' for any MEG channels since they've been reconstructed
-    bad_inds = [raw_sss.info['ch_names'].index(ch)
-                for ch in raw_sss.info['bads']]
-    raw_sss.info['bads'] = [raw_sss.info['ch_names'][bi] for bi in bad_inds
-                            if bi not in meg_picks]
+    bad_inds = [ch_names.index(ch) for ch in info['bads']]
+    info['bads'] = [ch_names[bi] for bi in bad_inds if bi not in meg_picks]
 
     # Reconstruct raw file object with spatiotemporal processed data
     if st_dur is not None:
@@ -220,8 +206,7 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
             # Reconstruct data from external space and compute residual
             resid = data[:, win[0]:win[1]]
             resid -= raw_sss._data[meg_picks, win[0]:win[1]]
-            resid -= np.dot(S_tot[:, n_in:], mm[n_in:, win[0]:win[1]] /
-                            S_tot_good_norm[n_in:]) / coil_scale
+            resid -= np.dot(S_tot[:, n_in:], mm_norm[n_in:, win[0]:win[1]])
             _check_finite(resid)
 
             # Compute SSP-like projector. Set overlap limit to 0.02
@@ -714,13 +699,13 @@ def _read_ctc(ctc, info, meg_picks, good_picks):
     return ctc
 
 
-def _read_fine_cal(info, fine_cal):
+def _read_fine_cal(fine_cal):
     """Read sensor locations and calib. coeffs from fine calibration file."""
 
     # Read new sensor locations
+    cal_chs = list()
     with open(fine_cal, 'r') as fid:
         lines = [line for line in fid if line[0] not in '#\n']
-        cal_chans = [None] * len(lines)
         for line in lines:
             # `vals` contains channel number, (x, y, z), x-norm 3-vec, y-norm
             # 3-vec, z-norm 3-vec, and (1 or 3) imbalance terms
@@ -736,48 +721,48 @@ def _read_fine_cal(info, fine_cal):
             loc = vals[1:13].copy()  # Get orientation information for 'loc'
             coil_trans = _loc_to_trans(loc)
             calib_coeff = vals[13:].copy()  # Get imbalance/calibration coeff
-            idx = info['ch_names'].index(ch_name)
-            assert cal_chans[idx] is None
-            cal_chans[idx] = dict(ch_name=ch_name, coil_trans=coil_trans,
-                                  loc=loc, calib_coeff=calib_coeff,
-                                  coord_frame=FIFF.FIFFV_COORD_DEVICE)
+            cal_chs.append(dict(ch_name=ch_name, coil_trans=coil_trans,
+                                loc=loc, calib_coeff=calib_coeff,
+                                coord_frame=FIFF.FIFFV_COORD_DEVICE))
+    return cal_chs
+
+
+def _update_sensor_geometry(info, fine_cal):
+    """Helper to replace sensor geometry information and reorder cal_chs"""
+    logger.info('    Using fine calibration %s' % op.basename(fine_cal))
+    cal_chs = _read_fine_cal(fine_cal)
 
     # Check that we ended up with correct channels
-    meg_info = pick_info(info, pick_types(info, exclude=[]))
-    order = pick_channels([c['ch_name'] for c in cal_chans],
+    meg_info = pick_info(info, pick_types(info, meg=True, exclude=[]))
+    order = pick_channels([c['ch_name'] for c in cal_chs],
                           meg_info['ch_names'])
-    if not (len(cal_chans) == meg_info['nchan'] == len(order)):
+    if not (len(cal_chs) == meg_info['nchan'] == len(order)):
         raise RuntimeError('Number of channels in fine calibration file (%i) '
                            'does not equal number of channels in info (%i)' %
-                           (len(cal_chans), info['nchan']))
+                           (len(cal_chs), info['nchan']))
     # ensure they're ordered like our data
-    cal_chans = [cal_chans[ii] for ii in order]
-    return cal_chans
-
-
-def _update_sensor_geometry(info, cal_chans):
-    """Helper to replace sensor geometry information"""
+    cal_chs = [cal_chs[ii] for ii in order]
 
     # Replace sensor locations (and track differences) for fine calibration
-    ang_shift = np.zeros((len(cal_chans), 3))
+    ang_shift = np.zeros((len(cal_chs), 3))
     used = np.zeros(len(info['chs']))
-    for ci, cal_chan in enumerate(cal_chans):
-        idx = info['ch_names'].index(cal_chan['ch_name'])
+    for ci, cal_ch in enumerate(cal_chs):
+        idx = info['ch_names'].index(cal_ch['ch_name'])
         assert not used[idx]
         used[idx] = True
-        info_chan = info['chs'][idx]
+        info_ch = info['chs'][idx]
 
         # calculate shift angle
-        v1 = cal_chan['coil_trans'][:3, :3]
+        v1 = cal_ch['coil_trans'][:3, :3]
         _normalize_vectors(v1)
-        v2 = info_chan['coil_trans'][:3, :3]
+        v2 = info_ch['coil_trans'][:3, :3]
         _normalize_vectors(v2)
         ang_shift[ci] = np.sum(v1 * v2, axis=0)
 
         # Adjust channel orientation with those from fine calibration
-        info_chan.update(coil_trans=cal_chan['coil_trans'],
-                         loc=cal_chan['loc'])
-        assert info_chan['coord_frame'] == cal_chan['coord_frame']
+        info_ch.update(coil_trans=cal_ch['coil_trans'], loc=cal_ch['loc'])
+        assert (info_ch['coord_frame'] == cal_ch['coord_frame'] ==
+                FIFF.FIFFV_COORD_DEVICE)
 
     # Deal with numerical precision giving absolute vals slightly more than 1.
     np.clip(ang_shift, -1., 1., ang_shift)
@@ -789,43 +774,45 @@ def _update_sensor_geometry(info, cal_chans):
                 (np.mean(ang_shift), np.std(ang_shift),
                  np.max(np.abs(ang_shift))))
 
-    return info
+    # Determine gradiometer imbalances and magnetometer calibrations
+    grad_picks = pick_types(info, meg='grad', exclude=[])
+    mag_picks = pick_types(info, meg='mag', exclude=[])
+    grad_imbalances = np.array([cal_chs[ii]['calib_coeff']
+                                for ii in grad_picks]).T
+    mag_cals = np.array([cal_chs[ii]['calib_coeff'] for ii in mag_picks])
+    return grad_imbalances, mag_cals
 
 
-def _sss_basis_point(origin, info, int_order, ext_order, imbalance,
+def _sss_basis_point(origin, info, int_order, ext_order, imbalances,
                      head_frame=True):
     """Compute multipolar moments for point-like magnetometers (in fine cal)"""
 
     # Construct 'coils' with r, weights, normal vecs, # integration pts, and
     # channel type.
-    if imbalance.ndim == 1:
-        imbalance = imbalance[:, np.newaxis]
-    if imbalance.shape[1] not in [1, 3]:
+    if imbalances.shape[0] not in [1, 3]:
         raise ValueError('Must have 1 (x) or 3 (x, y, z) point-like ' +
                          'magnetometers. Currently have %i' %
-                         imbalance.shape[1])
+                         imbalances.shape[0])
 
     # Coil_type values for x, y, z point magnetometers
+    # Note: 1D correction files only have x-direction corrections
     pt_types = [FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X,
                 FIFF.FIFFV_COIL_POINT_MAGNETOMETER_Y,
                 FIFF.FIFFV_COIL_POINT_MAGNETOMETER]
 
     # Loop over all coordinate directions desired and create point mags
-    S_tot = None
-    for dir_ind in range(imbalance.shape[1]):
+    S_tot = 0.
+    for imb, pt_type in zip(imbalances, pt_types):
         temp_info = deepcopy(info)
         for ch in temp_info['chs']:
-            ch['coil_type'] = pt_types[dir_ind]
-        coils_add = _prep_meg_channels(temp_info, accurate=True,
-                                       elekta_defs=True, head_frame=head_frame,
-                                       verbose=False)[0]
-        S_add = _sss_basis(origin, coils_add, int_order, ext_order)
-        S_add *= imbalance[:, [dir_ind]]
-        if S_tot is None:
-            S_tot = S_add
-        else:
-            S_tot += S_add
+            ch['coil_type'] = pt_type
+        coils_add = _prep_meg_channels(
+            temp_info, accurate=True, elekta_defs=True, head_frame=head_frame,
+            verbose=False)[0]
         # Scale spaces by gradiometer imbalance
+        S_add = _sss_basis(origin, coils_add, int_order,
+                           ext_order) * imb[:, np.newaxis]
+        S_tot += S_add
 
     # Return point-like mag bases
     return S_tot

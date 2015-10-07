@@ -41,19 +41,26 @@ bads = ['MEG0912', 'MEG1722', 'MEG2213', 'MEG0132', 'MEG1312', 'MEG0432',
         'MEG0522', 'MEG1123', 'MEG0423', 'MEG2122', 'MEG2532', 'MEG0812']
 
 
-def _assert_snr(actual, desired, snr_tol=1000.):
+def _assert_snr(actual, desired, min_tol, med_tol=500.):
     """Helper to assert SNR of a certain level"""
     picks = pick_types(desired.info, meg=True, exclude=[])
     others = np.setdiff1d(np.arange(len(actual.ch_names)), picks)
     if len(others) > 0:  # if non-MEG channels present
         assert_allclose(actual[others][0], desired[others][0])
-    actual = actual[picks][0]
-    desired = desired[picks][0]
-    bench_rms = np.sqrt(np.mean(desired * desired, axis=1))
-    error = actual - desired
+    actual_data = actual[picks][0]
+    desired_data = desired[picks][0]
+    bench_rms = np.sqrt(np.mean(desired_data * desired_data, axis=1))
+    error = actual_data - desired_data
     error_rms = np.sqrt(np.mean(error * error, axis=1))
-    snr = np.mean(bench_rms / error_rms)
-    assert_true(snr >= snr_tol, 'SNR (%0.1f) < %0.1f' % (snr, snr_tol))
+    snrs = bench_rms / error_rms
+    # min tol
+    snr = snrs.min()
+    bad_count = (snrs < min_tol).sum()
+    assert_true(bad_count == 0, 'SNR (worst %0.1f) < %0.1f for %s/%s channels'
+                % (snr, min_tol, bad_count, len(picks)))
+    # median tol
+    snr = np.median(snrs)
+    assert_true(snr >= med_tol, 'SNR median %0.1f < %0.1f' % (snr, med_tol))
 
 
 @testing.requires_testing_data
@@ -78,12 +85,12 @@ def test_maxwell_filter():
     # Test SSS computation at the standard head origin
     raw_sss = maxwell_filter(raw, origin=[0., 0., 40.],
                              int_order=int_order, ext_order=ext_order)
-    _assert_snr(raw_sss, sss_std)
+    _assert_snr(raw_sss, sss_std, 200.)
 
     # Test SSS computation at non-standard head origin
     raw_sss = maxwell_filter(raw, origin=[0., 20., 20.],
                              int_order=int_order, ext_order=ext_order)
-    _assert_snr(raw_sss, sss_nonStd)
+    _assert_snr(raw_sss, sss_nonStd, 250.)
 
     # Check against SSS functions from proc_history
     sss_info = raw_sss.info['proc_history'][0]['max_info']
@@ -152,7 +159,7 @@ def test_bads_reconstruction():
     sss_bench = Raw(sss_bad_recon_fname, allow_maxshield=True)
     raw.info['bads'] = bads
     raw_sss = maxwell_filter(raw)
-    _assert_snr(raw_sss, sss_bench)
+    _assert_snr(raw_sss, sss_bench, 300.)
 
 
 @testing.requires_testing_data
@@ -168,7 +175,8 @@ def test_spatiotemporal_maxwell():
     # Check both 4 and 10 seconds because Elekta handles them differently
     # This is to ensure that std/non-std tSSS windows are correctly handled
     st_durs = [4., 10.]
-    for st_dur in st_durs:
+    tols = [325., 200.]
+    for st_dur, tol in zip(st_durs, tols):
         # Load tSSS data depending on st_dur and get data
         tSSS_fname = op.join(sss_path,
                              'test_move_anon_st%0ds_raw_sss.fif' % st_dur)
@@ -185,9 +193,7 @@ def test_spatiotemporal_maxwell():
             raw_tsss = maxwell_filter(raw.crop(0, st_dur), st_dur=st_dur)
         else:
             raw_tsss = maxwell_filter(raw, st_dur=st_dur)
-
-        # Confirm SNR > 500, single precision is part of discrepancy
-        _assert_snr(raw_tsss, tsss_bench, 500.)
+        _assert_snr(raw_tsss, tsss_bench, tol)
 
     # Degenerate cases
     assert_raises(ValueError, maxwell_filter, raw, st_dur=10., st_corr=0.)
@@ -206,11 +212,12 @@ def test_maxwell_filter_fine_calibration():
 
     # Test 1D SSS fine calibration
     raw_sss = maxwell_filter(raw, fine_cal=fine_cal_fname)
-    _assert_snr(raw_sss, sss_fine_cal, 30.)  # XXX should be higher
+    _assert_snr(raw_sss, sss_fine_cal, 1.5, 25.)  # XXX should be much higher
 
-    # Test 3D SSS fine calibration
-    raw_sss = maxwell_filter(raw, fine_cal=fine_cal_fname_3d, verbose=True)
-    _assert_snr(raw_sss, sss_fine_cal, 10.)  # XXX should be higher
+    # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
+    # very low SNR as proc differs, eventually we should add a better test
+    raw_sss_3D = maxwell_filter(raw, fine_cal=fine_cal_fname_3d, verbose=True)
+    _assert_snr(raw_sss_3D, sss_fine_cal, 0.75, 5.)
 
 
 @testing.requires_testing_data
@@ -222,7 +229,7 @@ def test_maxwell_filter_cross_talk():
     raw.info['bads'] = bads
     sss_ctc = Raw(sss_ctc_fname)
     raw_sss = maxwell_filter(raw, ctc=ctc_fname)
-    _assert_snr(raw_sss, sss_ctc)
+    _assert_snr(raw_sss, sss_ctc, 275.)
 
 
 # TODO: Eventually add simulation tests mirroring Taulu's original paper
