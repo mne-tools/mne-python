@@ -48,7 +48,8 @@ def test_coreg_model():
     model.mri.rpa = [[0.08, 0, 0]]
     assert_true(model.mri.fid_ok)
 
-    model.hsp.file = raw_path
+    with warnings.catch_warnings(record=True):  # Traits comp to None
+        model.hsp.file = raw_path
     assert_allclose(model.hsp.lpa, [[-7.137e-2, 0, 5.122e-9]], 1e-4)
     assert_allclose(model.hsp.rpa, [[+7.527e-2, 0, 5.588e-9]], 1e-4)
     assert_allclose(model.hsp.nasion, [[+3.725e-9, 1.026e-1, 4.191e-9]], 1e-4)
@@ -126,7 +127,7 @@ def test_coreg_model():
 @requires_mne
 @requires_freesurfer
 def test_coreg_model_with_fsaverage():
-    """Test CoregModel"""
+    """Test CoregModel with fsaverage"""
     tempdir = _TempDir()
     from mne.gui._coreg_gui import CoregModel
 
@@ -137,7 +138,8 @@ def test_coreg_model_with_fsaverage():
     model.mri.subject = 'fsaverage'
     assert_true(model.mri.fid_ok)
 
-    model.hsp.file = raw_path
+    with warnings.catch_warnings(record=True):  # Traits comp to None
+        model.hsp.file = raw_path
     lpa_distance = model.lpa_distance
     nasion_distance = model.nasion_distance
     rpa_distance = model.rpa_distance
@@ -196,10 +198,11 @@ def test_coreg_model_with_fsaverage():
 
     # test switching raw disables point omission but leaves EEG selector as is
     assert_equal(model.omitted_info['n_total'], 62)  # 1 HSP (dist), 61 EEG
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True):  # Traits comp to None
         model.hsp.file = kit_raw_path  # KIT data has no EEG points
     assert_equal(model.omitted_info['n_total'], 0)  # all HSPs back on-line
-    model.hsp.file = raw_path  # back to sample data with EEG
+    with warnings.catch_warnings(record=True):  # Traits comp to None
+        model.hsp.file = raw_path  # back to sample data with EEG
     assert_equal(model.omitted_info['n_total'], 61)  # EEG selector off
 
 
