@@ -61,10 +61,9 @@ def _butterfly_on_button_press(event, params):
     params['need_draw'] = False
 
 
-def _butterfly_onselect(xmin, xmax, ch_type, evoked):
+def _butterfly_onselect(xmin, xmax, ch_types, evoked):
     """Function for drawing topomaps from the selected area."""
     import matplotlib.pyplot as plt
-    plt.ion()
     times = evoked.times
     xmin *= 0.001
     xmin = times.flat[np.abs(times - xmin).argmin()]
@@ -72,26 +71,28 @@ def _butterfly_onselect(xmin, xmax, ch_type, evoked):
     xmax *= 0.001
     xmax = times.flat[np.abs(times - xmax).argmin()]
     maxidx = np.where(times == xmax)[0][0]
-    picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked, ch_type,
-                                                             layout=None)
-    data = evoked.data[picks, minidx:maxidx]
-    if merge_grads:
-        from ..channels.layout import _merge_grad_data
-        data = _merge_grad_data(data)
-        title = 'Average RMS over gradiometer pairs: %0.3fs - %0.3fs' % (xmin,
-                                                                         xmax)
-    elif ch_type == 'grad':
-        title = 'Average over gradiometers: %0.3fs - %0.3fs' % (xmin, xmax)
-    elif ch_type == 'mag':
-        title = 'Average over magnetometers: %0.3fs - %0.3fs' % (xmin, xmax)
-    else:
-        title = 'Average over EEG channels: %0.3fs - %0.3fs' % (xmin, xmax)
-    data = np.average(data, axis=1)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    fig.suptitle(title)
-    plot_topomap(data, pos, axis=ax)
+    fig, axarr = plt.subplots(1, len(ch_types))
+    axarr = np.atleast_1d(axarr)
+
+    for idx, ch_type in enumerate(ch_types):
+        picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
+                                                                 ch_type,
+                                                                 layout=None)
+        data = evoked.data[picks, minidx:maxidx]
+        if merge_grads:
+            from ..channels.layout import _merge_grad_data
+            data = _merge_grad_data(data)
+            title = '%s RMS' % ch_type
+        else:
+            title = ch_type
+        data = np.average(data, axis=1)
+        axarr[idx].set_title(title)
+        plot_topomap(data, pos, axis=axarr[idx], show=False)
+
+    fig.suptitle('Average over %.2fs - %.2fs' % (xmin, xmax), fontsize=15)
+    tight_layout(pad=2.0, fig=fig)
+    plt.show()
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
@@ -199,9 +200,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 else:
                     ax._get_lines.color_cycle = cycle(['k'])
 
-                callback_onselect = partial(_butterfly_onselect, ch_type=t,
+                callback_onselect = partial(_butterfly_onselect,
+                                            ch_types=ch_types_used,
                                             evoked=evoked)
-                blit = False if plt.get_backend() == 'macosx' else True
+                blit = False if plt.get_backend() == 'MacOSX' else True
                 selectors.append(SpanSelector(ax, callback_onselect,
                                               'horizontal', minspan=10,
                                               useblit=blit,
