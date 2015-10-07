@@ -113,7 +113,7 @@ def test_plot_evoked():
         plt.close('all')
 
         evoked.plot_topo()  # should auto-find layout
-        _butterfly_onselect(0, 200, 'mag', evoked)  # test averaged topomap
+        _butterfly_onselect(0, 200, ['mag'], evoked)  # test averaged topomap
         plt.close('all')
 
         cov = read_cov(cov_fname)
