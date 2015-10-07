@@ -22,7 +22,7 @@ from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tree import dir_tree_find
 from ..io.write import _generate_meas_id, _date_now
-from ..io.tag import find_tag
+from ..io.tag import find_tag, _loc_to_trans
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger
 
@@ -731,17 +731,15 @@ def _read_fine_cal(info, fine_cal):
                 raise RuntimeError('Error reading fine calibration file')
 
             ch_name = 'MEG' + '%04d' % vals[0]  # Zero-pad names to 4 char
-            loc = vals[1:13]  # Get orientation information for 'loc'
 
             # Get orientation information for 'coil_trans'
-            coil_trans = np.eye(4)
-            coil_trans[:3, :3] = loc[3:].reshape(3, 3).T
-            coil_trans[:3, 3] = loc[:3]
+            loc = vals[1:13].copy()  # Get orientation information for 'loc'
+            coil_trans = _loc_to_trans(loc)
             calib_coeff = vals[13:].copy()  # Get imbalance/calibration coeff
             idx = info['ch_names'].index(ch_name)
             assert cal_chans[idx] is None
             cal_chans[idx] = dict(ch_name=ch_name, coil_trans=coil_trans,
-                                  calib_coeff=calib_coeff,
+                                  loc=loc, calib_coeff=calib_coeff,
                                   coord_frame=FIFF.FIFFV_COORD_DEVICE)
 
     # Check that we ended up with correct channels
@@ -774,10 +772,11 @@ def _update_sensor_geometry(info, cal_chans):
         _normalize_vectors(v1)
         v2 = info_chan['coil_trans'][:3, :3]
         _normalize_vectors(v2)
-        ang_shift[ci] = np.sum(v1 * v2, axis=1)
+        ang_shift[ci] = np.sum(v1 * v2, axis=0)
 
         # Adjust channel orientation with those from fine calibration
-        info_chan['coil_trans'] = cal_chan['coil_trans']
+        info_chan.update(coil_trans=cal_chan['coil_trans'],
+                         loc=cal_chan['loc'])
         assert info_chan['coord_frame'] == cal_chan['coord_frame']
 
     # Deal with numerical precision giving absolute vals slightly more than 1.
