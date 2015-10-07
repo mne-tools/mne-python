@@ -11,17 +11,19 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 from math import factorial
+from os import path as op
 import inspect
 
-from .. import pick_types
+from .. import __version__
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
+from ..surface import _normalize_vectors
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tree import dir_tree_find
 from ..io.write import _generate_meas_id, _date_now
 from ..io.tag import find_tag
-from ..io.pick import channel_type, pick_info, pick_channels
+from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger
 
 
@@ -108,24 +110,29 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
     st_corr = float(st_corr)
     if st_corr <= 0. or st_corr > 1.:
         raise ValueError('Need 0 < st_corr <= 1., got %s' % st_corr)
-    logger.info('Bad channels being reconstructed: ' + str(raw.info['bads']))
+    logger.info('Maxwell filtering raw data')
+    if len(raw.info['bads']) > 0:
+        logger.info('    Bad channels being reconstructed: %s'
+                    % raw.info['bads'])
+    else:
+        logger.info('    No bad channels')
+    raw_sss = raw.copy().load_data(verbose=False)
+    del raw
 
     # If necessary, load fine calibration and overwrite sensor geometry
     if fine_cal is not None:
-        cal_chans = _read_fine_cal(raw.info, fine_cal)
-        raw.info = _update_sensor_geometry(raw.info, cal_chans)
+        logger.info('    Using fine calibration %s' % op.basename(fine_cal))
+        cal_chans = _read_fine_cal(raw_sss.info, fine_cal)
+        raw_sss.info = _update_sensor_geometry(raw_sss.info, cal_chans)
 
-    raw_sss = raw.copy().load_data()
-    del raw
     times = raw_sss.times
 
     # Get indices of channels to use in multipolar moment calculation
     good_picks = pick_types(raw_sss.info, meg=True, exclude='bads')
     # Get indices of MEG channels
     meg_picks = pick_types(raw_sss.info, meg=True, exclude=[])
-    logger.info('Preparing coil definitions')
-    meg_coils, _, _, meg_info = _prep_meg_channels(raw_sss.info, accurate=True,
-                                                   elekta_defs=True)
+    meg_coils, _, _, meg_info = _prep_meg_channels(
+        raw_sss.info, accurate=True, elekta_defs=True, verbose=False)
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
@@ -137,8 +144,7 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
     # Compute multipolar moment bases
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
     # Compute in/out bases and create copies containing only good chs
-    S_in, S_out = _sss_basis(origin, meg_coils, int_order, ext_order)
-    n_in = S_in.shape[1]
+    S_tot = _sss_basis(origin, meg_coils, int_order, ext_order)
 
     # Cross-talk processing
     if ctc is not None:
@@ -146,39 +152,30 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
 
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     if fine_cal is not None:
-        logger.info('Fine calibration file used in Maxwell filter: ' +
-                    fine_cal)
-
         mag_inds = pick_types(raw_sss.info, meg='mag')
         grad_inds = pick_types(raw_sss.info, meg='grad')
         grad_info = pick_info(raw_sss.info, grad_inds)
 
         # Compute point-like mags to incorporate gradiometer imbalance
-        grad_imbalances = np.array([ch['calib_coeff'] for ch in cal_chans
-                                    if ch['ch_type'] == 'grad'])
-        S_in_fine, S_out_fine = _sss_basis_point(origin, grad_info, int_order,
-                                                 ext_order, grad_imbalances)
+        grad_imbalances = np.array([cal_chans[ii]['calib_coeff']
+                                    for ii in grad_inds])
+        S_fine = _sss_basis_point(origin, grad_info, int_order, ext_order,
+                                  grad_imbalances)
 
-        # Add point like magnetometer data to internal/external bases.
-        S_in[grad_inds, :] += S_in_fine
-        S_out[grad_inds, :] += S_out_fine
+        # Add point like magnetometer data to bases.
+        S_tot[grad_inds, :] += S_fine
 
         # Scale magnetometers by calibration coefficient
-        mag_calib_coeffs = np.array([ch['calib_coeff'] for ch in cal_chans
-                                     if ch['ch_type'] == 'mag'])
-        S_in[mag_inds, :] /= mag_calib_coeffs
-        S_out[mag_inds, :] /= mag_calib_coeffs
+        mag_calib_coeffs = np.array([cal_chans[ii]['calib_coeff']
+                                     for ii in mag_inds])
+        S_tot[mag_inds, :] /= mag_calib_coeffs
 
-    S_in_good, S_out_good = S_in[good_picks, :], S_out[good_picks, :]
-    S_in_good_norm = np.sqrt(np.sum(S_in_good * S_in_good, axis=0))[:,
-                                                                    np.newaxis]
-    S_out_good_norm = \
-        np.sqrt(np.sum(S_out_good * S_out_good, axis=0))[:, np.newaxis]
+    S_tot_good = S_tot[good_picks, :]
+    S_tot_good_norm = np.sqrt(np.sum(S_tot_good *
+                                     S_tot_good, axis=0))[:, np.newaxis]
+    S_tot_good /= S_tot_good_norm.T
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
-    S_tot_good = np.c_[S_in_good, S_out_good]
-    S_tot_good /= np.sqrt(np.sum(S_tot_good * S_tot_good, axis=0))[np.newaxis,
-                                                                   :]
     pS_tot_good = linalg.pinv(S_tot_good, cond=1e-15)
 
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
@@ -188,7 +185,9 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
         data = ctc.dot(data)
     mm = np.dot(pS_tot_good, data * coil_scale[good_picks])
     # Reconstruct data from internal space (Eq. 38)
-    raw_sss._data[meg_picks] = np.dot(S_in, mm[:n_in] / S_in_good_norm)
+    n_in = _get_n_moments(int_order)
+    raw_sss._data[meg_picks] = np.dot(S_tot[:, :n_in],
+                                      mm[:n_in] / S_tot_good_norm[:n_in])
     raw_sss._data[meg_picks] /= coil_scale
 
     # Reset 'bads' for any MEG channels since they've been reconstructed
@@ -221,8 +220,8 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
             # Reconstruct data from external space and compute residual
             resid = data[:, win[0]:win[1]]
             resid -= raw_sss._data[meg_picks, win[0]:win[1]]
-            resid -= np.dot(S_out, mm[n_in:, win[0]:win[1]] /
-                            S_out_good_norm) / coil_scale
+            resid -= np.dot(S_tot[:, n_in:], mm[n_in:, win[0]:win[1]] /
+                            S_tot_good_norm[n_in:]) / coil_scale
             _check_finite(resid)
 
             # Compute SSP-like projector. Set overlap limit to 0.02
@@ -318,9 +317,8 @@ def _sss_basis(origin, coils, int_order, ext_order):
 
     Returns
     -------
-    bases: tuple, len (2)
-        Internal and external basis sets ndarrays with shape
-        (n_coils, n_mult_moments)
+    bases : ndarray, shape (n_coils, n_mult_moments)
+        Internal and external basis sets as a single ndarray.
 
     Notes
     -----
@@ -331,12 +329,13 @@ def _sss_basis(origin, coils, int_order, ext_order):
     r_int_pts, ncoils, wcoils, counts = _concatenate_coils(coils)
     bins = np.repeat(np.arange(len(counts)), counts)
     n_sens = len(counts)
-    n_bases = get_num_moments(int_order, ext_order)
+    n_bases = _get_n_moments([int_order, ext_order]).sum()
 
-    S_in = np.empty((n_sens, (int_order + 1) ** 2 - 1))
-    S_out = np.empty((n_sens, (ext_order + 1) ** 2 - 1))
-    S_in.fill(np.nan)
-    S_out.fill(np.nan)
+    n_in, n_out = _get_n_moments([int_order, ext_order])
+    S_tot = np.empty((n_sens, n_in + n_out))
+    S_tot.fill(np.nan)
+    S_in = S_tot[:, :n_in]
+    S_out = S_tot[:, n_in:]
 
     # Set all magnetometers (with 'coil_class' == 1.0) to be scaled by 100
     coil_scale = np.ones((len(coils)))
@@ -376,7 +375,7 @@ def _sss_basis(origin, coils, int_order, ext_order):
         # Scale magnetometers
         spc *= coil_scale[:, np.newaxis]
 
-    return S_in, S_out
+    return S_tot
 
 
 def _alegendre_deriv(degree, order, val):
@@ -496,7 +495,7 @@ def _grad_out_components(degree, order, rad, az, pol):
 
 
 def _get_real_grad(grad_vec_raw, order):
-    """Helper function to convert gradient vector to to real basis functions.
+    """Helper function to convert gradient vector to real basis functions.
 
     Parameters
     ----------
@@ -521,25 +520,23 @@ def _get_real_grad(grad_vec_raw, order):
     return np.real(grad_vec)
 
 
-def get_num_moments(int_order, ext_order):
-    """Compute total number of multipolar moments. Equivalent to [1]_ Eq. 32.
+def _get_n_moments(order):
+    """Compute the number of multipolar moments.
+
+    Equivalent to [1]_ Eq. 32.
 
     Parameters
     ----------
-    int_order : int
-        Internal expansion order
-    ext_order : int
-        External expansion order
+    order : array-like
+        Expansion orders, often ``[int_order, ext_order]``.
 
     Returns
     -------
-    M : int
-        Total number of multipolar moments
+    M : ndarray
+        Number of moments due to each order.
     """
-
-    # TODO: Eventually, reuse code in field_interpolation
-
-    return int_order ** 2 + 2 * int_order + ext_order ** 2 + 2 * ext_order
+    order = np.asarray(order, int)
+    return (order + 2) * order
 
 
 def _sph_to_cart_partials(sph_pts, sph_grads):
@@ -564,7 +561,6 @@ def _sph_to_cart_partials(sph_pts, sph_grads):
     cart_grads : ndarray, shape (n_points, 3)
         Array containing partial derivatives in Cartesian coordinates (x, y, z)
     """
-
     cart_grads = np.zeros_like(sph_grads)
     c_as, s_as = np.cos(sph_pts[:, 1]), np.sin(sph_pts[:, 1])
     c_ps, s_ps = np.cos(sph_pts[:, 2]), np.sin(sph_pts[:, 2])
@@ -588,12 +584,10 @@ def _cart_to_sph(cart_pts):
     sph_pts : ndarray, shape (n_points, 3)
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
-
     rad = np.sqrt(np.sum(cart_pts * cart_pts, axis=1))
     az = np.arctan2(cart_pts[:, 1], cart_pts[:, 0])
     pol = np.arccos(cart_pts[:, 2] / rad)
-
-    return np.c_[rad, az, pol]
+    return np.array([rad, az, pol]).T
 
 
 def _update_sss_info(raw, origin, int_order, ext_order, nsens):
@@ -618,11 +612,9 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
     raw : mne.io.Raw
         raw file object with raw.info modified
     """
-    from .. import __version__
     # TODO: Continue to fill out bookkeeping info as additional features
     # are added (fine calibration, cross-talk calibration, etc.)
-    int_moments = get_num_moments(int_order, 0)
-    ext_moments = get_num_moments(0, ext_order)
+    int_moments, ext_moments = _get_n_moments([int_order, ext_order])
 
     raw.info['maxshield'] = False
     sss_info_dict = dict(in_order=int_order, out_order=ext_order,
@@ -727,43 +719,41 @@ def _read_fine_cal(info, fine_cal):
 
     # Read new sensor locations
     with open(fine_cal, 'r') as fid:
-        cal_chans = []
-        for line in fid.readlines():
-            if line[0] == '#' or line[0] == '\n':
-                continue
-
+        lines = [line for line in fid if line[0] not in '#\n']
+        cal_chans = [None] * len(lines)
+        for line in lines:
             # `vals` contains channel number, (x, y, z), x-norm 3-vec, y-norm
             # 3-vec, z-norm 3-vec, and (1 or 3) imbalance terms
-            vals = np.fromstring(line, sep=' ')
+            vals = np.fromstring(line, sep=' ').astype(np.float64)
 
             # Check for correct number of items
             if len(vals) not in [14, 16]:
                 raise RuntimeError('Error reading fine calibration file')
 
-            ch = int(vals[0].copy())  # Get channel number
-            ch_name = 'MEG' + '%04d' % ch  # Zero-pad names to 4 characters
-            loc = vals[1:13].copy()  # Get orientation information for 'loc'
+            ch_name = 'MEG' + '%04d' % vals[0]  # Zero-pad names to 4 char
+            loc = vals[1:13]  # Get orientation information for 'loc'
 
             # Get orientation information for 'coil_trans'
-            coil_trans = np.zeros((4, 4))
-            coil_trans[3, 3] = 1.
-            coil_trans[0:3, 0:3] = loc[3:].reshape(3, 3).T
-            coil_trans[0:3, 3] = loc[:3]
+            coil_trans = np.eye(4)
+            coil_trans[:3, :3] = loc[3:].reshape(3, 3).T
+            coil_trans[:3, 3] = loc[:3]
             calib_coeff = vals[13:].copy()  # Get imbalance/calibration coeff
-            ch_type = channel_type(info, info['ch_names'].index(ch_name))
-
-            cal_chans.append(dict(ch=ch, ch_name=ch_name, loc=loc,
-                                  coil_trans=coil_trans,
-                                  calib_coeff=calib_coeff, ch_type=ch_type))
+            idx = info['ch_names'].index(ch_name)
+            assert cal_chans[idx] is None
+            cal_chans[idx] = dict(ch_name=ch_name, coil_trans=coil_trans,
+                                  calib_coeff=calib_coeff,
+                                  coord_frame=FIFF.FIFFV_COORD_DEVICE)
 
     # Check that we ended up with correct channels
     meg_info = pick_info(info, pick_types(info, exclude=[]))
     order = pick_channels([c['ch_name'] for c in cal_chans],
                           meg_info['ch_names'])
-    if not len(cal_chans) == meg_info['nchan'] == len(order):
+    if not (len(cal_chans) == meg_info['nchan'] == len(order)):
         raise RuntimeError('Number of channels in fine calibration file (%i) '
                            'does not equal number of channels in info (%i)' %
                            (len(cal_chans), info['nchan']))
+    # ensure they're ordered like our data
+    cal_chans = [cal_chans[ii] for ii in order]
     return cal_chans
 
 
@@ -771,31 +761,32 @@ def _update_sensor_geometry(info, cal_chans):
     """Helper to replace sensor geometry information"""
 
     # Replace sensor locations (and track differences) for fine calibration
-    ang_shift = np.zeros((info['nchan'], 3))
-    for cal_chan in cal_chans:
-        ch_ind = info['ch_names'].index(cal_chan['ch_name'])
+    ang_shift = np.zeros((len(cal_chans), 3))
+    used = np.zeros(len(info['chs']))
+    for ci, cal_chan in enumerate(cal_chans):
+        idx = info['ch_names'].index(cal_chan['ch_name'])
+        assert not used[idx]
+        used[idx] = True
+        info_chan = info['chs'][idx]
 
-        # Loop over vectors in X, Y, and Z directions
-        for ang_i, (i1, i2) in enumerate(zip(range(3, 10, 3),
-                                             range(6, 13, 3))):
-            v1 = cal_chan['loc'][i1:i2]
-            v2 = info['chs'][ch_ind]['loc'][i1:i2].astype(float)
-
-            cos_ang = np.dot(v1, v2) / (np.linalg.norm(v1) *
-                                        np.linalg.norm(v2))
-            ang_shift[ch_ind, ang_i] = cos_ang
+        # calculate shift angle
+        v1 = cal_chan['coil_trans'][:3, :3]
+        _normalize_vectors(v1)
+        v2 = info_chan['coil_trans'][:3, :3]
+        _normalize_vectors(v2)
+        ang_shift[ci] = np.sum(v1 * v2, axis=1)
 
         # Adjust channel orientation with those from fine calibration
-        info['chs'][ch_ind]['loc'] = cal_chan['loc']
-        info['chs'][ch_ind]['coil_trans'] = cal_chan['coil_trans']
+        info_chan['coil_trans'] = cal_chan['coil_trans']
+        assert info_chan['coord_frame'] == cal_chan['coord_frame']
 
-    # Deal with numerical precision giving values slightly more than 1.
+    # Deal with numerical precision giving absolute vals slightly more than 1.
     np.clip(ang_shift, -1., 1., ang_shift)
-    ang_shift = np.rad2deg(np.arccos(ang_shift))  # Convert to degrees
+    np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
 
     # Log quantification of sensor changes
-    logger.info('Fine calibration adjusted coil positions by (mean ± std in '
-                'degrees): %0.1f ± %0.1f (max: %0.1f)' %
+    logger.info('    Fine calibration adjusted coil positions by (μ ± σ): '
+                '%0.1f° ± %0.1f° (max: %0.1f°)' %
                 (np.mean(ang_shift), np.std(ang_shift),
                  np.max(np.abs(ang_shift))))
 
@@ -815,33 +806,27 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalance,
                          'magnetometers. Currently have %i' %
                          imbalance.shape[1])
 
-    # Initialize internal multipolar moment space for point-like magnetometers
-    S_in_all = np.zeros((len(info['chs']), get_num_moments(int_order, 0)))
-    S_out_all = np.zeros((len(info['chs']), get_num_moments(0, ext_order)))
-
     # Coil_type values for x, y, z point magnetometers
     pt_types = [FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X,
                 FIFF.FIFFV_COIL_POINT_MAGNETOMETER_Y,
                 FIFF.FIFFV_COIL_POINT_MAGNETOMETER]
 
     # Loop over all coordinate directions desired and create point mags
+    S_tot = None
     for dir_ind in range(imbalance.shape[1]):
-
         temp_info = deepcopy(info)
         for ch in temp_info['chs']:
             ch['coil_type'] = pt_types[dir_ind]
         coils_add = _prep_meg_channels(temp_info, accurate=True,
-                                       elekta_defs=True,
-                                       head_frame=head_frame)[0]
-
-        S_in_add, S_out_add = _sss_basis(origin, coils_add, int_order,
-                                         ext_order)
-        S_in_all += S_in_add
-        S_out_all += S_out_add
-
-    # Scale spaces by gradiometer imbalance
-    S_in_all *= imbalance[:, [dir_ind]]
-    S_out_all *= imbalance[:, [dir_ind]]
+                                       elekta_defs=True, head_frame=head_frame,
+                                       verbose=False)[0]
+        S_add = _sss_basis(origin, coils_add, int_order, ext_order)
+        S_add *= imbalance[:, [dir_ind]]
+        if S_tot is None:
+            S_tot = S_add
+        else:
+            S_tot += S_add
+        # Scale spaces by gradiometer imbalance
 
     # Return point-like mag bases
-    return S_in_all, S_out_all
+    return S_tot

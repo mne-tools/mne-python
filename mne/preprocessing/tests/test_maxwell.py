@@ -11,10 +11,8 @@ from nose.tools import assert_true, assert_raises
 from mne import compute_raw_covariance, pick_types
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
-from mne.forward._make_forward import _prep_meg_channels
 from mne.io import Raw, proc_history
-from mne.preprocessing.maxwell import (_maxwell_filter as maxwell_filter,
-                                       get_num_moments, _sss_basis)
+from mne.preprocessing.maxwell import maxwell_filter, _get_n_moments
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 
 # Note: Elekta MaxFilter uses single precision, so expect filtered results to
@@ -70,28 +68,12 @@ def test_maxwell_filter():
     sss_nonStd = Raw(sss_nonstd_fname, allow_maxshield=True)
     assert_raises(RuntimeError, maxwell_filter, raw_err)
 
-    # Create coils
-    all_coils, _, _, meg_info = _prep_meg_channels(raw.info, ignore_ref=True,
-                                                   elekta_defs=True)
-    picks = [raw.info['ch_names'].index(ch) for ch in [coil['chname']
-                                                       for coil in all_coils]]
-    coils = [all_coils[ci] for ci in picks]
-    ncoils = len(coils)
-
-    int_order, ext_order = 8, 3
     n_int_bases = int_order ** 2 + 2 * int_order
     n_ext_bases = ext_order ** 2 + 2 * ext_order
     nbases = n_int_bases + n_ext_bases
 
     # Check number of bases computed correctly
-    assert_equal(get_num_moments(int_order, ext_order), nbases)
-
-    # Check multipolar moment basis set
-    S_in, S_out = _sss_basis(origin=np.array([0, 0, 40]), coils=coils,
-                             int_order=int_order, ext_order=ext_order)
-    assert_equal(S_in.shape, (ncoils, n_int_bases), 'S_in has incorrect shape')
-    assert_equal(S_out.shape, (ncoils, n_ext_bases),
-                 'S_out has incorrect shape')
+    assert_equal(_get_n_moments([int_order, ext_order]).sum(), nbases)
 
     # Test SSS computation at the standard head origin
     raw_sss = maxwell_filter(raw, origin=[0., 0., 40.],
@@ -105,7 +87,7 @@ def test_maxwell_filter():
 
     # Check against SSS functions from proc_history
     sss_info = raw_sss.info['proc_history'][0]['max_info']
-    assert_equal(get_num_moments(int_order, 0),
+    assert_equal(_get_n_moments(int_order),
                  proc_history._get_sss_rank(sss_info))
 
     # Degenerate cases
@@ -158,7 +140,7 @@ def test_maxwell_filter_additional():
                                            scalings)
 
     assert_equal(cov_raw_rank, raw.info['nchan'])
-    assert_equal(cov_sss_rank, get_num_moments(int_order, 0))
+    assert_equal(cov_sss_rank, _get_n_moments(int_order))
 
 
 @slow_test
@@ -227,7 +209,7 @@ def test_maxwell_filter_fine_calibration():
     _assert_snr(raw_sss, sss_fine_cal, 30.)  # XXX should be higher
 
     # Test 3D SSS fine calibration
-    raw_sss = maxwell_filter(raw, fine_cal=fine_cal_fname_3d)
+    raw_sss = maxwell_filter(raw, fine_cal=fine_cal_fname_3d, verbose=True)
     _assert_snr(raw_sss, sss_fine_cal, 10.)  # XXX should be higher
 
 
