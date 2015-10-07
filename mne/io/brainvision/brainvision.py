@@ -316,7 +316,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
 
     # get sampling info
     # Sampling interval is given in microsec
-    sfreq = int(1e6 / cfg.getfloat('Common Infos', 'SamplingInterval'))
+    info['sfreq'] = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
 
     # check binary format
     assert cfg.get('Common Infos', 'DataFormat') == 'BINARY'
@@ -423,7 +423,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
     logger.info('Setting channel info structure...')
     info['chs'] = []
     info['ch_names'] = ch_names
-    info['sfreq'] = sfreq
     for idx, ch_name in enumerate(ch_names):
         if ch_name in eog or idx in eog or idx - info['nchan'] in eog:
             kind = FIFF.FIFFV_EOG_CH
@@ -478,6 +477,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         MISC channels. Values should correspond to the electrodes
         in the vhdr file. Default is ``()``.
     reference : None | str
+        **Deprecated**, use `add_reference_channel` instead.
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
