@@ -1319,7 +1319,8 @@ class CoregFrame(HasTraits):
             self.model.mri.subject = subject
 
         if raw is not None:
-            self.model.hsp.file = raw
+            with warnings.catch_warnings(record=True):  # Traits comp to None
+                self.model.hsp.file = raw
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
