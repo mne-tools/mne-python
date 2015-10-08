@@ -405,16 +405,17 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
             stop = start + l
             test_slices.append(slice(start, stop, 1))
             start += l
-        X_t = X[all_test]
+
     if all(len(s) == 1 for s in slices):
         slices = [slice(s[0], s[0]+1, 1) for s in slices]
 
     # XXX EHN: This loop should be parallelized in a similar way to fit()
-    for k, (train, test) in enumerate(cv):
-        this_slice = test_slices[k]
-        for t, indices in enumerate(slices):
-            # Flatten features in case of multiple time samples
-            Xtrain = X_t[:, :, indices].reshape(n_epochs, -1)
+    for t, indices in enumerate(slices):
+        # Flatten features in case of multiple time samples
+        Xtrain = X[:, :, indices].reshape(n_epochs, -1)
+        if predict_mode == 'cross-validation':
+            X_t = Xtrain[all_test]
+        for k, (train, test) in enumerate(cv):
             # Single trial predictions
             if predict_mode == 'cross-validation':
                 # If predict within cross validation, only predict with
@@ -425,18 +426,18 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
                 # its size depends on the the type of predictor and the
                 # number of class.
                 if k == 0:
-                    y_pred_ = _predict(Xtrain[this_slice, :], estimators[k:k + 1])
+                    y_pred_ = _predict(X_t[test_slices[k], :],
+                                       estimators[k:k + 1])
                     y_pred[t] = np.empty((n_epochs, y_pred_.shape[1]))
                     y_pred[t][test, :] = y_pred_
                 else:
-                    y_pred[t][test, :] = _predict(Xtrain[this_slice, :], estimators[k:k + 1])
+                    y_pred[t][test, :] = _predict(X_t[test_slices[k], :],
+                                                  estimators[k:k + 1])
             elif predict_mode == 'mean-prediction':
-                # Flatten features in case of multiple time samples
-                Xtrain = X[:, :, indices].reshape(n_epochs, -1)
                 y_pred[t] = _predict(Xtrain, estimators)
             else:
-                raise ValueError('`predict_mode` must be a str, "mean-prediction"'
-                                 ' or "cross-validation"')
+                raise ValueError('`predict_mode` must be a str, '
+                                 '"mean-prediction" or "cross-validation"')
     return y_pred
 
 
