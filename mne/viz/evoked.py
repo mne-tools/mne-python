@@ -64,8 +64,15 @@ def _butterfly_on_button_press(event, params):
 def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     """Function for drawing topomaps from the selected area."""
     import matplotlib.pyplot as plt
+    vert_lines = list()
     if text is not None:
         text.set_visible(True)
+        ax = text.axes
+        ylim = ax.get_ylim()
+        vert_lines.append(ax.plot([xmin, xmin], ylim, zorder=0, color='red'))
+        vert_lines.append(ax.plot([xmax, xmax], ylim, zorder=0, color='red'))
+        fill = ax.fill_betweenx(ylim, x1=xmin, x2=xmax, alpha=0.2,
+                                color='green')
         evoked_fig = plt.gcf()
         evoked_fig.canvas.draw()
         evoked_fig.canvas.flush_events()
@@ -91,13 +98,25 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
         axarr[0][idx].set_title(title)
         plot_topomap(data, pos, axis=axarr[0][idx], show=False)
 
-    fig.suptitle('Average over %.2fs - %.2fs' % (xmin, xmax), fontsize=15)
+    fig.suptitle('Average over %.2fs - %.2fs' % (xmin, xmax), fontsize=15,
+                 y=0.1)
     tight_layout(pad=2.0, fig=fig)
     plt.show()
     if text is not None:
         text.set_visible(False)
+        close_callback = partial(_topo_closed, ax=ax, lines=vert_lines,
+                                 fill=fill)
+        fig.canvas.mpl_connect('close_event', close_callback)
         evoked_fig.canvas.draw()
         evoked_fig.canvas.flush_events()
+
+
+def _topo_closed(events, ax, lines, fill):
+    """Callback for removing lines from evoked plot as topomap is closed."""
+    for line in lines:
+        ax.lines.remove(line[0])
+    ax.collections.remove(fill)
+    ax.get_figure().canvas.draw()
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
