@@ -23,6 +23,7 @@ from ..utils import logger
 from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
+from .topomap import _prepare_topo_plot, plot_topomap
 
 
 def _butterfly_onpick(event, params):
@@ -60,6 +61,64 @@ def _butterfly_on_button_press(event, params):
     params['need_draw'] = False
 
 
+def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
+    """Function for drawing topomaps from the selected area."""
+    import matplotlib.pyplot as plt
+    vert_lines = list()
+    if text is not None:
+        text.set_visible(True)
+        ax = text.axes
+        ylim = ax.get_ylim()
+        vert_lines.append(ax.plot([xmin, xmin], ylim, zorder=0, color='red'))
+        vert_lines.append(ax.plot([xmax, xmax], ylim, zorder=0, color='red'))
+        fill = ax.fill_betweenx(ylim, x1=xmin, x2=xmax, alpha=0.2,
+                                color='green')
+        evoked_fig = plt.gcf()
+        evoked_fig.canvas.draw()
+        evoked_fig.canvas.flush_events()
+    times = evoked.times
+    xmin *= 0.001
+    minidx = np.abs(times - xmin).argmin()
+    xmax *= 0.001
+    maxidx = np.abs(times - xmax).argmin()
+    fig, axarr = plt.subplots(1, len(ch_types), squeeze=False,
+                              figsize=(3 * len(ch_types), 3))
+    for idx, ch_type in enumerate(ch_types):
+        picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
+                                                                 ch_type,
+                                                                 layout=None)
+        data = evoked.data[picks, minidx:maxidx]
+        if merge_grads:
+            from ..channels.layout import _merge_grad_data
+            data = _merge_grad_data(data)
+            title = '%s RMS' % ch_type
+        else:
+            title = ch_type
+        data = np.average(data, axis=1)
+        axarr[0][idx].set_title(title)
+        plot_topomap(data, pos, axis=axarr[0][idx], show=False)
+
+    fig.suptitle('Average over %.2fs - %.2fs' % (xmin, xmax), fontsize=15,
+                 y=0.1)
+    tight_layout(pad=2.0, fig=fig)
+    plt.show()
+    if text is not None:
+        text.set_visible(False)
+        close_callback = partial(_topo_closed, ax=ax, lines=vert_lines,
+                                 fill=fill)
+        fig.canvas.mpl_connect('close_event', close_callback)
+        evoked_fig.canvas.draw()
+        evoked_fig.canvas.flush_events()
+
+
+def _topo_closed(events, ax, lines, fill):
+    """Callback for removing lines from evoked plot as topomap is closed."""
+    for line in lines:
+        ax.lines.remove(line[0])
+    ax.collections.remove(fill)
+    ax.get_figure().canvas.draw()
+
+
 def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
@@ -77,6 +136,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
+    from matplotlib.widgets import SpanSelector
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
@@ -136,10 +196,11 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         evoked = evoked.copy()
         evoked.apply_proj()
 
-    times = 1e3 * evoked.times  # time in miliseconds
-    texts = []
-    idxs = []
-    lines = []
+    times = 1e3 * evoked.times  # time in milliseconds
+    texts = list()
+    idxs = list()
+    lines = list()
+    selectors = list()  # for keeping reference to span_selectors
     path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
                                            alpha=0.75)]
     for ax, t in zip(axes, ch_types_used):
@@ -162,6 +223,19 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     ax._get_lines.color_cycle = iter(colors)
                 else:
                     ax._get_lines.color_cycle = cycle(['k'])
+                text = ax.annotate('Loading...', xy=(0.01, 0.1),
+                                   xycoords='axes fraction', fontsize=20,
+                                   color='green')
+                text.set_visible(False)
+                callback_onselect = partial(_butterfly_onselect,
+                                            ch_types=ch_types_used,
+                                            evoked=evoked, text=text)
+                blit = False if plt.get_backend() == 'MacOSX' else True
+                selectors.append(SpanSelector(ax, callback_onselect,
+                                              'horizontal', minspan=10,
+                                              useblit=blit,
+                                              rectprops=dict(alpha=0.5,
+                                                             facecolor='red')))
             # Set amplitude scaling
             D = this_scaling * evoked.data[idx, :]
             if plot_type == 'butterfly':
@@ -206,7 +280,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     if plot_type == 'butterfly':
         params = dict(axes=axes, texts=texts, lines=lines,
                       ch_names=evoked.ch_names, idxs=idxs, need_draw=False,
-                      path_effects=path_effects)
+                      path_effects=path_effects, selectors=selectors)
         fig.canvas.mpl_connect('pick_event',
                                partial(_butterfly_onpick, params=params))
         fig.canvas.mpl_connect('button_press_event',
@@ -237,6 +311,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None):
     """Plot evoked data
+
+    Left click to a line shows the channel name. Selecting an area by clicking
+    and holding left mouse button plots a topographic map of the painted area.
 
     Note: If bad channels are not excluded they are shown in red.
 
