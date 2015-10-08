@@ -361,7 +361,7 @@ def _predict_slices(X, estimators, cv, slices, predict_mode):
                                       predict_mode))
     return out
 
-
+@profile
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     """Aux function of GeneralizationAcrossTime
 
@@ -391,38 +391,39 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     # Loop across testing slices
     y_pred = [list() for _ in range(len(slices))]
 
-    # XXX EHN: This loop should be parallelized in a similar way to fit()
-    for t, indices in enumerate(slices):
-        # Flatten features in case of multiple time samples
-        Xtrain = X[:, :, indices].reshape(
-            n_epochs, np.prod(X[:, :, indices].shape[1:]))
+    if predict_mode == 'cross-validation':
+        # Check that training cv and predicting cv match
+        if (len(estimators) != len(cv)) or (cv.n != n_epochs):
+            raise ValueError(
+                'When `predict_mode = "cross-validation"`, the training '
+                'and predicting cv schemes must be identical.')
+    for k, (train, test) in enumerate(cv):
+        # XXX EHN: This loop should be parallelized in a similar way to fit()
+        X_t = X[test]
+        for t, indices in enumerate(slices):
+            # Single trial predictions
+            if predict_mode == 'cross-validation':
+                # Flatten features in case of multiple time samples
+                Xtrain = X_t[:, :, indices].reshape(len(test), -1)
+                # If predict within cross validation, only predict with
+                # corresponding classifier, else predict with each fold's
+                # classifier and average prediction.
 
-        # Single trial predictions
-        if predict_mode == 'cross-validation':
-            # If predict within cross validation, only predict with
-            # corresponding classifier, else predict with each fold's
-            # classifier and average prediction.
-
-            # Check that training cv and predicting cv match
-            if (len(estimators) != len(cv)) or (cv.n != Xtrain.shape[0]):
-                raise ValueError(
-                    'When `predict_mode = "cross-validation"`, the training '
-                    'and predicting cv schemes must be identical.')
-            for k, (train, test) in enumerate(cv):
                 # XXX I didn't manage to initialize correctly this array, as
                 # its size depends on the the type of predictor and the
                 # number of class.
                 if k == 0:
-                    y_pred_ = _predict(Xtrain[test, :], estimators[k:k + 1])
+                    y_pred_ = _predict(Xtrain, estimators[k:k + 1])
                     y_pred[t] = np.empty((n_epochs, y_pred_.shape[1]))
                     y_pred[t][test, :] = y_pred_
-                y_pred[t][test, :] = _predict(Xtrain[test, :],
-                                              estimators[k:k + 1])
-        elif predict_mode == 'mean-prediction':
-            y_pred[t] = _predict(Xtrain, estimators)
-        else:
-            raise ValueError('`predict_mode` must be a str, "mean-prediction"'
-                             ' or "cross-validation"')
+                y_pred[t][test, :] = _predict(Xtrain, estimators[k:k + 1])
+            elif predict_mode == 'mean-prediction':
+                # Flatten features in case of multiple time samples
+                Xtrain = X[:, :, indices].reshape(n_epochs, -1)
+                y_pred[t] = _predict(Xtrain, estimators)
+            else:
+                raise ValueError('`predict_mode` must be a str, "mean-prediction"'
+                                 ' or "cross-validation"')
     return y_pred
 
 
@@ -618,7 +619,7 @@ def _sliding_window(times, window_params, sfreq):
 
     return window_params
 
-
+@profile
 def _predict(X, estimators):
     """Aux function of GeneralizationAcrossTime
 
