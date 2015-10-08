@@ -61,20 +61,20 @@ def _butterfly_on_button_press(event, params):
     params['need_draw'] = False
 
 
-def _butterfly_onselect(xmin, xmax, ch_types, evoked):
+def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     """Function for drawing topomaps from the selected area."""
     import matplotlib.pyplot as plt
+    if text is not None:
+        text.set_visible(True)
+        evoked_fig = plt.gcf()
+        evoked_fig.canvas.draw()
+        evoked_fig.canvas.flush_events()
     times = evoked.times
     xmin *= 0.001
-    xmin = times.flat[np.abs(times - xmin).argmin()]
-    minidx = np.where(times == xmin)[0][0]
+    minidx = np.abs(times - xmin).argmin()
     xmax *= 0.001
-    xmax = times.flat[np.abs(times - xmax).argmin()]
-    maxidx = np.where(times == xmax)[0][0]
-
-    fig, axarr = plt.subplots(1, len(ch_types))
-    axarr = np.atleast_1d(axarr)
-
+    maxidx = np.abs(times - xmax).argmin()
+    fig, axarr = plt.subplots(1, len(ch_types), squeeze=False)
     for idx, ch_type in enumerate(ch_types):
         picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
                                                                  ch_type,
@@ -87,12 +87,16 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked):
         else:
             title = ch_type
         data = np.average(data, axis=1)
-        axarr[idx].set_title(title)
-        plot_topomap(data, pos, axis=axarr[idx], show=False)
+        axarr[0][idx].set_title(title)
+        plot_topomap(data, pos, axis=axarr[0][idx], show=False)
 
     fig.suptitle('Average over %.2fs - %.2fs' % (xmin, xmax), fontsize=15)
     tight_layout(pad=2.0, fig=fig)
     plt.show()
+    if text is not None:
+        text.set_visible(False)
+        evoked_fig.canvas.draw()
+        evoked_fig.canvas.flush_events()
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
@@ -199,10 +203,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     ax._get_lines.color_cycle = iter(colors)
                 else:
                     ax._get_lines.color_cycle = cycle(['k'])
-
+                text = ax.annotate('Loading...', xy=(0.01, 0.1),
+                                   xycoords='axes fraction', fontsize=20,
+                                   color='green')
+                text.set_visible(False)
                 callback_onselect = partial(_butterfly_onselect,
                                             ch_types=ch_types_used,
-                                            evoked=evoked)
+                                            evoked=evoked, text=text)
                 blit = False if plt.get_backend() == 'MacOSX' else True
                 selectors.append(SpanSelector(ax, callback_onselect,
                                               'horizontal', minspan=10,
