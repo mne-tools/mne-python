@@ -397,14 +397,26 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
             raise ValueError(
                 'When `predict_mode = "cross-validation"`, the training '
                 'and predicting cv schemes must be identical.')
+        all_test = np.concatenate(zip(*cv)[-1])
+        test_slices = []
+        start = 0
+        for _, test in cv:
+            l = len(test)
+            stop = start + l
+            test_slices.append(slice(start, stop, 1))
+            start += l
+        X_t = X[all_test]
+    if all(len(s) == 1 for s in slices):
+        slices = [slice(s[0], s[0]+1, 1) for s in slices]
+
+    # XXX EHN: This loop should be parallelized in a similar way to fit()
     for k, (train, test) in enumerate(cv):
-        # XXX EHN: This loop should be parallelized in a similar way to fit()
-        X_t = X[test]
+        this_slice = test_slices[k]
         for t, indices in enumerate(slices):
+            # Flatten features in case of multiple time samples
+            Xtrain = X_t[:, :, indices].reshape(n_epochs, -1)
             # Single trial predictions
             if predict_mode == 'cross-validation':
-                # Flatten features in case of multiple time samples
-                Xtrain = X_t[:, :, indices].reshape(len(test), -1)
                 # If predict within cross validation, only predict with
                 # corresponding classifier, else predict with each fold's
                 # classifier and average prediction.
@@ -413,10 +425,11 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
                 # its size depends on the the type of predictor and the
                 # number of class.
                 if k == 0:
-                    y_pred_ = _predict(Xtrain, estimators[k:k + 1])
+                    y_pred_ = _predict(Xtrain[this_slice, :], estimators[k:k + 1])
                     y_pred[t] = np.empty((n_epochs, y_pred_.shape[1]))
                     y_pred[t][test, :] = y_pred_
-                y_pred[t][test, :] = _predict(Xtrain, estimators[k:k + 1])
+                else:
+                    y_pred[t][test, :] = _predict(Xtrain[this_slice, :], estimators[k:k + 1])
             elif predict_mode == 'mean-prediction':
                 # Flatten features in case of multiple time samples
                 Xtrain = X[:, :, indices].reshape(n_epochs, -1)
