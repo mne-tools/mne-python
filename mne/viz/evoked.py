@@ -74,7 +74,8 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     minidx = np.abs(times - xmin).argmin()
     xmax *= 0.001
     maxidx = np.abs(times - xmax).argmin()
-    fig, axarr = plt.subplots(1, len(ch_types), squeeze=False)
+    fig, axarr = plt.subplots(1, len(ch_types), squeeze=False,
+                              figsize=(3 * len(ch_types), 3))
     for idx, ch_type in enumerate(ch_types):
         picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
                                                                  ch_type,
