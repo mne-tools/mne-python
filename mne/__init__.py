@@ -60,7 +60,7 @@ from .surface import (read_surface, write_surface, decimate_surface,
 from .source_space import (read_source_spaces, vertex_to_mni,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space, SourceSpaces,
-                           add_source_space_distances,
+                           add_source_space_distances, morph_source_spaces,
                            get_volume_labels_from_aseg)
 from .epochs import Epochs, EpochsArray, read_epochs
 from .evoked import (Evoked, EvokedArray, read_evokeds, write_evokeds,

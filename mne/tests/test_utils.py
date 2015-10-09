@@ -16,7 +16,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        ArgvSetter, _memory_usage, check_random_state,
                        _check_mayavi_version, requires_mayavi,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
-                       create_slices, _time_mask, random_permutation)
+                       create_slices, _time_mask, random_permutation,
+                       _get_call_line, verbose)
 from mne.io import show_fiff
 from mne import Evoked
 from mne.externals.six.moves import StringIO
@@ -34,6 +35,24 @@ fname_log_2 = op.join(base_dir, 'test-ave-2.log')
 def clean_lines(lines=[]):
     # Function to scrub filenames for checking logging output (in test_logging)
     return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
+
+
+def test_get_call_line():
+    """Test getting a call line
+    """
+    @verbose
+    def foo(verbose=None):
+        return _get_call_line(in_verbose=True)
+
+    for v in (None, True):
+        my_line = foo(verbose=v)  # testing
+        assert_equal(my_line, 'my_line = foo(verbose=v)  # testing')
+
+    def bar():
+        return _get_call_line(in_verbose=False)
+
+    my_line = bar()  # testing more
+    assert_equal(my_line, 'my_line = bar()  # testing more')
 
 
 def test_misc():

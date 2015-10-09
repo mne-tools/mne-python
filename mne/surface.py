@@ -280,6 +280,7 @@ def _complete_surface_info(this, do_neighbor_vert=False, verbose=None):
 
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
+        logger.info('    Vertex neighbors...')
         this['neighbor_vert'] = [_get_surf_neighbors(this, k)
                                  for k in range(this['np'])]
 
@@ -288,8 +289,7 @@ def _complete_surface_info(this, do_neighbor_vert=False, verbose=None):
 
 def _get_surf_neighbors(surf, k):
     """Calculate the surface neighbors based on triangulation"""
-    verts = np.concatenate([surf['tris'][nt]
-                            for nt in surf['neighbor_tri'][k]])
+    verts = surf['tris'][surf['neighbor_tri'][k]]
     verts = np.setdiff1d(verts, [k], assume_unique=False)
     assert np.all(verts < surf['np'])
     nneighbors = len(verts)
