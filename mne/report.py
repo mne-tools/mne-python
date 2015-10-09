@@ -417,7 +417,7 @@ slider_template = HTMLTemplate(u"""
 
 slider_full_template = Template(u"""
 <li class="{{div_klass}}" id="{{id}}">
-<h4>{{section}}</h4>
+<h4>{{title}}</h4>
 <div class="thumbnail">
     <ul><li class="slider">
         <div class="row">
@@ -1033,7 +1033,7 @@ class Report(object):
         self.html.extend(html)
 
     def add_slider_to_section(self, figs, captions=None, section='custom',
-                              scale=None, image_format='png'):
+                              title='Slider', scale=None, image_format='png'):
         """Renders a slider of figs to the report.
 
         Parameters
@@ -1049,6 +1049,8 @@ class Report(object):
         section : str
             Name of the section. If section already exists, the figures
             will be appended to the end of the section.
+        title : str
+            The title of the slider.
         scale : float | None | callable
             Scale the images maintaining the aspect ratio.
             If None, no scaling is applied. If float, scale will determine
@@ -1114,7 +1116,7 @@ class Report(object):
 
         slider_klass = sectionvar
         self.html.append(
-            slider_full_template.substitute(id=global_id, section=section,
+            slider_full_template.substitute(id=global_id, title=title,
                                             div_klass=slider_klass,
                                             slider_id=slider_id, html=html,
                                             image_html=image_html))
