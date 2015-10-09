@@ -1089,7 +1089,7 @@ class Report(object):
 
         if captions is None:
             captions = ['Data slice %d' % ii for ii in sl]
-        elif isinstance(captions, (list, tuple)):
+        elif isinstance(captions, (list, tuple, np.ndarray)):
             if len(figs) != len(captions):
                 raise ValueError('Captions must be the same length as the '
                                  'number of slides.')
