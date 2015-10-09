@@ -515,7 +515,7 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         if not outside.all():
             raise RuntimeError('%s MEG sensors collided with inner skull '
                                'surface for transform %s'
-                               % (ti, np.sum(~outside)))
+                               % (np.sum(~outside), ti))
 
         # Compute forward
         megfwd = _compute_forwards(rr, bem, [megcoils], [compcoils],
