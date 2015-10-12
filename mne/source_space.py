@@ -2356,7 +2356,14 @@ def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
         # Now we morph the vertices to the destination
         logger.info('Reading %s<->%s morph maps'
                     % (subject_from, subject_to))
-        # mm = read_morph_map(subject_from, subject_to, subjects_dir)
+        # The C code does something like this, but with a nearest-neighbor
+        # mapping instead of the weighted one::
+        #
+        #     >>> mm = read_morph_map(subject_from, subject_to, subjects_dir)
+        #
+        # Here we use a direct NN calculation, since picking the max from the
+        # existing morph map (which naively one might expect to be equivalent)
+        # differs for ~3% of vertices.
         rrs = [read_surface(op.join(subjects_dir, s, 'surf',
                                     '%s.sphere.reg' % hemi), verbose=False)[0]
                for s in (subject_from, subject_to)]
