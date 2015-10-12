@@ -1139,10 +1139,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if times == "peaks":
         from scipy.signal import argrelmax
         gfp = evoked.data.std(axis=0)
-        order = int(evoked.info["sfreq"] / 5.)
-        peaks = argrelmax(gfp, order=order)
-        if len(peaks) > 10:
-            peaks = peaks[np.sort((-peaks).argsort()[:10])]
+        order = len(evoked.times) / 30
+        peaks = argrelmax(gfp, order=order, axis=0)[0]
+        if len(peaks) > 10:  # Find the largest 10 peaks
+            max_indices = np.argsort([gfp[idx] for idx in peaks])[-10:]
+            peaks = np.sort(peaks[max_indices])
         times = evoked.times[peaks]
         if len(times) == 0:
             times = evoked.times[gfp.argmax()]
