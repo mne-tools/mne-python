@@ -21,7 +21,10 @@ env:
     # tests are explicit about channels.
     #
     # Must force libpng version to avoid silly libpng.so.15 error (MPL 1.1 needs it)
-    - PYTHON=2.7 DEPS=full TEST_LOCATION=src
+    #
+    # Conda currently has packaging bug with mayavi/traits/numpy where 1.10 can't be used
+    # but breaks scipy; hopefully eventually the NUMPY=1.9 on 2.7 full can be removed
+    - PYTHON=2.7 DEPS=full TEST_LOCATION=src NUMPY="=1.9" SCIPY="=0.16"
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src MNE_DONTWRITE_HOME=true  # also runs flake8
     - PYTHON=3.4 DEPS=full TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
     - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.7" SCIPY="=0.11" MPL="=1.1" LIBPNG="=1.5" SKLEARN="=0.11" PANDAS="=0.8"
@@ -41,7 +44,8 @@ before_install:
 install:
     - conda create -n testenv --yes pip python=$PYTHON
     - source activate testenv
-    - conda install --yes --quiet numpy$NUMPY scipy$SCIPY nose matplotlib$MPL libpng$LIBPNG coverage
+    - ENSURE_PACKAGES="numpy$NUMPY scipy$SCIPY matplotlib$MPL libpng$LIBPNG"
+    - conda install --yes --quiet $ENSURE_PACKAGES nose coverage
     # We have to replicate e.g. numpy$NUMPY to ensure the recommended (higher) versions
     # are not automatically installed below with multiple "conda install" calls!
     - if [ "${DEPS}" == "full" ]; then
@@ -49,15 +53,15 @@ install:
         export MNE_ROOT="${PWD}/minimal_cmds";
         export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
         source ${MNE_ROOT}/bin/mne_setup_sh;
-        conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow numpy$NUMPY scipy$SCIPY libpng$LIBPNG matplotlib$MPL;
+        conda install --yes --quiet $ENSURE_PACKAGES pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow;
         pip install -q joblib nibabel;
         if [ "${PYTHON}" == "3.4" ]; then
-          conda install --yes --quiet ipython libpng$LIBPNG matplotlib$MPL;
+          conda install --yes --quiet $ENSURE_PACKAGES ipython;
         else
-          conda install --yes --quiet ipython==1.1.0 statsmodels numpy$NUMPY scipy$SCIPY pandas$PANDAS libpng$LIBPNG matplotlib$MPL;
+          conda install --yes --quiet $ENSURE_PACKAGES ipython==1.1.0 statsmodels pandas$PANDAS;
           pip install -q nitime;
           if [ "${PYTHON}" == "2.7" ]; then
-            conda install --yes --quiet mayavi traits libpng$LIBPNG matplotlib$MPL;
+            conda install --yes --quiet $ENSURE_PACKAGES mayavi traits;
             pip install -q pysurfer faulthandler;
           fi;
         fi;
