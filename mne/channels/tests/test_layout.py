@@ -134,10 +134,10 @@ def test_auto_topomap_coords():
     # Remove electrode position information, use digitization points from now
     # on.
     for ch in info['chs']:
-        ch['loc'] = np.zeros(12)
+        ch['loc'].fill(0)
 
     l1 = _auto_topomap_coords(info, picks)
-    assert_allclose(l1, l0)
+    assert_allclose(l1, l0, atol=1e-3)
 
     # Test plotting mag topomap without channel locations: it should fail
     mag_picks = pick_types(info, meg='mag')
