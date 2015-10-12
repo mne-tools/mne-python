@@ -509,7 +509,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                 axis_facecolor=axis_facecolor,
                                 font_color=font_color, show=show)
 
-    def plot_topomap(self, times=None, ch_type=None, layout=None, vmin=None,
+    def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
                      vmax=None, cmap='RdBu_r', sensors=True, colorbar=True,
                      scale=None, scale_time=1e3, unit=None, res=64, size=1,
                      cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
@@ -521,11 +521,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        times : float | array of floats | None.
-            The time point(s) to plot. If None, the number of ``axes``
+        times : float | array of floats | "auto" | "peaks".
+            The time point(s) to plot. If "auto", the number of ``axes``
             determines the amount of time point(s). If ``axes`` is also None,
             10 topographies will be shown with a regular time spacing between
-            the first and last time instant.
+            the first and last time instant. If "peaks", finds time points
+            automatically by checking for local maxima in Global Field Power.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are collec-
             ted in pairs and the RMS for each pair is plotted.

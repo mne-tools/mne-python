@@ -78,7 +78,7 @@ def test_plot_topomap():
     plt.close('all')
     mask = np.zeros_like(evoked.data, dtype=bool)
     mask[[1, 5], :] = True
-    evoked.plot_topomap(None, ch_type='mag', outlines=None)
+    evoked.plot_topomap(ch_type='mag', outlines=None)
     times = [0.1]
     evoked.plot_topomap(times, ch_type='eeg', res=res, scale=1)
     evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res)
@@ -86,6 +86,7 @@ def test_plot_topomap():
     evoked.plot_topomap(times, ch_type='planar2', res=res)
     evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res,
                         show_names=True, mask_params={'marker': 'x'})
+    evoked.plot_topomap("peaks")
     plt.close('all')
     assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
                   res=res, average=-1000)
