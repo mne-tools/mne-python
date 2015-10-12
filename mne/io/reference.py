@@ -196,7 +196,6 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'unit_mul': 0.,
                      'unit': FIFF.FIFF_UNIT_V,
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                     'eeg_loc': np.zeros(3),
                      'loc': np.zeros(12)}
         inst.info['chs'].append(chan_info)
     inst.info['ch_names'].extend(ref_channels)
@@ -364,8 +363,6 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         new_info = inst.info['chs'][inst.ch_names.index(an)].copy()
 
         # Set channel location and coil type
-        if 'eeg_loc' in new_info:
-            new_info['eeg_loc'] = np.zeros((3, 2))
         new_info['loc'] = np.zeros(12)
         new_info['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
 

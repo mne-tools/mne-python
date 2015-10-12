@@ -489,7 +489,6 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['eeg_loc'] = np.zeros(3)
         chan_info['loc'] = np.zeros(12)
         if ch_name in eog or idx in eog or idx - nchan in eog:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE

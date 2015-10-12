@@ -299,7 +299,6 @@ class RawEGI(_BaseRaw):
                        'coord_frame': FIFF.FIFFV_COORD_HEAD,
                        'coil_type': FIFF.FIFFV_COIL_EEG,
                        'kind': FIFF.FIFFV_EEG_CH,
-                       'eeg_loc': None,
                        'loc': np.array([0, 0, 0, 1] * 3, dtype='f4')}
             if ch_name in eog or ii in eog or ii - nchan in eog:
                 ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE

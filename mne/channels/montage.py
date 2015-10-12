@@ -515,7 +515,6 @@ def _set_montage(info, montage):
 
             ch_idx = info['ch_names'].index(ch_name)
             info['ch_names'][ch_idx] = ch_name
-            info['chs'][ch_idx]['eeg_loc'] = np.c_[pos, [0.] * 3]
             info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
             sensors_found = True
 

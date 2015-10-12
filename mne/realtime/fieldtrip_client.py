@@ -183,9 +183,7 @@ class FieldTripClient(object):
                 this_info['cal'] = 1.0
 
                 this_info['ch_name'] = ch
-                this_info['coil_trans'] = None
                 this_info['loc'] = None
-                this_info['eeg_loc'] = None
 
                 if ch.startswith('EEG'):
                     this_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD

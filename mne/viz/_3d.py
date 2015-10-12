@@ -341,10 +341,12 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     del surf_trans
 
     # determine points
-    eeg_loc = meg_loc = ext_loc = car_loc = list()
+    meg_loc = list()
+    ext_loc = list()
+    car_loc = list()
     if ch_type is None or ch_type == 'eeg':
-        eeg_loc = np.array([l['eeg_loc'][:, 0] for l in info['chs']
-                            if l['eeg_loc'] is not None])
+        eeg_loc = np.array([info['chs'][k]['loc'][:3]
+                           for k in pick_types(info, meg=False, eeg=True)])
         if len(eeg_loc) > 0:
             # Transform EEG electrodes from head coordinates if necessary
             if coord_frame == 'meg':

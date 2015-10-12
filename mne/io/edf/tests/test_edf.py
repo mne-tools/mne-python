@@ -66,9 +66,9 @@ def test_bdf_data():
     assert_array_almost_equal(data_py, data_eeglab, 8)
 
     # Manually checking that float coordinates are imported
-    assert_true((raw_py.info['chs'][0]['eeg_loc']).any())
-    assert_true((raw_py.info['chs'][25]['eeg_loc']).any())
-    assert_true((raw_py.info['chs'][63]['eeg_loc']).any())
+    assert_true((raw_py.info['chs'][0]['loc']).any())
+    assert_true((raw_py.info['chs'][25]['loc']).any())
+    assert_true((raw_py.info['chs'][63]['loc']).any())
 
     # Make sure concatenation works
     raw_concat = concatenate_raws([raw_py.copy(), raw_py])

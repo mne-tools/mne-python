@@ -9,6 +9,9 @@ from .open import fiff_open, show_fiff, _fiff_get_fid
 from .meas_info import read_fiducials, write_fiducials, read_info, write_info
 
 from .proj import make_eeg_average_ref_proj
+from .tag import _loc_to_coil_trans, _coil_trans_to_loc, _loc_to_eeg_loc
+from .base import _BaseRaw
+
 from . import array
 from . import base
 from . import brainvision
@@ -21,7 +24,6 @@ from . import kit
 from . import pick
 
 from .array import RawArray
-from .base import _BaseRaw
 from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .edf import read_raw_edf
@@ -33,7 +35,8 @@ from .fiff import read_raw_fif
 from .fiff import RawFIF
 from .fiff import RawFIF as Raw
 from .base import concatenate_raws
-from .reference import set_eeg_reference, set_bipolar_reference, add_reference_channels
+from .reference import (set_eeg_reference, set_bipolar_reference,
+                        add_reference_channels)
 from ..utils import deprecated
 
 

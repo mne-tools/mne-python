@@ -17,6 +17,7 @@ from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
 from ..base import _BaseRaw
+from .. import _coil_trans_to_loc, _loc_to_coil_trans, _BaseRaw
 from .constants import BTI
 from .read import (read_int32, read_int16, read_str, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
@@ -25,13 +26,15 @@ from .read import (read_int32, read_int16, read_str, read_float, read_double,
 from ..meas_info import _empty_info
 from ...externals import six
 
-FIFF_INFO_CHS_FIELDS = ('loc', 'ch_name', 'unit_mul', 'coil_trans',
-                        'coord_frame', 'coil_type', 'range', 'unit', 'cal',
-                        'eeg_loc', 'scanno', 'kind', 'logno')
+FIFF_INFO_CHS_FIELDS = ('loc',
+                        'ch_name', 'unit_mul', 'coord_frame', 'coil_type',
+                        'range', 'unit', 'cal',
+                        'scanno', 'kind', 'logno')
 
 FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1] * 3, dtype='f4'),
-                          None, 0, None, 0, 0, 1.0,
-                          107, 1.0, None, None, 402, None)
+                          None, 0, 0, 0,
+                          1.0, FIFF.FIFF_UNIT_V, 1.0,
+                          None, FIFF.FIFFV_ECG_CH, None)
 
 FIFF_INFO_DIG_FIELDS = ('kind', 'ident', 'r', 'coord_frame')
 FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
@@ -250,11 +253,6 @@ def _convert_coil_trans(coil_trans, dev_ctf_t, bti_dev_t):
                            'ctf_head', 'meg')
     t = np.dot(t['trans'], coil_trans)
     return t
-
-
-def _trans_to_loc(t):
-    """put coil_trans in loc vector"""
-    return np.roll(t.T[:, :3], 1, 0).flatten()
 
 
 def _correct_offset(fid):
@@ -569,7 +567,7 @@ def _read_config(fname):
                 dev = {'device_info': dev_header(fid),
                        'inductance': read_float(fid),
                        'padding': read_str(fid, 4),
-                       'transform': read_transform(fid),
+                       'transform': _correct_trans(read_transform(fid)),
                        'xform_flag': read_int16(fid),
                        'total_loops': read_int16(fid)}
 
@@ -926,8 +924,10 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         ch['upb'] = ch_cfg['units_per_bit']
         ch['gain'] = ch_cfg['gain']
         ch['name'] = ch_cfg['name']
-        ch['coil_trans'] = (ch_cfg['dev'].get('transform', None)
-                            if 'dev' in ch_cfg else None)
+        if ch_cfg.get('dev', dict()).get('transform', None) is not None:
+            ch['loc'] = _coil_trans_to_loc(ch_cfg['dev']['transform'])
+        else:
+            ch['loc'] = None
         if pdf_fname:
             if info['data_format'] <= 2:  # see DTYPES, implies integer
                 ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
@@ -1172,41 +1172,37 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         chan_info['cal'] = bti_info['chs'][idx]['scale']
 
         if any(chan_4d.startswith(k) for k in ('A', 'M', 'G')):
-            t, loc = bti_info['chs'][idx]['coil_trans'], None
-            if t is not None:
-                t = _correct_trans(t)
-                if convert:
-                    t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
-                loc = _trans_to_loc(t)
-                if idx == 1 and convert:
-                    logger.info('... putting coil transforms in Neuromag '
-                                'coordinates')
-            chan_info['coil_trans'] = t
+            loc = bti_info['chs'][idx]['loc']
             if loc is not None:
-                chan_info['loc'] = loc.astype('>f4')
+                if convert:
+                    if idx == 0:
+                        logger.info('... putting coil transforms in Neuromag '
+                                    'coordinates')
+                    t = _loc_to_coil_trans(bti_info['chs'][idx]['loc'])
+                    t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
+                    loc = _coil_trans_to_loc(t)
+            chan_info['loc'] = loc
 
+        # BTI sensors are natively stored in 4D head coords we believe
+        meg_frame = (FIFF.FIFFV_COORD_DEVIE if convert else
+                     FIFF.FIFFV_MNE_COORD_4D_HEAD)
+        eeg_frame = (FIFF.FIFFV_COORD_HEAD if convert else
+                     FIFF.FIFFV_MNE_COORD_4D_HEAD)
         if chan_4d.startswith('A'):
             chan_info['kind'] = FIFF.FIFFV_MEG_CH
             chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_MAG
-            # BTI sensors are natively stored in 4D head coords we believe
-            chan_info['coord_frame'] = (
-                FIFF.FIFFV_COORD_DEVICE if convert else
-                FIFF.FIFFV_MNE_COORD_4D_HEAD)
+            chan_info['coord_frame'] = meg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_T
 
         elif chan_4d.startswith('M'):
             chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
             chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_MAG
-            chan_info['coord_frame'] = (
-                FIFF.FIFFV_COORD_DEVICE if convert else
-                FIFF.FIFFV_MNE_COORD_4D_HEAD)
+            chan_info['coord_frame'] = meg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_T
 
         elif chan_4d.startswith('G'):
             chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
-            chan_info['coord_frame'] = (
-                FIFF.FIFFV_COORD_DEVICE if convert else
-                FIFF.FIFFV_MNE_COORD_4D_HEAD)
+            chan_info['coord_frame'] = meg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_T_M
             if chan_4d in ('GxxA', 'GyyA'):
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA
@@ -1216,9 +1212,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         elif chan_4d.startswith('EEG'):
             chan_info['kind'] = FIFF.FIFFV_EEG_CH
             chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
-            chan_info['coord_frame'] = (
-                FIFF.FIFFV_COORD_HEAD if convert else
-                FIFF.FIFFV_MNE_COORD_4D_HEAD)
+            chan_info['coord_frame'] = eeg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_V
 
         elif chan_4d == 'RESPONSE':

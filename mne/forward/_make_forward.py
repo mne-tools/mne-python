@@ -11,7 +11,7 @@ import numpy as np
 
 from .. import pick_types, pick_info
 from ..io.pick import _has_kit_refs
-from ..io import read_info
+from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc
 from ..io.meas_info import Info
 from ..io.constants import FIFF
 from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
@@ -128,7 +128,7 @@ def _create_meg_coil(coilset, ch, acc, t):
                            '(type = %d acc = %d)' % (ch['coil_type'], acc))
 
     # Apply a coordinate transformation if so desired
-    coil_trans = np.dot(t['trans'], ch['coil_trans'])
+    coil_trans = np.dot(t['trans'], _loc_to_coil_trans(ch['loc']))
 
     # Create the result
     res = dict(chname=ch['ch_name'], coil_class=coil['coil_class'],
@@ -151,7 +151,7 @@ def _create_eeg_el(ch, t=None):
     if t.from_str != 'head':
         raise RuntimeError('Inappropriate coordinate transformation')
 
-    r0ex = ch['eeg_loc'][:, :2]
+    r0ex = _loc_to_eeg_loc(ch['loc'])
     if r0ex.shape[1] == 1:  # no reference
         w = np.array([1.])
     else:  # has reference

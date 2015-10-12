@@ -142,8 +142,6 @@ def test_plot_topomap():
     plt.close('all')
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
-            if ch['eeg_loc'] is not None:
-                ch['eeg_loc'].fill(0)
             ch['loc'].fill(0)
 
     # Remove extra digitization point, so EEG digitization points

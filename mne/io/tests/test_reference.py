@@ -166,7 +166,7 @@ def test_set_bipolar_reference():
     bp_info = reref.info['chs'][reref.ch_names.index('bipolar')]
     an_info = reref.info['chs'][raw.ch_names.index('EEG 001')]
     for key in bp_info:
-        if key == 'loc' or key == 'eeg_loc':
+        if key == 'loc':
             assert_array_equal(bp_info[key], 0)
         elif key == 'coil_type':
             assert_equal(bp_info[key], FIFF.FIFFV_COIL_EEG_BIPOLAR)

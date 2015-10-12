@@ -4,15 +4,15 @@ import os.path as op
 
 from nose.tools import assert_false, assert_equal, assert_raises, assert_true
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 
-from mne import io, Epochs, read_events
-from mne.io import read_fiducials, write_fiducials
+from mne import Epochs, read_events
+from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
+                    _loc_to_coil_trans, Raw, read_info, write_info)
 from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _read_dig_points, _make_dig_points)
-from mne.utils import _TempDir
-from mne.io.kit.tests import data_dir
+from mne.utils import _TempDir, run_tests_if_main
 from mne.channels.montage import read_montage, read_dig_montage
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -21,8 +21,19 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 chpi_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
-hsp_fname = op.join(data_dir, 'test_hsp.txt')
-elp_fname = op.join(data_dir, 'test_elp.txt')
+kit_data_dir = op.join(op.dirname(__file__), '..', 'kit', 'tests', 'data')
+hsp_fname = op.join(kit_data_dir, 'test_hsp.txt')
+elp_fname = op.join(kit_data_dir, 'test_elp.txt')
+
+
+def test_coil_trans():
+    """Test loc<->coil_trans functions"""
+    rng = np.random.RandomState(0)
+    x = rng.randn(4, 4)
+    x[3] = [0, 0, 0, 1]
+    assert_allclose(_loc_to_coil_trans(_coil_trans_to_loc(x)), x)
+    x = rng.randn(12)
+    assert_allclose(_coil_trans_to_loc(_loc_to_coil_trans(x)), x)
 
 
 def test_make_info():
@@ -97,7 +108,7 @@ def test_fiducials_io():
 
 def test_info():
     """Test info object"""
-    raw = io.Raw(raw_fname)
+    raw = Raw(raw_fname)
     event_id, tmin, tmax = 1, -0.2, 0.5
     events = read_events(event_name)
     event_id = int(events[0, 2])
@@ -127,24 +138,24 @@ def test_read_write_info():
     """Test IO of info
     """
     tempdir = _TempDir()
-    info = io.read_info(raw_fname)
+    info = read_info(raw_fname)
     temp_file = op.join(tempdir, 'info.fif')
     # check for bug `#1198`
     info['dev_head_t']['trans'] = np.eye(4)
     t1 = info['dev_head_t']['trans']
-    io.write_info(temp_file, info)
-    info2 = io.read_info(temp_file)
+    write_info(temp_file, info)
+    info2 = read_info(temp_file)
     t2 = info2['dev_head_t']['trans']
     assert_true(len(info['chs']) == len(info2['chs']))
     assert_array_equal(t1, t2)
     # proc_history (e.g., GH#1875)
     creator = u'é'
-    info = io.read_info(chpi_fname)
+    info = read_info(chpi_fname)
     info['proc_history'][0]['creator'] = creator
     info['hpi_meas'][0]['creator'] = creator
     info['subject_info']['his_id'] = creator
-    io.write_info(temp_file, info)
-    info = io.read_info(temp_file)
+    write_info(temp_file, info)
+    info = read_info(temp_file)
     assert_equal(info['proc_history'][0]['creator'], creator)
     assert_equal(info['hpi_meas'][0]['creator'], creator)
     assert_equal(info['subject_info']['his_id'], creator)
@@ -196,3 +207,5 @@ def test_make_dig_points():
                   dig_points[:, :2])
     assert_raises(ValueError, _make_dig_points, None, None, None, None,
                   dig_points[:, :2])
+
+run_tests_if_main()
