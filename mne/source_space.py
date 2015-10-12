@@ -2332,6 +2332,8 @@ def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
         The destination subject.
     surf : str
         The brain surface to use for the new source space.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
