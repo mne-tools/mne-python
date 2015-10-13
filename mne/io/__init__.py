@@ -6,7 +6,8 @@
 # License: BSD (3-clause)
 
 from .open import fiff_open, show_fiff, _fiff_get_fid
-from .meas_info import read_fiducials, write_fiducials, read_info, write_info
+from .meas_info import (read_fiducials, write_fiducials, read_info, write_info,
+                        _empty_info)
 
 from .proj import make_eeg_average_ref_proj
 from .tag import _loc_to_coil_trans, _coil_trans_to_loc, _loc_to_eeg_loc

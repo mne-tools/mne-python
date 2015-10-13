@@ -12,7 +12,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne.io import Raw as Raw, read_raw_bti
+from mne.io import Raw, read_raw_bti
 from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_data, _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info)
@@ -215,10 +215,10 @@ def test_no_conversion():
         for ii, ch_label in enumerate(raw_info['ch_names']):
             if not ch_label.startswith('A'):
                 continue
-            t1 = _correct_trans(ch_map[ch_label])
+            t1 = ch_map[ch_label]  # correction already performed in bti_info
             t2 = raw_info['chs'][ii]['loc']
             t3 = raw_info_con['chs'][ii]['loc']
-            assert_array_equal(t1, t2)
+            assert_allclose(t1, t2, atol=1e-15)
             assert_true(not np.allclose(t1, t3))
             idx_a = raw_info_con['ch_names'].index('MEG 001')
             idx_b = raw_info['ch_names'].index('A22')

@@ -16,14 +16,12 @@ from ...utils import logger, verbose, sum_squared
 from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
-from ..base import _BaseRaw
-from .. import _coil_trans_to_loc, _loc_to_coil_trans, _BaseRaw
+from .. import _BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
 from .constants import BTI
 from .read import (read_int32, read_int16, read_str, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix)
-from ..meas_info import _empty_info
 from ...externals import six
 
 FIFF_INFO_CHS_FIELDS = ('loc',
@@ -1184,7 +1182,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
             chan_info['loc'] = loc
 
         # BTI sensors are natively stored in 4D head coords we believe
-        meg_frame = (FIFF.FIFFV_COORD_DEVIE if convert else
+        meg_frame = (FIFF.FIFFV_COORD_DEVICE if convert else
                      FIFF.FIFFV_MNE_COORD_4D_HEAD)
         eeg_frame = (FIFF.FIFFV_COORD_HEAD if convert else
                      FIFF.FIFFV_MNE_COORD_4D_HEAD)
