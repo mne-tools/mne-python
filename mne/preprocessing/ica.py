@@ -712,9 +712,8 @@ class ICA(ContainsMixin):
                                 kind=FIFF.FIFFV_MISC_CH,
                                 coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
                                 loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
-                                unit=FIFF.FIFF_UNIT_NONE, eeg_loc=None,
-                                range=1.0, scanno=ii + 1, unit_mul=0,
-                                coil_trans=None))
+                                unit=FIFF.FIFF_UNIT_NONE,
+                                range=1.0, scanno=ii + 1, unit_mul=0))
 
         if add_channels is not None:
             # re-append additionally picked ch_names

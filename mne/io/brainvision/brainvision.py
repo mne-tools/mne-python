@@ -442,9 +442,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
             unit = FIFF.FIFF_UNIT_V
         info['chs'].append(dict(
             ch_name=ch_name, coil_type=coil_type, kind=kind, logno=idx + 1,
-            scanno=idx + 1, cal=cals[idx], range=ranges[idx],
-            eeg_loc=np.zeros(3), loc=np.zeros(12), unit=unit,
-            unit_mul=0.,  # always zero- mne manual pg. 273
+            scanno=idx + 1, cal=cals[idx], range=ranges[idx], loc=np.zeros(12),
+            unit=unit, unit_mul=0.,  # always zero- mne manual pg. 273
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     # for stim channel

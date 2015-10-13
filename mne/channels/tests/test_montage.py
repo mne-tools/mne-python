@@ -125,9 +125,7 @@ def test_montage():
     info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
     _set_montage(info, montage)
     pos2 = np.array([c['loc'][:3] for c in info['chs']])
-    pos3 = np.array([c['eeg_loc'][:, 0] for c in info['chs']])
     assert_array_equal(pos2, montage.pos)
-    assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, info['ch_names'])
 
     info = create_info(
@@ -136,10 +134,8 @@ def test_montage():
     evoked = EvokedArray(
         data=np.zeros((len(montage.ch_names), 1)), info=info, tmin=0)
     evoked.set_montage(montage)
-    pos4 = np.array([c['loc'][:3] for c in evoked.info['chs']])
-    pos5 = np.array([c['eeg_loc'][:, 0] for c in evoked.info['chs']])
-    assert_array_equal(pos4, montage.pos)
-    assert_array_equal(pos5, montage.pos)
+    pos3 = np.array([c['loc'][:3] for c in evoked.info['chs']])
+    assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, evoked.info['ch_names'])
 
 

@@ -91,7 +91,7 @@ def test_magnetic_dipole():
     # magnetic dipole at device origin
     r0 = np.array([0., 13., -6.])
     for ch, coil in zip(info['chs'], coils):
-        rr = (ch['coil_trans'][:3, 3] + r0) / 2.
+        rr = (ch['loc'][:3] + r0) / 2.
         far_fwd = _magnetic_dipole_field_vec(r0[np.newaxis, :], [coil])
         near_fwd = _magnetic_dipole_field_vec(rr[np.newaxis, :], [coil])
         ratio = 8. if ch['ch_name'][-1] == '1' else 16.  # grad vs mag

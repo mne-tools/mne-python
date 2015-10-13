@@ -24,7 +24,6 @@ from ..base import _BaseRaw
 from ...epochs import _BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
-from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
 from ...externals.six import string_types
@@ -675,7 +674,6 @@ def get_kit_info(rawfile):
             else:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_REF_MAG
                 chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
-            chan_info['eeg_loc'] = None
 
             # create three orthogonal vector
             # ch_angles[0]: theta, ch_angles[1]: phi
@@ -704,7 +702,6 @@ def get_kit_info(rawfile):
             vecs = np.vstack((vec_x, vec_y, vec_z))
             vecs = apply_trans(als_ras_trans, vecs)
             chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
-            chan_info['coil_trans'] = _loc_to_trans(chan_info['loc'])
             info['chs'].append(chan_info)
 
         # label trigger and misc channels

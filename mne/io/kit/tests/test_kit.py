@@ -142,9 +142,6 @@ def test_ch_loc():
         if bin_ch['ch_name'].startswith('MEG'):
             # the stored ch locs have more precision than the sns.txt
             assert_array_almost_equal(py_ch['loc'], bin_ch['loc'], decimal=2)
-            assert_array_almost_equal(py_ch['coil_trans'],
-                                      bin_ch['coil_trans'],
-                                      decimal=2)
 
     # test when more than one marker file provided
     mrks = [mrk_path, mrk2_path, mrk3_path]

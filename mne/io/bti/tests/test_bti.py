@@ -12,7 +12,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne.io import Raw as Raw, read_raw_bti
+from mne.io import Raw, read_raw_bti
 from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_data, _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info)
@@ -115,7 +115,7 @@ def test_raw():
         dig1, dig2 = [np.array([d['r'] for d in r_.info['dig']])
                       for r_ in (ra, ex)]
         assert_array_almost_equal(dig1, dig2, 18)
-        coil1, coil2 = [np.concatenate([d['coil_trans'].flatten()
+        coil1, coil2 = [np.concatenate([d['loc'].flatten()
                         for d in r_.info['chs'][:NCH]])
                         for r_ in (ra, ex)]
         assert_array_almost_equal(coil1, coil2, 7)
@@ -123,7 +123,7 @@ def test_raw():
         loc1, loc2 = [np.concatenate([d['loc'].flatten()
                       for d in r_.info['chs'][:NCH]])
                       for r_ in (ra, ex)]
-        assert_array_equal(loc1, loc2)
+        assert_allclose(loc1, loc2)
 
         assert_array_equal(ra._data[:NCH], ex._data[:NCH])
         assert_array_equal(ra._cals[:NCH], ex._cals[:NCH])
@@ -210,15 +210,15 @@ def test_no_conversion():
                 break
 
         ch_map = dict((ch['chan_label'],
-                       ch['coil_trans']) for ch in bti_info['chs'])
+                       ch['loc']) for ch in bti_info['chs'])
 
         for ii, ch_label in enumerate(raw_info['ch_names']):
             if not ch_label.startswith('A'):
                 continue
-            t1 = _correct_trans(ch_map[ch_label])
-            t2 = raw_info['chs'][ii]['coil_trans']
-            t3 = raw_info_con['chs'][ii]['coil_trans']
-            assert_array_equal(t1, t2)
+            t1 = ch_map[ch_label]  # correction already performed in bti_info
+            t2 = raw_info['chs'][ii]['loc']
+            t3 = raw_info_con['chs'][ii]['loc']
+            assert_allclose(t1, t2, atol=1e-15)
             assert_true(not np.allclose(t1, t3))
             idx_a = raw_info_con['ch_names'].index('MEG 001')
             idx_b = raw_info['ch_names'].index('A22')
