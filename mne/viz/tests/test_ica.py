@@ -64,7 +64,8 @@ def test_plot_ica_components():
         for components in [0, [0], [0, 1], [0, 1] * 2, None]:
             ica.plot_components(components, image_interp='bilinear', res=16)
     ica.info = None
-    assert_raises(RuntimeError, ica.plot_components, 1)
+    assert_raises(ValueError, ica.plot_components, 1)
+    assert_raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
     plt.close('all')
 
 
