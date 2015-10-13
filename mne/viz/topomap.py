@@ -1601,7 +1601,7 @@ def _find_peaks(evoked):
     """
     from scipy.signal import argrelmax
     gfp = evoked.data.std(axis=0)
-    order = len(evoked.times) / 30
+    order = len(evoked.times) // 30
     if order < 1:
         order = 1
     peaks = argrelmax(gfp, order=order, axis=0)[0]
