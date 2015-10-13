@@ -1020,7 +1020,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         the amount of time point(s). If ``axes`` is also None, 10 topographies
         will be shown with a regular time spacing between the first and last
         time instant. If "peaks", finds time points automatically by checking
-        for local maxima in Global Field Power.
+        for local maxima in global field power.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.
@@ -1137,20 +1137,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         axes = [axes]
 
     if times == "peaks":
-        from scipy.signal import argrelmax
-        gfp = evoked.data.std(axis=0)
-        order = len(evoked.times) / 30
-        if order < 1:
-            order = 1
-        peaks = argrelmax(gfp, order=order, axis=0)[0]
-        if len(peaks) > 10:  # Find the largest 10 peaks
-            max_indices = np.argsort([gfp[idx] for idx in peaks])[-10:]
-            peaks = np.sort(peaks[max_indices])
-        times = evoked.times[peaks]
-        if len(times) == 0:
-            times = evoked.times[gfp.argmax()]
-
-    if times == "auto":
+        times = _find_peaks(evoked)
+    elif times == "auto":
         if axes is None:
             times = np.linspace(evoked.times[0], evoked.times[-1], 10)
         else:
@@ -1605,3 +1593,22 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     fig[0].canvas.draw()
     plt.figure(fig[0].number)
     plt.show()
+
+
+def _find_peaks(evoked):
+    """Helper function for finding peaks from evoked data.
+    Returns max 10 peaks as a list of time points.
+    """
+    from scipy.signal import argrelmax
+    gfp = evoked.data.std(axis=0)
+    order = len(evoked.times) / 30
+    if order < 1:
+        order = 1
+    peaks = argrelmax(gfp, order=order, axis=0)[0]
+    if len(peaks) > 10:  # Find the largest 10 peaks
+        max_indices = np.argsort(gfp[peaks])[-10:]
+        peaks = np.sort(peaks[max_indices])
+    times = evoked.times[peaks]
+    if len(times) == 0:
+        times = [evoked.times[gfp.argmax()]]
+    return times

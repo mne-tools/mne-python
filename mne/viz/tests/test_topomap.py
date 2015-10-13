@@ -22,7 +22,8 @@ from mne.time_frequency.tfr import AverageTFR
 from mne.utils import slow_test
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
-from mne.viz.topomap import _check_outlines, _onselect, plot_topomap
+from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap,
+                             _find_peaks)
 
 # Set our plotters to test mode
 import matplotlib
@@ -86,7 +87,6 @@ def test_plot_topomap():
     evoked.plot_topomap(times, ch_type='planar2', res=res)
     evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res,
                         show_names=True, mask_params={'marker': 'x'})
-    evoked.plot_topomap("peaks")
     plt.close('all')
     assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
                   res=res, average=-1000)
@@ -101,6 +101,7 @@ def test_plot_topomap():
     assert_true(all('MEG' not in x.get_text()
                     for x in subplot.get_children()
                     if isinstance(x, matplotlib.text.Text)))
+    _find_peaks(evoked)
 
     # Test title
     def get_texts(p):
@@ -213,6 +214,15 @@ def test_plot_topomap():
     pos_xywh = np.c_[pos, np.zeros((n_channels, 2))]
     plot_topomap(data, pos_xywh)
     plt.close('all')
+
+    # Test peak finder
+    evoked.data = np.zeros(evoked.data.shape)
+    evoked.data[50][1] = 1
+    assert_array_equal(_find_peaks(evoked), evoked.times[1])
+    evoked.data[80][100] = 1
+    assert_array_equal(_find_peaks(evoked), evoked.times[[1, 100]])
+    evoked.data[2][95] = 2
+    assert_array_equal(_find_peaks(evoked), evoked.times[[1, 95]])
 
 
 def test_plot_tfr_topomap():
