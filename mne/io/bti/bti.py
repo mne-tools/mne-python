@@ -905,7 +905,7 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     # augment channel list by according info from config.
     # get channels from config present in PDF
     chans = info.get('chs', None)
-    if chans:
+    if chans is not None:
         chans_cfg = [c for c in cfg['chs'] if c['chan_no']
                      in [c_['chan_no'] for c_ in chans]]
 
@@ -929,9 +929,9 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         ch['coil_trans'] = (ch_cfg['dev'].get('transform', None)
                             if 'dev' in ch_cfg else None)
         if pdf_fname:
-            if info['data_format'] <= 2:
-                ch['cal'] = ch['scale'] * ch['upb'] * (ch['gain'] ** -1)
-            else:
+            if info['data_format'] <= 2:  # see DTYPES, implies integer
+                ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
+            else:  # float
                 ch['cal'] = ch['scale'] * ch['gain']
         else:
             ch['scale'] = 1.0
@@ -1085,7 +1085,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                   translation, convert, ecg_ch, eog_ch, rename_channels=True,
                   sort_by_ch_name=True):
 
-    if not isinstance(pdf_fname, six.BytesIO) and pdf_fname is not None:
+    if pdf_fname is not None and not isinstance(pdf_fname, six.BytesIO):
         if not op.isabs(pdf_fname):
             pdf_fname = op.abspath(pdf_fname)
 
@@ -1129,7 +1129,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     use_hpi = False  # hard coded, but marked as later option.
     logger.info('Creating Neuromag info structure ...')
     info = _empty_info()
-    if pdf_fname:
+    if pdf_fname is not None:
         date = bti_info['processes'][0]['timestamp']
         info['meas_date'] = [date, 0]
         info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
@@ -1188,6 +1188,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         if chan_4d.startswith('A'):
             chan_info['kind'] = FIFF.FIFFV_MEG_CH
             chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_MAG
+            # BTI sensors are natively stored in 4D head coords we believe
             chan_info['coord_frame'] = (
                 FIFF.FIFFV_COORD_DEVICE if convert else
                 FIFF.FIFFV_MNE_COORD_4D_HEAD)

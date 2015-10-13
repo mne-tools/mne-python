@@ -12,15 +12,13 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne.io import Raw as Raw
+from mne.io import Raw as Raw, read_raw_bti
 from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_data, _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info)
-from mne.io import read_raw_bti
-from mne import pick_types
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
-from mne import concatenate_raws
+from mne import concatenate_raws, pick_types
 from mne.utils import run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
 from mne.externals import six
