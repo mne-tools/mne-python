@@ -78,7 +78,7 @@ def test_spherical_harmonics():
                           np.linspace(0, np.pi, 20), indexing='ij')
     for deg in range(1, int_order):
         for order in range(0, deg + 1):
-            sph = _sph_harm(order, deg, az, pol)
+            sph = _sph_harm(order, deg, az, pol, norm=True)
             # ensure that we satisfy the conjugation property
             assert_allclose(_sh_negate(sph, order),
                             _sph_harm(-order, deg, az, pol))

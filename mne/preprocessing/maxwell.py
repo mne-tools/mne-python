@@ -240,7 +240,13 @@ def _check_finite(data):
         raise RuntimeError('data contains non-finite numbers')
 
 
-def _sph_harm(order, degree, az, pol):
+def _sph_harm_norm(order, degree):
+    """Normalization factor for spherical harmonics"""
+    return np.sqrt((2 * degree + 1) / (4 * np.pi) *
+                   factorial(degree - order) / factorial(degree + order))
+
+
+def _sph_harm(order, degree, az, pol, norm=True):
     """Evaluate point in specified multipolar moment. [1]_ Equation 4.
 
     When using, pay close attention to inputs. Spherical harmonic notation for
@@ -264,6 +270,8 @@ def _sph_harm(order, degree, az, pol):
     pol : float
         Polar (or colatitudinal) spherical coordinate [0, pi]. 0 is aligned
         with z-axis.
+    norm : bool
+        If True, include normalization factor.
 
     Returns
     -------
@@ -283,9 +291,11 @@ def _sph_harm(order, degree, az, pol):
     if(pol < 0).any() or (pol > np.pi).any():
         raise ValueError('Polar coords must lie in [0, pi]')
     # This is the "seismology" convention on Wikipedia, w/o Condon-Shortley
-    return (np.sqrt((2 * degree + 1) / (4 * np.pi) *
-                    factorial(degree - order) / factorial(degree + order)) *
-            lpmv(order, degree, np.cos(pol)) * np.exp(1j * order * az))
+    if norm:
+        norm = _sph_harm_norm(order, degree)
+    else:
+        norm = 1.
+    return norm * lpmv(order, degree, np.cos(pol)) * np.exp(1j * order * az)
 
 
 def _sss_basis(origin, coils, int_order, ext_order):
@@ -337,42 +347,50 @@ def _sss_basis(origin, coils, int_order, ext_order):
     # Compute position vector between origin and coil integration pts
     cvec_cart = r_int_pts - origin[np.newaxis, :]
     # Convert points to spherical coordinates
-    cvec_sp = _cart_to_sph(cvec_cart).T
+    c_sp = _cart_to_sph(cvec_cart).T
 
     # Compute internal/external basis vectors (exclude degree 0; L/RHS Eq. 5)
-    for spc, g_func, exp_order in zip([S_in, S_out],
-                                      [_grad_in_comps, _grad_out_comps],
-                                      [int_order, ext_order]):
-        for deg in range(1, exp_order + 1):
-            for order in range(deg + 1):
+    for degree in range(1, max(int_order, ext_order) + 1):
+        # Only loop over positive orders, negative orders are handled
+        # for efficiency within
+        for order in range(degree + 1):
+            S_in_out = list()
+            grads_in_out = list()
+            # Same spherical harmonic is used for both internal and external
+            sph = _sph_harm(order, degree, c_sp[1], c_sp[2], norm=False)
+            norm = _sph_harm_norm(order, degree)
+            sph *= norm
+            if degree <= int_order:
+                S_in_out.append(S_in)
                 # Compute complex gradient for all integration points
-                grads = g_func(order, deg, cvec_sp[0], cvec_sp[1], cvec_sp[2])
-                # We could convert this at the end, but it's more efficient
+                grads_in_out.append(_grad_in_comps(order, degree, sph, norm,
+                                                   c_sp[0], c_sp[1], c_sp[2]))
+            if degree <= ext_order:
+                S_in_out.append(S_out)
+                grads_in_out.append(_grad_out_comps(order, degree, sph, norm,
+                                                    c_sp[0], c_sp[1], c_sp[2]))
+            for spc, grads in zip(S_in_out, grads_in_out):
+                # We could convert to real at the end, but it's more efficient
                 # to do it now
-                grads_pos = _sh_complex_to_real(grads, order)
-                # Gradients dotted with integration point normals and weighted
-                grads_pos = wcoils * np.einsum('ij,ij->i', grads_pos, ncoils,
-                                               order='C')
+                grads_pos_neg = [_sh_complex_to_real(grads, order)]
+                orders_pos_neg = [order]
+                # Deal with the negative orders
                 if order > 0:
                     # it's faster to use the conjugation property for
                     # our normalized spherical harmonics than recalculate...
-                    grads_neg = _sh_negate(grads, order)
-                    grads_neg = _sh_complex_to_real(grads_neg, -order)
-                    grads_neg = wcoils * np.einsum('ij,ij->i', grads_neg,
-                                                   ncoils, order='C')
-                    grads = (grads_pos, grads_neg)
-                    orders = (order, -order)
-                else:
-                    grads = (grads_pos,)
-                    orders = (order,)
-                for gr, oo in zip(grads, orders):
+                    grads_pos_neg.append(_sh_complex_to_real(
+                        _sh_negate(grads, order), -order))
+                    orders_pos_neg.append(-order)
+                for gr, oo in zip(grads_pos_neg, orders_pos_neg):
+                    # Gradients dotted w/integration point normals and weighted
+                    gr = wcoils * np.einsum('ij,ij->i', gr, ncoils, order='C')
                     # For order/degree, sum over each sensor's integration pts
                     # for pt_i in range(0, len(int_lens) - 1):
                     #  int_pts_sum = \
                     #    np.sum(all_grads[int_lens[pt_i]:int_lens[pt_i + 1]])
                     #  spc[pt_i, deg ** 2 + deg + oo - 1] = int_pts_sum
                     vals = np.bincount(bins, weights=gr, minlength=len(counts))
-                    spc[:, _deg_order_idx(deg, oo)] = -vals
+                    spc[:, _deg_order_idx(degree, oo)] = -vals
 
     # Scale magnetometers
     S_tot *= coil_scale[:, np.newaxis]
@@ -390,11 +408,11 @@ def _alegendre_deriv(order, degree, val):
     Parameters
     ----------
     order : int
-        Order of spherical harmonic. (Usually) corresponds to 'm'
+        Order of spherical harmonic. (Usually) corresponds to 'm'.
     degree : int
-        Degree of spherical harmonic. (Usually) corresponds to 'l'
+        Degree of spherical harmonic. (Usually) corresponds to 'l'.
     val : float
-        Value to evaluate the derivative at
+        Value to evaluate the derivative at.
 
     Returns
     -------
@@ -402,18 +420,13 @@ def _alegendre_deriv(order, degree, val):
         Associated Legendre function derivative
     """
     from scipy.special import lpmv
-
-    C = 1
-    if order < 0:
-        order = abs(order)
-        C = (-1) ** order * factorial(degree - order) / factorial(degree +
-                                                                  order)
-    return C * (order * val * lpmv(order, degree, val) + (degree + order) *
-                (degree - order + 1) * np.sqrt(1 - val ** 2) *
-                lpmv(order - 1, degree, val)) / (1 - val ** 2)
+    assert order >= 0
+    return (order * val * lpmv(order, degree, val) + (degree + order) *
+            (degree - order + 1.) * np.sqrt(1. - val * val) *
+            lpmv(order - 1, degree, val)) / (1. - val * val)
 
 
-def _grad_in_comps(order, degree, rad, az, pol):
+def _grad_in_comps(order, degree, sph, norm, rad, az, pol):
     """Compute gradient of internal component of V(r) spherical expansion.
 
     Internal component has form: Ylm(pol, az) / (rad ** (degree + 1))
@@ -421,9 +434,13 @@ def _grad_in_comps(order, degree, rad, az, pol):
     Parameters
     ----------
     order : int
-        Order of spherical harmonic. (Usually) corresponds to 'm'
+        Order of spherical harmonic. (Usually) corresponds to 'm'.
     degree : int
-        Degree of spherical harmonic. (Usually) corresponds to 'l'
+        Degree of spherical harmonic. (Usually) corresponds to 'l'.
+    sph : ndarary, shape (n_samples,)
+        The spherical harmonics.
+    norm : float
+        The normalization factor.
     rad : ndarray, shape (n_samples,)
         Array of radii
     az : ndarray, shape (n_samples,)
@@ -440,21 +457,19 @@ def _grad_in_comps(order, degree, rad, az, pol):
         coordinates
     """
     # Compute gradients for all spherical coordinates (Eq. 6)
-    rad_deg_2 = rad ** (degree + 2)
-    sph = _sph_harm(order, degree, az, pol)
-    g_rad = (-(degree + 1) / rad_deg_2 * sph)
-    g_az = (1 / (rad_deg_2 * np.sin(pol)) * 1j * order * sph)
-    g_pol = (1 / rad_deg_2 *
-             np.sqrt((2 * degree + 1) * factorial(degree - order) /
-                     (4 * np.pi * factorial(degree + order))) *
-             np.sin(-pol) * _alegendre_deriv(order, degree, np.cos(pol)) *
+    rad_deg_p2 = rad ** (degree + 2)
+    sin_pol = np.sin(pol)
+    g_rad = (-(degree + 1) / rad_deg_p2 * sph)
+    g_az = (1 / (rad_deg_p2 * sin_pol) * 1j * order * sph)
+    g_pol = (-1 / rad_deg_p2 * norm * sin_pol *
+             _alegendre_deriv(order, degree, np.cos(pol)) *
              np.exp(1j * order * az))
 
     # Get real component of vectors, convert to cartesian coords, and return
     return _sph_to_cart_partials(az, pol, np.c_[g_rad, g_az, g_pol])
 
 
-def _grad_out_comps(order, degree, rad, az, pol):
+def _grad_out_comps(order, degree, sph, norm, rad, az, pol):
     """Compute gradient of external component of V(r) spherical expansion.
 
     External component has form: Ylm(azimuth, polar) * (radius ** degree)
@@ -482,13 +497,11 @@ def _grad_out_comps(order, degree, rad, az, pol):
     """
     # Compute gradients for all spherical coordinates (Eq. 7)
     rad_deg_m1 = rad ** (degree - 1)
-    sph = _sph_harm(order, degree, az, pol)
+    sin_pol = np.sin(pol)
     g_rad = degree * rad_deg_m1 * sph
-    g_az = rad_deg_m1 / np.sin(pol) * 1j * order * sph
-    g_pol = (rad ** (degree - 1) *
-             np.sqrt((2 * degree + 1) * factorial(degree - order) /
-                     (4 * np.pi * factorial(degree + order))) *
-             np.sin(-pol) * _alegendre_deriv(order, degree, np.cos(pol)) *
+    g_az = rad_deg_m1 / sin_pol * 1j * order * sph
+    g_pol = (-rad_deg_m1 * norm * sin_pol *
+             _alegendre_deriv(order, degree, np.cos(pol)) *
              np.exp(1j * order * az))
 
     # Get real component of vectors, convert to cartesian coords, and return
