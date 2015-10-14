@@ -23,7 +23,7 @@ from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _prepare_for_forward, _prep_meg_channels,
                        _compute_forwards, _to_forward_dict)
 from ..transforms import _get_mri_head_t, transform_surface_to
-from ..source_space import read_source_spaces, _points_outside_surface
+from ..source_space import _ensure_src, _points_outside_surface
 from ..source_estimate import _BaseSourceEstimate
 from ..utils import logger, verbose, check_random_state
 from ..externals.six import string_types
@@ -221,8 +221,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         assert offsets[-2] != offsets[-1]
         del ts
 
-    if isinstance(src, string_types):
-        src = read_source_spaces(src, verbose=False)
+    src = _ensure_src(src, verbose=False)
     if isinstance(bem, string_types):
         bem = read_bem_solution(bem, verbose=False)
     if isinstance(cov, string_types):

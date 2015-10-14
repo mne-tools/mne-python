@@ -20,8 +20,7 @@ from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_mri_head_t, _print_coord_trans,
                           _coord_frame_name, Transform)
 from ..utils import logger, verbose
-from ..source_space import (read_source_spaces, _filter_source_spaces,
-                            SourceSpaces)
+from ..source_space import _ensure_src, _filter_source_spaces
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
@@ -358,18 +357,8 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
 
     # Read the source locations
     logger.info('')
-
-    if not isinstance(src, string_types):
-        if not isinstance(src, SourceSpaces):
-            raise TypeError('src must be a string or SourceSpaces')
-        # let's make a copy in case we modify something
-        src = src.copy()
-    else:
-        if not op.isfile(src):
-            raise IOError('Source space file "%s" not found' % src)
-        logger.info('Reading %s...' % src)
-        src = read_source_spaces(src, verbose=False)
-
+    # let's make a copy in case we modify something
+    src = _ensure_src(src).copy()
     nsource = sum(s['nuse'] for s in src)
     if nsource == 0:
         raise RuntimeError('No sources are active in these source spaces. '

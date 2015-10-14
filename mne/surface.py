@@ -11,7 +11,7 @@ from struct import pack
 from glob import glob
 
 import numpy as np
-from scipy import sparse
+from scipy.sparse import coo_matrix, csr_matrix, eye as speye
 
 from .bem import read_bem_surfaces
 from .io.constants import FIFF
@@ -925,7 +925,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
                             '%s.sphere.reg' % hemi)
             from_pts = read_surface(fname, verbose=False)[0]
             n_pts = len(from_pts)
-            morph_maps.append(sparse.eye(n_pts, n_pts, format='csr'))
+            morph_maps.append(speye(n_pts, n_pts, format='csr'))
         return morph_maps
 
     for hemi in ['lh', 'rh']:
@@ -958,9 +958,8 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
 
         nn_tris = from_tris[nn_tri_inds]
         row_ind = np.repeat(np.arange(n_to_pts), 3)
-        this_map = sparse.csr_matrix((nn_tris_weights,
-                                     (row_ind, nn_tris.ravel())),
-                                     shape=(n_to_pts, n_from_pts))
+        this_map = csr_matrix((nn_tris_weights, (row_ind, nn_tris.ravel())),
+                              shape=(n_to_pts, n_from_pts))
         morph_maps.append(this_map)
 
     return morph_maps
@@ -1056,3 +1055,59 @@ def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
     ii = np.argmin(np.abs(dists))
     p, q, pt, dist = pp[ii], qq[ii], pt_tris[ii % len(pt_tris)], dists[ii]
     return p, q, pt, dist
+
+
+def mesh_edges(tris):
+    """Returns sparse matrix with edges as an adjacency matrix
+
+    Parameters
+    ----------
+    tris : array of shape [n_triangles x 3]
+        The triangles.
+
+    Returns
+    -------
+    edges : sparse matrix
+        The adjacency matrix.
+    """
+    if np.max(tris) > len(np.unique(tris)):
+        raise ValueError('Cannot compute connectivity on a selection of '
+                         'triangles.')
+
+    npoints = np.max(tris) + 1
+    ones_ntris = np.ones(3 * len(tris))
+
+    a, b, c = tris.T
+    x = np.concatenate((a, b, c))
+    y = np.concatenate((b, c, a))
+    edges = coo_matrix((ones_ntris, (x, y)), shape=(npoints, npoints))
+    edges = edges.tocsr()
+    edges = edges + edges.T
+    return edges
+
+
+def mesh_dist(tris, vert):
+    """Compute adjacency matrix weighted by distances
+
+    It generates an adjacency matrix where the entries are the distances
+    between neighboring vertices.
+
+    Parameters
+    ----------
+    tris : array (n_tris x 3)
+        Mesh triangulation
+    vert : array (n_vert x 3)
+        Vertex locations
+
+    Returns
+    -------
+    dist_matrix : scipy.sparse.csr_matrix
+        Sparse matrix with distances between adjacent vertices
+    """
+    edges = mesh_edges(tris).tocoo()
+
+    # Euclidean distances between neighboring vertices
+    dist = np.sqrt(np.sum((vert[edges.row, :] - vert[edges.col, :]) ** 2,
+                          axis=1))
+    dist_matrix = csr_matrix((dist, (edges.row, edges.col)), shape=edges.shape)
+    return dist_matrix

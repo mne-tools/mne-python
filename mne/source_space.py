@@ -22,8 +22,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
                       _read_surface_geom, _normalize_vectors,
                       _complete_surface_info, _compute_nearest,
-                      fast_cross_3d, _fast_cross_nd_sum)
-from .source_estimate import mesh_dist
+                      fast_cross_3d, _fast_cross_nd_sum, mesh_dist)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
                     check_scipy_version, _get_call_line)
@@ -486,10 +485,8 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
 
         src.append(this)
 
-    src = SourceSpaces(src)
     logger.info('    %d source spaces read' % len(spaces))
-
-    return src
+    return SourceSpaces(src)
 
 
 @verbose
@@ -2108,6 +2105,19 @@ def _get_solids(tri_rrs, fros):
 
 
 @verbose
+def _ensure_src(src, verbose=None):
+    """Helper to ensure we have a source space"""
+    if isinstance(src, string_types):
+        if not op.isfile(src):
+            raise IOError('Source space file "%s" not found' % src)
+        logger.info('Reading %s...' % src)
+        src = read_source_spaces(src, verbose=False)
+    if not isinstance(src, SourceSpaces):
+        raise ValueError('src must be a string or instance of SourceSpaces')
+    return src
+
+
+@verbose
 def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """Compute inter-source distances along the cortical surface
 
@@ -2151,8 +2161,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     stored along with the source space data for future use.
     """
     n_jobs = check_n_jobs(n_jobs)
-    if not isinstance(src, SourceSpaces):
-        raise ValueError('"src" must be an instance of SourceSpaces')
+    src = _ensure_src(src)
     if not np.isscalar(dist_limit):
         raise ValueError('limit must be a scalar, got %s' % repr(dist_limit))
     if not check_scipy_version('0.11'):
@@ -2343,6 +2352,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
         The morphed source spaces.
     """
     # adapted from mne_make_source_space.c
+    src_from = _ensure_src(src_from)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     src_out = list()
     for fro in src_from:
@@ -2354,8 +2364,6 @@ def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
         _complete_surface_info(to, verbose=False)  # get normals
         subject_from = fro['subject_his_id']
         # Now we morph the vertices to the destination
-        logger.info('Reading %s<->%s morph maps'
-                    % (subject_from, subject_to))
         # The C code does something like this, but with a nearest-neighbor
         # mapping instead of the weighted one::
         #
@@ -2388,7 +2396,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
     return SourceSpaces(src_out, info=info)
 
 
-def _compare_source_spaces(src0, src1, mode='exact'):
+def _compare_source_spaces(src0, src1, mode='exact', dist_tol=1.5e-3):
     """Compare two source spaces
 
     Note: this function is also used by forward/tests/test_make_forward.py
@@ -2418,7 +2426,8 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 if mode == 'exact':
                     assert_array_equal(s0[name], s1[name], name)
                 else:  # 'approx' in mode
-                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4,
+                    atol = 1e-3 if name == 'nn' else 1e-4
+                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=atol,
                                     err_msg=name)
         for name in ['seg_name']:
             if name in s0 or name in s1:
@@ -2459,7 +2468,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 v1 = np.setdiff1d(s1['vertno'], s0['vertno'])
                 dists = cdist(s0['rr'][v0], s1['rr'][v1])
                 assert_allclose(np.min(dists, axis=1), np.zeros(len(v0)),
-                                atol=1.5e-3)
+                                atol=dist_tol, err_msg='mismatched vertno')
             if s0['use_tris'] is not None:  # for "spacing"
                 assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
             else:

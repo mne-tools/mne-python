@@ -16,10 +16,10 @@ from scipy import linalg, sparse
 
 from .fixes import digitize, in1d
 from .utils import get_subjects_dir, _check_subject, logger, verbose
-from .source_estimate import (mesh_edges, mesh_dist, morph_data,
-                              SourceEstimate, spatial_src_connectivity)
+from .source_estimate import (morph_data, SourceEstimate,
+                              spatial_src_connectivity)
 from .source_space import add_source_space_distances
-from .surface import read_surface, fast_cross_3d
+from .surface import read_surface, fast_cross_3d, mesh_edges, mesh_dist
 from .source_space import SourceSpaces
 from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters

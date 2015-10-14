@@ -7,6 +7,7 @@
 import numpy as np
 
 from ..source_estimate import SourceEstimate, VolSourceEstimate
+from ..source_space import _ensure_src
 from ..utils import check_random_state, deprecated, logger
 from ..externals.six.moves import zip
 
@@ -151,7 +152,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
     .. versionadded:: 0.10.0
     """
     rng = check_random_state(random_state)
-
+    src = _ensure_src(src, verbose=False)
     data = np.zeros((n_dipoles, len(times)))
     for i_dip in range(n_dipoles):
         data[i_dip, :] = data_fun(times)
