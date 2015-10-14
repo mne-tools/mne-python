@@ -13,7 +13,7 @@ from optparse import OptionParser
 import mne
 
 
-def get_optparser(cmdpath):
+def get_optparser(cmdpath, usage=None):
     """Create OptionParser with cmd source specific settings (e.g. prog value)
     """
     command = os.path.basename(cmdpath)
@@ -40,6 +40,6 @@ def get_optparser(cmdpath):
     parser = OptionParser(prog="mne %s" % command,
                           version=mne.__version__,
                           description=description,
-                          epilog=epilog)
+                          epilog=epilog, usage=usage)
 
     return parser

@@ -403,6 +403,11 @@ class RawFIF(_BaseRaw):
     def fix_mag_coil_types(self):
         """Fix Elekta magnetometer coil types
 
+        Returns
+        -------
+        raw : instance of Raw
+            The raw object. Operates in place.
+
         Notes
         -----
         This function changes magnetometer coil types 3022 (T1: SQ20483N) and
@@ -425,6 +430,7 @@ class RawFIF(_BaseRaw):
         """
         from ...channels import fix_mag_coil_types
         fix_mag_coil_types(self.info)
+        return self
 
 
 def read_raw_fif(fnames, allow_maxshield=False, preload=False,
