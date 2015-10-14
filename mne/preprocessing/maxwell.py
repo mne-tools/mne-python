@@ -15,6 +15,7 @@ from os import path as op
 import inspect
 
 from .. import __version__
+from ..transforms import _str_to_frame
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..surface import _normalize_vectors
@@ -25,21 +26,24 @@ from ..io.write import _generate_meas_id, _date_now
 from ..io.tag import find_tag, _loc_to_trans
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger
+from ..externals.six import string_types
 
 
 @verbose
-def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
+def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
                    fine_cal=None, ctc=None, st_dur=None, st_corr=0.98,
-                   verbose=None):
+                   coord_frame='head', verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
     ----------
     raw : instance of mne.io.Raw
         Data to be filtered
-    origin : array-like, shape (3,)
+    origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head coords
-        and in millimeters
+        and in meters. The default is ``'default'``, which means
+        ``(0., 0., 40e-3)`` for ``coord_frame='head'`` and
+        ``(0., 13e-3, -6e-3)`` for ``coord_frame='meg'``.
     int_order : int
         Order of internal component of spherical expansion
     ext_order : int
@@ -63,6 +67,11 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
     st_corr : float
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
+    coord_frame : str
+        The coordinate frame that the ``origin`` is specified in, either
+        ``'meg'`` or ``'head'``. For empty-room recordings that do not have
+        an head<->meg transform ``info['dev_head_t']``, the MEG coordinate
+        frame should be used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -110,6 +119,9 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
     st_corr = float(st_corr)
     if st_corr <= 0. or st_corr > 1.:
         raise ValueError('Need 0 < st_corr <= 1., got %s' % st_corr)
+    if coord_frame not in ('head', 'meg'):
+        raise ValueError('coord_frame must be either "head" or "meg", not "%s"'
+                         % coord_frame)
     logger.info('Maxwell filtering raw data')
     raw_sss = raw.copy().load_data(verbose=False)
     del raw
@@ -131,8 +143,14 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
     mag_picks = pick_types(info, meg='mag', exclude=[])
     grad_picks = pick_types(info, meg='grad', exclude=[])
     grad_info = pick_info(info, grad_picks)
+    if info['dev_head_t'] is None and coord_frame == 'head':
+        raise RuntimeError('coord_frame cannot be "head" because '
+                           'info["dev_head_t"] is None; if this is an '
+                           'empty room recording, consider using '
+                           'coord_frame="meg"')
+    head_frame = True if coord_frame == 'head' else False
     meg_coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
-                                   verbose=False)[0]
+                                   head_frame=head_frame, verbose=False)[0]
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
@@ -140,7 +158,14 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
     coil_scale[mag_picks] = 100.
 
     # Compute multipolar moment bases
-    origin = np.array(origin) / 1000.  # Convert scale from mm to m
+    if isinstance(origin, string_types):
+        # XXX eventually we could add "auto" mode here
+        if origin != 'default':
+            raise ValueError('origin must be a numerical array, or "default"')
+        origin = (0, 0, 0.04) if coord_frame == 'head' else (0, 13e-3, -6e-3)
+    origin = np.array(origin, float)
+    if origin.shape != (3,):
+        raise ValueError('origin must be a 3-element array')
     # Compute in/out bases and create copies containing only good chs
     S_tot = _sss_basis(origin, meg_coils, int_order, ext_order)
 
@@ -152,7 +177,7 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
     if fine_cal is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
         S_fine = _sss_basis_point(origin, grad_info, int_order, ext_order,
-                                  grad_imbalances)
+                                  grad_imbalances, head_frame=head_frame)
         # Add point like magnetometer data to bases.
         S_tot[grad_picks, :] += S_fine
         # Scale magnetometers by calibration coefficient
@@ -229,7 +254,7 @@ def maxwell_filter(raw, origin=(0., 0., 40.), int_order=8, ext_order=3,
 
     # Update info
     raw_sss = _update_sss_info(raw_sss, origin, int_order, ext_order,
-                               len(good_picks))
+                               len(good_picks), coord_frame)
 
     return raw_sss
 
@@ -681,7 +706,7 @@ def _cart_to_sph(cart_pts):
     return np.array([rad, az, pol]).T
 
 
-def _update_sss_info(raw, origin, int_order, ext_order, nsens):
+def _update_sss_info(raw, origin, int_order, ext_order, nsens, coord_frame):
     """Helper function to update info after Maxwell filtering.
 
     Parameters
@@ -706,12 +731,11 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens):
     # TODO: Continue to fill out bookkeeping info as additional features
     # are added (fine calibration, cross-talk calibration, etc.)
     int_moments, ext_moments = _get_n_moments([int_order, ext_order])
-
     raw.info['maxshield'] = False
     sss_info_dict = dict(in_order=int_order, out_order=ext_order,
                          nsens=nsens, origin=origin.astype('float32'),
                          n_int_moments=int_moments,
-                         frame=raw.info['dev_head_t']['to'],
+                         frame=_str_to_frame[coord_frame],
                          components=np.ones(int_moments +
                                             ext_moments).astype('int32'))
 

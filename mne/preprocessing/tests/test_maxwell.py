@@ -26,13 +26,22 @@ from mne.utils import _TempDir, run_tests_if_main, slow_test
 warnings.simplefilter('always')  # Always throw warnings
 
 sss_path = op.join(testing.data_path(download=False), 'SSS')
-raw_fname = op.join(sss_path, 'test_move_anon_raw.fif')
-sss_std_fname = op.join(sss_path, 'test_move_anon_stdOrigin_raw_sss.fif')
+pre = op.join(sss_path, 'test_move_anon_')
+raw_fname = pre + 'raw.fif'
+sss_std_fname = pre + 'stdOrigin_raw_sss.fif'
+sss_nonstd_fname = pre + 'nonStdOrigin_raw_sss.fif'
+sss_bad_recon_fname = pre + 'badRecon_raw_sss.fif'
+sss_fine_cal_fname = pre + 'fineCal_raw_sss.fif'
+sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
+
+erm_fname = pre + 'erm_raw.fif'
+sss_erm_std_fname = pre + 'erm_devOrigin_raw_sss.fif'
+sss_erm_fine_cal_fname = pre + 'erm_fineCal_raw_sss.fif'
+sss_erm_ctc_fname = pre + 'erm_crossTalk_raw_sss.fif'
+sss_erm_st_fname = pre + 'erm_st1_raw_sss.fif'
+sss_erm_st1FineCalCrossTalk_fname = pre + 'erm_st1FineCalCrossTalk_raw_sss.fif'
+
 bases_fname = op.join(sss_path, 'sss_data.mat')
-sss_nonstd_fname = op.join(sss_path, 'test_move_anon_nonStdOrigin_raw_sss.fif')
-sss_bad_recon_fname = op.join(sss_path, 'test_move_anon_badRecon_raw_sss.fif')
-sss_fine_cal_fname = op.join(sss_path, 'test_move_anon_fineCal_raw_sss.fif')
-sss_ctc_fname = op.join(sss_path, 'test_move_anon_crossTalk_raw_sss.fif')
 fine_cal_fname = op.join(sss_path, 'sss_cal_3053.dat')
 fine_cal_fname_3d = op.join(sss_path, 'sss_cal_3053_3d.dat')
 ctc_fname = op.join(sss_path, 'ct_sparse.fif')
@@ -52,7 +61,8 @@ def _assert_snr(actual, desired, min_tol, med_tol=500.):
     picks = pick_types(desired.info, meg=True, exclude=[])
     others = np.setdiff1d(np.arange(len(actual.ch_names)), picks)
     if len(others) > 0:  # if non-MEG channels present
-        assert_allclose(actual[others][0], desired[others][0])
+        assert_allclose(actual[others][0], desired[others][0],
+                        err_msg='non-MEG channel mismatch')
     actual_data = actual[picks][0]
     desired_data = desired[picks][0]
     bench_rms = np.sqrt(np.mean(desired_data * desired_data, axis=1))
@@ -136,8 +146,7 @@ def test_maxwell_filter():
         raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
         raw_err = Raw(raw_fname, proj=True,
                       allow_maxshield=True).crop(0., 0.1, False)
-    sss_std = Raw(sss_std_fname, allow_maxshield=True)
-    sss_nonStd = Raw(sss_nonstd_fname, allow_maxshield=True)
+        raw_erm = Raw(erm_fname, allow_maxshield=True)
     assert_raises(RuntimeError, maxwell_filter, raw_err)
 
     n_int_bases = int_order ** 2 + 2 * int_order
@@ -148,14 +157,16 @@ def test_maxwell_filter():
     assert_equal(_get_n_moments([int_order, ext_order]).sum(), nbases)
 
     # Test SSS computation at the standard head origin
-    raw_sss = maxwell_filter(raw, origin=[0., 0., 40.],
-                             int_order=int_order, ext_order=ext_order)
-    _assert_snr(raw_sss, sss_std, 200.)
+    raw_sss = maxwell_filter(raw)
+    _assert_snr(raw_sss, Raw(sss_std_fname), 200.)
 
     # Test SSS computation at non-standard head origin
-    raw_sss = maxwell_filter(raw, origin=[0., 20., 20.],
-                             int_order=int_order, ext_order=ext_order)
-    _assert_snr(raw_sss, sss_nonStd, 250.)
+    raw_sss = maxwell_filter(raw, origin=[0., 0.02, 0.02])
+    _assert_snr(raw_sss, Raw(sss_nonstd_fname), 250.)
+
+    # Test SSS computation at device origin
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg')
+    _assert_snr(raw_sss, Raw(sss_erm_std_fname), 100.)
 
     # Check against SSS functions from proc_history
     sss_info = raw_sss.info['proc_history'][0]['max_info']
@@ -166,6 +177,9 @@ def test_maxwell_filter():
     raw_bad = raw.copy()
     raw_bad.info['comps'] = [0]
     assert_raises(RuntimeError, maxwell_filter, raw_bad)
+    assert_raises(ValueError, maxwell_filter, raw, coord_frame='foo')
+    assert_raises(ValueError, maxwell_filter, raw, origin='foo')
+    assert_raises(ValueError, maxwell_filter, raw, origin=[0] * 4)
 
 
 @testing.requires_testing_data
@@ -301,7 +315,46 @@ def test_maxwell_filter_cross_talk():
 # that calculates the localization error and shielding factor:
 # http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=1495874
 
-# @testing.requires_testing_data
-# def test_maxwell_noise_rejection():
+def _assert_shielding(raw_sss, erm_power, shielding_factor):
+    """Helper to assert a minimum shielding factor using empty-room power"""
+    picks = pick_types(raw_sss.info, meg=True)
+    sss_power = raw_sss[picks][0].ravel()
+    sss_power = np.sqrt(np.sum(sss_power * sss_power))
+    factor = erm_power / sss_power
+    assert_true(factor >= shielding_factor,
+                'Shielding factor %0.3f < %0.3f' % (factor, shielding_factor))
+
+
+@testing.requires_testing_data
+def test_maxwell_noise_rejection():
+    """Test Maxwell filtering shielding factor using empty room"""
+    with warnings.catch_warnings(record=True):  # maxshield
+        raw_erm = Raw(erm_fname, allow_maxshield=True, preload=True)
+    picks = pick_types(raw_erm.info, meg=True)
+    erm_power = raw_erm[picks][0].ravel()
+    erm_power = np.sqrt(np.sum(erm_power * erm_power))
+    # Vanilla SSS
+    _assert_shielding(Raw(sss_erm_std_fname), erm_power, 1.5)
+    raw_sss = maxwell_filter(raw_erm, coord_frame='meg')
+    _assert_shielding(raw_sss, erm_power, 1.5)
+    # tSSS
+    _assert_shielding(Raw(sss_erm_st_fname), erm_power, 5)
+    raw_sss = maxwell_filter(raw_erm, st_dur=1., coord_frame='meg')
+    _assert_shielding(raw_sss, erm_power, 5)
+    # Fine cal
+    _assert_shielding(Raw(sss_erm_fine_cal_fname), erm_power, 2)
+    raw_sss = maxwell_filter(raw_erm, fine_cal=fine_cal_fname,
+                             coord_frame='meg')
+    _assert_shielding(raw_sss, erm_power, 2)
+    # Crosstalk
+    _assert_shielding(Raw(sss_erm_ctc_fname), erm_power, 2.1)
+    raw_sss = maxwell_filter(raw_erm, ctc=ctc_fname, coord_frame='meg')
+    _assert_shielding(raw_sss, erm_power, 2.1)
+    # tSSS + fine cal + ctc
+    _assert_shielding(Raw(sss_erm_st1FineCalCrossTalk_fname), erm_power, 6.)
+    raw_sss = maxwell_filter(raw_erm, fine_cal=fine_cal_fname, ctc=ctc_fname,
+                             st_dur=1., coord_frame='meg')
+    _assert_shielding(raw_sss, erm_power, 6.)  # MF gets 6.075, we get 6.008
+
 
 run_tests_if_main()
