@@ -2292,7 +2292,7 @@ def _get_vertex_map_nn(src, morph, rrs):
     # adapted from mne_make_source_space.c, knowing accurate=False (i.e.
     # nearest-neighbor mode should be used)
     morph_inuse = np.zeros(morph['np'], int)
-    best = np.zeros(len(src['vertno']), int)
+    best = np.zeros(src['np'], int)
     ones = _compute_nearest(rrs[1], rrs[0][src['vertno']])
     for v, one in zip(src['vertno'], ones):
         # if it were actually a proper morph map, we would do this, but since
