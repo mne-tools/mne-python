@@ -9,10 +9,15 @@ from numpy.testing import assert_equal, assert_allclose
 from nose.tools import assert_true, assert_raises
 
 from mne import compute_raw_covariance, pick_types
+from mne.forward import _prep_meg_channels
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.io import Raw, proc_history
-from mne.preprocessing.maxwell import maxwell_filter, _get_n_moments
+from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
+                                       _sss_basis, _sh_complex_to_real,
+                                       _sh_real_to_complex, _sh_negate,
+                                       _bases_complex_to_real,
+                                       _bases_real_to_complex, _sph_harm)
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 
 # Note: Elekta MaxFilter uses single precision, so expect filtered results to
@@ -23,6 +28,7 @@ warnings.simplefilter('always')  # Always throw warnings
 sss_path = op.join(testing.data_path(download=False), 'SSS')
 raw_fname = op.join(sss_path, 'test_move_anon_raw.fif')
 sss_std_fname = op.join(sss_path, 'test_move_anon_stdOrigin_raw_sss.fif')
+bases_fname = op.join(sss_path, 'sss_data.mat')
 sss_nonstd_fname = op.join(sss_path, 'test_move_anon_nonStdOrigin_raw_sss.fif')
 sss_bad_recon_fname = op.join(sss_path, 'test_move_anon_badRecon_raw_sss.fif')
 sss_fine_cal_fname = op.join(sss_path, 'test_move_anon_fineCal_raw_sss.fif')
@@ -61,6 +67,51 @@ def _assert_snr(actual, desired, min_tol, med_tol=500.):
     # median tol
     snr = np.median(snrs)
     assert_true(snr >= med_tol, 'SNR median %0.1f < %0.1f' % (snr, med_tol))
+
+
+@testing.requires_testing_data
+def test_spherical_harmonics():
+    """Test spherical harmonic basis functions"""
+    from scipy.io import loadmat
+    # Test our real<->complex conversion functions
+    az, pol = np.meshgrid(np.linspace(0, 2 * np.pi, 30),
+                          np.linspace(0, np.pi, 20), indexing='ij')
+    for deg in range(1, int_order):
+        for order in range(0, deg + 1):
+            sph = _sph_harm(order, deg, az, pol)
+            # ensure that we satisfy the conjugation property
+            assert_allclose(_sh_negate(sph, order),
+                            _sph_harm(-order, deg, az, pol))
+            # ensure our conversion functions work
+            sph_real_pos = _sh_complex_to_real(sph, order)
+            sph_real_neg = _sh_complex_to_real(sph, -order)
+            sph_2 = _sh_real_to_complex([sph_real_pos, sph_real_neg], order)
+            assert_allclose(sph, sph_2, atol=1e-7)
+    with warnings.catch_warnings(record=True):  # maxshield
+        raw = Raw(raw_fname, allow_maxshield=True)
+    coils = _prep_meg_channels(raw.info, accurate=True, elekta_defs=True,
+                               verbose=False)[0]
+    S_tot = _sss_basis(np.array([0., 0., 40e-3]), coils, int_order, ext_order)
+    # Test our real<->complex conversion functions
+    S_tot_complex = _bases_real_to_complex(S_tot, int_order, ext_order)
+    S_tot_round = _bases_complex_to_real(S_tot_complex, int_order, ext_order)
+    assert_allclose(S_tot, S_tot_round, atol=1e-7)
+    # Now normalize our columns
+    S_tot /= np.sqrt(np.sum(S_tot * S_tot, axis=0))[np.newaxis]
+    S_tot_complex /= np.sqrt(np.sum(
+        (S_tot_complex * S_tot_complex.conj()).real, axis=0))[np.newaxis]
+    # Now check against a known benchmark
+    sss_data = loadmat(bases_fname)
+    S_tot_mat = np.concatenate([sss_data['SNin0040'], sss_data['SNout0040']],
+                               axis=1)
+    # Check this roundtrip
+    S_tot_mat_real = _bases_complex_to_real(S_tot_mat, int_order, ext_order)
+    S_tot_mat_round = _bases_real_to_complex(S_tot_mat_real,
+                                             int_order, ext_order)
+    assert_allclose(S_tot_mat, S_tot_mat_round, atol=1e-7)
+    # XXX These should really be better...
+    assert_allclose(S_tot_complex, S_tot_mat, rtol=1e0, atol=1e0)
+    assert_allclose(S_tot, S_tot_mat_real, rtol=1e0, atol=1e0)
 
 
 @testing.requires_testing_data
