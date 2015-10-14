@@ -602,11 +602,12 @@ def _bases_complex_to_real(complex_tot, int_order, ext_order):
                 idx_pos = _deg_order_idx(deg, order)
                 idx_neg = _deg_order_idx(deg, -order)
                 real[:, idx_pos] = _sh_complex_to_real(comp[:, idx_pos], order)
-                # This extra mult factor baffles me a bit, but it works
-                # in round-trip testing, so we'll keep it :(
-                mult = (-1 if order % 2 == 0 else 1)
-                real[:, idx_neg] = mult * _sh_complex_to_real(
-                    comp[:, idx_neg], -order)
+                if order != 0:
+                    # This extra mult factor baffles me a bit, but it works
+                    # in round-trip testing, so we'll keep it :(
+                    mult = (-1 if order % 2 == 0 else 1)
+                    real[:, idx_neg] = mult * _sh_complex_to_real(
+                        comp[:, idx_neg], -order)
     return real_tot
 
 
