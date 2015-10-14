@@ -69,24 +69,38 @@ def _assert_snr(actual, desired, min_tol, med_tol=500.):
     assert_true(snr >= med_tol, 'SNR median %0.1f < %0.1f' % (snr, med_tol))
 
 
-@testing.requires_testing_data
 def test_spherical_harmonics():
-    """Test spherical harmonic basis functions"""
-    from scipy.io import loadmat
-    # Test our real<->complex conversion functions
+    """Test spherical harmonic functions and conversions"""
+    from scipy.special import sph_harm
     az, pol = np.meshgrid(np.linspace(0, 2 * np.pi, 30),
                           np.linspace(0, np.pi, 20), indexing='ij')
-    for deg in range(1, int_order):
-        for order in range(0, deg + 1):
-            sph = _sph_harm(order, deg, az, pol, norm=True)
+
+    # Test our basic spherical harmonics
+    for degree in range(1, int_order):
+        for order in range(0, degree + 1):
+            sph = _sph_harm(order, degree, az, pol)
+            sph_scipy = sph_harm(order, degree, az, pol)
+            assert_allclose(sph, sph_scipy, atol=1e-7)
+
+    # Test our real<->complex conversion functions
+    for degree in range(1, int_order):
+        for order in range(0, degree + 1):
+            sph = _sph_harm(order, degree, az, pol)
             # ensure that we satisfy the conjugation property
             assert_allclose(_sh_negate(sph, order),
-                            _sph_harm(-order, deg, az, pol))
+                            _sph_harm(-order, degree, az, pol))
             # ensure our conversion functions work
             sph_real_pos = _sh_complex_to_real(sph, order)
             sph_real_neg = _sh_complex_to_real(sph, -order)
             sph_2 = _sh_real_to_complex([sph_real_pos, sph_real_neg], order)
             assert_allclose(sph, sph_2, atol=1e-7)
+
+
+@testing.requires_testing_data
+def test_multiploar_bases():
+    """Test multipolar moment basis calculation using sensor information"""
+    from scipy.io import loadmat
+    # Test our basis calculations
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True)
     coils = _prep_meg_channels(raw.info, accurate=True, elekta_defs=True,
@@ -267,7 +281,7 @@ def test_maxwell_filter_fine_calibration():
 
     # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
     # very low SNR as proc differs, eventually we should add a better test
-    raw_sss_3D = maxwell_filter(raw, fine_cal=fine_cal_fname_3d, verbose=True)
+    raw_sss_3D = maxwell_filter(raw, fine_cal=fine_cal_fname_3d)
     _assert_snr(raw_sss_3D, sss_fine_cal, 0.75, 5.)
 
 
