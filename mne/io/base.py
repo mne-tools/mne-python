@@ -595,8 +595,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def anonymize(self):
         """Anonymize data
 
-        This function will remove info['subject_info'] if it exists."""
+        This function will remove info['subject_info'] if it exists.
+
+        Returns
+        -------
+        raw : instance of Raw
+            The raw object. Operates in place.
+        """
         self.info._anonymize()
+        return self
 
     @verbose
     def apply_function(self, fun, picks, dtype, n_jobs, *args, **kwargs):
