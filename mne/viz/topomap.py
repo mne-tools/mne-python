@@ -1137,7 +1137,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         axes = [axes]
 
     if times == "peaks":
-        times = _find_peaks(evoked)
+        npeaks = 10 if axes is None else len(axes)
+        times = _find_peaks(evoked, npeaks)
     elif times == "auto":
         if axes is None:
             times = np.linspace(evoked.times[0], evoked.times[-1], 10)
@@ -1595,9 +1596,9 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     plt.show()
 
 
-def _find_peaks(evoked):
-    """Helper function for finding peaks from evoked data.
-    Returns max 10 peaks as a list of time points.
+def _find_peaks(evoked, npeaks):
+    """Helper function for finding peaks from evoked data
+    Returns ``npeaks`` biggest peaks as a list of time points.
     """
     from scipy.signal import argrelmax
     gfp = evoked.data.std(axis=0)
@@ -1605,8 +1606,8 @@ def _find_peaks(evoked):
     if order < 1:
         order = 1
     peaks = argrelmax(gfp, order=order, axis=0)[0]
-    if len(peaks) > 10:  # Find the largest 10 peaks
-        max_indices = np.argsort(gfp[peaks])[-10:]
+    if len(peaks) > npeaks:
+        max_indices = np.argsort(gfp[peaks])[-npeaks:]
         peaks = np.sort(peaks[max_indices])
     times = evoked.times[peaks]
     if len(times) == 0:

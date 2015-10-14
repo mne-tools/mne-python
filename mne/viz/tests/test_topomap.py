@@ -101,7 +101,6 @@ def test_plot_topomap():
     assert_true(all('MEG' not in x.get_text()
                     for x in subplot.get_children()
                     if isinstance(x, matplotlib.text.Text)))
-    _find_peaks(evoked)
 
     # Test title
     def get_texts(p):
@@ -216,13 +215,17 @@ def test_plot_topomap():
     plt.close('all')
 
     # Test peak finder
+    axes = [plt.subplot(131), plt.subplot(132)]
+    evoked.plot_topomap(times='peaks', axes=axes)
+    plt.close('all')
     evoked.data = np.zeros(evoked.data.shape)
     evoked.data[50][1] = 1
-    assert_array_equal(_find_peaks(evoked), evoked.times[1])
+    assert_array_equal(_find_peaks(evoked, 10), evoked.times[1])
     evoked.data[80][100] = 1
-    assert_array_equal(_find_peaks(evoked), evoked.times[[1, 100]])
+    assert_array_equal(_find_peaks(evoked, 10), evoked.times[[1, 100]])
     evoked.data[2][95] = 2
-    assert_array_equal(_find_peaks(evoked), evoked.times[[1, 95]])
+    assert_array_equal(_find_peaks(evoked, 10), evoked.times[[1, 95]])
+    assert_array_equal(_find_peaks(evoked, 1), evoked.times[95])
 
 
 def test_plot_tfr_topomap():
