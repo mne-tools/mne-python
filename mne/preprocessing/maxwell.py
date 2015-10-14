@@ -255,8 +255,7 @@ def _sph_harm(order, degree, az, pol, norm=True):
     more discussion.
 
     Note that scipy has ``scipy.special.sph_harm``, but that function is
-    too slow on old versions (< 0.15) and has a weird bug on newer versions.
-    At some point we should track it down and open a bug report...
+    too slow on old versions (< 0.15) for heavy use.
 
     Parameters
     ----------
@@ -562,50 +561,48 @@ def _sh_real_to_complex(shs, order):
         return (shs[0] + 1j * np.sign(order) * shs[1]) / np.sqrt(2)
 
 
-def _bases_complex_to_real(S_tot, int_order, ext_order):
+def _bases_complex_to_real(complex_tot, int_order, ext_order):
     """Convert complex spherical harmonics to real"""
     n_in, n_out = _get_n_moments([int_order, ext_order])
-    S_in = S_tot[:, :n_in]
-    S_out = S_tot[:, n_in:]
-    real_tot = np.empty(S_tot.shape, np.float64)
+    complex_in = complex_tot[:, :n_in]
+    complex_out = complex_tot[:, n_in:]
+    real_tot = np.empty(complex_tot.shape, np.float64)
     real_in = real_tot[:, :n_in]
     real_out = real_tot[:, n_in:]
-    for spc, real, exp_order in zip([S_in, S_out],
-                                    [real_in, real_out],
-                                    [int_order, ext_order]):
+    for comp, real, exp_order in zip([complex_in, complex_out],
+                                     [real_in, real_out],
+                                     [int_order, ext_order]):
         for deg in range(1, exp_order + 1):
             for order in range(deg + 1):
                 idx_pos = _deg_order_idx(deg, order)
                 idx_neg = _deg_order_idx(deg, -order)
-                real[:, idx_pos] = _sh_complex_to_real(spc[:, idx_pos], order)
-                if order > 0:
-                    # This extra mult factor baffles me a bit, but it works
-                    # in round-trip testing, so we'll keep it :(
-                    mult = (-1 if order % 2 == 0 else 1)
-                    real[:, idx_neg] = mult * _sh_complex_to_real(
-                        spc[:, idx_neg], -order)
-    S_tot = np.real(S_tot)
+                real[:, idx_pos] = _sh_complex_to_real(comp[:, idx_pos], order)
+                # This extra mult factor baffles me a bit, but it works
+                # in round-trip testing, so we'll keep it :(
+                mult = (-1 if order % 2 == 0 else 1)
+                real[:, idx_neg] = mult * _sh_complex_to_real(
+                    comp[:, idx_neg], -order)
     return real_tot
 
 
-def _bases_real_to_complex(S_tot, int_order, ext_order):
+def _bases_real_to_complex(real_tot, int_order, ext_order):
     """Convert real spherical harmonics to complex"""
     n_in, n_out = _get_n_moments([int_order, ext_order])
-    S_in = S_tot[:, :n_in]
-    S_out = S_tot[:, n_in:]
-    comp_tot = np.empty(S_tot.shape, np.complex128)
+    real_in = real_tot[:, :n_in]
+    real_out = real_tot[:, n_in:]
+    comp_tot = np.empty(real_tot.shape, np.complex128)
     comp_in = comp_tot[:, :n_in]
     comp_out = comp_tot[:, n_in:]
-    for spc, comp, exp_order in zip([S_in, S_out],
-                                    [comp_in, comp_out],
-                                    [int_order, ext_order]):
+    for real, comp, exp_order in zip([real_in, real_out],
+                                     [comp_in, comp_out],
+                                     [int_order, ext_order]):
         for deg in range(1, exp_order + 1):
             # only loop over positive orders, figure out neg from pos
             for order in range(deg + 1):
                 idx_pos = _deg_order_idx(deg, order)
                 idx_neg = _deg_order_idx(deg, -order)
-                this_comp = _sh_real_to_complex([spc[:, idx_pos],
-                                                 spc[:, idx_neg]], order)
+                this_comp = _sh_real_to_complex([real[:, idx_pos],
+                                                 real[:, idx_neg]], order)
                 comp[:, idx_pos] = this_comp
                 comp[:, idx_neg] = _sh_negate(this_comp, order)
     return comp_tot
