@@ -10,7 +10,8 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_flash_bem_model, mne_kit2fiff,
                           mne_make_scalp_surfaces, mne_maxfilter,
-                          mne_report, mne_surf2bem, mne_watershed_bem)
+                          mne_report, mne_surf2bem, mne_watershed_bem,
+                          mne_compare_fiff)
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        ArgvSetter, slow_test, ultra_slow_test)
@@ -46,6 +47,11 @@ def test_browse_raw():
 def test_bti2fiff():
     """Test mne bti2fiff"""
     check_usage(mne_bti2fiff)
+
+
+def test_compare_fiff():
+    """Test mne compare_fiff"""
+    check_usage(mne_compare_fiff)
 
 
 @requires_mne
