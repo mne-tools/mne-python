@@ -71,6 +71,8 @@ Changelog
 
     - Add support for drawing topomaps by selecting an area in :func:`mne.Evoked.plot` by `Jaakko Leppakangas`_
 
+    - Add support for finding peaks in evoked data in :func:`mne.Evoked.plot_topomap` by `Jona Sassenhagen`_ and `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
