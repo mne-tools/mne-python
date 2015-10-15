@@ -1560,10 +1560,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                          if all(id__ not in ids for id__ in id_)
                          else id_
                          for id_ in event_ids]
-            for id in event_ids:
-                if len(set([id_ in ids for id_ in id])) != 1:
+            for id_ in event_ids:
+                if len(set([sub_id in ids for sub_id in id_])) != 1:
                     err = ("Don't mix hierarchical and regular event_ids"
-                           " like in \'%s\'." % ", ".join(id))
+                           " like in \'%s\'." % ", ".join(id_))
                     raise KeyError(err)
 
             # deal with non-orthogonal tags
