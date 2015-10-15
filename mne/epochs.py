@@ -1511,6 +1511,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             a str (single event) or a list of str. In the case where one of
             the entries is a list of str, event_ids in that list will be
             grouped together before equalizing trial counts across conditions.
+            In the case where partial matching (using event_ids with '/') is
+            used, processing works as if the event_ids matched by the provided
+            tags had been supplied instead.
         method : str
             If 'truncate', events will be truncated from the end of each event
             list. If 'mintime', timing differences between each event list will
@@ -1546,6 +1549,34 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             epochs.drop_bad_epochs()
         # figure out how to equalize
         eq_inds = list()
+
+        # deal with hierarchical tags
+        ids = epochs.event_id
+        if "/" in "".join(ids):
+            event_ids = [[x] if isinstance(x, string_types) else x
+                         for x in event_ids]
+            event_ids = [[k for k in ids if all((tag in k.split("/")
+                         for tag in id_))]
+                         if all(id__ not in ids for id__ in id_)
+                         else id_
+                         for id_ in event_ids]
+            for id in event_ids:
+                if len(set([id_ in ids for id_ in id])) != 1:
+                    err = ("Don't mix hierarchical and regular event_ids"
+                           " like in \'%s\'." % ", ".join(id))
+                    raise KeyError(err)
+
+            # deal with non-orthogonal tags
+            events_ = [set(epochs[x].events[:, 0]) for x in event_ids]
+            doubles = events_[0].intersection(events_[1])
+            if len(doubles):
+                warnings.warn("Warning: the two sets of epochs are "
+                              "overlapping. The %s overlapping epochs will"
+                              " be dropped." % len(doubles))
+                drop_ids = [ii for ii, t in enumerate(epochs.events[:, 0])
+                            if t in doubles]
+                epochs.drop_epochs(drop_ids, reason='EQUALIZED_COUNT')
+
         for eq in event_ids:
             eq = np.atleast_1d(eq)
             # eq is now a list of types
