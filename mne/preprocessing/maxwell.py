@@ -23,7 +23,7 @@ from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tree import dir_tree_find
 from ..io.write import _generate_meas_id, _date_now
-from ..io.tag import find_tag, _loc_to_trans
+from ..io.tag import find_tag, _loc_to_coil_trans
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger
 from ..externals.six import string_types
@@ -848,11 +848,10 @@ def _read_fine_cal(fine_cal):
 
             ch_name = 'MEG' + '%04d' % vals[0]  # Zero-pad names to 4 char
 
-            # Get orientation information for 'coil_trans'
+            # Get orientation information for coil transformation
             loc = vals[1:13].copy()  # Get orientation information for 'loc'
-            coil_trans = _loc_to_trans(loc)
             calib_coeff = vals[13:].copy()  # Get imbalance/calibration coeff
-            cal_chs.append(dict(ch_name=ch_name, coil_trans=coil_trans,
+            cal_chs.append(dict(ch_name=ch_name,
                                 loc=loc, calib_coeff=calib_coeff,
                                 coord_frame=FIFF.FIFFV_COORD_DEVICE))
     return cal_chs
@@ -884,14 +883,14 @@ def _update_sensor_geometry(info, fine_cal):
         info_ch = info['chs'][idx]
 
         # calculate shift angle
-        v1 = cal_ch['coil_trans'][:3, :3]
+        v1 = _loc_to_coil_trans(cal_ch['loc'])[:3, :3]
         _normalize_vectors(v1)
-        v2 = info_ch['coil_trans'][:3, :3]
+        v2 = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
         _normalize_vectors(v2)
         ang_shift[ci] = np.sum(v1 * v2, axis=0)
 
         # Adjust channel orientation with those from fine calibration
-        info_ch.update(coil_trans=cal_ch['coil_trans'], loc=cal_ch['loc'])
+        info_ch.update(loc=cal_ch['loc'])
         assert (info_ch['coord_frame'] == cal_ch['coord_frame'] ==
                 FIFF.FIFFV_COORD_DEVICE)
 
