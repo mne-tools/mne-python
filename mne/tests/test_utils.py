@@ -1,4 +1,4 @@
-from numpy.testing import assert_equal, assert_array_equal
+from numpy.testing import assert_equal, assert_array_equal, assert_allclose
 from nose.tools import assert_true, assert_raises, assert_not_equal
 from copy import deepcopy
 import os.path as op

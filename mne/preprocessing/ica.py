@@ -2432,9 +2432,9 @@ def corrmap(icas, template, threshold="auto", label=None,
                 subjs.extend([ii] * len(max_corr))
                 indices.extend(max_corr)
         else:
-          if (label is not None) and (label not in ica.labels_.keys()):
-            ica.labels_[label] = list()
-          nones.append(ii)
+            if (label is not None) and (label not in ica.labels_.keys()):
+                ica.labels_[label] = list()
+            nones.append(ii)
 
     if len(nones) == 0:
         logger.info('At least 1 IC detected for each subject.')
