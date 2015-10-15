@@ -19,14 +19,13 @@ from .io.write import (start_block, end_block, write_int,
                        write_coord_trans, start_file, end_file, write_id)
 from .bem import read_bem_surfaces
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
-                      _tessellate_sphere_surf,
+                      _tessellate_sphere_surf, _get_surf_neighbors,
                       _read_surface_geom, _normalize_vectors,
                       _complete_surface_info, _compute_nearest,
-                      fast_cross_3d, _fast_cross_nd_sum)
-from .source_estimate import mesh_dist
+                      fast_cross_3d, _fast_cross_nd_sum, mesh_dist)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
-                    check_scipy_version)
+                    check_scipy_version, _get_call_line)
 from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
@@ -486,10 +485,8 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
 
         src.append(this)
 
-    src = SourceSpaces(src)
     logger.info('    %d source spaces read' % len(spaces))
-
-    return src
+    return SourceSpaces(src)
 
 
 @verbose
@@ -2108,6 +2105,19 @@ def _get_solids(tri_rrs, fros):
 
 
 @verbose
+def _ensure_src(src, verbose=None):
+    """Helper to ensure we have a source space"""
+    if isinstance(src, string_types):
+        if not op.isfile(src):
+            raise IOError('Source space file "%s" not found' % src)
+        logger.info('Reading %s...' % src)
+        src = read_source_spaces(src, verbose=False)
+    if not isinstance(src, SourceSpaces):
+        raise ValueError('src must be a string or instance of SourceSpaces')
+    return src
+
+
+@verbose
 def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """Compute inter-source distances along the cortical surface
 
@@ -2151,8 +2161,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     stored along with the source space data for future use.
     """
     n_jobs = check_n_jobs(n_jobs)
-    if not isinstance(src, SourceSpaces):
-        raise ValueError('"src" must be an instance of SourceSpaces')
+    src = _ensure_src(src)
     if not np.isscalar(dist_limit):
         raise ValueError('limit must be a scalar, got %s' % repr(dist_limit))
     if not check_scipy_version('0.11'):
@@ -2275,7 +2284,119 @@ def get_volume_labels_from_aseg(mgz_fname):
     return label_names
 
 
-def _compare_source_spaces(src0, src1, mode='exact'):
+def _get_hemi(s):
+    """Helper to get a hemisphere from a given source space"""
+    if s['type'] != 'surf':
+        raise RuntimeError('Only surface source spaces supported')
+    if s['id'] == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
+        return 'lh', 0
+    elif s['id'] == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
+        return 'rh', 1
+    else:
+        raise ValueError('unknown surface ID %s' % s['id'])
+
+
+def _get_vertex_map_nn(src, morph, rrs):
+    """Helper to get a nearest-neigbor vertex match"""
+    # adapted from mne_make_source_space.c, knowing accurate=False (i.e.
+    # nearest-neighbor mode should be used)
+    morph_inuse = np.zeros(morph['np'], int)
+    best = np.zeros(src['np'], int)
+    ones = _compute_nearest(rrs[1], rrs[0][src['vertno']])
+    for v, one in zip(src['vertno'], ones):
+        # if it were actually a proper morph map, we would do this, but since
+        # we know it's nearest neighbor list, we don't need to:
+        # this_mm = mm[v]
+        # one = this_mm.indices[this_mm.data.argmax()]
+        if morph_inuse[one]:
+            # Try the nearest neighbors
+            neigh = _get_surf_neighbors(morph, one)  # on demand calc
+            was = one
+            one = neigh[np.where(~morph_inuse[neigh])[0]]
+            if len(one) == 0:
+                raise RuntimeError('vertex %d would be used multiple times.'
+                                   % one)
+            one = one[0]
+            logger.info('Source space vertex moved from %d to %d because of '
+                        'double occupation.' % (was, one))
+        best[v] = one
+        morph_inuse[one] = True
+    return best
+
+
+@verbose
+def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
+                        verbose=None):
+    """Morph an existing source space to a different subject
+
+    .. note:: This can be used in place of morphing source estimates for
+              multiple subjects, but there may be consequences in terms
+              of dipole topology.
+
+    Parameters
+    ----------
+    src_from : instance of SourceSpaces
+        Surface source spaces to morph.
+    subject_to : str
+        The destination subject.
+    surf : str
+        The brain surface to use for the new source space.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    src : instance of SourceSpaces
+        The morphed source spaces.
+    """
+    # adapted from mne_make_source_space.c
+    src_from = _ensure_src(src_from)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    src_out = list()
+    for fro in src_from:
+        hemi, idx = _get_hemi(fro)
+        to = op.join(subjects_dir, subject_to, 'surf', '%s.%s' % (hemi, surf,))
+        logger.info('Reading destination surface %s' % (to,))
+        to = _read_surface_geom(to, patch_stats=False, verbose=False)
+        to['rr'] /= 1000.  # convert to meters
+        _complete_surface_info(to, verbose=False)  # get normals
+        subject_from = fro['subject_his_id']
+        # Now we morph the vertices to the destination
+        # The C code does something like this, but with a nearest-neighbor
+        # mapping instead of the weighted one::
+        #
+        #     >>> mm = read_morph_map(subject_from, subject_to, subjects_dir)
+        #
+        # Here we use a direct NN calculation, since picking the max from the
+        # existing morph map (which naively one might expect to be equivalent)
+        # differs for ~3% of vertices.
+        rrs = [read_surface(op.join(subjects_dir, s, 'surf',
+                                    '%s.sphere.reg' % hemi), verbose=False)[0]
+               for s in (subject_from, subject_to)]
+        logger.info('Mapping %s %s -> %s (nearest neighbor)...'
+                    % (hemi, subject_from, subject_to))
+        best = _get_vertex_map_nn(fro, to, rrs)
+        vertno = np.sort(best[fro['vertno']])
+        inuse = np.zeros(len(to['rr']), int)
+        inuse[vertno] = True
+        use_tris = best[fro['use_tris']]
+        src_out.append(dict(
+            vertno=vertno, inuse=inuse, nuse=len(vertno), use_tris=use_tris,
+            nuse_tri=len(use_tris), subject_his_id=subject_to,
+            coord_frame=FIFF.FIFFV_COORD_MRI))
+        for key in ('nn', 'rr', 'np', 'tris', 'ntri'):
+            src_out[-1][key] = to[key]
+        for key in ('type', 'id', 'coord_frame'):
+            src_out[-1][key] = fro[key]
+        logger.info('[done]\n')
+    info = dict(working_dir=os.getcwd(),
+                command_line=_get_call_line(in_verbose=True))
+    return SourceSpaces(src_out, info=info)
+
+
+def _compare_source_spaces(src0, src1, mode='exact', dist_tol=1.5e-3):
     """Compare two source spaces
 
     Note: this function is also used by forward/tests/test_make_forward.py
@@ -2305,7 +2426,8 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 if mode == 'exact':
                     assert_array_equal(s0[name], s1[name], name)
                 else:  # 'approx' in mode
-                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4,
+                    atol = 1e-3 if name == 'nn' else 1e-4
+                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=atol,
                                     err_msg=name)
         for name in ['seg_name']:
             if name in s0 or name in s1:
@@ -2333,18 +2455,20 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                         assert_true(all(p1 == p2))
         else:  # 'approx' in mode:
             # deal with vertno, inuse, and use_tris carefully
-            assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0])
-            assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0])
+            assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0],
+                               'left hemisphere vertices')
+            assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0],
+                               'right hemisphere vertices')
             assert_equal(len(s0['vertno']), len(s1['vertno']))
             agreement = np.mean(s0['inuse'] == s1['inuse'])
-            assert_true(agreement > 0.99)
+            assert_true(agreement >= 0.99, "%s < 0.99" % agreement)
             if agreement < 1.0:
                 # make sure mismatched vertno are within 1.5mm
                 v0 = np.setdiff1d(s0['vertno'], s1['vertno'])
                 v1 = np.setdiff1d(s1['vertno'], s0['vertno'])
                 dists = cdist(s0['rr'][v0], s1['rr'][v1])
                 assert_allclose(np.min(dists, axis=1), np.zeros(len(v0)),
-                                atol=1.5e-3)
+                                atol=dist_tol, err_msg='mismatched vertno')
             if s0['use_tris'] is not None:  # for "spacing"
                 assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
             else:
@@ -2357,6 +2481,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
             assert_equal(src0.info[name], src1.info[name])
         else:  # 'approx' in mode:
             if name in src0.info:
-                assert_true(name in src1.info, name)
+                assert_true(name in src1.info, '"%s" missing' % name)
             else:
-                assert_true(name not in src1.info, name)
+                assert_true(name not in src1.info,
+                            '"%s" should not exist' % name)

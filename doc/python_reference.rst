@@ -576,6 +576,7 @@ Functions:
    make_forward_solution
    make_field_map
    make_sphere_model
+   morph_source_spaces
    read_bem_surfaces
    read_forward_solution
    read_trans

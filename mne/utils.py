@@ -64,6 +64,17 @@ def nottest(f):
 ###############################################################################
 # RANDOM UTILITIES
 
+def _get_call_line(in_verbose=False):
+    """Helper to get the call line from within a function"""
+    # XXX Eventually we could auto-triage whether in a `verbose` decorated
+    # function or not.
+    # NB This probably only works for functions that are undecorated,
+    # or decorated by `verbose`.
+    back = 2 if not in_verbose else 4
+    call_frame = inspect.getouterframes(inspect.currentframe())[back][0]
+    return inspect.getframeinfo(call_frame).code_context[0].strip()
+
+
 def _sort_keys(x):
     """Sort and return keys of dict"""
     keys = list(x.keys())  # note: not thread-safe

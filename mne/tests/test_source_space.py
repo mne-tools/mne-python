@@ -11,7 +11,8 @@ import warnings
 from mne.datasets import testing
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
-                 add_source_space_distances, read_bem_surfaces)
+                 add_source_space_distances, read_bem_surfaces,
+                 morph_source_spaces)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_scipy_version,
@@ -33,6 +34,9 @@ fname_vol = op.join(subjects_dir, 'sample', 'bem',
                     'sample-volume-7mm-src.fif')
 fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-1280-bem.fif')
+fname_fs = op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif')
+fname_morph = op.join(subjects_dir, 'sample', 'bem',
+                      'sample-fsaverage-ico-5-src.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_small = op.join(base_dir, 'small-src.fif.gz')
@@ -557,6 +561,17 @@ def test_combine_source_spaces():
     src_mixed_coord = src + disc3
     assert_raises(ValueError, src_mixed_coord.export_volume, image_fname,
                   verbose='error')
+
+
+@testing.requires_testing_data
+def test_morph_source_spaces():
+    """Test morphing of source spaces
+    """
+    src = read_source_spaces(fname_fs)
+    src_morph = read_source_spaces(fname_morph)
+    src_morph_py = morph_source_spaces(src, 'sample',
+                                       subjects_dir=subjects_dir)
+    _compare_source_spaces(src_morph, src_morph_py, mode='approx')
 
 
 run_tests_if_main()

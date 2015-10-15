@@ -73,6 +73,8 @@ Changelog
 
     - Add support for finding peaks in evoked data in :func:`mne.Evoked.plot_topomap` by `Jona Sassenhagen`_ and `Jaakko Leppakangas`_
 
+    - Add source space morphing in :func:`morph_source_spaces` by `Eric Larson`_
+
 BUG
 ~~~
 
