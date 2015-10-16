@@ -233,18 +233,20 @@ class _GeneralizationAcrossTime(object):
         # Store all testing times parameters
         self.test_times_ = test_times
 
-        # Prepare parallel predictions
+        # Prepare parallel predictions across time points
+        # FIXME Note that this means that TimeDecoding.predict isn't parallel
         parallel, p_time_gen, n_jobs = parallel_func(_predict_slices, n_jobs)
-        n_estimators = len(self.train_times_['slices'])
+        n_test_slice = max([len(sl) for sl in self.train_times_['slices']])
         # Loop across estimators (i.e. training times)
-        n_chunks = min(n_estimators, n_jobs)
+        n_chunks = min(n_test_slice, n_jobs)
         splits = [np.array_split(slices, n_chunks)
                   for slices in self.test_times_['slices']]
         splits = map(list, zip(*splits))
 
         def chunk_X(X, slices):
             """Smart chunking to avoid memory overload"""
-            slices = [sl for sl in slices]  # from object array to list
+            # from object array to list
+            slices = [sl for sl in slices if len(sl)]
             start = np.min(slices)
             stop = np.max(slices) + 1
             slices_ = np.array(slices) - start
