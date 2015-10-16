@@ -18,14 +18,15 @@ from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask
-from ..channels.channels import ContainsMixin, UpdateChannelsMixin
+from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
+                                 equalize_channels)
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
 from ..utils import check_fname
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar
 from ..externals.h5io import write_hdf5, read_hdf5
-
+from ..externals.six import string_types
 
 def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time"""
@@ -1375,6 +1376,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                                method='mutlitaper-itc'))
     return out
 
+
 def grand_average(all_tfr, drop_bads=True):
     """Make grand average of a list TFR data
 
@@ -1469,9 +1471,9 @@ def combine_tfr(all_tfr, weights='nave'):
         assert e.ch_names == ch_names, ValueError("%s and %s do not contain "
                                                   "the same channels"
                                                   % (tfr, e))
-        assert np.max(np.abs(e.times - evoked.times)) < 1e-7, \
+        assert np.max(np.abs(e.times - tfr.times)) < 1e-7, \
             ValueError("%s and %s do not contain the same time instants"
-                       % (evoked, e))
+                       % (tfr, e))
 
     # use union of bad channels
     bads = list(set(tfr.info['bads']).union(*(ev.info['bads']
