@@ -1158,7 +1158,7 @@ def test_epoch_eq():
     epochs = Epochs(raw, events, {'a/x': 1, 'b/x': 2, 'a/y': 3, 'b/y': 4},
                     tmin, tmax, picks=picks, reject=reject)
     cond1, cond2 = ['a', ['b/x', 'b/y']], [['a/x', 'a/y'], 'b']
-    es = (epochs.equalize_event_counts[c] for c in (cond1, cond2))
+    es = [epochs.equalize_event_counts(c)[0] for c in (cond1, cond2)]
     assert_true(set(es[0].events[:, 0]) == set(es[1].events[:, 0]))
 
 
