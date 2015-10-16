@@ -196,15 +196,19 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
         raise ValueError('origin must be a 3-element array')
     # Compute in/out bases and create copies containing only good chs
     S_decomp = _sss_basis(origin, meg_coils, int_order, ext_order)
+    # We always want to reconstruct with non-corrected defs
+    n_in = _get_n_moments(int_order)
+    S_recon = S_decomp[:, :n_in].copy()
 
+    #
     # Cross-talk processing
+    #
     if ctc is not None:
         ctc = _read_ctc(ctc, raw_sss.info, meg_picks, good_picks)
 
+    #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
-    # We always want to reconstruct with non-corrected defs
-    n_in = _get_n_moments(int_order)
-    S_recon = S_decomp[:, :n_in].copy()  # XXX should go before
+    #
     if fine_cal is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
         S_fine = _sss_basis_point(origin, grad_info, int_order, ext_order,
@@ -230,7 +234,9 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     mm_norm = np.dot(pS_decomp_good, data * coil_scale[good_picks])
     mm_norm /= S_decomp_good_norm.T
 
-    # Frame to translate to
+    #
+    # Translate to destination frame
+    #
     if destination is not None:
         if not head_frame:
             raise RuntimeError('destination can only be set if using the '
@@ -259,13 +265,9 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
             logger.warning('Head position change is over 25 mm (%s) = %0.1f mm'
                            % (', '.join('%0.1f' % x for x in diff), dist))
 
-    # Reconstruct data from internal space only (Eq. 38), first rescale S_tot
-    # XXX we should just be able to do S_tot /= coil_scale here, but
-    # on old numpy/scipy/py26 combo we get the dreaded SVD did not converge
-    # error, so we leave it split here (perf hit is hopefully minimal)
-    d = np.dot(S_recon, mm_norm[:n_in])
-    d /= coil_scale
-    raw_sss._data[meg_picks] = d
+    # Reconstruct data from internal space only (Eq. 38), first rescale S_recon
+    S_recon /= coil_scale
+    raw_sss._data[meg_picks] = np.dot(S_recon, mm_norm[:n_in])
 
     # Reset 'bads' for any MEG channels since they've been reconstructed
     bad_inds = [ch_names.index(ch) for ch in info['bads']]

@@ -61,7 +61,7 @@ def test_cache_dir():
                 seed=0, stat_fun=ttest_1samp_no_p, verbose=False)
             # ensure that non-independence yields warning
             stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
-            assert_equal(len(log_file.getvalue()), 0)
+            assert_true('independently' not in log_file.getvalue())
             permutation_cluster_1samp_test(
                 X, buffer_size=10, n_jobs=2, n_permutations=1,
                 seed=0, stat_fun=stat_fun, verbose=False)
