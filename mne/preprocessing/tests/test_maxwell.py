@@ -5,8 +5,11 @@
 import os.path as op
 import warnings
 import numpy as np
+import scipy
 from numpy.testing import assert_equal, assert_allclose
 from nose.tools import assert_true, assert_raises
+from nose.plugins.skip import SkipTest
+from distutils.version import LooseVersion
 
 from mne import compute_raw_covariance, pick_types
 from mne.forward import _prep_meg_channels
@@ -18,14 +21,16 @@ from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
                                        _sh_real_to_complex, _sh_negate,
                                        _bases_complex_to_real,
                                        _bases_real_to_complex, _sph_harm)
-from mne.utils import _TempDir, run_tests_if_main, slow_test
+from mne.utils import _TempDir, run_tests_if_main, slow_test, catch_logging
+from mne.externals.six import PY3
 
 # Note: Elekta MaxFilter uses single precision, so expect filtered results to
 # differ slightly.
 
 warnings.simplefilter('always')  # Always throw warnings
 
-sss_path = op.join(testing.data_path(download=False), 'SSS')
+data_path = testing.data_path(download=False)
+sss_path = op.join(data_path, 'SSS')
 pre = op.join(sss_path, 'test_move_anon_')
 raw_fname = pre + 'raw.fif'
 sss_std_fname = pre + 'stdOrigin_raw_sss.fif'
@@ -33,7 +38,8 @@ sss_nonstd_fname = pre + 'nonStdOrigin_raw_sss.fif'
 sss_bad_recon_fname = pre + 'badRecon_raw_sss.fif'
 sss_fine_cal_fname = pre + 'fineCal_raw_sss.fif'
 sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
-
+sss_trans_default_fname = pre + 'transDefault_raw_sss.fif'
+sss_trans_sample_fname = pre + 'transSample_raw_sss.fif'
 erm_fname = pre + 'erm_raw.fif'
 sss_erm_std_fname = pre + 'erm_devOrigin_raw_sss.fif'
 sss_erm_fine_cal_fname = pre + 'erm_fineCal_raw_sss.fif'
@@ -45,6 +51,9 @@ bases_fname = op.join(sss_path, 'sss_data.mat')
 fine_cal_fname = op.join(sss_path, 'sss_cal_3053.dat')
 fine_cal_fname_3d = op.join(sss_path, 'sss_cal_3053_3d.dat')
 ctc_fname = op.join(sss_path, 'ct_sparse.fif')
+
+sample_fname = op.join(data_path, 'MEG', 'sample',
+                       'sample_audvis_trunc_raw.fif')
 
 int_order, ext_order = 8, 3
 
@@ -80,10 +89,12 @@ def _assert_snr(actual, desired, min_tol, med_tol=500.):
 
 
 def test_spherical_harmonics():
-    """Test spherical harmonic functions and conversions"""
+    """Test spherical harmonic functions"""
     from scipy.special import sph_harm
     az, pol = np.meshgrid(np.linspace(0, 2 * np.pi, 30),
                           np.linspace(0, np.pi, 20), indexing='ij')
+    if PY3 and LooseVersion(scipy.__version__) >= LooseVersion('0.15'):
+        raise SkipTest('scipy sph_harm bad in Py3k')
 
     # Test our basic spherical harmonics
     for degree in range(1, int_order):
@@ -92,7 +103,12 @@ def test_spherical_harmonics():
             sph_scipy = sph_harm(order, degree, az, pol)
             assert_allclose(sph, sph_scipy, atol=1e-7)
 
+
+def test_spherical_conversions():
+    """Test spherical harmonic conversions"""
     # Test our real<->complex conversion functions
+    az, pol = np.meshgrid(np.linspace(0, 2 * np.pi, 30),
+                          np.linspace(0, np.pi, 20), indexing='ij')
     for degree in range(1, int_order):
         for order in range(0, degree + 1):
             sph = _sph_harm(order, degree, az, pol)
@@ -134,18 +150,17 @@ def test_multiploar_bases():
                                              int_order, ext_order)
     assert_allclose(S_tot_mat, S_tot_mat_round, atol=1e-7)
     # XXX These should really be better...
-    assert_allclose(S_tot_complex, S_tot_mat, rtol=1e0, atol=1e0)
-    assert_allclose(S_tot, S_tot_mat_real, rtol=1e0, atol=1e0)
+    assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-1, atol=1e-0)
+    assert_allclose(S_tot, S_tot_mat_real, rtol=1e-1, atol=1e-0)
 
 
 @testing.requires_testing_data
 def test_maxwell_filter():
-    """Test multipolar moment and Maxwell filter"""
+    """Test Maxwell filter basic version"""
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
-        raw_err = Raw(raw_fname, proj=True,
-                      allow_maxshield=True).crop(0., 0.1, False)
+        raw_err = Raw(raw_fname, proj=True, allow_maxshield=True)
         raw_erm = Raw(erm_fname, allow_maxshield=True)
     assert_raises(RuntimeError, maxwell_filter, raw_err)
 
@@ -209,8 +224,7 @@ def test_maxwell_filter_additional():
     tempdir = _TempDir()
     test_outname = op.join(tempdir, 'test_raw_sss.fif')
     raw_sss.save(test_outname)
-    raw_sss_loaded = Raw(test_outname, preload=True, proj=False,
-                         allow_maxshield=True)
+    raw_sss_loaded = Raw(test_outname, preload=True)
 
     # Some numerical imprecision since save uses 'single' fmt
     assert_allclose(raw_sss_loaded[:][0], raw_sss[:][0],
@@ -232,18 +246,17 @@ def test_maxwell_filter_additional():
 @slow_test
 @testing.requires_testing_data
 def test_bads_reconstruction():
-    """Test reconstruction of channels marked as bad"""
+    """Test Maxwell filter reconstruction of bad channels"""
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
-    sss_bench = Raw(sss_bad_recon_fname, allow_maxshield=True)
     raw.info['bads'] = bads
     raw_sss = maxwell_filter(raw)
-    _assert_snr(raw_sss, sss_bench, 300.)
+    _assert_snr(raw_sss, Raw(sss_bad_recon_fname), 300.)
 
 
 @testing.requires_testing_data
 def test_spatiotemporal_maxwell():
-    """Test spatiotemporal (tSSS) processing"""
+    """Test Maxwell filter (tSSS) spatiotemporal processing"""
     # Load raw testing data
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True)
@@ -259,7 +272,7 @@ def test_spatiotemporal_maxwell():
         # Load tSSS data depending on st_dur and get data
         tSSS_fname = op.join(sss_path,
                              'test_move_anon_st%0ds_raw_sss.fif' % st_dur)
-        tsss_bench = Raw(tSSS_fname, allow_maxshield=True)
+        tsss_bench = Raw(tSSS_fname)
         # Because Elekta's tSSS sometimes(!) lumps the tail window of data
         # onto the previous buffer if it's shorter than st_dur, we have to
         # crop the data here to compensate for Elekta's tSSS behavior.
@@ -280,14 +293,12 @@ def test_spatiotemporal_maxwell():
 
 @testing.requires_testing_data
 def test_maxwell_filter_fine_calibration():
-    """Test fine calibration feature of Maxwell filter"""
+    """Test Maxwell filter fine calibration"""
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     with warnings.catch_warnings(record=True):  # maxshield
-        raw = Raw(raw_fname, proj=False,
-                  allow_maxshield=True).crop(0., 1., False)
-    sss_fine_cal = Raw(sss_fine_cal_fname, proj=False,
-                       allow_maxshield=True)
+        raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
+    sss_fine_cal = Raw(sss_fine_cal_fname)
 
     # Test 1D SSS fine calibration
     raw_sss = maxwell_filter(raw, fine_cal=fine_cal_fname)
@@ -301,14 +312,38 @@ def test_maxwell_filter_fine_calibration():
 
 @testing.requires_testing_data
 def test_maxwell_filter_cross_talk():
-    """Test cross-talk cancellation feature of Maxwell filter"""
+    """Test Maxwell filter cross-talk cancellation"""
     with warnings.catch_warnings(record=True):  # maxshield
-        raw = Raw(raw_fname, preload=False, proj=False,
-                  allow_maxshield=True).crop(0., 1., False)
+        raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
     raw.info['bads'] = bads
     sss_ctc = Raw(sss_ctc_fname)
     raw_sss = maxwell_filter(raw, ctc=ctc_fname)
     _assert_snr(raw_sss, sss_ctc, 275.)
+
+
+@testing.requires_testing_data
+def test_maxwell_filter_head_translation():
+    """Test Maxwell filter head translation"""
+    with warnings.catch_warnings(record=True):  # maxshield
+        raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
+    # First try with an unchanged destination
+    raw_sss = maxwell_filter(raw, destination=raw_fname)
+    _assert_snr(raw_sss, Raw(sss_std_fname).crop(0., 1., False), 200.)
+    # Now with default
+    default = (0, 0, 0.04)
+    with catch_logging() as log:
+        raw_sss = maxwell_filter(raw, destination=default)
+    assert_true('over 25 mm' in log.getvalue())
+    _assert_snr(raw_sss, Raw(sss_trans_default_fname), 125.)
+    # Now to sample's head pos
+    with catch_logging() as log:
+        raw_sss = maxwell_filter(raw, destination=sample_fname)
+    assert_true('= 25.6 mm' in log.getvalue())
+    _assert_snr(raw_sss, Raw(sss_trans_sample_fname), 350.)
+    # Degenerate cases
+    assert_raises(RuntimeError, maxwell_filter, raw, destination=default,
+                  coord_frame='meg')
+    assert_raises(ValueError, maxwell_filter, raw, destination=[0.] * 4)
 
 
 # TODO: Eventually add simulation tests mirroring Taulu's original paper
@@ -327,7 +362,7 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor):
 
 @testing.requires_testing_data
 def test_maxwell_noise_rejection():
-    """Test Maxwell filtering shielding factor using empty room"""
+    """Test Maxwell filter shielding factor using empty room"""
     with warnings.catch_warnings(record=True):  # maxshield
         raw_erm = Raw(erm_fname, allow_maxshield=True, preload=True)
     picks = pick_types(raw_erm.info, meg=True)

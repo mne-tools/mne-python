@@ -6,7 +6,6 @@
 
 # License: BSD (3-clause)
 
-from __future__ import division
 from copy import deepcopy
 import numpy as np
 from scipy import linalg
@@ -15,7 +14,7 @@ from os import path as op
 import inspect
 
 from .. import __version__
-from ..transforms import _str_to_frame
+from ..transforms import _str_to_frame, _get_trans
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..surface import _normalize_vectors
@@ -32,7 +31,7 @@ from ..externals.six import string_types
 @verbose
 def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
                    fine_cal=None, ctc=None, st_dur=None, st_corr=0.98,
-                   coord_frame='head', verbose=None):
+                   coord_frame='head', destination=None, verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -72,6 +71,14 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
         ``'meg'`` or ``'head'``. For empty-room recordings that do not have
         an head<->meg transform ``info['dev_head_t']``, the MEG coordinate
         frame should be used.
+    destination : str | array-like, shape (3,) | None
+        The destination location for the head. Can be ``None``, which
+        will not change the head position, or a string path to a FIF file
+        containing a MEG device<->head transformation, or a 3-element array
+        giving the coordinates to translate to (with no rotations).
+        For example, ``destination=(0, 0, 0.04)`` would translate the bases
+        as ``--trans default`` would in ``maxfilter`` (i.e., to the default
+        head location).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -89,6 +96,27 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
 
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen.
+
+    Compared to Elekta's implementation of ``maxfilter``, our algorithm
+    currently provides the following features:
+
+        * Basic Maxwell filtering
+        * Cross-talk cancellation
+        * tSSS
+        * Bad channel reconstruction
+
+    The following features are not yet implemented:
+
+        * Coordinate frame translation
+        * Movement compensation
+        * Automatic bad channel detection
+        * Regularization of in/out components
+        * cHPI subtraction
+
+    Our algorithm has the following enhancements:
+
+        * double floating point precision
+        * handling of 3D (in additon to 1D) fine calibration files
 
     References
     ----------
@@ -204,7 +232,37 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     # XXX we should just be able to do S_tot /= coil_scale here, but
     # on old numpy/scipy/py26 combo we get the dreaded SVD did not converge
     # error, so we leave it split here (perf hit is hopefully minimal)
-    d = np.dot(S_tot[:, :n_in], mm_norm[:n_in])
+    if destination is None:
+        S_recon = S_tot[:, :n_in]
+    else:
+        if not head_frame:
+            raise RuntimeError('destination can only be set if using the '
+                               'head coordinate frame')
+        if isinstance(destination, string_types):
+            recon_trans = _get_trans(destination, 'meg', 'head')[0]['trans']
+        else:
+            destination = np.array(destination, float)
+            if destination.shape != (3,):
+                raise ValueError('destination must be a 3-element vector, '
+                                 'str, or None')
+            recon_trans = np.eye(4)
+            recon_trans[:3, 3] = destination
+        info_recon = deepcopy(info)
+        info_recon['dev_head_t']['trans'] = recon_trans
+        recon_coils = _prep_meg_channels(info_recon,
+                                         accurate=True, elekta_defs=True,
+                                         head_frame=head_frame,
+                                         verbose=False)[0]
+        S_recon = _sss_basis(origin, recon_coils, int_order, 0)
+        # warn if we have translated too far
+        diff = 1000 * (info['dev_head_t']['trans'][:3, 3] -
+                       info_recon['dev_head_t']['trans'][:3, 3])
+        dist = np.sqrt(np.sum((diff) ** 2))
+        if dist > 0.025:
+            logger.warning('Head position change is over 25 mm (%s) = %0.1f mm'
+                           % (', '.join('%0.1f' % x for x in diff), dist))
+
+    d = np.dot(S_recon, mm_norm[:n_in])
     d /= coil_scale
     raw_sss._data[meg_picks] = d
 
@@ -232,25 +290,25 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
                         'the previous window.' % len_last_buf)
 
         # Loop through buffer windows of data
-        for win in zip(lims[:-1], lims[1:]):
+        for start, stop in zip(lims[:-1], lims[1:]):
             # Reconstruct data from external space and compute residual
-            resid = data[:, win[0]:win[1]]
-            resid -= raw_sss._data[meg_picks, win[0]:win[1]]
+            resid = data[:, start:stop]
+            resid -= raw_sss._data[meg_picks, start:stop]
             resid -= np.dot(S_tot[:, n_in:],
-                            mm_norm[n_in:, win[0]:win[1]]) / coil_scale
+                            mm_norm[n_in:, start:stop]) / coil_scale
             _check_finite(resid)
 
             # Compute SSP-like projection vectors based on minimal correlation
-            this_data = raw_sss._data[meg_picks, win[0]:win[1]]
+            this_data = raw_sss._data[meg_picks, start:stop]
             _check_finite(this_data)
             V = _overlap_projector(this_data, resid, st_corr)
 
             # Apply projector according to Eq. 12 in [2]_
             logger.info('    Projecting out %s tSSS components for %s-%s'
-                        % (V.shape[1], win[0] / raw_sss.info['sfreq'],
-                           win[1] / raw_sss.info['sfreq']))
+                        % (V.shape[1], start / raw_sss.info['sfreq'],
+                           stop / raw_sss.info['sfreq']))
             this_data -= np.dot(np.dot(this_data, V), V.T)
-            raw_sss._data[meg_picks, win[0]:win[1]] = this_data
+            raw_sss._data[meg_picks, start:stop] = this_data
 
     # Update info
     raw_sss = _update_sss_info(raw_sss, origin, int_order, ext_order,
@@ -267,8 +325,13 @@ def _check_finite(data):
 
 def _sph_harm_norm(order, degree):
     """Normalization factor for spherical harmonics"""
-    return np.sqrt((2 * degree + 1) / (4 * np.pi) *
-                   factorial(degree - order) / factorial(degree + order))
+    # we could use scipy.special.poch(degree + order + 1, -2 * order)
+    # here, but it's slower for our fairly small degree
+    # do in two steps like scipy for better precision
+    norm = np.sqrt((2 * degree + 1.) / (4 * np.pi))
+    norm *= np.sqrt(factorial(degree - order) /
+                    float(factorial(degree + order)))
+    return norm
 
 
 def _sph_harm(order, degree, az, pol, norm=True):
@@ -483,9 +546,9 @@ def _grad_in_comps(order, degree, sph, norm, rad, az, pol):
     # Compute gradients for all spherical coordinates (Eq. 6)
     rad_deg_p2 = rad ** (degree + 2)
     sin_pol = np.sin(pol)
-    g_rad = (-(degree + 1) / rad_deg_p2 * sph)
-    g_az = (1 / (rad_deg_p2 * sin_pol) * 1j * order * sph)
-    g_pol = (-1 / rad_deg_p2 * norm * sin_pol *
+    g_rad = (-(degree + 1.) / rad_deg_p2 * sph)
+    g_az = (1. / (rad_deg_p2 * sin_pol) * 1j * order * sph)
+    g_pol = (-1. / rad_deg_p2 * norm * sin_pol *
              _alegendre_deriv(order, degree, np.cos(pol)) *
              np.exp(1j * order * az))
 
@@ -583,7 +646,7 @@ def _sh_real_to_complex(shs, order):
     if order == 0:
         return shs[0]
     else:
-        return (shs[0] + 1j * np.sign(order) * shs[1]) / np.sqrt(2)
+        return (shs[0] + 1j * np.sign(order) * shs[1]) / np.sqrt(2.)
 
 
 def _bases_complex_to_real(complex_tot, int_order, ext_order):
@@ -783,9 +846,11 @@ def _overlap_projector(data_int, data_res, corr):
     # Normalize data, then compute orth to get temporal bases. Matrices
     # must have shape (n_samps x effective_rank) when passed into svd
     # computation
-    Q_int = linalg.qr(_orth_overwrite((data_int / np.linalg.norm(data_int)).T),
+    n = np.sqrt(np.sum(data_int * data_int))
+    Q_int = linalg.qr(_orth_overwrite((data_int / n).T),
                       overwrite_a=True, mode='economic', **check_disable)[0].T
-    Q_res = linalg.qr(_orth_overwrite((data_res / np.linalg.norm(data_res)).T),
+    n = np.sqrt(np.sum(data_res * data_res))
+    Q_res = linalg.qr(_orth_overwrite((data_res / n).T),
                       overwrite_a=True, mode='economic', **check_disable)[0]
     assert data_int.shape[1] > 0
     C_mat = np.dot(Q_int, Q_res)

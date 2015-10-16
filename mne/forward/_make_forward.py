@@ -17,8 +17,8 @@ from ..io.constants import FIFF
 from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
-                          _get_mri_head_t, _print_coord_trans,
-                          _coord_frame_name, Transform)
+                          _get_trans, _print_coord_trans, _coord_frame_name,
+                          Transform)
 from ..utils import logger, verbose
 from ..source_space import _ensure_src, _filter_source_spaces
 from ..surface import _normalize_vectors
@@ -515,7 +515,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     # read the transformation from MRI to HEAD coordinates
     # (could also be HEAD to MRI)
-    mri_head_t, trans = _get_mri_head_t(trans)
+    mri_head_t, trans = _get_trans(trans)
     bem_extra = 'dict' if isinstance(bem, dict) else bem
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'

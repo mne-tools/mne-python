@@ -908,6 +908,26 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger.addHandler(lh)
 
 
+class catch_logging(object):
+    """Helper to store logging
+
+    This will remove all other logging handlers, and return the handler to
+    stdout when complete.
+    """
+    def __enter__(self):
+        self._data = StringIO()
+        self._lh = logging.StreamHandler(self._data)
+        self._lh.setFormatter(logging.Formatter('%(message)s'))
+        for lh in logger.handlers:
+            logger.removeHandler(lh)
+        logger.addHandler(self._lh)
+        return self._data
+
+    def __exit__(self, *args):
+        logger.removeHandler(self._lh)
+        set_log_file(None)
+
+
 ###############################################################################
 # CONFIG / PREFS
 

@@ -318,32 +318,33 @@ def _ensure_trans(trans, fro='mri', to='head'):
     return trans
 
 
-def _get_mri_head_t(trans):
+def _get_trans(trans, fro='mri', to='head'):
     """Get mri_head_t (from=mri, to=head) from mri filename"""
     if isinstance(trans, string_types):
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
         if op.splitext(trans)[1] in ['.fif', '.gz']:
-            mri_head_t = read_trans(trans)
+            fro_to_t = read_trans(trans)
         else:
             # convert "-trans.txt" to "-trans.fif" mri-type equivalent
+            # these are usually actually in to_fro form
             t = np.genfromtxt(trans)
             if t.ndim != 2 or t.shape != (4, 4):
                 raise RuntimeError('File "%s" did not have 4x4 entries'
                                    % trans)
-            mri_head_t = Transform('head', 'mri', t)
+            fro_to_t = Transform(to, fro, t)
     elif isinstance(trans, dict):
-        mri_head_t = trans
+        fro_to_t = trans
         trans = 'dict'
     elif trans is None:
-        mri_head_t = Transform('head', 'mri', np.eye(4))
+        fro_to_t = Transform(fro, to, np.eye(4))
         trans = 'identity'
     else:
-        raise ValueError('trans type %s not known, must be str, dict, or None'
-                         % type(trans))
+        raise ValueError('transform type %s not known, must be str, dict, '
+                         'or None' % type(trans))
     # it's usually a head->MRI transform, so we probably need to invert it
-    mri_head_t = _ensure_trans(mri_head_t, 'mri', 'head')
-    return mri_head_t, trans
+    fro_to_t = _ensure_trans(fro_to_t, fro, to)
+    return fro_to_t, trans
 
 
 def combine_transforms(t_first, t_second, fro, to):

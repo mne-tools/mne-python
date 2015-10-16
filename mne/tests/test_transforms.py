@@ -10,7 +10,7 @@ import warnings
 from mne.datasets import testing
 from mne import read_trans, write_trans
 from mne.utils import _TempDir, run_tests_if_main
-from mne.transforms import (invert_transform, _get_mri_head_t,
+from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
                             get_ras_to_neuromag_trans, _sphere_to_cartesian,
@@ -27,11 +27,11 @@ fname_trans = op.join(op.split(__file__)[0], '..', 'io', 'tests',
 
 
 @testing.requires_testing_data
-def test_get_mri_head_t():
+def test_get_trans():
     """Test converting '-trans.txt' to '-trans.fif'"""
     trans = read_trans(fname)
     trans = invert_transform(trans)  # starts out as head->MRI, so invert
-    trans_2 = _get_mri_head_t(fname_trans)[0]
+    trans_2 = _get_trans(fname_trans)[0]
     assert_equal(trans['from'], trans_2['from'])
     assert_equal(trans['to'], trans_2['to'])
     assert_allclose(trans['trans'], trans_2['trans'], rtol=1e-5, atol=1e-5)

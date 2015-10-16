@@ -22,7 +22,7 @@ from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import get_score_funcs, corrmap
 from mne.io.meas_info import Info
-from mne.utils import (set_log_file, _TempDir, requires_sklearn, slow_test,
+from mne.utils import (catch_logging, _TempDir, requires_sklearn, slow_test,
                        run_tests_if_main)
 
 # Set our plotters to test mode
@@ -549,21 +549,18 @@ def test_run_ica():
 @requires_sklearn
 def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection"""
-    tempdir = _TempDir()
     raw = io.Raw(raw_fname).crop(1.5, stop, False)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4)
     raw._data[2, 1000:1005] = 5e-12
-    drop_log = op.join(op.dirname(tempdir), 'ica_drop.log')
-    set_log_file(drop_log, overwrite=True)
-    with warnings.catch_warnings(record=True):
-        ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
-                tstep=0.01, verbose=True)
-    assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
-    with open(drop_log) as fid:
-        log = [l for l in fid if 'detected' in l]
+    with catch_logging() as drop_log:
+        with warnings.catch_warnings(record=True):
+            ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
+                    tstep=0.01, verbose=True)
+        assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
+    log = [l for l in drop_log.getvalue().split('\n') if 'detected' in l]
     assert_equal(len(log), 1)
 
 

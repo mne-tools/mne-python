@@ -30,7 +30,7 @@ from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
 from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
-                         combine_transforms, _get_mri_head_t,
+                         combine_transforms, _get_trans,
                          _coord_frame_name, Transform)
 from .externals.six import string_types
 
@@ -300,7 +300,7 @@ class SourceSpaces(list):
             if coords == 'head':
 
                 # read mri -> head transformation
-                mri_head_t = _get_mri_head_t(trans)[0]
+                mri_head_t = _get_trans(trans)[0]
 
                 # get the HEAD to MRI transform
                 head_mri_t = invert_transform(mri_head_t)

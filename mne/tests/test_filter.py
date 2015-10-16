@@ -2,7 +2,6 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_equal, assert_true, assert_raises
-import os.path as op
 import warnings
 from scipy.signal import resample as sp_resample
 
@@ -11,8 +10,7 @@ from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad)
 
-from mne import set_log_file
-from mne.utils import _TempDir, sum_squared, run_tests_if_main, slow_test
+from mne.utils import sum_squared, run_tests_if_main, slow_test, catch_logging
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -99,8 +97,6 @@ def test_iir_stability():
 def test_notch_filters():
     """Test notch filters
     """
-    tempdir = _TempDir()
-    log_file = op.join(tempdir, 'temp_log.txt')
     # let's use an ugly, prime sfreq for fun
     sfreq = 487.0
     sig_len_secs = 20
@@ -122,16 +118,12 @@ def test_notch_filters():
     line_freqs = [None, freqs, freqs, freqs, freqs]
     tols = [2, 1, 1, 1]
     for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
-        if lf is None:
-            set_log_file(log_file, overwrite=True)
-
-        b = notch_filter(a, sfreq, lf, filter_length=fl, method=meth,
-                         verbose='INFO')
+        with catch_logging() as log_file:
+            b = notch_filter(a, sfreq, lf, filter_length=fl, method=meth,
+                             verbose='INFO')
 
         if lf is None:
-            set_log_file()
-            with open(log_file) as fid:
-                out = fid.readlines()
+            out = log_file.getvalue().split('\n')[:-1]
             if len(out) != 2:
                 raise ValueError('Detected frequencies not logged properly')
             out = np.fromstring(out[1], sep=', ')
@@ -316,38 +308,34 @@ def test_cuda():
     # some warnings about clean-up failing
     # Also, using `n_jobs='cuda'` on a non-CUDA system should be fine,
     # as it should fall back to using n_jobs=1.
-    tempdir = _TempDir()
-    log_file = op.join(tempdir, 'temp_log.txt')
     sfreq = 500
     sig_len_secs = 20
     a = np.random.randn(sig_len_secs * sfreq)
 
-    set_log_file(log_file, overwrite=True)
-    for fl in ['10s', None, 2048]:
-        bp = band_pass_filter(a, sfreq, 4, 8, n_jobs=1, filter_length=fl)
-        bs = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs=1,
-                              filter_length=fl)
-        lp = low_pass_filter(a, sfreq, 8, n_jobs=1, filter_length=fl)
-        hp = high_pass_filter(lp, sfreq, 4, n_jobs=1, filter_length=fl)
+    with catch_logging() as log_file:
+        for fl in ['10s', None, 2048]:
+            bp = band_pass_filter(a, sfreq, 4, 8, n_jobs=1, filter_length=fl)
+            bs = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs=1,
+                                  filter_length=fl)
+            lp = low_pass_filter(a, sfreq, 8, n_jobs=1, filter_length=fl)
+            hp = high_pass_filter(lp, sfreq, 4, n_jobs=1, filter_length=fl)
 
-        bp_c = band_pass_filter(a, sfreq, 4, 8, n_jobs='cuda',
-                                filter_length=fl, verbose='INFO')
-        bs_c = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
-                                filter_length=fl, verbose='INFO')
-        lp_c = low_pass_filter(a, sfreq, 8, n_jobs='cuda', filter_length=fl,
-                               verbose='INFO')
-        hp_c = high_pass_filter(lp, sfreq, 4, n_jobs='cuda', filter_length=fl,
-                                verbose='INFO')
+            bp_c = band_pass_filter(a, sfreq, 4, 8, n_jobs='cuda',
+                                    filter_length=fl, verbose='INFO')
+            bs_c = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
+                                    filter_length=fl, verbose='INFO')
+            lp_c = low_pass_filter(a, sfreq, 8, n_jobs='cuda',
+                                   filter_length=fl, verbose='INFO')
+            hp_c = high_pass_filter(lp, sfreq, 4, n_jobs='cuda',
+                                    filter_length=fl, verbose='INFO')
 
-        assert_array_almost_equal(bp, bp_c, 12)
-        assert_array_almost_equal(bs, bs_c, 12)
-        assert_array_almost_equal(lp, lp_c, 12)
-        assert_array_almost_equal(hp, hp_c, 12)
+            assert_array_almost_equal(bp, bp_c, 12)
+            assert_array_almost_equal(bs, bs_c, 12)
+            assert_array_almost_equal(lp, lp_c, 12)
+            assert_array_almost_equal(hp, hp_c, 12)
 
     # check to make sure we actually used CUDA
-    set_log_file()
-    with open(log_file) as fid:
-        out = fid.readlines()
+    out = log_file.getvalue().split('\n')[:-1]
     # triage based on whether or not we actually expected to use CUDA
     from mne.cuda import _cuda_capable  # allow above funs to set it
     tot = 12 if _cuda_capable else 0
