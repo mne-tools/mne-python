@@ -238,7 +238,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     chspace /= chspace.max()
                     ax._get_lines.color_cycle = iter(chspace)
 
-
                 text = ax.annotate('Loading...', xy=(0.01, 0.1),
                                    xycoords='axes fraction', fontsize=20,
                                    color='green')
