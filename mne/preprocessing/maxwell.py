@@ -195,46 +195,43 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     if origin.shape != (3,):
         raise ValueError('origin must be a 3-element array')
     # Compute in/out bases and create copies containing only good chs
-    S_tot = _sss_basis(origin, meg_coils, int_order, ext_order)
+    S_decomp = _sss_basis(origin, meg_coils, int_order, ext_order)
 
     # Cross-talk processing
     if ctc is not None:
         ctc = _read_ctc(ctc, raw_sss.info, meg_picks, good_picks)
 
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
+    # We always want to reconstruct with non-corrected defs
+    n_in = _get_n_moments(int_order)
+    S_recon = S_decomp[:, :n_in].copy()  # XXX should go before
     if fine_cal is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
         S_fine = _sss_basis_point(origin, grad_info, int_order, ext_order,
                                   grad_imbalances, head_frame=head_frame)
         # Add point like magnetometer data to bases.
-        S_tot[grad_picks, :] += S_fine
+        S_decomp[grad_picks, :] += S_fine
         # Scale magnetometers by calibration coefficient
-        S_tot[mag_picks, :] /= mag_cals
+        S_decomp[mag_picks, :] /= mag_cals
 
-    S_tot_good = S_tot[good_picks, :]
-    S_tot_good_norm = np.sqrt(np.sum(S_tot_good *
-                              S_tot_good, axis=0))[np.newaxis, :]
-    S_tot_good /= S_tot_good_norm
-    n_in = _get_n_moments(int_order)
+    S_decomp_good = S_decomp[good_picks, :]
+    S_decomp_good_norm = np.sqrt(np.sum(S_decomp_good *
+                                 S_decomp_good, axis=0))[np.newaxis, :]
+    S_decomp_good /= S_decomp_good_norm
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
-    pS_tot_good = linalg.pinv(S_tot_good, cond=1e-15)
+    pS_decomp_good = linalg.pinv(S_decomp_good, cond=1e-15)
 
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
     # XXX eventually we can refactor this to work in chunks
     data = raw_sss[good_picks][0]
     if ctc is not None:
         data = ctc.dot(data)
-    mm_norm = np.dot(pS_tot_good, data * coil_scale[good_picks])
-    mm_norm /= S_tot_good_norm.T
+    mm_norm = np.dot(pS_decomp_good, data * coil_scale[good_picks])
+    mm_norm /= S_decomp_good_norm.T
 
-    # Reconstruct data from internal space only (Eq. 38), first rescale S_tot
-    # XXX we should just be able to do S_tot /= coil_scale here, but
-    # on old numpy/scipy/py26 combo we get the dreaded SVD did not converge
-    # error, so we leave it split here (perf hit is hopefully minimal)
-    if destination is None:
-        S_recon = S_tot[:, :n_in]
-    else:
+    # Frame to translate to
+    if destination is not None:
         if not head_frame:
             raise RuntimeError('destination can only be set if using the '
                                'head coordinate frame')
@@ -262,6 +259,10 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
             logger.warning('Head position change is over 25 mm (%s) = %0.1f mm'
                            % (', '.join('%0.1f' % x for x in diff), dist))
 
+    # Reconstruct data from internal space only (Eq. 38), first rescale S_tot
+    # XXX we should just be able to do S_tot /= coil_scale here, but
+    # on old numpy/scipy/py26 combo we get the dreaded SVD did not converge
+    # error, so we leave it split here (perf hit is hopefully minimal)
     d = np.dot(S_recon, mm_norm[:n_in])
     d /= coil_scale
     raw_sss._data[meg_picks] = d
@@ -294,7 +295,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
             # Reconstruct data from external space and compute residual
             resid = data[:, start:stop]
             resid -= raw_sss._data[meg_picks, start:stop]
-            resid -= np.dot(S_tot[:, n_in:],
+            resid -= np.dot(S_decomp[:, n_in:],
                             mm_norm[n_in:, start:stop]) / coil_scale
             _check_finite(resid)
 
@@ -425,7 +426,8 @@ def _sss_basis(origin, coils, int_order, ext_order):
 
     # Set all magnetometers (with 'coil_class' == 1.0) to be scaled by 100
     coil_scale = np.ones((len(coils)))
-    coil_scale[np.array([coil['coil_class'] == 1.0 for coil in coils])] = 100.
+    coil_scale[np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
+                         for coil in coils])] = 100.
 
     if n_bases > n_sens:
         raise ValueError('Number of requested bases (%s) exceeds number of '

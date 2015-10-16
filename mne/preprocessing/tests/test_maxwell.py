@@ -302,12 +302,12 @@ def test_maxwell_filter_fine_calibration():
 
     # Test 1D SSS fine calibration
     raw_sss = maxwell_filter(raw, fine_cal=fine_cal_fname)
-    _assert_snr(raw_sss, sss_fine_cal, 1.5, 25.)  # XXX should be much higher
+    _assert_snr(raw_sss, sss_fine_cal, 1.5, 27.)  # XXX should be much higher
 
     # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
     # very low SNR as proc differs, eventually we should add a better test
     raw_sss_3D = maxwell_filter(raw, fine_cal=fine_cal_fname_3d)
-    _assert_snr(raw_sss_3D, sss_fine_cal, 0.75, 5.)
+    _assert_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.)
 
 
 @testing.requires_testing_data
