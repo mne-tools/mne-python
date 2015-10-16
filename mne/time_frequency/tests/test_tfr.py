@@ -127,6 +127,15 @@ def test_time_frequency():
     assert_equal(power_pick.ch_names, power_drop.ch_names)
     assert_equal(power_pick.data.shape, power_drop.data.shape)
 
+    # grand average
+    tfr2 = tfr.copy()
+    tfr2.info['bads'] = ['EEG 008']  # test interpolation
+    tfr2.drop_channels(tfr2.ch_names[1:2])
+    gave = grand_average([tfr, tfr2])
+    assert_equal(gave.data.shape, [len(ch_names), tfr.data.shape[1]])
+    assert_equal(ch_names, gave.ch_names)
+    assert_equal(gave.nave, 2)
+
 
 def test_dpsswavelet():
     """Test DPSS wavelet"""
