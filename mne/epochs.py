@@ -1511,15 +1511,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             a str (single event) or a list of str. In the case where one of
             the entries is a list of str, event_ids in that list will be
             grouped together before equalizing trial counts across conditions.
-            In the case where partial matching is used (using '/' in `event_ids`),
-            `event_ids` will be matched according to the provided tags, that is,
-            processing works as if the event_ids matched by the provided
-            tags had been supplied instead.
+            In the case where partial matching is used (using '/' in
+            `event_ids`), `event_ids` will be matched according to the
+            provided tags, that is, processing works as if the event_ids
+            matched by the provided tags had been supplied instead.
             The event_ids must identify nonoverlapping subsets of the epochs.
         method : str
             If 'truncate', events will be truncated from the end of each event
-            list. If 'mintime', timing differences between each event list will
-            be minimized.
+            list. If 'mintime', timing differences between each event list
+            will be minimized.
         copy : bool
             If True, a copy of epochs will be returned. Otherwise, the
             function will operate in-place.
