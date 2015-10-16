@@ -1514,6 +1514,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             In the case where partial matching (using event_ids with '/') is
             used, processing works as if the event_ids matched by the provided
             tags had been supplied instead.
+            The event_ids must identify nonoverlapping subsets of the epochs.
         method : str
             If 'truncate', events will be truncated from the end of each event
             list. If 'mintime', timing differences between each event list will
@@ -1538,6 +1539,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         would equalize the number of trials in the 'Nonspatial' condition with
         the total number of trials in the 'Left' and 'Right' conditions.
+
+        If multiple indices are provided (e.g. 'Left' and 'Right' in the
+        example above), it is not guaranteed that after equalization, the
+        conditions will contribute evenly. E.g., it is possible to end up
+        with 70 'Nonspatial' trials, 69 'Left' and 1 'Right'.
         """
         if copy is True:
             epochs = self.copy()
@@ -1570,12 +1576,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             events_ = [set(epochs[x].events[:, 0]) for x in event_ids]
             doubles = events_[0].intersection(events_[1])
             if len(doubles):
-                warnings.warn("Warning: the two sets of epochs are "
-                              "overlapping. The %s overlapping epochs will"
-                              " be dropped." % len(doubles))
-                drop_ids = [ii for ii, t in enumerate(epochs.events[:, 0])
-                            if t in doubles]
-                epochs.drop_epochs(drop_ids, reason='EQUALIZED_COUNT')
+                raise ValueError("Warning: the two sets of epochs are "
+                                 "overlapping. Provide an "
+                                 "orthogonal selection.")
 
         for eq in event_ids:
             eq = np.atleast_1d(eq)
