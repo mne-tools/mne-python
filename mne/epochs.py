@@ -1539,8 +1539,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         would equalize the number of trials in the 'Nonspatial' condition with
         the total number of trials in the 'Left' and 'Right' conditions.
-        
-        If multiple indices are provided (e.g. 'Left' and 'Right' in the 
+
+        If multiple indices are provided (e.g. 'Left' and 'Right' in the
         example above), it is not guaranteed that after equalization, the
         conditions will contribute evenly. E.g., it is possible to end up
         with 70 'Nonspatial' trials, 69 'Left' and 1 'Right'.
