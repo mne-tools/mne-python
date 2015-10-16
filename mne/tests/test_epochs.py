@@ -1154,6 +1154,13 @@ def test_epoch_eq():
     assert_true(epochs['ab'].events.shape[0] == old_shapes[0] + old_shapes[1])
     assert_true(epochs['ab'].events.shape[0] == epochs['cd'].events.shape[0])
 
+    # equalizing with hierarchical tags
+    epochs = Epochs(raw, events, {'a/x': 1, 'b/x': 2, 'a/y': 3, 'b/y': 4},
+                    tmin, tmax, picks=picks, reject=reject)
+    cond1, cond2 = ['a', ['b/x', 'b/y']], [['a/x', 'a/y'], 'b']
+    es = (epochs.equalize_event_counts[c] for c in (cond1, cond2))
+    assert_true(set(es[0].events[:, 0]) == set(es[1].events[:, 0]))
+
 
 def test_access_by_name():
     """Test accessing epochs by event name and on_missing for rare events
