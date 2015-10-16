@@ -956,8 +956,9 @@ def _update_sensor_geometry(info, fine_cal):
         _normalize_vectors(v2)
         ang_shift[ci] = np.sum(v1 * v2, axis=0)
 
-        # Adjust channel orientation with those from fine calibration
-        info_ch.update(loc=cal_ch['loc'])
+        # Adjust channel normal orientations with those from fine calibration
+        # Channel positions are not changed
+        info_ch['loc'][3:] = cal_ch['loc'][3:]
         assert (info_ch['coord_frame'] == cal_ch['coord_frame'] ==
                 FIFF.FIFFV_COORD_DEVICE)
 
