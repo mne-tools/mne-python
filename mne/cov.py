@@ -9,6 +9,9 @@ import os
 from math import floor, ceil, log
 import itertools as itt
 import warnings
+
+from copy import deepcopy
+
 import six
 from distutils.version import LooseVersion
 
@@ -153,6 +156,16 @@ class Covariance(dict):
             raise inst
 
         end_file(fid)
+
+    def copy(self):
+        """Copy the Covariance object
+
+        Returns
+        -------
+        cov : instance of Covariance
+            The copied object.
+        """
+        return deepcopy(self)
 
     def as_diag(self, copy=True):
         """Set covariance to be processed as being diagonal.

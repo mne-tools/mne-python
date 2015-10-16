@@ -10,6 +10,8 @@ from __future__ import print_function
 import sys
 import mne
 
+out = []
+
 # check scipy
 ok_scipy_submodules = set(['scipy', 'numpy',  # these appear in old scipy
                            'fftpack', 'lib', 'linalg',
@@ -19,20 +21,23 @@ scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        not x.split('.')[1].startswith('_'))
 bad = scipy_submodules - ok_scipy_submodules
 if len(bad) > 0:
-    print('Found un-nested scipy submodules:\\n%s' % bad, end='')
-    exit(1)
+    out.append('Found un-nested scipy submodules: %s' % list(bad))
 
-# check sklearn
+# check sklearn and others
+_sklearn = _pandas = _nose = False
 for x in sys.modules.keys():
-    if x.startswith('sklearn'):
-        print('Found un-nested sklearn import', end='')
-        exit(1)
-    if x.startswith('pandas'):
-        print('Found un-nested pandas import', end='')
-        exit(1)
-    if x.startswith('nose'):
-        print('Found un-nested nose import', end='')
-        exit(1)
+    if x.startswith('sklearn') and not _sklearn:
+        out.append('Found un-nested sklearn import')
+        _sklearn = True
+    if x.startswith('pandas') and not _pandas:
+        out.append('Found un-nested pandas import')
+        _pandas = True
+    if x.startswith('nose') and not _nose:
+        out.append('Found un-nested nose import')
+        _nose = True
+if len(out) > 0:
+    print('\\n' + '\\n'.join(out), end='')
+    exit(1)
 """
 
 
