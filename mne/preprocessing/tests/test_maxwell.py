@@ -5,6 +5,7 @@
 import os.path as op
 import warnings
 import numpy as np
+import sys
 import scipy
 from numpy.testing import assert_equal, assert_allclose
 from nose.tools import assert_true, assert_raises
@@ -15,7 +16,7 @@ from mne import compute_raw_covariance, pick_types
 from mne.forward import _prep_meg_channels
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
-from mne.io import Raw, proc_history
+from mne.io import Raw, proc_history, read_info
 from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
                                        _sss_basis, _sh_complex_to_real,
                                        _sh_real_to_complex, _sh_negate,
@@ -93,8 +94,12 @@ def test_spherical_harmonics():
     from scipy.special import sph_harm
     az, pol = np.meshgrid(np.linspace(0, 2 * np.pi, 30),
                           np.linspace(0, np.pi, 20), indexing='ij')
-    if PY3 and LooseVersion(scipy.__version__) >= LooseVersion('0.15'):
-        raise SkipTest('scipy sph_harm bad in Py3k')
+    # As of Oct 16, 2015, Anancoda has a bug in scipy due to old compilers (?):
+    # https://github.com/ContinuumIO/anaconda-issues/issues/479
+    if (PY3 and
+            LooseVersion(scipy.__version__) >= LooseVersion('0.15') and
+            'Continuum Analytics' in sys.version):
+        raise SkipTest('scipy sph_harm bad in Py3k on Anaconda')
 
     # Test our basic spherical harmonics
     for degree in range(1, int_order):
@@ -127,21 +132,32 @@ def test_multiploar_bases():
     """Test multipolar moment basis calculation using sensor information"""
     from scipy.io import loadmat
     # Test our basis calculations
-    with warnings.catch_warnings(record=True):  # maxshield
-        raw = Raw(raw_fname, allow_maxshield=True)
-    coils = _prep_meg_channels(raw.info, accurate=True, elekta_defs=True,
+    info = read_info(raw_fname)
+    coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
                                verbose=False)[0]
     S_tot = _sss_basis(np.array([0., 0., 40e-3]), coils, int_order, ext_order)
     # Test our real<->complex conversion functions
     S_tot_complex = _bases_real_to_complex(S_tot, int_order, ext_order)
     S_tot_round = _bases_complex_to_real(S_tot_complex, int_order, ext_order)
     assert_allclose(S_tot, S_tot_round, atol=1e-7)
+    # Check against a known benchmark
+    sss_data = loadmat(bases_fname)
+    S_tot_mat = np.concatenate([sss_data['Sin0040'], sss_data['Sout0040']],
+                               axis=1)
+    S_tot_mat /= 4e-7 * np.pi  # divide out the magnetic permeability
+    S_tot_mat_real = _bases_complex_to_real(S_tot_mat, int_order, ext_order)
+    S_tot_mat_round = _bases_real_to_complex(S_tot_mat_real,
+                                             int_order, ext_order)
+    assert_allclose(S_tot_mat, S_tot_mat_round, atol=1e-7)
+    # XXX These should really be better...
+    # assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-0, atol=1e3)
+    # assert_allclose(S_tot, S_tot_mat_real, rtol=1e-0, atol=1e3)
+
     # Now normalize our columns
     S_tot /= np.sqrt(np.sum(S_tot * S_tot, axis=0))[np.newaxis]
     S_tot_complex /= np.sqrt(np.sum(
         (S_tot_complex * S_tot_complex.conj()).real, axis=0))[np.newaxis]
-    # Now check against a known benchmark
-    sss_data = loadmat(bases_fname)
+    # Check against a known benchmark
     S_tot_mat = np.concatenate([sss_data['SNin0040'], sss_data['SNout0040']],
                                axis=1)
     # Check this roundtrip

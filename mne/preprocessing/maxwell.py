@@ -388,7 +388,7 @@ def _sph_harm(order, degree, az, pol, norm=True):
     return norm * lpmv(order, degree, np.cos(pol)) * np.exp(1j * order * az)
 
 
-def _sss_basis(origin, coils, int_order, ext_order):
+def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
     """Compute SSS basis for given conditions.
 
     Parameters
@@ -403,6 +403,8 @@ def _sss_basis(origin, coils, int_order, ext_order):
         Order of the internal multipolar moment space
     ext_order : int
         Order of the external multipolar moment space
+    scale : float
+        Scale factor for magnetometers.
 
     Returns
     -------
@@ -429,7 +431,7 @@ def _sss_basis(origin, coils, int_order, ext_order):
     # Set all magnetometers (with 'coil_class' == 1.0) to be scaled by 100
     coil_scale = np.ones((len(coils)))
     coil_scale[np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
-                         for coil in coils])] = 100.
+                         for coil in coils])] = mag_scale
 
     if n_bases > n_sens:
         raise ValueError('Number of requested bases (%s) exceeds number of '
