@@ -1409,7 +1409,8 @@ class CoregFrame(HasTraits):
 
     @cached_property
     def _get_omitted_string(self):
-        if self.model.omitted_info['n_total'] == 0:
+        if (len(self.model.omitted_info.items()) == 0 or
+                self.model.omitted_info['n_total'] == 0):
             return "No points omitted"
         elif self.model.omitted_info['n_total'] == 1:
             omit_str = "1 point"
