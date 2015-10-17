@@ -130,8 +130,7 @@ def test_time_frequency():
 
     # grand average
     power2 = power.copy()
-    power2.info['bads'] = ['EEG 008']  # test interpolation
-    power2.drop_channels(power2.ch_names[1:2])
+    power2.info['bads'] = ['MEG 0112']  # test interpolation
     gave = grand_average([power, power2])
     assert_equal(gave.data.shape, [len(power.ch_names), 
                                    power.data.shape[1]])
