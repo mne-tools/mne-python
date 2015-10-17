@@ -1560,8 +1560,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # deal with hierarchical tags
         ids = epochs.event_id
         if "/" in "".join(ids):
+            # make string inputs a list of length 1
             event_ids = [[x] if isinstance(x, string_types) else x
                          for x in event_ids]
+            # 1. treat everything that's not in event_id as a tag
+            # 2a. for tags, find all the event_ids matched by the tags
+            # 2b. for non-tag ids, just pass them directly
+            # 3. do this for every input
             event_ids = [[k for k in ids if all((tag in k.split("/")
                          for tag in id_))]
                          if all(id__ not in ids for id__ in id_)
@@ -1571,13 +1576,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if len(set([sub_id in ids for sub_id in id_])) != 1:
                     err = ("Don't mix hierarchical and regular event_ids"
                            " like in \'%s\'." % ", ".join(id_))
-                    raise KeyError(err)
+                    raise ValueError(err)
 
             # deal with non-orthogonal tags
             events_ = [set(epochs[x].events[:, 0]) for x in event_ids]
             doubles = events_[0].intersection(events_[1])
             if len(doubles):
-                raise ValueError("Warning: the two sets of epochs are "
+                raise ValueError("The two sets of epochs are "
                                  "overlapping. Provide an "
                                  "orthogonal selection.")
 
