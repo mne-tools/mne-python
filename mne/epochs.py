@@ -1565,9 +1565,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             event_ids = [[x] if isinstance(x, string_types) else x
                          for x in event_ids]
             for ids_ in event_ids:  # check if tagging is attempted
-                for id_ in ids_:
-                    if any(id_ not in ids):
-                        tagging = True
+                if any([id_ not in ids for id_ in ids_]):
+                    tagging = True
             # 1. treat everything that's not in event_id as a tag
             # 2a. for tags, find all the event_ids matched by the tags
             # 2b. for non-tag ids, just pass them directly
