@@ -1568,9 +1568,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # 2b. for non-tag ids, just pass them directly
             # 3. do this for every input
             event_ids = [[k for k in ids if all((tag in k.split("/")
-                         for tag in id_))]
+                         for tag in id_))]  # find ids matching all tags
                          if all(id__ not in ids for id__ in id_)
-                         else id_
+                         else id_  # straight pass for non-tag inputs
                          for id_ in event_ids]
             for id_ in event_ids:
                 if len(set([sub_id in ids for sub_id in id_])) != 1:
@@ -1578,13 +1578,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            " like in \'%s\'." % ", ".join(id_))
                     raise ValueError(err)
 
-            # deal with non-orthogonal tags
-            events_ = [set(epochs[x].events[:, 0]) for x in event_ids]
-            doubles = events_[0].intersection(events_[1])
-            if len(doubles):
-                raise ValueError("The two sets of epochs are "
-                                 "overlapping. Provide an "
-                                 "orthogonal selection.")
+            # raise for non-orthogonal tags
+            if any([id_ not in ids for id_ in
+                    [id_ for sublist in event_ids for id_ in sublist]]):
+                events_ = [set(epochs[x].events[:, 0]) for x in event_ids]
+                doubles = events_[0].intersection(events_[1])
+                if len(doubles):
+                    raise ValueError("The two sets of epochs are "
+                                     "overlapping. Provide an "
+                                     "orthogonal selection.")
 
         for eq in event_ids:
             eq = np.atleast_1d(eq)
