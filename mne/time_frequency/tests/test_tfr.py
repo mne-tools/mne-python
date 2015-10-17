@@ -129,10 +129,17 @@ def test_time_frequency():
     assert_equal(power_pick.data.shape, power_drop.data.shape)
 
     # grand average
+    picks = pick_types(raw.info, meg='grad', eeg=False,
+                       stim=False, include=include,
+                       exclude=exclude)[:3]
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+    power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
+                            use_fft=True, return_itc=True)
     power2 = power.copy()
-    power2.info['bads'] = ['MEG 0112']  # test interpolation
+    power2.info['bads'] = power2.ch_names[0]  # test interpolation
     gave = grand_average([power, power2])
-    assert_equal(gave.data.shape, [len(power.ch_names), 
+    assert_equal(gave.data.shape, [len(power.ch_names),
                                    power.data.shape[1]])
     assert_equal(power2.ch_names, gave.ch_names)
     assert_equal(gave.nave, 2)
