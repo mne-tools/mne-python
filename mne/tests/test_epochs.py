@@ -1159,10 +1159,11 @@ def test_epoch_eq():
                     tmin, tmax, picks=picks, reject=reject)
     cond1, cond2 = ['a', ['b/x', 'b/y']], [['a/x', 'a/y'], 'b']
     es = [epochs.equalize_event_counts(c)[0] for c in (cond1, cond2)]
-    assert_equal(es[0].events[:, 0], es[1].events[:, 0])
+    assert_array_equal(es[0].events[:, 0], es[1].events[:, 0])
     cond1, cond2 = ['a', ['b', 'b/y']], [['a/x', 'a/y'], 'x']
     for c in (cond1, cond2):  # error b/c tag and id mix/non-orthogonal tags
       assert_raises(ValueError, epochs.equalize_event_counts, c)
+
 
 def test_access_by_name():
     """Test accessing epochs by event name and on_missing for rare events
