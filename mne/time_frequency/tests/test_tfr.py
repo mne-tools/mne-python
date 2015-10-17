@@ -137,7 +137,7 @@ def test_time_frequency():
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
     power2 = power.copy()
-    power2.info['bads'] = power2.ch_names[0]  # test interpolation
+    power2.info['bads'] = [power2.ch_names[0]]  # test interpolation
     gave = grand_average([power, power2])
     assert_equal(gave.data.shape, [len(power.ch_names),
                                    power.data.shape[1]])
