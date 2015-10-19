@@ -26,6 +26,7 @@ from ..io.tag import find_tag, _loc_to_coil_trans
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger
 from ..externals.six import string_types
+from ..channels.channels import _get_T1T2_mag_inds
 
 
 @verbose
@@ -69,7 +70,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     coord_frame : str
         The coordinate frame that the ``origin`` is specified in, either
         ``'meg'`` or ``'head'``. For empty-room recordings that do not have
-        an head<->meg transform ``info['dev_head_t']``, the MEG coordinate
+        a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
         frame should be used.
     destination : str | array-like, shape (3,) | None
         The destination location for the head. Can be ``None``, which
@@ -155,13 +156,22 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     del raw
     info, times, ch_names = raw_sss.info, raw_sss.times, raw_sss.ch_names
 
+    # Check for T1/T2 mag types
+    mag_inds_T1T2 = _get_T1T2_mag_inds(info)
+    if len(mag_inds_T1T2) > 0:
+        logger.warning('%d T1/T2 magnetometer channel types found. If using '
+                       ' SSS, it is advised to replace coil types using '
+                       ' `fix_mag_coil_types`.' % len(mag_inds_T1T2))
     if len(info['bads']) > 0:
         logger.info('    Bad channels being reconstructed: %s' % info['bads'])
     else:
         logger.info('    No bad channels')
-
-    # If necessary, load fine calibration and overwrite sensor geometry
+    #
+    # Fine calibration processing (load fine cal and overwrite sensor geometry)
+    #
     if fine_cal is not None:
+        logger.warning('Fine calibration is experimental despite similar '
+                       ' shielding factor to Elekta\'s processing.')
         grad_imbalances, mag_cals = _update_sensor_geometry(info, fine_cal)
 
     # Get indices of channels to use in multipolar moment calculation
@@ -398,7 +408,8 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
     coils : list
         List of MEG coils. Each should contain coil information dict specifying
         position, normals, weights, number of integration points and channel
-        type. All position info must be in the 'origin' coordinate frame
+        type. All coil geometry must be in the same coordinate frame
+        as ``origin`` (``head`` or ``meg``).
     int_order : int
         Order of the internal multipolar moment space
     ext_order : int
@@ -454,7 +465,9 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
             sph_norm = _sph_harm_norm(order, degree)
             sph *= sph_norm
             # Compute complex gradient for all integration points
-            # in spherical coordinates (Eq. 6)
+            # in spherical coordinates (Eq. 6). The gradient for rad, az, pol
+            # is obtained by taking the partial derivative of Eq. 4 w.r.t. each
+            # coordinate.
             az_factor = 1j * order * sph / np.sin(pol)
             pol_factor = (-sph_norm * np.sin(pol) * np.exp(1j * order * az) *
                           _alegendre_deriv(order, degree, np.cos(pol)))

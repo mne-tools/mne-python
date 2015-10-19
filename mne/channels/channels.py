@@ -747,7 +747,7 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
 
 def fix_mag_coil_types(info):
-    """Fix Elekta magnetometer coil types
+    """Fix magnetometer coil types
 
     Parameters
     ----------
@@ -774,10 +774,22 @@ def fix_mag_coil_types(info):
               current estimates computed by the MNE software is very small.
               Therefore the use of mne_fix_mag_coil_types is not mandatory.
     """
+    old_mag_inds = _get_T1T2_mag_inds(info)
+
+    for ii in old_mag_inds:
+        info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
+    logger.info('%d of %d T1/T2 magnetometer types replaced with T3.' %
+                (len(old_mag_inds), len(pick_types(info, meg='mag'))))
+    info._check_consistency()
+
+
+def _get_T1T2_mag_inds(info):
+    """Helper to find T1/T2 magnetometer coil types"""
     picks = pick_types(info, meg='mag')
+    old_mag_inds = []
     for ii in picks:
         ch = info['chs'][ii]
         if ch['coil_type'] in (FIFF.FIFFV_COIL_VV_MAG_T1,
                                FIFF.FIFFV_COIL_VV_MAG_T2):
-            ch['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
-    info._check_consistency()
+            old_mag_inds.append(ii)
+    return old_mag_inds
