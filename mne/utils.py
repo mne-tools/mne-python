@@ -790,10 +790,16 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     stderr : str
         Stderr returned by the process.
     """
-    if 'stderr' not in kwargs:
-        kwargs['stderr'] = subprocess.PIPE
-    if 'stdout' not in kwargs:
-        kwargs['stdout'] = subprocess.PIPE
+    for stdxxx, sys_stdxxx in (['stderr', sys.stderr],
+                               ['stdout', sys.stdout]):
+        if stdxxx not in kwargs:
+            kwargs[stdxxx] = subprocess.PIPE
+        elif kwargs[stdxxx] is sys_stdxxx:
+            if isinstance(sys_stdxxx, StringIO):
+                # nose monkey patches sys.stderr and sys.stdout to StringIO
+                kwargs[stdxxx] = subprocess.PIPE
+            else:
+                kwargs[stdxxx] = sys_stdxxx
 
     # Check the PATH environment variable. If run_subprocess() is to be called
     # frequently this should be refactored so as to only check the path once.
