@@ -105,6 +105,12 @@ def test_plot_evoked():
                       proj='interactive')
         assert_raises(RuntimeError, evoked_delayed_ssp.plot,
                       proj='interactive', axes='foo')
+        plt.close('all')
+
+        # test GFP plot overlay
+        evoked.plot(gfp=True)
+        evoked.plot(gfp='only')
+        assert_raises(ValueError, evoked.plot, gfp='foo')
 
         evoked.plot_image(proj=True)
         # plot with bad channels excluded

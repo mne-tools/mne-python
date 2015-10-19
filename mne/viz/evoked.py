@@ -122,7 +122,7 @@ def _topo_closed(events, ax, lines, fill):
 def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
-                 cmap=None):
+                 cmap=None, gfp=False):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -140,6 +140,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
+    if isinstance(gfp, string_types) and gfp != 'only':
+        raise ValueError('gfp must be boolean or "only"')
 
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
@@ -239,10 +241,23 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             # Set amplitude scaling
             D = this_scaling * evoked.data[idx, :]
             if plot_type == 'butterfly':
-                lines.append(ax.plot(times, D.T, picker=3., zorder=0))
-                for ii, line in zip(idx, lines[-1]):
-                    if ii in bad_ch_idx:
-                        line.set_zorder(1)
+                gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
+                if not gfp_only:
+                    lines.append(ax.plot(times, D.T, picker=3., zorder=0))
+                    for ii, line in zip(idx, lines[-1]):
+                        if ii in bad_ch_idx:
+                            line.set_zorder(1)
+                if gfp:  # 'only' or boolean True
+                    gfp_color = (0., 1., 0.)
+                    this_gfp = np.sqrt((D * D).mean(axis=0))
+                    if not gfp_only:
+                        y_offset = ax.get_ylim()[0]
+                    else:
+                        y_offset = 0.
+                    this_gfp += y_offset
+                    ax.fill_between(times, y_offset, this_gfp, color='none',
+                                    facecolor=gfp_color, zorder=0, alpha=0.25)
+                    ax.plot(times, this_gfp, color=gfp_color, zorder=2)
                 ax.set_ylabel('data (%s)' % ch_unit)
                 # for old matplotlib, we actually need this to have a bounding
                 # box (!), so we have to put some valid text here, change
@@ -309,7 +324,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
-                scalings=None, titles=None, axes=None):
+                scalings=None, titles=None, axes=None, gfp=False):
     """Plot evoked data
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -355,11 +370,15 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
+    gfp : bool | 'only'
+        Plot GFP if True or "only". If "only", then the individual channel
+        traces will not be shown.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
                         hline=hline, units=units, scalings=scalings,
-                        titles=titles, axes=axes, plot_type="butterfly")
+                        titles=titles, axes=axes, plot_type="butterfly",
+                        gfp=gfp)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,

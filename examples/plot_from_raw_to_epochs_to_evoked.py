@@ -65,7 +65,7 @@ evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
 ###############################################################################
 # View evoked response
 
-evoked.plot()
+evoked.plot(gfp=True)
 
 ###############################################################################
 # Save evoked responses for different conditions to disk
