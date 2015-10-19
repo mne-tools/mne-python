@@ -141,7 +141,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
     if isinstance(gfp, string_types) and gfp != 'only':
-        raise ValueError('gfp must be boolean or "only"')
+        raise ValueError('gfp must be boolean or "only". Got %s' % gfp)
 
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
@@ -205,6 +205,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     selectors = list()  # for keeping reference to span_selectors
     path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
                                            alpha=0.75)]
+    gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w",
+                                               alpha=0.75)]
     for ax, t in zip(axes, ch_types_used):
         ch_unit = units[t]
         this_scaling = scalings[t]
@@ -250,16 +252,19 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 if gfp:  # 'only' or boolean True
                     gfp_color = (0., 1., 0.)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
+                    this_ylim = ax.get_ylim()
                     if not gfp_only:
-                        y_offset = ax.get_ylim()[0]
+                        y_offset = this_ylim[0]
                     else:
                         y_offset = 0.
                     this_gfp += y_offset
                     ax.fill_between(times, y_offset, this_gfp, color='none',
                                     facecolor=gfp_color, zorder=0, alpha=0.25)
                     ax.plot(times, this_gfp, color=gfp_color, zorder=2)
-                    ax.text(times[0], this_gfp[0], 'GFP', color=gfp_color,
-                            path_effects=path_effects, zorder=3)
+                    ax.text(times[0] + 0.01 * (times[-1] - times[0]),
+                            this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
+                            'GFP', zorder=3, color=gfp_color,
+                            path_effects=gfp_path_effects)
                 ax.set_ylabel('data (%s)' % ch_unit)
                 # for old matplotlib, we actually need this to have a bounding
                 # box (!), so we have to put some valid text here, change
