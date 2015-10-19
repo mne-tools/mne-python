@@ -590,6 +590,14 @@ image_template = Template(u"""
             <img alt=""
              src="data:image/png;base64,{{img}}">
         {{endif}}
+    {{elif image_format == 'gif'}}
+        {{if scale is not None}}
+            <img alt="" style="width:{{width}}%;"
+             src="data:image/gif;base64,{{img}}">
+        {{else}}
+            <img alt=""
+             src="data:image/gif;base64,{{img}}">
+        {{endif}}
     {{elif image_format == 'svg'}}
         <div style="text-align:center;">
             {{img}}
@@ -877,7 +885,8 @@ class Report(object):
                                          comments=comments)
 
     def add_images_to_section(self, fnames, captions, scale=None,
-                              section='custom', comments=None):
+                              section='custom', comments=None,
+                              image_format='png'):
         """Append custom user-defined images.
 
         Parameters
@@ -895,6 +904,8 @@ class Report(object):
         comments : None | str | list of str
             A string of text or a list of strings of text to be appended after
             the image.
+        image_format : {'png', 'gif', 'svg'}
+            The image format to be used for the report. Defaults to 'png'.
         """
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
@@ -912,11 +923,12 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             # Convert image to binary string.
-            im = Image.open(fname)
             output = BytesIO()
-            im.save(output, format='png')
+            with open(fname, 'rb') as f:
+                output.write(f.read())
             img = base64.b64encode(output.getvalue()).decode('ascii')
             html = image_template.substitute(img=img, id=global_id,
+                                             image_format=image_format,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
