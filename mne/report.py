@@ -590,6 +590,14 @@ image_template = Template(u"""
             <img alt=""
              src="data:image/png;base64,{{img}}">
         {{endif}}
+    {{elif image_format == 'gif'}}
+        {{if scale is not None}}
+            <img alt="" style="width:{{width}}%;"
+             src="data:image/gif;base64,{{img}}">
+        {{else}}
+            <img alt=""
+             src="data:image/gif;base64,{{img}}">
+        {{endif}}
     {{elif image_format == 'svg'}}
         <div style="text-align:center;">
             {{img}}
@@ -876,8 +884,47 @@ class Report(object):
                                          image_format=image_format,
                                          comments=comments)
 
+    def add_anims_to_section(self, anims, captions, scale=None,
+                             section='custom', comments=None):
+        """Append custom user-defined animations.
+
+        Parameters
+        ----------
+        anims : matplotlib.animation | list of matplotlib.animation
+            An animation or a list of animations.
+        captions : str | list of str
+            A caption or a list of captions to the images.
+        scale : float | None
+            Scale the images maintaining the aspect ratio.
+            Defaults to None. If None, no scaling will be applied.
+        section : str
+            Name of the section. If section already exists, the images
+            will be appended to the end of the section.
+        comments : None | str | list of str
+            A string of text or a list of strings of text to be appended after
+            the image.
+        """
+        from matplotlib.animation import FuncAnimation
+        if not isinstance(anims, list):
+            anims = [anims]
+        if not np.all([isinstance(anim, FuncAnimation) for anim in anims]):
+            raise ValueError('Anims must be a matplotlib animations')
+
+        # XXX JRK: There's probably a better way than writing temporary files?
+        fnames = list()
+        for ii, anim in enumerate(anims):
+            fname = '.tmp_img_%s.gif' % ii
+            anim.save(fname, writer='imagemagick')
+            fnames.append(fname)
+        self.add_images_to_section(fnames, captions, scale, section, comments,
+                                   image_format='gif')
+        # cleanup
+        for fname in fnames:
+            os.remove(fname)
+
     def add_images_to_section(self, fnames, captions, scale=None,
-                              section='custom', comments=None):
+                              section='custom', comments=None,
+                              image_format='png'):
         """Append custom user-defined images.
 
         Parameters
@@ -895,6 +942,8 @@ class Report(object):
         comments : None | str | list of str
             A string of text or a list of strings of text to be appended after
             the image.
+        image_format : {'png', 'gif', 'svg'}
+            The image format to be used for the report. Defaults to 'png'.
         """
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
@@ -912,11 +961,18 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             # Convert image to binary string.
-            im = Image.open(fname)
             output = BytesIO()
-            im.save(output, format='png')
+            im = Image.open(fname)
+            if image_format == 'png':
+                im.save(output, format='png')
+            elif image_format == 'gif':
+                with open(fname, 'rb') as f:
+                    output.write(f.read())
+            else:
+                raise ValueError('Unknown image format %s' % image_format)
             img = base64.b64encode(output.getvalue()).decode('ascii')
             html = image_template.substitute(img=img, id=global_id,
+                                             image_format=image_format,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
