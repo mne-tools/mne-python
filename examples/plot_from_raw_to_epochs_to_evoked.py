@@ -35,7 +35,7 @@ raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Plot raw data
-fig = raw.plot(events=events, event_color={1: 'cyan', -1: 'lightgray'})
+raw.plot(events=events, event_color={1: 'cyan', -1: 'lightgray'})
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
@@ -65,7 +65,7 @@ evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
 ###############################################################################
 # View evoked response
 
-evoked.plot()
+evoked.plot(gfp=True)
 
 ###############################################################################
 # Save evoked responses for different conditions to disk
