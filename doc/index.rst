@@ -77,7 +77,7 @@ under Award Number DE-FG02-99ER62764 to The MIND Institute.
 
 .. raw:: html
 
-   <div style="width: 40%; float: left; padding: 20px;">
+   <div class="col-md-8">
        <script type="text/javascript" src="http://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
    </div>
 
