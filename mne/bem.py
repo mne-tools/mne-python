@@ -1378,12 +1378,14 @@ def _prepare_env(subject, subjects_dir):
 
 
 @verbose
-def convert_mri_files(subject, flash30=True, convert=True, unwarp=False,
-                      subjects_dir=None, verbose=None):
+def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
+                       subjects_dir=None, verbose=None):
     """Convert DICOM files for use with make_flash_bem
 
     Parameters
     ----------
+    subject : str
+        Subject name.
     flash30 : bool
         Use 30-degree flip angle data.
     convert : bool
@@ -1393,13 +1395,15 @@ def convert_mri_files(subject, flash30=True, convert=True, unwarp=False,
         Run grad_unwarp with -unwarp option on each of the converted
         data sets. It requires FreeSurfer's MATLAB toolbox to be properly
         installed.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Notes
     -----
     Before running this script do the following:
-    (unless the --no_convert option is specified)
+    (unless convert=False is specified)
 
         1. Copy all of your FLASH images in a single directory <source> and
            create a directory <dest> to hold the output of mne_organize_dicom
@@ -1524,6 +1528,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         Show surfaces to visually inspect all three BEM surfaces (recommended).
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Notes
     -----
@@ -1564,10 +1570,10 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     # Step 5b and c : Convert the mgz volumes into COR
     os.chdir(mri_dir)
     convert_T1 = False
-    if not op.isdir('T1') or len(glob.glob(op.join('T1', 'COR*')) == 0:
+    if not op.isdir('T1') or len(glob.glob(op.join('T1', 'COR*'))) == 0:
         convert_T1 = True
     convert_brain = False
-    if not op.isdir('brain') or len(glob.glob(op.join('brain', 'COR*')) == 0:
+    if not op.isdir('brain') or len(glob.glob(op.join('brain', 'COR*'))) == 0:
         convert_brain = True
     logger.info("\n---- Converting T1 volume into COR format ----")
     if convert_T1:
