@@ -2184,7 +2184,7 @@ def _get_ica_map(ica, components=None):
 
 
 def _find_max_corrs(all_maps, target, threshold):
-    """Compute correlations betwen template and target components"""
+    """Compute correlations between template and target components"""
     all_corrs = [compute_corr(target, subj.T) for subj in all_maps]
     abs_corrs = [np.abs(a) for a in all_corrs]
     corr_polarities = [np.sign(a) for a in all_corrs]
