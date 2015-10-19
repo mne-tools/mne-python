@@ -36,7 +36,7 @@ from __future__ import print_function
 
 # Authors: Lorenzo De Santis
 
-from mne.bem import convert_mri_files, make_flash_bem
+from mne.bem import convert_flash_mris, make_flash_bem
 
 
 def run():
@@ -80,8 +80,8 @@ def run():
         parser.print_help()
         raise RuntimeError('The subject argument must be set')
 
-    convert_mri_files(subject=subject, subjects_dir=subjects_dir,
-                      flash30=flash30, convert=convert, unwarp=unwarp)
+    convert_flash_mris(subject=subject, subjects_dir=subjects_dir,
+                       flash30=flash30, convert=convert, unwarp=unwarp)
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
                    overwrite=overwrite, show=show)
 
