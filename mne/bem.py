@@ -1366,42 +1366,38 @@ def write_bem_solution(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
-                   unwarp=False, overwrite=False, show=False):
-    """Create 3-Layers BEM model from Flash MRI images
+def _prepare_env(subject, subjects_dir):
+    """Helper to prepare an env object for subprocess calls"""
+    env = os.environ.copy()
+    if not isinstance(subject, string_types):
+        raise TypeError('The subject argument must be set')
+    env['SUBJECT'] = subject
+    mri_dir = op.join(subjects_dir, subject, 'mri')
+    bem_dir = op.join(subjects_dir, subject, 'bem')
+    return env, mri_dir, bem_dir
+
+
+@verbose
+def convert_mri_files(subject, flash30=True, convert=True, unwarp=False,
+                      subjects_dir=None, verbose=None):
+    """Convert DICOM files for use with make_flash_bem
 
     Parameters
-    -----------
-    subject : str
-        Subject name.
-    subjects_dir : str
-        Directory containing subjects data (Freesurfer SUBJECTS_DIR).
-    no_flash30 : bool
-        Skip the 30-degree flip angle data.
-    no_convert : bool
+    ----------
+    flash30 : bool
+        Use 30-degree flip angle data.
+    convert : bool
         Assume that the Flash MRI images have already been converted
         to mgz files.
     unwarp : bool
         Run grad_unwarp with -unwarp option on each of the converted
         data sets. It requires FreeSurfer's MATLAB toolbox to be properly
         installed.
-    overwrite : bool
-        Write over existing .surf files in bem folder.
-    show : bool
-        Show surfaces to visually inspect all three BEM surfaces (recommended).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Notes
     -----
-    This program assumes that FreeSurfer and MNE are installed and
-    sourced properly.
-
-    This function extracts the BEM surfaces (outer skull, inner skull, and
-    outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
-    degrees. The multiecho FLASH data are inputted in DICOM format.
-    This function assumes that the Freesurfer segmentation of the subject
-    has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
-    should be, as usual, in the subject's mri directory.
-
     Before running this script do the following:
     (unless the --no_convert option is specified)
 
@@ -1417,34 +1413,20 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
         4. cd to the directory where flash05 and flash30 links are
         5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
         6. Run this script
+
+    This function assumes that the Freesurfer segmentation of the subject
+    has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
+    should be, as usual, in the subject's mri directory.
     """
-    from .viz.misc import plot_bem
-    env = os.environ.copy()
-
-    if subject:
-        env['SUBJECT'] = subject
-    else:
-        raise RuntimeError('The subject argument must be set')
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    env['SUBJECTS_DIR'] = subjects_dir
-
-    mri_dir = op.join(subjects_dir, subject, 'mri')
-    bem_dir = op.join(subjects_dir, subject, 'bem')
-
-    logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
-                'the following parameters:\n'
-                'SUBJECTS_DIR = %s\n'
-                'SUBJECT = %s\n'
-                'Result dir = %s\n' % (subjects_dir, subject,
-                                       op.join(bem_dir, 'flash')))
+    env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
     # Step 1a : Data conversion to mgz format
     if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
         os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'))
     echos_done = 0
-    if not no_convert:
+    if convert:
         logger.info("\n---- Converting Flash images ----")
         echos = ['001', '002', '003', '004', '005', '006', '007', '008']
-        if no_flash30:
+        if flash30:
             flashes = ['05']
         else:
             flashes = ['05', '30']
@@ -1495,7 +1477,7 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
     if not op.exists("parameter_maps"):
         os.makedirs("parameter_maps")
     # Step 2 : Create the parameter maps
-    if not no_flash30:
+    if flash30:
         logger.info("\n---- Creating the parameter maps ----")
         if unwarp:
             files = glob.glob("mef05*u.mgz")
@@ -1504,7 +1486,7 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
             run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
         else:
             logger.info("Parameter maps were already computed")
-    # Step 3 : Synthesize the flash 5 images
+        # Step 3 : Synthesize the flash 5 images
         logger.info("\n---- Synthesizing flash 5 images ----")
         os.chdir('parameter_maps')
         if not op.exists('flash5.mgz'):
@@ -1525,6 +1507,42 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
         run_subprocess(cmd, env=env, stdout=sys.stdout)
         if op.exists('flash5_reg.mgz'):
             os.remove('flash5_reg.mgz')
+
+
+@verbose
+def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
+                   verbose=None):
+    """Create 3-Layer BEM model from prepared flash MRI images
+
+    Parameters
+    -----------
+    subject : str
+        Subject name.
+    overwrite : bool
+        Write over existing .surf files in bem folder.
+    show : bool
+        Show surfaces to visually inspect all three BEM surfaces (recommended).
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+
+    Notes
+    -----
+    This program assumes that FreeSurfer and MNE are installed and
+    sourced properly.
+
+    This function extracts the BEM surfaces (outer skull, inner skull, and
+    outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
+    degrees, in mgz format.
+    """
+    from .viz.misc import plot_bem
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
+
+    logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
+                'the following parameters:\n'
+                'SUBJECTS_DIR = %s\n'
+                'SUBJECT = %s\n'
+                'Result dir = %s\n' % (subjects_dir, subject,
+                                       op.join(bem_dir, 'flash')))
     # Step 4 : Register with MPRAGE
     logger.info("\n---- Registering flash 5 with MPRAGE ----")
     if not op.exists('flash5_reg.mgz'):
@@ -1546,16 +1564,10 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
     # Step 5b and c : Convert the mgz volumes into COR
     os.chdir(mri_dir)
     convert_T1 = False
-    if op.isdir('T1'):
-        if len(glob.glob('T1/COR*')) == 0:
-            convert_T1 = True
-    else:
+    if not op.isdir('T1') or len(glob.glob(op.join('T1', 'COR*')) == 0:
         convert_T1 = True
     convert_brain = False
-    if op.isdir('brain'):
-        if len(glob.glob('brain/COR*')) == 0:
-            convert_brain = True
-    else:
+    if not op.isdir('brain') or len(glob.glob(op.join('brain', 'COR*')) == 0:
         convert_brain = True
     logger.info("\n---- Converting T1 volume into COR format ----")
     if convert_T1:
@@ -1589,8 +1601,8 @@ def make_flash_bem(subject, subjects_dir, no_flash30=False, no_convert=False,
         shutil.move(op.join(bem_dir, surf + '.tri'), surf + '.tri')
         cmd = ['mne_convert_surface', '--tri', surf + '.tri', '--surfout',
                surf + '.surf', '--swap', '--mghmri',
-               op.join(subjects_dir, subject,
-                       'mri/flash/parameter_maps/flash5_reg.mgz')]
+               op.join(subjects_dir, subject, 'mri', 'flash', 'parameter_maps',
+                       'flash5_reg.mgz')]
         run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
     # Cleanup section
     logger.info("\n---- Cleaning up ----")
