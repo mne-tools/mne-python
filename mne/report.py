@@ -910,7 +910,6 @@ class Report(object):
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
         # to binary string using scipy.misc.
-        from PIL import Image
         fnames, captions, comments = self._validate_input(fnames, captions,
                                                           section, comments)
         _check_scale(scale)
