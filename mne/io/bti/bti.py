@@ -1053,13 +1053,15 @@ class RawBTi(_BaseRaw):
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), convert=True,
-                 ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
+                 ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None,
+                 rename_channels=True, sort_by_ch_name=True):
 
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname, config_fname=config_fname,
             head_shape_fname=head_shape_fname, rotation_x=rotation_x,
             translation=translation, convert=convert, ecg_ch=ecg_ch,
-            eog_ch=eog_ch)
+            rename_channels=rename_channels,
+            sort_by_ch_name=sort_by_ch_name, eog_ch=eog_ch)
         logger.info('Reading raw data from %s...' % pdf_fname)
         data = _read_data(bti_info)
         assert len(data) == len(info['ch_names'])
@@ -1296,6 +1298,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), convert=True,
+                 rename_channels=True, sort_by_ch_name=True,
                  ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
@@ -1346,5 +1349,6 @@ def read_raw_bti(pdf_fname, config_fname='config',
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
                   rotation_x=rotation_x, translation=translation,
-                  convert=convert,
-                  verbose=verbose)
+                  convert=convert, rename_channels=rename_channels,
+                  sort_by_ch_name=sort_by_ch_name, ecg_ch=ecg_ch,
+                  eog_ch=eog_ch, verbose=verbose)

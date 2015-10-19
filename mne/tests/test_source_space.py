@@ -570,6 +570,10 @@ def test_morph_source_spaces():
     src_morph = read_source_spaces(fname_morph)
     src_morph_py = morph_source_spaces(src, 'sample',
                                        subjects_dir=subjects_dir)
+    for key in ['nearest', 'nearest_dist', 'patch_inds', 'pinfo']:
+        for sp in src_morph_py:
+            assert_true(key in sp)
+    assert_equal(src_morph[0].keys(), src_morph_py[0].keys())
     _compare_source_spaces(src_morph, src_morph_py, mode='approx')
 
 
