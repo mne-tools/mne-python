@@ -258,6 +258,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     ax.fill_between(times, y_offset, this_gfp, color='none',
                                     facecolor=gfp_color, zorder=0, alpha=0.25)
                     ax.plot(times, this_gfp, color=gfp_color, zorder=2)
+                    ax.text(times[0], this_gfp[0], 'GFP', color=gfp_color,
+                            path_effects=path_effects, zorder=3)
                 ax.set_ylabel('data (%s)' % ch_unit)
                 # for old matplotlib, we actually need this to have a bounding
                 # box (!), so we have to put some valid text here, change
@@ -371,8 +373,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     gfp : bool | 'only'
-        Plot GFP if True or "only". If "only", then the individual channel
-        traces will not be shown.
+        Plot GFP in green if True or "only". If "only", then the individual
+        channel traces will not be shown.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,

@@ -390,8 +390,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             the same length as the number of channel types. If instance of
             Axes, there must be only one channel type plotted.
         gfp : bool | 'only'
-            Plot GFP if True or "only". If "only", then the individual channel
-            traces will not be shown.
+            Plot GFP in green if True or "only". If "only", then the individual
+            channel traces will not be shown.
         """
         return plot_evoked(self, picks=picks, exclude=exclude, unit=unit,
                            show=show, ylim=ylim, proj=proj, xlim=xlim,
