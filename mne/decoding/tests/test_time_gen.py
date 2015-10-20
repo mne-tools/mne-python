@@ -11,7 +11,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_sklearn, slow_test, run_tests_if_main
+from mne.utils import (requires_sklearn, requires_sklearn_0_15, slow_test,
+                       run_tests_if_main)
 from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
 
@@ -40,7 +41,7 @@ def make_epochs():
 
 
 @slow_test
-@requires_sklearn
+@requires_sklearn_0_15
 def test_generalization_across_time():
     """Test time generalization decoding
     """
