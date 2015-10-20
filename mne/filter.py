@@ -11,7 +11,7 @@ from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .parallel import parallel_func, check_n_jobs
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
-from .utils import logger, verbose, sum_squared, check_scipy_version
+from .utils import logger, verbose, sum_squared, check_version
 
 
 def is_power2(num):
@@ -1562,7 +1562,7 @@ class FilterMixin(object):
             raise ValueError('h_freq must be less than half the sample rate')
 
         # savitzky-golay filtering
-        if not check_scipy_version('0.14'):
+        if not check_version('scipy', '0.14'):
             raise RuntimeError('scipy >= 0.14 must be installed for savgol')
         from scipy.signal import savgol_filter
         window_length = (int(np.round(self.info['sfreq'] /

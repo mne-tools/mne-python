@@ -41,7 +41,7 @@ from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
 
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
-from ..utils import (check_sklearn_version, logger, check_fname, verbose,
+from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
                      _get_fast_dot, compute_corr)
 from ..filter import band_pass_filter
@@ -193,7 +193,7 @@ class ICA(ContainsMixin):
         if method not in methods:
             raise ValueError('`method` must be "%s". You passed: "%s"' %
                              ('" or "'.join(methods), method))
-        if not check_sklearn_version(min_version='0.12'):
+        if not check_version('sklearn', '0.12'):
             raise RuntimeError('the scikit-learn package (version >= 0.12)'
                                'is required for ICA')
 

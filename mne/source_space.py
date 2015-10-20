@@ -25,7 +25,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       fast_cross_3d, _fast_cross_nd_sum, mesh_dist)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
-                    check_scipy_version, _get_call_line)
+                    check_version, _get_call_line)
 from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
@@ -2164,7 +2164,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     src = _ensure_src(src)
     if not np.isscalar(dist_limit):
         raise ValueError('limit must be a scalar, got %s' % repr(dist_limit))
-    if not check_scipy_version('0.11'):
+    if not check_version('scipy', '0.11'):
         raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
                            'if dist_limit < np.inf')
 

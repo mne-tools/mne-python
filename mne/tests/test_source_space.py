@@ -14,9 +14,8 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
-                       requires_freesurfer, run_subprocess,
-                       requires_mne, requires_scipy_version,
-                       run_tests_if_main, slow_test)
+                       requires_freesurfer, run_subprocess, slow_test,
+                       requires_mne, requires_version, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
@@ -54,7 +53,7 @@ def test_mgz_header():
     assert_allclose(mri_hdr.get_ras2vox(), header['ras2vox'])
 
 
-@requires_scipy_version('0.11')
+@requires_version('scipy', '0.11')
 def test_add_patch_info():
     """Test adding patch info to source space"""
     # let's setup a small source space
@@ -87,7 +86,7 @@ def test_add_patch_info():
 
 
 @testing.requires_testing_data
-@requires_scipy_version('0.11')
+@requires_version('scipy', '0.11')
 def test_add_source_space_distances_limited():
     """Test adding distances to source space with a dist_limit"""
     tempdir = _TempDir()
@@ -126,7 +125,7 @@ def test_add_source_space_distances_limited():
 
 @slow_test
 @testing.requires_testing_data
-@requires_scipy_version('0.11')
+@requires_version('scipy', '0.11')
 def test_add_source_space_distances():
     """Test adding distances to source space"""
     tempdir = _TempDir()

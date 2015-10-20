@@ -35,7 +35,7 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
 from .defaults import _handle_default
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, check_sklearn_version, _time_mask)
+                    _compute_row_norms, check_version, _time_mask)
 from .utils import deprecated
 
 from .externals.six.moves import zip
@@ -683,7 +683,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if not isinstance(method, (list, tuple)):
         method = [method]
 
-    ok_sklearn = check_sklearn_version('0.15') is True
+    ok_sklearn = check_version('sklearn', '0.15') is True
     if not ok_sklearn and (len(method) != 1 or method[0] != 'empirical'):
         raise ValueError('scikit-learn is not installed, `method` must be '
                          '`empirical`')

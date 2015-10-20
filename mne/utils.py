@@ -28,7 +28,6 @@ from functools import partial
 import atexit
 
 import numpy as np
-import scipy
 from scipy import linalg, sparse
 
 from .externals.six.moves import urllib
@@ -607,10 +606,11 @@ def requires_nibabel(vox2ras_tkr=False):
                                  'Requires nibabel%s' % extra)
 
 
-def requires_scipy_version(min_version):
+def requires_version(library, min_version):
     """Helper for testing"""
-    return np.testing.dec.skipif(not check_scipy_version(min_version),
-                                 'Requires scipy version >= %s' % min_version)
+    return np.testing.dec.skipif(not check_version(library, min_version),
+                                 'Requires %s version >= %s'
+                                 % (library, min_version))
 
 
 def requires_module(function, name, call):
@@ -716,22 +716,7 @@ requires_traits = partial(requires_module, name='traits',
 requires_h5py = partial(requires_module, name='h5py', call='import h5py')
 
 
-def _check_mayavi_version(min_version='4.3.0'):
-    """Raise a RuntimeError if the required version of mayavi is not available
-
-    Parameters
-    ----------
-    min_version : str
-        The version string. Anything that matches
-        ``'(\\d+ | [a-z]+ | \\.)'``
-    """
-    import mayavi
-    require_mayavi = LooseVersion(min_version)
-    if LooseVersion(mayavi.__version__) < require_mayavi:
-        raise RuntimeError("Need mayavi >= %s" % require_mayavi)
-
-
-def check_sklearn_version(min_version):
+def check_version(library, min_version):
     """Check minimum sklearn version required
 
     Parameters
@@ -739,29 +724,25 @@ def check_sklearn_version(min_version):
     min_version : str
         The version string. Anything that matches
         ``'(\\d+ | [a-z]+ | \\.)'``
+    library : str
+        The library to import.
     """
     ok = True
     try:
-        import sklearn
-        this_version = LooseVersion(sklearn.__version__)
-        if this_version < min_version:
-            ok = False
+        library = __import__(library)
     except ImportError:
         ok = False
+    else:
+        this_version = LooseVersion(library.__version__)
+        if this_version < min_version:
+            ok = False
     return ok
 
 
-def check_scipy_version(min_version):
-    """Check minimum sklearn version required
-
-    Parameters
-    ----------
-    min_version : str
-        The version string. Anything that matches
-        ``'(\\d+ | [a-z]+ | \\.)'``
-    """
-    this_version = LooseVersion(scipy.__version__)
-    return False if this_version < min_version else True
+def _check_mayavi_version(min_version='4.3.0'):
+    """Helper for mayavi"""
+    if not check_version('mayavi', min_version):
+        raise RuntimeError("Need mayavi >= %s" % require_mayavi)
 
 
 @verbose

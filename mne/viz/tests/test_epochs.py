@@ -15,7 +15,7 @@ import numpy as np
 
 from mne import io, read_events, Epochs
 from mne import pick_types
-from mne.utils import run_tests_if_main, requires_scipy_version
+from mne.utils import run_tests_if_main, requires_version
 from mne.channels import read_layout
 
 from mne.viz import plot_drop_log, plot_epochs_image, plot_image_epochs
@@ -155,7 +155,7 @@ def test_plot_drop_log():
     plt.close('all')
 
 
-@requires_scipy_version('0.12')
+@requires_version('scipy', '0.12')
 def test_plot_psd_epochs():
     """Test plotting epochs psd (+topomap)
     """
