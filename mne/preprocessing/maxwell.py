@@ -105,10 +105,10 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
         * Cross-talk cancellation
         * tSSS
         * Bad channel reconstruction
+        * Coordinate frame translation
 
     The following features are not yet implemented:
 
-        * Coordinate frame translation
         * Movement compensation
         * Automatic bad channel detection
         * Regularization of in/out components
