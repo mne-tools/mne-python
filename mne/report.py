@@ -590,6 +590,14 @@ image_template = Template(u"""
             <img alt=""
              src="data:image/png;base64,{{img}}">
         {{endif}}
+    {{elif image_format == 'gif'}}
+        {{if scale is not None}}
+            <img alt="" style="width:{{width}}%;"
+             src="data:image/gif;base64,{{img}}">
+        {{else}}
+            <img alt=""
+             src="data:image/gif;base64,{{img}}">
+        {{endif}}
     {{elif image_format == 'svg'}}
         <div style="text-align:center;">
             {{img}}
@@ -884,6 +892,7 @@ class Report(object):
         ----------
         fnames : str | list of str
             A filename or a list of filenames from which images are read.
+            Images can be PNG, GIF or SVG.
         captions : str | list of str
             A caption or a list of captions to the images.
         scale : float | None
@@ -899,7 +908,6 @@ class Report(object):
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
         # to binary string using scipy.misc.
-        from PIL import Image
         fnames, captions, comments = self._validate_input(fnames, captions,
                                                           section, comments)
         _check_scale(scale)
@@ -911,12 +919,20 @@ class Report(object):
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
 
+            image_format = os.path.splitext(fname)[1][1:]
+            image_format = image_format.lower()
+
+            if image_format not in ['png', 'gif', 'svg']:
+                raise ValueError("Unknown image format. Only 'png', 'gif' or "
+                                 "'svg' are supported. Got %s" % image_format)
+
             # Convert image to binary string.
-            im = Image.open(fname)
             output = BytesIO()
-            im.save(output, format='png')
+            with open(fname, 'rb') as f:
+                output.write(f.read())
             img = base64.b64encode(output.getvalue()).decode('ascii')
             html = image_template.substitute(img=img, id=global_id,
+                                             image_format=image_format,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,

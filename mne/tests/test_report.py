@@ -124,6 +124,7 @@ def test_render_report():
 def test_render_add_sections():
     """Test adding figures/images to section.
     """
+    from PIL import Image
     tempdir = _TempDir()
     import matplotlib.pyplot as plt
     report = Report(subjects_dir=subjects_dir)
@@ -141,13 +142,23 @@ def test_render_add_sections():
     # need to recreate because calls above change size
     fig = plt.plot([1, 2], [1, 2])[0].figure
 
-    # Check add_images_to_section
+    # Check add_images_to_section with png and then gif
     img_fname = op.join(tempdir, 'testimage.png')
     fig.savefig(img_fname)
     report.add_images_to_section(fnames=[img_fname],
                                  captions=['evoked response'])
+
+    im = Image.open(img_fname)
+    op.join(tempdir, 'testimage.gif')
+    im.save(img_fname)  # matplotlib does not support gif
+    report.add_images_to_section(fnames=[img_fname],
+                                 captions=['evoked response'])
+
     assert_raises(ValueError, report.add_images_to_section,
                   fnames=[img_fname, img_fname], captions='H')
+
+    assert_raises(ValueError, report.add_images_to_section,
+                  fnames=['foobar.xxx'], captions='H')
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
