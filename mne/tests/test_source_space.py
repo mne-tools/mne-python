@@ -595,7 +595,7 @@ def test_morphed_source_space_return():
 
     # We can now pretend like this was real data we got e.g. from an inverse.
     # To be complete, let's remove some vertices
-    keeps = [np.sort(rng.choice(np.arange(len(v)), len(v) - 10, replace=False))
+    keeps = [np.sort(rng.permutation(np.arange(len(v)))[:len(v) - 10])
              for v in stc_morph.vertices]
     stc_morph = SourceEstimate(
         np.concatenate([stc_morph.lh_data[keeps[0]],
@@ -628,9 +628,13 @@ def test_morphed_source_space_return():
     del src_fs[0]['subject_his_id']  # no name in src_fsaverage
     assert_raises(ValueError, stc_morph.return_to_original_src,
                   src_fs, subjects_dir=subjects_dir)
-    src_fs[0]['subject_his_id'] = 'fsaverage'  # mismatch
+    src_fs[0]['subject_his_id'] = 'fsaverage'  # name mismatch
     assert_raises(ValueError, stc_morph.return_to_original_src,
                   src_fs, subject_orig='foo', subjects_dir=subjects_dir)
+    src_fs[0]['subject_his_id'] = 'sample'
+    src = read_source_spaces(fname)  # wrong source space
+    assert_raises(RuntimeError, stc_morph.return_to_original_src,
+                  src, subjects_dir=subjects_dir)
 
 run_tests_if_main()
 

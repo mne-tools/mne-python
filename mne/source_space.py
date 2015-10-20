@@ -2470,7 +2470,10 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
         used_vertices = np.in1d(full_mapping, vertices[ii])
         from_vertices.append(src_from[ii]['vertno'][used_vertices])
         remaining_mapping = full_mapping[used_vertices]
-        assert np.array_equal(np.sort(remaining_mapping), vertices[ii])
+        if not np.array_equal(np.sort(remaining_mapping), vertices[ii]) or \
+                not np.in1d(vertices[ii], full_mapping).all():
+            raise RuntimeError('Could not map vertices, perhaps the wrong '
+                               'subject "%s" was provided?' % subject_from)
 
         # And our data have been implicitly remapped by the forced ascending
         # vertno order in source spaces
@@ -2480,6 +2483,8 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
         data_idxs.append(data_idx)
         offset += len(implicit_mapping)
     data_idx = np.concatenate(data_idxs)
+    # this one is really just a sanity check for us, should never be violated
+    # by users
     assert np.array_equal(np.sort(data_idx),
                           np.arange(sum(len(v) for v in vertices)))
     return data_idx, from_vertices
