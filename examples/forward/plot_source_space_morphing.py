@@ -51,11 +51,17 @@ mag_map = mne.sensitivity_map(fwd, ch_type='mag')
 mag_map_fs = mag_map.return_to_original_src(src_fs, subjects_dir=subjects_dir)
 
 # Plot the result, which tracks the sulcal-gyral folding
-kwargs = dict(clim=dict(kind='percent', lims=[0, 50, 100]),
+kwargs = dict(clim=dict(kind='percent', lims=[0, 50, 99]),
+              # no smoothing, let's see the dipoles on the cortex.
               smoothing_steps=1, hemi='both', views=['lat'])
 
-brain_fs = mag_map_fs.plot(  # plot forward in original source space (remapped)
-    time_label=None, subjects_dir=subjects_dir, **kwargs)
+# Now note that the dipoles on fsaverage are almost equidistant while
+# morphing will distribute the dipoles unevenly across the given subject's
+# cortical surface to achieve the closest approximation to the average brain.
+# Our testing code suggests a correlation of higher than 0.99.
 
 brain_subject = mag_map.plot(  # plot forward in subject source space (morphed)
+    time_label=None, subjects_dir=subjects_dir, **kwargs)
+
+brain_fs = mag_map_fs.plot(  # plot forward in original source space (remapped)
     time_label=None, subjects_dir=subjects_dir, **kwargs)
