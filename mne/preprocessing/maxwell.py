@@ -31,8 +31,9 @@ from ..channels.channels import _get_T1T2_mag_inds
 
 @verbose
 def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
-                   fine_cal=None, ctc=None, st_dur=None, st_corr=0.98,
-                   coord_frame='head', destination=None, verbose=None):
+                   calibration=None, cross_talk=None, st_duration=None,
+                   st_correlation=0.98, coord_frame='head', destination=None,
+                   verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -48,13 +49,13 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
         Order of internal component of spherical expansion
     ext_order : int
         Order of external component of spherical expansion
-    fine_cal : str | None
+    calibration : str | None
         Path to the ``'.dat'`` file with fine calibration coefficients.
         File can have 1D or 3D gradiometer imbalance correction.
         This file is machine/site-specific.
-    ctc : str | None
+    cross_talk : str | None
         Path to the FIF file with cross-talk correction information.
-    st_dur : float | None
+    st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
         (in seconds). Elekta's default is 10.0 seconds in MaxFilter v2.2.
         Spatiotemporal SSS acts as implicitly as a high-pass filter where the
@@ -64,7 +65,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
         identically, choose a buffer length that divides evenly into your data.
         Any data at the trailing edge that doesn't fit evenly into a whole
         buffer window will be lumped into the previous buffer.
-    st_corr : float
+    st_correlation : float
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
     coord_frame : str
@@ -145,9 +146,10 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     if len(raw.info.get('comps', [])) > 0:
         raise RuntimeError('Maxwell filter cannot handle compensated '
                            'channels.')
-    st_corr = float(st_corr)
-    if st_corr <= 0. or st_corr > 1.:
-        raise ValueError('Need 0 < st_corr <= 1., got %s' % st_corr)
+    st_correlation = float(st_correlation)
+    if st_correlation <= 0. or st_correlation > 1.:
+        raise ValueError('Need 0 < st_correlation <= 1., got %s'
+                         % st_correlation)
     if coord_frame not in ('head', 'meg'):
         raise ValueError('coord_frame must be either "head" or "meg", not "%s"'
                          % coord_frame)
@@ -169,10 +171,10 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
     #
-    if fine_cal is not None:
+    if calibration is not None:
         logger.warning('Fine calibration is experimental despite similar '
                        ' shielding factor to Elekta\'s processing.')
-        grad_imbalances, mag_cals = _update_sensor_geometry(info, fine_cal)
+        grad_imbalances, mag_cals = _update_sensor_geometry(info, calibration)
 
     # Get indices of channels to use in multipolar moment calculation
     good_picks = pick_types(info, meg=True, exclude='bads')
@@ -213,13 +215,13 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     #
     # Cross-talk processing
     #
-    if ctc is not None:
-        ctc = _read_ctc(ctc, raw_sss.info, meg_picks, good_picks)
+    if cross_talk is not None:
+        cross_talk = _read_ctc(cross_talk, raw_sss.info, meg_picks, good_picks)
 
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
-    if fine_cal is not None:
+    if calibration is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
         S_fine = _sss_basis_point(origin, grad_info, int_order, ext_order,
                                   grad_imbalances, head_frame=head_frame)
@@ -239,8 +241,8 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
     # XXX eventually we can refactor this to work in chunks
     data = raw_sss[good_picks][0]
-    if ctc is not None:
-        data = ctc.dot(data)
+    if cross_talk is not None:
+        data = cross_talk.dot(data)
     mm_norm = np.dot(pS_decomp_good, data * coil_scale[good_picks])
     mm_norm /= S_decomp_good_norm.T
 
@@ -284,16 +286,18 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     info['bads'] = [ch_names[bi] for bi in bad_inds if bi not in meg_picks]
 
     # Reconstruct raw file object with spatiotemporal processed data
-    if st_dur is not None:
-        if st_dur > times[-1]:
+    if st_duration is not None:
+        if st_duration > times[-1]:
             raise ValueError('st_dur (%0.1fs) longer than length of signal in '
-                             'raw (%0.1fs).' % (st_dur, times[-1]))
-        logger.info('Processing data using tSSS with st_dur=%s' % st_dur)
+                             'raw (%0.1fs).' % (st_duration, times[-1]))
+        logger.info('Processing data using tSSS with st_duration=%s'
+                    % st_duration)
 
         # Generate time points to break up data in to windows
-        lims = raw_sss.time_as_index(np.arange(times[0], times[-1], st_dur))
+        lims = raw_sss.time_as_index(np.arange(times[0], times[-1],
+                                               st_duration))
         len_last_buf = raw_sss.times[-1] - raw_sss.index_as_time(lims[-1])[0]
-        if len_last_buf == st_dur:
+        if len_last_buf == st_duration:
             lims = np.concatenate([lims, [len(raw_sss.times)]])
         else:
             # len_last_buf < st_dur so fold it into the previous buffer
@@ -314,7 +318,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
             # Compute SSP-like projection vectors based on minimal correlation
             this_data = raw_sss._data[meg_picks, start:stop]
             _check_finite(this_data)
-            V = _overlap_projector(this_data, resid, st_corr)
+            V = _overlap_projector(this_data, resid, st_correlation)
 
             # Apply projector according to Eq. 12 in [2]_
             logger.info('    Projecting out %s tSSS components for %s-%s'

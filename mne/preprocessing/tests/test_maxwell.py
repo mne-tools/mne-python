@@ -278,33 +278,35 @@ def test_spatiotemporal_maxwell():
         raw = Raw(raw_fname, allow_maxshield=True)
 
     # Test that window is less than length of data
-    assert_raises(ValueError, maxwell_filter, raw, st_dur=1000.)
+    assert_raises(ValueError, maxwell_filter, raw, st_duration=1000.)
 
     # Check both 4 and 10 seconds because Elekta handles them differently
     # This is to ensure that std/non-std tSSS windows are correctly handled
-    st_durs = [4., 10.]
+    st_durations = [4., 10.]
     tols = [325., 200.]
-    for st_dur, tol in zip(st_durs, tols):
-        # Load tSSS data depending on st_dur and get data
+    for st_duration, tol in zip(st_durations, tols):
+        # Load tSSS data depending on st_duration and get data
         tSSS_fname = op.join(sss_path,
-                             'test_move_anon_st%0ds_raw_sss.fif' % st_dur)
+                             'test_move_anon_st%0ds_raw_sss.fif' % st_duration)
         tsss_bench = Raw(tSSS_fname)
         # Because Elekta's tSSS sometimes(!) lumps the tail window of data
-        # onto the previous buffer if it's shorter than st_dur, we have to
+        # onto the previous buffer if it's shorter than st_duration, we have to
         # crop the data here to compensate for Elekta's tSSS behavior.
-        if st_dur == 10.:
-            tsss_bench.crop(0, st_dur, copy=False)
+        if st_duration == 10.:
+            tsss_bench.crop(0, st_duration, copy=False)
 
         # Test sss computation at the standard head origin. Same cropping issue
         # as mentioned above.
-        if st_dur == 10.:
-            raw_tsss = maxwell_filter(raw.crop(0, st_dur), st_dur=st_dur)
+        if st_duration == 10.:
+            raw_tsss = maxwell_filter(raw.crop(0, st_duration),
+                                      st_duration=st_duration)
         else:
-            raw_tsss = maxwell_filter(raw, st_dur=st_dur)
+            raw_tsss = maxwell_filter(raw, st_duration=st_duration)
         _assert_snr(raw_tsss, tsss_bench, tol)
 
     # Degenerate cases
-    assert_raises(ValueError, maxwell_filter, raw, st_dur=10., st_corr=0.)
+    assert_raises(ValueError, maxwell_filter, raw, st_duration=10.,
+                  st_correlation=0.)
 
 
 @testing.requires_testing_data
@@ -317,12 +319,12 @@ def test_maxwell_filter_fine_calibration():
     sss_fine_cal = Raw(sss_fine_cal_fname)
 
     # Test 1D SSS fine calibration
-    raw_sss = maxwell_filter(raw, fine_cal=fine_cal_fname)
+    raw_sss = maxwell_filter(raw, calibration=fine_cal_fname)
     _assert_snr(raw_sss, sss_fine_cal, 1.5, 27.)  # XXX should be much higher
 
     # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
     # very low SNR as proc differs, eventually we should add a better test
-    raw_sss_3D = maxwell_filter(raw, fine_cal=fine_cal_fname_3d)
+    raw_sss_3D = maxwell_filter(raw, calibration=fine_cal_fname_3d)
     _assert_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.)
 
 
@@ -333,7 +335,7 @@ def test_maxwell_filter_cross_talk():
         raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
     raw.info['bads'] = bads
     sss_ctc = Raw(sss_ctc_fname)
-    raw_sss = maxwell_filter(raw, ctc=ctc_fname)
+    raw_sss = maxwell_filter(raw, cross_talk=ctc_fname)
     _assert_snr(raw_sss, sss_ctc, 275.)
 
 
@@ -390,21 +392,22 @@ def test_maxwell_noise_rejection():
     _assert_shielding(raw_sss, erm_power, 1.5)
     # tSSS
     _assert_shielding(Raw(sss_erm_st_fname), erm_power, 5)
-    raw_sss = maxwell_filter(raw_erm, st_dur=1., coord_frame='meg')
+    raw_sss = maxwell_filter(raw_erm, st_duration=1., coord_frame='meg')
     _assert_shielding(raw_sss, erm_power, 5)
     # Fine cal
     _assert_shielding(Raw(sss_erm_fine_cal_fname), erm_power, 2)
-    raw_sss = maxwell_filter(raw_erm, fine_cal=fine_cal_fname,
+    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
                              coord_frame='meg')
     _assert_shielding(raw_sss, erm_power, 2)
     # Crosstalk
     _assert_shielding(Raw(sss_erm_ctc_fname), erm_power, 2.1)
-    raw_sss = maxwell_filter(raw_erm, ctc=ctc_fname, coord_frame='meg')
+    raw_sss = maxwell_filter(raw_erm, cross_talk=ctc_fname, coord_frame='meg')
     _assert_shielding(raw_sss, erm_power, 2.1)
     # tSSS + fine cal + ctc
     _assert_shielding(Raw(sss_erm_st1FineCalCrossTalk_fname), erm_power, 6.)
-    raw_sss = maxwell_filter(raw_erm, fine_cal=fine_cal_fname, ctc=ctc_fname,
-                             st_dur=1., coord_frame='meg')
+    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+                             cross_talk=ctc_fname, st_duration=1.,
+                             coord_frame='meg')
     _assert_shielding(raw_sss, erm_power, 6.)  # MF gets 6.075, we get 6.008
 
 
