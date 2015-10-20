@@ -747,7 +747,7 @@ def check_version(library, min_version):
 def _check_mayavi_version(min_version='4.3.0'):
     """Helper for mayavi"""
     if not check_version('mayavi', min_version):
-        raise RuntimeError("Need mayavi >= %s" % require_mayavi)
+        raise RuntimeError("Need mayavi >= %s" % min_version)
 
 
 @verbose
