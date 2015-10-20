@@ -51,6 +51,7 @@ mag_map = mne.sensitivity_map(fwd, ch_type='mag')
 mag_map_fs = mag_map.return_to_original_src(src_fs, subjects_dir=subjects_dir)
 
 # Plot the result, which tracks the sulcal-gyral folding
+# outliers may occur, we'll place the cutoff at 99 percent.
 kwargs = dict(clim=dict(kind='percent', lims=[0, 50, 99]),
               # no smoothing, let's see the dipoles on the cortex.
               smoothing_steps=1, hemi='both', views=['lat'])
