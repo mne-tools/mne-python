@@ -39,33 +39,33 @@ Mac OSX operating systems, as well as a MATLAB toolbox.
 
 .. code:: python
 
-    >>> import mne
-    >>> raw = mne.io.Raw('raw.fif', preload=True)  # load data
-    >>> raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
-    >>> raw.filter(l_freq=None, h_freq=40.0)  # low-pass filter data
+    >>> import mne  # doctest: +SKIP
+    >>> raw = mne.io.Raw('raw.fif', preload=True)  # load data  # doctest: +SKIP
+    >>> raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels  # doctest: +SKIP
+    >>> raw.filter(l_freq=None, h_freq=40.0)  # low-pass filter data  # doctest: +SKIP
     >>> # Extract epochs and save them:
-    >>> picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True,
-    >>>                        exclude='bads')
-    >>> events = mne.find_events(raw)
-    >>> reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
-    >>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
-    >>>                     proj=True, picks=picks, baseline=(None, 0),
-    >>>                     preload=True, reject=reject)
+    >>> picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True,  # doctest: +SKIP
+    >>>                        exclude='bads')  # doctest: +SKIP
+    >>> events = mne.find_events(raw)  # doctest: +SKIP
+    >>> reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)  # doctest: +SKIP
+    >>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,  # doctest: +SKIP
+    >>>                     proj=True, picks=picks, baseline=(None, 0),  # doctest: +SKIP
+    >>>                     preload=True, reject=reject)  # doctest: +SKIP
     >>> # Compute evoked response and noise covariance
-    >>> evoked = epochs.average()
-    >>> cov = mne.compute_covariance(epochs, tmax=0)
-    >>> evoked.plot()  # plot evoked
+    >>> evoked = epochs.average()  # doctest: +SKIP
+    >>> cov = mne.compute_covariance(epochs, tmax=0)  # doctest: +SKIP
+    >>> evoked.plot()  # plot evoked  # doctest: +SKIP
     >>> # Compute inverse operator:
-    >>> fwd_fname = 'sample_audvis−meg−eeg−oct−6−fwd.fif'
-    >>> fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
-    >>> inv = mne.minimum_norm.make_inverse_operator(raw.info, fwd,
-    >>>                                              cov, loose=0.2)
+    >>> fwd_fname = 'sample_audvis−meg−eeg−oct−6−fwd.fif'  # doctest: +SKIP
+    >>> fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)  # doctest: +SKIP
+    >>> inv = mne.minimum_norm.make_inverse_operator(raw.info, fwd,  # doctest: +SKIP
+    >>>                                              cov, loose=0.2)  # doctest: +SKIP
     >>> # Compute inverse solution:
-    >>> stc = mne.minimum_norm.apply_inverse(evoked, inv, lambda2=1./9.,
-    >>>                                      method='dSPM')
+    >>> stc = mne.minimum_norm.apply_inverse(evoked, inv, lambda2=1./9.,  # doctest: +SKIP
+    >>>                                      method='dSPM')  # doctest: +SKIP
     >>> # Morph it to average brain for group study and plot it
-    >>> stc_avg = mne.morph_data('sample', 'fsaverage', stc, 5, smooth=5)
-    >>> stc_avg.plot()
+    >>> stc_avg = mne.morph_data('sample', 'fsaverage', stc, 5, smooth=5)  # doctest: +SKIP
+    >>> stc_avg.plot()  # doctest: +SKIP
 
 The MNE development is supported by National Institute of Biomedical Imaging and Bioengineering
 grants 5R01EB009048 and P41EB015896 (Center for Functional Neuroimaging Technologies) as well as
