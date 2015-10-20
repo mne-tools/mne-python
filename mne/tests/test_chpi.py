@@ -12,7 +12,8 @@ from mne.io import read_info, Raw
 from mne.io.constants import FIFF
 from mne.chpi import (_rot_to_quat, _quat_to_rot, get_chpi_positions,
                       _calculate_chpi_positions, _angle_between_quats)
-from mne.utils import run_tests_if_main, _TempDir, slow_test, set_log_file
+from mne.utils import (run_tests_if_main, _TempDir, slow_test, set_log_file,
+                       requires_version)
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -127,6 +128,8 @@ def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
 
 @slow_test
 @testing.requires_testing_data
+@requires_version('scipy', '0.11')
+@requires_version('numpy', '1.7')
 def test_calculate_chpi_positions():
     """Test calculation of cHPI positions
     """

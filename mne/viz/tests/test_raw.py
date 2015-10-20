@@ -8,7 +8,7 @@ import warnings
 from numpy.testing import assert_raises
 
 from mne import io, read_events, pick_types
-from mne.utils import requires_scipy_version, run_tests_if_main
+from mne.utils import requires_version, run_tests_if_main
 from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
@@ -89,7 +89,7 @@ def test_plot_raw():
         plt.close('all')
 
 
-@requires_scipy_version('0.10')
+@requires_version('scipy', '0.10')
 def test_plot_raw_filtered():
     """Test filtering of raw plots
     """
@@ -104,7 +104,7 @@ def test_plot_raw_filtered():
     raw.plot(highpass=1, lowpass=2)
 
 
-@requires_scipy_version('0.12')
+@requires_version('scipy', '0.12')
 def test_plot_raw_psd():
     """Test plotting of raw psds
     """

@@ -13,7 +13,7 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils)
 from .cov import make_ad_hoc_cov, _get_whitener_data
 from .transforms import apply_trans, invert_transform
-from .utils import verbose, logger
+from .utils import verbose, logger, check_version
 from .fixes import partial
 from .externals.six import string_types
 
@@ -265,6 +265,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     get_chpi_positions
     """
     from scipy.spatial.distance import cdist
+    if not (check_version('numpy', '1.7') and check_version('scipy', '0.11')):
+        raise RuntimeError('numpy>=1.7 and scipy>=0.11 required')
     hpi_freqs, orig_head_rrs, hpi_pick, hpi_on, order = _get_hpi_info(raw.info)
     sfreq, ch_names = raw.info['sfreq'], raw.info['ch_names']
     # initial transforms

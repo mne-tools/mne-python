@@ -14,7 +14,7 @@ from mne import find_events, Epochs, pick_types, concatenate_raws
 from mne.io import Raw
 from mne.io.array import RawArray
 from mne.io.meas_info import create_info, _kind_dict
-from mne.utils import _TempDir, slow_test, requires_scipy_version
+from mne.utils import _TempDir, slow_test, requires_version
 
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -25,7 +25,7 @@ fif_fname = op.join(base_dir, 'test_raw.fif')
 
 
 @slow_test
-@requires_scipy_version('0.12')
+@requires_version('scipy', '0.12')
 def test_array_raw():
     """Test creating raw from array
     """

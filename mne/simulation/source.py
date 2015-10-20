@@ -161,7 +161,9 @@ def simulate_sparse_stc(src, n_dipoles, times,
         # can be vol or surface source space
         offsets = np.linspace(0, n_dipoles, len(src) + 1).astype(int)
         n_dipoles_ss = np.diff(offsets)
-        vs = [s['vertno'][np.sort(rng.choice(s['nuse'], n_dip, replace=False))]
+        # don't use .choice b/c not on old numpy
+        vs = [s['vertno'][np.sort(rng.permutation(
+                  np.arange(s['nuse']))[:n_dip])]
               for n_dip, s in zip(n_dipoles_ss, src)]
         datas = data
     else:
