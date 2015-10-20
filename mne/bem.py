@@ -1372,6 +1372,7 @@ def _prepare_env(subject, subjects_dir):
     if not isinstance(subject, string_types):
         raise TypeError('The subject argument must be set')
     env['SUBJECT'] = subject
+    env['SUBJECTS_DIR'] = subjects_dir
     mri_dir = op.join(subjects_dir, subject, 'mri')
     bem_dir = op.join(subjects_dir, subject, 'bem')
     return env, mri_dir, bem_dir
@@ -1539,6 +1540,13 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     This function extracts the BEM surfaces (outer skull, inner skull, and
     outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
     degrees, in mgz format.
+
+    This function assumes that the flash images are available in the
+    folder mri/bem/flash within the freesurfer subject reconstruction.
+
+    See Also
+    --------
+    convert_flash_mris
     """
     from .viz.misc import plot_bem
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)

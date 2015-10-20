@@ -595,6 +595,8 @@ Functions:
    :template: function.rst
 
    make_watershed_bem
+   make_flash_bem
+   convert_flash_mris
 
 .. currentmodule:: mne.forward
 

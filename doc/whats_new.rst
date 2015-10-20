@@ -77,6 +77,8 @@ Changelog
 
    - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
 
+   - New ``mne flash_bem`` command to compute BEM surfaces from Flash MRI images by `Lorenzo Desantis`_, `Alex Gramfort`_ and `Eric Larson`_. See :func:``mne.bem.utils.make_flash_bem``.
+
 BUG
 ~~~
 
@@ -1151,3 +1153,5 @@ of commits):
 .. _Jair Montoya Martinez: https://github.com/jmontoyam
 
 .. _Samu Taulu: http://ilabs.washington.edu/institute-faculty/bio/i-labs-samu-taulu-dsc
+
+.. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
