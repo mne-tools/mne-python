@@ -51,5 +51,5 @@ mag_map_fs = mag_map.return_to_original_src(src_fs, subjects_dir=subjects_dir)
 
 # Plot the result, which tracks the sulcal-gyral folding
 kwargs = dict(clim=dict(kind='percent', lims=[0, 50, 100]), smoothing_steps=5,
-              hemi='both', views=['med, lat'])
+              hemi='both', views=['med', 'lat'])
 brain = mag_map_fs.plot(time_label=None, subjects_dir=subjects_dir, **kwargs)
