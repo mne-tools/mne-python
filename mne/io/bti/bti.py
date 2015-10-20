@@ -1046,6 +1046,11 @@ class RawBTi(_BaseRaw):
     eog_ch: tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
+    sort_by_ch_name | bool
+        Reorder channels according to channel label. 4D channels don't have
+        monotonically increasing numbers in their labels. Defaults to True.
+    rename_channels | bool
+        Whether to keep original 4D channel labels or not. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
@@ -1334,6 +1339,14 @@ def read_raw_bti(pdf_fname, config_fname='config',
     eog_ch: tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
+    sort_by_ch_name | bool
+        Reaorder channels according to channel label. 4D channels don't have
+        monotonically increasing numbers in their labels.
+    sort_by_ch_name | bool
+        Reorder channels according to channel label. 4D channels don't have
+        monotonically increasing numbers in their labels. Defaults to True.
+    rename_channels | bool
+        Whether to keep original 4D channel labels or not. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
