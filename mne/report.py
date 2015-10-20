@@ -885,14 +885,14 @@ class Report(object):
                                          comments=comments)
 
     def add_images_to_section(self, fnames, captions, scale=None,
-                              section='custom', comments=None,
-                              image_format='png'):
+                              section='custom', comments=None):
         """Append custom user-defined images.
 
         Parameters
         ----------
         fnames : str | list of str
             A filename or a list of filenames from which images are read.
+            Images can be PNG, GIF or SVG.
         captions : str | list of str
             A caption or a list of captions to the images.
         scale : float | None
@@ -920,6 +920,13 @@ class Report(object):
             global_id = self._get_id()
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
+
+            image_format = os.path.splitext(fname)[1][1:]
+            image_format = image_format.lower()
+
+            if image_format not in ['png', 'gif', 'svg']:
+                raise ValueError("Unknown image format. Only 'png', 'gif' or "
+                                 "'svg' are supported. Got %s" % image_format)
 
             # Convert image to binary string.
             output = BytesIO()
