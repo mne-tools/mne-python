@@ -44,12 +44,18 @@ src_morph = mne.morph_source_spaces(src_fs, subject_to='sample',
 # Compute the forward with our morphed source space
 fwd = mne.make_forward_solution(info, trans=fname_trans,
                                 src=src_morph, bem=fname_bem)
+# fwd = mne.convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
 mag_map = mne.sensitivity_map(fwd, ch_type='mag')
 
 # Return this SourceEstimate (on sample's surfaces) to fsaverage's surfaces
 mag_map_fs = mag_map.return_to_original_src(src_fs, subjects_dir=subjects_dir)
 
 # Plot the result, which tracks the sulcal-gyral folding
-kwargs = dict(clim=dict(kind='percent', lims=[0, 50, 100]), smoothing_steps=5,
-              hemi='both', views=['med', 'lat'])
-brain = mag_map_fs.plot(time_label=None, subjects_dir=subjects_dir, **kwargs)
+kwargs = dict(clim=dict(kind='percent', lims=[0, 50, 100]),
+              smoothing_steps=1, hemi='both', views=['lat'])
+
+brain_fs = mag_map_fs.plot(  # plot forward in original source space (remapped)
+    time_label=None, subjects_dir=subjects_dir, **kwargs)
+
+brain_subject = mag_map.plot(  # plot forward in subject source space (morphed)
+    time_label=None, subjects_dir=subjects_dir, **kwargs)
