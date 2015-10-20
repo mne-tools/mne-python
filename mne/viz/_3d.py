@@ -813,7 +813,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
             assert np.sum(mask) == 1
             linestyle = linestyles[k]
             plt.plot(1e3 * stcs[k].times, 1e9 * stcs[k].data[mask].ravel(),
-	             c=c, linewidth=linewidth, linestyle=linestyle)
+                     c=c, linewidth=linewidth, linestyle=linestyle)
 
     plt.xlabel('Time (ms)', fontsize=18)
     plt.ylabel('Source amplitude (nAm)', fontsize=18)
