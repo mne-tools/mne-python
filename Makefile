@@ -56,7 +56,7 @@ test-no-sample-with-coverage: in testing_data
 	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
 
 test-doc: sample_data testing_data
-	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
+	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/
 
 test-coverage: testing_data
 	rm -rf coverage .coverage

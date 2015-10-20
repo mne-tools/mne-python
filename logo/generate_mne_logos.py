@@ -27,6 +27,8 @@ center_fudge = np.array([2, 0])  # compensate for font bounding box padding
 tagline_scale_fudge = 0.98  # to get justification right
 tagline_offset_fudge = np.array([0.4, 0])
 
+static_dir = op.join('..', 'doc', '_static')
+
 # font, etc
 rcp = {'font.sans-serif': ['Primetime'], 'font.style': 'normal',
        'font.weight': 'black', 'font.variant': 'normal', 'figure.dpi': dpi,
@@ -104,7 +106,7 @@ ax.set_ylim(np.ceil(yy), yl[-1])
 extent = Bbox(np.c_[ax.get_xlim(), ax.get_ylim()])
 extent = extent.transformed(ax.transData + fig.dpi_scale_trans.inverted())
 plt.draw()
-plt.savefig(op.join('_static', 'mne_logo.png'),
+plt.savefig(op.join(static_dir, 'mne_logo.png'),
             bbox_inches=extent.expanded(1.2, 1.))
 plt.close()
 
@@ -149,6 +151,6 @@ ax.set_ylim(ymax + ypad, ymin - ypad)
 extent = Bbox(np.c_[ax.get_xlim(), ax.get_ylim()])
 extent = extent.transformed(ax.transData + fig.dpi_scale_trans.inverted())
 plt.draw()
-plt.savefig(op.join('_static', 'mne_logo_small.png'), transparent=True,
+plt.savefig(op.join(static_dir, 'mne_logo_small.png'), transparent=True,
             bbox_inches=extent)
 plt.close()
