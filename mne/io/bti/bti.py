@@ -1040,16 +1040,16 @@ class RawBTi(_BaseRaw):
         to the center of the head. Ignored if convert is True.
     convert : bool
         Convert to Neuromag coordinates or not.
-    ecg_ch: str | None
+    ecg_ch : str | None
         The 4D name of the ECG channel. If None, the channel will be treated
         as regular EEG channel.
-    eog_ch: tuple of str | None
+    eog_ch : tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
-    sort_by_ch_name | bool
+    sort_by_ch_name : bool
         Reorder channels according to channel label. 4D channels don't have
         monotonically increasing numbers in their labels. Defaults to True.
-    rename_channels | bool
+    rename_channels : bool
         Whether to keep original 4D channel labels or not. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -1333,19 +1333,16 @@ def read_raw_bti(pdf_fname, config_fname='config',
         to the center of the head. Ignored if convert is True.
     convert : bool
         Convert to Neuromag coordinates or not.
-    ecg_ch: str | None
+    ecg_ch : str | None
         The 4D name of the ECG channel. If None, the channel will be treated
         as regular EEG channel.
-    eog_ch: tuple of str | None
+    eog_ch : tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
-    sort_by_ch_name | bool
-        Reaorder channels according to channel label. 4D channels don't have
-        monotonically increasing numbers in their labels.
-    sort_by_ch_name | bool
+    sort_by_ch_name : bool
         Reorder channels according to channel label. 4D channels don't have
         monotonically increasing numbers in their labels. Defaults to True.
-    rename_channels | bool
+    rename_channels : bool
         Whether to keep original 4D channel labels or not. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
