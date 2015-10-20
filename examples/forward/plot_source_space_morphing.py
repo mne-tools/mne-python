@@ -1,7 +1,3 @@
-# Authors: Denis A. Engemann <denis.engemann@gmail.com>
-#          Eric larson <larson.eric.d@gmail.com>
-#
-# License: BSD (3-clause)
 """
 =========================
 Use source space morphing
@@ -16,6 +12,10 @@ subjects.
              subjects. Use with caution and check effects on localization
              before use.
 """
+# Authors: Denis A. Engemann <denis.engemann@gmail.com>
+#          Eric larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
 
 import os.path as op
 
