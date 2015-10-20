@@ -1,6 +1,6 @@
 import numpy as np
 import os.path as op
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
 from mne import io, pick_types, Epochs, read_events
