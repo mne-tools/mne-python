@@ -2386,6 +2386,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
             vertno=vertno, inuse=inuse, nuse=len(vertno), use_tris=use_tris,
             nuse_tri=len(use_tris), subject_his_id=subject_to,
             nearest=None, nearest_dist=None, patch_inds=None, pinfo=None,
+            dist=None,
             coord_frame=FIFF.FIFFV_COORD_MRI))
         for key in ('nn', 'rr', 'np', 'tris', 'ntri'):
             src_out[-1][key] = to[key]
