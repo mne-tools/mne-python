@@ -22,7 +22,8 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
                       _read_surface_geom, _normalize_vectors,
                       _complete_surface_info, _compute_nearest,
-                      fast_cross_3d, _fast_cross_nd_sum, mesh_dist)
+                      fast_cross_3d, _fast_cross_nd_sum, mesh_dist,
+                      _triangle_neighbors)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
                     check_version, _get_call_line)
@@ -2117,6 +2118,20 @@ def _ensure_src(src, verbose=None):
     return src
 
 
+def _ensure_src_subject(src, subject):
+    src_subject = src[0].get('subject_his_id', None)
+    if subject is None:
+        subject = src_subject
+        if subject is None:
+            raise ValueError('source space is too old, subject must be '
+                             'provided')
+    elif src_subject is not None and subject != src_subject:
+        raise ValueError('Mismatch between provided subject "%s" and subject '
+                         'name "%s" in the source space'
+                         % (subject, src_subject))
+    return subject
+
+
 @verbose
 def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """Compute inter-source distances along the cortical surface
@@ -2289,28 +2304,40 @@ def _get_hemi(s):
     if s['type'] != 'surf':
         raise RuntimeError('Only surface source spaces supported')
     if s['id'] == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
-        return 'lh', 0
+        return 'lh', 0, s['id']
     elif s['id'] == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
-        return 'rh', 1
+        return 'rh', 1, s['id']
     else:
         raise ValueError('unknown surface ID %s' % s['id'])
 
 
-def _get_vertex_map_nn(src, morph, rrs):
-    """Helper to get a nearest-neigbor vertex match"""
+def _get_vertex_map_nn(fro_src, subject_from, subject_to, hemi, subjects_dir,
+                       to_neighbor_tri=None):
+    """Helper to get a nearest-neigbor vertex match for a given hemi src
+
+    The to_neighbor_tri can optionally be passed in to avoid recomputation
+    if it's already available.
+    """
     # adapted from mne_make_source_space.c, knowing accurate=False (i.e.
     # nearest-neighbor mode should be used)
-    morph_inuse = np.zeros(morph['np'], int)
-    best = np.zeros(src['np'], int)
-    ones = _compute_nearest(rrs[1], rrs[0][src['vertno']])
-    for v, one in zip(src['vertno'], ones):
+    logger.info('Mapping %s %s -> %s (nearest neighbor)...'
+                % (hemi, subject_from, subject_to))
+    regs = [op.join(subjects_dir, s, 'surf', '%s.sphere.reg' % hemi)
+            for s in (subject_from, subject_to)]
+    reg_fro, reg_to = [_read_surface_geom(r, patch_stats=False) for r in regs]
+    if to_neighbor_tri is None:
+        to_neighbor_tri = _triangle_neighbors(reg_to['tris'], reg_to['np'])
+    morph_inuse = np.zeros(len(reg_to['rr']), bool)
+    best = np.zeros(fro_src['np'], int)
+    ones = _compute_nearest(reg_to['rr'], reg_fro['rr'][fro_src['vertno']])
+    for v, one in zip(fro_src['vertno'], ones):
         # if it were actually a proper morph map, we would do this, but since
         # we know it's nearest neighbor list, we don't need to:
         # this_mm = mm[v]
         # one = this_mm.indices[this_mm.data.argmax()]
         if morph_inuse[one]:
             # Try the nearest neighbors
-            neigh = _get_surf_neighbors(morph, one)  # on demand calc
+            neigh = _get_surf_neighbors(reg_to, one)  # on demand calc
             was = one
             one = neigh[np.where(~morph_inuse[neigh])[0]]
             if len(one) == 0:
@@ -2325,13 +2352,13 @@ def _get_vertex_map_nn(src, morph, rrs):
 
 
 @verbose
-def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
-                        verbose=None):
+def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
+                        subjects_dir=None, verbose=None):
     """Morph an existing source space to a different subject
 
-    .. note:: This can be used in place of morphing source estimates for
-              multiple subjects, but there may be consequences in terms
-              of dipole topology.
+    .. warning:: This can be used in place of morphing source estimates for
+                 multiple subjects, but there may be consequences in terms
+                 of dipole topology.
 
     Parameters
     ----------
@@ -2341,6 +2368,9 @@ def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
         The destination subject.
     surf : str
         The brain surface to use for the new source space.
+    subject_from : str | None
+        The "from" subject. For most source spaces this shouldn't need
+        to be provided, since it is stored in the source space itself.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
@@ -2350,19 +2380,22 @@ def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
     -------
     src : instance of SourceSpaces
         The morphed source spaces.
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     # adapted from mne_make_source_space.c
     src_from = _ensure_src(src_from)
+    subject_from = _ensure_src_subject(src_from, subject_from)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     src_out = list()
     for fro in src_from:
-        hemi, idx = _get_hemi(fro)
+        hemi, idx, id_ = _get_hemi(fro)
         to = op.join(subjects_dir, subject_to, 'surf', '%s.%s' % (hemi, surf,))
         logger.info('Reading destination surface %s' % (to,))
         to = _read_surface_geom(to, patch_stats=False, verbose=False)
-        to['rr'] /= 1000.  # convert to meters
-        _complete_surface_info(to, verbose=False)  # get normals
-        subject_from = fro['subject_his_id']
+        _complete_surface_info(to)
         # Now we morph the vertices to the destination
         # The C code does something like this, but with a nearest-neighbor
         # mapping instead of the weighted one::
@@ -2372,30 +2405,84 @@ def morph_source_spaces(src_from, subject_to, surf='white', subjects_dir=None,
         # Here we use a direct NN calculation, since picking the max from the
         # existing morph map (which naively one might expect to be equivalent)
         # differs for ~3% of vertices.
-        rrs = [read_surface(op.join(subjects_dir, s, 'surf',
-                                    '%s.sphere.reg' % hemi), verbose=False)[0]
-               for s in (subject_from, subject_to)]
-        logger.info('Mapping %s %s -> %s (nearest neighbor)...'
-                    % (hemi, subject_from, subject_to))
-        best = _get_vertex_map_nn(fro, to, rrs)
-        vertno = np.sort(best[fro['vertno']])
-        inuse = np.zeros(len(to['rr']), int)
-        inuse[vertno] = True
-        use_tris = best[fro['use_tris']]
-        src_out.append(dict(
-            vertno=vertno, inuse=inuse, nuse=len(vertno), use_tris=use_tris,
-            nuse_tri=len(use_tris), subject_his_id=subject_to,
-            nearest=None, nearest_dist=None, patch_inds=None, pinfo=None,
-            dist=None,
-            coord_frame=FIFF.FIFFV_COORD_MRI))
-        for key in ('nn', 'rr', 'np', 'tris', 'ntri'):
-            src_out[-1][key] = to[key]
-        for key in ('type', 'id', 'coord_frame'):
-            src_out[-1][key] = fro[key]
+        best = _get_vertex_map_nn(fro, subject_from, subject_to, hemi,
+                                  subjects_dir, to['neighbor_tri'])
+        for key in ('neighbor_tri', 'tri_area', 'tri_cent', 'tri_nn',
+                    'use_tris'):
+            del to[key]
+        to['vertno'] = np.sort(best[fro['vertno']])
+        to['inuse'] = np.zeros(len(to['rr']), int)
+        to['inuse'][to['vertno']] = True
+        to['use_tris'] = best[fro['use_tris']]
+        to.update(nuse=len(to['vertno']), nuse_tri=len(to['use_tris']),
+                  nearest=None, nearest_dist=None, patch_inds=None, pinfo=None,
+                  dist=None, id=id_, dist_limit=None, type='surf',
+                  coord_frame=FIFF.FIFFV_COORD_MRI, subject_his_id=subject_to,
+                  rr=to['rr'] / 1000.)
+        src_out.append(to)
         logger.info('[done]\n')
     info = dict(working_dir=os.getcwd(),
                 command_line=_get_call_line(in_verbose=True))
     return SourceSpaces(src_out, info=info)
+
+
+@verbose
+def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
+                              subjects_dir=None, verbose=None):
+    """Get the reordering indices for a morphed source space
+
+    Parameters
+    ----------
+    vertices : list
+        The vertices for the left and right hemispheres.
+    src_from : instance of SourceSpaces
+        The original source space.
+    subject_from : str
+        The source subject.
+    subject_to : str
+        The destination subject.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    data_idx : ndarray, shape (n_vertices,)
+        The array used to reshape the data.
+    from_vertices : list
+        The right and left hemisphere vertex numbers for the "from" subject.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    from_vertices = list()
+    data_idxs = list()
+    offset = 0
+    for ii, hemi in enumerate(('lh', 'rh')):
+        # Get the mapping from the original source space to the destination
+        # subject's surface vertex numbers
+        best = _get_vertex_map_nn(src_from[ii], subject_from, subject_to,
+                                  hemi, subjects_dir)
+        full_mapping = best[src_from[ii]['vertno']]
+        # Tragically, we might not have all of our vertno left (e.g. because
+        # some are omitted during fwd calc), so we must do some indexing magic:
+
+        # From all vertices, a subset could be chosen by fwd calc:
+        used_vertices = np.in1d(full_mapping, vertices[ii])
+        from_vertices.append(src_from[ii]['vertno'][used_vertices])
+        remaining_mapping = full_mapping[used_vertices]
+        assert np.array_equal(np.sort(remaining_mapping), vertices[ii])
+
+        # And our data have been implicitly remapped by the forced ascending
+        # vertno order in source spaces
+        implicit_mapping = np.argsort(remaining_mapping)  # happens to data
+        data_idx = np.argsort(implicit_mapping)  # to reverse the mapping
+        data_idx += offset  # hemisphere offset
+        data_idxs.append(data_idx)
+        offset += len(implicit_mapping)
+    data_idx = np.concatenate(data_idxs)
+    assert np.array_equal(np.sort(data_idx),
+                          np.arange(sum(len(v) for v in vertices)))
+    return data_idx, from_vertices
 
 
 def _compare_source_spaces(src0, src1, mode='exact', dist_tol=1.5e-3):
@@ -2410,6 +2497,9 @@ def _compare_source_spaces(src0, src1, mode='exact', dist_tol=1.5e-3):
         raise RuntimeError('unknown mode %s' % mode)
 
     for s0, s1 in zip(src0, src1):
+        # first check the keys
+        a, b = set(s0.keys()), set(s1.keys())
+        assert_equal(a, b, str(a ^ b))
         for name in ['nuse', 'ntri', 'np', 'type', 'id']:
             assert_equal(s0[name], s1[name], name)
         for name in ['subject_his_id']:

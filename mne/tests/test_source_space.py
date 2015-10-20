@@ -12,7 +12,7 @@ from mne.datasets import testing
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
-                 morph_source_spaces)
+                 morph_source_spaces, SourceEstimate)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess, slow_test,
                        requires_mne, requires_version, run_tests_if_main)
@@ -570,12 +570,67 @@ def test_morph_source_spaces():
     src_morph = read_source_spaces(fname_morph)
     src_morph_py = morph_source_spaces(src, 'sample',
                                        subjects_dir=subjects_dir)
-    for key in ['nearest', 'nearest_dist', 'patch_inds', 'pinfo']:
-        for sp in src_morph_py:
-            assert_true(key in sp)
-    assert_equal(src_morph[0].keys(), src_morph_py[0].keys())
     _compare_source_spaces(src_morph, src_morph_py, mode='approx')
 
+
+@slow_test
+@testing.requires_testing_data
+def test_morphed_source_space_return():
+    """Test returning a morphed source space to the original subject"""
+    # let's create some random data on fsaverage
+    rng = np.random.RandomState(0)
+    data = rng.randn(20484, 1)
+    tmin, tstep = 0, 1.
+    src_fs = read_source_spaces(fname_fs)
+    stc_fs = SourceEstimate(data, [s['vertno'] for s in src_fs],
+                            tmin, tstep, 'fsaverage')
+
+    # Create our morph source space
+    src_morph = morph_source_spaces(src_fs, 'sample',
+                                    subjects_dir=subjects_dir)
+
+    # Morph the data over using standard methods
+    stc_morph = stc_fs.morph('sample', [s['vertno'] for s in src_morph],
+                             smooth=1, subjects_dir=subjects_dir)
+
+    # We can now pretend like this was real data we got e.g. from an inverse.
+    # To be complete, let's remove some vertices
+    keeps = [np.sort(rng.choice(np.arange(len(v)), len(v) - 10, replace=False))
+             for v in stc_morph.vertices]
+    stc_morph = SourceEstimate(
+        np.concatenate([stc_morph.lh_data[keeps[0]],
+                        stc_morph.rh_data[keeps[1]]]),
+        [v[k] for v, k in zip(stc_morph.vertices, keeps)], tmin, tstep,
+        'sample')
+
+    # Return it to the original subject
+    stc_morph_return = stc_morph.return_to_original_src(
+        src_fs, subjects_dir=subjects_dir)
+
+    # Compare to the original data
+    stc_morph_morph = stc_morph.morph('fsaverage', stc_morph_return.vertices,
+                                      smooth=1,
+                                      subjects_dir=subjects_dir)
+    assert_equal(stc_morph_return.subject, stc_morph_morph.subject)
+    for ii in range(2):
+        assert_array_equal(stc_morph_return.vertices[ii],
+                           stc_morph_morph.vertices[ii])
+    # These will not match perfectly because morphing pushes data around
+    corr = np.corrcoef(stc_morph_return.data[:, 0],
+                       stc_morph_morph.data[:, 0])[0, 1]
+    assert_true(corr > 0.99, corr)
+
+    # Degenerate cases
+    stc_morph.subject = None  # no .subject provided
+    assert_raises(ValueError, stc_morph.return_to_original_src,
+                  src_fs, subject_orig='fsaverage', subjects_dir=subjects_dir)
+    stc_morph.subject = 'sample'
+    del src_fs[0]['subject_his_id']  # no name in src_fsaverage
+    assert_raises(ValueError, stc_morph.return_to_original_src,
+                  src_fs, subjects_dir=subjects_dir)
+    src_fs[0]['subject_his_id'] = 'fsaverage'  # mismatch
+    assert_raises(ValueError, stc_morph.return_to_original_src,
+                  src_fs, subject_orig='foo', subjects_dir=subjects_dir)
 
 run_tests_if_main()
 

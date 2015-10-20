@@ -19,7 +19,8 @@ from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest, mesh_edges)
-from .source_space import _ensure_src
+from .source_space import (_ensure_src, _get_morph_src_reordering,
+                           _ensure_src_subject)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask)
 from .viz import plot_source_estimates
@@ -1364,6 +1365,41 @@ class SourceEstimate(_BaseSourceEstimate):
                                       views=views, colorbar=colorbar,
                                       clim=clim)
         return brain
+
+    @verbose
+    def return_to_original_src(self, src_orig, subject_orig=None,
+                               subjects_dir=None, verbose=None):
+        """Return a SourceEstimate from morphed source to the original subject
+
+        Parameters
+        ----------
+        src_orig : instance of SourceSpaces
+            The original source spaces that were morphed to the current
+            subject.
+        subject_orig : str | None
+            The original subject. For most source spaces this shouldn't need
+            to be provided, since it is stored in the source space itself.
+        subjects_dir : string, or None
+            Path to SUBJECTS_DIR if it is not set in the environment.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        See Also
+        --------
+        morph_source_spaces
+
+        Notes
+        -----
+        .. versionadded:: 0.10.0
+        """
+        if self.subject is None:
+            raise ValueError('stc.subject must be set')
+        src_orig = _ensure_src(src_orig)
+        subject_orig = _ensure_src_subject(src_orig, subject_orig)
+        data_idx, vertices = _get_morph_src_reordering(
+            self.vertices, src_orig, subject_orig, self.subject, subjects_dir)
+        return SourceEstimate(self._data[data_idx], vertices,
+                              self.tmin, self.tstep, subject_orig)
 
     @verbose
     def morph(self, subject_to, grade=5, smooth=None, subjects_dir=None,
