@@ -25,6 +25,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
 from ..time_frequency import compute_epochs_psd
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
+from ..fixes import _get_argrelmax
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -1606,7 +1607,7 @@ def _find_peaks(evoked, npeaks):
     """Helper function for finding peaks from evoked data
     Returns ``npeaks`` biggest peaks as a list of time points.
     """
-    from scipy.signal import argrelmax
+    argrelmax = _get_argrelmax()
     gfp = evoked.data.std(axis=0)
     order = len(evoked.times) // 30
     if order < 1:

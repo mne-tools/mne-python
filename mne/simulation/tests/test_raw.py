@@ -22,6 +22,7 @@ from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.io import Raw, RawArray
 from mne.time_frequency import compute_raw_psd
 from mne.utils import _TempDir, run_tests_if_main, requires_version, slow_test
+from mne.fixes import isclose
 
 
 warnings.simplefilter('always')
@@ -122,11 +123,11 @@ def test_simulate_raw_sphere():
         picks = np.arange(len(raw.ch_names))
         diff_picks = pick_types(raw.info, meg=False, ecg=ecg, eog=eog)
         these_picks = np.setdiff1d(picks, diff_picks)
-        close = np.isclose(raw_sim_3[these_picks][0],
-                           raw_sim_4[these_picks][0], atol=1e-20)
+        close = isclose(raw_sim_3[these_picks][0],
+                        raw_sim_4[these_picks][0], atol=1e-20)
         assert_true(np.mean(close) > 0.7)
-        far = ~np.isclose(raw_sim_3[diff_picks][0],
-                          raw_sim_4[diff_picks][0], atol=1e-20)
+        far = ~isclose(raw_sim_3[diff_picks][0],
+                       raw_sim_4[diff_picks][0], atol=1e-20)
         assert_true(np.mean(far) > 0.99)
     del raw_sim_3, raw_sim_4
 

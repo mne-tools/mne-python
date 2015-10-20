@@ -717,15 +717,20 @@ requires_h5py = partial(requires_module, name='h5py', call='import h5py')
 
 
 def check_version(library, min_version):
-    """Check minimum sklearn version required
+    """Check minimum library version required
 
     Parameters
     ----------
-    min_version : str
-        The version string. Anything that matches
-        ``'(\\d+ | [a-z]+ | \\.)'``
     library : str
-        The library to import.
+        The library name to import. Must have a ``__version__`` property.
+    min_version : str
+        The minimum version string. Anything that matches
+        ``'(\\d+ | [a-z]+ | \\.)'``
+
+    Returns
+    -------
+    ok : bool
+        True if the library exists with at least the specified version.
     """
     ok = True
     try:

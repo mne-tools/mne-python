@@ -162,9 +162,8 @@ def simulate_sparse_stc(src, n_dipoles, times,
         offsets = np.linspace(0, n_dipoles, len(src) + 1).astype(int)
         n_dipoles_ss = np.diff(offsets)
         # don't use .choice b/c not on old numpy
-        vs = [s['vertno'][np.sort(rng.permutation(
-                  np.arange(s['nuse']))[:n_dip])]
-              for n_dip, s in zip(n_dipoles_ss, src)]
+        vs = [s['vertno'][np.sort(rng.permutation(np.arange(s['nuse']))[:n])]
+              for n, s in zip(n_dipoles_ss, src)]
         datas = data
     else:
         if n_dipoles != len(labels):
