@@ -32,7 +32,7 @@ raw = mne.io.RawFIF(
 
 # If your raw object has a stim channel, you can construct an event array
 # easily
-events = mne.find_events(raw, stim_channel='STI 014') 
+events = mne.find_events(raw, stim_channel='STI 014')
 
 # Show the number of events (number of rows)
 print('Number of events:', len(events))
