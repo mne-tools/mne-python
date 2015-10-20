@@ -904,8 +904,6 @@ class Report(object):
         comments : None | str | list of str
             A string of text or a list of strings of text to be appended after
             the image.
-        image_format : {'png', 'gif', 'svg'}
-            The image format to be used for the report. Defaults to 'png'.
         """
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
