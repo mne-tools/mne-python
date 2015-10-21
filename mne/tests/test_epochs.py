@@ -1799,8 +1799,6 @@ def test_seeg():
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
     info = create_info(n_channels, sfreq, 'seeg')
     epochs = EpochsArray(data, info, events)
-    with warnings.catch_warnings(record=True):
-        evoked = epochs.average()
-    assert evoked
+    assert epochs.average()
 
 run_tests_if_main()
