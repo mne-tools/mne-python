@@ -861,7 +861,7 @@ def _isclose(a, b, rtol=1.e-5, atol=1.e-8, equal_nan=False):
 
     xfin = np.isfinite(x)
     yfin = np.isfinite(y)
-    if all(xfin) and all(yfin):
+    if np.all(xfin) and np.all(yfin):
         return within_tol(x, y, atol, rtol)
     else:
         finite = xfin & yfin
