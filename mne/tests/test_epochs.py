@@ -1435,6 +1435,8 @@ def test_drop_epochs_mult():
 
 def test_contains():
     """Test membership API"""
+    # TODO This raw data does not contain seeg. The test cannot completely test
+    # membership.
     raw, events = _get_data()[:2]
 
     tests = [(('mag', False), ('grad', 'eeg')),
@@ -1789,5 +1791,16 @@ def test_add_channels():
     assert_raises(ValueError, epoch_meg.add_channels, [epoch_meg])
     assert_raises(AssertionError, epoch_meg.add_channels, epoch_badsf)
 
+
+def test_seeg():
+    """Test the compatibility of the Epoch object with SEEG data."""
+    n_epochs, n_channels, n_times, sfreq = 5, 10, 20, 1000.
+    data = np.random.randn(n_epochs, n_channels, n_times)
+    events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    info = create_info(n_channels, sfreq, 'seeg')
+    epochs = EpochsArray(data, info, events)
+    with warnings.catch_warnings(record=True):
+        evoked = epochs.average()
+    assert evoked
 
 run_tests_if_main()
