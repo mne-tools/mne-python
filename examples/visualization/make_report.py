@@ -1,9 +1,10 @@
 """
-=======================================
-Plot Time-Series Slider with MNE-Report
-=======================================
+==========================================
+Make an MNE-Report with Images and Sliders
+==========================================
 
 In this example, MEG evoked data are plotted in an html slider.
+In addition, MEG evoked data made into a gif for visualization.
 """
 
 # Authors: Teon Brooks <teon.brooks@gmail.com
@@ -13,14 +14,12 @@ In this example, MEG evoked data are plotted in an html slider.
 from mne.report import Report
 from mne.datasets import sample
 from mne import read_evokeds
-from mne.utils import _TempDir
+from matplotlib import pyplot as plt
 
 
 report = Report()
 path = sample.data_path()
 fname = path + '/MEG/sample/sample_audvis-ave.fif'
-tempdir = _TempDir()
-report_path = tempdir + '/report.html'
 
 # Load the evoked data
 evoked = read_evokeds(fname, condition='Left Auditory',
@@ -34,4 +33,7 @@ for time in times:
                                     res=100, show=False))
     plt.close()
 report.add_slider_to_section(figs, times, 'Evoked Response')
-report.save(report_path, open_browser=True)
+
+report.view()
+# # to save report
+# report.save('/path/to/file')
