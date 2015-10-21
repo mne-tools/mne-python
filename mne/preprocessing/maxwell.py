@@ -34,7 +34,15 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,
                    st_correlation=0.98, coord_frame='head', destination=None,
                    verbose=None):
-    """Apply Maxwell filter to data using spherical harmonics.
+    """Apply Maxwell filter to data using multipole moments
+
+    .. warning:: Automatic bad channel detection is not currently implemented.
+                 It is critical to mark bad channels before running Maxwell
+                 filtering, so data should be inspected and marked accordingly
+                 prior to running this algorithm.
+
+    .. warning:: Not all features of Elekta MaxFilter are currently
+                 implemented here (see Notes).
 
     Parameters
     ----------
