@@ -1040,10 +1040,15 @@ class RawBTi(_BaseRaw):
         to the center of the head. Ignored if convert is True.
     convert : bool
         Convert to Neuromag coordinates or not.
-    ecg_ch: str | None
+    rename_channels : bool
+        Whether to keep original 4D channel labels or not. Defaults to True.
+    sort_by_ch_name : bool
+        Reorder channels according to channel label. 4D channels don't have
+        monotonically increasing numbers in their labels. Defaults to True.
+    ecg_ch : str | None
         The 4D name of the ECG channel. If None, the channel will be treated
         as regular EEG channel.
-    eog_ch: tuple of str | None
+    eog_ch : tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
     verbose : bool, str, int, or None
@@ -1053,13 +1058,16 @@ class RawBTi(_BaseRaw):
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), convert=True,
-                 ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
+                 rename_channels=True, sort_by_ch_name=True,
+                 ecg_ch='E31', eog_ch=('E63', 'E64'),
+                 verbose=None):
 
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname, config_fname=config_fname,
             head_shape_fname=head_shape_fname, rotation_x=rotation_x,
             translation=translation, convert=convert, ecg_ch=ecg_ch,
-            eog_ch=eog_ch)
+            rename_channels=rename_channels,
+            sort_by_ch_name=sort_by_ch_name, eog_ch=eog_ch)
         logger.info('Reading raw data from %s...' % pdf_fname)
         data = _read_data(bti_info)
         assert len(data) == len(info['ch_names'])
@@ -1296,6 +1304,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), convert=True,
+                 rename_channels=True, sort_by_ch_name=True,
                  ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
@@ -1325,10 +1334,15 @@ def read_raw_bti(pdf_fname, config_fname='config',
         to the center of the head. Ignored if convert is True.
     convert : bool
         Convert to Neuromag coordinates or not.
-    ecg_ch: str | None
+    rename_channels : bool
+        Whether to keep original 4D channel labels or not. Defaults to True.
+    sort_by_ch_name : bool
+        Reorder channels according to channel label. 4D channels don't have
+        monotonically increasing numbers in their labels. Defaults to True.
+    ecg_ch : str | None
         The 4D name of the ECG channel. If None, the channel will be treated
         as regular EEG channel.
-    eog_ch: tuple of str | None
+    eog_ch : tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
     verbose : bool, str, int, or None
@@ -1346,5 +1360,6 @@ def read_raw_bti(pdf_fname, config_fname='config',
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
                   rotation_x=rotation_x, translation=translation,
-                  convert=convert,
-                  verbose=verbose)
+                  convert=convert, rename_channels=rename_channels,
+                  sort_by_ch_name=sort_by_ch_name, ecg_ch=ecg_ch,
+                  eog_ch=eog_ch, verbose=verbose)

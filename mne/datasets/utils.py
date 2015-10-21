@@ -214,6 +214,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     rm_archive = False
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
+
     if not op.exists(folder_path) and not download:
         return ''
     if not op.exists(folder_path) or force_update:
