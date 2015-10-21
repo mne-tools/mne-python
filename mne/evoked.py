@@ -782,12 +782,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Either 0 or 1, the order of the detrending. 0 is a constant
             (DC) detrend, 1 is a linear detrend.
         picks : array-like of int | None
-            If None only MEG and EEG channels are detrended.
+            If None only MEG, EEG and SEEG channels are detrended.
         """
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
                                stim=False, eog=False, ecg=False, emg=False,
-                               exclude='bads')
+                               seeg=True, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
     def copy(self):
@@ -827,7 +827,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        ch_type : {'mag', 'grad', 'eeg', 'misc', None}
+        ch_type : {'mag', 'grad', 'eeg', 'seeg', 'misc', None}
             The channel type to use. Defaults to None. If more than one sensor
             Type is present in the data the channel type has to be explicitly
             set.
@@ -851,9 +851,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The time point of the maximum response, either latency in seconds
             or index.
         """
-        supported = ('mag', 'grad', 'eeg', 'misc', 'None')
+        supported = ('mag', 'grad', 'eeg', 'seeg', 'misc', 'None')
 
-        data_picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False)
+        data_picks = pick_types(self.info, meg=True, eeg=True, seeg=True,
+                                ref_meg=False)
         types_used = set([channel_type(self.info, idx) for idx in data_picks])
 
         if str(ch_type) not in supported:

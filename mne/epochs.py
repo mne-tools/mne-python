@@ -435,7 +435,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         data = self._data
         picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                           ref_meg=True, eog=True, ecg=True,
+                           ref_meg=True, eog=True, ecg=True, seeg=True,
                            emg=True, exclude=[])
         data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline,
                                     'mean', copy=False)
@@ -535,13 +535,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # Detrend
         if self.detrend is not None:
             picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               ref_meg=False, eog=False, ecg=False,
+                               ref_meg=False, eog=False, ecg=False, seeg=True,
                                emg=False, exclude=[])
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
         # Baseline correct
         picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                           ref_meg=True, eog=True, ecg=True,
+                           ref_meg=True, eog=True, ecg=True, seeg=True,
                            emg=True, exclude=[])
         epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
                                'mean', copy=False, verbose=verbose)
@@ -594,7 +594,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         logger.info('Subtracting Evoked from Epochs')
         if evoked is None:
             picks = pick_types(self.info, meg=True, eeg=True,
-                               stim=False, eog=False, ecg=False,
+                               stim=False, eog=False, ecg=False, seeg=True,
                                emg=False, exclude=[])
             evoked = self.average(picks)
 
@@ -658,7 +658,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         picks : array-like of int | None
-            If None only MEG and EEG channels are kept
+            If None only MEG, EEG and SEEG channels are kept
             otherwise the channels indices in picks are kept.
 
         Returns
@@ -675,7 +675,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         picks : array-like of int | None
-            If None only MEG and EEG channels are kept
+            If None only MEG, EEG and SEEG channels are kept
             otherwise the channels indices in picks are kept.
 
         Returns
@@ -737,7 +737,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # pick channels
         if picks is None:
             picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=True,
-                               stim=False, eog=False, ecg=False,
+                               stim=False, eog=False, ecg=False, seeg=True,
                                emg=False, exclude=[])
 
         ch_names = [evoked.ch_names[p] for p in picks]
