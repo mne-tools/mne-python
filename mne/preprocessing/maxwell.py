@@ -440,11 +440,19 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
     """
 
     # Get position, normal, weights, and number of integration pts.
-    r_int_pts, ncoils, wcoils, counts = _concatenate_coils(coils)
+    rmags, cosmags, wcoils, counts = _concatenate_coils(coils)
     bins = np.repeat(np.arange(len(counts)), counts)
     n_sens = len(counts)
     n_bases = _get_n_moments([int_order, ext_order]).sum()
 
+    # Compute vector between origin and coil, convert to spherical coords
+    rmags -= origin
+    # Convert points to spherical coordinates
+    rad, az, pol = _cart_to_sph(rmags).T
+    cosmags *= wcoils[:, np.newaxis]
+    del rmags, counts, origin, wcoils
+
+    # Set up output matrices
     n_in, n_out = _get_n_moments([int_order, ext_order])
     S_tot = np.empty((n_sens, n_in + n_out))
     S_tot.fill(np.nan)
@@ -459,11 +467,6 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
     if n_bases > n_sens:
         raise ValueError('Number of requested bases (%s) exceeds number of '
                          'sensors (%s)' % (str(n_bases), str(n_sens)))
-
-    # Compute position vector between origin and coil integration pts
-    cvec_cart = r_int_pts - origin[np.newaxis, :]
-    # Convert points to spherical coordinates
-    rad, az, pol = _cart_to_sph(cvec_cart).T
 
     # Compute internal/external basis vectors (exclude degree 0; L/RHS Eq. 5)
     for degree in range(1, max(int_order, ext_order) + 1):
@@ -480,7 +483,7 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
             # in spherical coordinates (Eq. 6). The gradient for rad, az, pol
             # is obtained by taking the partial derivative of Eq. 4 w.r.t. each
             # coordinate.
-            az_factor = 1j * order * sph / np.sin(pol)
+            az_factor = 1j * order * sph / np.sin(np.maximum(pol, 1e-16))
             pol_factor = (-sph_norm * np.sin(pol) * np.exp(1j * order * az) *
                           _alegendre_deriv(order, degree, np.cos(pol)))
             if degree <= int_order:
@@ -512,14 +515,9 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
                         _sh_negate(grads, order), -order))
                     orders_pos_neg.append(-order)
                 for gr, oo in zip(grads_pos_neg, orders_pos_neg):
-                    # Gradients dotted w/integration point normals and weighted
-                    gr = wcoils * np.einsum('ij,ij->i', gr, ncoils, order='C')
-                    # For order/degree, sum over each sensor's integration pts
-                    # for pt_i in range(0, len(int_lens) - 1):
-                    #  int_pts_sum = \
-                    #    np.sum(all_grads[int_lens[pt_i]:int_lens[pt_i + 1]])
-                    #  spc[pt_i, deg ** 2 + deg + oo - 1] = int_pts_sum
-                    vals = np.bincount(bins, weights=gr, minlength=len(counts))
+                    # Gradients dotted w/integration point weighted normals
+                    gr = np.einsum('ij,ij->i', gr, cosmags)
+                    vals = np.bincount(bins, weights=gr, minlength=len(coils))
                     spc[:, _deg_order_idx(degree, oo)] = -vals
 
     # Scale magnetometers
