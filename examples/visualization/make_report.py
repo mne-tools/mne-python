@@ -13,7 +13,7 @@ In this example, MEG evoked data are plotted in an html slider.
 from mne.report import Report
 from mne.datasets import sample
 from mne import read_evokeds
-from matplotlib import pyplot as plt, animation
+from matplotlib import pyplot as plt
 
 
 report = Report()
@@ -33,6 +33,5 @@ for time in times:
     plt.close(figs[-1])
 report.add_slider_to_section(figs, times, 'Evoked Response')
 
-report.view()
 # # to save report
-# report.save('/path/to/file')
+# report.save('foobar.html', True)

@@ -67,6 +67,7 @@ def _fig_to_img(function=None, fig=None, image_format='png',
         if fig.scene is not None:
             fig.scene.save_png(temp_fname)
             img = imread(temp_fname)
+            os.remove(temp_fname)
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
@@ -1270,20 +1271,6 @@ class Report(object):
         else:
             warnings.warn('`subjects_dir` and `subject` not provided.'
                           ' Cannot render MRI and -trans.fif(.gz) files.')
-
-    def view(self):
-        """Open a current version of the html report in the web browser
-
-        Notes
-        -----
-        .. versionadded:: 0.10.0
-        """
-        import tempfile
-        f = tempfile.NamedTemporaryFile('w', delete=False, suffix='.html')
-        fname = f.name
-        self.save(fname, open_browser=True)
-
-        return fname
 
     def save(self, fname=None, open_browser=True, overwrite=False):
         """Save html report and open it in browser.
