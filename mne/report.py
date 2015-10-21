@@ -1272,15 +1272,18 @@ class Report(object):
                           ' Cannot render MRI and -trans.fif(.gz) files.')
 
     def view(self):
-        """Open a current verison of the html report in the web browser
-        """
-        tempdir = _TempDir()
-        fname = op.join(tempdir, 'report.html')
-        self.save(fname, open_browser=True)
-        # import webbrowser
-        # webbrowser.open_new_tab('file://' + fname)
+        """Open a current version of the html report in the web browser
 
-        return self
+        Notes
+        -----
+        .. versionadded:: 0.10.0
+        """
+        import tempfile
+        f = tempfile.NamedTemporaryFile('w', delete=False, suffix='.html')
+        fname = f.name
+        self.save(fname, open_browser=True)
+
+        return fname
 
     def save(self, fname=None, open_browser=True, overwrite=False):
         """Save html report and open it in browser.

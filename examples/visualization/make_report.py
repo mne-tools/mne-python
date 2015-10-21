@@ -1,10 +1,9 @@
 """
-==========================================
-Make an MNE-Report with Images and Sliders
-==========================================
+================================
+Make an MNE-Report with a Slider
+================================
 
 In this example, MEG evoked data are plotted in an html slider.
-In addition, MEG evoked data made into a gif for visualization.
 """
 
 # Authors: Teon Brooks <teon.brooks@gmail.com
@@ -14,7 +13,7 @@ In addition, MEG evoked data made into a gif for visualization.
 from mne.report import Report
 from mne.datasets import sample
 from mne import read_evokeds
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, animation
 
 
 report = Report()
@@ -31,7 +30,7 @@ figs = list()
 for time in times:
     figs.append(evoked.plot_topomap(time, vmin=-300, vmax=300,
                                     res=100, show=False))
-    plt.close()
+    plt.close(figs[-1])
 report.add_slider_to_section(figs, times, 'Evoked Response')
 
 report.view()
