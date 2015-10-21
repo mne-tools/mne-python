@@ -2467,11 +2467,11 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
         # some are omitted during fwd calc), so we must do some indexing magic:
 
         # From all vertices, a subset could be chosen by fwd calc:
-        used_vertices = np.in1d(full_mapping, vertices[ii])
+        used_vertices = in1d(full_mapping, vertices[ii])
         from_vertices.append(src_from[ii]['vertno'][used_vertices])
         remaining_mapping = full_mapping[used_vertices]
         if not np.array_equal(np.sort(remaining_mapping), vertices[ii]) or \
-                not np.in1d(vertices[ii], full_mapping).all():
+                not in1d(vertices[ii], full_mapping).all():
             raise RuntimeError('Could not map vertices, perhaps the wrong '
                                'subject "%s" was provided?' % subject_from)
 

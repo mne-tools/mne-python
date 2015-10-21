@@ -1368,7 +1368,7 @@ class SourceEstimate(_BaseSourceEstimate):
 
     @verbose
     def to_original_src(self, src_orig, subject_orig=None,
-                               subjects_dir=None, verbose=None):
+                        subjects_dir=None, verbose=None):
         """Return a SourceEstimate from morphed source to the original subject
 
         Parameters
