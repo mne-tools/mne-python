@@ -73,7 +73,7 @@ Changelog
 
     - Add support for finding peaks in evoked data in :func:`mne.Evoked.plot_topomap` by `Jona Sassenhagen`_ and `Jaakko Leppakangas`_
 
-    - Add source space morphing in :func:`morph_source_spaces` by `Eric Larson`_
+    - Add source space morphing in :func:`morph_source_spaces` and :func:`SourceEstimate.to_original_src` by `Eric Larson`_ and `Denis Engemann`_
 
    - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
 
