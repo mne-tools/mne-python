@@ -139,9 +139,10 @@ def test_time_frequency():
     power2 = power.copy()
     power2.info['bads'] = [power2.ch_names[0]]  # test interpolation
     gave = grand_average([power, power2])
-    assert_equal(gave.data.shape, [len(power.ch_names),
-                                   power.data.shape[1]])
-    assert_equal(power2.ch_names, gave.ch_names)
+    assert_equal(gave.data.shape, (power2.data.shape[0] - 1,
+                                   power2.data.shape[1],
+                                   power2.data.shape[2]))
+    assert_equal(power2.ch_names[1:], gave.ch_names)
     assert_equal(gave.nave, 2)
 
 
