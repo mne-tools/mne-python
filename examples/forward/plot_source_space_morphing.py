@@ -54,7 +54,7 @@ mag_map_fs = mag_map.return_to_original_src(src_fs, subjects_dir=subjects_dir)
 # outliers may occur, we'll place the cutoff at 99 percent.
 kwargs = dict(clim=dict(kind='percent', lims=[0, 50, 99]),
               # no smoothing, let's see the dipoles on the cortex.
-              smoothing_steps=1, hemi='both', views=['lat'])
+              smoothing_steps=1, hemi='rh', views=['lat'])
 
 # Now note that the dipoles on fsaverage are almost equidistant while
 # morphing will distribute the dipoles unevenly across the given subject's
