@@ -28,6 +28,7 @@ from ..viz.utils import figure_nobar
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
 
+
 def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time"""
     from ..epochs import _BaseEpochs
@@ -1389,14 +1390,14 @@ def grand_average(all_tfr, drop_bads=True):
 
     Parameters
     ----------
-    all_tfr : list of AllTFR data
+    all_tfr : list of AverageTFR data
         The TFR datasets.
     drop_bads : bool
         If True, bad MEG and EEG channels are dropped.
 
     Returns
     -------
-    grand_average : AllTFR
+    grand_average : AverageTFR
         The grand average data.
 
     Notes
@@ -1420,7 +1421,7 @@ def grand_average(all_tfr, drop_bads=True):
 
     equalize_channels(all_tfr)  # apply equalize_channels
     # make grand_average object using combine_tfr
-    grand_average = combine_tfr(all_tfr)
+    grand_average = combine_tfr(all_tfr, weights='equal')
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_tfr)
     # change comment field
@@ -1428,15 +1429,15 @@ def grand_average(all_tfr, drop_bads=True):
     return grand_average
 
 
-def combine_tfr(all_tfr, weights='nave'):
-    """Merge TFR data
+def combine_tfr(all_tfr, weights='equal'):
+    """Merge AverageTFR data
 
     Data should have the same channels and the same time instants.
     Subtraction can be performed by passing negative weights (e.g., [1, -1]).
 
     Parameters
     ----------
-    all_tfr : list of TFR
+    all_tfr : list of AverageTFR
         The tfr datasets.
     weights : list of float | str
         The weights to apply to the data of each TFR instance.
@@ -1445,7 +1446,7 @@ def combine_tfr(all_tfr, weights='nave'):
 
     Returns
     -------
-    tfr : AllTFR
+    tfr : AverageTFR
         The new TFR data.
 
     Notes
