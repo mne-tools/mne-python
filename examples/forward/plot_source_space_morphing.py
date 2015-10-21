@@ -48,7 +48,7 @@ fwd = mne.make_forward_solution(info, trans=fname_trans,
 mag_map = mne.sensitivity_map(fwd, ch_type='mag')
 
 # Return this SourceEstimate (on sample's surfaces) to fsaverage's surfaces
-mag_map_fs = mag_map.return_to_original_src(src_fs, subjects_dir=subjects_dir)
+mag_map_fs = mag_map.to_original_src(src_fs, subjects_dir=subjects_dir)
 
 # Plot the result, which tracks the sulcal-gyral folding
 # outliers may occur, we'll place the cutoff at 99 percent.

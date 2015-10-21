@@ -604,7 +604,7 @@ def test_morphed_source_space_return():
         'sample')
 
     # Return it to the original subject
-    stc_morph_return = stc_morph.return_to_original_src(
+    stc_morph_return = stc_morph.to_original_src(
         src_fs, subjects_dir=subjects_dir)
 
     # Compare to the original data
@@ -622,18 +622,18 @@ def test_morphed_source_space_return():
 
     # Degenerate cases
     stc_morph.subject = None  # no .subject provided
-    assert_raises(ValueError, stc_morph.return_to_original_src,
+    assert_raises(ValueError, stc_morph.to_original_src,
                   src_fs, subject_orig='fsaverage', subjects_dir=subjects_dir)
     stc_morph.subject = 'sample'
     del src_fs[0]['subject_his_id']  # no name in src_fsaverage
-    assert_raises(ValueError, stc_morph.return_to_original_src,
+    assert_raises(ValueError, stc_morph.to_original_src,
                   src_fs, subjects_dir=subjects_dir)
     src_fs[0]['subject_his_id'] = 'fsaverage'  # name mismatch
-    assert_raises(ValueError, stc_morph.return_to_original_src,
+    assert_raises(ValueError, stc_morph.to_original_src,
                   src_fs, subject_orig='foo', subjects_dir=subjects_dir)
     src_fs[0]['subject_his_id'] = 'sample'
     src = read_source_spaces(fname)  # wrong source space
-    assert_raises(RuntimeError, stc_morph.return_to_original_src,
+    assert_raises(RuntimeError, stc_morph.to_original_src,
                   src, subjects_dir=subjects_dir)
 
 run_tests_if_main()
