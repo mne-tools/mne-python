@@ -417,10 +417,7 @@ def _sph_harm(order, degree, az, pol, norm=True):
 
 def _concatenate_sph_coils(coils):
     """Helper to concatenate MEG coil parameters for spherical harmoncs."""
-    rxy = [np.dot(coil['rmag'][:, :2],
-                  np.concatenate([coil['ex'], coil['ey']]).reshape(2, 3)) +
-           coil['r0'] for coil in coils]
-    rs = np.concatenate(rxy)
+    rs = np.concatenate([coil['r0_exey'] for coil in coils])
     wcoils = np.concatenate([coil['w'] for coil in coils])
     ezs = np.concatenate([np.tile(coil['ez'][np.newaxis, :],
                                   (len(coil['rmag']), 1))

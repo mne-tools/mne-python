@@ -135,39 +135,45 @@ def test_multipolar_bases():
     info = read_info(raw_fname)
     coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
                                verbose=False)[0]
-    S_tot = _sss_basis(np.array([0., 0., 40e-3]), coils, int_order, ext_order,
-                       method='alternative')
-    # Test our real<->complex conversion functions
-    S_tot_complex = _bases_real_to_complex(S_tot, int_order, ext_order)
-    S_tot_round = _bases_complex_to_real(S_tot_complex, int_order, ext_order)
-    assert_allclose(S_tot, S_tot_round, atol=1e-7)
     # Check against a known benchmark
     sss_data = loadmat(bases_fname)
-    S_tot_mat = np.concatenate([sss_data['Sin0040'], sss_data['Sout0040']],
-                               axis=1)
-    S_tot_mat /= 4e-7 * np.pi  # divide out the magnetic permeability
-    S_tot_mat_real = _bases_complex_to_real(S_tot_mat, int_order, ext_order)
-    S_tot_mat_round = _bases_real_to_complex(S_tot_mat_real,
-                                             int_order, ext_order)
-    assert_allclose(S_tot_mat, S_tot_mat_round, atol=1e-7)
-    assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-5, atol=1e-8)
-    assert_allclose(S_tot, S_tot_mat_real, rtol=1e-5, atol=1e-8)
+    for origin in ((0, 0, 0.04), (0, 0.02, 0.02)):
+        o_str = ''.join('%d' % (1000 * n) for n in origin)
 
-    # Now normalize our columns
-    S_tot /= np.sqrt(np.sum(S_tot * S_tot, axis=0))[np.newaxis]
-    S_tot_complex /= np.sqrt(np.sum(
-        (S_tot_complex * S_tot_complex.conj()).real, axis=0))[np.newaxis]
-    # Check against a known benchmark
-    S_tot_mat = np.concatenate([sss_data['SNin0040'], sss_data['SNout0040']],
-                               axis=1)
-    # Check this roundtrip
-    S_tot_mat_real = _bases_complex_to_real(S_tot_mat, int_order, ext_order)
-    S_tot_mat_round = _bases_real_to_complex(S_tot_mat_real,
+        S_tot = _sss_basis(origin, coils, int_order, ext_order,
+                           method='alternative')
+        # Test our real<->complex conversion functions
+        S_tot_complex = _bases_real_to_complex(S_tot, int_order, ext_order)
+        S_tot_round = _bases_complex_to_real(S_tot_complex,
                                              int_order, ext_order)
-    assert_allclose(S_tot_mat, S_tot_mat_round, atol=1e-7)
-    # XXX These should really be better...
-    assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-5, atol=1e-8)
-    assert_allclose(S_tot, S_tot_mat_real, rtol=1e-5, atol=1e-8)
+        assert_allclose(S_tot, S_tot_round, atol=1e-7)
+
+        S_tot_mat = np.concatenate([sss_data['Sin' + o_str],
+                                    sss_data['Sout' + o_str]], axis=1)
+        mu0 = 4e-7 * np.pi  # Permeability of vacuum
+        S_tot_mat /= mu0  # divide out the magnetic permeability
+        S_tot_mat_real = _bases_complex_to_real(S_tot_mat,
+                                                int_order, ext_order)
+        S_tot_mat_round = _bases_real_to_complex(S_tot_mat_real,
+                                                 int_order, ext_order)
+        assert_allclose(S_tot_mat, S_tot_mat_round, atol=1e-7)
+        assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-4, atol=1e-8)
+        assert_allclose(S_tot, S_tot_mat_real, rtol=1e-4, atol=1e-8)
+
+        # Now normalize our columns
+        S_tot /= np.sqrt(np.sum(S_tot * S_tot, axis=0))[np.newaxis]
+        S_tot_complex /= np.sqrt(np.sum(
+            (S_tot_complex * S_tot_complex.conj()).real, axis=0))[np.newaxis]
+        # Check against a known benchmark
+        S_tot_mat = np.concatenate([sss_data['SNin' + o_str],
+                                    sss_data['SNout' + o_str]], axis=1)
+        # Check this roundtrip
+        S_tot_mat_real = _bases_complex_to_real(S_tot_mat,
+                                                int_order, ext_order)
+        S_tot_mat_round = _bases_real_to_complex(S_tot_mat_real,
+                                                 int_order, ext_order)
+        assert_allclose(S_tot_mat, S_tot_mat_round, atol=1e-7)
+        assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-4, atol=1e-8)
 
 
 @testing.requires_testing_data
@@ -321,7 +327,7 @@ def test_maxwell_filter_fine_calibration():
 
     # Test 1D SSS fine calibration
     raw_sss = maxwell_filter(raw, calibration=fine_cal_fname)
-    _assert_snr(raw_sss, sss_fine_cal, 1.5, 27.)  # XXX should be much higher
+    _assert_snr(raw_sss, sss_fine_cal, 1.5, 27.)  # XXX should be higher
 
     # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
     # very low SNR as proc differs, eventually we should add a better test

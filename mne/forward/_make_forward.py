@@ -135,8 +135,10 @@ def _create_meg_coil(coilset, ch, acc, t):
                type=ch['coil_type'], w=coil['w'], desc=coil['desc'],
                coord_frame=t['to'], rmag=apply_trans(coil_trans, coil['rmag']),
                cosmag=apply_trans(coil_trans, coil['cosmag'], False))
+    r0_exey = (np.dot(coil['rmag'][:, :2], coil_trans[:3, :2].T) +
+               coil_trans[:3, 3])
     res.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
-               ez=coil_trans[:3, 2], r0=coil_trans[:3, 3])
+               ez=coil_trans[:3, 2], r0=coil_trans[:3, 3], r0_exey=r0_exey)
     return res
 
 
