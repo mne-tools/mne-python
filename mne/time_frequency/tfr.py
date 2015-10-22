@@ -18,13 +18,15 @@ from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask
-from ..channels.channels import ContainsMixin, UpdateChannelsMixin
+from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
+                                 equalize_channels)
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
 from ..utils import check_fname
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar
 from ..externals.h5io import write_hdf5, read_hdf5
+from ..externals.six import string_types
 
 
 def _get_data(inst, return_itc):
@@ -1374,3 +1376,110 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         out = (out, AverageTFR(info, itc, times, freqs, nave,
                                method='mutlitaper-itc'))
     return out
+
+
+def grand_average(all_tfr, drop_bads=True):
+    """Make grand average of a list TFR data
+
+    Selects the subset of good channels across all datasets.
+
+    The grand_average.nave attribute will be equal the number
+    of datasets used to calculate the grand average.
+
+    Note: Grand average TFR shall not be used for source localization.
+
+    Parameters
+    ----------
+    all_tfr : list of AverageTFR data
+        The TFR datasets.
+    drop_bads : bool
+        If True, bad MEG and EEG channels are dropped.
+
+    Returns
+    -------
+    grand_average : AverageTFR
+        The grand average data.
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
+    """
+    # check if all elements in the given list are evoked data
+    if not all(isinstance(tfr_, AverageTFR) for tfr_ in all_tfr):
+        raise ValueError("Not all the elements in list are AllTFR data")
+
+    # Copy channels to leave the original evoked datasets intact.
+    all_tfr = [tfr_.copy() for tfr_ in all_tfr]
+
+    # Interpolates if necessary
+    # TODO: Implement channel-wise subject selection
+    if drop_bads:
+        for tfr in all_tfr:
+            tfr.drop_channels(tfr.info['bads'], copy=False)
+
+    equalize_channels(all_tfr)  # apply equalize_channels
+    # make grand_average object using combine_tfr
+    grand_average = combine_tfr(all_tfr, weights='equal')
+    # change the grand_average.nave to the number of Evokeds
+    grand_average.nave = len(all_tfr)
+    # change comment field
+    grand_average.comment = "Grand average (n = %d)" % grand_average.nave
+    return grand_average
+
+
+def combine_tfr(all_tfr, weights='equal'):
+    """Merge AverageTFR data
+
+    Data should have the same channels and the same time instants.
+    Subtraction can be performed by passing negative weights (e.g., [1, -1]).
+
+    Parameters
+    ----------
+    all_tfr : list of AverageTFR
+        The tfr datasets.
+    weights : list of float | str
+        The weights to apply to the data of each TFR instance.
+        Can also be ``'nave'`` to weight according to tfr.nave,
+        or ``"equal"`` to use equal weighting (each weighted as ``1/N``).
+
+    Returns
+    -------
+    tfr : AverageTFR
+        The new TFR data.
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
+    """
+    tfr = all_tfr[0].copy()
+    if isinstance(weights, string_types):
+        if weights not in ('nave', 'equal'):
+            raise ValueError('Weights must be a list of float, or "nave" or '
+                             '"equal"')
+        if weights == 'nave':
+            weights = np.array([tfr_.nave for tfr_ in all_tfr], float)
+            weights /= weights.sum()
+        else:  # == 'equal'
+            weights = [1. / len(all_tfr)] * len(all_tfr)
+    weights = np.array(weights, float)
+    if weights.ndim != 1 or weights.size != len(all_tfr):
+        raise ValueError('Weights must be the same size as all_tfr')
+
+    ch_names = tfr.ch_names
+    for tfr_ in all_tfr[1:]:
+        assert tfr_.ch_names == ch_names, ValueError("%s and %s do not contain"
+                                                     " the same channels"
+                                                     % (tfr, tfr_))
+        assert np.max(np.abs(tfr_.times - tfr.times)) < 1e-7, \
+            ValueError("%s and %s do not contain the same time instants"
+                       % (tfr, tfr_))
+
+    # use union of bad channels
+    bads = list(set(tfr.info['bads']).union(*(tfr_.info['bads']
+                                              for tfr_ in all_tfr[1:])))
+    tfr.info['bads'] = bads
+
+    tfr.data = sum(w * tfr_.data for w, tfr_ in zip(weights, all_tfr))
+    tfr.nave = max(int(1. / sum(w ** 2 / tfr_.nave
+                                for w, tfr_ in zip(weights, all_tfr))), 1)
+    return tfr

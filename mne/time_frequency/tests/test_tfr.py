@@ -7,9 +7,10 @@ import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.utils import _TempDir, run_tests_if_main, slow_test, requires_h5py
 from mne.time_frequency import single_trial_power
-from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
-from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
-from mne.time_frequency.tfr import AverageTFR, read_tfrs, write_tfrs
+from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
+                                    _dpss_wavelet, tfr_multitaper,
+                                    AverageTFR, read_tfrs, write_tfrs,
+                                    grand_average)
 
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -126,6 +127,23 @@ def test_time_frequency():
     mne.equalize_channels([power_pick, power_drop])
     assert_equal(power_pick.ch_names, power_drop.ch_names)
     assert_equal(power_pick.data.shape, power_drop.data.shape)
+
+    # grand average
+    picks = pick_types(raw.info, meg='grad', eeg=False,
+                       stim=False, include=include,
+                       exclude=exclude)[:3]
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+    power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
+                            use_fft=True, return_itc=True)
+    power2 = power.copy()
+    power2.info['bads'] = [power2.ch_names[0]]  # test interpolation
+    gave = grand_average([power, power2])
+    assert_equal(gave.data.shape, (power2.data.shape[0] - 1,
+                                   power2.data.shape[1],
+                                   power2.data.shape[2]))
+    assert_equal(power2.ch_names[1:], gave.ch_names)
+    assert_equal(gave.nave, 2)
 
 
 def test_dpsswavelet():
