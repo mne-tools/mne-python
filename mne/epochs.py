@@ -608,7 +608,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             diff_idx = [self.ch_names.index(ch) for ch in diff_ch]
             diff_types = [channel_type(self.info, idx) for idx in diff_idx]
             bad_idx = [diff_types.index(t) for t in diff_types if t in
-                       ['grad', 'mag', 'eeg']]
+                       ['grad', 'mag', 'eeg', 'seeg']]
             if len(bad_idx) > 0:
                 bad_str = ', '.join([diff_ch[ii] for ii in bad_idx])
                 raise ValueError('The following data channels are missing '

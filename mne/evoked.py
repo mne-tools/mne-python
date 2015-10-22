@@ -720,7 +720,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                   rank=None, show=show)
 
     def as_type(self, ch_type='grad', mode='fast'):
-        """Compute virtual evoked using interpolated fields in mag/grad channels.
+        """Compute virtual evoked using interpolated fields in mag/grad
+        channels.
 
         .. Warning:: Using virtual evoked to compute inverse can yield
             unexpected results. The virtual channels have `'_virtual'` appended
@@ -833,8 +834,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             set.
         tmin : float | None
             The minimum point in time to be considered for peak getting.
+            If None (default), the beginning of the data is used.
         tmax : float | None
             The maximum point in time to be considered for peak getting.
+            If None (default), the end of the data is used.
         mode : {'pos', 'neg', 'abs'}
             How to deal with the sign of the data. If 'pos' only positive
             values will be considered. If 'neg' only negative values will
@@ -872,7 +875,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                'must not be `None`, pass a sensor type '
                                'value instead')
 
-        meg, eeg, misc, picks = False, False, False, None
+        meg, eeg, misc, seeg, picks = False, False, False, False, None
 
         if ch_type == 'mag':
             meg = ch_type
@@ -882,10 +885,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             eeg = True
         elif ch_type == 'misc':
             misc = True
+        elif ch_type == 'seeg':
+            seeg = True
 
         if ch_type is not None:
             picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
-                               ref_meg=False)
+                               seeg=seeg, ref_meg=False)
 
         data = self.data if picks is None else self.data[picks]
         ch_idx, time_idx = _get_peak(data, self.times, tmin,
