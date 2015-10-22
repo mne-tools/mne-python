@@ -44,7 +44,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=None, preload=True,
                     reject=dict(mag=1.5e-12), decim=decim, verbose=False)
 
-# Define decoder. The decision_function is employed to use AUC for scoring
+# Define decoder. The decision function is employed to use cross-validation
 gat = GeneralizationAcrossTime(predict_mode='cross-validation', n_jobs=2)
 
 # fit and score
