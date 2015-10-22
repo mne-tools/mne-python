@@ -15,10 +15,8 @@ The constraints that can be implemented are:
 
 Different sensor types are combined by whitening with noise covariance matrix.
 First label is the target. Cross-talk with other labels should be zero. 
-Cross-talk to other sources will be minimized.
-OH July 15
-For reference, see http://www.ncbi.nlm.nih.gov/pubmed/23616402 and
-http://imaging.mrc-cbu.cam.ac.uk/meg/AnalyzingData/DeFleCT_SpatialFiltering_Tools.
+Cross-talk with other vertices will be minimized.
+For reference, see http://www.ncbi.nlm.nih.gov/pubmed/23616402
 """
 
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
@@ -70,12 +68,7 @@ pick_eeg = False
 
 # filename for cross-talk-function (CTF) output as STC file
 # CTFs for separate estimators as different time samples
-if pick_meg and pick_eeg:
-    stc_fname_out = 'deflect_eegmeg_4lbls'
-if pick_meg and not(pick_eeg):
-    stc_fname_out = 'deflect_meg_4lbls'
-if not(pick_meg) and pick_eeg:
-    stc_fname_out = 'deflect_eeg_4lbls'
+stc_fname_out = 'deflect_ctf'
 
 # for epoching raw data before connectivity analysis
 event_id, tmin, tmax = 1, -0.2, 0.5
@@ -127,7 +120,7 @@ spatial_filters.append(w)
 
 # 2nd estimator
 labels_use = [ labels[perm] for perm in [1,0,2,3] ] # Aud-lh first
-w, ch_names, F, P, _, _ = DeFleCT.DeFleCT_make_estimator(forward,
+w, ch_names, F, P, _, _ = DeFleCT.deflect_make_estimator(forward,
                            noise_cov, labels_use, lambda2_cov, lambda2_S,
                            pick_meg, pick_eeg, mode='svd',
                            n_svd_comp=n_svd_comp, verbose=None)
@@ -135,7 +128,7 @@ spatial_filters.append(w)
 
 # 3rd estimator
 labels_use = [ labels[perm] for perm in [2,0,1,3] ] # Vis-rh first
-w, ch_names, F, P, _, _ = DeFleCT.DeFleCT_make_estimator(forward,
+w, ch_names, F, P, _, _ = DeFleCT.deflect_make_estimator(forward,
                            noise_cov, labels_use, lambda2_cov, lambda2_S,
                            pick_meg, pick_eeg, mode='svd',
                            n_svd_comp=n_svd_comp, verbose=None)
@@ -143,7 +136,7 @@ spatial_filters.append(w)
 
 # 4th estimator
 labels_use = [ labels[perm] for perm in [3,0,1,2] ] # Vis-lh first
-w, ch_names, F, P, _, _ = DeFleCT.DeFleCT_make_estimator(forward,
+w, ch_names, F, P, _, _ = DeFleCT.deflect_make_estimator(forward,
                            noise_cov, labels_use, lambda2_cov, lambda2_S,
                            pick_meg, pick_eeg, mode='svd',
                            n_svd_comp=n_svd_comp, verbose=None)
@@ -190,18 +183,8 @@ for ff in np.arange(len(spatial_filters)):
     print "Max SNR (std to baseline) %f: " % np.abs(evoked_tc_snr[ff]).max()
 print "\n"
 
-# Plot label time courses
 
-for ff in np.arange(n_filter):
-    plt.plot(evoked_tc_snr[ff].T)
-
-plt.title('Evoked DeFleCTed SNR timecourses')
-plt.legend(names, loc='upper right')
-plt.xlabel('Time (ms)')
-plt.ylabel('SNR (std)')
-
-
-### apply to EPOCHED DATA, COMPUTE CONNECTIVITY BETWEEN LABELS
+### APPLY TO EPOCHED DATA, COMPUTE CONNECTIVITY BETWEEN LABELS
 
 # Load raw data
 raw = mne.io.Raw(fname_raw, preload=True)
