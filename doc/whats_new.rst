@@ -83,6 +83,9 @@ Changelog
 
     - Add :func:`mne.report.Report.add_slider_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
 
+   - Support reading of OpenBCI data with :func:`mne.io.read_raw_openbci` by `Teon Brooks`_
+
+
 BUG
 ~~~
 
