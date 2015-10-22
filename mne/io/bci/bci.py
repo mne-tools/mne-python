@@ -106,7 +106,6 @@ class RawBCI(_BaseRaw):
                            cals, mult):
         """Read a chunk of raw data"""
 
-
         input_fname = self._filenames[fi]
         data_ = np.genfromtxt(input_fname, delimiter=',', comments='%',
                               skip_footer=1)
@@ -132,30 +131,33 @@ class RawBCI(_BaseRaw):
         """
         # counter goes from 0 to 255, maxdiff is 255.
         # make diff one like others.
-        diff = np.abs(np.diff(data[:, 0]))
+        sfreq = self.info['sfreq']
+        missing_tol = self._raw_extras[fi]['missing_tol']
+        diff = np.abs(np.diff(data_[:, 0]))
         diff = np.mod(diff, 254) - 1
         missing_idx = np.where(diff != 0)[0]
         missing_samps = diff[missing_idx].astype(int)
+
         if missing_samps.size:
             missing_nsamps = np.sum(missing_samps, dtype=int)
             missing_cumsum = np.insert(np.cumsum(missing_samps), 0, 0)[:-1]
-            missing_data = np.empty((missing_nsamps, data.shape[-1]),
+            missing_data = np.empty((missing_nsamps, data_.shape[-1]),
                                     dtype=float)
             insert_idx = list()
-            for idx_, nn, ii in zip(missing_idx, missing_samps, missing_cumsum):
-                missing_data[ii:ii + nn] = np.mean(data[(idx_, idx_ + 1), :])
+            for idx_, nn, ii in zip(missing_idx, missing_samps,
+                                    missing_cumsum):
+                missing_data[ii:ii + nn] = np.mean(data_[(idx_, idx_ + 1), :])
                 if nn > missing_tol:
                     missing_data[ii:ii + nn] *= np.nan
                     warnings.warn('The number of missing samples exceeded the '
                                   'missing_tol threshold.')
                 insert_idx.append([idx_] * nn)
             insert_idx = np.hstack(insert_idx)
-            data_ = np.insert(data_, insert_idx, missing_data, axis=0)[:, 1:].T
-        data_ = data_[:, start:stop]
-
+            data_ = np.insert(data_, insert_idx, missing_data, axis=0)
+        # data_ dimensions are samples by channels. transpose for MNE.
+        data_ = data_[start:stop, 1:].T
         data[:, offset:offset + stop - start] = \
-            np.dot(mult, data_[idx] if mult is not None
-                   else data_[idx].T)
+            np.dot(mult, data_[idx]) if mult is not None else data_[idx]
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / sfreq
