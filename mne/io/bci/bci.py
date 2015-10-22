@@ -90,7 +90,8 @@ class RawBCI(_BaseRaw):
         info = create_info(ch_names, sfreq, ch_types, montage)
         super(RawBCI, self).__init__(info, last_samps=last_samps,
                                      raw_extras=[bci_info],
-                                     filenames=[input_fname], verbose=verbose)
+                                     filenames=[input_fname],
+                                     preload=False, verbose=verbose)
         # load data
         if preload:
             self.preload = preload
@@ -100,7 +101,6 @@ class RawBCI(_BaseRaw):
     def _read_segment_file(self, data, idx, offset, fi, start, stop,
                            cals, mult):
         """Read a chunk of raw data"""
-
         input_fname = self._filenames[fi]
         data_ = np.genfromtxt(input_fname, delimiter=',', comments='%',
                               skip_footer=1)
@@ -154,11 +154,6 @@ class RawBCI(_BaseRaw):
         data[:, offset:offset + stop - start] = \
             np.dot(mult, data_[idx]) if mult is not None else data_[idx]
 
-        logger.info('[done]')
-        times = np.arange(start, stop, dtype=float) / sfreq
-
-        return data, times
-
     def _get_data_dims(self, input_fname):
         """Briefly scan the data file for info"""
         # raw data formatting is nsamps by nchans + counter
@@ -173,6 +168,7 @@ class RawBCI(_BaseRaw):
         nsamps += sum(missing_samps)
         # remove the tracker column
         nchan -= 1
+        del data
 
         return nsamps, nchan
 

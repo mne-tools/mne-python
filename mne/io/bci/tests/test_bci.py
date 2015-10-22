@@ -43,7 +43,7 @@ def test_bci_data():
 
     with warnings.catch_warnings(record=True) as w:
         read_raw_bci(bci_missing_path, missing_tol=0)
-    assert len(w) == 1
+    assert len(w) >= 1
 
     # Make sure concatenation works
     raw_concat = concatenate_raws([raw.copy(), raw])
