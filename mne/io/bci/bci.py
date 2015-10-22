@@ -68,14 +68,9 @@ class RawBCI(_BaseRaw):
             eog = list()
         if not misc:
             misc = list()
-        # raw data formatting is nsamps by nchans + counter
-        nsamps, nchan = np.genfromtxt(input_fname, delimiter=',', comments='%',
-                                      skip_footer=1).shape
-        nchan -= 1
-        # because of indexing, last samp is (n - 1)
-        nsamps -= 1
+        nsamps, nchan = self._get_data_dims(input_fname)
 
-        last_samps = [nsamps]
+        last_samps = [nsamps - 1]
         ch_names = ['EEG %03d' % num for num in range(1, nchan + 1)]
         ch_types = ['eeg'] * nchan
         if misc:
@@ -163,6 +158,23 @@ class RawBCI(_BaseRaw):
         times = np.arange(start, stop, dtype=float) / sfreq
 
         return data, times
+
+    def _get_data_dims(self, input_fname):
+        """Briefly scan the data file for info"""
+        # raw data formatting is nsamps by nchans + counter
+        data = np.genfromtxt(input_fname, delimiter=',', comments='%',
+                                skip_footer=1)
+        diff = np.abs(np.diff(data[:, 0]))
+        diff = np.mod(diff, 254) - 1
+        missing_idx = np.where(diff != 0)[0]
+        missing_samps = diff[missing_idx].astype(int)
+        nsamps, nchan = data.shape
+        # add the missing samples
+        nsamps += sum(missing_samps)
+        # remove the tracker column
+        nchan -= 1
+
+        return nsamps, nchan
 
 
 def read_raw_bci(input_fname, montage=None, eog=None, misc=(-3, -2, -1),
