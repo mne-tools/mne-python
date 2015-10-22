@@ -1405,11 +1405,11 @@ def grand_average(all_tfr, drop_bads=True):
     .. versionadded:: 0.10.0
     """
     # check if all elements in the given list are evoked data
-    if not all(isinstance(e, AverageTFR) for e in all_tfr):
+    if not all(isinstance(tfr_, AverageTFR) for tfr_ in all_tfr):
         raise ValueError("Not all the elements in list are AllTFR data")
 
     # Copy channels to leave the original evoked datasets intact.
-    all_tfr = [e.copy() for e in all_tfr]
+    all_tfr = [tfr_.copy() for tfr_ in all_tfr]
 
     # Interpolates if necessary
     if drop_bads:
@@ -1459,7 +1459,7 @@ def combine_tfr(all_tfr, weights='equal'):
             raise ValueError('Weights must be a list of float, or "nave" or '
                              '"equal"')
         if weights == 'nave':
-            weights = np.array([e.nave for e in all_tfr], float)
+            weights = np.array([tfr_.nave for tfr_ in all_tfr], float)
             weights /= weights.sum()
         else:  # == 'equal'
             weights = [1. / len(all_tfr)] * len(all_tfr)
@@ -1468,20 +1468,20 @@ def combine_tfr(all_tfr, weights='equal'):
         raise ValueError('Weights must be the same size as all_tfr')
 
     ch_names = tfr.ch_names
-    for e in all_tfr[1:]:
-        assert e.ch_names == ch_names, ValueError("%s and %s do not contain "
-                                                  "the same channels"
-                                                  % (tfr, e))
-        assert np.max(np.abs(e.times - tfr.times)) < 1e-7, \
+    for tfr_ in all_tfr[1:]:
+        assert tfr_.ch_names == ch_names, ValueError("%s and %s do not contain"
+                                                     " the same channels"
+                                                     % (tfr, tfr_))
+        assert np.max(np.abs(tfr_.times - tfr.times)) < 1e-7, \
             ValueError("%s and %s do not contain the same time instants"
-                       % (tfr, e))
+                       % (tfr, tfr_))
 
     # use union of bad channels
-    bads = list(set(tfr.info['bads']).union(*(ev.info['bads']
-                                              for ev in all_tfr[1:])))
+    bads = list(set(tfr.info['bads']).union(*(tfr_.info['bads']
+                                              for tfr_ in all_tfr[1:])))
     tfr.info['bads'] = bads
 
-    tfr.data = sum(w * e.data for w, e in zip(weights, all_tfr))
-    tfr.nave = max(int(1. / sum(w ** 2 / e.nave
-                                for w, e in zip(weights, all_tfr))), 1)
+    tfr.data = sum(w * tfr_.data for w, tfr_ in zip(weights, all_tfr))
+    tfr.nave = max(int(1. / sum(w ** 2 / tfr_.nave
+                                for w, tfr_ in zip(weights, all_tfr))), 1)
     return tfr
