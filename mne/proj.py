@@ -386,14 +386,12 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         sensitivity_map /= np.max(sensitivity_map)
 
     subject = _subject_from_forward(fwd)
-    if len(fwd['src']) == 1:  # volume source space
+    if fwd['src'][0]['type'] == 'vol':  # volume source space
         vertices = fwd['src'][0]['vertno']
-        stc = VolSourceEstimate(sensitivity_map[:, np.newaxis],
-                                vertices=vertices, tmin=0, tstep=1,
-                                subject=subject)
+        SEClass = VolSourceEstimate
     else:
         vertices = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
-        stc = SourceEstimate(sensitivity_map[:, np.newaxis],
-                             vertices=vertices, tmin=0, tstep=1,
-                             subject=subject)
+        SEClass = SourceEstimate
+    stc = SEClass(sensitivity_map[:, np.newaxis], vertices=vertices, tmin=0,
+                  tstep=1, subject=subject)
     return stc
