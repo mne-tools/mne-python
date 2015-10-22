@@ -12,13 +12,13 @@ from ..meas_info import create_info
 from ..base import _BaseRaw
 
 
-class RawBCI(_BaseRaw):
-    """Raw object from BCI file
+class RawOpenBCI(_BaseRaw):
+    """Raw object from OpenBCI file
 
     Parameters
     ----------
     input_fname : str
-        Path to the BCI file.
+        Path to the OpenBCI file.
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
@@ -29,17 +29,15 @@ class RawBCI(_BaseRaw):
     misc : list or tuple
         List of indices that should be designated MISC channels.
         Default is (-3, -2, -1), which are the accelerator sensors.
-    reference : None | str
-        Name of the electrode which served as the reference in the recording.
-        If a name is provided, a corresponding channel is added and its data
-        is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names. Data must be preloaded.
+    stim_channel : int | None
+        The channel index (starting at 0).
+        If None (default), there will be no stim channel added.
     scale : float
         The scaling factor for EEG data. Units for MNE are in volts.
-        BCI data are typically stored in microvolts. Default scale
+        OpenBCI data are typically stored in microvolts. Default scale
         factor is 1e-6.
     sfreq : int
-        The sampling frequency of the data. BCI defaults are 250 Hz.
+        The sampling frequency of the data. OpenBCI defaults are 250 Hz.
     missing_tol : int
         The tolerance for interpolating missing samples. Default is 1. If the
         number of contiguous missing samples is greater than tolerance, then
@@ -60,10 +58,10 @@ class RawBCI(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, montage=None, eog=None,
-                 misc=(-3, -2, -1), reference=None, scale=1e-6, sfreq=250,
+                 misc=(-3, -2, -1), stim_channel=None, scale=1e-6, sfreq=250,
                  missing_tol=1, preload=True, verbose=None):
 
-        bci_info = {'missing_tol': missing_tol}
+        bci_info = {'missing_tol': missing_tol, 'stim_channel': stim_channel}
         if not eog:
             eog = list()
         if not misc:
@@ -85,13 +83,16 @@ class RawBCI(_BaseRaw):
             for ii, ei in enumerate(eog):
                 ch_names[ei] = eog_names[ii]
                 ch_types[ei] = eog_types[ii]
+        if stim_channel:
+            ch_names[stim_channel] = 'STI 014'
+            ch_types[stim_channel] = 'stim'
 
         # fix it for eog and misc marking
         info = create_info(ch_names, sfreq, ch_types, montage)
-        super(RawBCI, self).__init__(info, last_samps=last_samps,
-                                     raw_extras=[bci_info],
-                                     filenames=[input_fname],
-                                     preload=False, verbose=verbose)
+        super(RawOpenBCI, self).__init__(info, last_samps=last_samps,
+                                         raw_extras=[bci_info],
+                                         filenames=[input_fname],
+                                         preload=False, verbose=verbose)
         # load data
         if preload:
             self.preload = preload
@@ -126,7 +127,6 @@ class RawBCI(_BaseRaw):
         """
         # counter goes from 0 to 255, maxdiff is 255.
         # make diff one like others.
-        sfreq = self.info['sfreq']
         missing_tol = self._raw_extras[fi]['missing_tol']
         diff = np.abs(np.diff(data_[:, 0]))
         diff = np.mod(diff, 254) - 1
@@ -158,7 +158,7 @@ class RawBCI(_BaseRaw):
         """Briefly scan the data file for info"""
         # raw data formatting is nsamps by nchans + counter
         data = np.genfromtxt(input_fname, delimiter=',', comments='%',
-                                skip_footer=1)
+                             skip_footer=1)
         diff = np.abs(np.diff(data[:, 0]))
         diff = np.mod(diff, 254) - 1
         missing_idx = np.where(diff != 0)[0]
@@ -173,15 +173,15 @@ class RawBCI(_BaseRaw):
         return nsamps, nchan
 
 
-def read_raw_bci(input_fname, montage=None, eog=None, misc=(-3, -2, -1),
-                 reference=None, scale=1e-6, sfreq=250, missing_tol=1,
-                 preload=True, verbose=None):
-    """Raw object from BCI file
+def read_raw_openbci(input_fname, montage=None, eog=None, misc=(-3, -2, -1),
+                     stim_channel=None, scale=1e-6, sfreq=250, missing_tol=1,
+                     preload=True, verbose=None):
+    """Raw object from OpenBCI file
 
     Parameters
     ----------
     input_fname : str
-        Path to the BCI file.
+        Path to the OpenBCI file.
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
@@ -192,17 +192,16 @@ def read_raw_bci(input_fname, montage=None, eog=None, misc=(-3, -2, -1),
     misc : list or tuple
         List of indices that should be designated MISC channels.
         Default is (-3, -2, -1), which are the accelerator sensors.
-    reference : None | str
-        Name of the electrode which served as the reference in the recording.
-        If a name is provided, a corresponding channel is added and its data
-        is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names. Data must be preloaded.
+    stim_channel : str | int | None
+        The channel name or channel index (starting at 0).
+        -1 corresponds to the last channel (default).
+        If None, there will be no stim channel added.
     scale : float
         The scaling factor for EEG data. Units for MNE are in volts.
-        BCI data are typically stored in microvolts. Default scale
+        OpenBCI data are typically stored in microvolts. Default scale
         factor is 1e-6.
     sfreq : int
-        The sampling frequency of the data. BCI defaults are 250 Hz.
+        The sampling frequency of the data. OpenBCI defaults are 250 Hz.
     missing_tol : int
         The tolerance for interpolating missing samples. Default is 1. If the
         number of contiguous missing samples is greater than tolerance, then
@@ -215,7 +214,7 @@ def read_raw_bci(input_fname, montage=None, eog=None, misc=(-3, -2, -1),
 
     Returns
     -------
-    raw : Instance of RawBCI
+    raw : Instance of RawOpenBCI
         A Raw object containing OpenBCI data.
 
     Notes
@@ -226,7 +225,8 @@ def read_raw_bci(input_fname, montage=None, eog=None, misc=(-3, -2, -1),
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    raw = RawBCI(input_fname=input_fname, montage=montage, eog=eog,
-                 misc=misc, reference=reference, scale=scale, sfreq=sfreq,
-                 missing_tol=missing_tol, preload=preload, verbose=verbose)
+    raw = RawOpenBCI(input_fname=input_fname, montage=montage, eog=eog,
+                     misc=misc, stim_channel=stim_channel, scale=scale,
+                     sfreq=sfreq, missing_tol=missing_tol, preload=preload,
+                     verbose=verbose)
     return raw

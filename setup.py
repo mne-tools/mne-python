@@ -79,7 +79,7 @@ if __name__ == "__main__":
                     'mne.externals.tempita',
                     'mne.io', 'mne.io.tests',
                     'mne.io.array', 'mne.io.array.tests',
-                    'mne.io.bci',
+                    'mne.io.openbci',
                     'mne.io.brainvision', 'mne.io.brainvision.tests',
                     'mne.io.bti', 'mne.io.bti.tests',
                     'mne.io.edf', 'mne.io.edf.tests',

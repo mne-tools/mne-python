@@ -85,7 +85,6 @@ Changelog
 
    - Support reading of OpenBCI data with :func:`mne.io.read_raw_openbci` by `Teon Brooks`_
 
-
 BUG
 ~~~
 

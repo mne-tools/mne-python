@@ -4,4 +4,4 @@
 #
 # License: BSD (3-clause)
 
-from .bci import read_raw_bci
+from .openbci import read_raw_openbci

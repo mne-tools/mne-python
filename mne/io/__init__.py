@@ -26,7 +26,7 @@ from . import pick
 
 from .array import RawArray
 from .brainvision import read_raw_brainvision
-from .bci import read_raw_bci
+from .openbci import read_raw_openbci
 from .bti import read_raw_bti
 from .edf import read_raw_edf
 from .egi import read_raw_egi
