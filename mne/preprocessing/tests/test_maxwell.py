@@ -128,14 +128,15 @@ def test_spherical_conversions():
 
 
 @testing.requires_testing_data
-def test_multiploar_bases():
+def test_multipolar_bases():
     """Test multipolar moment basis calculation using sensor information"""
     from scipy.io import loadmat
     # Test our basis calculations
     info = read_info(raw_fname)
     coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
                                verbose=False)[0]
-    S_tot = _sss_basis(np.array([0., 0., 40e-3]), coils, int_order, ext_order)
+    S_tot = _sss_basis(np.array([0., 0., 40e-3]), coils, int_order, ext_order,
+                       method='alternative')
     # Test our real<->complex conversion functions
     S_tot_complex = _bases_real_to_complex(S_tot, int_order, ext_order)
     S_tot_round = _bases_complex_to_real(S_tot_complex, int_order, ext_order)
@@ -149,9 +150,8 @@ def test_multiploar_bases():
     S_tot_mat_round = _bases_real_to_complex(S_tot_mat_real,
                                              int_order, ext_order)
     assert_allclose(S_tot_mat, S_tot_mat_round, atol=1e-7)
-    # XXX These should really be better...
-    # assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-0, atol=1e3)
-    # assert_allclose(S_tot, S_tot_mat_real, rtol=1e-0, atol=1e3)
+    assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-5, atol=1e-8)
+    assert_allclose(S_tot, S_tot_mat_real, rtol=1e-5, atol=1e-8)
 
     # Now normalize our columns
     S_tot /= np.sqrt(np.sum(S_tot * S_tot, axis=0))[np.newaxis]
@@ -166,8 +166,8 @@ def test_multiploar_bases():
                                              int_order, ext_order)
     assert_allclose(S_tot_mat, S_tot_mat_round, atol=1e-7)
     # XXX These should really be better...
-    assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-1, atol=1e-0)
-    assert_allclose(S_tot, S_tot_mat_real, rtol=1e-1, atol=1e-0)
+    assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-5, atol=1e-8)
+    assert_allclose(S_tot, S_tot_mat_real, rtol=1e-5, atol=1e-8)
 
 
 @testing.requires_testing_data
@@ -179,6 +179,7 @@ def test_maxwell_filter():
         raw_err = Raw(raw_fname, proj=True, allow_maxshield=True)
         raw_erm = Raw(erm_fname, allow_maxshield=True)
     assert_raises(RuntimeError, maxwell_filter, raw_err)
+    assert_raises(ValueError, maxwell_filter, raw, int_order=20)  # too many
 
     n_int_bases = int_order ** 2 + 2 * int_order
     n_ext_bases = ext_order ** 2 + 2 * ext_order

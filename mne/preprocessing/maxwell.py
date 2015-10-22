@@ -186,6 +186,11 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
 
     # Get indices of channels to use in multipolar moment calculation
     good_picks = pick_types(info, meg=True, exclude='bads')
+    n_bases = _get_n_moments([int_order, ext_order]).sum()
+    if n_bases > len(good_picks):
+        raise ValueError('Number of requested bases (%s) exceeds number of '
+                         'good sensors (%s)' % (str(n_bases), len(good_picks)))
+
     # Get indices of MEG channels
     meg_picks = pick_types(info, meg=True, exclude=[])
     mag_picks = pick_types(info, meg='mag', exclude=[])
@@ -410,7 +415,23 @@ def _sph_harm(order, degree, az, pol, norm=True):
     return norm * lpmv(order, degree, np.cos(pol)) * np.exp(1j * order * az)
 
 
-def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
+def _concatenate_sph_coils(coils):
+    """Helper to concatenate MEG coil parameters for spherical harmoncs."""
+    rxy = [np.dot(coil['rmag'][:, :2],
+                  np.concatenate([coil['ex'], coil['ey']]).reshape(2, 3)) +
+           coil['r0'] for coil in coils]
+    rs = np.concatenate(rxy)
+    wcoils = np.concatenate([coil['w'] for coil in coils])
+    ezs = np.concatenate([np.tile(coil['ez'][np.newaxis, :],
+                                  (len(coil['rmag']), 1))
+                          for coil in coils])
+    bins = np.repeat(np.arange(len(coils)),
+                     [len(coil['rmag']) for coil in coils])
+    return rs, wcoils, ezs, bins
+
+
+def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.,
+               method='standard'):
     """Compute SSS basis for given conditions.
 
     Parameters
@@ -428,6 +449,8 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
         Order of the external multipolar moment space
     scale : float
         Scale factor for magnetometers.
+    method : str
+        Basis calculation method. Used only for testing.
 
     Returns
     -------
@@ -438,24 +461,27 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
     -----
     Incorporates magnetometer scaling factor. Does not normalize spaces.
     """
-
-    # Get position, normal, weights, and number of integration pts.
-    rmags, cosmags, wcoils, counts = _concatenate_coils(coils)
-    bins = np.repeat(np.arange(len(counts)), counts)
-    n_sens = len(counts)
-    n_bases = _get_n_moments([int_order, ext_order]).sum()
-
     # Compute vector between origin and coil, convert to spherical coords
-    rmags -= origin
-    # Convert points to spherical coordinates
-    rad, az, pol = _cart_to_sph(rmags).T
-    cosmags *= wcoils[:, np.newaxis]
-    del rmags, counts, origin, wcoils
+    if method == 'standard':
+        # Get position, normal, weights, and number of integration pts.
+        rmags, cosmags, wcoils, bins = _concatenate_coils(coils)
+        rmags -= origin
+        # Convert points to spherical coordinates
+        rad, az, pol = _cart_to_sph(rmags).T
+        cosmags *= wcoils[:, np.newaxis]
+        del rmags, origin, wcoils
+        out_type = np.float64
+    else:  # testing equivalence method
+        rs, wcoils, ezs, bins = _concatenate_sph_coils(coils)
+        rs -= origin
+        rad, az, pol = _cart_to_sph(rs).T
+        ezs *= wcoils[:, np.newaxis]
+        del rs, wcoils
+        out_type = np.complex128
 
     # Set up output matrices
     n_in, n_out = _get_n_moments([int_order, ext_order])
-    S_tot = np.empty((n_sens, n_in + n_out))
-    S_tot.fill(np.nan)
+    S_tot = np.empty((len(coils), n_in + n_out), out_type)
     S_in = S_tot[:, :n_in]
     S_out = S_tot[:, n_in:]
 
@@ -463,10 +489,6 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
     coil_scale = np.ones((len(coils)))
     coil_scale[np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
                          for coil in coils])] = mag_scale
-
-    if n_bases > n_sens:
-        raise ValueError('Number of requested bases (%s) exceeds number of '
-                         'sensors (%s)' % (str(n_bases), str(n_sens)))
 
     # Compute internal/external basis vectors (exclude degree 0; L/RHS Eq. 5)
     for degree in range(1, max(int_order, ext_order) + 1):
@@ -505,23 +527,36 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
             for spc, grads in zip(S_in_out, grads_in_out):
                 # We could convert to real at the end, but it's more efficient
                 # to do it now
-                grads_pos_neg = [_sh_complex_to_real(grads, order)]
-                orders_pos_neg = [order]
-                # Deal with the negative orders
-                if order > 0:
-                    # it's faster to use the conjugation property for
-                    # our normalized spherical harmonics than recalculate...
-                    grads_pos_neg.append(_sh_complex_to_real(
-                        _sh_negate(grads, order), -order))
-                    orders_pos_neg.append(-order)
-                for gr, oo in zip(grads_pos_neg, orders_pos_neg):
-                    # Gradients dotted w/integration point weighted normals
-                    gr = np.einsum('ij,ij->i', gr, cosmags)
-                    vals = np.bincount(bins, weights=gr, minlength=len(coils))
-                    spc[:, _deg_order_idx(degree, oo)] = -vals
+                if method == 'standard':
+                    grads_pos_neg = [_sh_complex_to_real(grads, order)]
+                    orders_pos_neg = [order]
+                    # Deal with the negative orders
+                    if order > 0:
+                        # it's faster to use the conjugation property for
+                        # our normalized spherical harmonics than recalculate
+                        grads_pos_neg.append(_sh_complex_to_real(
+                            _sh_negate(grads, order), -order))
+                        orders_pos_neg.append(-order)
+                    for gr, oo in zip(grads_pos_neg, orders_pos_neg):
+                        # Gradients dotted w/integration point weighted normals
+                        gr = np.einsum('ij,ij->i', gr, cosmags)
+                        vals = np.bincount(bins, gr, len(coils))
+                        spc[:, _deg_order_idx(degree, oo)] = -vals
+                else:
+                    grads = np.einsum('ij,ij->i', grads, ezs)
+                    v = (np.bincount(bins, grads.real, len(coils)) +
+                         1j * np.bincount(bins, grads.imag, len(coils)))
+                    spc[:, _deg_order_idx(degree, order)] = -v
+                    if order > 0:
+                        spc[:, _deg_order_idx(degree, -order)] = \
+                            -_sh_negate(v, order)
 
     # Scale magnetometers
     S_tot *= coil_scale[:, np.newaxis]
+    if method != 'standard':
+        # Eventually we could probably refactor this for 2x mem (and maybe CPU)
+        # savings by changing how spc/S_tot is assigned above (real only)
+        S_tot = _bases_complex_to_real(S_tot, int_order, ext_order)
     return S_tot
 
 
