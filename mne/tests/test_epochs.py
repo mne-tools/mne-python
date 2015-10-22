@@ -1799,6 +1799,8 @@ def test_seeg():
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
     info = create_info(n_channels, sfreq, 'seeg')
     epochs = EpochsArray(data, info, events)
-    assert epochs.average()
+    picks = pick_types(epochs.info, meg=False, eeg=False, stim=False,
+                       eog=False, ecg=False, seeg=True, emg=False, exclude=[])
+    assert_equal(len(picks), n_channels)
 
 run_tests_if_main()
