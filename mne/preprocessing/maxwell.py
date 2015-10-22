@@ -19,10 +19,9 @@ from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF
-from ..io.open import fiff_open
-from ..io.tree import dir_tree_find
+from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, _date_now
-from ..io.tag import find_tag, _loc_to_coil_trans
+from ..io import _loc_to_coil_trans, _BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger
 from ..externals.six import string_types
@@ -41,8 +40,8 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
                  filtering, so data should be inspected and marked accordingly
                  prior to running this algorithm.
 
-    .. warning:: Not all features of Elekta MaxFilter are currently
-                 implemented here (see Notes).
+    .. warning:: Not all features of Elekta MaxFilter™ are currently
+                 implemented (see Notes).
 
     Parameters
     ----------
@@ -65,7 +64,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
         Path to the FIF file with cross-talk correction information.
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
-        (in seconds). Elekta's default is 10.0 seconds in MaxFilter v2.2.
+        (in seconds). Elekta's default is 10.0 seconds in MaxFilter™ v2.2.
         Spatiotemporal SSS acts as implicitly as a high-pass filter where the
         cut-off frequency is 1/st_dur Hz. For this (and other) reasons, longer
         buffers are generally better as long as your system can handle the
@@ -87,7 +86,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
         containing a MEG device<->head transformation, or a 3-element array
         giving the coordinates to translate to (with no rotations).
         For example, ``destination=(0, 0, 0.04)`` would translate the bases
-        as ``--trans default`` would in ``maxfilter`` (i.e., to the default
+        as ``--trans default`` would in MaxFilter™ (i.e., to the default
         head location).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
@@ -107,7 +106,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen.
 
-    Compared to Elekta's implementation of ``maxfilter``, our algorithm
+    Compared to Elekta's MaxFilter™ software, our algorithm
     currently provides the following features:
 
         * Basic Maxwell filtering
@@ -125,8 +124,9 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
 
     Our algorithm has the following enhancements:
 
-        * double floating point precision
-        * handling of 3D (in additon to 1D) fine calibration files
+        * Double floating point precision
+        * Handling of 3D (in additon to 1D) fine calibration files
+        * Processing of data from (un-compensated) non-Elekta systems
 
     References
     ----------
@@ -149,6 +149,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     # See mathworld.wolfram.com/SphericalHarmonic.html for more discussion.
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
+    _check_raw(raw)
     if raw.proj:
         raise RuntimeError('Projectors cannot be applied to raw data.')
     if len(raw.info.get('comps', [])) > 0:
@@ -182,7 +183,10 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     if calibration is not None:
         logger.warning('Fine calibration is experimental despite similar '
                        ' shielding factor to Elekta\'s processing.')
-        grad_imbalances, mag_cals = _update_sensor_geometry(info, calibration)
+        grad_imbalances, mag_cals, sss_cal = \
+            _update_sensor_geometry(info, calibration)
+    else:
+        sss_cal = dict()
 
     # Get indices of channels to use in multipolar moment calculation
     good_picks = pick_types(info, meg=True, exclude='bads')
@@ -229,7 +233,17 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     # Cross-talk processing
     #
     if cross_talk is not None:
-        cross_talk = _read_ctc(cross_talk, raw_sss.info, meg_picks, good_picks)
+        sss_ctc = _read_ctc(cross_talk)
+        ctc_chs = sss_ctc['proj_items_chs']
+        if set(info['ch_names'][p] for p in meg_picks) != set(ctc_chs):
+            raise RuntimeError('ctc channels and raw channels do not match')
+        ctc_picks = pick_channels(ctc_chs,
+                                  [info['ch_names'][c] for c in good_picks])
+        ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
+        # I have no idea why, but MF transposes this for storage..
+        sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
+    else:
+        sss_ctc = dict()
 
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
@@ -255,7 +269,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     # XXX eventually we can refactor this to work in chunks
     data = raw_sss[good_picks][0]
     if cross_talk is not None:
-        data = cross_talk.dot(data)
+        data = ctc.dot(data)
     mm_norm = np.dot(pS_decomp_good, data * coil_scale[good_picks])
     mm_norm /= S_decomp_good_norm.T
 
@@ -299,7 +313,9 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     info['bads'] = [ch_names[bi] for bi in bad_inds if bi not in meg_picks]
 
     # Reconstruct raw file object with spatiotemporal processed data
+    max_st = dict()
     if st_duration is not None:
+        max_st.update(job=10, subspcorr=st_correlation, buflen=st_duration)
         if st_duration > times[-1]:
             raise ValueError('st_dur (%0.1fs) longer than length of signal in '
                              'raw (%0.1fs).' % (st_duration, times[-1]))
@@ -341,9 +357,8 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
             raw_sss._data[meg_picks, start:stop] = this_data
 
     # Update info
-    raw_sss = _update_sss_info(raw_sss, origin, int_order, ext_order,
-                               len(good_picks), coord_frame)
-
+    _update_sss_info(raw_sss, origin, int_order, ext_order, len(good_picks),
+                     coord_frame, sss_ctc, sss_cal, max_st)
     return raw_sss
 
 
@@ -466,7 +481,7 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.,
         # Convert points to spherical coordinates
         rad, az, pol = _cart_to_sph(rmags).T
         cosmags *= wcoils[:, np.newaxis]
-        del rmags, origin, wcoils
+        del rmags, wcoils
         out_type = np.float64
     else:  # testing equivalence method
         rs, wcoils, ezs, bins = _concatenate_sph_coils(coils)
@@ -475,6 +490,7 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.,
         ezs *= wcoils[:, np.newaxis]
         del rs, wcoils
         out_type = np.complex128
+    del origin
 
     # Set up output matrices
     n_in, n_out = _get_n_moments([int_order, ext_order])
@@ -762,8 +778,23 @@ def _cart_to_sph(cart_pts):
     return np.array([rad, az, pol]).T
 
 
-def _update_sss_info(raw, origin, int_order, ext_order, nsens, coord_frame):
-    """Helper function to update info after Maxwell filtering.
+def _check_raw(raw):
+    """Ensure that Maxwell filtering has not been applied yet"""
+    if not isinstance(raw, _BaseRaw):
+        raise TypeError('raw must be Raw, not %s' % type(raw))
+    for ent in raw.info['proc_history']:
+        for msg, key in (('SSS', 'sss_info'),
+                         ('tSSS', 'max_st'),
+                         ('fine calibration', 'sss_cal'),
+                         ('cross-talk cancellation',  'sss_ctc')):
+            if len(ent['max_info'][key]) > 0:
+                raise RuntimeError('Maxwell filtering %s step has already '
+                                   'been applied' % msg)
+
+
+def _update_sss_info(raw, origin, int_order, ext_order, nsens, coord_frame,
+                     sss_ctc, sss_cal, max_st):
+    """Helper function to update info inplace after Maxwell filtering
 
     Parameters
     ----------
@@ -778,34 +809,28 @@ def _update_sss_info(raw, origin, int_order, ext_order, nsens, coord_frame):
         Order of external component of spherical expansion
     nsens : int
         Number of sensors
-
-    Returns
-    -------
-    raw : mne.io.Raw
-        raw file object with raw.info modified
+    sss_ctc : dict
+        The cross talk information.
+    sss_cal : dict
+        The calibration information.
+    max_st : dict
+        The tSSS information.
     """
-    # TODO: Continue to fill out bookkeeping info as additional features
-    # are added (fine calibration, cross-talk calibration, etc.)
     int_moments, ext_moments = _get_n_moments([int_order, ext_order])
     raw.info['maxshield'] = False
     sss_info_dict = dict(in_order=int_order, out_order=ext_order,
                          nsens=nsens, origin=origin.astype('float32'),
-                         n_int_moments=int_moments,
+                         n_int_moments=int_moments, job=np.array([2]),
                          frame=_str_to_frame[coord_frame],
                          components=np.ones(int_moments +
                                             ext_moments).astype('int32'))
-
-    max_info_dict = dict(max_st={}, sss_cal={}, sss_ctc={},
-                         sss_info=sss_info_dict)
-
+    max_info_dict = dict(sss_info=sss_info_dict, max_st=max_st,
+                         sss_cal=sss_cal, sss_ctc=sss_ctc)
     block_id = _generate_meas_id()
     proc_block = dict(max_info=max_info_dict, block_id=block_id,
                       creator='mne-python v%s' % __version__,
                       date=_date_now(), experimentor='')
-
-    # Insert information in raw.info['proc_info']
     raw.info['proc_history'] = [proc_block] + raw.info.get('proc_history', [])
-    return raw
 
 
 check_disable = dict()  # not available on really old versions of SciPy
@@ -863,35 +888,12 @@ def _overlap_projector(data_int, data_res, corr):
     return V_principal
 
 
-def _read_ctc(ctc, info, meg_picks, good_picks):
-    """Helper to read a cross-talk correction matrix"""
-    f, tree, _ = fiff_open(ctc)
-    with f as fid:
-        node = dir_tree_find(tree, FIFF.FIFFB_DATA_CORRECTION)
-        comment = find_tag(fid, node[0], FIFF.FIFF_COMMENT).data
-        assert comment == 'cross-talk compensation matrix'
-        node = dir_tree_find(node[0], FIFF.FIFFB_CHANNEL_DECOUPLER)
-        ctc = find_tag(fid, node[0], FIFF.FIFF_DECOUPLER_MATRIX)
-        assert ctc is not None
-        ctc = ctc.data
-        chs = find_tag(fid, node[0], FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)
-        assert chs is not None
-        chs = chs.data.strip().split(':')
-        # XXX for some reason this list has a bunch of junk in the last entry:
-        # [..., u'MEG2642', u'MEG2643', u'MEG2641\x00\x00\x00 ... \x00']
-        chs[-1] = chs[-1].split('\x00')[0]
-        if set(info['ch_names'][p] for p in meg_picks) != set(chs):
-            raise RuntimeError('ctc channels and raw channels do not match')
-    ctc_picks = pick_channels(chs, [info['ch_names'][c] for c in good_picks])
-    ctc = ctc[ctc_picks][:, ctc_picks]
-    return ctc
-
-
 def _read_fine_cal(fine_cal):
     """Read sensor locations and calib. coeffs from fine calibration file."""
 
     # Read new sensor locations
     cal_chs = list()
+    cal_ch_numbers = list()
     with open(fine_cal, 'r') as fid:
         lines = [line for line in fid if line[0] not in '#\n']
         for line in lines:
@@ -904,6 +906,7 @@ def _read_fine_cal(fine_cal):
                 raise RuntimeError('Error reading fine calibration file')
 
             ch_name = 'MEG' + '%04d' % vals[0]  # Zero-pad names to 4 char
+            cal_ch_numbers.append(vals[0])
 
             # Get orientation information for coil transformation
             loc = vals[1:13].copy()  # Get orientation information for 'loc'
@@ -911,13 +914,13 @@ def _read_fine_cal(fine_cal):
             cal_chs.append(dict(ch_name=ch_name,
                                 loc=loc, calib_coeff=calib_coeff,
                                 coord_frame=FIFF.FIFFV_COORD_DEVICE))
-    return cal_chs
+    return cal_chs, cal_ch_numbers
 
 
 def _update_sensor_geometry(info, fine_cal):
     """Helper to replace sensor geometry information and reorder cal_chs"""
     logger.info('    Using fine calibration %s' % op.basename(fine_cal))
-    cal_chs = _read_fine_cal(fine_cal)
+    cal_chs, cal_ch_numbers = _read_fine_cal(fine_cal)
 
     # Check that we ended up with correct channels
     meg_info = pick_info(info, pick_types(info, meg=True, exclude=[]))
@@ -933,11 +936,15 @@ def _update_sensor_geometry(info, fine_cal):
     # Replace sensor locations (and track differences) for fine calibration
     ang_shift = np.zeros((len(cal_chs), 3))
     used = np.zeros(len(info['chs']), bool)
+    cal_corrs = list()
+    coil_types = list()
+    grad_picks = pick_types(meg_info, meg='grad')
     for ci, cal_ch in enumerate(cal_chs):
         idx = info['ch_names'].index(cal_ch['ch_name'])
         assert not used[idx]
         used[idx] = True
         info_ch = info['chs'][idx]
+        coil_types.append(info_ch['coil_type'])
 
         # calculate shift angle
         v1 = _loc_to_coil_trans(cal_ch['loc'])[:3, :3]
@@ -945,12 +952,19 @@ def _update_sensor_geometry(info, fine_cal):
         v2 = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
         _normalize_vectors(v2)
         ang_shift[ci] = np.sum(v1 * v2, axis=0)
-
+        if idx in grad_picks:
+            extra = [1., cal_ch['calib_coeff'][0]]
+        else:
+            extra = [cal_ch['calib_coeff'][0], 0.]
+        cal_corrs.append(np.concatenate([extra, cal_ch['loc']]))
         # Adjust channel normal orientations with those from fine calibration
         # Channel positions are not changed
         info_ch['loc'][3:] = cal_ch['loc'][3:]
         assert (info_ch['coord_frame'] == cal_ch['coord_frame'] ==
                 FIFF.FIFFV_COORD_DEVICE)
+    cal_chans = [[sc, ct] for sc, ct in zip(cal_ch_numbers, coil_types)]
+    sss_cal = dict(cal_corrs=np.array(cal_corrs),
+                   cal_chans=np.array(cal_chans))
 
     # Deal with numerical precision giving absolute vals slightly more than 1.
     np.clip(ang_shift, -1., 1., ang_shift)
@@ -968,7 +982,7 @@ def _update_sensor_geometry(info, fine_cal):
     grad_imbalances = np.array([cal_chs[ii]['calib_coeff']
                                 for ii in grad_picks]).T
     mag_cals = np.array([cal_chs[ii]['calib_coeff'] for ii in mag_picks])
-    return grad_imbalances, mag_cals
+    return grad_imbalances, mag_cals, sss_cal
 
 
 def _sss_basis_point(origin, info, int_order, ext_order, imbalances,

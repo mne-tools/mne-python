@@ -22,7 +22,8 @@ from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
                                        _sh_real_to_complex, _sh_negate,
                                        _bases_complex_to_real,
                                        _bases_real_to_complex, _sph_harm)
-from mne.utils import _TempDir, run_tests_if_main, slow_test, catch_logging
+from mne.utils import (_TempDir, run_tests_if_main, slow_test, catch_logging,
+                       requires_version, object_diff)
 from mne.externals.six import PY3
 
 # Note: Elekta MaxFilter uses single precision, so expect filtered results to
@@ -185,6 +186,7 @@ def test_maxwell_filter():
         raw_err = Raw(raw_fname, proj=True, allow_maxshield=True)
         raw_erm = Raw(erm_fname, allow_maxshield=True)
     assert_raises(RuntimeError, maxwell_filter, raw_err)
+    assert_raises(TypeError, maxwell_filter, 1.)  # not a raw
     assert_raises(ValueError, maxwell_filter, raw, int_order=20)  # too many
 
     n_int_bases = int_order ** 2 + 2 * int_order
@@ -197,14 +199,26 @@ def test_maxwell_filter():
     # Test SSS computation at the standard head origin
     raw_sss = maxwell_filter(raw)
     _assert_snr(raw_sss, Raw(sss_std_fname), 200.)
+    py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
+    assert_equal(len(py_cal), 0)
+    py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
+    assert_equal(len(py_ctc), 0)
+    py_st = raw_sss.info['proc_history'][0]['max_info']['max_st']
+    assert_equal(len(py_st), 0)
+    assert_raises(RuntimeError, maxwell_filter, raw_sss)
 
     # Test SSS computation at non-standard head origin
     raw_sss = maxwell_filter(raw, origin=[0., 0.02, 0.02])
     _assert_snr(raw_sss, Raw(sss_nonstd_fname), 250.)
 
     # Test SSS computation at device origin
+    sss_erm_std = Raw(sss_erm_std_fname)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg')
-    _assert_snr(raw_sss, Raw(sss_erm_std_fname), 100.)
+    _assert_snr(raw_sss, sss_erm_std, 100.)
+    for key in ('job', 'frame'):
+        vals = [x.info['proc_history'][0]['max_info']['sss_info'][key]
+                for x in [raw_sss, sss_erm_std]]
+        assert_equal(vals[0], vals[1])
 
     # Check against SSS functions from proc_history
     sss_info = raw_sss.info['proc_history'][0]['max_info']
@@ -277,6 +291,7 @@ def test_bads_reconstruction():
     _assert_snr(raw_sss, Raw(sss_bad_recon_fname), 300.)
 
 
+@requires_version('scipy', '0.12')  # otherwise we can get SVD error
 @testing.requires_testing_data
 def test_spatiotemporal_maxwell():
     """Test Maxwell filter (tSSS) spatiotemporal processing"""
@@ -310,6 +325,10 @@ def test_spatiotemporal_maxwell():
         else:
             raw_tsss = maxwell_filter(raw, st_duration=st_duration)
         _assert_snr(raw_tsss, tsss_bench, tol)
+        py_st = raw_tsss.info['proc_history'][0]['max_info']['max_st']
+        assert_true(len(py_st) > 0)
+        assert_equal(py_st['buflen'], st_duration)
+        assert_equal(py_st['subspcorr'], 0.98)
 
     # Degenerate cases
     assert_raises(ValueError, maxwell_filter, raw, st_duration=10.,
@@ -328,6 +347,16 @@ def test_maxwell_filter_fine_calibration():
     # Test 1D SSS fine calibration
     raw_sss = maxwell_filter(raw, calibration=fine_cal_fname)
     _assert_snr(raw_sss, sss_fine_cal, 1.5, 27.)  # XXX should be higher
+    py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
+    assert_true(py_cal is not None)
+    assert_true(len(py_cal) > 0)
+    mf_cal = sss_fine_cal.info['proc_history'][0]['max_info']['sss_cal']
+    # we identify these differently
+    mf_cal['cal_chans'][mf_cal['cal_chans'][:, 1] == 3022, 1] = 3024
+    assert_allclose(py_cal['cal_chans'], mf_cal['cal_chans'])
+    # XXX these don't match well, perhaps a hint?
+    assert_allclose(py_cal['cal_corrs'], mf_cal['cal_corrs'],
+                    rtol=1e-5, atol=1e-1)
 
     # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
     # very low SNR as proc differs, eventually we should add a better test
@@ -344,6 +373,13 @@ def test_maxwell_filter_cross_talk():
     sss_ctc = Raw(sss_ctc_fname)
     raw_sss = maxwell_filter(raw, cross_talk=ctc_fname)
     _assert_snr(raw_sss, sss_ctc, 275.)
+    py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
+    assert_true(len(py_ctc) > 0)
+    assert_raises(ValueError, maxwell_filter, raw, cross_talk=raw)
+    assert_raises(ValueError, maxwell_filter, raw, cross_talk=raw_fname)
+    mf_ctc = sss_ctc.info['proc_history'][0]['max_info']['sss_ctc']
+    del mf_ctc['block_id']  # we don't write this
+    assert_equal(object_diff(py_ctc, mf_ctc), '')
 
 
 @testing.requires_testing_data
