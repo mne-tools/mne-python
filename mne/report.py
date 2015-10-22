@@ -49,7 +49,33 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 def _fig_to_img(function=None, fig=None, image_format='png',
                 scale=None, **kwargs):
     """Wrapper function to plot figure and create a binary image"""
+
     import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+    if not isinstance(fig, Figure) and function is None:
+        from scipy.misc import imread
+        mayavi = None
+        try:
+            from mayavi import mlab  # noqa, mlab imported
+            import mayavi
+        except:  # on some systems importing Mayavi raises SystemExit (!)
+            warnings.warn('Could not import mayavi. Trying to render '
+                          '`mayavi.core.scene.Scene` figure instances'
+                          ' will throw an error.')
+        tempdir = _TempDir()
+        temp_fname = op.join(tempdir, 'test')
+        if fig.scene is not None:
+            fig.scene.save_png(temp_fname)
+            img = imread(temp_fname)
+            os.remove(temp_fname)
+        else:  # Testing mode
+            img = np.zeros((2, 2, 3))
+
+        mayavi.mlab.close(fig)
+        fig = plt.figure()
+        plt.imshow(img)
+        plt.axis('off')
+
     if function is not None:
         plt.close('all')
         fig = function(**kwargs)
@@ -390,17 +416,38 @@ slider_template = HTMLTemplate(u"""
                        })</script>
 """)
 
+slider_full_template = Template(u"""
+<li class="{{div_klass}}" id="{{id}}">
+<h4>{{title}}</h4>
+<div class="thumbnail">
+    <ul><li class="slider">
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                <div id="{{slider_id}}"></div>
+                <ul class="thumbnails">
+                    {{image_html}}
+                </ul>
+                {{html}}
+            </div>
+        </div>
+    </li></ul>
+</div>
+</li>
+""")
 
-def _build_html_slider(slices_range, slides_klass, slider_id):
+
+def _build_html_slider(slices_range, slides_klass, slider_id,
+                       start_value=None):
     """Build an html slider for a given slices range and a slices klass.
     """
-    startvalue = slices_range[len(slices_range) // 2]
+    if start_value is None:
+        start_value = slices_range[len(slices_range) // 2]
     return slider_template.substitute(slider_id=slider_id,
                                       klass=slides_klass,
                                       step=slices_range[1] - slices_range[0],
                                       minvalue=slices_range[0],
                                       maxvalue=slices_range[-1],
-                                      startvalue=startvalue)
+                                      startvalue=start_value)
 
 
 ###############################################################################
@@ -804,17 +851,7 @@ class Report(object):
                              image_format='png', scale=None, comments=None):
         """Auxiliary method for `add_section` and `add_figs_to_section`.
         """
-        from scipy.misc import imread
-        import matplotlib.pyplot as plt
-        mayavi = None
-        try:
-            # on some version mayavi.core won't be exposed unless ...
-            from mayavi import mlab  # noqa, mlab imported
-            import mayavi
-        except:  # on some systems importing Mayavi raises SystemExit (!)
-            warnings.warn('Could not import mayavi. Trying to render '
-                          '`mayavi.core.scene.Scene` figure instances'
-                          ' will throw an error.')
+
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
         _check_scale(scale)
@@ -824,20 +861,6 @@ class Report(object):
             global_id = self._get_id()
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
-
-            if mayavi is not None and isinstance(fig, mayavi.core.scene.Scene):
-                tempdir = _TempDir()
-                temp_fname = op.join(tempdir, 'test')
-                if fig.scene is not None:
-                    fig.scene.save_png(temp_fname)
-                    img = imread(temp_fname)
-                else:  # Testing mode
-                    img = np.zeros((2, 2, 3))
-
-                mayavi.mlab.close(fig)
-                fig = plt.figure()
-                plt.imshow(img)
-                plt.axis('off')
 
             img = _fig_to_img(fig=fig, scale=scale,
                               image_format=image_format)
@@ -1009,6 +1032,97 @@ class Report(object):
         self.fnames.append('%s-#-%s-#-custom' % (caption[0], sectionvar))
         self._sectionlabels.append(sectionvar)
         self.html.extend(html)
+
+    def add_slider_to_section(self, figs, captions=None, section='custom',
+                              title='Slider', scale=None, image_format='png'):
+        """Renders a slider of figs to the report.
+
+        Parameters
+        ----------
+        figs : list of figures.
+            Each figure in the list can be an instance of
+            matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
+            or np.ndarray (images read in using scipy.imread).
+        captions : list of str | list of float | None
+            A list of captions to the figures. If float, a str will be
+            constructed as `%f s`. If None, it will default to
+            `Data slice %d`.
+        section : str
+            Name of the section. If section already exists, the figures
+            will be appended to the end of the section.
+        title : str
+            The title of the slider.
+        scale : float | None | callable
+            Scale the images maintaining the aspect ratio.
+            If None, no scaling is applied. If float, scale will determine
+            the relative scaling (might not work for scale <= 1 depending on
+            font sizes). If function, should take a figure object as input
+            parameter. Defaults to None.
+        image_format : {'png', 'svg'}
+            The image format to be used for the report. Defaults to 'png'.
+
+        Notes
+        -----
+        .. versionadded:: 0.10.0
+        """
+
+        _check_scale(scale)
+        if not isinstance(figs[0], list):
+            figs = [figs]
+        else:
+            raise NotImplementedError('`add_slider_to_section` '
+                                      'can only add one slider at a time.')
+        figs, _, _ = self._validate_input(figs, section, section)
+
+        sectionvar = self._sectionvars[section]
+        self._sectionlabels.append(sectionvar)
+        global_id = self._get_id()
+        img_klass = self._sectionvars[section]
+        name = 'slider'
+
+        html = []
+        slides_klass = '%s-%s' % (name, global_id)
+        div_klass = 'span12 %s' % slides_klass
+
+        if isinstance(figs[0], list):
+            figs = figs[0]
+        sl = np.arange(0, len(figs))
+        slices = []
+        img_klass = 'slideimg-%s' % name
+
+        if captions is None:
+            captions = ['Data slice %d' % ii for ii in sl]
+        elif isinstance(captions, (list, tuple, np.ndarray)):
+            if len(figs) != len(captions):
+                raise ValueError('Captions must be the same length as the '
+                                 'number of slides.')
+            if isinstance(captions[0], (float, int)):
+                captions = ['%0.3f s' % caption for caption in captions]
+        else:
+            raise TypeError('Captions must be None or an iterable of '
+                            'float, int, str, Got %s' % type(captions))
+        for ii, (fig, caption) in enumerate(zip(figs, captions)):
+            img = _fig_to_img(fig=fig, scale=scale, image_format=image_format)
+            slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
+            first = True if ii == 0 else False
+            slices.append(_build_html_image(img, slice_id, div_klass,
+                          img_klass, caption, first))
+        # Render the slider
+        slider_id = 'select-%s-%s' % (name, global_id)
+        # Render the slices
+        image_html = u'\n'.join(slices)
+        html.append(_build_html_slider(sl, slides_klass, slider_id,
+                                       start_value=0))
+        html = '\n'.join(html)
+
+        slider_klass = sectionvar
+        self.html.append(
+            slider_full_template.substitute(id=global_id, title=title,
+                                            div_klass=slider_klass,
+                                            slider_id=slider_id, html=html,
+                                            image_html=image_html))
+
+        self.fnames.append('%s-#-%s-#-custom' % (section, sectionvar))
 
     ###########################################################################
     # HTML rendering
