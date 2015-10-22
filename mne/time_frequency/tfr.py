@@ -1412,12 +1412,10 @@ def grand_average(all_tfr, drop_bads=True):
     all_tfr = [tfr_.copy() for tfr_ in all_tfr]
 
     # Interpolates if necessary
+    # TODO: Implement channel-wise subject selection
     if drop_bads:
         for tfr in all_tfr:
             tfr.drop_channels(tfr.info['bads'], copy=False)
-    else:
-        pass
-        # implement good channel subset here somehow??
 
     equalize_channels(all_tfr)  # apply equalize_channels
     # make grand_average object using combine_tfr
