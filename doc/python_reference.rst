@@ -407,7 +407,6 @@ Functions:
    ica_find_eog_events
    read_ica
    run_ica
-   maxwell_filter
 
 EEG referencing:
 

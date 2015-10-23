@@ -4,9 +4,10 @@ What's new
     Note, we are now using links to highlight new functions and classes.
     Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
 
+.. _changes_0_10:
 
-Current
------------
+Version 0.10
+------------
 
 Changelog
 ~~~~~~~~~
@@ -63,8 +64,6 @@ Changelog
 
     - Add ``preload`` argument to :func:`mne.read_epochs` to enable on-demand reads from disk by `Eric Larson`_
 
-    - Add Maxwell filtering (SSS) with tSSS by `Mark Wronkiewicz`_, `Samu Taulu`_, and `Eric Larson`_.
-
     - Big rewrite of simulation module by `Yousra Bekhti`_, `Mark Wronkiewicz`_, `Eric Larson`_ and `Alex Gramfort`_. Allows to simulate raw with artefacts (ECG, EOG) and evoked data, exploiting the forward solution. See :func:`mne.simulation.simulate_raw`, :func:`mne.simulation.simulate_evoked` and :func:`mne.simulation.simulate_sparse_stc`
 
     - Add :func:`mne.Epochs.load_data` method to :class:`mne.Epochs` by `Teon Brooks`_
@@ -116,6 +115,46 @@ API
     - :func:`mne.io.Raw.preload_data` has been deprecated for :func:`mne.io.Raw.load_data` by `Teon Brooks`_
 
     - ``RawBrainVision`` objects now always have event channel ``'STI 014'``, and recordings with no events will have this channel set to zero by `Eric Larson`_
+
+Authors
+~~~~~~~~~
+
+The committer list for this release is the following (preceded by number of commits):
+
+   269  Eric Larson
+   243  Jaakko Leppakangas
+   192  Alexandre Gramfort
+   128  Denis A. Engemann
+   111  Jona Sassenhagen
+   107  Mark Wronkiewicz
+    97  Teon Brooks
+    81  Lorenzo De Santis
+    55  Yousra Bekhti
+    54  Jean-Remi King
+    48  Romain Trachel
+    45  Mainak Jas
+    40  Alexandre Barachant
+    32  Marijn van Vliet
+    27  jaeilepp
+    26  jmontoyam
+    22  Chris Holdgraf
+    16  Christopher J. Bailey
+     7  Christian Brodbeck
+     5  Alan Leggitt
+     5  Roan LaPlante
+     5  natalieklein
+     3  Daniel Strohmeier
+     3  Fede Raimondo
+     3  unknown
+     2  Dan G. Wakeman
+     2  Daniel McCloy
+     2  Fede
+     2  Ross Maddox
+     2  dgwakeman
+     2  sassenha
+     1  Jussi Nurminen
+     1  drammock
+     1  jona
 
 .. _changes_0_9:
 
@@ -317,6 +356,46 @@ API
    - Deprecated ``iir_filter_raw`` for ``fit_iir_model_raw``.
 
    - Add ``montage`` parameter to the ``create_info`` function to create the info using montages by `Teon Brooks`_
+
+Authors
+~~~~~~~~~
+
+The committer list for this release is the following (preceded by number of commits):
+
+   515  Eric Larson
+   343  Denis A. Engemann
+   304  Alexandre Gramfort
+   300  Teon Brooks
+   142  Mainak Jas
+   119  Jean-Remi King
+    77  Alan Leggitt
+    75  Marijn van Vliet
+    63  Chris Holdgraf
+    57  Yousra Bekhti
+    49  Mark Wronkiewicz
+    44  Christian Brodbeck
+    30  Jona Sassenhagen
+    29  Hari Bharadwaj
+    27  Clément Moutard
+    24  Ingoo Lee
+    18  Marmaduke Woodman
+    16  Martin Luessi
+    10  Jaakko Leppakangas
+     9  Andrew Dykstra
+     9  Daniel Strohmeier
+     7  kjs
+     6  Dan G. Wakeman
+     5  Federico Raimondo
+     3  Basile Pinsard
+     3  Christoph Dinh
+     3  Hafeza Anevar
+     2  Martin Billinger
+     2  Roan LaPlante
+     1  Manoj Kumar
+     1  Matt Tucker
+     1  Romain Trachel
+     1  mads jensen
+     1  sviter
 
 .. _changes_0_8:
 

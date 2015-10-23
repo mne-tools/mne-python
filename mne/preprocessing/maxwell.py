@@ -19,8 +19,8 @@ from ..utils import verbose, logger
 
 
 @verbose
-def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
-                   st_dur=None, st_corr=0.98, verbose=None):
+def _maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
+                    st_dur=None, st_corr=0.98, verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters

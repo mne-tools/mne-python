@@ -14,8 +14,8 @@ from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.forward._make_forward import _prep_meg_channels
 from mne.io import Raw, proc_history
-from mne.preprocessing.maxwell import (maxwell_filter, get_num_moments,
-                                       _sss_basis)
+from mne.preprocessing.maxwell import (_maxwell_filter as maxwell_filter,
+                                       get_num_moments, _sss_basis)
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 
 warnings.simplefilter('always')  # Always throw warnings
