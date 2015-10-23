@@ -36,7 +36,6 @@ from .defaults import _handle_default
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask)
-from .utils import deprecated
 
 from .externals.six.moves import zip
 from .externals.six import string_types
@@ -350,16 +349,6 @@ def _check_n_samples(n_samples, n_chan):
                 'estimate may be unreliable' % (n_samples_min, n_samples))
         warnings.warn(text)
         logger.warning(text)
-
-
-@deprecated('"compute_raw_data_covariance" is deprecated and will be '
-            'removed in MNE-0.11. Please use compute_raw_covariance instead')
-@verbose
-def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
-                                reject=None, flat=None, picks=None,
-                                verbose=None):
-    return compute_raw_covariance(raw, tmin, tmax, tstep,
-                                  reject, flat, picks, verbose)
 
 
 @verbose

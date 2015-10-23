@@ -14,8 +14,7 @@ import numpy as np
 from scipy import linalg
 
 from .fixes import partial
-from .utils import (verbose, logger, run_subprocess, deprecated,
-                    get_subjects_dir)
+from .utils import verbose, logger, run_subprocess, get_subjects_dir
 from .transforms import _ensure_trans, apply_trans
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
@@ -1273,25 +1272,6 @@ def _bem_explain_surface(id_):
 
 # ############################################################################
 # Write
-
-@deprecated('write_bem_surface is deprecated and will be removed in 0.11, '
-            'use write_bem_surfaces instead')
-def write_bem_surface(fname, surf):
-    """Write one bem surface
-
-    Parameters
-    ----------
-    fname : string
-        File to write
-    surf : dict
-        A surface structured as obtained with read_bem_surfaces
-
-    See Also
-    --------
-    read_bem_surfaces
-    """
-    write_bem_surfaces(fname, surf)
-
 
 def write_bem_surfaces(fname, surfs):
     """Write BEM surfaces to a fiff file

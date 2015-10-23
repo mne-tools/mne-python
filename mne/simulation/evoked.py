@@ -10,49 +10,7 @@ import numpy as np
 
 from ..io.pick import pick_channels_cov
 from ..forward import apply_forward
-from ..utils import check_random_state, verbose, _time_mask, deprecated
-
-
-@deprecated('"generate_evoked" is deprecated and will be removed in '
-            'MNE-0.11. Please use simulate_evoked instead')
-def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None,
-                    tmax=None, iir_filter=None, random_state=None,
-                    verbose=None):
-    """Generate noisy evoked data
-
-    Parameters
-    ----------
-    fwd : dict
-        a forward solution.
-    stc : SourceEstimate object
-        The source time courses.
-    evoked : None | Evoked object
-        An instance of evoked used as template.
-    cov : Covariance object
-        The noise covariance
-    snr : float
-        signal to noise ratio in dB. It corresponds to
-        10 * log10( var(signal) / var(noise) ).
-    tmin : float | None
-        start of time interval to estimate SNR. If None first time point
-        is used.
-    tmax : float | None
-        start of time interval to estimate SNR. If None last time point
-        is used.
-    iir_filter : None | array
-        IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
-    random_state : None | int | np.random.RandomState
-        To specify the random generator state.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    evoked : Evoked object
-        The simulated evoked data
-    """
-    return simulate_evoked(fwd, stc, evoked.info, cov, snr, tmin,
-                           tmax, iir_filter, random_state, verbose)
+from ..utils import check_random_state, verbose, _time_mask
 
 
 @verbose
@@ -103,32 +61,6 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     else:
         evoked_noise = evoked
     return evoked_noise
-
-
-@deprecated('"generate_noise_evoked" is deprecated and will be removed in '
-            'MNE-0.11. Please use simulate_noise_evoked instead')
-def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
-    """Creates noise as a multivariate Gaussian
-
-    The spatial covariance of the noise is given from the cov matrix.
-
-    Parameters
-    ----------
-    evoked : instance of Evoked
-        An instance of evoked used as template.
-    cov : instance of Covariance
-        The noise covariance.
-    iir_filter : None | array
-        IIR filter coefficients (denominator as it is an AR filter).
-    random_state : None | int | np.random.RandomState
-        To specify the random generator state.
-
-    Returns
-    -------
-    noise : evoked object
-        an instance of evoked
-    """
-    return simulate_noise_evoked(evoked, cov, iir_filter, random_state)
 
 
 def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):

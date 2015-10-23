@@ -18,7 +18,6 @@ from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
-from ..reference import add_reference_channels
 
 from ...externals.six import StringIO, u
 from ...externals.six.moves import configparser
@@ -43,12 +42,6 @@ class RawBrainVision(_BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
         in the vhdr file. Default is ``()``.
-    reference : None | str
-        **Deprecated**, use `add_reference_channel` instead.
-        Name of the electrode which served as the reference in the recording.
-        If a name is provided, a corresponding channel is added and its data
-        is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names. Data must be preloaded.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -70,7 +63,7 @@ class RawBrainVision(_BaseRaw):
     """
     @verbose
     def __init__(self, vhdr_fname, montage=None,
-                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(), reference=None,
+                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
                  scale=1., preload=False, response_trig_shift=0, verbose=None):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
@@ -88,15 +81,6 @@ class RawBrainVision(_BaseRaw):
         super(RawBrainVision, self).__init__(
             info, last_samps=last_samps, filenames=[info['filename']],
             orig_format=fmt, preload=preload, verbose=verbose)
-
-        # add reference
-        if reference is not None:
-            warnings.warn('reference is deprecated and will be removed in '
-                          'v0.11. Use add_reference_channels instead.')
-            if preload is False:
-                raise ValueError("Preload must be set to True if reference is "
-                                 "specified.")
-            add_reference_channels(self, reference, copy=False)
 
     def _read_segment_file(self, data, idx, offset, fi, start, stop,
                            cals, mult):
@@ -455,7 +439,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
 
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
-                         reference=None, scale=1., preload=False,
+                         scale=1., preload=False,
                          response_trig_shift=0, verbose=None):
     """Reader for Brain Vision EEG file
 
@@ -475,12 +459,6 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
         in the vhdr file. Default is ``()``.
-    reference : None | str
-        **Deprecated**, use `add_reference_channel` instead.
-        Name of the electrode which served as the reference in the recording.
-        If a name is provided, a corresponding channel is added and its data
-        is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names. Data must be preloaded.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -506,7 +484,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
-                         misc=misc, reference=reference, scale=scale,
+                         misc=misc, scale=scale,
                          preload=preload, verbose=verbose,
                          response_trig_shift=response_trig_shift)
     return raw

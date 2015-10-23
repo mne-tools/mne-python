@@ -32,11 +32,10 @@ from .chpi import get_chpi_positions
 from .io.meas_info import create_info
 from .io.kit import read_epochs_kit
 from .bem import (make_sphere_model, make_bem_model, make_bem_solution,
-                  read_bem_surfaces, write_bem_surface, write_bem_surfaces,
+                  read_bem_surfaces, write_bem_surfaces,
                   read_bem_solution, write_bem_solution)
-from .cov import (read_cov, write_cov, Covariance,
-                  compute_covariance, compute_raw_data_covariance,
-                  compute_raw_covariance, whiten_evoked, make_ad_hoc_cov)
+from .cov import (read_cov, write_cov, Covariance, compute_raw_covariance,
+                  compute_covariance, whiten_evoked, make_ad_hoc_cov)
 from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
                     find_stim_steps)

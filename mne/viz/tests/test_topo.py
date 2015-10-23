@@ -19,7 +19,7 @@ from mne.channels import read_layout
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
 
-from mne.viz import (plot_topo, plot_topo_image_epochs, _get_presser,
+from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
 from mne.viz.topo import _plot_update_evoked_topo
 
@@ -85,16 +85,18 @@ def test_plot_topo():
     # test scaling
     with warnings.catch_warnings(record=True):
         for ylim in [dict(mag=[-600, 600]), None]:
-            plot_topo([picked_evoked] * 2, layout, ylim=ylim)
+            plot_evoked_topo([picked_evoked] * 2, layout, ylim=ylim)
 
         for evo in [evoked, [evoked, picked_evoked]]:
-            assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'])
+            assert_raises(ValueError, plot_evoked_topo, evo, layout,
+                          color=['y', 'b'])
 
         evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
         ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
         picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
                                                          ch_names)
-        fig = plot_topo(picked_evoked_delayed_ssp, layout, proj='interactive')
+        fig = plot_evoked_topo(picked_evoked_delayed_ssp, layout,
+                               proj='interactive')
         func = _get_presser(fig)
         event = namedtuple('Event', 'inaxes')
         func(event(inaxes=fig.axes[0]))

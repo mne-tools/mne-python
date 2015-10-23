@@ -7,14 +7,12 @@ from numpy.testing import (assert_array_equal, assert_equal, assert_allclose,
                            assert_almost_equal, assert_array_almost_equal)
 import warnings
 
-from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne import read_trans, write_trans
 from mne.utils import _TempDir, run_tests_if_main
 from mne.transforms import (invert_transform, _get_mri_head_t,
                             rotation, rotation3d, rotation_angles, _find_trans,
-                            combine_transforms, transform_coordinates,
-                            collect_transforms, apply_trans, translation,
+                            combine_transforms, apply_trans, translation,
                             get_ras_to_neuromag_trans, _sphere_to_cartesian,
                             _polar_to_cartesian, _cartesian_to_sphere)
 
@@ -159,40 +157,6 @@ def test_combine():
                   trans['from'], trans['to'])
     assert_raises(RuntimeError, combine_transforms, trans, trans,
                   trans['from'], trans['to'])
-
-
-@testing.requires_testing_data
-def test_transform_coords():
-    """Test transforming coordinates
-    """
-    # normal trans won't work
-    with warnings.catch_warnings(record=True):  # dep
-        assert_raises(ValueError, transform_coordinates,
-                      fname, np.eye(3), 'meg', 'fs_tal')
-    # needs to have all entries
-    pairs = [[FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_COORD_HEAD],
-             [FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_MNE_COORD_RAS],
-             [FIFF.FIFFV_MNE_COORD_RAS, FIFF.FIFFV_MNE_COORD_MNI_TAL],
-             [FIFF.FIFFV_MNE_COORD_MNI_TAL, FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ],
-             [FIFF.FIFFV_MNE_COORD_MNI_TAL, FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ],
-             ]
-    xforms = []
-    for fro, to in pairs:
-        xforms.append({'to': to, 'from': fro, 'trans': np.eye(4)})
-    tempdir = _TempDir()
-    all_fname = op.join(tempdir, 'all-trans.fif')
-    with warnings.catch_warnings(record=True):  # dep
-        collect_transforms(all_fname, xforms)
-    for fro in ['meg', 'mri']:
-        for to in ['meg', 'mri', 'fs_tal', 'mni_tal']:
-            with warnings.catch_warnings(record=True):  # dep
-                out = transform_coordinates(all_fname, np.eye(3), fro, to)
-                assert_allclose(out, np.eye(3))
-    with warnings.catch_warnings(record=True):  # dep
-        assert_raises(ValueError, transform_coordinates, all_fname, np.eye(4),
-                      'meg', 'meg')
-        assert_raises(ValueError, transform_coordinates, all_fname, np.eye(3),
-                      'fs_tal', 'meg')
 
 
 run_tests_if_main()

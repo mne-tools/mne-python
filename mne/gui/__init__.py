@@ -22,7 +22,7 @@ def combine_kit_markers():
 
 
 def coregistration(tabbed=False, split=True, scene_width=0o1, inst=None,
-                   subject=None, subjects_dir=None, raw=None):
+                   subject=None, subjects_dir=None):
     """Coregister an MRI with a subject's head shape
 
     Parameters
@@ -54,11 +54,6 @@ def coregistration(tabbed=False, split=True, scene_width=0o1, inst=None,
     <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
     _check_mayavi_version()
-    if raw is not None:
-        raise DeprecationWarning('The `raw` argument has been deprecated for '
-                                 'the `inst` argument. Will be removed '
-                                 'in 0.11. Use `inst` instead.')
-        inst = raw
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width)
     gui = CoregFrame(inst, subject, subjects_dir)

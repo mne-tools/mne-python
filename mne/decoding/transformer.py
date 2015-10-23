@@ -13,7 +13,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
 from ..time_frequency import multitaper_psd
 from ..externals import six
-from ..utils import _check_type_picks, deprecated
+from ..utils import _check_type_picks
 
 
 class Scaler(TransformerMixin):
@@ -243,12 +243,6 @@ class EpochsVectorizer(TransformerMixin):
                              % type(X))
 
         return X.reshape(-1, self.n_channels, self.n_times)
-
-
-@deprecated("Class 'ConcatenateChannels' has been renamed to "
-            "'EpochsVectorizer' and will be removed in release 0.11.")
-class ConcatenateChannels(EpochsVectorizer):
-    pass
 
 
 class PSDEstimator(TransformerMixin):
