@@ -14,7 +14,7 @@ from .parallel import parallel_func
 from .cov import _check_n_samples
 from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
-from .source_estimate import SourceEstimate
+from .source_estimate import SourceEstimate, VolSourceEstimate
 from .io.proj import make_projector, make_eeg_average_ref_proj
 
 
@@ -300,9 +300,9 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
 
     Returns
     -------
-    stc : SourceEstimate
-        The sensitivity map as a SourceEstimate instance for
-        visualization.
+    stc : SourceEstimate | VolSourceEstimate
+        The sensitivity map as a SourceEstimate or VolSourceEstimate instance
+        for visualization.
     """
     # check strings
     if ch_type not in ['eeg', 'grad', 'mag']:
@@ -384,9 +384,13 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     if mode in ['fixed', 'free']:
         sensitivity_map /= np.max(sensitivity_map)
 
-    vertices = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
     subject = _subject_from_forward(fwd)
-    stc = SourceEstimate(sensitivity_map[:, np.newaxis],
-                         vertices=vertices, tmin=0, tstep=1,
-                         subject=subject)
+    if fwd['src'][0]['type'] == 'vol':  # volume source space
+        vertices = fwd['src'][0]['vertno']
+        SEClass = VolSourceEstimate
+    else:
+        vertices = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
+        SEClass = SourceEstimate
+    stc = SEClass(sensitivity_map[:, np.newaxis], vertices=vertices, tmin=0,
+                  tstep=1, subject=subject)
     return stc

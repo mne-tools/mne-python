@@ -79,6 +79,10 @@ def test_sensitivity_maps():
     # test corner case for EEG
     stc = sensitivity_map(fwd, projs=[make_eeg_average_ref_proj(fwd['info'])],
                           ch_type='eeg', exclude='bads')
+    # test volume source space
+    fname = op.join(sample_path, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
+    fwd = mne.read_forward_solution(fname)
+    sensitivity_map(fwd)
 
 
 def test_compute_proj_epochs():
