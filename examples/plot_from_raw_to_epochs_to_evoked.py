@@ -39,7 +39,7 @@ raw.plot(events=events, event_color={1: 'cyan', -1: 'lightgray'})
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
-raw.info['bads'] += ['EEG 053']  # bads + 1 more
+raw.info['bads'] = ['MEG 2443', 'EEG 053']  # set bads
 
 # pick EEG and MEG channels
 picks = mne.pick_types(raw.info, meg=True, eeg=True, stim=False, eog=True,
