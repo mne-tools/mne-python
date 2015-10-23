@@ -14,9 +14,8 @@ from .parallel import parallel_func
 from .cov import _check_n_samples
 from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
-from .source_estimate import SourceEstimate
+from .source_estimate import SourceEstimate, VolSourceEstimate
 from .io.proj import make_projector, make_eeg_average_ref_proj
-from mne.source_estimate import VolSourceEstimate
 
 
 def read_proj(fname):
