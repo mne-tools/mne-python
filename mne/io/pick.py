@@ -624,7 +624,7 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
 def _pick_data_channels(info, exclude='bads'):
     """Convenience function for picking only data channels."""
     return pick_types(info, meg=True, eeg=True, stim=False, eog=False,
-                      ecg=False, emg=False, ref_meg='auto', misc=False,
+                      ecg=False, emg=False, ref_meg=True, misc=False,
                       resp=False, chpi=False, exci=False, ias=False,
                       syst=False, seeg=True, include=[], exclude=exclude,
                       selection=None)
