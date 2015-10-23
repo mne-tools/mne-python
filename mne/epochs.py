@@ -535,7 +535,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # Detrend
         if self.detrend is not None:
             picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               ref_meg=False, eog=False, ecg=False, seeg=True,
+                               ref_meg=True, eog=False, ecg=False, seeg=True,
                                emg=False, exclude=[])
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
