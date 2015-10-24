@@ -9,7 +9,6 @@ from functools import reduce
 from string import ascii_uppercase
 
 from ..externals.six import string_types
-from ..utils import deprecated
 from ..fixes import matrix_rank
 
 # The following function is a rewriting of scipy.stats.f_oneway
@@ -186,15 +185,6 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
         yield c_, df1, df2
 
 
-@deprecated('"f_threshold_twoway_rm" is deprecated and will be removed in'
-            'MNE-0.11. Please use f_threshold_mway_rm instead')
-def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
-                          pvalue=0.05):
-    return f_threshold_mway_rm(
-        n_subjects=n_subjects, factor_levels=factor_levels,
-        effects=effects, pvalue=pvalue)
-
-
 def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
                         pvalue=0.05):
     """ Compute f-value thesholds for a two-way ANOVA
@@ -240,18 +230,6 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
         f_threshold.append(f(df1, df2).isf(pvalue))
 
     return f_threshold if len(f_threshold) > 1 else f_threshold[0]
-
-
-# The following functions based on MATLAB code by Rik Henson
-# and Python code from the pvttble toolbox by Roger Lew.
-@deprecated('"f_twoway_rm" is deprecated and will be removed in MNE 0.11."'
-            " Please use f_mway_rm instead")
-def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
-                correction=False, return_pvals=True):
-    """This function is deprecated, use `f_mway_rm` instead"""
-    return f_mway_rm(data=data, factor_levels=factor_levels, effects=effects,
-                     alpha=alpha, correction=correction,
-                     return_pvals=return_pvals)
 
 
 def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,

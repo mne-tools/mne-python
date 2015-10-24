@@ -1110,8 +1110,8 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, info=None, start=None, stop=None,
-                  verbose=None, evoked_template=None):
+def apply_forward(fwd, stc, info, start=None, stop=None,
+                  verbose=None):
     """
     Project source space currents to sensor space using a forward operator.
 
@@ -1139,8 +1139,6 @@ def apply_forward(fwd, stc, info=None, start=None, stop=None,
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    evoked_template : Evoked object (deprecated)
-        Evoked object used as template to generate the output argument.
 
     Returns
     -------
@@ -1151,23 +1149,6 @@ def apply_forward(fwd, stc, info=None, start=None, stop=None,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
-    if evoked_template is None and info is None:
-        raise ValueError('You have to provide the info parameter.')
-
-    if evoked_template is not None and not isinstance(evoked_template, Info):
-        warnings.warn('The "evoked_template" parameter is being deprecated '
-                      'and will be removed in MNE-0.11. '
-                      'Please provide info parameter instead',
-                      DeprecationWarning)
-        info = evoked_template.info
-
-    if info is not None and not isinstance(info, Info):
-        warnings.warn('The "evoked_template" parameter is being deprecated '
-                      'and will be removed in MNE-0.11. '
-                      'Please provide info parameter instead',
-                      DeprecationWarning)
-        info = info.info
-
     # make sure evoked_template contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
         if ch_name not in info['ch_names']:
@@ -1228,13 +1209,6 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     --------
     apply_forward: Compute sensor space data and return an Evoked object.
     """
-    if isinstance(info, _BaseRaw):
-        warnings.warn('The "Raw_template" parameter is being deprecated '
-                      'and will be removed in MNE-0.11. '
-                      'Please provide info parameter instead',
-                      DeprecationWarning)
-        info = info.info
-
     # make sure info contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
         if ch_name not in info['ch_names']:

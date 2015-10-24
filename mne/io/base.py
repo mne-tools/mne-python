@@ -37,7 +37,7 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose, _time_mask, deprecated)
+                     logger, verbose, _time_mask)
 from ..viz import plot_raw, plot_raw_psd
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -424,28 +424,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The compensation + projection + cals matrix, if applicable.
         """
         raise NotImplementedError
-
-    @deprecated("This method has been renamed 'load_data' and will be removed "
-                "in v0.11.")
-    def preload_data(self, verbose=None):
-        """Preload raw data
-
-        Parameters
-        ----------
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        raw : instance of Raw
-            The raw object with data.
-
-        Notes
-        -----
-        This function will load raw data if it was not already preloaded.
-        If data were already preloaded, it will do nothing.
-        """
-        return self.load_data(verbose=verbose)
 
     @verbose
     def load_data(self, verbose=None):
