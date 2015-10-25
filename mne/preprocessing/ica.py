@@ -50,6 +50,10 @@ from .ctps_ import ctps
 from ..externals.six import string_types, text_type
 
 
+__all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
+           'get_score_funcs', 'read_ica', 'run_ica']
+
+
 def _make_xy_sfunc(func, ndim_output=False):
     """Aux function"""
     if ndim_output:
@@ -80,10 +84,6 @@ def get_score_funcs():
                             for n, f in xy_arg_stats_funcs
                             if getargspec(f).args == ['x', 'y']))
     return score_funcs
-
-
-__all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
-           'get_score_funcs', 'read_ica', 'run_ica']
 
 
 class ICA(ContainsMixin):
@@ -1859,7 +1859,8 @@ def read_ica(fname):
     fid, tree, _ = fiff_open(fname)
 
     try:
-        info, meas = read_meas_info(fid, tree)
+        # we used to store bads that weren't part of the info...
+        info, meas = read_meas_info(fid, tree, clean_bads=True)
     except ValueError:
         logger.info('Could not find the measurement info. \n'
                     'Functionality requiring the info won\'t be'
