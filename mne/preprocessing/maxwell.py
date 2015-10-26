@@ -98,7 +98,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
 
     Notes
     -----
-    .. versionadded:: 0.10
+    .. versionadded:: 0.11
 
     Equation numbers refer to Taulu and Kajola, 2005 [1]_ unless otherwise
     noted.
@@ -922,6 +922,7 @@ def _skew_symmetric_cross(a):
 
 def _find_vector_rotation(a, b):
     """Find the rotation matrix that maps unit vector a to b"""
+    # adapted from http://math.stackexchange.com/a/476311
     R = np.eye(3)
     v = np.cross(a, b)
     if np.allclose(v, 0.):  # identical

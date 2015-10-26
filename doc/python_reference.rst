@@ -405,6 +405,7 @@ Functions:
    find_eog_events
    ica_find_ecg_events
    ica_find_eog_events
+   maxwell_filter
    read_ica
    run_ica
 

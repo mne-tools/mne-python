@@ -10,7 +10,15 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - None
+    - Maxwell filtering (SSS) implemented in :func:`mne.preprocessing.maxwell_filter` by `Mark Wronkiewicz`_, `Eric Larson`_ and `Samu Taulu`_, including support for:
+
+        - Fine calibration
+
+        - Cross-talk correction
+
+        - Temporal SSS (tSSS)
+
+        - Head position translation
 
 BUG
 ~~~
