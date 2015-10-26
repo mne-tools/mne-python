@@ -397,7 +397,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     projs = epochs.info['projs']
 
     params = {'epochs': epochs,
-              'orig_data': np.concatenate(epochs.get_data(), axis=1),
               'info': copy.deepcopy(epochs.info),
               'bad_color': (0.8, 0.8, 0.8),
               't_start': 0}
@@ -637,14 +636,12 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     times = epochs.times
     data = np.zeros((params['info']['nchan'], len(times) * n_epochs))
-    #data = np.zeros((params['info']['nchan'], len(times) * len(epochs.events)))
 
     ylim = (25., 0.)  # Hardcoded 25 because butterfly has max 5 rows (5*5=25).
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
 
-    #times = np.arange(len(data[0]))
     times = np.arange(len(times) * len(epochs.events))
     epoch_times = np.arange(0, len(times), n_times)
 
@@ -814,7 +811,7 @@ def _plot_traces(params):
             else:
                 tick_list += [params['ch_names'][ch_idx]]
                 offset = offsets[line_idx]
-            this_data = data[ch_idx]#[params['t_start']:end]
+            this_data = data[ch_idx]
 
             # subtraction here gets correct orientation for flipped ylim
             ydata = offset - this_data
@@ -914,7 +911,7 @@ def _plot_update_epochs_proj(params, bools=None):
     start = params['t_start'] / len(params['epochs'].times)
     n_epochs = params['n_epochs']
     end = start + n_epochs
-    data = np.concatenate(params['epochs'][start:end].get_data(), axis=1)#params['orig_data']
+    data = np.concatenate(params['epochs'][start:end].get_data(), axis=1)
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
     types = params['types']
@@ -945,7 +942,6 @@ def _plot_window(value, params):
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
         params['plot_update_proj_callback'](params)
-        #params['plot_fun']()
 
 
 def _plot_vert_lines(params):
@@ -1187,7 +1183,6 @@ def _plot_onkey(event, params):
         params['hsel_patch'].set_width(params['duration'])
         params['data'] = params['data'][:, :-n_times]
         params['plot_update_proj_callback'](params)
-        #params['plot_fun']()
     elif event.key == 'end':
         n_epochs = params['n_epochs'] + 1
         n_times = len(params['epochs'].times)
@@ -1208,7 +1203,6 @@ def _plot_onkey(event, params):
         params['hsel_patch'].set_width(params['duration'])
         params['data'] = np.zeros((len(params['data']), params['duration']))
         params['plot_update_proj_callback'](params)
-        #params['plot_fun']()
     elif event.key == 'b':
         if params['fig_options'] is not None:
             plt.close(params['fig_options'])
@@ -1330,8 +1324,8 @@ def _onpick(event, params):
 def _close_event(event, params):
     """Function to drop selected bad epochs. Called on closing of the plot."""
     params['epochs'].drop_epochs(params['bads'])
-    logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
     params['epochs'].info['bads'] = params['info']['bads']
+    logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
 
 
 def _resize_event(event, params):
@@ -1373,7 +1367,6 @@ def _update_channels_epochs(event, params):
         params['t_start'] = len(params['times']) - n_times * n_epochs
         params['hsel_patch'].set_x(params['t_start'])
     params['plot_update_proj_callback'](params)
-    #_plot_traces(params)
 
 
 def _toggle_labels(label, params):
