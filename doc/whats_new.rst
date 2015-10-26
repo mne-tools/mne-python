@@ -140,11 +140,11 @@ Authors
 
 The committer list for this release is the following (preceded by number of commits):
 
-   269  Eric Larson
-   243  Jaakko Leppakangas
-   192  Alexandre Gramfort
+   273  Eric Larson
+   270  Jaakko Leppakangas
+   194  Alexandre Gramfort
    128  Denis A. Engemann
-   111  Jona Sassenhagen
+   114  Jona Sassenhagen
    107  Mark Wronkiewicz
     97  Teon Brooks
     81  Lorenzo De Santis
@@ -154,26 +154,19 @@ The committer list for this release is the following (preceded by number of comm
     45  Mainak Jas
     40  Alexandre Barachant
     32  Marijn van Vliet
-    27  jaeilepp
-    26  jmontoyam
+    26  Jair Montoya
     22  Chris Holdgraf
     16  Christopher J. Bailey
      7  Christian Brodbeck
+     5  Natalie Klein
+     5  Fede Raimondo
      5  Alan Leggitt
      5  Roan LaPlante
-     5  natalieklein
+     5  Ross Maddox
+     4  Dan G. Wakeman
+     3  Daniel McCloy
      3  Daniel Strohmeier
-     3  Fede Raimondo
-     3  unknown
-     2  Dan G. Wakeman
-     2  Daniel McCloy
-     2  Fede
-     2  Ross Maddox
-     2  dgwakeman
-     2  sassenha
      1  Jussi Nurminen
-     1  drammock
-     1  jona
 
 .. _changes_0_9:
 
