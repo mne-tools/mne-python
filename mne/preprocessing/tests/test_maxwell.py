@@ -346,7 +346,7 @@ def test_maxwell_filter_fine_calibration():
 
     # Test 1D SSS fine calibration
     raw_sss = maxwell_filter(raw, calibration=fine_cal_fname)
-    _assert_snr(raw_sss, sss_fine_cal, 1.5, 27.)  # XXX should be higher
+    _assert_snr(raw_sss, sss_fine_cal, 70, 500)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert_true(py_cal is not None)
     assert_true(len(py_cal) > 0)
@@ -354,9 +354,8 @@ def test_maxwell_filter_fine_calibration():
     # we identify these differently
     mf_cal['cal_chans'][mf_cal['cal_chans'][:, 1] == 3022, 1] = 3024
     assert_allclose(py_cal['cal_chans'], mf_cal['cal_chans'])
-    # XXX these don't match well, perhaps a hint?
     assert_allclose(py_cal['cal_corrs'], mf_cal['cal_corrs'],
-                    rtol=1e-5, atol=1e-1)
+                    rtol=1e-3, atol=1e-3)
 
     # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
     # very low SNR as proc differs, eventually we should add a better test
@@ -436,12 +435,12 @@ def test_maxwell_noise_rejection():
     # tSSS
     _assert_shielding(Raw(sss_erm_st_fname), erm_power, 5)
     raw_sss = maxwell_filter(raw_erm, st_duration=1., coord_frame='meg')
-    _assert_shielding(raw_sss, erm_power, 5)
+    _assert_shielding(raw_sss, erm_power, 5.)
     # Fine cal
     _assert_shielding(Raw(sss_erm_fine_cal_fname), erm_power, 2)
     raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
                              coord_frame='meg')
-    _assert_shielding(raw_sss, erm_power, 2)
+    _assert_shielding(raw_sss, erm_power, 2.)
     # Crosstalk
     _assert_shielding(Raw(sss_erm_ctc_fname), erm_power, 2.1)
     raw_sss = maxwell_filter(raw_erm, cross_talk=ctc_fname, coord_frame='meg')
@@ -451,7 +450,7 @@ def test_maxwell_noise_rejection():
     raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
                              cross_talk=ctc_fname, st_duration=1.,
                              coord_frame='meg')
-    _assert_shielding(raw_sss, erm_power, 6.)  # MF gets 6.075, we get 6.008
+    _assert_shielding(raw_sss, erm_power, 100)  # somehow this is really high?
 
 
 run_tests_if_main()

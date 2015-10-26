@@ -181,8 +181,6 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
     #
     if calibration is not None:
-        logger.warning('Fine calibration is experimental despite similar '
-                       ' shielding factor to Elekta\'s processing.')
         grad_imbalances, mag_cals, sss_cal = \
             _update_sensor_geometry(info, calibration)
     else:
@@ -917,6 +915,24 @@ def _read_fine_cal(fine_cal):
     return cal_chs, cal_ch_numbers
 
 
+def _skew_symmetric_cross(a):
+    """The skew-symmetric cross product of a vector"""
+    return np.array([[0., -a[2], a[1]], [a[2], 0., -a[0]], [-a[1], a[0], 0.]])
+
+
+def _find_vector_rotation(a, b):
+    """Find the rotation matrix that maps unit vector a to b"""
+    R = np.eye(3)
+    v = np.cross(a, b)
+    if np.allclose(v, 0.):  # identical
+        return R
+    s = np.sqrt(np.sum(v * v))  # sine of the angle between them
+    c = np.sqrt(np.sum(a * b))  # cosine of the angle between them
+    vx = _skew_symmetric_cross(v)
+    R += vx + np.dot(vx, vx) * (1 - c) / s
+    return R
+
+
 def _update_sensor_geometry(info, fine_cal):
     """Helper to replace sensor geometry information and reorder cal_chs"""
     logger.info('    Using fine calibration %s' % op.basename(fine_cal))
@@ -939,12 +955,30 @@ def _update_sensor_geometry(info, fine_cal):
     cal_corrs = list()
     coil_types = list()
     grad_picks = pick_types(meg_info, meg='grad')
+    adjust_logged = False
     for ci, cal_ch in enumerate(cal_chs):
         idx = info['ch_names'].index(cal_ch['ch_name'])
         assert not used[idx]
         used[idx] = True
         info_ch = info['chs'][idx]
         coil_types.append(info_ch['coil_type'])
+
+        # Some .dat files might only rotate EZ, so we must check first that
+        # EX and EY are orthogonal to EZ. If not, we find the rotation between
+        # the original and fine-cal ez, and rotate EX and EY accordingly:
+        ch_coil_rot = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
+        cal_loc = cal_ch['loc'].copy()
+        cal_coil_rot = _loc_to_coil_trans(cal_loc)[:3, :3]
+        if np.max([np.abs(np.dot(cal_coil_rot[:, ii], cal_coil_rot[:, 2]))
+                   for ii in range(2)]) > 1e-6:  # X or Y not orthogonal
+            if not adjust_logged:
+                logger.info('Non-orthogonal EX and EY from fine calibration '
+                            'will be adjusted')
+                adjust_logged = True
+            # find the rotation matrix that goes from one to the other
+            this_trans = _find_vector_rotation(ch_coil_rot[:, 2],
+                                               cal_coil_rot[:, 2])
+            cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
 
         # calculate shift angle
         v1 = _loc_to_coil_trans(cal_ch['loc'])[:3, :3]
@@ -956,10 +990,10 @@ def _update_sensor_geometry(info, fine_cal):
             extra = [1., cal_ch['calib_coeff'][0]]
         else:
             extra = [cal_ch['calib_coeff'][0], 0.]
-        cal_corrs.append(np.concatenate([extra, cal_ch['loc']]))
+        cal_corrs.append(np.concatenate([extra, cal_loc]))
         # Adjust channel normal orientations with those from fine calibration
         # Channel positions are not changed
-        info_ch['loc'][3:] = cal_ch['loc'][3:]
+        info_ch['loc'][3:] = cal_loc[3:]
         assert (info_ch['coord_frame'] == cal_ch['coord_frame'] ==
                 FIFF.FIFFV_COORD_DEVICE)
     cal_chans = [[sc, ct] for sc, ct in zip(cal_ch_numbers, coil_types)]
