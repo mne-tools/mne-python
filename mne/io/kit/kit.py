@@ -451,7 +451,7 @@ class EpochsKIT(_BaseEpochs):
         return data
 
 
-def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
+def _set_dig_kit(mrk, elp, hsp):
     """Add landmark points and head shape data to the KIT instance
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
@@ -470,9 +470,6 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
-    auto_decimate : bool
-        Decimate hsp points for head shape files with more than 10'000
-        points.
 
     Returns
     -------
@@ -497,14 +494,12 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
     if isinstance(elp, string_types):
         elp_points = _read_dig_points(elp)
         if len(elp_points) != 8:
-            err = ("File %r should contain 8 points; got shape "
-                   "%s." % (elp, elp_points.shape))
-            raise ValueError(err)
+            raise ValueError("File %r should contain 8 points; got shape "
+                             "%s." % (elp, elp_points.shape))
         elp = elp_points
-
     elif len(elp) != 8:
-        err = ("ELP should contain 8 points; got shape "
-               "%s." % (elp.shape,))
+        raise ValueError("ELP should contain 8 points; got shape "
+                         "%s." % (elp.shape,))
     if isinstance(mrk, string_types):
         mrk = read_mrk(mrk)
 
