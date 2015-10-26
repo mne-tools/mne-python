@@ -534,7 +534,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # Detrend
         if self.detrend is not None:
-            picks = pick_types(self.info, exclude=[])
+            picks = _pick_data_channels(self.info, exclude=[])
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
         # Baseline correct
