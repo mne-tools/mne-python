@@ -404,6 +404,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks)
+    _prepare_projectors(params)
+    _layout_figure(params)
 
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
@@ -634,14 +636,16 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         lines.append(lc)
 
     times = epochs.times
-    data = np.zeros((params['info']['nchan'], len(times) * len(epochs.events)))
+    data = np.zeros((params['info']['nchan'], len(times) * n_epochs))
+    #data = np.zeros((params['info']['nchan'], len(times) * len(epochs.events)))
 
     ylim = (25., 0.)  # Hardcoded 25 because butterfly has max 5 rows (5*5=25).
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
 
-    times = np.arange(len(data[0]))
+    #times = np.arange(len(data[0]))
+    times = np.arange(len(times) * len(epochs.events))
     epoch_times = np.arange(0, len(times), n_times)
 
     ax.set_yticks(offsets)
@@ -720,14 +724,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
-    if len(projs) > 0 and not epochs.proj:
-        ax_button = plt.subplot2grid((10, 15), (9, 14))
-        opt_button = mpl.widgets.Button(ax_button, 'Proj')
-        callback_option = partial(_toggle_options, params=params)
-        opt_button.on_clicked(callback_option)
-        params['opt_button'] = opt_button
-        params['ax_button'] = ax_button
-
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)
     fig.canvas.mpl_connect('scroll_event', callback_scroll)
@@ -738,9 +734,25 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     callback_resize = partial(_resize_event, params=params)
     fig.canvas.mpl_connect('resize_event', callback_resize)
     fig.canvas.mpl_connect('pick_event', partial(_onpick, params=params))
+    params['callback_key'] = callback_key
 
     # Draw event lines for the first time.
     _plot_vert_lines(params)
+
+
+def _prepare_projectors(params):
+    """ Helper for setting up the projectors for epochs browser """
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    epochs = params['epochs']
+    projs = params['projs']
+    if len(projs) > 0 and not epochs.proj:
+        ax_button = plt.subplot2grid((10, 15), (9, 14))
+        opt_button = mpl.widgets.Button(ax_button, 'Proj')
+        callback_option = partial(_toggle_options, params=params)
+        opt_button.on_clicked(callback_option)
+        params['opt_button'] = opt_button
+        params['ax_button'] = ax_button
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -749,10 +761,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     callback_proj = partial(_toggle_proj, params=params)
     # store these for use by callbacks in the options figure
     params['callback_proj'] = callback_proj
-    params['callback_key'] = callback_key
-
     callback_proj('none')
-    _layout_figure(params)
 
 
 def _plot_traces(params):
@@ -805,7 +814,7 @@ def _plot_traces(params):
             else:
                 tick_list += [params['ch_names'][ch_idx]]
                 offset = offsets[line_idx]
-            this_data = data[ch_idx][params['t_start']:end]
+            this_data = data[ch_idx]#[params['t_start']:end]
 
             # subtraction here gets correct orientation for flipped ylim
             ydata = offset - this_data
@@ -892,7 +901,7 @@ def _plot_traces(params):
         params['fig_proj'].canvas.draw()
 
 
-def _plot_update_epochs_proj(params, bools):
+def _plot_update_epochs_proj(params, bools=None):
     """Helper only needs to be called when proj is changed"""
     if bools is not None:
         inds = np.where(bools)[0]
@@ -902,7 +911,10 @@ def _plot_update_epochs_proj(params, bools):
     params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
                                         verbose=False)
 
-    data = params['orig_data']
+    start = params['t_start'] / len(params['epochs'].times)
+    n_epochs = params['n_epochs']
+    end = start + n_epochs
+    data = np.concatenate(params['epochs'][start:end].get_data(), axis=1)#params['orig_data']
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
     types = params['types']
@@ -932,7 +944,8 @@ def _plot_window(value, params):
     if params['t_start'] != value:
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
-        params['plot_fun']()
+        params['plot_update_proj_callback'](params)
+        #params['plot_fun']()
 
 
 def _plot_vert_lines(params):
@@ -1006,7 +1019,7 @@ def _pick_bad_channels(pos, params):
     if 'ica' in params:
         params['plot_fun']()
     else:
-        params['plot_update_proj_callback'](params, None)
+        params['plot_update_proj_callback'](params)
 
 
 def _plot_onscroll(event, params):
@@ -1172,15 +1185,14 @@ def _plot_onkey(event, params):
         params['n_epochs'] = n_epochs
         params['duration'] -= n_times
         params['hsel_patch'].set_width(params['duration'])
-        params['plot_fun']()
+        params['data'] = params['data'][:, :-n_times]
+        params['plot_update_proj_callback'](params)
+        #params['plot_fun']()
     elif event.key == 'end':
         n_epochs = params['n_epochs'] + 1
         n_times = len(params['epochs'].times)
-        if n_times * n_epochs > len(params['data'][0]):
+        if n_times * n_epochs > len(params['times']):
             return
-        if params['t_start'] + n_times * n_epochs > len(params['data'][0]):
-            params['t_start'] -= n_times
-            params['hsel_patch'].set_x(params['t_start'])
         ticks = params['epoch_times'] + 0.5 * n_times
         params['ax2'].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
@@ -1190,11 +1202,13 @@ def _plot_onkey(event, params):
             params['vert_lines'].append(ax.plot(pos, ax.get_ylim(), 'y',
                                                 zorder=3))
         params['duration'] += n_times
-        if params['t_start'] + params['duration'] > len(params['data'][0]):
+        if params['t_start'] + params['duration'] > len(params['times']):
             params['t_start'] -= n_times
             params['hsel_patch'].set_x(params['t_start'])
         params['hsel_patch'].set_width(params['duration'])
-        params['plot_fun']()
+        params['data'] = np.zeros((len(params['data']), params['duration']))
+        params['plot_update_proj_callback'](params)
+        #params['plot_fun']()
     elif event.key == 'b':
         if params['fig_options'] is not None:
             plt.close(params['fig_options'])
@@ -1354,10 +1368,12 @@ def _update_channels_epochs(event, params):
     params['n_epochs'] = n_epochs
     params['duration'] = n_times * n_epochs
     params['hsel_patch'].set_width(params['duration'])
-    if params['t_start'] + n_times * n_epochs > len(params['data'][0]):
-        params['t_start'] = len(params['data'][0]) - n_times * n_epochs
+    params['data'] = np.zeros((len(params['data']), params['duration']))
+    if params['t_start'] + n_times * n_epochs > len(params['times']):
+        params['t_start'] = len(params['times']) - n_times * n_epochs
         params['hsel_patch'].set_x(params['t_start'])
-    _plot_traces(params)
+    params['plot_update_proj_callback'](params)
+    #_plot_traces(params)
 
 
 def _toggle_labels(label, params):

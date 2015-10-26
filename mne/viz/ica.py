@@ -692,6 +692,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                                n_epochs=n_epochs, scalings=scalings,
                                title=title, picks=picks,
                                order=['misc', 'eog', 'ecg'])
+    params['plot_update_proj_callback'] = _update_epoch_data
     params['hsel_patch'].set_x(params['t_start'])
     callback_close = partial(_close_epochs_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
@@ -702,6 +703,18 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
             plt.show()
 
     return params['fig']
+
+
+def _update_epoch_data(params):
+    """Function for preparing the data on horizontal shift."""
+    start = params['t_start']
+    n_epochs = params['n_epochs']
+    end = start + n_epochs * len(params['epochs'].times)
+    data = params['orig_data'][:, start:end]#params['orig_data']
+    types = params['types']
+    for pick, ind in enumerate(params['inds']):
+        params['data'][pick] = data[ind] / params['scalings'][types[pick]]
+    params['plot_fun']()
 
 
 def _close_epochs_event(events, params):
