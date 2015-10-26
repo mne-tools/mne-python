@@ -453,6 +453,7 @@ class LinearModel(BaseEstimator):
 
         if times is None:
             tmin = 0
+            times = 'auto'
         else:
             tmin = times[0]
 
@@ -601,6 +602,7 @@ class LinearModel(BaseEstimator):
 
         if times is None:
             tmin = 0
+            times = 'auto'
         else:
             tmin = times[0]
 
