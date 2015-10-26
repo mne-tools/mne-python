@@ -392,6 +392,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     vertical line to the plot.
     """
     import matplotlib.pyplot as plt
+    epochs.drop_bad_epochs()
     scalings = _handle_default('scalings_plot_raw', scalings)
 
     projs = epochs.info['projs']
