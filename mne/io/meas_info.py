@@ -487,7 +487,7 @@ def read_bad_channels(fid, node):
 
 
 @verbose
-def read_meas_info(fid, tree, verbose=None):
+def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     """Read the measurement info
 
     Parameters
@@ -496,6 +496,10 @@ def read_meas_info(fid, tree, verbose=None):
         Open file descriptor.
     tree : tree
         FIF tree structure.
+    clean_bads : bool
+        If True, clean info['bads'] before running consistency check.
+        Should only be needed for old files where we did not check bads
+        before saving.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -881,6 +885,8 @@ def read_meas_info(fid, tree, verbose=None):
     #   All kinds of auxliary stuff
     info['dig'] = dig
     info['bads'] = bads
+    if clean_bads:
+        info['bads'] = [b for b in bads if b in info['ch_names']]
     info['projs'] = projs
     info['comps'] = comps
     info['acq_pars'] = acq_pars
