@@ -138,9 +138,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             elif condition is None:
                 if len(evoked_node) > 1:
                     _, _, conditions = _get_entries(fid, evoked_node)
-                    raise TypeError("Evoked file has more than one conditions, "
-                                    "the condition parameters must be "
-                                    "specified as one of:\n%s" % conditions)
+                    raise TypeError("Evoked file has more than one "
+                                    "conditions, the condition parameters "
+                                    "must be specified from:\n%s" % conditions)
                 else:
                     condition = 0
 
