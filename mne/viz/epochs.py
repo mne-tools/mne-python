@@ -382,14 +382,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     Notes
     -----
-    With trellis set to False, the arrow keys (up/down/left/right) can
-    be used to navigate between channels and epochs and the scaling can be
-    adjusted with - and + (or =) keys, but this depends on the backend
-    matplotlib is configured to use (e.g., mpl.use(``TkAgg``) should work).
-    Full screen mode can be to toggled with f11 key. The amount of epochs and
-    channels per view can be adjusted with home/end and page down/page up keys.
-    Butterfly plot can be toggled with ``b`` key. Right mouse click adds a
-    vertical line to the plot.
+    The arrow keys (up/down/left/right) can be used to navigate between
+    channels and epochs and the scaling can be adjusted with - and + (or =)
+    keys, but this depends on the backend matplotlib is configured to use
+    (e.g., mpl.use(``TkAgg``) should work). Full screen mode can be to toggled
+    with f11 key. The amount of epochs and channels per view can be adjusted
+    with home/end and page down/page up keys. Butterfly plot can be toggled
+    with ``b`` key. Right mouse click adds a vertical line to the plot.
     """
     import matplotlib.pyplot as plt
     epochs.drop_bad_epochs()
@@ -400,7 +399,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     params = {'epochs': epochs,
               'info': copy.deepcopy(epochs.info),
               'bad_color': (0.8, 0.8, 0.8),
-              't_start': 0}
+              't_start': 0,
+              'histogram': None}
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks)
@@ -1471,8 +1471,7 @@ def _plot_histogram(params):
                           x in enumerate(params['types']) if x == 'grad'])
         data.append(grads.ravel())
         types.append('grad')
-    fig = plt.figure(len(types))
-    fig.clf()
+    params['histogram'] = plt.figure()
     scalings = _handle_default('scalings')
     units = _handle_default('units')
     titles = _handle_default('titles')
@@ -1493,10 +1492,10 @@ def _plot_histogram(params):
         if rej is not None:
             ax.plot((rej, rej), (0, ax.get_ylim()[1]), color='r')
         plt.title(titles[types[idx]])
-    fig.suptitle('Peak-to-peak histogram', y=0.99)
-    fig.subplots_adjust(hspace=0.6)
+    params['histogram'].suptitle('Peak-to-peak histogram', y=0.99)
+    params['histogram'].subplots_adjust(hspace=0.6)
     try:
-        fig.show()
+        params['histogram'].show()
     except:
         pass
     if params['fig_proj'] is not None:
