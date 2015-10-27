@@ -24,7 +24,7 @@ from ..base import _BaseRaw
 from ...epochs import _BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
-from .constants import KIT, KIT_NY, KIT_AD
+from .constants import KIT, KIT_NY, KIT_AD, KIT_MD
 from .coreg import read_mrk
 from ...externals.six import string_types
 from ...event import read_events
