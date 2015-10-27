@@ -33,6 +33,8 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id)
 from .io.base import ToDataFrameMixin
+from .io._bytesio import BytesIO, PersistentBytesIO
+
 
 _aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                 'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
@@ -135,9 +137,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                      'found datasets:\n  %s'
                                      % (condition, kind, t))
                 condition = found_cond[0]
+            elif condition is None:
+                if len(evoked_node) > 1:
+                    _, _, conditions = _get_entries(fid, evoked_node)
+                    raise TypeError("Evoked file has more than one conditions, "
+                                    "the condition parameters must be "
+                                    "specified as one of:\n%s" % conditions)
+                else:
+                    condition = 0
 
             if condition >= len(evoked_node) or condition < 0:
-                fid.close()
                 raise ValueError('Data set selector out of range')
 
             my_evoked = evoked_node[condition]
@@ -282,6 +291,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Name of the file where to save the data.
         """
         write_evokeds(fname, self)
+
+    def __getstate__(self):
+        f = PersistentBytesIO()
+        write_evokeds(f, self)
+        return f.value
+
+    def __setstate__(self, state):
+        self.__init__(BytesIO(state))
 
     def __repr__(self):
         s = "comment : '%s'" % self.comment
@@ -946,6 +963,9 @@ class EvokedArray(Evoked):
         else:
             self._aspect_kind = _aspect_dict['standard_error']
 
+    def __getstate__(self):
+        pass
+
 
 def _get_entries(fid, evoked_node):
     """Helper to get all evoked entries"""
@@ -1163,7 +1183,8 @@ def write_evokeds(fname, evoked):
     --------
     read_evokeds
     """
-    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
+    if isinstance(fname, string_types):
+        check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
 
     if not isinstance(evoked, list):
         evoked = [evoked]
