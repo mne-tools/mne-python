@@ -17,7 +17,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  grand_average, combine_evoked)
-from mne.evoked import _get_peak, EvokedArray
+from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.epochs import EpochsArray
 
 from mne.utils import _TempDir, requires_pandas, slow_test, requires_version
@@ -101,10 +101,9 @@ def test_io_evoked():
     assert_array_almost_equal(ave.data, ave3.data, 19)
 
     # test read_evokeds and write_evokeds
-    types = ['Left Auditory', 'Right Auditory', 'Left visual', 'Right visual']
-    aves1 = read_evokeds(fname)
-    aves2 = read_evokeds(fname, [0, 1, 2, 3])
-    aves3 = read_evokeds(fname, types)
+    aves1 = read_evokeds(fname)[1::2]
+    aves2 = read_evokeds(fname, [1, 3])
+    aves3 = read_evokeds(fname, ['Right Auditory', 'Right visual'])
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), aves1)
     aves4 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))
     for aves in [aves2, aves3, aves4]:
@@ -125,6 +124,9 @@ def test_io_evoked():
         write_evokeds(fname2, ave)
         read_evokeds(fname2)
     assert_true(len(w) == 2)
+
+    # constructor
+    assert_raises(TypeError, Evoked, fname)
 
 
 def test_shift_time_evoked():
