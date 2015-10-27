@@ -5,12 +5,14 @@
 # License: BSD (3-clause)
 
 import os
+import re
 import numpy as np
 from scipy.linalg import inv
 from threading import Thread
 
 from ..externals.six.moves import queue
 from ..io.meas_info import _read_dig_points, _make_dig_points
+from ..utils import logger
 
 
 # allow import without traits
@@ -70,8 +72,8 @@ class Kit2FiffModel(HasPrivateTraits):
                     "head shape")
     fid_file = File(exists=True, filter=hsp_fid_wildcard, desc="Digitizer "
                     "fiducials")
-    stim_chs = Enum(">", "<", "man")
-    stim_chs_manual = Array(int, (8,), range(168, 176))
+    stim_coding = Enum(">", "<", "channel")
+    stim_chs = Str("")
     stim_slope = Enum("-", "+")
     # Marker Points
     use_mrk = List(list(range(5)), desc="Which marker points to use for the "
@@ -268,13 +270,39 @@ class Kit2FiffModel(HasPrivateTraits):
         if not self.sqd_file:
             raise ValueError("sqd file not set")
 
-        if self.stim_chs == 'man':
-            stim = self.stim_chs_manual
+        # stim channels and coding
+        if self.stim_chs == '':
+            if self.stim_coding == 'channel':
+                raise NotImplementedError()
+            else:
+                stim = self.stim_coding
+            stim_code = 'binary'
         else:
-            stim = self.stim_chs
+            m = re.match("(\d+):(\d+):?(\d+)?", self.stim_chs)
+            if m:
+                start, stop, step = m.groups()
+                step = int(step) if step else 1
+                stim = list(range(int(start), int(stop), step))
+            else:
+                stim = [int(x.strip()) for x in self.stim_chs.split(',')]
 
+            if not stim:
+                raise ValueError("No stim channels")
+
+            if self.stim_coding == 'channel':
+                stim_code = 'channel'
+            elif self.stim_coding == '<':
+                stim_code = 'binary'
+            elif self.stim_coding == '>':
+                stim.reverse()
+                stim_code = 'binary'
+            else:
+                raise RuntimeError("stim_coding=%r" % self.stim_coding)
+
+        logger.debug("Creating raw with stim=%r, slope=%r, stim_code=%r", stim,
+                     self.stim_slope, stim_code)
         raw = RawKIT(self.sqd_file, preload=preload, stim=stim,
-                     slope=self.stim_slope)
+                     slope=self.stim_slope, stim_code=stim_code)
 
         if np.any(self.fid):
             raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
@@ -308,8 +336,8 @@ class Kit2FiffPanel(HasPrivateTraits):
     sqd_file = DelegatesTo('model')
     hsp_file = DelegatesTo('model')
     fid_file = DelegatesTo('model')
+    stim_coding = DelegatesTo('model')
     stim_chs = DelegatesTo('model')
-    stim_chs_manual = DelegatesTo('model')
     stim_slope = DelegatesTo('model')
 
     # info
@@ -361,18 +389,17 @@ class Kit2FiffPanel(HasPrivateTraits):
                            help="Whether events are marked by a decrease "
                            "(trough) or an increase (peak) in trigger "
                            "channel values"),
-                      Item('stim_chs', label="Binary Coding",
+                      Item('stim_coding', label="Binary Coding",
                            style='custom',
                            editor=EnumEditor(values={'>': '1:1 ... 128',
                                                      '<': '3:128 ... 1',
-                                                     'man': '2:Manual'},
+                                                     'channel': '2:Channel #'},
                                              cols=2),
                            help="Specifies the bit order in event "
                            "channels. Assign the first bit (1) to the "
                            "first or the last trigger channel."),
-                      Item('stim_chs_manual', label='Stim Channels',
-                           style='custom',
-                           visible_when="stim_chs == 'man'"),
+                      Item('stim_chs', label='Stim Channels',
+                           style='custom'),
                       label='Events', show_border=True),
                HGroup(Item('save_as', enabled_when='can_save'), spring,
                       'clear_all', show_labels=False),
