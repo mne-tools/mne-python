@@ -11,7 +11,7 @@ Plot topographies for MEG sensors
 import matplotlib.pyplot as plt
 
 from mne import read_evokeds
-from mne.viz import plot_topo
+from mne.viz import plot_evoked_topo
 from mne.datasets import sample
 
 print(__doc__)
@@ -27,5 +27,5 @@ evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 ###############################################################################
 # Show topography
 title = 'MNE sample data (condition : %s)' % evoked.comment
-plot_topo(evoked, title=title)
+plot_evoked_topo(evoked, title=title)
 plt.show()
