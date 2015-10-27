@@ -135,9 +135,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                      'found datasets:\n  %s'
                                      % (condition, kind, t))
                 condition = found_cond[0]
+            elif condition is None:
+                if len(evoked_node) > 1:
+                    _, _, conditions = _get_entries(fid, evoked_node)
+                    raise TypeError("Evoked file has more than one conditions, "
+                                    "the condition parameters must be "
+                                    "specified as one of:\n%s" % conditions)
+                else:
+                    condition = 0
 
             if condition >= len(evoked_node) or condition < 0:
-                fid.close()
                 raise ValueError('Data set selector out of range')
 
             my_evoked = evoked_node[condition]
