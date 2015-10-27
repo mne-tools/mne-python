@@ -15,7 +15,7 @@ from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform, Transform)
 
-from .forward._make_forward import (_get_mri_head_t, _setup_bem,
+from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
                                        _prep_field_computation)
@@ -597,7 +597,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         logger.info('BEM              : %s' % bem)
     if trans is not None:
         logger.info('MRI transform    : %s' % trans)
-        mri_head_t, trans = _get_mri_head_t(trans)
+        mri_head_t, trans = _get_trans(trans)
     else:
         mri_head_t = Transform('head', 'mri', np.eye(4))
     bem = _setup_bem(bem, bem, neeg, mri_head_t)

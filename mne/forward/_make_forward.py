@@ -17,8 +17,8 @@ from ..io.constants import FIFF
 from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
-                          _get_mri_head_t, _print_coord_trans,
-                          _coord_frame_name, Transform)
+                          _get_trans, _print_coord_trans, _coord_frame_name,
+                          Transform)
 from ..utils import logger, verbose
 from ..source_space import _ensure_src, _filter_source_spaces
 from ..surface import _normalize_vectors
@@ -135,8 +135,10 @@ def _create_meg_coil(coilset, ch, acc, t):
                type=ch['coil_type'], w=coil['w'], desc=coil['desc'],
                coord_frame=t['to'], rmag=apply_trans(coil_trans, coil['rmag']),
                cosmag=apply_trans(coil_trans, coil['cosmag'], False))
+    r0_exey = (np.dot(coil['rmag'][:, :2], coil_trans[:3, :2].T) +
+               coil_trans[:3, 3])
     res.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
-               ez=coil_trans[:3, 2], r0=coil_trans[:3, 3])
+               ez=coil_trans[:3, 2], r0=coil_trans[:3, 3], r0_exey=r0_exey)
     return res
 
 
@@ -169,7 +171,7 @@ def _create_eeg_el(ch, t=None):
 
 
 def _create_meg_coils(chs, acc=None, t=None, coilset=None):
-    """Create a set of MEG or EEG coils in the head coordinate frame"""
+    """Create a set of MEG coils in the head coordinate frame"""
     acc = _accuracy_dict[acc] if isinstance(acc, string_types) else acc
     coilset = _read_coil_defs(verbose=False) if coilset is None else coilset
     coils = [_create_meg_coil(coilset, ch, acc, t) for ch in chs]
@@ -177,7 +179,7 @@ def _create_meg_coils(chs, acc=None, t=None, coilset=None):
 
 
 def _create_eeg_els(chs):
-    """Create a set of MEG or EEG coils in the head coordinate frame"""
+    """Create a set of EEG electrodes in the head coordinate frame"""
     return [_create_eeg_el(ch) for ch in chs]
 
 
@@ -211,7 +213,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
 
 @verbose
 def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
-                       elekta_defs=False, verbose=None):
+                       elekta_defs=False, head_frame=True, verbose=None):
     """Prepare MEG coil definitions for forward calculation
 
     Parameters
@@ -226,6 +228,11 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         info['bads']
     ignore_ref : bool
         If true, ignore compensation coils
+    elekta_defs : bool
+        If True, use Elekta's coil definitions, which use different integration
+        point geometry. False by default.
+    head_frame : bool
+        If True (default), use head frame coords. Otherwise, use device frame.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -279,25 +286,35 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     else:
         ncomp = 0
 
-    _print_coord_trans(info['dev_head_t'])
-
     # Make info structure to allow making compensator later
     ncomp_data = len(info['comps'])
     ref_meg = True if not ignore_ref else False
     picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
     meg_info = pick_info(info, picks) if nmeg > 0 else None
 
-    # Create coil descriptions with transformation to head or MRI frame
+    # Create coil descriptions with transformation to head or device frame
     templates = _read_coil_defs(elekta_defs=elekta_defs)
 
-    megcoils = _create_meg_coils(megchs, accuracy, info['dev_head_t'],
-                                 templates)
+    if head_frame:
+        _print_coord_trans(info['dev_head_t'])
+        transform = info['dev_head_t']
+    else:
+        transform = None
+
+    megcoils = _create_meg_coils(megchs, accuracy, transform, templates)
+
     if ncomp > 0:
         logger.info('%d compensation data sets in %s' % (ncomp_data,
                                                          info_extra))
-        compcoils = _create_meg_coils(compchs, 'normal', info['dev_head_t'],
-                                      templates)
-    logger.info('Head coordinate MEG coil definitions created.')
+        compcoils = _create_meg_coils(compchs, 'normal', transform, templates)
+
+    # Check that coordinate frame is correct and log it
+    if head_frame:
+        assert megcoils[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+        logger.info('MEG coil definitions created in head coordinates.')
+    else:
+        assert megcoils[0]['coord_frame'] == FIFF.FIFFV_COORD_DEVICE
+        logger.info('MEG coil definitions created in device coordinate.')
 
     return megcoils, compcoils, megnames, meg_info
 
@@ -500,7 +517,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     # read the transformation from MRI to HEAD coordinates
     # (could also be HEAD to MRI)
-    mri_head_t, trans = _get_mri_head_t(trans)
+    mri_head_t, trans = _get_trans(trans)
     bem_extra = 'dict' if isinstance(bem, dict) else bem
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'

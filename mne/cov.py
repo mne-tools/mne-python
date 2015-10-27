@@ -9,10 +9,7 @@ import os
 from math import floor, ceil, log
 import itertools as itt
 import warnings
-
 from copy import deepcopy
-
-import six
 from distutils.version import LooseVersion
 
 import numpy as np
@@ -1416,7 +1413,7 @@ def _regularized_covariance(data, reg=None):
                 skl_cov = ShrunkCovariance(shrinkage=reg,
                                            store_precision=False,
                                            assume_centered=True)
-        elif isinstance(reg, six.string_types):
+        elif isinstance(reg, string_types):
             if reg == 'ledoit_wolf':
                 try:
                     from sklearn.covariance import LedoitWolf

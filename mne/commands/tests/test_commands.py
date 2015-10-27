@@ -11,7 +11,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_coreg, mne_kit2fiff,
                           mne_make_scalp_surfaces, mne_maxfilter,
                           mne_report, mne_surf2bem, mne_watershed_bem,
-                          mne_compare_fiff, mne_flash_bem)
+                          mne_compare_fiff, mne_flash_bem, mne_show_fiff)
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        ArgvSetter, slow_test, ultra_slow_test)
@@ -52,6 +52,13 @@ def test_bti2fiff():
 def test_compare_fiff():
     """Test mne compare_fiff"""
     check_usage(mne_compare_fiff)
+
+
+def test_show_fiff():
+    """Test mne compare_fiff"""
+    check_usage(mne_show_fiff)
+    with ArgvSetter((raw_fname,)):
+        mne_show_fiff.run()
 
 
 @requires_mne

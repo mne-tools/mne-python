@@ -15,5 +15,5 @@ from .ica import (ICA, ica_find_eog_events, ica_find_ecg_events,
                   get_score_funcs, read_ica, run_ica)
 from .bads import find_outliers
 from .stim import fix_stim_artifact
-from .maxwell import _maxwell_filter
+from .maxwell import maxwell_filter
 from .xdawn import Xdawn
