@@ -17,7 +17,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  grand_average, combine_evoked)
-from mne.evoked import _get_peak, EvokedArray
+from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.epochs import EpochsArray
 
 from mne.utils import _TempDir, requires_pandas, slow_test, requires_version
@@ -125,6 +125,9 @@ def test_io_evoked():
         write_evokeds(fname2, ave)
         read_evokeds(fname2)
     assert_true(len(w) == 2)
+
+    # constructor
+    assert_raises(TypeError, Evoked, fname)
 
 
 def test_shift_time_evoked():
