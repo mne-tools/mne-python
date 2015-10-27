@@ -107,7 +107,8 @@ def test_io_evoked():
     aves3 = read_evokeds(fname, types)
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), aves1)
     aves4 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))
-    for aves in [aves2, aves3, aves4]:
+    aves5 = [pickle.loads(pickle.dumps(av)) for av in aves1]
+    for aves in [aves2, aves3, aves4, aves5]:
         for [av1, av2] in zip(aves1, aves):
             assert_array_almost_equal(av1.data, av2.data)
             assert_array_almost_equal(av1.times, av2.times)
