@@ -534,8 +534,9 @@ def get_kit_info(rawfile):
         fid.seek(KIT.BASIC_INFO)
         basic_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(basic_offset)
-        # skips version, revision, sysid
-        fid.seek(KIT.INT * 3, SEEK_CUR)
+        # skips version, revision
+        fid.seek(KIT.INT * 2, SEEK_CUR)
+        sysid = unpack('i', fid.read(KIT.INT))[0]
         # basic info
         sysname = unpack('128s', fid.read(KIT.STRING))
         sysname = sysname[0].decode().split('\n')[0]
@@ -546,6 +547,14 @@ def get_kit_info(rawfile):
             KIT_SYS = KIT_AD
         elif sysname == 'NYU 160ch System since Jan24 2009':
             KIT_SYS = KIT_NY
+        elif sysname == 'University of Maryland':
+            # Maryland system pre-July 2014 has the same settings as NY system
+            if sysid == 51:
+                KIT_SYS = KIT_NY
+            elif sysid in (52, 53):
+                KIT_SYS = KIT_MD
+            else:
+                raise NotImplementedError
         else:
             raise NotImplementedError
 

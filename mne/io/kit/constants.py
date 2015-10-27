@@ -43,7 +43,7 @@ KIT.DIG_POINTS = 10000
 KIT_NY = Bunch(**KIT)
 KIT_AD = Bunch(**KIT)
 
-# NYU-system channel information
+# NY-system channel information
 KIT_NY.NCHAN = 192
 KIT_NY.NMEGCHAN = 157
 KIT_NY.NREFCHAN = 3
@@ -69,6 +69,13 @@ KIT_NY.HPFS = [0, 1, 3]
 # LPF options: 0:10Hz, 1:20Hz, 2:50Hz, 3:100Hz, 4:200Hz, 5:500Hz,
 #              6:1,000Hz, 7:2,000Hz
 KIT_NY.LPFS = [10, 20, 50, 100, 200, 500, 1000, 2000]
+
+
+# Maryland-system channel information
+# Virtually the same as the NY-system except new ADC circa July 2014
+# 16-bit A-to-D converter, one bit for signed integer. range +/- 32,768
+KIT_MD = KIT_NY
+KIT_MD.DYNAMIC_RANGE = 2 ** 16 / 2
 
 
 # AD-system channel information
