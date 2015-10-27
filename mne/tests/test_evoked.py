@@ -101,10 +101,9 @@ def test_io_evoked():
     assert_array_almost_equal(ave.data, ave3.data, 19)
 
     # test read_evokeds and write_evokeds
-    types = ['Left Auditory', 'Right Auditory', 'Left visual', 'Right visual']
-    aves1 = read_evokeds(fname)
-    aves2 = read_evokeds(fname, [0, 1, 2, 3])
-    aves3 = read_evokeds(fname, types)
+    aves1 = read_evokeds(fname)[1::2]
+    aves2 = read_evokeds(fname, [1, 3])
+    aves3 = read_evokeds(fname, ['Right Auditory', 'Right visual'])
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), aves1)
     aves4 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))
     for aves in [aves2, aves3, aves4]:
