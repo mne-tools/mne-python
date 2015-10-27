@@ -21,8 +21,8 @@ try:
     from mayavi.tools.mlab_scene_model import MlabSceneModel
     from pyface.api import confirm, error, FileDialog, OK, YES, information
     from traits.api import (HasTraits, HasPrivateTraits, cached_property,
-                            Instance, Property, Bool, Button, Enum, File, Int,
-                            List, Str, Array, DelegatesTo)
+                            Instance, Property, Bool, Button, Enum, File,
+                            Float, Int, List, Str, Array, DelegatesTo)
     from traitsui.api import (View, Item, HGroup, VGroup, spring,
                               CheckListEditor, EnumEditor, Handler)
     from traitsui.menu import NoButtons
@@ -30,7 +30,7 @@ try:
 except:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = Handler = object
-    cached_property = MayaviScene = MlabSceneModel = Bool = Button = \
+    cached_property = MayaviScene = MlabSceneModel = Bool = Button = Float = \
         DelegatesTo = Enum = File = Instance = Int = List = Property = \
         Str = Array = spring = View = Item = HGroup = VGroup = EnumEditor = \
         NoButtons = CheckListEditor = SceneEditor = trait_wraith
@@ -75,12 +75,14 @@ class Kit2FiffModel(HasPrivateTraits):
     stim_coding = Enum(">", "<", "channel")
     stim_chs = Str("")
     stim_slope = Enum("-", "+")
+    stim_threshold = Float(1.)
+
     # Marker Points
     use_mrk = List(list(range(5)), desc="Which marker points to use for the "
                    "device head coregistration.")
 
     # Derived Traits
-    mrk = Property(depends_on=('markers.mrk3.points'))
+    mrk = Property(depends_on='markers.mrk3.points')
 
     # Polhemus Fiducials
     elp_raw = Property(depends_on=['fid_file'])
@@ -299,10 +301,12 @@ class Kit2FiffModel(HasPrivateTraits):
             else:
                 raise RuntimeError("stim_coding=%r" % self.stim_coding)
 
-        logger.debug("Creating raw with stim=%r, slope=%r, stim_code=%r", stim,
-                     self.stim_slope, stim_code)
+        logger.info("Creating raw with stim=%r, slope=%r, stim_code=%r, "
+                    "stimthresh=%r", stim, self.stim_slope, stim_code,
+                    self.stim_threshold)
         raw = RawKIT(self.sqd_file, preload=preload, stim=stim,
-                     slope=self.stim_slope, stim_code=stim_code)
+                     slope=self.stim_slope, stim_code=stim_code,
+                     stimthresh=self.stim_threshold)
 
         if np.any(self.fid):
             raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
@@ -339,6 +343,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     stim_coding = DelegatesTo('model')
     stim_chs = DelegatesTo('model')
     stim_slope = DelegatesTo('model')
+    stim_threshold = DelegatesTo('model')
 
     # info
     can_save = DelegatesTo('model')
@@ -389,8 +394,7 @@ class Kit2FiffPanel(HasPrivateTraits):
                            help="Whether events are marked by a decrease "
                            "(trough) or an increase (peak) in trigger "
                            "channel values"),
-                      Item('stim_coding', label="Binary Coding",
-                           style='custom',
+                      Item('stim_coding', label="Value Coding", style='custom',
                            editor=EnumEditor(values={'>': '1:1 ... 128',
                                                      '<': '3:128 ... 1',
                                                      'channel': '2:Channel #'},
@@ -398,8 +402,8 @@ class Kit2FiffPanel(HasPrivateTraits):
                            help="Specifies the bit order in event "
                            "channels. Assign the first bit (1) to the "
                            "first or the last trigger channel."),
-                      Item('stim_chs', label='Stim Channels',
-                           style='custom'),
+                      Item('stim_chs', label='Channels', style='custom'),
+                      Item('stim_threshold', label='Threshold'),
                       label='Events', show_border=True),
                HGroup(Item('save_as', enabled_when='can_save'), spring,
                       'clear_all', show_labels=False),
