@@ -1,0 +1,50 @@
+machine:
+  environment:
+    # We need to set this variable to let python see the package installed through apt-get
+    PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
+dependencies:
+  cache_directories:
+    - "/home/ubuntu/miniconda"
+    - "/home/ubuntu/.mne"
+    - "/home/ubuntu/examples"
+  # Various dependencies
+  pre:
+    # Get a running Python
+    - cd ~
+    # Disable pyenv the mean way (no clean way provided by CircleCI)
+    - rm -rf ~/.pyenv
+    - rm -rf ~/virtualenvs
+    # Get Anaconda
+    - if [ ! -d "/home/ubuntu/miniconda" ]; then
+        echo "Setting up conda";
+        wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+        chmod +x miniconda.sh;
+        ./miniconda.sh -b -p /home/ubuntu/miniconda;
+        conda update --yes --quiet conda;
+        conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx PIL six IPython;
+        sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
+      else
+        echo "Conda already set up.";
+      fi;
+    - ls -al /home/ubuntu/miniconda
+    - ls -al /home/ubuntu/miniconda/bin
+    - echo $PATH
+    - which python
+    - which pip
+    - pip install sphinx-gallery sphinx-bootstrap-theme PySurfer nilearn neo
+  override:
+    - python setup.py develop
+    - python -c "import mne; mne.sys_info()"
+    - mkdir -p ~/examples
+    - python -c "import mne, os; print(mne.datasets.sample.data_path(os.path.join(os.environ['HOME'], 'examples'), verbose=True))"
+    # Pipefail is requested to propagate exit code
+    - set -o pipefail && cd doc && make html_dev 2>&1 | tee ~/log.txt
+test:
+  # Grep error on the documentation
+  override:
+    - cat ~/log.txt && if grep -q "Traceback (most recent call last):" ~/log.txt; then false; else true; fi
+general:
+  # Open the doc to the API
+  artifacts:
+    - "doc/_build/html"
+    - "~/log.txt"
