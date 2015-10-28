@@ -56,7 +56,7 @@ nepochs = 50
 sr = 1000
 nsec = 5
 events = np.arange(nepochs).reshape([-1, 1])
-events = np.hstack([events, np.zeros([nepochs, 2])]).astype(int)
+events = np.hstack([events, np.zeros([nepochs, 2], dtype=int)])
 data = np.random.randn(nepochs, nchans, sr * nsec)
 info = mne.create_info(nchans, sr, ch_types='eeg')
 epochs = mne.EpochsArray(data, info, events)
