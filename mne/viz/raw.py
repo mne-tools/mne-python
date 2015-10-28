@@ -13,10 +13,11 @@ from functools import partial
 import numpy as np
 
 from ..externals.six import string_types
-from ..io.pick import pick_types
+from ..io.pick import pick_types, pick_info
 from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import compute_raw_psd
+from .topo import _plot_topo, _plot_timeseries
 from .utils import _toggle_options, _toggle_proj, tight_layout
 from .utils import _layout_figure, _plot_raw_onkey, figure_nobar
 from .utils import _plot_raw_onscroll, _mouse_click
@@ -472,7 +473,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
                                       fmin=fmin, fmax=fmax, proj=proj,
                                       n_fft=n_fft, n_overlap=n_overlap,
-                                      n_jobs=n_jobs, verbose=None)
+                                      n_jobs=n_jobs, verbose=verbose)
 
         # Convert PSDs to dB
         if dB:
@@ -670,3 +671,69 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
     # CGContextRef error on the MacOSX backend :(
     if params['fig_proj'] is not None:
         params['fig_proj'].canvas.draw()
+
+
+def plot_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
+                  n_fft=2048, n_overlap=0, layout=None, color='w',
+                  fig_facecolor='k', axis_facecolor='k', dB=True, show=True,
+                  n_jobs=1, verbose=None):
+    """Function for plotting channel wise frequency spectra as topography.
+
+    Parameters
+    ----------
+    raw : instance of io.Raw
+        The raw instance to use.
+    tmin : float
+        Start time for calculations. Defaults to zero.
+    tmax : float | None
+        End time for calculations. If None (default), the end of data is used.
+    fmin : float
+        Start frequency to consider. Defaults to zero.
+    fmax : float
+        End frequency to consider. Defaults to 100.
+    proj : bool
+        Apply projection. Defaults to False.
+    n_fft : int
+        Number of points to use in Welch FFT calculations. Defaults to 2048.
+    n_overlap : int
+        The number of points of overlap between blocks. Defaults to 0
+        (no overlap).
+    color : str | tuple
+        A matplotlib-compatible color to use for the curves. Defaults to white.
+    fig_facecolor : str | tuple
+        A matplotlib-compatible color to use for the figure background.
+        Defaults to black.
+    axis_facecolor : str | tuple
+        A matplotlib-compatible color to use for the axis background.
+        Defaults to black.
+    dB : bool
+        If True, transform data to decibels.
+    show : bool
+        Show figure if True.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure distributing one image per channel across sensor topography.
+    """
+    picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True, seeg=True,
+                       exclude=[])
+    if layout is None:
+        from ..channels.layout import find_layout
+        layout = find_layout(raw.info)
+    info = pick_info(raw.info, sel=picks)
+    psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
+                                  fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
+                                  n_overlap=n_overlap, n_jobs=n_jobs,
+                                  verbose=verbose)
+    if dB:
+        psds = 10 * np.log10(psds)
+    plot_fun = partial(_plot_timeseries, data=[psds], color=color,
+                       times=freqs)
+
+    _plot_topo(info, times=freqs, show_func=plot_fun, layout=layout,
+               axis_facecolor=axis_facecolor, fig_facecolor=fig_facecolor)
