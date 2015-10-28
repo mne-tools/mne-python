@@ -16,7 +16,7 @@ from .evoked import (plot_evoked, plot_evoked_image, plot_evoked_white,
 from .circle import plot_connectivity_circle, circular_layout
 from .epochs import (plot_drop_log, plot_epochs,
                      _drop_log_stats, plot_epochs_psd, plot_epochs_image)
-from .raw import plot_raw, plot_raw_psd
+from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from .ica import plot_ica_scores, plot_ica_sources, plot_ica_overlay
 from .ica import _plot_sources_raw, _plot_sources_epochs
 from .montage import plot_montage

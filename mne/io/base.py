@@ -38,7 +38,7 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask)
-from ..viz import plot_raw, plot_raw_psd
+from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
@@ -1438,6 +1438,65 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                             color=color, area_mode=area_mode,
                             area_alpha=area_alpha, n_overlap=n_overlap,
                             dB=dB, show=show, n_jobs=n_jobs)
+
+    def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
+                      n_fft=2048, n_overlap=0, layout=None, color='w',
+                      fig_facecolor='k', axis_facecolor='k', dB=True,
+                      show=True, n_jobs=1, verbose=None):
+        """Function for plotting channel wise frequency spectra as topography.
+
+        Parameters
+        ----------
+        tmin : float
+            Start time for calculations. Defaults to zero.
+        tmax : float | None
+            End time for calculations. If None (default), the end of data is
+            used.
+        fmin : float
+            Start frequency to consider. Defaults to zero.
+        fmax : float
+            End frequency to consider. Defaults to 100.
+        proj : bool
+            Apply projection. Defaults to False.
+        n_fft : int
+            Number of points to use in Welch FFT calculations. Defaults to
+            2048.
+        n_overlap : int
+            The number of points of overlap between blocks. Defaults to 0
+            (no overlap).
+        layout : instance of Layout | None
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If None (default), the correct
+            layout is inferred from the data.
+        color : str | tuple
+            A matplotlib-compatible color to use for the curves. Defaults to
+            white.
+        fig_facecolor : str | tuple
+            A matplotlib-compatible color to use for the figure background.
+            Defaults to black.
+        axis_facecolor : str | tuple
+            A matplotlib-compatible color to use for the axis background.
+            Defaults to black.
+        dB : bool
+            If True, transform data to decibels. Defaults to True.
+        show : bool
+            Show figure if True. Defaults to True.
+        n_jobs : int
+            Number of jobs to run in parallel. Defaults to 1.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
+        """
+        return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
+                                 fmax=fmax, proj=proj, n_fft=n_fft,
+                                 n_overlap=n_overlap, layout=layout,
+                                 color=color, fig_facecolor=fig_facecolor,
+                                 axis_facecolor=axis_facecolor, dB=dB,
+                                 show=show, n_jobs=n_jobs, verbose=verbose)
 
     def time_as_index(self, times, use_first_samp=False, use_rounding=False):
         """Convert time to indices

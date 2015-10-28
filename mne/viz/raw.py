@@ -13,7 +13,7 @@ from functools import partial
 import numpy as np
 
 from ..externals.six import string_types
-from ..io.pick import pick_types, pick_info
+from ..io.pick import pick_types
 from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import compute_raw_psd
@@ -462,7 +462,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     Returns
     -------
     fig : instance of matplotlib figure
-        Figure distributing one image per channel across sensor topography.
+        Figure with frequency spectra of the data channels.
     """
     import matplotlib.pyplot as plt
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
@@ -673,10 +673,10 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
         params['fig_proj'].canvas.draw()
 
 
-def plot_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
-                  n_fft=2048, n_overlap=0, layout=None, color='w',
-                  fig_facecolor='k', axis_facecolor='k', dB=True, show=True,
-                  n_jobs=1, verbose=None):
+def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
+                      n_fft=2048, n_overlap=0, layout=None, color='w',
+                      fig_facecolor='k', axis_facecolor='k', dB=True,
+                      show=True, n_jobs=1, verbose=None):
     """Function for plotting channel wise frequency spectra as topography.
 
     Parameters
@@ -698,6 +698,10 @@ def plot_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
     n_overlap : int
         The number of points of overlap between blocks. Defaults to 0
         (no overlap).
+    layout : instance of Layout | None
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). If None (default), the correct layout is
+        inferred from the data.
     color : str | tuple
         A matplotlib-compatible color to use for the curves. Defaults to white.
     fig_facecolor : str | tuple
@@ -707,11 +711,11 @@ def plot_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
         A matplotlib-compatible color to use for the axis background.
         Defaults to black.
     dB : bool
-        If True, transform data to decibels.
+        If True, transform data to decibels. Defaults to True.
     show : bool
-        Show figure if True.
+        Show figure if True. Defaults to True.
     n_jobs : int
-        Number of jobs to run in parallel.
+        Number of jobs to run in parallel. Defaults to 1.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -720,20 +724,28 @@ def plot_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True, seeg=True,
-                       exclude=[])
+    import matplotlib.pyplot as plt
+
     if layout is None:
         from ..channels.layout import find_layout
         layout = find_layout(raw.info)
-    info = pick_info(raw.info, sel=picks)
-    psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
+
+    psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax,
                                   fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
                                   n_overlap=n_overlap, n_jobs=n_jobs,
                                   verbose=verbose)
     if dB:
         psds = 10 * np.log10(psds)
-    plot_fun = partial(_plot_timeseries, data=[psds], color=color,
-                       times=freqs)
+        y_label = 'dB'
+    else:
+        y_label = 'Power'
+    plot_fun = partial(_plot_timeseries, data=[psds], color=color, times=freqs)
 
-    _plot_topo(info, times=freqs, show_func=plot_fun, layout=layout,
-               axis_facecolor=axis_facecolor, fig_facecolor=fig_facecolor)
+    fig = _plot_topo(raw.info, times=freqs, show_func=plot_fun, layout=layout,
+                     axis_facecolor=axis_facecolor,
+                     fig_facecolor=fig_facecolor, x_label='Frequency Hz',
+                     y_label=y_label)
+
+    if show:
+        plt.show()
+    return fig
