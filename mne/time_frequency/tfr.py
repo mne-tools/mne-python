@@ -1374,3 +1374,60 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         out = (out, AverageTFR(info, itc, times, freqs, nave,
                                method='mutlitaper-itc'))
     return out
+
+def combine_tfr(all_tfr, weights='nave'):
+    """Merge TFR data
+
+    Data should have the same channels and the same time instants.
+    Subtraction can be performed by passing negative weights (e.g., [1, -1]).
+
+    Parameters
+    ----------
+    all_tfr : list of TFR
+        The tfr datasets.
+    weights : list of float | str
+        The weights to apply to the data of each TFR instance.
+        Can also be ``'nave'`` to weight according to tfr.nave,
+        or ``"equal"`` to use equal weighting (each weighted as ``1/N``).
+
+    Returns
+    -------
+    tfr : AllTFR
+        The new TFR data.
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
+    """
+    tfr = all_tfr[0].copy()
+    if isinstance(weights, string_types):
+        if weights not in ('nave', 'equal'):
+            raise ValueError('Weights must be a list of float, or "nave" or '
+                             '"equal"')
+        if weights == 'nave':
+            weights = np.array([e.nave for e in all_tfr], float)
+            weights /= weights.sum()
+        else:  # == 'equal'
+            weights = [1. / len(all_tfr)] * len(all_tfr)
+    weights = np.array(weights, float)
+    if weights.ndim != 1 or weights.size != len(all_tfr):
+        raise ValueError('Weights must be the same size as all_tfr')
+
+    ch_names = tfr.ch_names
+    for t_ in all_tfr[1:]:
+        assert t_.ch_names == ch_names, ValueError("%s and %s do not contain "
+                                                   "the same channels"
+                                                   % (tfr, t_))
+        assert np.max(np.abs(t_.times - tfr.times)) < 1e-7, \
+            ValueError("%s and %s do not contain the same time instants"
+                       % (tfr, t_))
+
+    # use union of bad channels
+    bads = list(set(tfr.info['bads']).union(*(t_.info['bads']
+                                              for t_ in all_tfr[1:])))
+    tfr.info['bads'] = bads
+
+    tfr.data = sum(w * t_.data for w, t_ in zip(weights, all_tfr))
+    tfr.nave = max(int(1. / sum(w ** 2 / e.nave
+                                for w, e in zip(weights, all_tfr))), 1)
+    return tfr
