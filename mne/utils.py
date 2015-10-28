@@ -70,7 +70,9 @@ def _get_call_line(in_verbose=False):
     # or decorated by `verbose`.
     back = 2 if not in_verbose else 4
     call_frame = inspect.getouterframes(inspect.currentframe())[back][0]
-    return inspect.getframeinfo(call_frame).code_context[0].strip()
+    context = inspect.getframeinfo(call_frame).code_context
+    context = 'unknown' if context is None else context[0].strip()
+    return context
 
 
 def _sort_keys(x):
