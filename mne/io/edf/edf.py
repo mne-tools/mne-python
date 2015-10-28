@@ -282,9 +282,9 @@ class RawEDF(_BaseRaw):
                     stim[n_start:n_stop] = evid
                 data[stim_channel_idx, :] = stim[start:stop]
             else:
-                # Allows support for up to 16-bit trigger values (2 ** 16 - 1)
+                # Allows support for up to 17-bit trigger values (2 ** 17 - 1)
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),
-                                      65535)
+                                      131071)
                 data[stim_channel_idx, :] = stim
 
 
