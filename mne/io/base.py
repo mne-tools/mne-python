@@ -1431,7 +1431,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Returns
         -------
         fig : instance of matplotlib figure
-            Figure distributing one image per channel across sensor topography.
+            Figure with frequency spectra of the data channels.
         """
         return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                             proj=proj, n_fft=n_fft, picks=picks, ax=ax,
