@@ -644,7 +644,6 @@ def _magnetic_dipole_field_vec(rrs, coils):
         rmags, cosmags, ws, bins = coils
     else:
         rmags, cosmags, ws, bins = _concatenate_coils(coils)
-        print(bins)
     del coils
     fwd = np.empty((3 * len(rrs), bins[-1] + 1))
     for ri, rr in enumerate(rrs):
