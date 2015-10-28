@@ -730,8 +730,8 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
         from ..channels.layout import find_layout
         layout = find_layout(raw.info)
 
-    psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax,
-                                  fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
+    psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, fmin=fmin,
+                                  fmax=fmax, proj=proj, n_fft=n_fft,
                                   n_overlap=n_overlap, n_jobs=n_jobs,
                                   verbose=verbose)
     if dB:
@@ -743,7 +743,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
 
     fig = _plot_topo(raw.info, times=freqs, show_func=plot_fun, layout=layout,
                      axis_facecolor=axis_facecolor,
-                     fig_facecolor=fig_facecolor, x_label='Frequency Hz',
+                     fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
                      y_label=y_label)
 
     if show:

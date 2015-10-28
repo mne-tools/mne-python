@@ -120,6 +120,9 @@ def test_plot_raw_psd():
     assert_raises(ValueError, raw.plot_psd, ax=ax)
     raw.plot_psd(picks=picks, ax=ax)
     plt.close('all')
+    # topo psd
+    raw.plot_psd_topo()
+    plt.close('all')
 
 
 run_tests_if_main()
