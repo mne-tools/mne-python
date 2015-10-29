@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import os
-import re
 import numpy as np
 from scipy.linalg import inv
 from threading import Thread
@@ -23,7 +22,7 @@ try:
     from traits.api import (HasTraits, HasPrivateTraits, cached_property,
                             Instance, Property, Bool, Button, Enum, File,
                             Float, Int, List, Str, Array, DelegatesTo)
-    from traitsui.api import (View, Item, HGroup, VGroup, spring,
+    from traitsui.api import (View, Item, HGroup, VGroup, spring, TextEditor,
                               CheckListEditor, EnumEditor, Handler)
     from traitsui.menu import NoButtons
     from tvtk.pyface.scene_editor import SceneEditor
@@ -33,7 +32,7 @@ except:
     cached_property = MayaviScene = MlabSceneModel = Bool = Button = Float = \
         DelegatesTo = Enum = File = Instance = Int = List = Property = \
         Str = Array = spring = View = Item = HGroup = VGroup = EnumEditor = \
-        NoButtons = CheckListEditor = SceneEditor = trait_wraith
+        NoButtons = CheckListEditor = SceneEditor, TextEditor = trait_wraith
 
 from ..io.kit.kit import RawKIT, KIT
 from ..transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
@@ -74,6 +73,9 @@ class Kit2FiffModel(HasPrivateTraits):
                     "fiducials")
     stim_coding = Enum(">", "<", "channel")
     stim_chs = Str("")
+    stim_chs_array = Property(depends_on='stim_chs')
+    stim_chs_ok = Property(depends_on='stim_chs_array')
+    stim_chs_comment = Property(depends_on='stim_chs_array')
     stim_slope = Enum("-", "+")
     stim_threshold = Float(1.)
 
@@ -102,14 +104,13 @@ class Kit2FiffModel(HasPrivateTraits):
     sqd_fname = Property(Str, depends_on='sqd_file')
     hsp_fname = Property(Str, depends_on='hsp_file')
     fid_fname = Property(Str, depends_on='fid_file')
-    can_save = Property(Bool, depends_on=['sqd_file', 'fid', 'elp', 'hsp',
-                                          'dev_head_trans'])
+    can_save = Property(Bool, depends_on=['stim_chs_ok', 'sqd_file', 'fid',
+                                          'elp', 'hsp', 'dev_head_trans'])
 
     @cached_property
     def _get_can_save(self):
         "Only allow saving when either all or no head shape elements are set."
-        has_sqd = bool(self.sqd_file)
-        if not has_sqd:
+        if not self.stim_chs_ok or not self.sqd_file:
             return False
 
         has_all_hsp = (np.any(self.dev_head_trans) and np.any(self.hsp) and
@@ -246,6 +247,32 @@ class Kit2FiffModel(HasPrivateTraits):
         else:
             return '-'
 
+    @cached_property
+    def _get_stim_chs_array(self):
+        if not self.stim_chs.strip():
+            return True
+        try:
+            out = eval("r_[%s]" % self.stim_chs, vars(np))
+            if out.dtype.kind != 'i':
+                raise TypeError("Need array of int")
+        except:
+            return None
+        else:
+            return out
+
+    @cached_property
+    def _get_stim_chs_comment(self):
+        if self.stim_chs_array is None:
+            return "Invalid!"
+        elif self.stim_chs_array is True:
+            return "Ok: Default channels"
+        else:
+            return "Ok: %i channels" % len(self.stim_chs_array)
+
+    @cached_property
+    def _get_stim_chs_ok(self):
+        return self.stim_chs_array is not None
+
     def clear_all(self):
         """Clear all specified input parameters"""
         self.markers.clear = True
@@ -273,24 +300,14 @@ class Kit2FiffModel(HasPrivateTraits):
             raise ValueError("sqd file not set")
 
         # stim channels and coding
-        if self.stim_chs == '':
+        if self.stim_chs_array is True:
             if self.stim_coding == 'channel':
                 raise NotImplementedError()
             else:
                 stim = self.stim_coding
             stim_code = 'binary'
         else:
-            m = re.match("(\d+):(\d+):?(\d+)?", self.stim_chs)
-            if m:
-                start, stop, step = m.groups()
-                step = int(step) if step else 1
-                stim = list(range(int(start), int(stop), step))
-            else:
-                stim = [int(x.strip()) for x in self.stim_chs.split(',')]
-
-            if not stim:
-                raise ValueError("No stim channels")
-
+            stim = self.stim_chs_array
             if self.stim_coding == 'channel':
                 stim_code = 'channel'
             elif self.stim_coding == '<':
@@ -342,6 +359,8 @@ class Kit2FiffPanel(HasPrivateTraits):
     fid_file = DelegatesTo('model')
     stim_coding = DelegatesTo('model')
     stim_chs = DelegatesTo('model')
+    stim_chs_ok = DelegatesTo('model')
+    stim_chs_comment = DelegatesTo('model')
     stim_slope = DelegatesTo('model')
     stim_threshold = DelegatesTo('model')
 
@@ -402,7 +421,10 @@ class Kit2FiffPanel(HasPrivateTraits):
                            help="Specifies the bit order in event "
                            "channels. Assign the first bit (1) to the "
                            "first or the last trigger channel."),
-                      Item('stim_chs', label='Channels', style='custom'),
+                      Item('stim_chs', label='Channels', style='custom',
+                           editor=TextEditor(evaluate_name='stim_chs_ok',
+                                             auto_set=True)),
+                      Item('stim_chs_comment', label='>', style='readonly'),
                       Item('stim_threshold', label='Threshold'),
                       label='Events', show_border=True),
                HGroup(Item('save_as', enabled_when='can_save'), spring,
