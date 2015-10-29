@@ -296,16 +296,17 @@ class Kit2FiffModel(HasPrivateTraits):
     def get_raw(self, preload=False):
         """Create a raw object based on the current model settings
         """
-        if not self.sqd_file:
-            raise ValueError("sqd file not set")
+        if not self.can_save:
+            raise ValueError("Not all necessary parameters are set")
 
         # stim channels and coding
         if self.stim_chs_array is True:
             if self.stim_coding == 'channel':
-                raise NotImplementedError()
+                stim_code = 'channel'
+                raise NotImplementedError("Finding default event channels")
             else:
                 stim = self.stim_coding
-            stim_code = 'binary'
+                stim_code = 'binary'
         else:
             stim = self.stim_chs_array
             if self.stim_coding == 'channel':
@@ -313,7 +314,8 @@ class Kit2FiffModel(HasPrivateTraits):
             elif self.stim_coding == '<':
                 stim_code = 'binary'
             elif self.stim_coding == '>':
-                stim.reverse()
+                # if stim is
+                stim = stim[::-1]
                 stim_code = 'binary'
             else:
                 raise RuntimeError("stim_coding=%r" % self.stim_coding)
