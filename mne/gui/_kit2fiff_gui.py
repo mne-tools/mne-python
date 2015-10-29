@@ -56,6 +56,34 @@ else:
     kit_con_wildcard = ['*.sqd;*.con']
 
 
+# help text
+tooltips = {"stim_chs": ("Define the channels that are used to generate "
+                         "events. If the field is empty, the default "
+                         "channels are used (for NYU systems only). Channels "
+                         "can be defined as comma separated channel numbers "
+                         "(\"1, 3, 5, 7\"), ranges (\"1:9:2\") and "
+                         "combinations of the two (\"1:7:2, 7, 9\")."),
+            "stim_coding": ("Specifies the bit order in event channels. "
+                            "Assign the first bit (1) to the first or the "
+                            "last trigger channel."),
+            }
+
+
+def tooltip(item):
+    "Helper function to retrieve and format tooltip help"
+    text = tooltips[item]
+    lines = []
+    words = text.split(' ')
+    while words:
+        line = []
+        while words:
+            if len(line) + sum(len(w) for w in line) + len(words[0]) > 50:
+                break
+            line.append(words.pop(0))
+        lines.append(' '.join(line))
+    return os.linesep.join(lines)
+
+
 class Kit2FiffModel(HasPrivateTraits):
     """Data Model for Kit2Fiff conversion
 
@@ -420,10 +448,9 @@ class Kit2FiffPanel(HasPrivateTraits):
                                                      '<': '3:128 ... 1',
                                                      'channel': '2:Channel #'},
                                              cols=2),
-                           help="Specifies the bit order in event "
-                           "channels. Assign the first bit (1) to the "
-                           "first or the last trigger channel."),
+                           tooltip=tooltip("stim_coding")),
                       Item('stim_chs', label='Channels', style='custom',
+                           tooltip=tooltip("stim_chs"),
                            editor=TextEditor(evaluate_name='stim_chs_ok',
                                              auto_set=True)),
                       Item('stim_chs_comment', label='>', style='readonly'),
