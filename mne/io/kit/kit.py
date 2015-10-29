@@ -24,7 +24,7 @@ from ..base import _BaseRaw
 from ...epochs import _BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
-from .constants import KIT, KIT_NY, KIT_AD, KIT_MD
+from .constants import KIT, KIT_CONSTANTS
 from .coreg import read_mrk
 from ...externals.six import string_types
 from ...event import read_events
@@ -551,24 +551,16 @@ def get_kit_info(rawfile):
         # basic info
         sysname = unpack('128s', fid.read(KIT.STRING))
         sysname = sysname[0].decode().split('\n')[0]
+        if sysid not in KIT_CONSTANTS:
+            raise NotImplementedError("Data from the KIT system %s (ID %s) "
+                                      "can not currently be read, please "
+                                      "contact the MNE-Python developers."
+                                      % (sysname, sysid))
+        KIT_SYS = KIT_CONSTANTS[sysid]
+
+        # channels
         fid.seek(KIT.STRING, SEEK_CUR)  # skips modelname
         sqd['nchan'] = unpack('i', fid.read(KIT.INT))[0]
-
-        if sysname == 'New York University Abu Dhabi':
-            KIT_SYS = KIT_AD
-        elif sysname == 'NYU 160ch System since Jan24 2009':
-            KIT_SYS = KIT_NY
-        elif sysname == 'University of Maryland':
-            # Maryland system pre-July 2014 has the same settings as NY system
-            if sysid == 51:
-                KIT_SYS = KIT_NY
-            elif sysid in (52, 53):
-                KIT_SYS = KIT_MD
-            else:
-                raise NotImplementedError
-        else:
-            raise NotImplementedError
-
         # channel locations
         fid.seek(KIT_SYS.CHAN_LOC_OFFSET)
         chan_offset = unpack('i', fid.read(KIT.INT))[0]

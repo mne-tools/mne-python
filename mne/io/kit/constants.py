@@ -104,3 +104,15 @@ KIT_AD.HPFS = [0, 0.03, 0.1, 0.3, 1, 3, 10, 30]
 # LPF options: 0:10Hz, 1:20Hz, 2:50Hz, 3:100Hz, 4:200Hz, 5:500Hz,
 #              6:1,000Hz, 7:10,000Hz
 KIT_AD.LPFS = [10, 20, 50, 100, 200, 500, 1000, 10000]
+
+
+# KIT recording system is encoded in the SQD file as integer:
+KIT_CONSTANTS = {32: KIT_NY,  # NYU-NY, July 7, 2008 -
+                 33: KIT_NY,  # NYU-NY, January 24, 2009 -
+                 34: KIT_NY,  # NYU-NY, January 22, 2010 -
+                 # 440 NYU-AD, initial launch May 20, 2011 -
+                 441: KIT_AD,  # NYU-AD more channels July 11, 2012 -
+                 442: KIT_AD,  # NYU-AD move to NYUAD campus Nov 20, 2014
+                 51: KIT_NY,  # UMD
+                 52: KIT_MD,  # UMD update to 16 bit ADC, July 4, 2014 -
+                 53: KIT_MD}  # UMD December 4, 2014 -
