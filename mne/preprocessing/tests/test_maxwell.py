@@ -94,7 +94,7 @@ def test_spherical_harmonics():
     """Test spherical harmonic functions"""
     from scipy.special import sph_harm
     az, pol = np.meshgrid(np.linspace(0, 2 * np.pi, 30),
-                          np.linspace(0, np.pi, 20), indexing='ij')
+                          np.linspace(0, np.pi, 20))
     # As of Oct 16, 2015, Anancoda has a bug in scipy due to old compilers (?):
     # https://github.com/ContinuumIO/anaconda-issues/issues/479
     if (PY3 and
@@ -114,7 +114,7 @@ def test_spherical_conversions():
     """Test spherical harmonic conversions"""
     # Test our real<->complex conversion functions
     az, pol = np.meshgrid(np.linspace(0, 2 * np.pi, 30),
-                          np.linspace(0, np.pi, 20), indexing='ij')
+                          np.linspace(0, np.pi, 20))
     for degree in range(1, int_order):
         for order in range(0, degree + 1):
             sph = _sph_harm(order, degree, az, pol)
