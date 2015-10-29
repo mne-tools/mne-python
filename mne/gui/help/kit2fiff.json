@@ -1,0 +1,4 @@
+{
+  "stim_chs": "Define the channels that are used to generate events. If the field is empty, the default channels are used (for NYU systems only). Channels can be defined as comma separated channel numbers (1, 2, 3, 4, 5, 6), ranges (1:7) and combinations of the two (1:4, 7, 10:13).",
+  "stim_coding": "Specifies the bit order in event channels. Assign the first bit (1) to the first or the last trigger channel."
+}
