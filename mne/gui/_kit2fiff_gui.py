@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import json
 import os
 import numpy as np
 from scipy.linalg import inv
@@ -27,20 +26,20 @@ try:
                               CheckListEditor, EnumEditor, Handler)
     from traitsui.menu import NoButtons
     from tvtk.pyface.scene_editor import SceneEditor
-except:
+except Exception:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = Handler = object
     cached_property = MayaviScene = MlabSceneModel = Bool = Button = Float = \
         DelegatesTo = Enum = File = Instance = Int = List = Property = \
         Str = Array = spring = View = Item = HGroup = VGroup = EnumEditor = \
-        NoButtons = CheckListEditor = SceneEditor, TextEditor = trait_wraith
+        NoButtons = CheckListEditor = SceneEditor = TextEditor = trait_wraith
 
 from ..io.kit.kit import RawKIT, KIT
 from ..transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                           get_ras_to_neuromag_trans, Transform)
 from ..coreg import _decimate_points, fit_matched_points
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
-from _help import read_tooltips
+from ._help import read_tooltips
 from ._viewer import (HeadViewController, headview_item, PointObject,
                       _testing_mode)
 

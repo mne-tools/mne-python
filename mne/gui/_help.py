@@ -12,5 +12,5 @@ def read_tooltips(gui_name):
     help_path = os.path.join(dirname, 'help', gui_name + '.json')
     with open(help_path) as fid:
         raw_tooltips = json.load(fid)
-    format = TextWrapper(width=60, fix_sentence_endings=True).fill
-    return {key: format(text) for key, text in raw_tooltips.iteritems()}
+    format_ = TextWrapper(width=60, fix_sentence_endings=True).fill
+    return {key: format_(text) for key, text in raw_tooltips.iteritems()}

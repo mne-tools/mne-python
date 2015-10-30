@@ -50,7 +50,7 @@ KIT_NY.NREFCHAN = 3
 KIT_NY.NMISCCHAN = 32
 KIT_NY.N_SENS = KIT_NY.NMEGCHAN + KIT_NY.NREFCHAN
 # 12-bit A-to-D converter, one bit for signed integer. range +/- 2048
-KIT_NY.DYNAMIC_RANGE = 2 ** 12 / 2
+KIT_NY.DYNAMIC_RANGE = 2 ** 11
 # amplifier information
 KIT_NY.GAIN1_BIT = 11  # stored in Bit 11-12
 KIT_NY.GAIN1_MASK = 2 ** 11 + 2 ** 12
@@ -75,7 +75,7 @@ KIT_NY.LPFS = [10, 20, 50, 100, 200, 500, 1000, 2000]
 # Virtually the same as the NY-system except new ADC circa July 2014
 # 16-bit A-to-D converter, one bit for signed integer. range +/- 32,768
 KIT_MD = Bunch(**KIT_NY)
-KIT_MD.DYNAMIC_RANGE = 2 ** 16 / 2
+KIT_MD.DYNAMIC_RANGE = 2 ** 15
 
 
 # AD-system channel information
@@ -85,7 +85,7 @@ KIT_AD.NREFCHAN = 16
 KIT_AD.NMISCCHAN = 32
 KIT_AD.N_SENS = KIT_AD.NMEGCHAN + KIT_AD.NREFCHAN
 # 16-bit A-to-D converter, one bit for signed integer. range +/- 32768
-KIT_AD.DYNAMIC_RANGE = 2 ** 16 / 2
+KIT_AD.DYNAMIC_RANGE = 2 ** 15
 # amplifier information
 KIT_AD.GAIN1_BIT = 12  # stored in Bit 12-14
 KIT_AD.GAIN1_MASK = 2 ** 12 + 2 ** 13 + 2 ** 14
