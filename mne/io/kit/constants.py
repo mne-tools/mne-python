@@ -116,3 +116,8 @@ KIT_CONSTANTS = {32: KIT_NY,  # NYU-NY, July 7, 2008 -
                  51: KIT_NY,  # UMD
                  52: KIT_MD,  # UMD update to 16 bit ADC, July 4, 2014 -
                  53: KIT_MD}  # UMD December 4, 2014 -
+
+SYSNAMES = {33: 'NYU 160ch System since Jan24 2009',
+            34: 'NYU 160ch System since Jan24 2009',
+            441: "New York University Abu Dhabi",
+            442: "New York University Abu Dhabi"}

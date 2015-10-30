@@ -11,6 +11,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 from os import SEEK_CUR, path as op
 from struct import unpack
 import time
+from warnings import warn
 
 import numpy as np
 from scipy import linalg
@@ -24,7 +25,7 @@ from ..base import _BaseRaw
 from ...epochs import _BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
-from .constants import KIT, KIT_CONSTANTS
+from .constants import KIT, KIT_CONSTANTS, SYSNAMES
 from .coreg import read_mrk
 from ...externals.six import string_types
 from ...event import read_events
@@ -557,6 +558,10 @@ def get_kit_info(rawfile):
                                       "contact the MNE-Python developers."
                                       % (sysname, sysid))
         KIT_SYS = KIT_CONSTANTS[sysid]
+        if sysid in SYSNAMES:
+            if sysname != SYSNAMES[sysid]:
+                warn("KIT file %s has system-name %r, expected %r"
+                     % (rawfile, sysname, SYSNAMES[sysid]))
 
         # channels
         fid.seek(KIT.STRING, SEEK_CUR)  # skips modelname
