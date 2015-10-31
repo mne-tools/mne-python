@@ -1952,8 +1952,8 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     .. versionadded:: 0.10.0
     """
     # check if all elements in the given list are evoked data
-    if not any(((all(isinstance(e, t) for e in all_inst)
-                for t in (Evoked, AverageTFR)):
+    if not any([(all(isinstance(e, t) for e in all_inst)
+                for t in (Evoked, AverageTFR))]):
         raise ValueError("Not all input elements are Evoked or AverageTFR")
 
     # Copy channels to leave the original evoked datasets intact.
@@ -1967,10 +1967,11 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
         equalize_channels(all_inst)  # apply equalize_channels
         from ..evoked import combine_evoked as combine
     elif isinstance(all_inst[0], AverageTFR):
-        from ..time_frequency.tfr import combine_tfr as combine
+        #from ..time_frequency.tfr import combine_tfr as combine
+        combine = combine_tfr
 
     if drop_bads:
-        bads = list(set((i_info['bads'] for i_ in all_inst)))
+        bads = list(set((b for i_ in all_inst for b in i_.info['bads'])))
         if bads:
             for i_ in all_inst:
                 i_.drop_channels(bads, copy=False)
