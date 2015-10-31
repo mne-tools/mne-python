@@ -16,7 +16,8 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
-from .utils import check_fname, logger, verbose, object_hash, _time_mask
+from .utils import (check_fname, logger, verbose, object_hash,
+                    _time_mask, deprecated)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import _plot_evoked_white

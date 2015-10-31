@@ -5,11 +5,12 @@ from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
 import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
-from mne.utils import _TempDir, run_tests_if_main, slow_test, requires_h5py
+from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
+                       grand_average)
 from mne.time_frequency import single_trial_power
-from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
-from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
-from mne.time_frequency.tfr import AverageTFR, read_tfrs, write_tfrs
+from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
+                                    _dpss_wavelet, tfr_multitaper,
+                                    AverageTFR, read_tfrs, write_tfrs)
 
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -99,6 +100,19 @@ def test_time_frequency():
     assert_true(np.sum(itc.data >= 1) == 0)
     assert_true(np.sum(itc.data <= 0) == 0)
 
+    # grand average
+    itc2 = itc.copy()
+    itc2.info['bads'] = [itc2.ch_names[0]]  # test channel drop
+    gave = grand_average([itc2, itc2.copy()], drop_bads=True)
+    assert_equal(gave.data.shape, (itc2.data.shape[0] - 1,
+                                   itc2.data.shape[1],
+                                   itc2.data.shape[2]))
+    assert_equal(itc2.ch_names[1:], gave.ch_names)
+    assert_equal(gave.nave, 2)
+    itc2.drop_channels(itc2.info["bads"])
+    assert_array_almost_equal(gave.data, itc2.data)
+
+    # more tests
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=2, use_fft=False,
                             return_itc=True)
 
@@ -119,7 +133,7 @@ def test_time_frequency():
     power_pick = power.pick_channels(power.ch_names[:10:2])
     assert_equal(len(power_pick.ch_names), len(power.ch_names[:10:2]))
     assert_equal(power_pick.data.shape[0], len(power.ch_names[:10:2]))
-    power_drop = power.drop_channels(power.ch_names[1:10:2])
+    power_drop = power.drop_channels(power.ch_names[1:10:2], copy=True)
     assert_equal(power_drop.ch_names, power_pick.ch_names)
     assert_equal(power_pick.data.shape[0], len(power_drop.ch_names))
 

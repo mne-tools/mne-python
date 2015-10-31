@@ -33,9 +33,6 @@ from scipy import linalg, sparse
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
-from .evoked import Evoked
-from .timefrequency import AverageTFR
-from . import equalize_channels
 
 from .fixes import isclose
 
@@ -1955,7 +1952,10 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     .. versionadded:: 0.10.0
     """
     # check if all elements in the given list are evoked data
-    if not any([(all(isinstance(e, t) for e in all_inst)
+    from .evoked import Evoked
+    from .time_frequency import AverageTFR
+    from .channels.channels import equalize_channels
+    if not any([(all(isinstance(i_, t) for i_ in all_inst)
                 for t in (Evoked, AverageTFR))]):
         raise ValueError("Not all input elements are Evoked or AverageTFR")
 
@@ -1965,13 +1965,12 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     # Interpolates if necessary
     if isinstance(all_inst[0], Evoked):
         if interpolate_bads:
-            all_inst = [e.interpolate_bads() if len(e.info['bads']) > 0
-                        else e for e in all_inst]
+            all_inst = [i_.interpolate_bads() if len(i_.info['bads']) > 0
+                        else i_ for i_ in all_inst]
         equalize_channels(all_inst)  # apply equalize_channels
-        from ..evoked import combine_evoked as combine
+        from .evoked import combine_evoked as combine
     elif isinstance(all_inst[0], AverageTFR):
-        from ..time_frequency.tfr import combine_tfr as combine
-        combine = combine_tfr
+        from .time_frequency.tfr import combine_tfr as combine
 
     if drop_bads:
         bads = list(set((b for i_ in all_inst for b in i_.info['bads'])))

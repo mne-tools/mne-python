@@ -25,6 +25,7 @@ from ..utils import check_fname
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar
 from ..externals.h5io import write_hdf5, read_hdf5
+from ..externals.six import string_types
 
 
 def _get_data(inst, return_itc):
