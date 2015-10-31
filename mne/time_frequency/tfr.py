@@ -1375,6 +1375,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                                method='mutlitaper-itc'))
     return out
 
+
 def combine_tfr(all_tfr, weights='nave'):
     """Merge TFR data
 
