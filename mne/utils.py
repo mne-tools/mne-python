@@ -33,6 +33,7 @@ from scipy import linalg, sparse
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
+from . import Evoked, AverageTFR, equalize_channels
 
 from .fixes import isclose
 
@@ -1967,7 +1968,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
         equalize_channels(all_inst)  # apply equalize_channels
         from ..evoked import combine_evoked as combine
     elif isinstance(all_inst[0], AverageTFR):
-        #from ..time_frequency.tfr import combine_tfr as combine
+        from ..time_frequency.tfr import combine_tfr as combine
         combine = combine_tfr
 
     if drop_bads:
