@@ -33,7 +33,9 @@ from scipy import linalg, sparse
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
-from . import Evoked, AverageTFR, equalize_channels
+from .evoked import Evoked
+from .timefrequency import AverageTFR
+from . import equalize_channels
 
 from .fixes import isclose
 
