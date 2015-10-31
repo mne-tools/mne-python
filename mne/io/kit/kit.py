@@ -174,7 +174,8 @@ class RawKIT(_BaseRaw):
             channel events as binary code, 'channel' encodes channel number.
         """
         if stim_code not in ('binary', 'channel'):
-            raise ValueError("stim_code=%s" % stim_code)
+            raise ValueError("stim_code=%r, needs to be 'binary' or 'channel'"
+                             % stim_code)
 
         if stim is not None:
             if isinstance(stim, str):

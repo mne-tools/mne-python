@@ -73,7 +73,7 @@ KIT_NY.LPFS = [10, 20, 50, 100, 200, 500, 1000, 2000]
 
 # Maryland-system channel information
 # Virtually the same as the NY-system except new ADC circa July 2014
-# 16-bit A-to-D converter, one bit for signed integer. range +/- 32,768
+# 16-bit A-to-D converter, one bit for signed integer. range +/- 32768
 KIT_MD = Bunch(**KIT_NY)
 KIT_MD.DYNAMIC_RANGE = 2 ** 15
 
@@ -112,7 +112,7 @@ KIT_CONSTANTS = {32: KIT_NY,  # NYU-NY, July 7, 2008 -
                  34: KIT_NY,  # NYU-NY, January 22, 2010 -
                  # 440 NYU-AD, initial launch May 20, 2011 -
                  441: KIT_AD,  # NYU-AD more channels July 11, 2012 -
-                 442: KIT_AD,  # NYU-AD move to NYUAD campus Nov 20, 2014
+                 442: KIT_AD,  # NYU-AD move to NYUAD campus Nov 20, 2014 -
                  51: KIT_NY,  # UMD
                  52: KIT_MD,  # UMD update to 16 bit ADC, July 4, 2014 -
                  53: KIT_MD}  # UMD December 4, 2014 -
