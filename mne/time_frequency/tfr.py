@@ -1378,7 +1378,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
 
 def combine_tfr(all_tfr, weights='nave'):
-    """Merge AverageTFR data
+    """Merge AverageTFR data by weighted addition
 
     Create a new AverageTFR instance, using a combination of the supplied
     instances as its data. By default, the mean (weighted by trials) is used.
