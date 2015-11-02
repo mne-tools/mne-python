@@ -1378,23 +1378,25 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
 
 def combine_tfr(all_tfr, weights='nave'):
-    """Merge TFR data
+    """Merge AverageTFR data
 
-    Data should have the same channels and the same time instants.
+    Create a new AverageTFR instance, using a combination of the supplied
+    instances as its data. By default, the mean (weighted by trials) is used.
     Subtraction can be performed by passing negative weights (e.g., [1, -1]).
+    Data must have the same channels and the same time instants.
 
     Parameters
     ----------
-    all_tfr : list of TFR
+    all_tfr : list of AverageTFR
         The tfr datasets.
     weights : list of float | str
-        The weights to apply to the data of each TFR instance.
+        The weights to apply to the data of each AverageTFR instance.
         Can also be ``'nave'`` to weight according to tfr.nave,
-        or ``"equal"`` to use equal weighting (each weighted as ``1/N``).
+        or ``'equal'`` to use equal weighting (each weighted as ``1/N``).
 
     Returns
     -------
-    tfr : AllTFR
+    tfr : AverageTFR
         The new TFR data.
 
     Notes
