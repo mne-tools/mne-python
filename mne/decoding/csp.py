@@ -129,8 +129,13 @@ class CSP(TransformerMixin):
         w_b = np.dot(np.dot(p, cov_b), p.T)
         # and solve it
         vals, vecs = linalg.eigh(w_a, w_b)
-        # sort vectors by discriminative power using eigen values
-        ind = np.argsort(np.maximum(vals, 1. / vals))[::-1]
+        # sort vectors by discriminative power using eigenvalues
+        ind = np.argsort(vals)[::-1]
+        vecs = vecs[:, ind]
+        # re-order (first, last, second, second last, third, ...)
+        n_vals = len(ind)
+        ind[::2] = np.arange(0, int(np.ceil(n_vals / 2.0)))
+        ind[1::2] = np.arange(n_vals - 1, int(np.ceil(n_vals / 2.0)) - 1, -1)
         vecs = vecs[:, ind]
         # and project
         w = np.dot(vecs.T, p)
