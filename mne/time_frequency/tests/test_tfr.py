@@ -120,7 +120,7 @@ def test_time_frequency():
     itc4.nave = 1
     combined_itc = combine_tfr([itc3, itc4])
     assert_array_almost_equal(combined_itc.data,
-                              np.ones(combined_itc.data.shape) / 2)
+                              np.ones(combined_itc.data.shape) * 2 / 3)
 
     # more tests
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=2, use_fft=False,
