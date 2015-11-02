@@ -10,7 +10,8 @@ from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
                                     _dpss_wavelet, tfr_multitaper,
-                                    AverageTFR, read_tfrs, write_tfrs)
+                                    AverageTFR, read_tfrs, write_tfrs,
+                                    combine_tfr)
 
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -111,6 +112,14 @@ def test_time_frequency():
     assert_equal(gave.nave, 2)
     itc2.drop_channels(itc2.info["bads"])
     assert_array_almost_equal(gave.data, itc2.data)
+    itc3 = itc2.copy()
+    itc3.data = np.ones(itc3.data.shape)
+    itc4 = itc3.copy()
+    itc4.data = np.zeros(itc3.data.shape)
+    itc3.nave = 2
+    itc4.nave = 1
+    combined_itc = combine_tfr([itc3, itc4])
+    assert_array_almost_equal(combined_itc, np.ones(combined_itc.shape) / 2)
 
     # more tests
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=2, use_fft=False,
