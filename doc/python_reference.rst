@@ -18,43 +18,45 @@ Classes
 =======
 
 .. currentmodule:: mne
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
-   io.Raw
-   io.RawFIF
-   Epochs
-   Evoked
-   SourceSpaces
-   SourceEstimate
-   VolSourceEstimate
-   MixedSourceEstimate
-   Covariance
-   Dipole
-   Label
-   BiHemiLabel
-   Transform
-   preprocessing.ICA
-   decoding.CSP
-   decoding.Scaler
-   decoding.ConcatenateChannels
-   decoding.FilterEstimator
-   decoding.PSDEstimator
-   decoding.GeneralizationAcrossTime
-   decoding.TimeDecoding
-   realtime.RtEpochs
-   realtime.RtClient
-   realtime.MockRtClient
-   realtime.StimServer
-   realtime.StimClient
+   io.fiff.Raw
+   io.fiff.raw.RawFIF
+   epochs.Epochs
+   evoked.Evoked
+   source_space.SourceSpaces
+   source_estimate.SourceEstimate
+   source_estimate.VolSourceEstimate
+   source_estimate.MixedSourceEstimate
+   cov.Covariance
+   dipole.Dipole
+   label.Label
+   label.BiHemiLabel
+   transforms.Transform
+   preprocessing.ica.ICA
+   decoding.csp.CSP
+   decoding.transformer.Scaler
+   decoding.transformer.FilterEstimator
+   decoding.transformer.PSDEstimator
+   decoding.time_gen.GeneralizationAcrossTime
+   decoding.time_gen.TimeDecoding
+   realtime.epochs.RtEpochs
+   realtime.client.RtClient
+   realtime.client.MockRtClient
+   realtime.stim_server_client.StimServer
+   realtime.stim_server_client.StimClient
    report.Report
 
 Logging and Configuration
 =========================
 
-.. currentmodule:: mne
+.. currentmodule:: mne.utils
+
+.. automodule:: mne.utils
+   :no-members:
+   :no-inherited-members:
 
 .. autosummary::
    :toctree: generated/
@@ -69,8 +71,8 @@ Logging and Configuration
 :py:mod:`mne.cuda`:
 
 .. automodule:: mne.cuda
- :no-members:
- :no-inherited-members:
+   :no-members:
+   :no-inherited-members:
 
 .. currentmodule:: mne.cuda
 
@@ -93,20 +95,24 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
-   Raw
+   fiff.Raw
 
 Functions:
+
+.. automodule:: mne.io
+   :no-members:
+   :no-inherited-members:
 
 .. autosummary::
   :toctree: generated/
   :template: function.rst
 
-  read_raw_bti
-  read_raw_edf
-  read_raw_kit
-  read_raw_brainvision
-  read_raw_egi
-  read_raw_fif
+  bti.bti.read_raw_bti
+  edf.edf.read_raw_edf
+  kit.kit.read_raw_kit
+  brainvision.brainvision.read_raw_brainvision
+  egi.egi.read_raw_egi
+  fiff.raw.read_raw_fif
 
 .. currentmodule:: mne.io.kit
 
@@ -116,7 +122,7 @@ Functions:
   :toctree: generated/
   :template: function.rst
 
-   read_mrk
+   coreg.read_mrk
 
 File I/O
 ========
@@ -129,43 +135,43 @@ Functions:
    :toctree: generated
    :template: function.rst
 
-   decimate_surface
-   get_head_surf
-   get_meg_helmet_surf
-   get_volume_labels_from_aseg
-   parse_config
-   read_labels_from_annot
-   read_bem_solution
-   read_bem_surfaces
-   read_cov
-   read_dipole
-   read_epochs
-   read_epochs_kit
-   read_events
-   read_evokeds
-   read_forward_solution
-   read_label
-   read_morph_map
-   read_proj
-   read_reject_parameters
-   read_selection
-   read_source_estimate
-   read_source_spaces
-   read_surface
-   read_trans
-   save_stc_as_volume
-   write_labels_to_annot
-   write_bem_solution
-   write_bem_surfaces
-   write_cov
-   write_events
-   write_evokeds
-   write_forward_solution
-   write_label
-   write_proj
-   write_source_spaces
-   write_surface
-   write_trans
+   surface.decimate_surface
+   surface.get_head_surf
+   surface.get_meg_helmet_surf
+   source_space.get_volume_labels_from_aseg
+   misc.parse_config
+   label.read_labels_from_annot
+   bem.read_bem_solution
+   bem.read_bem_surfaces
+   cov.read_cov
+   dipole.read_dipole
+   epochs.read_epochs
+   io.kit.read_epochs_kit
+   event.read_events
+   evoked.read_evokeds
+   forward.forward.read_forward_solution
+   label.read_label
+   surface.read_morph_map
+   proj.read_proj
+   misc.read_reject_parameters
+   selection.read_selection
+   source_estimate.read_source_estimate
+   source_space.read_source_spaces
+   surface.read_surface
+   transforms.read_trans
+   source_estimate.save_stc_as_volume
+   label.write_labels_to_annot
+   bem.write_bem_solution
+   bem.write_bem_surfaces
+   cov.write_cov
+   event.write_events
+   evoked.write_evokeds
+   forward.forward.write_forward_solution
+   label.write_label
+   proj.write_proj
+   source_space.write_source_spaces
+   surface.write_surface
+   transforms.write_trans
 
 
 Creating data objects from arrays
@@ -173,7 +179,7 @@ Creating data objects from arrays
 
 Classes:
 
-.. currentmodule:: mne
+.. currentmodule:: mne.evoked
 
 :py:mod:`mne`:
 
@@ -182,9 +188,14 @@ Classes:
    :template: class.rst
 
    EvokedArray
+.. currentmodule:: mne.epochs
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
    EpochsArray
 
-.. currentmodule:: mne.io
+.. currentmodule:: mne.io.array.array
 
 :py:mod:`mne.io`:
 
@@ -196,7 +207,7 @@ Classes:
 
 Functions:
 
-.. currentmodule:: mne
+.. currentmodule:: mne.io.meas_info
 
 :py:mod:`mne`:
 
@@ -213,10 +224,10 @@ Sample datasets
 :py:mod:`mne.datasets.sample`:
 
 .. automodule:: mne.datasets.sample
- :no-members:
- :no-inherited-members:
+   :no-members:
+   :no-inherited-members:
 
-.. currentmodule:: mne.datasets.sample
+.. currentmodule:: mne.datasets.sample.sample
 
 .. autosummary::
    :toctree: generated/
@@ -230,7 +241,7 @@ Sample datasets
  :no-members:
  :no-inherited-members:
 
-.. currentmodule:: mne.datasets.spm_face
+.. currentmodule:: mne.datasets.spm_face.spm_data
 
 .. autosummary::
    :toctree: generated/
@@ -260,7 +271,7 @@ Sample datasets
  :no-members:
  :no-inherited-members:
 
-.. currentmodule:: mne.datasets.megsim
+.. currentmodule:: mne.datasets.megsim.megsim
 
 .. autosummary::
    :toctree: generated/
@@ -287,54 +298,60 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
-   ClickableImage
+   utils.ClickableImage
 
 Functions:
 
+.. currentmodule:: mne.viz
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
-   circular_layout
-   mne_analyze_colormap
-   plot_connectivity_circle
-   plot_cov
-   plot_dipole_amplitudes
-   plot_dipole_locations
-   plot_drop_log
-   plot_epochs
-   plot_events
-   plot_evoked
-   plot_evoked_image
-   plot_evoked_topomap
-   plot_evoked_field
-   plot_evoked_white
-   plot_ica_sources
-   plot_ica_components
-   plot_ica_scores
-   plot_ica_overlay
-   plot_epochs_image
-   plot_montage
-   plot_projs_topomap
-   plot_raw
-   plot_raw_psd
-   plot_snr_estimate
-   plot_source_estimates
-   plot_sparse_source_estimates
-   plot_tfr_topomap
-   plot_topo
-   plot_topo_image_epochs
-   plot_topomap
-   compare_fiff
-   add_background_image
+   circle.circular_layout
+   circle.plot_connectivity_circle
+   utils.mne_analyze_colormap
+   misc.plot_cov
+   misc.plot_dipole_amplitudes
+   _3d.plot_dipole_locations
+   epochs.plot_drop_log
+   epochs.plot_epochs
+   misc.plot_events
+   evoked.plot_evoked
+   evoked.plot_evoked_image
+   evoked.plot_evoked_topo
+   topomap.plot_evoked_topomap
+   _3d.plot_evoked_field
+   evoked.plot_evoked_white
+   ica.plot_ica_sources
+   topomap.plot_ica_components
+   ica.plot_ica_scores
+   ica.plot_ica_overlay
+   epochs.plot_epochs_image
+   montage.plot_montage
+   topomap.plot_projs_topomap
+   raw.plot_raw
+   raw.plot_raw_psd
+   evoked.plot_snr_estimate
+   _3d.plot_source_estimates
+   _3d.plot_sparse_source_estimates
+   topomap.plot_tfr_topomap
+   topo.plot_topo_image_epochs
+   topomap.plot_topomap
+   utils.compare_fiff
+   utils.add_background_image
 
 .. currentmodule:: mne.io
 
+:py:mod:`mne.io`:
+
+.. automodule:: mne.io
+   :no-members:
+   :no-inherited-members:
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
-   show_fiff
+   open.show_fiff
 
 Preprocessing
 =============
