@@ -112,13 +112,12 @@ def test_time_frequency():
     assert_equal(gave.nave, 2)
     itc2.drop_channels(itc2.info["bads"])
     assert_array_almost_equal(gave.data, itc2.data)
+    itc2.data = np.ones(itc2.data.shape)
     itc3 = itc2.copy()
-    itc3.data = np.ones(itc3.data.shape)
-    itc4 = itc3.copy()
-    itc4.data = np.zeros(itc3.data.shape)
-    itc3.nave = 2
-    itc4.nave = 1
-    combined_itc = combine_tfr([itc3, itc4])
+    itc3.data = np.zeros(itc2.data.shape)
+    itc2.nave = 2
+    itc3.nave = 1
+    combined_itc = combine_tfr([itc2, itc3])
     assert_array_almost_equal(combined_itc.data,
                               np.ones(combined_itc.data.shape) * 2 / 3)
 
