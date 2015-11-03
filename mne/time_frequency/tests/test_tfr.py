@@ -104,7 +104,7 @@ def test_time_frequency():
     # grand average
     itc2 = itc.copy()
     itc2.info['bads'] = [itc2.ch_names[0]]  # test channel drop
-    gave = grand_average([itc2, itc], drop_bads=True)
+    gave = grand_average([itc2, itc])
     assert_equal(gave.data.shape, (itc2.data.shape[0] - 1,
                                    itc2.data.shape[1],
                                    itc2.data.shape[2]))
@@ -116,7 +116,7 @@ def test_time_frequency():
     itc.data = np.zeros(itc.data.shape)
     itc2.nave = 2
     itc.nave = 1
-    combined_itc = combine_tfr([itc2, itc])
+    combined_itc = grand_average([itc2, itc])
     assert_array_almost_equal(combined_itc.data,
                               np.ones(combined_itc.data.shape) * 2 / 3)
 
