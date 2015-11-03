@@ -133,7 +133,6 @@ class CSP(TransformerMixin):
         ind = np.argsort(vals)[::-1]
         vecs = vecs[:, ind]
         # re-order (first, last, second, second last, third, ...)
-        ind = np.empty_like(ind)
         ind[::2] = np.arange(0, np.ceil(len(ind)/2))
         ind[1::2] = np.arange(len(ind) - 1, int(len(ind)/2) - 1, -1)
         vecs = vecs[:, ind]
