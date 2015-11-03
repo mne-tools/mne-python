@@ -1976,7 +1976,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
         bads = list(set((b for inst in all_inst for b in inst.info['bads'])))
         if bads:
             for inst in all_inst:
-                imst.drop_channels(bads, copy=False)
+                inst.drop_channels(bads, copy=False)
 
     # make grand_average object using combine_[evoked/tfr]
     grand_average = combine(all_inst, weights='equal')
