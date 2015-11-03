@@ -11,6 +11,7 @@ from threading import Thread
 
 from ..externals.six.moves import queue
 from ..io.meas_info import _read_dig_points, _make_dig_points
+from ..utils import logger
 
 
 # allow import without traits
@@ -19,25 +20,26 @@ try:
     from mayavi.tools.mlab_scene_model import MlabSceneModel
     from pyface.api import confirm, error, FileDialog, OK, YES, information
     from traits.api import (HasTraits, HasPrivateTraits, cached_property,
-                            Instance, Property, Bool, Button, Enum, File, Int,
-                            List, Str, Array, DelegatesTo)
-    from traitsui.api import (View, Item, HGroup, VGroup, spring,
+                            Instance, Property, Bool, Button, Enum, File,
+                            Float, Int, List, Str, Array, DelegatesTo)
+    from traitsui.api import (View, Item, HGroup, VGroup, spring, TextEditor,
                               CheckListEditor, EnumEditor, Handler)
     from traitsui.menu import NoButtons
     from tvtk.pyface.scene_editor import SceneEditor
-except:
+except Exception:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = Handler = object
-    cached_property = MayaviScene = MlabSceneModel = Bool = Button = \
+    cached_property = MayaviScene = MlabSceneModel = Bool = Button = Float = \
         DelegatesTo = Enum = File = Instance = Int = List = Property = \
         Str = Array = spring = View = Item = HGroup = VGroup = EnumEditor = \
-        NoButtons = CheckListEditor = SceneEditor = trait_wraith
+        NoButtons = CheckListEditor = SceneEditor = TextEditor = trait_wraith
 
 from ..io.kit.kit import RawKIT, KIT
 from ..transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                           get_ras_to_neuromag_trans, Transform)
 from ..coreg import _decimate_points, fit_matched_points
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
+from ._help import read_tooltips
 from ._viewer import (HeadViewController, headview_item, PointObject,
                       _testing_mode)
 
@@ -55,6 +57,9 @@ else:
     kit_con_wildcard = ['*.sqd;*.con']
 
 
+tooltips = read_tooltips('kit2fiff')
+
+
 class Kit2FiffModel(HasPrivateTraits):
     """Data Model for Kit2Fiff conversion
 
@@ -70,15 +75,20 @@ class Kit2FiffModel(HasPrivateTraits):
                     "head shape")
     fid_file = File(exists=True, filter=hsp_fid_wildcard, desc="Digitizer "
                     "fiducials")
-    stim_chs = Enum(">", "<", "man")
-    stim_chs_manual = Array(int, (8,), range(168, 176))
+    stim_coding = Enum(">", "<", "channel")
+    stim_chs = Str("")
+    stim_chs_array = Property(depends_on='stim_chs')
+    stim_chs_ok = Property(depends_on='stim_chs_array')
+    stim_chs_comment = Property(depends_on='stim_chs_array')
     stim_slope = Enum("-", "+")
+    stim_threshold = Float(1.)
+
     # Marker Points
     use_mrk = List(list(range(5)), desc="Which marker points to use for the "
                    "device head coregistration.")
 
     # Derived Traits
-    mrk = Property(depends_on=('markers.mrk3.points'))
+    mrk = Property(depends_on='markers.mrk3.points')
 
     # Polhemus Fiducials
     elp_raw = Property(depends_on=['fid_file'])
@@ -98,14 +108,13 @@ class Kit2FiffModel(HasPrivateTraits):
     sqd_fname = Property(Str, depends_on='sqd_file')
     hsp_fname = Property(Str, depends_on='hsp_file')
     fid_fname = Property(Str, depends_on='fid_file')
-    can_save = Property(Bool, depends_on=['sqd_file', 'fid', 'elp', 'hsp',
-                                          'dev_head_trans'])
+    can_save = Property(Bool, depends_on=['stim_chs_ok', 'sqd_file', 'fid',
+                                          'elp', 'hsp', 'dev_head_trans'])
 
     @cached_property
     def _get_can_save(self):
         "Only allow saving when either all or no head shape elements are set."
-        has_sqd = bool(self.sqd_file)
-        if not has_sqd:
+        if not self.stim_chs_ok or not self.sqd_file:
             return False
 
         has_all_hsp = (np.any(self.dev_head_trans) and np.any(self.hsp) and
@@ -242,6 +251,32 @@ class Kit2FiffModel(HasPrivateTraits):
         else:
             return '-'
 
+    @cached_property
+    def _get_stim_chs_array(self):
+        if not self.stim_chs.strip():
+            return True
+        try:
+            out = eval("r_[%s]" % self.stim_chs, vars(np))
+            if out.dtype.kind != 'i':
+                raise TypeError("Need array of int")
+        except:
+            return None
+        else:
+            return out
+
+    @cached_property
+    def _get_stim_chs_comment(self):
+        if self.stim_chs_array is None:
+            return "Invalid!"
+        elif self.stim_chs_array is True:
+            return "Ok: Default channels"
+        else:
+            return "Ok: %i channels" % len(self.stim_chs_array)
+
+    @cached_property
+    def _get_stim_chs_ok(self):
+        return self.stim_chs_array is not None
+
     def clear_all(self):
         """Clear all specified input parameters"""
         self.markers.clear = True
@@ -265,16 +300,36 @@ class Kit2FiffModel(HasPrivateTraits):
     def get_raw(self, preload=False):
         """Create a raw object based on the current model settings
         """
-        if not self.sqd_file:
-            raise ValueError("sqd file not set")
+        if not self.can_save:
+            raise ValueError("Not all necessary parameters are set")
 
-        if self.stim_chs == 'man':
-            stim = self.stim_chs_manual
+        # stim channels and coding
+        if self.stim_chs_array is True:
+            if self.stim_coding == 'channel':
+                stim_code = 'channel'
+                raise NotImplementedError("Finding default event channels")
+            else:
+                stim = self.stim_coding
+                stim_code = 'binary'
         else:
-            stim = self.stim_chs
+            stim = self.stim_chs_array
+            if self.stim_coding == 'channel':
+                stim_code = 'channel'
+            elif self.stim_coding == '<':
+                stim_code = 'binary'
+            elif self.stim_coding == '>':
+                # if stim is
+                stim = stim[::-1]
+                stim_code = 'binary'
+            else:
+                raise RuntimeError("stim_coding=%r" % self.stim_coding)
 
+        logger.info("Creating raw with stim=%r, slope=%r, stim_code=%r, "
+                    "stimthresh=%r", stim, self.stim_slope, stim_code,
+                    self.stim_threshold)
         raw = RawKIT(self.sqd_file, preload=preload, stim=stim,
-                     slope=self.stim_slope)
+                     slope=self.stim_slope, stim_code=stim_code,
+                     stimthresh=self.stim_threshold)
 
         if np.any(self.fid):
             raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
@@ -308,9 +363,12 @@ class Kit2FiffPanel(HasPrivateTraits):
     sqd_file = DelegatesTo('model')
     hsp_file = DelegatesTo('model')
     fid_file = DelegatesTo('model')
+    stim_coding = DelegatesTo('model')
     stim_chs = DelegatesTo('model')
-    stim_chs_manual = DelegatesTo('model')
+    stim_chs_ok = DelegatesTo('model')
+    stim_chs_comment = DelegatesTo('model')
     stim_slope = DelegatesTo('model')
+    stim_threshold = DelegatesTo('model')
 
     # info
     can_save = DelegatesTo('model')
@@ -338,41 +396,36 @@ class Kit2FiffPanel(HasPrivateTraits):
     error = Str('')
 
     view = View(
-        VGroup(VGroup(Item('sqd_file', label="Data"),
-                      Item('sqd_fname', show_label=False,
-                           style='readonly'),
+        VGroup(VGroup(Item('sqd_file', label="Data",
+                           tooltip=tooltips['sqd_file']),
+                      Item('sqd_fname', show_label=False, style='readonly'),
                       Item('hsp_file', label='Dig Head Shape'),
-                      Item('hsp_fname', show_label=False,
-                           style='readonly'),
+                      Item('hsp_fname', show_label=False, style='readonly'),
                       Item('fid_file', label='Dig Points'),
-                      Item('fid_fname', show_label=False,
-                           style='readonly'),
+                      Item('fid_fname', show_label=False, style='readonly'),
                       Item('reset_dig', label='Clear Digitizer Files',
                            show_label=False),
-                      Item('use_mrk', editor=use_editor,
-                           style='custom'),
+                      Item('use_mrk', editor=use_editor, style='custom'),
                       label="Sources", show_border=True),
-               VGroup(Item('stim_slope', label="Event Onset",
-                           style='custom',
+               VGroup(Item('stim_slope', label="Event Onset", style='custom',
+                           tooltip=tooltips['stim_slope'],
                            editor=EnumEditor(
                                values={'+': '2:Peak (0 to 5 V)',
                                        '-': '1:Trough (5 to 0 V)'},
-                               cols=2),
-                           help="Whether events are marked by a decrease "
-                           "(trough) or an increase (peak) in trigger "
-                           "channel values"),
-                      Item('stim_chs', label="Binary Coding",
-                           style='custom',
-                           editor=EnumEditor(values={'>': '1:1 ... 128',
-                                                     '<': '3:128 ... 1',
-                                                     'man': '2:Manual'},
-                                             cols=2),
-                           help="Specifies the bit order in event "
-                           "channels. Assign the first bit (1) to the "
-                           "first or the last trigger channel."),
-                      Item('stim_chs_manual', label='Stim Channels',
-                           style='custom',
-                           visible_when="stim_chs == 'man'"),
+                               cols=2)),
+                      Item('stim_coding', label="Value Coding", style='custom',
+                           editor=EnumEditor(values={'>': '1:little-endian',
+                                                     '<': '2:big-endian',
+                                                     'channel': '3:Channel#'},
+                                             cols=3),
+                           tooltip=tooltips["stim_coding"]),
+                      Item('stim_chs', label='Channels', style='custom',
+                           tooltip=tooltips["stim_chs"],
+                           editor=TextEditor(evaluate_name='stim_chs_ok',
+                                             auto_set=True)),
+                      Item('stim_chs_comment', label='>', style='readonly'),
+                      Item('stim_threshold', label='Threshold',
+                           tooltip=tooltips['stim_threshold']),
                       label='Events', show_border=True),
                HGroup(Item('save_as', enabled_when='can_save'), spring,
                       'clear_all', show_labels=False),

@@ -12,7 +12,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_equal, assert_raises, assert_true
 import scipy.io
 
-from mne import pick_types, concatenate_raws, Epochs, read_events
+from mne import pick_types, concatenate_raws, Epochs, find_events, read_events
 from mne.utils import _TempDir, run_tests_if_main
 from mne.io import Raw
 from mne.io import read_raw_kit, read_epochs_kit
@@ -89,6 +89,30 @@ def test_epochs():
     epochs = read_epochs_kit(epochs_path, events_path)
     data11 = epochs.get_data()
     assert_array_equal(data1, data11)
+
+
+def test_raw_events():
+    def evts(a, b, c, d, e, f=None):
+        out = [[269, a, b], [281, b, c], [1552, c, d], [1564, d, e]]
+        if f is not None:
+            out.append([2000, e, f])
+        return out
+
+    raw = read_raw_kit(sqd_path)
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(255, 254, 255, 254, 255, 0))
+
+    raw = read_raw_kit(sqd_path, slope='+')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 1, 0, 1, 0))
+
+    raw = read_raw_kit(sqd_path, stim='<', slope='+')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 128, 0, 128, 0))
+
+    raw = read_raw_kit(sqd_path, stim='<', slope='+', stim_code='channel')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 160, 0, 160, 0))
 
 
 def test_read_segment():

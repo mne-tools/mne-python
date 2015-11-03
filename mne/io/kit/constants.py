@@ -43,14 +43,14 @@ KIT.DIG_POINTS = 10000
 KIT_NY = Bunch(**KIT)
 KIT_AD = Bunch(**KIT)
 
-# NYU-system channel information
+# NY-system channel information
 KIT_NY.NCHAN = 192
 KIT_NY.NMEGCHAN = 157
 KIT_NY.NREFCHAN = 3
 KIT_NY.NMISCCHAN = 32
 KIT_NY.N_SENS = KIT_NY.NMEGCHAN + KIT_NY.NREFCHAN
 # 12-bit A-to-D converter, one bit for signed integer. range +/- 2048
-KIT_NY.DYNAMIC_RANGE = 2 ** 12 / 2
+KIT_NY.DYNAMIC_RANGE = 2 ** 11
 # amplifier information
 KIT_NY.GAIN1_BIT = 11  # stored in Bit 11-12
 KIT_NY.GAIN1_MASK = 2 ** 11 + 2 ** 12
@@ -71,6 +71,13 @@ KIT_NY.HPFS = [0, 1, 3]
 KIT_NY.LPFS = [10, 20, 50, 100, 200, 500, 1000, 2000]
 
 
+# Maryland-system channel information
+# Virtually the same as the NY-system except new ADC circa July 2014
+# 16-bit A-to-D converter, one bit for signed integer. range +/- 32768
+KIT_MD = Bunch(**KIT_NY)
+KIT_MD.DYNAMIC_RANGE = 2 ** 15
+
+
 # AD-system channel information
 KIT_AD.NCHAN = 256
 KIT_AD.NMEGCHAN = 208
@@ -78,7 +85,7 @@ KIT_AD.NREFCHAN = 16
 KIT_AD.NMISCCHAN = 32
 KIT_AD.N_SENS = KIT_AD.NMEGCHAN + KIT_AD.NREFCHAN
 # 16-bit A-to-D converter, one bit for signed integer. range +/- 32768
-KIT_AD.DYNAMIC_RANGE = 2 ** 16 / 2
+KIT_AD.DYNAMIC_RANGE = 2 ** 15
 # amplifier information
 KIT_AD.GAIN1_BIT = 12  # stored in Bit 12-14
 KIT_AD.GAIN1_MASK = 2 ** 12 + 2 ** 13 + 2 ** 14
@@ -97,3 +104,20 @@ KIT_AD.HPFS = [0, 0.03, 0.1, 0.3, 1, 3, 10, 30]
 # LPF options: 0:10Hz, 1:20Hz, 2:50Hz, 3:100Hz, 4:200Hz, 5:500Hz,
 #              6:1,000Hz, 7:10,000Hz
 KIT_AD.LPFS = [10, 20, 50, 100, 200, 500, 1000, 10000]
+
+
+# KIT recording system is encoded in the SQD file as integer:
+KIT_CONSTANTS = {32: KIT_NY,  # NYU-NY, July 7, 2008 -
+                 33: KIT_NY,  # NYU-NY, January 24, 2009 -
+                 34: KIT_NY,  # NYU-NY, January 22, 2010 -
+                 # 440 NYU-AD, initial launch May 20, 2011 -
+                 441: KIT_AD,  # NYU-AD more channels July 11, 2012 -
+                 442: KIT_AD,  # NYU-AD move to NYUAD campus Nov 20, 2014 -
+                 51: KIT_NY,  # UMD
+                 52: KIT_MD,  # UMD update to 16 bit ADC, July 4, 2014 -
+                 53: KIT_MD}  # UMD December 4, 2014 -
+
+SYSNAMES = {33: 'NYU 160ch System since Jan24 2009',
+            34: 'NYU 160ch System since Jan24 2009',
+            441: "New York University Abu Dhabi",
+            442: "New York University Abu Dhabi"}

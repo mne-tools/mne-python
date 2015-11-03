@@ -11,6 +11,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 from os import SEEK_CUR, path as op
 from struct import unpack
 import time
+from warnings import warn
 
 import numpy as np
 from scipy import linalg
@@ -24,7 +25,7 @@ from ..base import _BaseRaw
 from ...epochs import _BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
-from .constants import KIT, KIT_NY, KIT_AD
+from .constants import KIT, KIT_CONSTANTS, SYSNAMES
 from .coreg import read_mrk
 from ...externals.six import string_types
 from ...event import read_events
@@ -68,6 +69,9 @@ class RawKIT(_BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
+    stim_code : 'binary' | 'channel'
+        How to decode trigger values from stim channels. 'binary' read stim
+        channel events as binary code, 'channel' encodes channel number.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -84,7 +88,8 @@ class RawKIT(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, mrk=None, elp=None, hsp=None, stim='>',
-                 slope='-', stimthresh=1, preload=False, verbose=None):
+                 slope='-', stimthresh=1, preload=False, stim_code='binary',
+                 verbose=None):
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
         self.preload = False
@@ -99,7 +104,7 @@ class RawKIT(_BaseRaw):
 
         last_samps = [kit_info['n_samples'] - 1]
         self._raw_extras = [kit_info]
-        self._set_stimchannels(info, stim)
+        self._set_stimchannels(info, stim, stim_code)
         super(RawKIT, self).__init__(
             info, preload, last_samps=last_samps, filenames=[input_fname],
             raw_extras=self._raw_extras, verbose=verbose)
@@ -108,11 +113,11 @@ class RawKIT(_BaseRaw):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
                    else marker for marker in mrk]
             mrk = np.mean(mrk, axis=0)
-        if (mrk is not None and elp is not None and hsp is not None):
+        if mrk is not None and elp is not None and hsp is not None:
             dig_points, dev_head_t = _set_dig_kit(mrk, elp, hsp)
             self.info['dig'] = dig_points
             self.info['dev_head_t'] = dev_head_t
-        elif (mrk is not None or elp is not None or hsp is not None):
+        elif mrk is not None or elp is not None or hsp is not None:
             raise ValueError('mrk, elp and hsp need to be provided as a group '
                              '(all or none)')
 
@@ -145,7 +150,7 @@ class RawKIT(_BaseRaw):
 
         return stim_ch
 
-    def _set_stimchannels(self, info, stim='<'):
+    def _set_stimchannels(self, info, stim, stim_code):
         """Specify how the trigger channel is synthesized from analog channels.
 
         Has to be done before loading data. For a RawKIT instance that has been
@@ -164,7 +169,14 @@ class RawKIT(_BaseRaw):
             in sequence.
             '>' means the largest trigger assigned to the last channel
             in sequence.
+        stim_code : 'binary' | 'channel'
+            How to decode trigger values from stim channels. 'binary' read stim
+            channel events as binary code, 'channel' encodes channel number.
         """
+        if stim_code not in ('binary', 'channel'):
+            raise ValueError("stim_code=%r, needs to be 'binary' or 'channel'"
+                             % stim_code)
+
         if stim is not None:
             if isinstance(stim, str):
                 picks = pick_types(info, meg=False, ref_meg=False,
@@ -202,6 +214,7 @@ class RawKIT(_BaseRaw):
             raise NotImplementedError(err)
 
         self._raw_extras[0]['stim'] = stim
+        self._raw_extras[0]['stim_code'] = stim_code
 
     @verbose
     def _read_segment_file(self, data, idx, offset, fi, start, stop,
@@ -245,8 +258,13 @@ class RawKIT(_BaseRaw):
                 trig_chs = trig_chs < self._raw_extras[0]['stimthresh']
             else:
                 raise ValueError("slope needs to be '+' or '-'")
-            trig_vals = np.array(
-                2 ** np.arange(len(self._raw_extras[0]['stim'])), ndmin=2).T
+
+            # trigger value
+            if self._raw_extras[0]['stim_code'] == 'binary':
+                ntrigchan = len(self._raw_extras[0]['stim'])
+                trig_vals = np.array(2 ** np.arange(ntrigchan), ndmin=2).T
+            else:
+                trig_vals = np.reshape(self._raw_extras[0]['stim'], (-1, 1))
             trig_chs = trig_chs * trig_vals
             stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
             data_ = np.vstack((data_, stim_ch))
@@ -435,7 +453,7 @@ class EpochsKIT(_BaseEpochs):
         return data
 
 
-def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
+def _set_dig_kit(mrk, elp, hsp):
     """Add landmark points and head shape data to the KIT instance
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
@@ -454,9 +472,6 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
-    auto_decimate : bool
-        Decimate hsp points for head shape files with more than 10'000
-        points.
 
     Returns
     -------
@@ -481,14 +496,12 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
     if isinstance(elp, string_types):
         elp_points = _read_dig_points(elp)
         if len(elp_points) != 8:
-            err = ("File %r should contain 8 points; got shape "
-                   "%s." % (elp, elp_points.shape))
-            raise ValueError(err)
+            raise ValueError("File %r should contain 8 points; got shape "
+                             "%s." % (elp, elp_points.shape))
         elp = elp_points
-
     elif len(elp) != 8:
-        err = ("ELP should contain 8 points; got shape "
-               "%s." % (elp.shape,))
+        raise ValueError("ELP should contain 8 points; got shape "
+                         "%s." % (elp.shape,))
     if isinstance(mrk, string_types):
         mrk = read_mrk(mrk)
 
@@ -534,21 +547,26 @@ def get_kit_info(rawfile):
         fid.seek(KIT.BASIC_INFO)
         basic_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(basic_offset)
-        # skips version, revision, sysid
-        fid.seek(KIT.INT * 3, SEEK_CUR)
+        # skips version, revision
+        fid.seek(KIT.INT * 2, SEEK_CUR)
+        sysid = unpack('i', fid.read(KIT.INT))[0]
         # basic info
         sysname = unpack('128s', fid.read(KIT.STRING))
         sysname = sysname[0].decode().split('\n')[0]
+        if sysid not in KIT_CONSTANTS:
+            raise NotImplementedError("Data from the KIT system %s (ID %s) "
+                                      "can not currently be read, please "
+                                      "contact the MNE-Python developers."
+                                      % (sysname, sysid))
+        KIT_SYS = KIT_CONSTANTS[sysid]
+        if sysid in SYSNAMES:
+            if sysname != SYSNAMES[sysid]:
+                warn("KIT file %s has system-name %r, expected %r"
+                     % (rawfile, sysname, SYSNAMES[sysid]))
+
+        # channels
         fid.seek(KIT.STRING, SEEK_CUR)  # skips modelname
         sqd['nchan'] = unpack('i', fid.read(KIT.INT))[0]
-
-        if sysname == 'New York University Abu Dhabi':
-            KIT_SYS = KIT_AD
-        elif sysname == 'NYU 160ch System since Jan24 2009':
-            KIT_SYS = KIT_NY
-        else:
-            raise NotImplementedError
-
         # channel locations
         fid.seek(KIT_SYS.CHAN_LOC_OFFSET)
         chan_offset = unpack('i', fid.read(KIT.INT))[0]
@@ -726,7 +744,8 @@ def get_kit_info(rawfile):
 
 
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
-                 slope='-', stimthresh=1, preload=False, verbose=None):
+                 slope='-', stimthresh=1, preload=False, stim_code='binary',
+                 verbose=None):
     """Reader function for KIT conversion to FIF
 
     Parameters
@@ -761,6 +780,9 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    stim_code : 'binary' | 'channel'
+        How to decode trigger values from stim channels. 'binary' read stim
+        channel events as binary code, 'channel' encodes channel number.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -775,7 +797,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     """
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   stim=stim, slope=slope, stimthresh=stimthresh,
-                  preload=preload, verbose=verbose)
+                  preload=preload, stim_code=stim_code, verbose=verbose)
 
 
 def read_epochs_kit(input_fname, events, event_id=None,

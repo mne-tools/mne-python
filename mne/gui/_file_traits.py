@@ -18,7 +18,7 @@ try:
     from traitsui.api import View, Item, VGroup
     from pyface.api import (DirectoryDialog, OK, ProgressDialog, error,
                             information)
-except:
+except Exception:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = object
     cached_property = on_trait_change = Any = Array = Bool = Button = \

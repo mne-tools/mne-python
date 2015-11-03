@@ -19,7 +19,7 @@ try:
                             cached_property, Instance, Property, Array, Bool,
                             Button, Color, Enum, Float, Int, List, Range, Str)
     from traitsui.api import View, Item, Group, HGroup, VGrid, VGroup
-except:
+except Exception:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = object
     cached_property = on_trait_change = MlabSceneModel = Array = Bool = \

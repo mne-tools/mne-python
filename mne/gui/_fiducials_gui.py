@@ -20,7 +20,7 @@ try:
     from traitsui.api import HGroup, Item, VGroup, View
     from traitsui.menu import NoButtons
     from tvtk.pyface.scene_editor import SceneEditor
-except:
+except Exception:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = object
     cached_property = on_trait_change = MayaviScene = MlabSceneModel = \
