@@ -1,0 +1,26 @@
+"""Deal with pyface backend issues"""
+# Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
+#
+# License: BSD (3-clause)
+from ..utils import _check_pyface_backend
+try:
+    from pyface.api import warning
+except ImportError:
+    warning = None
+
+
+def _check_backend():
+    backend, status = _check_pyface_backend()
+    if status == 0:
+        return
+    elif status == 1:
+        msg = ("The currently selected Pyface backend %s has not been "
+               "extensively tested. We recommend using qt4 which can be "
+               "enabled by installing the pyside package. If you proceed with "
+               "the current backend pease let the developers know your "
+               "experience." % backend)
+    elif status == 2:
+        msg = ("The currently selected Pyface backend %s has known issues. We "
+               "recommend using qt4 which can be enabled by installing the "
+               "pyside package." % backend)
+    warning(None, msg, "Pyface Backend Warning")

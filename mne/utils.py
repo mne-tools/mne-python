@@ -767,6 +767,35 @@ def _check_mayavi_version(min_version='4.3.0'):
         raise RuntimeError("Need mayavi >= %s" % min_version)
 
 
+def _check_pyface_backend():
+    """Check the currently selected Pyface backend
+
+    Returns
+    -------
+    backend : str
+        Name of the backend.
+    result : 0 | 1 | 2
+        0: the backend has been tested and works.
+        1: the backend has not been tested.
+        2: the backend not been tested.
+
+    Notes
+    -----
+    See also: http://docs.enthought.com/pyface/
+    """
+    try:
+        from traits.trait_base import ETSConfig
+    except ImportError:
+        return None, 2
+
+    backend = ETSConfig.toolkit
+    if backend == 'qt4':
+        status = 0
+    else:
+        status = 1
+    return backend, status
+
+
 @verbose
 def run_subprocess(command, verbose=None, *args, **kwargs):
     """Run command using subprocess.Popen
