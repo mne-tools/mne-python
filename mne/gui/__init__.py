@@ -27,6 +27,11 @@ def coregistration(tabbed=False, split=True, scene_width=0o1, inst=None,
                    subject=None, subjects_dir=None):
     """Coregister an MRI with a subject's head shape
 
+    The recommended way to use the GUI is through bash with::
+
+        $ mne coreg
+
+
     Parameters
     ----------
     tabbed : bool
@@ -48,7 +53,6 @@ def coregistration(tabbed=False, split=True, scene_width=0o1, inst=None,
 
     Notes
     -----
-    All parameters are optional, since they can be set through the GUI.
     Step by step instructions for the coregistrations can be accessed as
     slides, `for subjects with structural MRI
     <http://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
@@ -94,6 +98,11 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
 
 def kit2fiff():
     """Convert KIT files to the fiff format
+
+    The recommended way to use the GUI is through bash with::
+
+        $ mne kit2fiff
+
     """
     _check_mayavi_version()
     from ._backend import _check_backend
