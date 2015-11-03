@@ -116,7 +116,8 @@ def test_time_frequency():
     itc.data = np.zeros(itc.data.shape)
     itc2.nave = 2
     itc.nave = 1
-    combined_itc = grand_average([itc2, itc])
+    itc.drop_channels([itc.ch_names[0]])
+    combined_itc = combine_tfr([itc2, itc])
     assert_array_almost_equal(combined_itc.data,
                               np.ones(combined_itc.data.shape) * 2 / 3)
 
