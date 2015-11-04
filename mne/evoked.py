@@ -352,7 +352,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
-             titles=None, axes=None, gfp=False):
+             titles=None, axes=None, gfp=False, window_title=None):
         """Plot evoked data as butterfly plots
 
         Left click to a line shows the channel name. Selecting an area by
@@ -399,11 +399,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         gfp : bool | 'only'
             Plot GFP in green if True or "only". If "only", then the individual
             channel traces will not be shown.
+        window_title : str | None
+            The title to put at the top of the figure window.
         """
         return plot_evoked(self, picks=picks, exclude=exclude, unit=unit,
                            show=show, ylim=ylim, proj=proj, xlim=xlim,
                            hline=hline, units=units, scalings=scalings,
-                           titles=titles, axes=axes, gfp=gfp)
+                           titles=titles, axes=axes, gfp=gfp,
+                           window_title=window_title)
 
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, xlim='tight', proj=False, units=None,

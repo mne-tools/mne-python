@@ -209,10 +209,13 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
         logger.warning('%d T1/T2 magnetometer channel types found. If using '
                        ' SSS, it is advised to replace coil types using '
                        ' `fix_mag_coil_types`.' % len(mag_inds_T1T2))
-    if len(info['bads']) > 0:
-        logger.info('    Bad channels being reconstructed: %s' % info['bads'])
+    meg_picks = pick_types(info, meg=True, exclude=[])
+    recons = [ch for ch in info['bads']
+              if info['ch_names'].index(ch) in meg_picks]
+    if len(recons) > 0:
+        logger.info('    Bad MEG channels being reconstructed: %s' % recons)
     else:
-        logger.info('    No bad channels')
+        logger.info('    No bad MEG channels')
     #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
     #
@@ -230,7 +233,6 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
                          'good sensors (%s)' % (str(n_bases), len(good_picks)))
 
     # Get indices of MEG channels
-    meg_picks = pick_types(info, meg=True, exclude=[])
     mag_picks = pick_types(info, meg='mag', exclude=[])
     grad_picks = pick_types(info, meg='grad', exclude=[])
     grad_info = pick_info(info, grad_picks)
@@ -378,6 +380,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
                         'onto the previous window.' % len_last_buf)
 
     S_decomp /= coil_scale
+    S_decomp = S_decomp[good_picks]
     # Loop through buffer windows of data
     for start, stop in zip(lims[:-1], lims[1:]):
         # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
@@ -1177,7 +1180,7 @@ def _regularize_in(int_order, ext_order, coil_scale, S_decomp):
     S_decomp /= use_norm
     eigs = np.zeros((n_in, 2))
 
-    plot = True  # for debugging
+    plot = False  # for debugging
     if plot:
         import matplotlib.pyplot as plt
         fig, axs = plt.subplots(3, figsize=[6, 12])

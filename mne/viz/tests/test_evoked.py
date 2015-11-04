@@ -81,7 +81,7 @@ def test_plot_evoked():
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     with warnings.catch_warnings(record=True):
-        fig = evoked.plot(proj=True, hline=[1], exclude=[])
+        fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo')
         # Test a click
         ax = fig.get_axes()[0]
         line = ax.lines[0]
