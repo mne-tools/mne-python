@@ -28,6 +28,11 @@ from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
 
 
+# Note: Elekta uses single precision and some algorithms might use
+# truncated versions of constants (e.g., μ0), which could lead to small
+# differences between algorithms
+
+
 @verbose
 def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,

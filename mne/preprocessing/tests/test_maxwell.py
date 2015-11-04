@@ -72,6 +72,9 @@ sample_fname = op.join(data_path, 'MEG', 'sample',
 
 int_order, ext_order = 8, 3
 
+# otherwise we can get SVD error
+requires_svd_convergence = requires_version('scipy', '0.12')
+
 # 30 random bad MEG channels (20 grad, 10 mag) that were used in generation
 bads = ['MEG0912', 'MEG1722', 'MEG2213', 'MEG0132', 'MEG1312', 'MEG0432',
         'MEG2433', 'MEG1022', 'MEG0442', 'MEG2332', 'MEG0633', 'MEG1043',
@@ -303,7 +306,7 @@ def test_bads_reconstruction():
     _assert_snr(raw_sss, Raw(sss_bad_recon_fname), 300.)
 
 
-@requires_version('scipy', '0.12')  # otherwise we can get SVD error
+@requires_svd_convergence
 @testing.requires_testing_data
 def test_spatiotemporal_maxwell():
     """Test Maxwell filter (tSSS) spatiotemporal processing"""
@@ -479,6 +482,7 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor):
 
 
 @slow_test
+@requires_svd_convergence
 @testing.requires_testing_data
 def test_maxwell_noise_rejection():
     """Test Maxwell filter shielding factor using empty room"""
@@ -546,6 +550,7 @@ def test_maxwell_noise_rejection():
 
 
 @slow_test
+@requires_svd_convergence
 @testing.requires_testing_data
 def test_maxwell_all():
     """Test maxwell filter using all options"""
