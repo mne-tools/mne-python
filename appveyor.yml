@@ -22,7 +22,8 @@ install:
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
 
   # Install the dependencies of the project (skip nibabel for speed)
-  - "conda install --yes --quiet setuptools numpy scipy matplotlib scikit-learn nose mayavi pandas h5py PIL patsy pyside"
+  - "conda create -n testenv --yes --quiet setuptools numpy scipy matplotlib scikit-learn nose mayavi pandas h5py PIL patsy pyside"
+  - "activate testenv"
   - "pip install nose-timer nibabel nitime"
   - "python setup.py develop"
   - "SET MNE_SKIP_NETWORK_TESTS=1"
