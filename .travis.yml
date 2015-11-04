@@ -34,7 +34,7 @@ env:
 before_install:
   - wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
   - chmod +x miniconda.sh
-  - ./miniconda.sh -b
+  - ./miniconda.sh -b -p /home/travis/miniconda
   - export PATH=/home/travis/miniconda/bin:$PATH
   - conda update --yes --quiet conda
   # We need to create a (fake) display on Travis (allows Mayavi tests to run)
