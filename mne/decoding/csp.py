@@ -10,13 +10,12 @@ import copy as cp
 
 import numpy as np
 from scipy import linalg
-import six
 
-from .mixin import TransformerMixin
+from .mixin import TransformerMixin, EstimatorMixin
 from ..cov import _regularized_covariance
 
 
-class CSP(TransformerMixin):
+class CSP(TransformerMixin, EstimatorMixin):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This object can be used as a supervised decomposition to estimate
@@ -76,33 +75,6 @@ class CSP(TransformerMixin):
                   "reg": self.reg,
                   "log": self.log}
         return params
-
-    def set_params(self, **params):
-        """Set parameters (mimics sklearn API)."""
-        if not params:
-            return self
-        valid_params = self.get_params(deep=True)
-        for key, value in six.iteritems(params):
-            split = key.split('__', 1)
-            if len(split) > 1:
-                # nested objects case
-                name, sub_name = split
-                if name not in valid_params:
-                    raise ValueError('Invalid parameter %s for estimator %s. '
-                                     'Check the list of available parameters '
-                                     'with `estimator.get_params().keys()`.' %
-                                     (name, self))
-                sub_object = valid_params[name]
-                sub_object.set_params(**{sub_name: value})
-            else:
-                # simple objects case
-                if key not in valid_params:
-                    raise ValueError('Invalid parameter %s for estimator %s. '
-                                     'Check the list of available parameters '
-                                     'with `estimator.get_params().keys()`.' %
-                                     (key, self.__class__.__name__))
-                setattr(self, key, value)
-        return self
 
     def fit(self, epochs_data, y):
         """Estimate the CSP decomposition on epochs.
