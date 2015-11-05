@@ -10,6 +10,7 @@ import copy as cp
 
 import numpy as np
 from scipy import linalg
+import six
 
 from .mixin import TransformerMixin, EstimatorMixin
 from ..cov import _regularized_covariance
