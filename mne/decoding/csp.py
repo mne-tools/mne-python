@@ -10,6 +10,7 @@ import copy as cp
 
 import numpy as np
 from scipy import linalg
+import six
 
 from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
@@ -68,6 +69,40 @@ class CSP(TransformerMixin):
         self.patterns_ = None
         self.mean_ = None
         self.std_ = None
+
+    def get_params(self, deep=True):
+        """Return all parameters (mimics sklearn API)."""
+        params = {"n_components": self.n_components,
+                  "reg": self.reg,
+                  "log": self.log}
+        return params
+
+    def set_params(self, **params):
+        """Set parameters (mimics sklearn API)."""
+        if not params:
+            return self
+        valid_params = self.get_params(deep=True)
+        for key, value in six.iteritems(params):
+            split = key.split('__', 1)
+            if len(split) > 1:
+                # nested objects case
+                name, sub_name = split
+                if name not in valid_params:
+                    raise ValueError('Invalid parameter %s for estimator %s. '
+                                     'Check the list of available parameters '
+                                     'with `estimator.get_params().keys()`.' %
+                                     (name, self))
+                sub_object = valid_params[name]
+                sub_object.set_params(**{sub_name: value})
+            else:
+                # simple objects case
+                if key not in valid_params:
+                    raise ValueError('Invalid parameter %s for estimator %s. '
+                                     'Check the list of available parameters '
+                                     'with `estimator.get_params().keys()`.' %
+                                     (key, self.__class__.__name__))
+                setattr(self, key, value)
+        return self
 
     def fit(self, epochs_data, y):
         """Estimate the CSP decomposition on epochs.
