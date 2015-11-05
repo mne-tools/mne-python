@@ -70,7 +70,14 @@ class CSP(TransformerMixin, EstimatorMixin):
         self.std_ = None
 
     def get_params(self, deep=True):
-        """Return all parameters (mimics sklearn API)."""
+        """Return all parameters (mimics sklearn API).
+
+        Parameters
+        ----------
+        deep: boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+        """
         params = {"n_components": self.n_components,
                   "reg": self.reg,
                   "log": self.log}
