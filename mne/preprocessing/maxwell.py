@@ -14,6 +14,7 @@ from os import path as op
 import inspect
 
 from .. import __version__
+from ..bem import fit_sphere_to_headshape
 from ..transforms import _str_to_frame, _get_trans
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
@@ -34,7 +35,7 @@ from ..channels.channels import _get_T1T2_mag_inds
 
 
 @verbose
-def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
+def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,
                    st_correlation=0.98, coord_frame='head', destination=None,
                    regularize='in', verbose=None):
@@ -54,9 +55,9 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
         Data to be filtered
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head coords
-        and in meters. The default is ``'default'``, which means
-        ``(0., 0., 0.040)`` for ``coord_frame='head'`` and
-        ``(0., 0.013, -0.006)`` for ``coord_frame='meg'``.
+        and in meters. The default is ``'auto'``, which means
+        ``(0., 0., 0.)`` for ``coord_frame='meg'``, and a
+        head-digitization-based origin fit for ``coord_frame='head'``.
     int_order : int
         Order of internal component of spherical expansion
     ext_order : int
@@ -137,6 +138,19 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
         * Handling of 3D (in additon to 1D) fine calibration files
         * Processing of data from (un-compensated) non-Elekta systems
         * Automated processing of split (-1.fif) and concatenated files
+
+    .. note:: Various Maxwell filtering algorithm components are covered by
+              patents owned by Elekta Oy, Helsinki, Finland.
+              These patents include, but may not be limited to:
+
+                  - US2006031038 (Signal Space Separation)
+                  - US6876196 (Head position determination)
+                  - WO2005067789 (DC fields)
+                  - WO2005078467 (MaxShield)
+                  - WO2006114473 (Temporal Signal Space Separation)
+
+              These patents likely preclude the use of Maxwell filtering code
+              in commercial applications. Consult a lawyer if necessary.
 
     References
     ----------
@@ -256,12 +270,18 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     # Compute multipolar moment bases
     if isinstance(origin, string_types):
         # XXX eventually we could add "auto" mode here
-        if origin != 'default':
-            raise ValueError('origin must be a numerical array, or "default"')
+        if origin != 'auto':
+            raise ValueError('origin must be a numerical array, or "auto", '
+                             'not %s' % (origin,))
         if coord_frame == 'head':
-            origin = (0., 0., 0.04)
+            R, origin = fit_sphere_to_headshape(raw_sss.info,
+                                                verbose=False)[:2]
+            origin /= 1000.
+            logger.info('    Automatic origin fit: head of radius %0.1f mm'
+                        % R)
+            del R
         else:
-            origin = (0., 0.013, -0.006)
+            origin = (0., 0., 0.)
     origin = np.array(origin, float)
     if origin.shape != (3,):
         raise ValueError('origin must be a 3-element array')
@@ -386,6 +406,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
 
     S_decomp /= coil_scale
     S_decomp = S_decomp[good_picks]
+    logger.info('    Processing data in chunks of %0.1f sec' % st_duration)
     # Loop through buffer windows of data
     for start, stop in zip(lims[:-1], lims[1:]):
         # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
@@ -421,6 +442,7 @@ def maxwell_filter(raw, origin='default', int_order=8, ext_order=3,
     # Update info
     _update_sss_info(raw_sss, origin, int_order, ext_order, len(good_picks),
                      coord_frame, sss_ctc, sss_cal, max_st, reg_moments)
+    logger.info('[done]')
     return raw_sss
 
 
@@ -452,10 +474,10 @@ def _sph_harm_norm(order, degree):
     """Normalization factor for spherical harmonics"""
     # we could use scipy.special.poch(degree + order + 1, -2 * order)
     # here, but it's slower for our fairly small degree
-    # do in two steps like scipy for better precision
-    norm = np.sqrt((2 * degree + 1.) / (4 * np.pi) *
-                   factorial(degree - order) /
-                   float(factorial(degree + order)))
+    norm = np.sqrt((2 * degree + 1.) / (4 * np.pi))
+    if order != 0:
+        norm *= np.sqrt(factorial(degree - order) /
+                        float(factorial(degree + order)))
     return norm
 
 
@@ -522,6 +544,9 @@ def _concatenate_sph_coils(coils):
     return rs, wcoils, ezs, bins
 
 
+_mu_0 = 4e-7 * np.pi  # magnetic permeability
+
+
 def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.,
                method='standard'):
     """Compute SSS basis for given conditions.
@@ -584,7 +609,6 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.,
                          for coil in coils])] = mag_scale
 
     # Compute internal/external basis vectors (exclude degree 0; L/RHS Eq. 5)
-    mu_0 = 4e-7 * np.pi  # magnetic permeability
     for degree in range(1, max(int_order, ext_order) + 1):
         # Only loop over positive orders, negative orders are handled
         # for efficiency within
@@ -604,7 +628,7 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.,
                           _alegendre_deriv(order, degree, np.cos(pol)))
             if degree <= int_order:
                 S_in_out.append(S_in)
-                in_norm = mu_0 * rad ** -(degree + 2)
+                in_norm = _mu_0 * rad ** -(degree + 2)
                 g_rad = in_norm * (-(degree + 1.) * sph)
                 g_az = in_norm * az_factor
                 g_pol = in_norm * pol_factor
@@ -612,7 +636,7 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.,
                                                           g_rad, g_az, g_pol))
             if degree <= ext_order:
                 S_in_out.append(S_out)
-                out_norm = mu_0 * rad ** (degree - 1)
+                out_norm = _mu_0 * rad ** (degree - 1)
                 g_rad = out_norm * degree * sph
                 g_az = out_norm * az_factor
                 g_pol = out_norm * pol_factor
@@ -1284,13 +1308,14 @@ def _compute_sphere_activation_in(degrees):
 
     # This is the "surface" version of the equation:
     # b_r_in = 100e-15  # fixed radial field amplitude at distance r_s = 100 fT
-    # r_s = 0.125  # 4.5 cm from the surface
+    # r_s = 0.13  # 5 cm from the surface
     # rho_degrees = np.arange(1, 100)
     # in_sum = (rho_degrees * (rho_degrees + 1.) /
     #           ((2. * rho_degrees + 1.)) *
     #           (r_in / r_s) ** (2 * rho_degrees + 2)).sum() * 4. * np.pi
     # rho_i = b_r_in * 1e7 / np.sqrt(in_sum)
-    rho_i = 5.21334885574e-07  # deterministic from above, so just store it
+    # rho_i = 5.21334885574e-07  # value for r_s = 0.125
+    rho_i = 5.91107375632e-07  # deterministic from above, so just store it
     a_power = _sq(rho_i) * (degrees * r_in ** (2 * degrees + 4) /
                             (_sq(2. * degrees + 1.) *
                             (degrees + 1.)))

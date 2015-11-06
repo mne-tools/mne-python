@@ -10,7 +10,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - Maxwell filtering (SSS) implemented in :func:`mne.preprocessing.maxwell_filter` by `Mark Wronkiewicz`_, `Eric Larson`_ and `Samu Taulu`_, including support for:
+    - Maxwell filtering (SSS) implemented in :func:`mne.preprocessing.maxwell_filter` by `Mark Wronkiewicz`_ as part of Google Summer of Code, with help from `Samu Taulu`_, `Jukka Nenonen`_, and `Jussi Nurminen`_. Our implementation includes support for:
 
         - Fine calibration
 
@@ -19,6 +19,8 @@ Changelog
         - Temporal SSS (tSSS)
 
         - Head position translation
+
+        - Internal component regularization
 
 BUG
 ~~~
@@ -120,11 +122,9 @@ BUG
 
     - Fix picking channels from forward operator could return a channel ordering different from ``info['chs']`` by `Chris Bailey`_
 
-    - Fix dropping of events after downsampling stim channels by `Marijn van Vliet`_
+    - Fix dropping of events after downsampling stim channels by `Marijn van Vliet`
 
     - Fix scaling in :func:``mne.viz.utils._setup_vmin_vmax`` by `Jaakko Leppakangas`_
-
-    - Fix order of component selection in :class:`mne.decoding.csp.CSP` by `Clemens Brunner`_
 
 API
 ~~~
@@ -1260,5 +1260,9 @@ of commits):
 .. _Samu Taulu: http://ilabs.washington.edu/institute-faculty/bio/i-labs-samu-taulu-dsc
 
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
+
+.. _Jukka Nenonen: https://www.linkedin.com/pub/jukka-nenonen/28/b5a/684
+
+.. _Jussi Nurminen: https://www.linkedin.com/in/jnurminen
 
 .. _Clemens Brunner: https://github.com/cle1109
