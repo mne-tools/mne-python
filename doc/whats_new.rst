@@ -22,6 +22,8 @@ Changelog
 
         - Internal component regularization
 
+    - Add reader for Nicolet files in :func:`mne.io.read_raw_nicolet` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 

@@ -22,6 +22,7 @@ from . import edf
 from . import egi
 from . import fiff
 from . import kit
+from . import nicolet
 from . import pick
 
 from .array import RawArray
@@ -31,6 +32,7 @@ from .edf import read_raw_edf
 from .egi import read_raw_egi
 from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
+from .nicolet import read_raw_nicolet
 
 # for backward compatibility
 from .fiff import RawFIF
