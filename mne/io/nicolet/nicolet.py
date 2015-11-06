@@ -13,8 +13,8 @@ from ..meas_info import _empty_info
 from ..constants import FIFF
 
 
-def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, misc=None,
-                     verbose=None):
+def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, emg=None,
+                     misc=None, verbose=None):
     """Read Nicolet data as raw object
 
     Note. This reader takes data files with the extension ``.data`` as an
@@ -37,6 +37,10 @@ def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, misc=None,
         Names of channels or list of indices that should be designated
         ECG channels. If None (default), the channel names beginning with
         ``ECG`` are used.
+    emg : list or tuple
+        Names of channels or list of indices that should be designated
+        EMG channels. If None (default), the channel names beginning with
+        ``EMG`` are used.
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. If None, (default) none of the channels are designated.
@@ -56,7 +60,7 @@ def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, misc=None,
                       verbose=verbose)
 
 
-def _get_nicolet_info(fname, eog, ecg, misc):
+def _get_nicolet_info(fname, eog, ecg, emg, misc):
     """Function for extracting info from Nicolet header files."""
     info = _empty_info()
     fname = fname.split('.')[0]
@@ -82,10 +86,10 @@ def _get_nicolet_info(fname, eog, ecg, misc):
         eog = [idx for idx, ch in enumerate(ch_names) if ch.startswith('EOG')]
     if ecg is None:
         ecg = [idx for idx, ch in enumerate(ch_names) if ch.startswith('ECG')]
+    if emg is None:
+        emg = [idx for idx, ch in enumerate(ch_names) if ch.startswith('EMG')]
     if misc is None:
         misc = list()
-
-    info['filename'] = fname
 
     date, time = header_info['start_ts'].split()
     date = date.split('-')
@@ -93,38 +97,33 @@ def _get_nicolet_info(fname, eog, ecg, misc):
     sec, msec = time[2].split('.')
     date = datetime.datetime(int(date[0]), int(date[1]), int(date[2]),
                              int(time[0]), int(time[1]), int(sec), int(msec))
-    info['meas_date'] = calendar.timegm(date.utctimetuple())
-    info['nchan'] = header_info['num_channels']
-    info['sfreq'] = header_info['sample_freq']
-    info['ch_names'] = ch_names
-
-    # Some keys to be consistent with FIF measurement info
-    info['description'] = None
-    info['buffer_size_sec'] = 10.
+    info.update({'filename': fname, 'nchan': header_info['num_channels'],
+                 'meas_date': calendar.timegm(date.utctimetuple()),
+                 'sfreq': header_info['sample_freq'], 'ch_names': ch_names,
+                 'description': None, 'buffer_size_sec': 10.})
 
     cal = header_info['conversion_factor'] * 1e-6
     for idx, ch_name in enumerate(ch_names):
-        chan_info = {}
-        chan_info['cal'] = cal
-        chan_info['logno'] = idx + 1
-        chan_info['scanno'] = idx + 1
-        chan_info['range'] = 1.0
-        chan_info['unit_mul'] = 0.
-        chan_info['ch_name'] = ch_name
-        chan_info['unit'] = FIFF.FIFF_UNIT_V
-        chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
-        chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['loc'] = np.zeros(12)
         if ch_name in eog or idx in eog:
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            chan_info['kind'] = FIFF.FIFFV_EOG_CH
-        if ch_name in ecg or idx in ecg:
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            chan_info['kind'] = FIFF.FIFFV_ECG_CH
-        if ch_name in misc or idx in misc:
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_EOG_CH
+        elif ch_name in ecg or idx in ecg:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_ECG_CH
+        elif ch_name in emg or idx in emg:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_EMG_CH
+        elif ch_name in misc or idx in misc:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_MISC_CH
+        else:
+            coil_type = FIFF.FIFFV_COIL_EEG
+            kind = FIFF.FIFFV_EEG_CH
+        chan_info = {'cal': cal, 'logno': idx + 1, 'scanno': idx + 1,
+                     'range': 1.0, 'unit_mul': 0., 'ch_name': ch_name,
+                     'unit': FIFF.FIFF_UNIT_V,
+                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                     'coil_type': coil_type, 'kind': kind, 'loc': np.zeros(12)}
         info['chs'].append(chan_info)
     return info, header_info
 
@@ -148,6 +147,10 @@ class RawNicolet(_BaseRaw):
         Names of channels or list of indices that should be designated
         ECG channels. Values should correspond to the electrodes in the
         data file. Default is None.
+    emg : list or tuple
+        Names of channels or list of indices that should be designated
+        EMG channels. If None (default), the channel names beginning with
+        ``EMG`` are used.
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
@@ -169,9 +172,9 @@ class RawNicolet(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    def __init__(self, input_fname, montage, eog=None, ecg=None, misc=None,
-                 stim_channel=-1, preload=False, verbose=None):
-        info, header_info = _get_nicolet_info(input_fname, eog, ecg, misc)
+    def __init__(self, input_fname, montage, eog=None, ecg=None, emg=None,
+                 misc=None, stim_channel=-1, preload=False, verbose=None):
+        info, header_info = _get_nicolet_info(input_fname, eog, ecg, emg, misc)
         last_samps = [header_info['num_samples']]
         super(RawNicolet, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
