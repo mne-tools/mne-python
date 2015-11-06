@@ -183,7 +183,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     plt.show()
 
 """
-Excercises
+Exercises
 ----------
 
 - What is the smallest p-value you can obtain, given the finite number of
