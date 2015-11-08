@@ -2381,6 +2381,7 @@ def corrmap(icas, template, threshold="auto", label=None,
 
     target = all_maps[template[0]][template[1]]
 
+    template_fig, labelled_ics = None, None
     if plot is True:
         ttl = 'Template from subj. {0}'.format(str(template[0]))
         template_fig = icas[template[0]].plot_components(
