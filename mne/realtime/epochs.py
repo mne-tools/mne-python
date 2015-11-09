@@ -266,16 +266,13 @@ class RtEpochs(_BaseEpochs):
             current_time = time.time()
             if current_time > (self._last_time + self.isi_max):
                 logger.info('Time of %s seconds exceeded.' % self.isi_max)
-                raise StopIteration
+                return  # signal the end properly
             if len(self._epoch_queue) > self._current:
                 epoch = self._epoch_queue[self._current]
                 event_id = self._events[self._current][-1]
                 self._current += 1
                 self._last_time = current_time
-                if return_event_id:
-                    return epoch, event_id
-                else:
-                    return epoch
+                return (epoch, event_id) if return_event_id else epoch
             if self._started:
                 if first:
                     logger.info('Waiting for epoch %d' % (self._current + 1))

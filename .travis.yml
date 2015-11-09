@@ -17,7 +17,7 @@ env:
     # If we change the old-version run to be a different Python version
     # from 2.6, then we need to update mne.utils.clean_warning_registry.
     #
-    # Run one test (3.4) with a non-default stim channel to make sure our
+    # Run one test (3.5) with a non-default stim channel to make sure our
     # tests are explicit about channels.
     #
     # Must force libpng version to avoid silly libpng.so.15 error (MPL 1.1 needs it)
@@ -26,7 +26,7 @@ env:
     # but breaks scipy; hopefully eventually the NUMPY=1.9 on 2.7 full can be removed
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src NUMPY="=1.9" SCIPY="=0.16"
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src MNE_DONTWRITE_HOME=true  # also runs flake8
-    - PYTHON=3.4 DEPS=full TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
+    - PYTHON=3.5 DEPS=full TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
     - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.7" SCIPY="=0.11" MPL="=1.1" LIBPNG="=1.5" SKLEARN="=0.11" PANDAS="=0.8"
     - PYTHON=2.7 DEPS=minimal TEST_LOCATION=src
 
@@ -55,7 +55,7 @@ install:
         source ${MNE_ROOT}/bin/mne_setup_sh;
         conda install --yes --quiet $ENSURE_PACKAGES pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow;
         pip install -q joblib nibabel;
-        if [ "${PYTHON}" == "3.4" ]; then
+        if [ "${PYTHON}" == "3.5" ]; then
           conda install --yes --quiet $ENSURE_PACKAGES ipython;
         else
           conda install --yes --quiet $ENSURE_PACKAGES ipython==1.1.0 statsmodels pandas$PANDAS;
@@ -123,7 +123,7 @@ install:
       else
         cd ${SRC_DIR};
       fi;
-    - if [ "${PYTHON}" != "3.4" ]; then
+    - if [ "${PYTHON}" != "3.5" ]; then
         COVERAGE=--with-coverage;
       else
         COVERAGE=;
@@ -137,8 +137,8 @@ script:
 
 after_success:
     # Need to run from source dir to exectue "git" commands
-    # Coverage not collected for 3.4, so don't report it
-    - if [ "${TEST_LOCATION}" == "src" ] && [ "${PYTHON}" != "3.4" ]; then
+    # Coverage not collected for 3.5, so don't report it
+    - if [ "${TEST_LOCATION}" == "src" ] && [ "${PYTHON}" != "3.5" ]; then
         echo "Running coveralls";
         cd ${SRC_DIR};
         coveralls;

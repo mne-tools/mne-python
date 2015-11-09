@@ -34,7 +34,7 @@ from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
-from .fixes import isclose
+from .fixes import isclose, _get_args
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -529,7 +529,7 @@ def verbose(function, *args, **kwargs):
     dec : function
         The decorated function
     """
-    arg_names = inspect.getargspec(function).args
+    arg_names = _get_args(function)
     default_level = verbose_level = None
     if len(arg_names) > 0 and arg_names[0] == 'self':
         default_level = getattr(args[0], 'verbose', None)
@@ -818,7 +818,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     if p.returncode:
         print(output)
         err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in inspect.getargspec(err_fun).args:
+        if 'output' in _get_args(err_fun):
             raise subprocess.CalledProcessError(p.returncode, command, output)
         else:
             raise subprocess.CalledProcessError(p.returncode, command)

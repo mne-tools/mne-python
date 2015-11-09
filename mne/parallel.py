@@ -6,12 +6,12 @@
 # License: Simplified BSD
 
 from .externals.six import string_types
-import inspect
 import logging
 import os
 
 from . import get_config
 from .utils import logger, verbose
+from .fixes import _get_args
 
 if 'MNE_FORCE_SERIAL' in os.environ:
     _force_serial = True
@@ -70,7 +70,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
             return parallel, my_func, n_jobs
 
     # check if joblib is recent enough to support memmaping
-    p_args = inspect.getargspec(Parallel.__init__).args
+    p_args = _get_args(Parallel.__init__)
     joblib_mmap = ('temp_folder' in p_args and 'max_nbytes' in p_args)
 
     cache_dir = get_config('MNE_CACHE_DIR', None)
