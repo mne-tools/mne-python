@@ -231,5 +231,3 @@ fs = plot_roi(evokeds, column_names=column_names, row_names=row_names,
 fs.set_size_inches((12, 12))
 plt.show()
 tight_layout()
-
-fs.savefig("/Users/jona/Downloads/test_roi.png")
