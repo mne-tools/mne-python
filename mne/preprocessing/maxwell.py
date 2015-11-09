@@ -11,7 +11,6 @@ import numpy as np
 from scipy import linalg
 from math import factorial
 from os import path as op
-import inspect
 
 from .. import __version__
 from ..bem import fit_sphere_to_headshape
@@ -25,6 +24,7 @@ from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger, _clean_names
+from ..fixes import _get_args
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -963,7 +963,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
 
 
 check_disable = dict()  # not available on really old versions of SciPy
-if 'check_finite' in inspect.getargspec(linalg.svd)[0]:
+if 'check_finite' in _get_args(linalg.svd):
     check_disable['check_finite'] = False
 
 

@@ -11,7 +11,6 @@
 from copy import deepcopy
 import warnings
 import json
-import inspect
 import os.path as op
 from distutils.version import LooseVersion
 
@@ -36,7 +35,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
-from .fixes import in1d
+from .fixes import in1d, _get_args
 from .viz import (plot_epochs, _drop_log_stats,
                   plot_epochs_psd, plot_epochs_psd_topomap)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
@@ -561,7 +560,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._current = 0
 
         while True:
-            data, event_id = self.next(True)
+            out = self.next(True)
+            if out is None:
+                return  # properly signal the end of iteration
+            data, event_id = out
             tmin = self.times[0]
             info = deepcopy(self.info)
 
@@ -1233,7 +1235,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """To make iteration over epochs easy.
         """
         self._current = 0
-        return self
+        while True:
+            x = self.next()
+            if x is None:
+                return
+            yield x
 
     def next(self, return_event_id=False):
         """To make iteration over epochs easy.
@@ -1252,14 +1258,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         if self.preload:
             if self._current >= len(self._data):
-                raise StopIteration
+                return  # signal the end
             epoch = self._data[self._current]
             self._current += 1
         else:
             is_good = False
             while not is_good:
                 if self._current >= len(self.events):
-                    raise StopIteration
+                    return  # signal the end properly
                 epoch_noproj = self._get_epoch_from_raw(self._current)
                 epoch_noproj = self._detrend_offset_decim(epoch_noproj)
                 epoch = self._project_epoch(epoch_noproj)
@@ -2043,7 +2049,7 @@ def _minimize_time_diff(t_shorter, t_longer):
     # The first set of keep masks to test
     kwargs = dict(copy=False, bounds_error=False)
     # this is a speed tweak, only exists for certain versions of scipy
-    if 'assume_sorted' in inspect.getargspec(interp1d.__init__).args:
+    if 'assume_sorted' in _get_args(interp1d.__init__):
         kwargs['assume_sorted'] = True
     shorter_interp = interp1d(x1, t_shorter, fill_value=t_shorter[-1],
                               **kwargs)

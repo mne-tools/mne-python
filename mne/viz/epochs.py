@@ -909,7 +909,7 @@ def _plot_update_epochs_proj(params, bools=None):
     params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
                                         verbose=False)
 
-    start = params['t_start'] / len(params['epochs'].times)
+    start = int(params['t_start'] / len(params['epochs'].times))
     n_epochs = params['n_epochs']
     end = start + n_epochs
     data = np.concatenate(params['epochs'][start:end].get_data(), axis=1)

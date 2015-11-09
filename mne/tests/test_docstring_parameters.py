@@ -14,6 +14,7 @@ from inspect import getsource
 
 import mne
 from mne.utils import run_tests_if_main
+from mne.fixes import _get_args
 
 public_modules = [
     # the list of modules users need to access for all functionality
@@ -80,7 +81,7 @@ def check_parameters_match(func, doc=None):
         return incorrect
     if inspect.isdatadescriptor(func):
         return incorrect
-    args, varargs, varkw, defaults = inspect.getargspec(func)
+    args = _get_args(func)
     # drop self
     if len(args) > 0 and args[0] == 'self':
         args = args[1:]

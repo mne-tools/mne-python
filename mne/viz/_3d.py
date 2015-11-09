@@ -14,7 +14,6 @@ from __future__ import print_function
 from ..externals.six import string_types, advance_iterator
 
 import os.path as op
-import inspect
 import warnings
 from itertools import cycle
 import base64
@@ -30,6 +29,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform)
 from ..utils import get_subjects_dir, logger, _check_subject, verbose
+from ..fixes import _get_args
 from ..defaults import _handle_default
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
@@ -632,7 +632,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         hemis = [hemi]
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
-    args = inspect.getargspec(Brain.__init__)[0]
+    args = _get_args(Brain.__init__)
     kwargs = dict(title=title, figure=figure, config_opts=config_opts,
                   subjects_dir=subjects_dir)
     if 'views' in args:
