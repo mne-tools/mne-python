@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from inspect import getargspec, isfunction
+from inspect import isfunction
 from collections import namedtuple
 from copy import deepcopy
 
@@ -44,6 +44,7 @@ from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
                      _get_fast_dot, compute_corr)
+from ..fixes import _get_args
 from ..filter import band_pass_filter
 from .bads import find_outliers
 from .ctps_ import ctps
@@ -79,10 +80,10 @@ def get_score_funcs():
                           if isfunction(f) and not n.startswith('_')]
     score_funcs.update(dict((n, _make_xy_sfunc(f))
                             for n, f in xy_arg_dist_funcs
-                            if getargspec(f).args == ['u', 'v']))
+                            if _get_args(f) == ['u', 'v']))
     score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
                             for n, f in xy_arg_stats_funcs
-                            if getargspec(f).args == ['x', 'y']))
+                            if _get_args(f) == ['x', 'y']))
     return score_funcs
 
 
@@ -1920,7 +1921,7 @@ def read_ica(fname):
         return x.astype(np.float64)
 
     ica_init = dict((k, v) for k, v in ica_init.items()
-                    if k in getargspec(ICA.__init__).args)
+                    if k in _get_args(ICA.__init__))
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')

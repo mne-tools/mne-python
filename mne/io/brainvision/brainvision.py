@@ -19,7 +19,7 @@ from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
 
-from ...externals.six import StringIO, u
+from ...externals.six import StringIO
 from ...externals.six.moves import configparser
 
 
@@ -154,8 +154,8 @@ def _read_vmrk_events(fname, response_trig_shift=0):
         an event as (onset, duration, trigger) sequence.
     """
     # read vmrk file
-    with open(fname) as fid:
-        txt = fid.read()
+    with open(fname, 'rb') as fid:
+        txt = fid.read().decode('utf-8')
 
     header = txt.split('\n')[0].strip()
     start_tag = 'Brain Vision Data Exchange Marker File'
@@ -282,11 +282,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
     if ext != '.vhdr':
         raise IOError("The header file must be given to read the data, "
                       "not the '%s' file." % ext)
-    with open(vhdr_fname, 'r') as f:
+    with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
-        l = f.readline().strip()
+        l = f.readline().decode('utf-8').strip()
         assert l == 'Brain Vision Data Exchange Header File Version 1.0'
-        settings = f.read()
+        settings = f.read().decode('utf-8')
 
     if settings.find('[Comment]') != -1:
         params, settings = settings.split('[Comment]')
@@ -330,9 +330,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
         ch_names[n] = name
         if resolution == "":  # For truncated vhdrs (e.g. EEGLAB export)
             resolution = 0.000001
-        unit = unit.replace('\xc2', '')  # Remove unwanted control characters
+        unit = unit.replace(u'\xc2', u'')  # Remove unwanted control characters
         cals[n] = float(resolution)
-        ranges[n] = _unit_dict.get(u(unit), unit) * scale
+        ranges[n] = _unit_dict.get(unit, unit) * scale
     ch_names[-1] = 'STI 014'
     cals[-1] = 1.
     ranges[-1] = 1.

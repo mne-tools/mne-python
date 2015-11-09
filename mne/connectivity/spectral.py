@@ -4,13 +4,13 @@
 
 from ..externals.six import string_types
 from warnings import warn
-from inspect import getargspec, getmembers
+from inspect import getmembers
 
 import numpy as np
 from scipy.fftpack import fftfreq
 
 from .utils import check_indices
-from ..fixes import tril_indices, partial
+from ..fixes import tril_indices, partial, _get_args
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from .. import Epochs
@@ -744,7 +744,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             con_method_types.append(m)
 
     # determine how many arguments the compute_con_function needs
-    n_comp_args = [len(getargspec(mtype.compute_con).args)
+    n_comp_args = [len(_get_args(mtype.compute_con))
                    for mtype in con_method_types]
 
     # we only support 3 or 5 arguments
