@@ -14,7 +14,7 @@ from ..constants import FIFF
 
 
 def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, emg=None,
-                     misc=None, verbose=None):
+                     misc=None, preload=False, verbose=None):
     """Read Nicolet data as raw object
 
     Note. This reader takes data files with the extension ``.data`` as an
@@ -56,8 +56,8 @@ def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, emg=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawNicolet(input_fname, montage=montage, eog=eog, misc=misc,
-                      verbose=verbose)
+    return RawNicolet(input_fname, montage=montage, eog=eog, emg=emg,
+                      misc=misc, preload=preload, verbose=verbose)
 
 
 def _get_nicolet_info(fname, eog, ecg, emg, misc):
