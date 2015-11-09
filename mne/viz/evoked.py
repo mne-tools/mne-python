@@ -122,7 +122,7 @@ def _topo_closed(events, ax, lines, fill):
 def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
-                 cmap=None, gfp=False):
+                 cmap=None, gfp=False, window_title=None):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -188,6 +188,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
     if axes_init is not None:
         fig = axes[0].get_figure()
+    if window_title is not None:
+        fig.canvas.set_window_title(window_title)
 
     if not len(axes) == n_channel_types:
         raise ValueError('Number of axes (%g) must match number of channel '
@@ -331,7 +333,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
-                scalings=None, titles=None, axes=None, gfp=False):
+                scalings=None, titles=None, axes=None, gfp=False,
+                window_title=None):
     """Plot evoked data
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -380,12 +383,14 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     gfp : bool | 'only'
         Plot GFP in green if True or "only". If "only", then the individual
         channel traces will not be shown.
+    window_title : str | None
+        The title to put at the top of the figure.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
-                        gfp=gfp)
+                        gfp=gfp, window_title=window_title)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,

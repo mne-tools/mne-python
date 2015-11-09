@@ -456,12 +456,12 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
                        read_limit=read_limit, max_str=max_str)
     diff = difflib.HtmlDiff().make_file(file_1, file_2, fname_1, fname_2)
     if fname_out is not None:
-        f = open(fname_out, 'w')
+        f = open(fname_out, 'wb')
     else:
-        f = tempfile.NamedTemporaryFile('w', delete=False, suffix='.html')
+        f = tempfile.NamedTemporaryFile('wb', delete=False, suffix='.html')
         fname_out = f.name
     with f as fid:
-        fid.write(diff)
+        fid.write(diff.encode('utf-8'))
     if show is True:
         webbrowser.open_new_tab(fname_out)
     return fname_out
