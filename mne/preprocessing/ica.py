@@ -2294,6 +2294,10 @@ def corrmap(icas, template, threshold="auto", label=None,
     maps best correlating with the template are identified. In the step, the
     analysis is repeated with the mean of the maps identified in the first
     stage.
+    
+    Run with `plot` and `show` set to `True` and `label=False` to find
+    good parameters. Then, run with labelling enabled to apply the
+    labelling in the IC objects.
 
     Outputs a list of fitted ICAs with the indices of the marked ICs in a
     specified field.
@@ -2349,16 +2353,6 @@ def corrmap(icas, template, threshold="auto", label=None,
         outline. Moreover, a matplotlib patch object can be passed for
         advanced masking options, either directly or as a function that returns
         patches (required for multi-axis plots).
-    layout : None | Layout | list of Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). Or a list of Layout if projections
-        are from different sensor types.
-    cmap : matplotlib colormap
-        Colormap.
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     verbose : bool, str, int, or None
