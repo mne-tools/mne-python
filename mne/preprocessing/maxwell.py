@@ -1209,26 +1209,26 @@ def _regularize_in(int_order, ext_order, coil_scale, S_decomp):
     S_decomp /= use_norm
     eigs = np.zeros((n_in, 2))
 
-    plot = False  # for debugging
-    if plot:
-        import matplotlib.pyplot as plt
-        fig, axs = plt.subplots(3, figsize=[6, 12])
-        plot_ord = np.empty(n_in, int)
-        plot_ord.fill(-1)
-        count = 0
-        # Reorder plot to match MF
-        for degree in range(1, int_order + 1):
-            for order in range(0, degree + 1):
-                assert plot_ord[count] == -1
-                plot_ord[count] = _deg_order_idx(degree, order)
-                count += 1
-                if order > 0:
-                    assert plot_ord[count] == -1
-                    plot_ord[count] = _deg_order_idx(degree, -order)
-                    count += 1
-        assert count == n_in
-        assert (plot_ord >= 0).all()
-        assert len(np.unique(plot_ord)) == n_in
+    # plot = False  # for debugging
+    # if plot:
+    #     import matplotlib.pyplot as plt
+    #     fig, axs = plt.subplots(3, figsize=[6, 12])
+    #     plot_ord = np.empty(n_in, int)
+    #     plot_ord.fill(-1)
+    #     count = 0
+    #     # Reorder plot to match MF
+    #     for degree in range(1, int_order + 1):
+    #         for order in range(0, degree + 1):
+    #             assert plot_ord[count] == -1
+    #             plot_ord[count] = _deg_order_idx(degree, order)
+    #             count += 1
+    #             if order > 0:
+    #                 assert plot_ord[count] == -1
+    #                 plot_ord[count] = _deg_order_idx(degree, -order)
+    #                 count += 1
+    #     assert count == n_in
+    #     assert (plot_ord >= 0).all()
+    #     assert len(np.unique(plot_ord)) == n_in
     noise_lev = 5e-13  # noise level in T/m
     noise_lev *= noise_lev  # effectively what would happen by earlier multiply
     for ii in range(n_in):
@@ -1252,14 +1252,14 @@ def _regularize_in(int_order, ext_order, coil_scale, S_decomp):
         I_tots[ii] = 0.5 * np.log2(snr + 1.).sum()
         remove_order.append(in_keepers[np.argmin(snr)])
         in_keepers.pop(in_keepers.index(remove_order[-1]))
-        if plot and ii == 0:
-            axs[0].semilogy(snr[plot_ord[in_keepers]], color='k')
-    if plot:
-        axs[0].set(ylabel='SNR', ylim=[0.1, 500], xlabel='Component')
-        axs[1].plot(I_tots)
-        axs[1].set(ylabel='Information', xlabel='Iteration')
-        axs[2].plot(eigs[:, 0] / eigs[:, 1])
-        axs[2].set(ylabel='Condition', xlabel='Iteration')
+        # if plot and ii == 0:
+        #     axs[0].semilogy(snr[plot_ord[in_keepers]], color='k')
+    # if plot:
+    #     axs[0].set(ylabel='SNR', ylim=[0.1, 500], xlabel='Component')
+    #     axs[1].plot(I_tots)
+    #     axs[1].set(ylabel='Information', xlabel='Iteration')
+    #     axs[2].plot(eigs[:, 0] / eigs[:, 1])
+    #     axs[2].set(ylabel='Condition', xlabel='Iteration')
     # Pick the components that give at least 98% of max info
     # This is done because the curves can be quite flat, and we err on the
     # side of including rather than excluding components

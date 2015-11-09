@@ -122,9 +122,11 @@ BUG
 
     - Fix picking channels from forward operator could return a channel ordering different from ``info['chs']`` by `Chris Bailey`_
 
-    - Fix dropping of events after downsampling stim channels by `Marijn van Vliet`
+    - Fix dropping of events after downsampling stim channels by `Marijn van Vliet`_
 
     - Fix scaling in :func:``mne.viz.utils._setup_vmin_vmax`` by `Jaakko Leppakangas`_
+
+    - Fix order of component selection in :class:`mne.decoding.csp.CSP` by `Clemens Brunner`_
 
 API
 ~~~
