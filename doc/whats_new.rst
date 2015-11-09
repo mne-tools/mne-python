@@ -1265,6 +1265,6 @@ of commits):
 
 .. _Jukka Nenonen: https://www.linkedin.com/pub/jukka-nenonen/28/b5a/684
 
-.. _Jussi Nurminen: https://www.linkedin.com/in/jnurminen
+.. _Jussi Nurminen: https://scholar.google.fi/citations?user=R6CQz5wAAAAJ&hl=en
 
 .. _Clemens Brunner: https://github.com/cle1109
