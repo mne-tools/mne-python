@@ -7,26 +7,32 @@ from __future__ import print_function
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Mark Wronkiewicz <wronk.mark@gmail.com>
 #
 # License: Simplified BSD
 
 from ..externals.six import string_types, advance_iterator
 
-from distutils.version import LooseVersion
-
-import os
+import os.path as op
 import inspect
 import warnings
 from itertools import cycle
+import base64
 
 import numpy as np
 from scipy import linalg
 
 from ..io.pick import pick_types
-from ..surface import get_head_surf, get_meg_helmet_surf, read_surface
-from ..transforms import read_trans, _find_trans, apply_trans
-from ..utils import get_subjects_dir, logger, _check_subject
+from ..io.constants import FIFF
+from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
+                       transform_surface_to)
+from ..transforms import (read_trans, _find_trans, apply_trans,
+                          combine_transforms, _get_mri_head_t, _ensure_trans,
+                          invert_transform)
+from ..utils import get_subjects_dir, logger, _check_subject, verbose
+from ..defaults import _handle_default
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
+from ..externals.six import BytesIO
 
 
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -147,7 +153,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
 
 def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
-                       slices=None, show=True):
+                       slices=None, show=True, img_output=False):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -163,11 +169,17 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         Slice indices.
     show : bool
         Call pyplot.show() at the end.
+    img_output : None | tuple
+        If tuple (width and height), images will be produced instead of a
+        single figure with many axes. This mode is designed to reduce the
+        (substantial) overhead associated with making tens to hundreds
+        of matplotlib axes, instead opting to re-use a single Axes instance.
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
-        The figure.
+    fig : Instance of matplotlib.figure.Figure | list
+        The figure. Will instead be a list of png images if
+        img_output is a tuple.
     """
     import matplotlib.pyplot as plt
     import nibabel as nib
@@ -203,10 +215,22 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
         surfs.append(surf)
 
-    fig, axs = _prepare_trellis(len(slices), 4)
+    if img_output is None:
+        fig, axs = _prepare_trellis(len(slices), 4)
+    else:
+        fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
+        axs = [ax] * len(slices)
 
+        fig_size = fig.get_size_inches()
+        w, h = img_output[0], img_output[1]
+        w2 = fig_size[0]
+        fig.set_size_inches([(w2 / float(w)) * w, (w2 / float(w)) * h])
+        plt.close(fig)
+
+    inds = dict(coronal=[0, 1, 2], axial=[2, 0, 1],
+                sagittal=[2, 1, 0])[orientation]
+    outs = []
     for ax, sl in zip(axs, slices):
-
         # adjust the orientations for good view
         if orientation == 'coronal':
             dat = data[:, :, sl].transpose()
@@ -216,43 +240,46 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
             dat = data[sl, :, :]
 
         # First plot the anatomical data
+        if img_output is not None:
+            ax.clear()
         ax.imshow(dat, cmap=plt.cm.gray)
         ax.axis('off')
 
         # and then plot the contours on top
         for surf in surfs:
-            if orientation == 'coronal':
-                ax.tricontour(surf['rr'][:, 0], surf['rr'][:, 1],
-                              surf['tris'], surf['rr'][:, 2],
-                              levels=[sl], colors='yellow', linewidths=2.0)
-            elif orientation == 'axial':
-                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 0],
-                              surf['tris'], surf['rr'][:, 1],
-                              levels=[sl], colors='yellow', linewidths=2.0)
-            elif orientation == 'sagittal':
-                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 1],
-                              surf['tris'], surf['rr'][:, 0],
-                              levels=[sl], colors='yellow', linewidths=2.0)
-
+            ax.tricontour(surf['rr'][:, inds[0]], surf['rr'][:, inds[1]],
+                          surf['tris'], surf['rr'][:, inds[2]],
+                          levels=[sl], colors='yellow', linewidths=2.0)
+        if img_output is not None:
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_xlim(0, img_output[1])
+            ax.set_ylim(img_output[0], 0)
+            output = BytesIO()
+            fig.savefig(output, bbox_inches='tight',
+                        pad_inches=0, format='png')
+            outs.append(base64.b64encode(output.getvalue()).decode('ascii'))
     if show:
         plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                             hspace=0.)
         plt.show()
 
-    return fig
+    return fig if img_output is None else outs
 
 
-def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
-               ch_type=None, source='bem'):
+@verbose
+def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
+               ch_type=None, source=('bem', 'head'), coord_frame='head',
+               meg_sensors=False, dig=False, verbose=None):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
     ----------
     info : dict
         The measurement info.
-    trans_fname : str | 'auto'
-        The full path to the `*-trans.fif` file produced during
-        coregistration.
+    trans : str | 'auto' | dict
+        The full path to the head<->MRI transform ``*-trans.fif`` file
+        produced during coregistration.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
@@ -268,76 +295,213 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
         try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
         then look for `'$SUBJECT*$SOURCE.fif'` in the same directory. Defaults
         to 'bem'. Note. For single layer bems it is recommended to use 'head'.
+    coord_frame : str
+        Coordinate frame to use, 'head', 'meg', or 'mri'.
+    meg_sensors : bool
+        If True, plot MEG sensors as points in addition to showing the helmet.
+    dig : bool
+        If True, plot the digitization points.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     fig : instance of mlab.Figure
         The mayavi figure.
     """
-
+    if coord_frame not in ['head', 'meg', 'mri']:
+        raise ValueError('coord_frame must be "head" or "meg"')
     if ch_type not in [None, 'eeg', 'meg']:
         raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
                          % ch_type)
 
-    if trans_fname == 'auto':
-        # let's try to do this in MRI coordinates so they're easy to plot
-        trans_fname = _find_trans(subject, subjects_dir)
+    if isinstance(trans, string_types):
+        if trans == 'auto':
+            # let's try to do this in MRI coordinates so they're easy to plot
+            trans = _find_trans(subject, subjects_dir)
+        trans = read_trans(trans)
+    elif not isinstance(trans, dict):
+        raise TypeError('trans must be str or dict')
+    head_mri_t = _ensure_trans(trans, 'head', 'mri')
+    del trans
 
-    trans = read_trans(trans_fname)
-
+    # both the head and helmet will be in MRI coordinates after this
     surfs = [get_head_surf(subject, source=source, subjects_dir=subjects_dir)]
     if ch_type is None or ch_type == 'meg':
-        surfs.append(get_meg_helmet_surf(info, trans))
+        surfs.append(get_meg_helmet_surf(info, head_mri_t))
+    if coord_frame == 'meg':
+        surf_trans = combine_transforms(info['dev_head_t'], head_mri_t,
+                                        'meg', 'mri')
+    elif coord_frame == 'head':
+        surf_trans = head_mri_t
+    else:  # coord_frame == 'mri'
+        surf_trans = None
+    surfs = [transform_surface_to(surf, coord_frame, surf_trans)
+             for surf in surfs]
+    del surf_trans
 
-    # Plot them
+    # determine points
+    meg_loc = list()
+    ext_loc = list()
+    car_loc = list()
+    if ch_type is None or ch_type == 'eeg':
+        eeg_loc = np.array([info['chs'][k]['loc'][:3]
+                           for k in pick_types(info, meg=False, eeg=True)])
+        if len(eeg_loc) > 0:
+            # Transform EEG electrodes from head coordinates if necessary
+            if coord_frame == 'meg':
+                eeg_loc = apply_trans(invert_transform(info['dev_head_t']),
+                                      eeg_loc)
+            elif coord_frame == 'mri':
+                eeg_loc = apply_trans(invert_transform(head_mri_t), eeg_loc)
+        else:
+            # only warn if EEG explicitly requested, or EEG channels exist but
+            # no locations are provided
+            if (ch_type is not None or
+                    len(pick_types(info, meg=False, eeg=True)) > 0):
+                warnings.warn('EEG electrode locations not found. '
+                              'Cannot plot EEG electrodes.')
+    if meg_sensors:
+        meg_loc = np.array([info['chs'][k]['loc'][:3]
+                           for k in pick_types(info)])
+        if len(meg_loc) > 0:
+            # Transform MEG coordinates from meg if necessary
+            if coord_frame == 'head':
+                meg_loc = apply_trans(info['dev_head_t'], meg_loc)
+            elif coord_frame == 'mri':
+                t = combine_transforms(info['dev_head_t'], head_mri_t,
+                                       'meg', 'mri')
+                meg_loc = apply_trans(t, meg_loc)
+        else:
+            warnings.warn('MEG electrodes not found. '
+                          'Cannot plot MEG locations.')
+    if dig:
+        ext_loc = np.array([d['r'] for d in info['dig']
+                           if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
+        car_loc = np.array([d['r'] for d in info['dig']
+                            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL])
+        if coord_frame == 'meg':
+            t = invert_transform(info['dev_head_t'])
+            ext_loc = apply_trans(t, ext_loc)
+            car_loc = apply_trans(t, car_loc)
+        elif coord_frame == 'mri':
+            ext_loc = apply_trans(head_mri_t, ext_loc)
+            car_loc = apply_trans(head_mri_t, car_loc)
+        if len(car_loc) == len(ext_loc) == 0:
+            warnings.warn('Digitization points not found. '
+                          'Cannot plot digitization.')
+
+    # do the plotting, surfaces then points
     from mayavi import mlab
-    alphas = [1.0, 0.5]
-    colors = [(0.6, 0.6, 0.6), (0.0, 0.0, 0.6)]
-
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
-    for ii, surf in enumerate(surfs):
-
+    alphas = [1.0, 0.5]  # head, helmet
+    colors = [(0.6, 0.6, 0.6), (0.0, 0.0, 0.6)]
+    for surf, alpha, color in zip(surfs, alphas, colors):
         x, y, z = surf['rr'].T
         nn = surf['nn']
         # make absolutely sure these are normalized for Mayavi
         nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
 
         # Make a solid surface
-        alpha = alphas[ii]
         with warnings.catch_warnings(record=True):  # traits
             mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
         mesh.data.point_data.normals = nn
         mesh.data.cell_data.normals = None
-        mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
+        mlab.pipeline.surface(mesh, color=color, opacity=alpha)
 
-    if ch_type is None or ch_type == 'eeg':
-        eeg_locs = [l['eeg_loc'][:, 0] for l in info['chs']
-                    if l['eeg_loc'] is not None]
-
-        if len(eeg_locs) > 0:
-            eeg_loc = np.array(eeg_locs)
-
-            # Transform EEG electrodes to MRI coordinates
-            eeg_loc = apply_trans(trans['trans'], eeg_loc)
-
+    datas = (eeg_loc, meg_loc, car_loc, ext_loc)
+    colors = ((1., 0., 0.), (0., 0.25, 0.5), (1., 1., 0.), (1., 0.5, 0.))
+    alphas = (1.0, 0.25, 0.5, 0.25)
+    scales = (0.005, 0.0025, 0.015, 0.0075)
+    for data, color, alpha, scale in zip(datas, colors, alphas, scales):
+        if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
-                mlab.points3d(eeg_loc[:, 0], eeg_loc[:, 1], eeg_loc[:, 2],
-                              color=(1.0, 0.0, 0.0), scale_factor=0.005)
-        else:
-            warnings.warn('EEG electrode locations not found. '
-                          'Cannot plot EEG electrodes.')
-
+                mlab.points3d(data[:, 0], data[:, 1], data[:, 2],
+                              color=color, scale_factor=scale, opacity=alpha)
     mlab.view(90, 90)
     return fig
 
 
+def _limits_to_control_points(clim, stc_data, colormap):
+    """Private helper function to convert limits (values or percentiles)
+    to control points.
+
+    Note: If using 'mne', generate cmap control points for a directly
+    mirrored cmap for simplicity (i.e., no normalization is computed to account
+    for a 2-tailed mne cmap).
+
+    Parameters
+    ----------
+    clim : str | dict
+        Desired limits use to set cmap control points.
+
+    Returns
+    -------
+    ctrl_pts : list (length 3)
+        Array of floats corresponding to values to use as cmap control points.
+    colormap : str
+        The colormap.
+    """
+
+    # Based on type of limits specified, get cmap control points
+    if colormap == 'auto':
+        if clim == 'auto':
+            colormap = 'mne' if (stc_data < 0).any() else 'hot'
+        else:
+            if 'lims' in clim:
+                colormap = 'hot'
+            else:  # 'pos_lims' in clim
+                colormap = 'mne'
+    if clim == 'auto':
+        # Set upper and lower bound based on percent, and get average between
+        ctrl_pts = np.percentile(np.abs(stc_data), [96, 97.5, 99.95])
+    elif isinstance(clim, dict):
+        # Get appropriate key for clim if it's a dict
+        limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
+        if colormap != 'auto' and limit_key not in clim.keys():
+            raise KeyError('"pos_lims" must be used with "mne" colormap')
+        clim['kind'] = clim.get('kind', 'percent')
+        if clim['kind'] == 'percent':
+            ctrl_pts = np.percentile(np.abs(stc_data),
+                                     list(np.abs(clim[limit_key])))
+        elif clim['kind'] == 'value':
+            ctrl_pts = np.array(clim[limit_key])
+            if (np.diff(ctrl_pts) < 0).any():
+                raise ValueError('value colormap limits must be strictly '
+                                 'nondecreasing')
+        else:
+            raise ValueError('If clim is a dict, clim[kind] must be '
+                             ' "value" or "percent"')
+    else:
+        raise ValueError('"clim" must be "auto" or dict')
+    if len(ctrl_pts) != 3:
+        raise ValueError('"lims" or "pos_lims" is length %i. It must be length'
+                         ' 3' % len(ctrl_pts))
+    ctrl_pts = np.array(ctrl_pts, float)
+    if len(set(ctrl_pts)) != 3:
+        if len(set(ctrl_pts)) == 1:  # three points match
+            if ctrl_pts[0] == 0:  # all are zero
+                warnings.warn('All data were zero')
+                ctrl_pts = np.arange(3, dtype=float)
+            else:
+                ctrl_pts *= [0., 0.5, 1]  # all nonzero pts == max
+        else:  # two points match
+            # if points one and two are identical, add a tiny bit to the
+            # control point two; if points two and three are identical,
+            # subtract a tiny bit from point two.
+            bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
+            ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
+
+    return ctrl_pts, colormap
+
+
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
-                          colormap='hot', time_label='time=%0.2f ms',
-                          smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-                          transparent=True, alpha=1.0, time_viewer=False,
-                          config_opts={}, subjects_dir=None, figure=None,
-                          views='lat', colorbar=True):
+                          colormap='auto', time_label='time=%0.2f ms',
+                          smoothing_steps=10, transparent=None, alpha=1.0,
+                          time_viewer=False, config_opts=None,
+                          subjects_dir=None, figure=None, views='lat',
+                          colorbar=True, clim='auto'):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -359,22 +523,19 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     surface : str
         The type of surface (inflated, white etc.).
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
-        The hemisphere to display. Using 'both' or 'split' requires
-        PySurfer version 0.4 or above.
-    colormap : str
-        The type of colormap to use.
+        The hemisphere to display.
+    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+        Name of colormap to use or a custom look up table. If array, must
+        be (n x 3) or (n x 4) array for with RGB or RGBA values between
+        0 and 255. If 'auto', either 'hot' or 'mne' will be chosen
+        based on whether 'lims' or 'pos_lims' are specified in `clim`.
     time_label : str
         How to print info about the time instant visualized.
     smoothing_steps : int
         The amount of smoothing
-    fmin : float
-        The minimum value to display.
-    fmid : float
-        The middle value on the colormap.
-    fmax : float
-        The maximum value for the colormap.
-    transparent : bool
+    transparent : bool | None
         If True, use a linear transparency between fmin and fmid.
+        None will choose automatically based on colormap type.
     alpha : float
         Alpha value to apply globally to the overlay.
     time_viewer : bool
@@ -394,26 +555,32 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         View to use. See surfer.Brain().
     colorbar : bool
         If True, display colorbar on scene.
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : str
+                Flag to specify type of limits. 'value' or 'percent'.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is not 'mne'.
+                Left, middle, and right bound for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is 'mne'.
+                Left, middle, and right bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
 
     Returns
     -------
     brain : Brain
         A instance of surfer.viz.Brain from PySurfer.
     """
-    import surfer
     from surfer import Brain, TimeViewer
+    config_opts = _handle_default('config_opts', config_opts)
 
-    if hemi in ['split', 'both'] and LooseVersion(surfer.__version__) < '0.4':
-        raise NotImplementedError('hemi type "%s" not supported with your '
-                                  'version of pysurfer. Please upgrade to '
-                                  'version 0.4 or higher.' % hemi)
-
-    try:
-        import mayavi
-        from mayavi import mlab
-    except ImportError:
-        from enthought import mayavi
-        from enthought.mayavi import mlab
+    import mayavi
+    from mayavi import mlab
 
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
@@ -434,7 +601,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         # make sure it is of the correct type
         if not isinstance(figure, list):
             figure = [figure]
-        if not all([isinstance(f, mayavi.core.scene.Scene) for f in figure]):
+        if not all(isinstance(f, mayavi.core.scene.Scene) for f in figure):
             raise TypeError('figure must be a mayavi scene or list of scenes')
         # make sure we have the right number of figures
         n_fig = len(figure)
@@ -443,15 +610,22 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'number of elements as PySurfer plots that '
                                'will be created (%s)' % n_split * n_views)
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
+    # convert control points to locations in colormap
+    ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
 
-    subject = _check_subject(stc.subject, subject, False)
-    if subject is None:
-        if 'SUBJECT' in os.environ:
-            subject = os.environ['SUBJECT']
-        else:
-            raise ValueError('SUBJECT environment variable not set')
+    # Construct cmap manually if 'mne' and get cmap bounds
+    # and triage transparent argument
+    if colormap in ('mne', 'mne_analyze'):
+        colormap = mne_analyze_colormap(ctrl_pts)
+        scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
+        transparent = False if transparent is None else transparent
+    else:
+        scale_pts = ctrl_pts
+        transparent = True if transparent is None else transparent
 
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    subject = _check_subject(stc.subject, subject, True)
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
     else:
@@ -463,18 +637,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                   subjects_dir=subjects_dir)
     if 'views' in args:
         kwargs['views'] = views
-    else:
-        logger.info('PySurfer does not support "views" argument, please '
-                    'consider updating to a newer version (0.4 or later)')
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi, surface, **kwargs)
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         if hemi_idx == 0:
-            data = stc.data[:len(stc.vertno[0])]
+            data = stc.data[:len(stc.vertices[0])]
         else:
-            data = stc.data[len(stc.vertno[0]):]
-        vertices = stc.vertno[hemi_idx]
+            data = stc.data[len(stc.vertices[0]):]
+        vertices = stc.vertices[hemi_idx]
         time = 1e3 * stc.times
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(data, colormap=colormap, vertices=vertices,
@@ -483,8 +654,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                            colorbar=colorbar)
 
         # scale colormap and set time (index) to display
-        brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
-                                  transparent=transparent)
+        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
+                                  fmax=scale_pts[2], transparent=transparent)
 
     if time_viewer:
         TimeViewer(brain)
@@ -496,8 +667,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                  opacity=0.2, brain_color=(0.7,) * 3,
                                  show=True, high_resolution=False,
                                  fig_name=None, fig_number=None, labels=None,
-                                 modes=['cone', 'sphere'],
-                                 scale_factors=[1, 0.6],
+                                 modes=('cone', 'sphere'),
+                                 scale_factors=(1, 0.6),
                                  verbose=None, **kwargs):
     """Plot source estimates obtained with sparse solver
 
@@ -525,6 +696,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         Brain color.
     show : bool
         Show figures if True.
+    high_resolution : bool
+        If True, plot on the original (non-downsampled) cortical mesh.
     fig_name :
         Mayavi figure name.
     fig_number :
@@ -534,11 +707,21 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         label and the waveforms within each cluster are presented in
         the same color. labels should be a list of ndarrays when
         stcs is a list ie. one label for each stc.
+    modes : list
+        Should be a list, with each entry being ``'cone'`` or ``'sphere'``
+        to specify how the dipoles should be shown.
+    scale_factors : list
+        List of floating point scale factors for the markers.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    kwargs : kwargs
+    **kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
     """
+    known_modes = ['cone', 'sphere']
+    if not isinstance(modes, (list, tuple)) or \
+            not all(mode in known_modes for mode in modes):
+        raise ValueError('mode must be a list containing only '
+                         '"cone" or "sphere"')
     if not isinstance(stcs, list):
         stcs = [stcs]
     if labels is not None and not isinstance(labels, list):
@@ -573,11 +756,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                for stc in stcs]
     unique_vertnos = np.unique(np.concatenate(vertnos).ravel())
 
-    try:
-        from mayavi import mlab
-    except ImportError:
-        from enthought.mayavi import mlab
-
+    from mayavi import mlab
     from matplotlib.colors import ColorConverter
     color_converter = ColorConverter()
 
@@ -618,8 +797,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         mode = modes[1] if is_common else modes[0]
         scale_factor = scale_factors[1] if is_common else scale_factors[0]
 
-        if (isinstance(scale_factor, (np.ndarray, list, tuple))
-                and len(unique_vertnos) == len(scale_factor)):
+        if (isinstance(scale_factor, (np.ndarray, list, tuple)) and
+                len(unique_vertnos) == len(scale_factor)):
             scale_factor = scale_factor[idx]
 
         x, y, z = points[v]
@@ -633,8 +812,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
             mask = (vertno == v)
             assert np.sum(mask) == 1
             linestyle = linestyles[k]
-            plt.plot(1e3 * stc.times, 1e9 * stcs[k].data[mask].ravel(), c=c,
-                     linewidth=linewidth, linestyle=linestyle)
+            plt.plot(1e3 * stcs[k].times, 1e9 * stcs[k].data[mask].ravel(),
+                     c=c, linewidth=linewidth, linestyle=linestyle)
 
     plt.xlabel('Time (ms)', fontsize=18)
     plt.ylabel('Source amplitude (nAm)', fontsize=18)
@@ -649,3 +828,98 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     surface.actor.property.shading = True
 
     return surface
+
+
+def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
+                          bgcolor=(1, 1, 1), opacity=0.3,
+                          brain_color=(0.7, 0.7, 0.7), mesh_color=(1, 1, 0),
+                          fig_name=None, fig_size=(600, 600), mode='cone',
+                          scale_factor=0.1e-1, colors=None, verbose=None):
+    """Plot dipole locations
+
+    Only the location of the first time point of each dipole is shown.
+
+    Parameters
+    ----------
+    dipoles : list of instances of Dipole | Dipole
+        The dipoles to plot.
+    trans : dict
+        The mri to head trans.
+    subject : str
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT.
+    subjects_dir : None | str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+        The default is None.
+    bgcolor : tuple of length 3
+        Background color in 3D.
+    opacity : float in [0, 1]
+        Opacity of brain mesh.
+    brain_color : tuple of length 3
+        Brain color.
+    mesh_color : tuple of length 3
+        Mesh color.
+    fig_name : str
+        Mayavi figure name.
+    fig_size : tuple of length 2
+        Mayavi figure size.
+    mode : str
+        Should be ``'cone'`` or ``'sphere'`` to specify how the
+        dipoles should be shown.
+    scale_factor : float
+        The scaling applied to amplitudes for the plot.
+    colors: list of colors | None
+        Color to plot with each dipole. If None default colors are used.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of mlab.Figure
+        The mayavi figure.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    from mayavi import mlab
+    from matplotlib.colors import ColorConverter
+    color_converter = ColorConverter()
+
+    trans = _get_mri_head_t(trans)[0]
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    fname = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
+    points, faces = read_surface(fname)
+    points = apply_trans(trans['trans'], points * 1e-3)
+
+    from .. import Dipole
+    if isinstance(dipoles, Dipole):
+        dipoles = [dipoles]
+
+    if mode not in ['cone', 'sphere']:
+        raise ValueError('mode must be in "cone" or "sphere"')
+
+    if colors is None:
+        colors = cycle(COLORS)
+
+    fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
+    with warnings.catch_warnings(record=True):  # FutureWarning in traits
+        mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
+                             faces, color=mesh_color, opacity=opacity)
+
+    for dip, color in zip(dipoles, colors):
+        rgb_color = color_converter.to_rgb(color)
+        with warnings.catch_warnings(record=True):  # FutureWarning in traits
+            mlab.quiver3d(dip.pos[0, 0], dip.pos[0, 1], dip.pos[0, 2],
+                          dip.ori[0, 0], dip.ori[0, 1], dip.ori[0, 2],
+                          opacity=1., mode=mode, color=rgb_color,
+                          scalars=dip.amplitude.max(),
+                          scale_factor=scale_factor)
+    if fig_name is not None:
+        mlab.title(fig_name)
+    if fig.scene is not None:  # safe for Travis
+        fig.scene.x_plus_view()
+
+    return fig

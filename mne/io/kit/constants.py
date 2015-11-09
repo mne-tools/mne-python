@@ -1,6 +1,6 @@
 """KIT constants"""
 
-# Author: Teon Brooks <teon@nyu.edu>
+# Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -19,7 +19,8 @@ KIT.STRING = 128
 KIT.AMPLIFIER_INFO = 112
 KIT.BASIC_INFO = 16
 KIT.CHAN_SENS = 80
-KIT.DATA_OFFSET = 144
+KIT.RAW_OFFSET = 144
+KIT.AVE_OFFSET = 160
 KIT.SAMPLE_INFO = 128
 KIT.MRK_INFO = 192
 KIT.CHAN_LOC_OFFSET = 64
@@ -32,8 +33,8 @@ KIT.UNIT_MUL = 0  # default is 0 mne_manual p.273
 
 # gain: 0:x1, 1:x2, 2:x5, 3:x10, 4:x20, 5:x50, 6:x100, 7:x200
 KIT.GAINS = [1, 2, 5, 10, 20, 50, 100, 200]
-# BEF options: 0:THRU, 1:50Hz, 2:60Hz
-KIT.BEFS = [0, 50, 60]
+# BEF options: 0:THRU, 1:50Hz, 2:60Hz, 3:50Hz
+KIT.BEFS = [0, 50, 60, 50]
 
 # coreg constants
 KIT.DIG_POINTS = 10000
@@ -87,7 +88,7 @@ KIT_AD.GAIN3_BIT = 24  # stored in Bit 24-26
 KIT_AD.GAIN3_MASK = 2 ** 24 + 2 ** 25 + 2 ** 26
 KIT_AD.HPF_BIT = 8  # stored in Bit 8-10
 KIT_AD.HPF_MASK = 2 ** 8 + 2 ** 9 + 2 ** 10
-KIT_AD.LPF_BIT = 18  # stored in Bit 16-18
+KIT_AD.LPF_BIT = 16  # stored in Bit 16-18
 KIT_AD.LPF_MASK = 2 ** 16 + 2 ** 17 + 2 ** 18
 KIT_AD.BEF_BIT = 0  # stored in Bit 0-1
 KIT_AD.BEF_MASK = 2 ** 0 + 2 ** 1

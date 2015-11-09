@@ -5,15 +5,18 @@
 
 import numpy as np
 
-from nose.tools import assert_equal, assert_raises
+from nose.tools import assert_equal, assert_raises, assert_true
 from numpy.testing import assert_array_equal
 from distutils.version import LooseVersion
-from scipy import signal
+from scipy import signal, sparse
 
-from ..fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
-                     _Counter, _unique, _bincount, _digitize)
-from ..fixes import _firwin2 as mne_firwin2
-from ..fixes import _filtfilt as mne_filtfilt
+from mne.utils import run_tests_if_main
+from mne.fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
+                       _Counter, _unique, _bincount, _digitize,
+                       _sparse_block_diag, _matrix_rank, _meshgrid,
+                       _isclose)
+from mne.fixes import _firwin2 as mne_firwin2
+from mne.fixes import _filtfilt as mne_filtfilt
 
 
 def test_counter():
@@ -21,13 +24,16 @@ def test_counter():
     import collections
     try:
         Counter = collections.Counter
-    except:
+    except Exception:
         pass
     else:
         a = Counter([1, 2, 1, 3])
         b = _Counter([1, 2, 1, 3])
+        c = _Counter()
+        c.update(b)
         for key, count in zip([1, 2, 3], [2, 1, 1]):
             assert_equal(a[key], b[key])
+            assert_equal(a[key], c[key])
 
 
 def test_unique():
@@ -140,3 +146,49 @@ def test_filtfilt():
     # Filter with an impulse
     y = mne_filtfilt([1, 0], [1, 0], x, padlen=0)
     assert_array_equal(x, y)
+
+
+def test_sparse_block_diag():
+    """Test sparse block diag replacement"""
+    x = _sparse_block_diag([sparse.eye(2, 2), sparse.eye(2, 2)])
+    x = x - sparse.eye(4, 4)
+    x.eliminate_zeros()
+    assert_equal(len(x.data), 0)
+
+
+def test_rank():
+    """Test rank replacement"""
+    assert_equal(_matrix_rank(np.ones(10)), 1)
+    assert_equal(_matrix_rank(np.eye(10)), 10)
+    assert_equal(_matrix_rank(np.ones((10, 10))), 1)
+    assert_raises(TypeError, _matrix_rank, np.ones((10, 10, 10)))
+
+
+def test_meshgrid():
+    """Test meshgrid replacement
+    """
+    a = np.arange(10)
+    b = np.linspace(0, 1, 5)
+    a_grid, b_grid = _meshgrid(a, b, indexing='ij')
+    for grid in (a_grid, b_grid):
+        assert_equal(grid.shape, (a.size, b.size))
+    a_grid, b_grid = _meshgrid(a, b, indexing='xy', copy=True)
+    for grid in (a_grid, b_grid):
+        assert_equal(grid.shape, (b.size, a.size))
+    assert_raises(TypeError, _meshgrid, a, b, foo='a')
+    assert_raises(ValueError, _meshgrid, a, b, indexing='foo')
+
+
+def test_isclose():
+    """Test isclose replacement
+    """
+    a = np.random.RandomState(0).randn(10)
+    b = a.copy()
+    assert_true(_isclose(a, b).all())
+    a[0] = np.inf
+    b[0] = np.inf
+    a[-1] = np.nan
+    b[-1] = np.nan
+    assert_true(_isclose(a, b, equal_nan=True).all())
+
+run_tests_if_main()

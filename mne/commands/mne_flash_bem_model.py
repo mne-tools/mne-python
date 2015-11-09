@@ -18,12 +18,15 @@ from __future__ import print_function
 # Authors:  Rey Rene Ramirez, Ph.D.   e-mail: rrramir at uw.edu
 #           Alexandre Gramfort, Ph.D.
 
-
+import sys
 import math
 import os
+
 import mne
+from mne.utils import deprecated
 
 
+@deprecated("This function is deprecated, use mne_flash_bem instead")
 def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
     """Create 3-Layers BEM model from Flash MRI images
 
@@ -74,10 +77,10 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
         os.mkdir("parameter_maps")
     print("--- Converting Flash 5")
     os.system('mri_convert -flip_angle %s -tr 25 %s mef05.mgz' %
-                                            (5 * math.pi / 180, flash05))
+              (5 * math.pi / 180, flash05))
     print("--- Converting Flash 30")
     os.system('mri_convert -flip_angle %s -tr 25 %s mef30.mgz' %
-                                            (30 * math.pi / 180, flash30))
+              (30 * math.pi / 180, flash30))
     print("--- Running mne_flash_bem")
     os.system('mne_flash_bem --noconvert')
     os.chdir(os.path.join(subjects_dir, subject, 'bem'))
@@ -92,16 +95,16 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
         skull_col = (0.91, 0.89, 0.67)
         brain_col = (0.67, 0.89, 0.91)  # light blue
         colors = [head_col, skull_col, brain_col]
-        from enthought.mayavi import mlab
+        from mayavi import mlab
         mlab.clf()
         for fname, c in zip(fnames, colors):
             points, faces = mne.read_surface(fname)
-            mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2], faces,
-                                 color=c, opacity=0.3)
+            mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
+                                 faces, color=c, opacity=0.3)
         mlab.show()
 
-if __name__ == '__main__':
 
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -110,20 +113,24 @@ if __name__ == '__main__':
     subjects_dir = os.environ.get('SUBJECTS_DIR')
 
     parser.add_option("-s", "--subject", dest="subject",
-                    help="Subject name", default=subject)
+                      help="Subject name", default=subject)
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
-                    help="Subjects directory", default=subjects_dir)
+                      help="Subjects directory", default=subjects_dir)
     parser.add_option("-5", "--flash05", dest="flash05",
-                    help=("Path to FLASH sequence with a spin angle of 5 "
-                          "degrees in Nifti format"), metavar="FILE")
+                      help=("Path to FLASH sequence with a spin angle of 5 "
+                            "degrees in Nifti format"), metavar="FILE")
     parser.add_option("-3", "--flash30", dest="flash30",
-                    help=("Path to FLASH sequence with a spin angle of 30 "
-                          "degrees in Nifti format"), metavar="FILE")
+                      help=("Path to FLASH sequence with a spin angle of 30 "
+                            "degrees in Nifti format"), metavar="FILE")
     parser.add_option("-v", "--view", dest="show", action="store_true",
                       help="Show BEM model in 3D for visual inspection",
                       default=False)
 
     options, args = parser.parse_args()
+
+    if options.flash05 is None or options.flash30 is None:
+        parser.print_help()
+        sys.exit(1)
 
     subject = options.subject
     subjects_dir = options.subjects_dir
@@ -132,3 +139,7 @@ if __name__ == '__main__':
     show = options.show
 
     make_flash_bem(subject, subjects_dir, flash05, flash30, show=show)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

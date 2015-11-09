@@ -21,34 +21,16 @@ try:
     from tvtk.pyface.scene_editor import SceneEditor
 except:
     from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    cached_property = trait_wraith
-    on_trait_change = trait_wraith
-    MayaviScene = trait_wraith
-    MlabSceneModel = trait_wraith
-    Array = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    Enum = trait_wraith
-    File = trait_wraith
-    Float = trait_wraith
-    Instance = trait_wraith
-    Int = trait_wraith
-    List = trait_wraith
-    Property = trait_wraith
-    Str = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    HGroup = trait_wraith
-    VGroup = trait_wraith
-    CheckListEditor = trait_wraith
-    NoButtons = trait_wraith
-    SceneEditor = trait_wraith
+    HasTraits = HasPrivateTraits = object
+    cached_property = on_trait_change = MayaviScene = MlabSceneModel = \
+        Array = Bool = Button = Enum = File = Float = Instance = Int = \
+        List = Property = Str = View = Item = HGroup = VGroup = \
+        CheckListEditor = NoButtons = SceneEditor = trait_wraith
 
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
-from ..io.kit import read_mrk, write_mrk
+from ..io.kit import read_mrk
+from ..io.meas_info import _write_dig_points
 from ._viewer import HeadViewController, headview_borders, PointObject
 
 
@@ -59,40 +41,39 @@ if backend_is_wx:
                     'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
                     'Text marker file (*.txt)|*.txt',
                     'Pickled markers (*.pickled)|*.pickled']
-    mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt",
-                        "Pickled KIT parameters (*.pickled)|*.pickled"]
+    mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
     mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
-    mrk_out_wildcard = ["*.txt;*.pickled"]
-out_ext = ['.txt', '.pickled']
+    mrk_out_wildcard = "*.txt"
+out_ext = '.txt'
 
 
 use_editor_v = CheckListEditor(cols=1, values=[(i, str(i)) for i in range(5)])
 use_editor_h = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
 
 mrk_view_editable = View(
-        VGroup('file',
-               Item('name', show_label=False, style='readonly'),
-               HGroup(
-                      Item('use', editor=use_editor_v, enabled_when="enabled",
-                           style='custom'),
-                      'points',
-                      ),
-               HGroup(Item('clear', enabled_when="can_save", show_label=False),
-                      Item('save_as', enabled_when="can_save",
-                           show_label=False)),
-                  ))
+    VGroup('file',
+           Item('name', show_label=False, style='readonly'),
+           HGroup(
+               Item('use', editor=use_editor_v, enabled_when="enabled",
+                    style='custom'),
+               'points',
+           ),
+           HGroup(Item('clear', enabled_when="can_save", show_label=False),
+                  Item('save_as', enabled_when="can_save",
+                       show_label=False)),
+           ))
 
 mrk_view_basic = View(
-        VGroup('file',
-               Item('name', show_label=False, style='readonly'),
-               Item('use', editor=use_editor_h, enabled_when="enabled",
-                    style='custom'),
-               HGroup(Item('clear', enabled_when="can_save", show_label=False),
-                      Item('edit', show_label=False),
-                      Item('save_as', enabled_when="can_save",
-                           show_label=False)),
-                  ))
+    VGroup('file',
+           Item('name', show_label=False, style='readonly'),
+           Item('use', editor=use_editor_h, enabled_when="enabled",
+                style='custom'),
+           HGroup(Item('clear', enabled_when="can_save", show_label=False),
+                  Item('edit', show_label=False),
+                  Item('save_as', enabled_when="can_save",
+                       show_label=False)),
+           ))
 
 mrk_view_edit = View(VGroup('points'))
 
@@ -119,15 +100,16 @@ class MarkerPoints(HasPrivateTraits):
         if dlg.return_code != OK:
             return
 
-        ext = out_ext[dlg.wildcard_index]
-        path = dlg.path
-        if not path.endswith(ext):
-            path = path + ext
-            if os.path.exists(path):
-                answer = confirm(None, "The file %r already exists. Should it "
-                                 "be replaced?", "Overwrite File?")
-                if answer != YES:
-                    return
+        path, ext = os.path.splitext(dlg.path)
+        if not path.endswith(out_ext) and len(ext) != 0:
+            ValueError("The extension '%s' is not supported." % ext)
+        path = path + out_ext
+
+        if os.path.exists(path):
+            answer = confirm(None, "The file %r already exists. Should it "
+                             "be replaced?", "Overwrite File?")
+            if answer != YES:
+                return
         self.save(path)
 
     def save(self, path):
@@ -140,7 +122,7 @@ class MarkerPoints(HasPrivateTraits):
             based on the extension: '.txt' for tab separated text file,
             '.pickled' for pickled file.
         """
-        write_mrk(path, self.points)
+        _write_dig_points(path, self.points)
 
 
 class MarkerPointSource(MarkerPoints):
@@ -342,9 +324,9 @@ class CombineMarkersModel(HasPrivateTraits):
 
     @cached_property
     def _get_distance(self):
-        if (self.mrk1 is None or self.mrk2 is None
-            or (not np.any(self.mrk1.points))
-            or (not np.any(self.mrk2.points))):
+        if (self.mrk1 is None or self.mrk2 is None or
+                (not np.any(self.mrk1.points)) or
+                (not np.any(self.mrk2.points))):
             return ""
 
         ds = np.sqrt(np.sum((self.mrk1.points - self.mrk2.points) ** 2, 1))
@@ -406,14 +388,14 @@ class CombineMarkersPanel(HasTraits):
         self.sync_trait('trans', self.mrk1_obj, mutual=False)
         m.mrk1.sync_trait('points', self.mrk1_obj, 'points', mutual=False)
         m.mrk1.sync_trait('enabled', self.mrk1_obj, 'visible',
-                                   mutual=False)
+                          mutual=False)
 
         self.mrk2_obj = PointObject(scene=self.scene, color=(55, 155, 55),
                                     point_scale=self.scale)
         self.sync_trait('trans', self.mrk2_obj, mutual=False)
         m.mrk2.sync_trait('points', self.mrk2_obj, 'points', mutual=False)
         m.mrk2.sync_trait('enabled', self.mrk2_obj, 'visible',
-                                   mutual=False)
+                          mutual=False)
 
         self.mrk3_obj = PointObject(scene=self.scene, color=(150, 200, 255),
                                     point_scale=self.scale)
@@ -448,7 +430,6 @@ class CombineMarkersFrame(HasTraits):
                               Item('panel', style="custom"),
                               show_labels=False),
                        show_labels=False,
-                      ),
+                       ),
                 width=1100, resizable=True,
                 buttons=NoButtons)
-

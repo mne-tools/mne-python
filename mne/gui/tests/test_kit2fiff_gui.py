@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os
+import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
@@ -11,7 +12,7 @@ from nose.tools import assert_true, assert_false, assert_equal
 import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io import Raw
-from mne.utils import _TempDir, requires_traits
+from mne.utils import _TempDir, requires_traits, run_tests_if_main
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
@@ -20,15 +21,15 @@ hsp_path = os.path.join(kit_data_dir, 'test_hsp.txt')
 fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
 fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
-tempdir = _TempDir()
-tgt_fname = os.path.join(tempdir, 'test-raw.fif')
-std_fname = os.path.join(tempdir, 'test_std-raw.fif')
+warnings.simplefilter('always')
 
 
 @requires_traits
 def test_kit2fiff_model():
     """Test CombineMarkersModel Traits Model"""
-    from mne.gui._kit2fiff_gui import Kit2FiffModel
+    from mne.gui._kit2fiff_gui import Kit2FiffModel, Kit2FiffPanel
+    tempdir = _TempDir()
+    tgt_fname = os.path.join(tempdir, 'test-raw.fif')
 
     model = Kit2FiffModel()
     assert_false(model.can_save)
@@ -48,7 +49,8 @@ def test_kit2fiff_model():
     # Compare exported raw with the original binary conversion
     raw_bin = Raw(fif_path)
     trans_bin = raw.info['dev_head_t']['trans']
-    assert_equal(raw_bin.info.keys(), raw.info.keys())
+    want_keys = list(raw_bin.info.keys())
+    assert_equal(sorted(want_keys), sorted(list(raw.info.keys())))
     trans_transform = raw_bin.info['dev_head_t']['trans']
     assert_allclose(trans_transform, trans_bin, 0.1)
 
@@ -86,3 +88,19 @@ def test_kit2fiff_model():
     raw = model.get_raw()
     events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events, events_bin)
+
+    # test reset
+    model.clear_all()
+    assert_equal(model.use_mrk, [0, 1, 2, 3, 4])
+    assert_equal(model.sqd_file, "")
+
+    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
+    try:
+        with warnings.catch_warnings(record=True):  # traits warnings
+            warnings.simplefilter('always')
+            Kit2FiffPanel()
+    finally:
+        del os.environ['_MNE_GUI_TESTING_MODE']
+
+
+run_tests_if_main()

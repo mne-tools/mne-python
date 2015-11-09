@@ -7,10 +7,8 @@ import os.path as op
 from nose.tools import assert_equal, assert_raises
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import _TempDir, requires_sklearn
+from mne.utils import requires_sklearn
 from mne.decoding import compute_ems
-
-tempdir = _TempDir()
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 curdir = op.join(op.dirname(__file__))
@@ -31,7 +29,7 @@ def test_ems():
     events = read_events(event_name)
     events[-2, 2] = 3
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)

@@ -5,7 +5,8 @@
 from warnings import warn
 
 import numpy as np
-from scipy import fftpack, linalg, interpolate
+from scipy import fftpack, linalg
+import warnings
 
 from ..parallel import parallel_func
 from ..utils import verbose, sum_squared
@@ -146,6 +147,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     uncertainty V: The discrete case. Bell System Technical Journal,
     Volume 57 (1978), 1371430
     """
+    from scipy.interpolate import interp1d
     Kmax = int(Kmax)
     W = float(half_nbw) / N
     nidx = np.arange(N, dtype='d')
@@ -162,7 +164,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         d, e = dpss_windows(interp_from, half_nbw, Kmax, low_bias=False)
         for this_d in d:
             x = np.arange(this_d.shape[-1])
-            I = interpolate.interp1d(x, this_d, kind=interp_kind)
+            I = interp1d(x, this_d, kind=interp_kind)
             d_temp = I(np.arange(0, this_d.shape[-1] - 1,
                                  float(this_d.shape[-1] - 1) / N))
 
@@ -239,8 +241,12 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     if low_bias:
         idx = (eigvals > 0.9)
+        if not idx.any():
+            warnings.warn('Could not properly use low_bias, '
+                          'keeping lowest-bias taper')
+            idx = [np.argmax(eigvals)]
         dpss, eigvals = dpss[idx], eigvals[idx]
-
+    assert len(dpss) > 0  # should never happen
     return dpss, eigvals
 
 
@@ -373,10 +379,9 @@ def _psd_from_mt(x_mt, weights):
     psd : array
         The computed PSD
     """
-
-    psd = np.sum(np.abs(weights * x_mt) ** 2, axis=-2)
-    psd *= 2 / np.sum(np.abs(weights) ** 2, axis=-2)
-
+    psd = weights * x_mt
+    psd = (psd * psd.conj()).real.sum(axis=-2)
+    psd *= 2 / (weights * weights.conj()).real.sum(axis=-2)
     return psd
 
 
@@ -399,14 +404,10 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
     psd: array
         The computed PSD
     """
-
     csd = np.sum(weights_x * x_mt * (weights_y * y_mt).conj(), axis=-2)
-
-    denom = (np.sqrt(np.sum(np.abs(weights_x) ** 2, axis=-2))
-             * np.sqrt(np.sum(np.abs(weights_y) ** 2, axis=-2)))
-
+    denom = (np.sqrt((weights_x * weights_x.conj()).real.sum(axis=-2)) *
+             np.sqrt((weights_y * weights_y.conj()).real.sum(axis=-2)))
     csd *= 2 / denom
-
     return csd
 
 
@@ -489,6 +490,14 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         The computed PSD.
     freqs : array
         The frequency points in Hz of the PSD.
+
+    See Also
+    --------
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     if normalization not in ('length', 'full'):
         raise ValueError('Normalization must be "length" or "full", not %s'

@@ -5,27 +5,30 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six import string_types
 import os
 import copy
 from math import ceil
-import numpy as np
-from scipy import linalg, sparse
-from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
-from ._hdf5 import read_hdf5, write_hdf5
+import numpy as np
+from scipy import linalg, sparse
+from scipy.sparse import coo_matrix
+
 from .filter import resample
 from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
-                      _compute_nearest)
-from .utils import (get_subjects_dir, _check_subject,
-                    _check_pandas_index_arguments, _check_pandas_installed,
-                    logger, verbose)
+                      _compute_nearest, mesh_edges)
+from .source_space import (_ensure_src, _get_morph_src_reordering,
+                           _ensure_src_subject)
+from .utils import (get_subjects_dir, _check_subject, logger, verbose,
+                    _time_mask)
 from .viz import plot_source_estimates
-from .fixes import in1d
+from .fixes import in1d, sparse_block_diag
+from .io.base import ToDataFrameMixin
 from .externals.six.moves import zip
+from .externals.six import string_types
+from .externals.h5io import read_hdf5, write_hdf5
 
 
 def _read_stc(filename):
@@ -201,7 +204,7 @@ def _write_w(filename, vertices, data):
     # write the vertices and data
     for i in range(vertices_n):
         _write_3(fid, vertices[i])
-        #XXX: without float() endianness is wrong, not sure why
+        # XXX: without float() endianness is wrong, not sure why
         fid.write(np.array(float(data[i]), dtype='>f4').tostring())
 
     # close the file
@@ -319,12 +322,12 @@ def read_source_estimate(fname, subject=None):
         kwargs['tmin'] = 0.0
         kwargs['tstep'] = 1.0
     elif ftype == 'h5':
-        kwargs = read_hdf5(fname + '-stc.h5')
+        kwargs = read_hdf5(fname + '-stc.h5', title='mnepython')
 
     if ftype != 'volume':
         # Make sure the vertices are ordered
         vertices = kwargs['vertices']
-        if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
+        if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
             sidx = [np.argsort(verts) for verts in vertices]
             vertices = [verts[idx] for verts, idx in zip(vertices, sidx)]
             data = kwargs['data'][np.r_[sidx[0], len(sidx[0]) + sidx[1]]]
@@ -347,7 +350,7 @@ def read_source_estimate(fname, subject=None):
 
 
 def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
-    """Helper function to generate either a surface or volume source estimate
+    """Helper function to generate a surface, volume or mixed source estimate
     """
 
     if isinstance(vertices, list) and len(vertices) == 2:
@@ -358,8 +361,12 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
             and len(vertices) == 1:
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
+    elif isinstance(vertices, list) and len(vertices) > 2:
+        # make a mixed source estimate
+        stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
+                                  tstep=tstep, subject=subject)
     else:
-        raise ValueError('vertices has to be either a list with one or two '
+        raise ValueError('vertices has to be either a list with one or more '
                          'arrays or an array')
     return stc
 
@@ -367,8 +374,9 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
 def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations"""
     compat = False
-    if len(a.vertno) == len(b.vertno):
-        if all([np.array_equal(av, vv) for av, vv in zip(a.vertno, b.vertno)]):
+    if len(a.vertices) == len(b.vertices):
+        if all(np.array_equal(av, vv)
+               for av, vv in zip(a.vertices, b.vertices)):
             compat = True
     if not compat:
         raise ValueError('Cannot combine SourceEstimates that do not have the '
@@ -378,7 +386,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(object):
+class _BaseSourceEstimate(ToDataFrameMixin, object):
     """Abstract base class for source estimates
 
     Parameters
@@ -390,9 +398,9 @@ class _BaseSourceEstimate(object):
         space data corresponds to "numpy.dot(kernel, sens_data)".
     vertices : array | list of two arrays
         Vertex numbers corresponding to the data.
-    tmin : scalar
+    tmin : float
         Time point of the first sample in data.
-    tstep : scalar
+    tstep : float
         Time step between successive samples in data.
     subject : str | None
         The subject name. While not necessary, it is safer to set the
@@ -428,12 +436,11 @@ class _BaseSourceEstimate(object):
                                  'dimensions')
 
         if isinstance(vertices, list):
-            if not (len(vertices) == 2 or len(vertices) == 1) or \
-                    not all([isinstance(v, np.ndarray) for v in vertices]):
-                raise ValueError('Vertices, if a list, must contain one or '
-                                 'two numpy arrays')
+            if not all(isinstance(v, np.ndarray) for v in vertices):
+                raise ValueError('Vertices, if a list, must contain numpy '
+                                 'arrays')
 
-            if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
+            if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
                 raise ValueError('Vertices must be ordered in increasing '
                                  'order.')
 
@@ -454,7 +461,7 @@ class _BaseSourceEstimate(object):
         self._data = data
         self.tmin = tmin
         self.tstep = tstep
-        self.vertno = vertices
+        self.vertices = vertices
         self.verbose = verbose
         self._kernel = kernel
         self._sens_data = sens_data
@@ -477,18 +484,13 @@ class _BaseSourceEstimate(object):
 
         Parameters
         ----------
-        tmin : float or None
+        tmin : float | None
             The first time point in seconds. If None the first present is used.
-        tmax : float or None
+        tmax : float | None
             The last time point in seconds. If None the last present is used.
         """
-        mask = np.ones(len(self.times), dtype=np.bool)
-        if tmax is not None:
-            mask = mask & (self.times <= tmax)
-        if tmin is not None:
-            mask = mask & (self.times >= tmin)
-            self.tmin = tmin
-
+        mask = _time_mask(self.times, tmin, tmax)
+        self.tmin = self.times[np.where(mask)[0][0]]
         if self._kernel is not None and self._sens_data is not None:
             self._sens_data = self._sens_data[:, mask]
         else:
@@ -536,6 +538,7 @@ class _BaseSourceEstimate(object):
 
     @property
     def data(self):
+        """Numpy array of source estimate data"""
         if self._data is None:
             # compute the solution the first time the data is accessed and
             # remove the kernel and sensor data
@@ -544,6 +547,7 @@ class _BaseSourceEstimate(object):
 
     @property
     def shape(self):
+        """Shape of the data"""
         if self._data is not None:
             return self._data.shape
         return (self._kernel.shape[0], self._sens_data.shape[1])
@@ -572,14 +576,14 @@ class _BaseSourceEstimate(object):
         Returns
         -------
         stc : instance of SourceEstimate
-            The modified stc (note: method operates inplace).
+            The modified stc (method operates inplace).
         """
         data = self.data
         tmax = self.tmin + self.tstep * data.shape[1]
         tmin = (self.tmin + tmax) / 2.
         tstep = tmax - self.tmin
         mean_stc = SourceEstimate(self.data.mean(axis=1)[:, np.newaxis],
-                                  vertices=self.vertno, tmin=tmin,
+                                  vertices=self.vertices, tmin=tmin,
                                   tstep=tstep, subject=self.subject)
         return mean_stc
 
@@ -663,7 +667,13 @@ class _BaseSourceEstimate(object):
         return self
 
     def sqrt(self):
-        """Return copy of SourceEstimate with sqrt(data)."""
+        """Take the square root
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A copy of the SourceEstimate with sqrt(data).
+        """
         return self ** (0.5)
 
     def copy(self):
@@ -681,9 +691,6 @@ class _BaseSourceEstimate(object):
         ----------
         width : scalar
             Width of the individual bins in seconds.
-        func : callable
-            Function that is applied to summarize the data. Needs to accept a
-            numpy.array as first input and an ``axis`` keyword argument.
         tstart : scalar | None
             Time point where the first bin starts. The default is the first
             time point of the stc.
@@ -691,6 +698,9 @@ class _BaseSourceEstimate(object):
             Last possible time point contained in a bin (if the last bin would
             be shorter than width it is dropped). The default is the last time
             point of the stc.
+        func : callable
+            Function that is applied to summarize the data. Needs to accept a
+            numpy.array as first input and an ``axis`` keyword argument.
 
         Returns
         -------
@@ -711,7 +721,7 @@ class _BaseSourceEstimate(object):
             data[:, i] = func(self.data[:, idx], axis=1)
 
         tmin = times[0] + width / 2.
-        stc = _make_stc(data, vertices=self.vertno,
+        stc = _make_stc(data, vertices=self.vertices,
                         tmin=tmin, tstep=width, subject=self.subject)
         return stc
 
@@ -725,7 +735,7 @@ class _BaseSourceEstimate(object):
         ----------
         func : callable
             The transform to be applied, including parameters (see, e.g.,
-            mne.fixes.partial). The first parameter of the function is the
+            `mne.fixes.partial`). The first parameter of the function is the
             input data. The first return value is the transformed data,
             remaining outputs are ignored. The first dimension of the
             transformed data has to be the same as the first dimension of the
@@ -745,12 +755,13 @@ class _BaseSourceEstimate(object):
         data_t : ndarray
             The transformed data.
 
-        .. note::
-            Applying transforms can be significantly faster if the
-            SourceEstimate object was created using "(kernel, sens_data)", for
-            the "data" parameter as the transform is applied in sensor space.
-            Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
-            this automatically (if possible).
+        Notes
+        -----
+        Applying transforms can be significantly faster if the
+        SourceEstimate object was created using "(kernel, sens_data)", for
+        the "data" parameter as the transform is applied in sensor space.
+        Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
+        this automatically (if possible).
         """
 
         if idx is None:
@@ -841,18 +852,16 @@ class _BaseSourceEstimate(object):
 
         # min and max data indices to include
         times = np.round(1000 * self.times)
-
+        t_idx = np.where(_time_mask(times, tmin, tmax))[0]
         if tmin is None:
             tmin_idx = None
         else:
-            tmin = float(tmin)
-            tmin_idx = np.where(times >= tmin)[0][0]
+            tmin_idx = t_idx[0]
 
         if tmax is None:
             tmax_idx = None
         else:
-            tmax = float(tmax)
-            tmax_idx = np.where(times <= tmax)[0][-1]
+            tmax_idx = t_idx[-1]
 
         data_t = self.transform_data(func, idx=idx, tmin_idx=tmin_idx,
                                      tmax_idx=tmax_idx)
@@ -888,75 +897,10 @@ class _BaseSourceEstimate(object):
         else:
             # return new or overwritten stc
             stcs = self if not copy else self.copy()
-            stcs._data, stcs.vertno = data_t, verts
+            stcs._data, stcs.vertices = data_t, verts
             stcs.tmin, stcs.times = tmin, times
 
         return stcs
-
-    def as_data_frame(self, index=None, scale_time=1e3, copy=True):
-        """Represent source estimates as Pandas DataFrame
-
-        Export source estimates in tabular structure with vertices as columns
-        and two additional info columns 'subject' and 'time'.
-        This function is useful to visualize and analyse source time courses
-        with external statistical software such as statsmodels or R.
-
-        Parameters
-        ----------
-        index : tuple of str | None
-            Column to be used as index for the data. Valid string options
-            are 'subject' and 'time'. If None, both info
-            columns will be included in the table as categorial data.
-            If stc.subject is None, only time will be included.
-        scale_time : float
-            Scaling to be applied to time units.
-        copy : bool
-            If true, data will be copied. Else data may be modified in place.
-
-        Returns
-        -------
-        df : instance of DataFrame
-            Source estimates exported into tabular data structure.
-        """
-        pd = _check_pandas_installed()
-
-        default_index = ['subject', 'time']
-        if index is not None:
-            _check_pandas_index_arguments(index, default_index)
-        else:
-            index = default_index
-        if self.subject is None:
-            index.remove('subject')
-
-        data = self.data.T
-        shape = data.shape
-        mindex = list()
-        mindex.append(('time', self.times * scale_time))
-        mindex.append(('subject', np.repeat(self.subject, shape[0])))
-
-        if copy:
-            data = data.copy()
-        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
-
-        if isinstance(self.vertno, list):
-            # surface source estimates
-            v_names = [i for e in [['%s %i' % ('LH' if ii < 1 else 'RH', vert)
-                       for vert in vertno]
-                       for ii, vertno in enumerate(self.vertno)] for i in e]
-        else:
-            # volume source estimates
-            v_names = ['VOL %d' % vert for vert in self.vertno]
-
-        df = pd.DataFrame(data, columns=v_names)
-        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
-
-        if index is not None:
-            if 'time' in index:
-                df['time'] = df['time'].astype(np.int64)
-            with warnings.catch_warnings(record=True):
-                df.set_index(index, inplace=True)
-
-        return df
 
 
 class SourceEstimate(_BaseSourceEstimate):
@@ -987,7 +931,7 @@ class SourceEstimate(_BaseSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertno : list of two arrays of shape (n_dipoles,)
+    vertices : list of two arrays of shape (n_dipoles,)
         The indices of the dipoles in the left and right source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
@@ -1048,16 +992,16 @@ class SourceEstimate(_BaseSourceEstimate):
                      data=rh_data[:, 0])
         elif ftype == 'h5':
             write_hdf5(fname + '-stc.h5',
-                       dict(vertices=self.vertno, data=self.data,
+                       dict(vertices=self.vertices, data=self.data,
                             tmin=self.tmin, tstep=self.tstep,
-                            subject=self.subject))
+                            subject=self.subject), title='mnepython')
         logger.info('[done]')
 
     def __repr__(self):
-        if isinstance(self.vertno, list):
-            nv = sum([len(v) for v in self.vertno])
+        if isinstance(self.vertices, list):
+            nv = sum([len(v) for v in self.vertices])
         else:
-            nv = self.vertno.size
+            nv = self.vertices.size
         s = "%d vertices" % nv
         if self.subject is not None:
             s += ", subject : %s" % self.subject
@@ -1077,18 +1021,18 @@ class SourceEstimate(_BaseSourceEstimate):
 
     @property
     def lh_vertno(self):
-        return self.vertno[0]
+        return self.vertices[0]
 
     @property
     def rh_vertno(self):
-        return self.vertno[1]
+        return self.vertices[1]
 
     def _hemilabel_stc(self, label):
 
         if label.hemi == 'lh':
-            stc_vertices = self.vertno[0]
+            stc_vertices = self.vertices[0]
         else:
-            stc_vertices = self.vertno[1]
+            stc_vertices = self.vertices[1]
 
         # find index of the Label's vertices
         idx = np.nonzero(in1d(stc_vertices, label.vertices))[0]
@@ -1098,7 +1042,7 @@ class SourceEstimate(_BaseSourceEstimate):
 
         # find data
         if label.hemi == 'rh':
-            values = self.data[idx + len(self.vertno[0])]
+            values = self.data[idx + len(self.vertices[0])]
         else:
             values = self.data[idx]
 
@@ -1131,10 +1075,10 @@ class SourceEstimate(_BaseSourceEstimate):
             values = np.vstack((lh_val, rh_val))
         elif label.hemi == 'lh':
             lh_vert, values = self._hemilabel_stc(label)
-            vertices = [lh_vert, np.array([])]
+            vertices = [lh_vert, np.array([], int)]
         elif label.hemi == 'rh':
             rh_vert, values = self._hemilabel_stc(label)
-            vertices = [np.array([]), rh_vert]
+            vertices = [np.array([], int), rh_vert]
         else:
             raise TypeError("Expected  Label or BiHemiLabel; got %r" % label)
 
@@ -1146,15 +1090,15 @@ class SourceEstimate(_BaseSourceEstimate):
                                    subject=self.subject)
         return label_stc
 
-    def expand(self, vertno):
+    def expand(self, vertices):
         """Expand SourceEstimate to include more vertices
 
-        This will add rows to stc.data (zero-filled) and modify stc.vertno
-        to include all vertices in stc.vertno and the input vertno.
+        This will add rows to stc.data (zero-filled) and modify stc.vertices
+        to include all vertices in stc.vertices and the input vertices.
 
         Parameters
         ----------
-        vertno : list of array
+        vertices : list of array
             New vertices to add. Can also contain old values.
 
         Returns
@@ -1162,23 +1106,24 @@ class SourceEstimate(_BaseSourceEstimate):
         stc : instance of SourceEstimate
             The modified stc (note: method operates inplace).
         """
-        if not isinstance(vertno, list):
-            raise TypeError('vertno must be a list')
-        if not len(self.vertno) == len(vertno):
-            raise ValueError('vertno must have the same length as stc.vertno')
+        if not isinstance(vertices, list):
+            raise TypeError('vertices must be a list')
+        if not len(self.vertices) == len(vertices):
+            raise ValueError('vertices must have the same length as '
+                             'stc.vertices')
 
         # can no longer use kernel and sensor data
         self._remove_kernel_sens_data_()
 
         inserters = list()
         offsets = [0]
-        for vi, (v_old, v_new) in enumerate(zip(self.vertno, vertno)):
+        for vi, (v_old, v_new) in enumerate(zip(self.vertices, vertices)):
             v_new = np.setdiff1d(v_new, v_old)
             inds = np.searchsorted(v_old, v_new)
             # newer numpy might overwrite inds after np.insert, copy here
             inserters += [inds.copy()]
             offsets += [len(v_old)]
-            self.vertno[vi] = np.insert(v_old, inds, v_new)
+            self.vertices[vi] = np.insert(v_old, inds, v_new)
         inds = [ii + offset for ii, offset in zip(inserters, offsets[:-1])]
         inds = np.concatenate(inds)
         new_data = np.zeros((len(inds), self._data.shape[1]))
@@ -1194,21 +1139,22 @@ class SourceEstimate(_BaseSourceEstimate):
         time courses are extracted depends on the mode parameter.
 
         Valid values for mode are:
-        'mean': Average within each label.
-        'mean_flip': Average within each label with sign flip depending on
-        source orientation.
-        'pca_flip': Apply an SVD to the time courses within each label and use
-        the scaled and sign-flipped first right-singular vector as the label
-        time course. The scaling is performed such that the power of the label
-        time course is the same as the average per-vertex time course power
-        within the label. The sign of the resulting time course is adjusted by
-        multiplying it with "sign(dot(u, flip))" where u is the first
-        left-singular vector, and flip is a sing-flip vector based on the
-        vertex normals. This procedure assures that the phase does not
-        randomly change by 180 degrees from one stc to the next.
 
-        See also mne.extract_label_time_course to extract time courses for a
-        list of SourceEstimate more efficiently.
+            - 'mean': Average within each label.
+            - 'mean_flip': Average within each label with sign flip depending
+              on source orientation.
+            - 'pca_flip': Apply an SVD to the time courses within each label
+              and use the scaled and sign-flipped first right-singular vector
+              as the label time course. The scaling is performed such that the
+              power of the label time course is the same as the average
+              per-vertex time course power within the label. The sign of the
+              resulting time course is adjusted by multiplying it with
+              "sign(dot(u, flip))" where u is the first left-singular vector,
+              and flip is a sing-flip vector based on the vertex normals. This
+              procedure assures that the phase does not randomly change by 180
+              degrees from one stc to the next.
+            - 'max': Max value within each label.
+
 
         Parameters
         ----------
@@ -1228,6 +1174,10 @@ class SourceEstimate(_BaseSourceEstimate):
         -------
         label_tc : array, shape=(len(labels), n_times)
             Extracted time course for each label.
+
+        See Also
+        --------
+        extract_label_time_course : extract time courses for multiple STCs
         """
         label_tc = extract_label_time_course(self, labels, src, mode=mode,
                                              return_generator=False,
@@ -1285,18 +1235,18 @@ class SourceEstimate(_BaseSourceEstimate):
         subject = _check_subject(self.subject, subject)
 
         values = np.sum(self.data, axis=1)  # sum across time
-        vert_inds = [np.arange(len(self.vertno[0])),
-                     np.arange(len(self.vertno[1])) + len(self.vertno[0])]
+        vert_inds = [np.arange(len(self.vertices[0])),
+                     np.arange(len(self.vertices[1])) + len(self.vertices[0])]
         if hemi is None:
             hemi = np.where(np.array([np.sum(values[vi])
                             for vi in vert_inds]))[0]
             if not len(hemi) == 1:
                 raise ValueError('Could not infer hemisphere')
             hemi = hemi[0]
-        if not hemi in [0, 1]:
+        if hemi not in [0, 1]:
             raise ValueError('hemi must be 0 or 1')
 
-        subjects_dir = get_subjects_dir(subjects_dir)
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
         values = values[vert_inds[hemi]]
 
@@ -1310,12 +1260,12 @@ class SourceEstimate(_BaseSourceEstimate):
         if restrict_vertices is False:
             restrict_vertices = np.arange(surf[0].shape[0])
         elif restrict_vertices is True:
-            restrict_vertices = self.vertno[hemi]
+            restrict_vertices = self.vertices[hemi]
 
         if np.any(self.data < 0):
             raise ValueError('Cannot compute COM with negative values')
 
-        pos = surf[0][self.vertno[hemi], :].T
+        pos = surf[0][self.vertices[hemi], :].T
         c_o_m = np.sum(pos * values, axis=1) / np.sum(values)
 
         # Find the vertex closest to the COM
@@ -1330,11 +1280,10 @@ class SourceEstimate(_BaseSourceEstimate):
         return vertex, hemi, t
 
     def plot(self, subject=None, surface='inflated', hemi='lh',
-             colormap='hot', time_label='time=%0.2f ms',
-             smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-             transparent=True, alpha=1.0, time_viewer=False,
-             config_opts={}, subjects_dir=None, figure=None,
-             views='lat', colorbar=True):
+             colormap='auto', time_label='time=%0.2f ms',
+             smoothing_steps=10, transparent=None, alpha=1.0,
+             time_viewer=False, config_opts=None, subjects_dir=None,
+             figure=None, views='lat', colorbar=True, clim='auto'):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1347,8 +1296,6 @@ class SourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        stc : SourceEstimates
-            The source estimates to plot.
         subject : str | None
             The subject name corresponding to FreeSurfer environment
             variable SUBJECT. If None stc.subject will be used. If that
@@ -1356,22 +1303,19 @@ class SourceEstimate(_BaseSourceEstimate):
         surface : str
             The type of surface (inflated, white etc.).
         hemi : str, 'lh' | 'rh' | 'split' | 'both'
-            The hemisphere to display. Using 'both' or 'split' requires
-            PySurfer version 0.4 or above.
-        colormap : str
-            The type of colormap to use.
+            The hemisphere to display.
+        colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+            Name of colormap to use or a custom look up table. If array, must
+            be (n x 3) or (n x 4) array for with RGB or RGBA values between
+            0 and 255. If 'auto', either 'hot' or 'mne' will be chosen
+            based on whether 'lims' or 'pos_lims' are specified in `clim`.
         time_label : str
             How to print info about the time instant visualized.
         smoothing_steps : int
             The amount of smoothing.
-        fmin : float
-            The minimum value to display.
-        fmid : float
-            The middle value on the colormap.
-        fmax : float
-            The maximum value for the colormap.
-        transparent : bool
+        transparent : bool | None
             If True, use a linear transparency between fmin and fmid.
+            None will choose automatically based on colormap type.
         alpha : float
             Alpha value to apply globally to the overlay.
         time_viewer : bool
@@ -1389,6 +1333,21 @@ class SourceEstimate(_BaseSourceEstimate):
             View to use. See surfer.Brain().
         colorbar : bool
             If True, display colorbar on scene.
+        clim : str | dict
+            Colorbar properties specification. If 'auto', set clim
+            automatically based on data percentiles. If dict, should contain:
+
+                kind : str
+                    Flag to specify type of limits. 'value' or 'percent'.
+                lims : list | np.ndarray | tuple of float, 3 elements
+                    Note: Only use this if 'colormap' is not 'mne'.
+                    Left, middle, and right bound for colormap.
+                pos_lims : list | np.ndarray | tuple of float, 3 elements
+                    Note: Only use this if 'colormap' is 'mne'.
+                    Left, middle, and right bound for colormap. Positive values
+                    will be mirrored directly across zero during colormap
+                    construction to obtain negative control points.
+
 
         Returns
         -------
@@ -1396,13 +1355,51 @@ class SourceEstimate(_BaseSourceEstimate):
             A instance of surfer.viz.Brain from PySurfer.
         """
         brain = plot_source_estimates(self, subject, surface=surface,
-                        hemi=hemi, colormap=colormap, time_label=time_label,
-                        smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
-                        fmax=fmax, transparent=transparent, alpha=alpha,
-                        time_viewer=time_viewer, config_opts=config_opts,
-                        subjects_dir=subjects_dir, figure=figure, views=views,
-                        colorbar=colorbar)
+                                      hemi=hemi, colormap=colormap,
+                                      time_label=time_label,
+                                      smoothing_steps=smoothing_steps,
+                                      transparent=transparent, alpha=alpha,
+                                      time_viewer=time_viewer,
+                                      config_opts=config_opts,
+                                      subjects_dir=subjects_dir, figure=figure,
+                                      views=views, colorbar=colorbar,
+                                      clim=clim)
         return brain
+
+    @verbose
+    def to_original_src(self, src_orig, subject_orig=None,
+                        subjects_dir=None, verbose=None):
+        """Return a SourceEstimate from morphed source to the original subject
+
+        Parameters
+        ----------
+        src_orig : instance of SourceSpaces
+            The original source spaces that were morphed to the current
+            subject.
+        subject_orig : str | None
+            The original subject. For most source spaces this shouldn't need
+            to be provided, since it is stored in the source space itself.
+        subjects_dir : string, or None
+            Path to SUBJECTS_DIR if it is not set in the environment.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        See Also
+        --------
+        morph_source_spaces
+
+        Notes
+        -----
+        .. versionadded:: 0.10.0
+        """
+        if self.subject is None:
+            raise ValueError('stc.subject must be set')
+        src_orig = _ensure_src(src_orig)
+        subject_orig = _ensure_src_subject(src_orig, subject_orig)
+        data_idx, vertices = _get_morph_src_reordering(
+            self.vertices, src_orig, subject_orig, self.subject, subjects_dir)
+        return SourceEstimate(self._data[data_idx], vertices,
+                              self.tmin, self.tstep, subject_orig)
 
     @verbose
     def morph(self, subject_to, grade=5, smooth=None, subjects_dir=None,
@@ -1414,8 +1411,6 @@ class SourceEstimate(_BaseSourceEstimate):
         ----------
         subject_to : string
             Name of the subject on which to morph as named in the SUBJECTS_DIR
-        stc_from : SourceEstimate
-            Source estimates for subject "from" to morph
         grade : int, list (of two arrays), or None
             Resolution of the icosahedral mesh (typically 5). If None, all
             vertices will be used (potentially filling the surface). If a list,
@@ -1491,6 +1486,8 @@ class SourceEstimate(_BaseSourceEstimate):
                  vert_as_index=False, time_as_index=False):
         """Get location and latency of peak amplitude
 
+        Parameters
+        ----------
         hemi : {'lh', 'rh', None}
             The hemi to be considered. If None, the entire source space is
             considered.
@@ -1520,7 +1517,7 @@ class SourceEstimate(_BaseSourceEstimate):
         """
         data = {'lh': self.lh_data, 'rh': self.rh_data, None: self.data}[hemi]
         vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno,
-                  None: np.concatenate(self.vertno)}[hemi]
+                  None: np.concatenate(self.vertices)}[hemi]
 
         vert_idx, time_idx = _get_peak(data, self.times, tmin, tmax, mode)
 
@@ -1556,19 +1553,23 @@ class VolSourceEstimate(_BaseSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertno : array of shape (n_dipoles,)
+    vertices : array of shape (n_dipoles,)
         The indices of the dipoles in the source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):
 
-        if not (isinstance(vertices, np.ndarray) or isinstance(vertices, list)
-                and len(vertices) == 1):
+        if not (isinstance(vertices, np.ndarray) or
+                isinstance(vertices, list) and len(vertices) == 1):
             raise ValueError('Vertices must be a numpy array or a list with '
                              'one array')
 
@@ -1597,17 +1598,15 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
-            if not (fname.endswith('-vl.stc')
-                    or fname.endswith('-vol.stc')):
+            if not (fname.endswith('-vl.stc') or fname.endswith('-vol.stc')):
                 fname += '-vl.stc'
             _write_stc(fname, tmin=self.tmin, tstep=self.tstep,
-                       vertices=self.vertno, data=self.data)
+                       vertices=self.vertices, data=self.data)
         elif ftype == 'w':
             logger.info('Writing STC to disk (w format)...')
-            if not (fname.endswith('-vl.w')
-                    or fname.endswith('-vol.w')):
+            if not (fname.endswith('-vl.w') or fname.endswith('-vol.w')):
                 fname += '-vl.w'
-            _write_w(fname, vertices=self.vertno, data=self.data)
+            _write_w(fname, vertices=self.vertices, data=self.data)
 
         logger.info('[done]')
 
@@ -1633,6 +1632,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -------
         img : instance Nifti1Image
             The image object.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         save_stc_as_volume(fname, self, src, dest=dest,
                            mri_resolution=mri_resolution)
@@ -1657,15 +1660,19 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -------
         img : instance Nifti1Image
             The image object.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         return save_stc_as_volume(None, self, src, dest=dest,
                                   mri_resolution=mri_resolution)
 
     def __repr__(self):
-        if isinstance(self.vertno, list):
-            nv = sum([len(v) for v in self.vertno])
+        if isinstance(self.vertices, list):
+            nv = sum([len(v) for v in self.vertices])
         else:
-            nv = self.vertno.size
+            nv = self.vertices.size
         s = "%d vertices" % nv
         if self.subject is not None:
             s += ", subject : %s" % self.subject
@@ -1679,6 +1686,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
                  vert_as_index=False, time_as_index=False):
         """Get location and latency of peak amplitude
 
+        Parameters
+        ----------
         tmin : float | None
             The minimum point in time to be considered for peak getting.
         tmax : float | None
@@ -1706,69 +1715,155 @@ class VolSourceEstimate(_BaseSourceEstimate):
         vert_idx, time_idx = _get_peak(self.data, self.times, tmin, tmax,
                                        mode)
 
-        return (vert_idx if vert_as_index else self.vertno[vert_idx],
+        return (vert_idx if vert_as_index else self.vertices[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
+
+
+class MixedSourceEstimate(_BaseSourceEstimate):
+    """Container for mixed surface and volume source estimates
+
+    Parameters
+    ----------
+    data : array of shape (n_dipoles, n_times) | 2-tuple (kernel, sens_data)
+        The data in source space. The data can either be a single array or
+        a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
+        "sens_data" shape (n_sensors, n_times). In this case, the source
+        space data corresponds to "numpy.dot(kernel, sens_data)".
+    vertices : list of arrays
+        Vertex numbers corresponding to the data.
+    tmin : scalar
+        Time point of the first sample in data.
+    tstep : scalar
+        Time step between successive samples in data.
+    subject : str | None
+        The subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Attributes
+    ----------
+    subject : str | None
+        The subject name.
+    times : array of shape (n_times,)
+        The time vector.
+    vertices : list of arrays of shape (n_dipoles,)
+        The indices of the dipoles in each source space.
+    data : array of shape (n_dipoles, n_times)
+        The data in source space.
+    shape : tuple
+        The shape of the data. A tuple of int (n_dipoles, n_times).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    @verbose
+    def __init__(self, data, vertices=None, tmin=None, tstep=None,
+                 subject=None, verbose=None):
+
+        if not isinstance(vertices, list) or len(vertices) < 2:
+            raise ValueError('Vertices must be a list of numpy arrays with '
+                             'one array per source space.')
+
+        _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
+                                     tstep=tstep, subject=subject,
+                                     verbose=verbose)
+
+    def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
+                     colormap='auto', time_label='time=%02.f ms',
+                     smoothing_steps=10,
+                     transparent=None, alpha=1.0, time_viewer=False,
+                     config_opts={}, subjects_dir=None, figure=None,
+                     views='lat', colorbar=True, clim='auto'):
+        """Plot surface source estimates with PySurfer
+
+        Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
+        which will automatically be set by this function. Plotting multiple
+        SourceEstimates with different values for subjects_dir will cause
+        PySurfer to use the wrong FreeSurfer surfaces when using methods of
+        the returned Brain object. It is therefore recommended to set the
+        SUBJECTS_DIR environment variable or always use the same value for
+        subjects_dir (within the same Python session).
+
+        Parameters
+        ----------
+        src : SourceSpaces
+            The source spaces to plot.
+        subject : str | None
+            The subject name corresponding to FreeSurfer environment
+            variable SUBJECT. If None stc.subject will be used. If that
+            is None, the environment will be used.
+        surface : str
+            The type of surface (inflated, white etc.).
+        hemi : str, 'lh' | 'rh' | 'split' | 'both'
+            The hemisphere to display. Using 'both' or 'split' requires
+            PySurfer version 0.4 or above.
+        colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+            Name of colormap to use. See `plot_source_estimates`.
+        time_label : str
+            How to print info about the time instant visualized.
+        smoothing_steps : int
+            The amount of smoothing.
+        transparent : bool | None
+            If True, use a linear transparency between fmin and fmid.
+            None will choose automatically based on colormap type.
+        alpha : float
+            Alpha value to apply globally to the overlay.
+        time_viewer : bool
+            Display time viewer GUI.
+        config_opts : dict
+            Keyword arguments for Brain initialization.
+            See pysurfer.viz.Brain.
+        subjects_dir : str
+            The path to the FreeSurfer subjects reconstructions.
+            It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
+        figure : instance of mayavi.core.scene.Scene | None
+            If None, the last figure will be cleaned and a new figure will
+            be created.
+        views : str | list
+            View to use. See surfer.Brain().
+        colorbar : bool
+            If True, display colorbar on scene.
+        clim : str | dict
+            Colorbar properties specification. See `plot_source_estimates`.
+
+        Returns
+        -------
+        brain : Brain
+            A instance of surfer.viz.Brain from PySurfer.
+        """
+
+        # extract surface source spaces
+        src = _ensure_src(src)
+        surf = [s for s in src if s['type'] == 'surf']
+        if len(surf) != 2:
+            raise ValueError('Source space must contain exactly two surfaces.')
+
+        # extract surface source estimate
+        data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]
+        vertices = [s['vertno'] for s in surf]
+
+        stc = SourceEstimate(data, vertices, self.tmin, self.tstep,
+                             self.subject, self.verbose)
+
+        return plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
+                                     colormap=colormap, time_label=time_label,
+                                     smoothing_steps=smoothing_steps,
+                                     transparent=transparent, alpha=alpha,
+                                     time_viewer=time_viewer,
+                                     config_opts=config_opts,
+                                     subjects_dir=subjects_dir, figure=figure,
+                                     views=views, colorbar=colorbar, clim=clim)
 
 
 ###############################################################################
 # Morphing
 
-def mesh_edges(tris):
-    """Returns sparse matrix with edges as an adjacency matrix
-
-    Parameters
-    ----------
-    tris : array of shape [n_triangles x 3]
-        The triangles.
-
-    Returns
-    -------
-    edges : sparse matrix
-        The adjacency matrix.
-    """
-    npoints = np.max(tris) + 1
-    ones_ntris = np.ones(3 * len(tris))
-    a, b, c = tris.T
-    x = np.concatenate((a, b, c))
-    y = np.concatenate((b, c, a))
-    edges = coo_matrix((ones_ntris, (x, y)), shape=(npoints, npoints))
-    edges = edges.tocsr()
-    edges = edges + edges.T
-    return edges
-
-
-def mesh_dist(tris, vert):
-    """Compute adjacency matrix weighted by distances
-
-    It generates an adjacency matrix where the entries are the distances
-    between neighboring vertices.
-
-    Parameters
-    ----------
-    tris : array (n_tris x 3)
-        Mesh triangulation
-    vert : array (n_vert x 3)
-        Vertex locations
-
-    Returns
-    -------
-    dist_matrix : scipy.sparse.csr_matrix
-        Sparse matrix with distances between adjacent vertices
-    """
-    edges = mesh_edges(tris).tocoo()
-
-    # Euclidean distances between neighboring vertices
-    dist = np.sqrt(np.sum((vert[edges.row, :] - vert[edges.col, :]) ** 2,
-                          axis=1))
-
-    dist_matrix = csr_matrix((dist, (edges.row, edges.col)), shape=edges.shape)
-
-    return dist_matrix
-
 
 @verbose
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
-                  verbose=None):
+                  warn=True, verbose=None):
     """Morph data from one subject's source space to another
 
     Parameters
@@ -1788,6 +1883,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         Vertices on the destination surface to use.
     maps : sparse matrix
         Morph map from one subject to the other.
+    warn : bool
+        If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1854,6 +1951,10 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         data.data /= data_sum.repeat(np.diff(data.indptr))
     else:
         data[idx_use, :] /= data_sum[idx_use][:, None]
+    if len(idx_use) != len(data_sum) and warn:
+        warnings.warn('%s/%s vertices not included in smoothing, consider '
+                      'increasing the number of steps'
+                      % (len(data_sum) - len(idx_use), len(data_sum)))
 
     logger.info('    %d smooth iterations done.' % (k + 1))
     data_morphed = maps[nearest, :] * data
@@ -1930,24 +2031,25 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
 
     cnt = 0
     for k, hemi in enumerate(['lh', 'rh']):
-        if stc.vertno[k].size > 0:
+        if stc.vertices[k].size > 0:
             map_hemi = maps[k]
-            vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertno[k]])
+            vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertices[k]])
             order = np.argsort(vertno_k)
             n_active_hemi = len(vertno_k)
             data_hemi = stc_morph._data[cnt:cnt + n_active_hemi]
             stc_morph._data[cnt:cnt + n_active_hemi] = data_hemi[order]
-            stc_morph.vertno[k] = vertno_k[order]
+            stc_morph.vertices[k] = vertno_k[order]
             cnt += n_active_hemi
         else:
-            stc_morph.vertno[k] = np.array([], dtype=np.int64)
+            stc_morph.vertices[k] = np.array([], int)
 
     return stc_morph
 
 
 @verbose
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
-               subjects_dir=None, buffer_size=64, n_jobs=1, verbose=None):
+               subjects_dir=None, buffer_size=64, n_jobs=1, warn=True,
+               verbose=None):
     """Morph a source estimate from one subject to another
 
     Parameters
@@ -1979,6 +2081,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         Saves memory when morphing long time intervals.
     n_jobs : int
         Number of jobs to run in parallel
+    warn : bool
+        If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1992,7 +2096,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                          'estimates')
 
     logger.info('Morphing data...')
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     nearest = grade_to_vertices(subject_to, grade, subjects_dir, n_jobs)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
@@ -2010,12 +2114,13 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
         e = e + sparse.eye(n_vertices, n_vertices)
-        idx_use = stc_from.vertno[hemi]
+        idx_use = stc_from.vertices[hemi]
         if len(idx_use) == 0:
             continue
         data_morphed[hemi] = np.concatenate(
             parallel(my_morph_buffer(data_buffer, idx_use, e, smooth,
-                                     n_vertices, nearest[hemi], maps[hemi])
+                                     n_vertices, nearest[hemi], maps[hemi],
+                                     warn=warn)
                      for data_buffer
                      in np.array_split(data[hemi], n_chunks, axis=1)), axis=1)
 
@@ -2023,13 +2128,13 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     if data_morphed[0] is None:
         if data_morphed[1] is None:
             data = np.r_[[], []]
-            vertices = [np.array([], dtype=int), np.array([], dtype=int)]
+            vertices = [np.array([], int), np.array([], int)]
         else:
             data = data_morphed[1]
-            vertices = [np.array([], dtype=int), vertices[1]]
+            vertices = [np.array([], int), vertices[1]]
     elif data_morphed[1] is None:
         data = data_morphed[0]
-        vertices = [vertices[0], np.array([], dtype=int)]
+        vertices = [vertices[0], np.array([], int)]
     else:
         data = np.r_[data_morphed[0], data_morphed[1]]
 
@@ -2042,7 +2147,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
-                         smooth=None, subjects_dir=None, verbose=None):
+                         smooth=None, subjects_dir=None, warn=True,
+                         verbose=None):
     """Get a matrix that morphs data from one subject to another
 
     Parameters
@@ -2061,6 +2167,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         with non-zero values.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
+    warn : bool
+        If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2070,7 +2178,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         matrix that morphs data from subject_from to subject_to
     """
     logger.info('Computing morph matrix...')
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
@@ -2086,7 +2194,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
             continue
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
         morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
-                                      vertices_to[hemi], maps[hemi])
+                                      vertices_to[hemi], maps[hemi], warn=warn)
     # be careful about zero-length arrays
     if isinstance(morpher[0], list):
         morpher = morpher[1]
@@ -2132,7 +2240,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     # add special case for fsaverage for speed
     if subject == 'fsaverage' and grade == 5:
         return [np.arange(10242), np.arange(10242)]
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     spheres_to = [os.path.join(subjects_dir, subject, 'surf',
                                xh + '.sphere.reg') for xh in ['lh', 'rh']]
@@ -2236,9 +2344,9 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
     """
     if dist is None:
         if src[0]['use_tris'] is None:
-            raise Exception("The source space does not appear to be an ico "
-                            "surface. Connectivity cannot be extracted from "
-                            "non-ico source spaces.")
+            raise RuntimeError("The source space does not appear to be an ico "
+                               "surface. Connectivity cannot be extracted from"
+                               " non-ico source spaces.")
         used_verts = [np.unique(s['use_tris']) for s in src]
         lh_tris = np.searchsorted(used_verts[0], src[0]['use_tris'])
         rh_tris = np.searchsorted(used_verts[1], src[1]['use_tris'])
@@ -2295,7 +2403,8 @@ def grade_to_tris(grade, verbose=None):
 
 
 @verbose
-def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
+def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
+                                      verbose=None):
     """Compute connectivity from triangles and time instants
 
     Parameters
@@ -2304,6 +2413,9 @@ def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
         N x 3 array defining triangles.
     n_times : int
         Number of time points
+    remap_vertices : bool
+        Reassign vertex indices based on unique values. Useful
+        to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2316,6 +2428,10 @@ def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    if remap_vertices:
+        logger.info('Reassigning vertex indices.')
+        tris = np.searchsorted(np.unique(tris), tris)
+
     edges = mesh_edges(tris).tocoo()
     return _get_connectivity_from_edges(edges, n_times)
 
@@ -2384,13 +2500,16 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
 
 
 @verbose
-def spatial_tris_connectivity(tris, verbose=None):
+def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
     """Compute connectivity from triangles
 
     Parameters
     ----------
     tris : array
         N x 3 array defining triangles.
+    remap_vertices : bool
+        Reassign vertex indices based on unique values. Useful
+        to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2399,7 +2518,7 @@ def spatial_tris_connectivity(tris, verbose=None):
     connectivity : sparse COO matrix
         The connectivity matrix describing the spatial graph structure.
     """
-    return spatio_temporal_tris_connectivity(tris, 1)
+    return spatio_temporal_tris_connectivity(tris, 1, remap_vertices)
 
 
 def spatial_dist_connectivity(src, dist, verbose=None):
@@ -2425,38 +2544,6 @@ def spatial_dist_connectivity(src, dist, verbose=None):
     return spatio_temporal_dist_connectivity(src, 1, dist)
 
 
-def sparse_block_diag(mats, format=None, dtype=None):
-    """An implementation of scipy.sparse.block_diag since old versions of
-    scipy don't have it. Forms a sparse matrix by stacking matrices in block
-    diagonal form.
-
-    Parameters
-    ----------
-    mats : list of matrices
-        Input matrices.
-    format : str, optional
-        The sparse format of the result (e.g. "csr"). If not given, the
-        matrix is returned in "coo" format.
-    dtype : dtype specifier, optional
-        The data-type of the output matrix. If not given, the dtype is
-        determined from that of blocks.
-
-    Returns
-    -------
-    res : sparse matrix
-    """
-    try:
-        return sparse.block_diag(mats, format=format, dtype=dtype)
-    except AttributeError:
-        nmat = len(mats)
-        rows = []
-        for ia, a in enumerate(mats):
-            row = [None] * nmat
-            row[ia] = a
-            rows.append(row)
-        return sparse.bmat(rows, format=format, dtype=dtype)
-
-
 @verbose
 def _get_connectivity_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create connectivity matrix"""
@@ -2467,10 +2554,10 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
     col = (edges.col[None, :] + aux).ravel()
     row = (edges.row[None, :] + aux).ravel()
     if n_times > 1:  # add temporal edges
-        o = (n_vertices * np.arange(n_times - 1)[:, None]
-             + np.arange(n_vertices)[None, :]).ravel()
-        d = (n_vertices * np.arange(1, n_times)[:, None]
-             + np.arange(n_vertices)[None, :]).ravel()
+        o = (n_vertices * np.arange(n_times - 1)[:, None] +
+             np.arange(n_vertices)[None, :]).ravel()
+        d = (n_vertices * np.arange(1, n_times)[:, None] +
+             np.arange(n_vertices)[None, :]).ravel()
         row = np.concatenate((row, o, d))
         col = np.concatenate((col, d, o))
     data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),
@@ -2593,7 +2680,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 
     n_labels = len(labels)
 
-    # get vertno from source space, they have to be the same as in the stcs
+    # get vertices from source space, they have to be the same as in the stcs
     vertno = [s['vertno'] for s in src]
     nvert = [len(vn) for vn in vertno]
 
@@ -2635,10 +2722,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     if mode == 'mean':
         pass  # we have this here to catch invalid values for mode
     elif mode == 'mean_flip':
-       # get the sign-flip vector for every label
+        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
     elif mode == 'pca_flip':
-       # get the sign-flip vector for every label
+        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
     elif mode == 'max':
         pass  # we calculate the maximum value later
@@ -2647,11 +2734,11 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 
     # loop through source estimates and extract time series
     for stc in stcs:
-
         # make sure the stc is compatible with the source space
-        if len(stc.vertno[0]) != nvert[0] or len(stc.vertno[1]) != nvert[1]:
+        if len(stc.vertices[0]) != nvert[0] or \
+                len(stc.vertices[1]) != nvert[1]:
             raise ValueError('stc not compatible with source space')
-        if any([np.any(svn != vn) for svn, vn in zip(stc.vertno, vertno)]):
+        if any(np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)):
             raise ValueError('stc not compatible with source space')
 
         logger.info('Extracting time courses for %d labels (mode: %s)'
@@ -2704,24 +2791,22 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     parameter.
 
     Valid values for mode are:
-    --------------------------
 
-    mean : Average within each label.
+        - 'mean': Average within each label.
+        - 'mean_flip': Average within each label with sign flip depending
+          on source orientation.
+        - 'pca_flip': Apply an SVD to the time courses within each label
+          and use the scaled and sign-flipped first right-singular vector
+          as the label time course. The scaling is performed such that the
+          power of the label time course is the same as the average
+          per-vertex time course power within the label. The sign of the
+          resulting time course is adjusted by multiplying it with
+          "sign(dot(u, flip))" where u is the first left-singular vector,
+          and flip is a sing-flip vector based on the vertex normals. This
+          procedure assures that the phase does not randomly change by 180
+          degrees from one stc to the next.
+        - 'max': Max value within each label.
 
-    mean_flip : Average within each label with sign flip depending on source
-        orientation.
-
-    pca_flip : Apply an SVD to the time courses within each label and use the
-        scaled and sign-flipped first right-singular vector as the label time
-        course. The scaling is performed such that the power of the label time
-        course is the same as the average per-vertex time course power within
-        the label. The sign of the resulting time course is adjusted by
-        multiplying it with "sign(dot(u, flip))" where u is the first
-        left-singular vector, and flip is a sing-flip vector based on the
-        vertex normals. This procedure assures that the phase does not randomly
-        change by 180 degrees from one stc to the next.
-
-    max : Max value within each label.
 
     Parameters
     ----------
@@ -2743,10 +2828,9 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     Returns
     -------
-    label_tc : array | list (or generator) of array,
-               shape=(len(labels), n_times)
+    label_tc : array | list (or generator) of array, shape=(len(labels), n_times)
         Extracted time course for each label and source estimate.
-    """
+    """  # noqa
     # convert inputs to lists
     if isinstance(stcs, SourceEstimate):
         stcs = [stcs]

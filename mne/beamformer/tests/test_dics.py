@@ -8,25 +8,34 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 import mne
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.beamformer import dics, dics_epochs, dics_source_power, tf_dics
 from mne.time_frequency import compute_epochs_csd
 from mne.externals.six import advance_iterator
+from mne.utils import run_tests_if_main, clean_warning_registry
 
 # Note that this is the first test file, this will apply to all subsequent
 # tests in a full nosetest:
 warnings.simplefilter("always")  # ensure we can verify expected warnings
 
-data_path = sample.data_path(download=False)
-fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+data_path = testing.data_path(download=False)
+fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-meg-vol-7-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
+                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_event = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+
+# bit of a hack to deal with old scipy/numpy throwing warnings in tests
+clean_warning_registry()
+
+
+def read_forward_solution_meg(*args, **kwargs):
+    fwd = mne.read_forward_solution(*args, **kwargs)
+    return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 
 def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
@@ -37,8 +46,8 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
     raw = mne.io.Raw(fname_raw, preload=False)
     forward = mne.read_forward_solution(fname_fwd)
     if read_all_forward:
-        forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
-        forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
+        forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
+        forward_fixed = read_forward_solution_meg(fname_fwd, force_fixed=True,
                                                   surf_ori=True)
         forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
     else:
@@ -66,7 +75,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
 
     # Computing the data and noise cross-spectral density matrices
     if compute_csds:
-        data_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04,
+        data_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=0.045,
                                       tmax=None, fmin=8, fmax=12,
                                       mt_bandwidth=72.72)
         noise_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=None,
@@ -79,7 +88,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
         forward_surf_ori, forward_fixed, forward_vol
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_dics():
     """Test DICS with evoked data and single trials
     """
@@ -89,17 +98,20 @@ def test_dics():
     stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
                label=label)
 
+    stc.crop(0, None)
     stc_pow = np.sum(stc.data, axis=1)
     idx = np.argmax(stc_pow)
     max_stc = stc.data[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    assert_true(0.09 < tmax < 0.11)
-    assert_true(10 < np.max(max_stc) < 11)
+    # Incorrect due to limited number of epochs
+    assert_true(0.04 < tmax < 0.05)
+    assert_true(10 < np.max(max_stc) < 13)
 
     # Test picking normal orientation
     stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
                       pick_ori="normal", label=label)
+    stc_normal.crop(0, None)
 
     # The amplitude of normal orientation results should always be smaller than
     # free orientation results
@@ -135,20 +147,20 @@ def test_dics():
     assert_true(len(epochs.events) == len(stcs))
 
     # Average the single trial estimates
-    stc_avg = np.zeros_like(stcs[0].data)
+    stc_avg = np.zeros_like(stc.data)
     for this_stc in stcs:
-        stc_avg += this_stc.data
+        stc_avg += this_stc.crop(0, None).data
     stc_avg /= len(stcs)
 
     idx = np.argmax(np.max(stc_avg, axis=1))
     max_stc = stc_avg[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    assert_true(0.045 < tmax < 0.055)  # odd due to limited number of epochs
-    assert_true(17.5 < np.max(max_stc) < 18.5)
+    assert_true(0.045 < tmax < 0.06)  # incorrect due to limited # of epochs
+    assert_true(12 < np.max(max_stc) < 18.5)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_dics_source_power():
     """Test DICS source power computation
     """
@@ -162,8 +174,8 @@ def test_dics_source_power():
     max_source_power = np.max(stc_source_power.data)
 
     # TODO: Maybe these could be more directly compared to dics() results?
-    assert_true(max_source_idx == 18)
-    assert_true(1.05 < max_source_power < 1.15)
+    assert_true(max_source_idx == 0)
+    assert_true(0.5 < max_source_power < 1.15)
 
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = dics_source_power(epochs.info, forward_surf_ori,
@@ -213,7 +225,7 @@ def test_dics_source_power():
     assert len(w) == 1
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_tf_dics():
     """Test TF beamforming based on DICS
     """
@@ -237,7 +249,6 @@ def test_tf_dics():
                    freq_bins, reg=reg, label=label)
 
     assert_true(len(stcs) == len(freq_bins))
-    print(stcs[0].shape)
     assert_true(stcs[0].shape[1] == 4)
 
     # Manually calculating source power in several time windows to compare
@@ -296,3 +307,6 @@ def test_tf_dics():
                    label=label)
 
     assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))
+
+
+run_tests_if_main()

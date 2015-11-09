@@ -35,8 +35,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       filter_method, iir_params=None, verbose=None):
     """Compute SSP/PCA projections for ECG or EOG artifacts
 
-    Note: raw has to be constructed with preload=True (or string)
-    Warning: raw will be modified by this function
+    .. note:: raw data must be preloaded.
 
     Parameters
     ----------
@@ -68,9 +67,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         Number of jobs to run in parallel.
     ch_name : string (or None)
         Channel to use for ECG event detection.
-    reject : dict
+    reject : dict | None
         Epoch rejection configuration (see Epochs).
-    flat : dict
+    flat : dict | None
         Epoch flat configuration (see Epochs).
     bads : list
         List with (additional) bad channels.
@@ -221,8 +220,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      iir_params=None, copy=True, verbose=None):
     """Compute SSP/PCA projections for ECG artifacts
 
-    Note: raw has to be constructed with preload=True (or string)
-    Warning: raw will be modified by this function
+    .. note:: raw data must be preloaded.
 
     Parameters
     ----------
@@ -252,9 +250,9 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         Number of jobs to run in parallel.
     ch_name : string (or None)
         Channel to use for ECG detection (Required if no ECG found).
-    reject : dict
+    reject : dict | None
         Epoch rejection configuration (see Epochs).
-    flat : dict
+    flat : dict | None
         Epoch flat configuration (see Epochs).
     bads : list
         List with (additional) bad channels.
@@ -317,8 +315,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      iir_params=None, ch_name=None, copy=True, verbose=None):
     """Compute SSP/PCA projections for EOG artifacts
 
-    Note: raw has to be constructed with preload=True (or string)
-    Warning: raw will be modified by this function
+    .. note:: raw data must be preloaded.
 
     Parameters
     ----------
@@ -342,15 +339,13 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Filter high cut-off frequency in Hz.
     average : bool
         Compute SSP after averaging.
-    preload : string (or True)
-        Temporary file used during computaion.
     filter_length : str | int | None
         Number of taps to use for filtering.
     n_jobs : int
         Number of jobs to run in parallel.
-    reject : dict
+    reject : dict | None
         Epoch rejection configuration (see Epochs).
-    flat : dict
+    flat : dict | None
         Epoch flat configuration (see Epochs).
     bads : list
         List with (additional) bad channels.
@@ -372,10 +367,10 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    copy : bool
-        If False, filtering raw data is done in place. Defaults to True.
     ch_name: str | None
         If not None, specify EOG channel name.
+    copy : bool
+        If False, filtering raw data is done in place. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

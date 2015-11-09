@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
@@ -8,9 +10,10 @@ from ..surface import get_head_surf, get_meg_helmet_surf
 
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import transform_surface_to, read_trans, _find_trans
-from ._make_forward import _create_coils
+from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
-                         _get_legen_lut_fast, _get_legen_lut_accurate)
+                         _get_legen_lut_fast, _get_legen_lut_accurate,
+                         _do_cross_dots)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
 from ..fixes import partial
@@ -33,6 +36,23 @@ def _ad_hoc_noise(coils, ch_type='meg'):
         v.fill(1e-12)  # 1e-6 ** 2
     cov = dict(diag=True, data=v, eig=None, eigvec=None)
     return cov
+
+
+def _setup_dots(mode, coils, ch_type):
+    """Setup dot products"""
+    my_origin = np.array([0.0, 0.0, 0.04])
+    int_rad = 0.06
+    noise = _ad_hoc_noise(coils, ch_type)
+    if mode == 'fast':
+        # Use 50 coefficients with nearest-neighbor interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 50)
+        lut_fun = partial(_get_legen_lut_fast, lut=lut)
+    else:  # 'accurate'
+        # Use 100 coefficients with linear interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 100)
+        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
+
+    return my_origin, int_rad, noise, lut_fun, n_fact
 
 
 def _compute_mapping_matrix(fmd, info):
@@ -86,6 +106,121 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
+def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
+    """Find mapping from one set of channels to another.
+
+    Parameters
+    ----------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The data to interpolate. Must be preloaded.
+    pick_from : array-like of int
+        The channels from which to interpolate.
+    pick_to : array-like of int
+        The channels to which to interpolate.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used. `'fast'` should be sufficient
+        for most applications.
+
+    Returns
+    -------
+    mapping : array
+        A mapping matrix of shape len(pick_to) x len(pick_from).
+    """
+    info_from = pick_info(inst.info, pick_from, copy=True)
+    info_to = pick_info(inst.info, pick_to, copy=True)
+
+    # no need to apply trans because both from and to coils are in device
+    # coordinates
+    templates = _read_coil_defs()
+    coils_from = _create_meg_coils(info_from['chs'], 'normal',
+                                   info_from['dev_head_t'], templates)
+    coils_to = _create_meg_coils(info_to['chs'], 'normal',
+                                 info_to['dev_head_t'], templates)
+    miss = 1e-4  # Smoothing criterion for MEG
+
+    #
+    # Step 2. Calculate the dot products
+    #
+    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from,
+                                                             'meg')
+    logger.info('Computing dot products for %i coils...' % (len(coils_from)))
+    self_dots = _do_self_dots(int_rad, False, coils_from, my_origin, 'meg',
+                              lut_fun, n_fact, n_jobs=1)
+    logger.info('Computing cross products for coils %i x %i coils...'
+                % (len(coils_from), len(coils_to)))
+    cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
+                                my_origin, 'meg', lut_fun, n_fact).T
+
+    ch_names = [c['ch_name'] for c in info_from['chs']]
+    fmd = dict(kind='meg', ch_names=ch_names,
+               origin=my_origin, noise=noise, self_dots=self_dots,
+               surface_dots=cross_dots, int_rad=int_rad, miss=miss)
+    logger.info('Field mapping data ready')
+
+    #
+    # Step 3. Compute the mapping matrix
+    #
+    fmd['data'] = _compute_mapping_matrix(fmd, info_from)
+
+    return fmd['data']
+
+
+def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
+    """Compute virtual evoked using interpolated fields in mag/grad channels.
+
+    Parameters
+    ----------
+    evoked : instance of mne.Evoked
+        The evoked object.
+    ch_type : str
+        The destination channel type. It can be 'mag' or 'grad'.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used. `'fast'` should be sufficient
+        for most applications.
+
+    Returns
+    -------
+    evoked : instance of mne.Evoked
+        The transformed evoked object containing only virtual channels.
+    """
+    evoked = evoked.copy()
+
+    if ch_type not in ['mag', 'grad']:
+        raise ValueError('to_type must be "mag" or "grad", not "%s"'
+                         % ch_type)
+    # pick the original and destination channels
+    pick_from = pick_types(evoked.info, meg=True, eeg=False,
+                           ref_meg=False)
+    pick_to = pick_types(evoked.info, meg=ch_type, eeg=False,
+                         ref_meg=False)
+
+    if len(pick_to) == 0:
+        raise ValueError('No channels matching the destination channel type'
+                         ' found in info. Please pass an evoked containing'
+                         'both the original and destination channels. Only the'
+                         ' locations of the destination channels will be used'
+                         ' for interpolation.')
+
+    mapping = _map_meg_channels(evoked, pick_from, pick_to, mode='fast')
+
+    # compute evoked data by multiplying by the 'gain matrix' from
+    # original sensors to virtual sensors
+    data = np.dot(mapping, evoked.data[pick_from])
+
+    # keep only the destination channel types
+    evoked.pick_types(meg=ch_type, eeg=False, ref_meg=False)
+    evoked.data = data
+
+    # change channel names to emphasize they contain interpolated data
+    for ch in evoked.info['chs']:
+        ch['ch_name'] += '_virtual'
+    evoked.info['ch_names'] = [ch['ch_name'] for ch in evoked.info['chs']]
+
+    return evoked
+
+
 @verbose
 def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
                           n_jobs=1, verbose=None):
@@ -118,7 +253,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         A n_vertices x n_sensors array that remaps the MEG or EEG data,
         as `new_data = np.dot(mapping, data)`.
     """
-    if not all([key in surf for key in ['rr', 'nn']]):
+    if not all(key in surf for key in ['rr', 'nn']):
         raise KeyError('surf must have both "rr" and "nn"')
     if 'coord_frame' not in surf:
         raise KeyError('The surface coordinate frame must be specified '
@@ -127,12 +262,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         raise ValueError('mode must be "accurate" or "fast", not "%s"' % mode)
 
     # deal with coordinate frames here -- always go to "head" (easiest)
-    if surf['coord_frame'] == FIFF.FIFFV_COORD_MRI:
-        if trans is None or FIFF.FIFFV_COORD_MRI not in [trans['to'],
-                                                         trans['from']]:
-            raise ValueError('trans must be a Head<->MRI transform if the '
-                             'surface is not in head coordinates.')
-        surf = transform_surface_to(deepcopy(surf), 'head', trans)
+    surf = transform_surface_to(deepcopy(surf), 'head', trans)
 
     n_jobs = check_n_jobs(n_jobs)
 
@@ -150,34 +280,24 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         logger.info('Prepare EEG mapping...')
     if len(picks) == 0:
         raise RuntimeError('cannot map, no channels found')
-    chs = pick_info(info, picks)['chs']
+    chs = pick_info(info, picks, copy=True)['chs']
 
     # create coil defs in head coordinates
     if ch_type == 'meg':
         # Put them in head coordinates
-        coils = _create_coils(chs, FIFF.FWD_COIL_ACCURACY_NORMAL,
-                              info['dev_head_t'], coil_type='meg')[0]
+        coils = _create_meg_coils(chs, 'normal', info['dev_head_t'])
         type_str = 'coils'
         miss = 1e-4  # Smoothing criterion for MEG
     else:  # EEG
-        coils = _create_coils(chs, coil_type='eeg')[0]
+        coils = _create_eeg_els(chs)
         type_str = 'electrodes'
         miss = 1e-3  # Smoothing criterion for EEG
 
     #
     # Step 2. Calculate the dot products
     #
-    my_origin = np.array([0.0, 0.0, 0.04])
-    int_rad = 0.06
-    noise = _ad_hoc_noise(coils, ch_type)
-    if mode == 'fast':
-        # Use 50 coefficients with nearest-neighbor interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 50)
-        lut_fun = partial(_get_legen_lut_fast, lut=lut)
-    else:  # 'accurate'
-        # Use 100 coefficients with linear interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 100)
-        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
+    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils,
+                                                             ch_type)
     logger.info('Computing dot products for %i %s...' % (len(coils), type_str))
     self_dots = _do_self_dots(int_rad, False, coils, my_origin, ch_type,
                               lut_fun, n_fact, n_jobs)
@@ -207,15 +327,16 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     return fmd
 
 
-def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
-                   ch_type=None, mode='fast', n_jobs=1):
+def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
+                   ch_type=None, mode='fast', meg_surf='helmet',
+                   n_jobs=1):
     """Compute surface maps used for field display in 3D
 
     Parameters
     ----------
     evoked : Evoked | Epochs | Raw
         The measurement file. Need to have info attribute.
-    trans_fname : str | 'auto' | None
+    trans : str | 'auto' | None
         The full path to the `*-trans.fif` file produced during
         coregistration. If present or found using 'auto'
         the maps will be in MRI coordinates.
@@ -233,6 +354,9 @@ def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
+    meg_surf : str
+        Should be ``'helmet'`` or ``'head'`` to specify in which surface
+        to compute the MEG field map. The default value is ``'helmet'``
     n_jobs : int
         The number of jobs to run in parallel.
 
@@ -252,24 +376,27 @@ def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
                              % ch_type)
         types = [ch_type]
 
-    if trans_fname == 'auto':
+    if trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
-        trans_fname = _find_trans(subject, subjects_dir)
+        trans = _find_trans(subject, subjects_dir)
 
-    if 'eeg' in types and trans_fname is None:
+    if 'eeg' in types and trans is None:
         logger.info('No trans file available. EEG data ignored.')
         types.remove('eeg')
 
     if len(types) == 0:
         raise RuntimeError('No data available for mapping.')
 
-    trans = None
-    if trans_fname is not None:
-        trans = read_trans(trans_fname)
+    if trans is not None:
+        trans = read_trans(trans)
+
+    if meg_surf not in ['helmet', 'head']:
+        raise ValueError('Surface to plot MEG fields must be '
+                         '"helmet" or "head"')
 
     surfs = []
     for this_type in types:
-        if this_type == 'meg':
+        if this_type == 'meg' and meg_surf == 'helmet':
             surf = get_meg_helmet_surf(info, trans)
         else:
             surf = get_head_surf(subject, subjects_dir=subjects_dir)

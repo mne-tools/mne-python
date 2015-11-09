@@ -3,10 +3,6 @@
 
 import numpy as np
 
-valid_data_types = ['experimental', 'simulation']
-valid_data_formats = ['single-trial', 'evoked', 'raw']
-valid_conditions = ['visual', 'auditory', 'somatosensory']
-
 url_root = 'http://cobre.mrn.org/megsim'
 
 urls = ['/empdata/neuromag/visual/subject1_day1_vis_raw.fif',
@@ -31,8 +27,11 @@ urls = ['/empdata/neuromag/visual/subject1_day1_vis_raw.fif',
         '/simdata/neuromag/visual/M87174545_vis_sim5_4mm_30na_neuro_rn.fif',
 
         '/simdata_singleTrials/subject1_singleTrials_VisWorkingMem_fif.zip',
-        '/simdata_singleTrials/subject1_singleTrials_VisWorkingMem_withOsc_fif.zip',
-        '/simdata_singleTrials/4545_sim_oscOnly_v1_IPS_ILOG_30hzAdded.fif']
+        '/simdata_singleTrials/subject1_singleTrials_VisWorkingMem_withOsc_fif.zip',  # noqa
+        '/simdata_singleTrials/4545_sim_oscOnly_v1_IPS_ILOG_30hzAdded.fif',
+
+        '/index.html',
+]
 
 data_formats = ['raw',
                 'raw',
@@ -58,7 +57,9 @@ data_formats = ['raw',
                 'single-trial',
                 'single-trial',
                 'single-trial',
-                ]
+
+                'text']
+
 subjects = ['subject_1',
             'subject_1',
             'subject_3',
@@ -82,7 +83,9 @@ subjects = ['subject_1',
 
             'subject_1',
             'subject_1',
-            'subject_1']
+            'subject_1',
+
+            '']
 
 data_types = ['experimental',
               'experimental',
@@ -107,7 +110,9 @@ data_types = ['experimental',
 
               'simulation',
               'simulation',
-              'simulation']
+              'simulation',
+
+              'text']
 
 conditions = ['visual',
               'visual',
@@ -132,7 +137,13 @@ conditions = ['visual',
 
               'visual',
               'visual',
-              'visual']
+              'visual',
+
+              'index']
+
+valid_data_types = list(set(data_types))
+valid_data_formats = list(set(data_formats))
+valid_conditions = list(set(conditions))
 
 # turn them into arrays for ease of use
 urls = np.atleast_1d(urls)
@@ -142,8 +153,9 @@ data_types = np.atleast_1d(data_types)
 conditions = np.atleast_1d(conditions)
 
 # Useful for testing
-#assert len(conditions) == len(data_types) == len(subjects) \
-#    == len(data_formats) == len(urls)
+# assert len(conditions) == len(data_types) == len(subjects) \
+#     == len(data_formats) == len(urls)
+
 
 def url_match(condition, data_format, data_type):
     """Function to match MEGSIM data files"""

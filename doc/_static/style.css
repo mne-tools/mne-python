@@ -1,0 +1,46 @@
+body {
+    font-family: 'Open Sans', 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;
+}
+
+.navbar-version {
+    display: none;
+}
+
+a {
+    color: rgb(255,2,16);
+    text-decoration: none;
+}
+
+a:hover {
+    color: rgb(255,2,16);
+}
+
+blockquote {
+    font-size: 100% !important;
+}
+
+code {
+    color: #49759c !important;
+    background-color: #f3f5f9 !important;
+}
+
+.devbar {
+    background-color: red;
+    color: white;
+    font-weight:bold;
+    text-align: center;
+    padding: 10px;
+    min-width: 910px;
+}
+
+.devbar a {
+    color: #b8bec4;
+}
+
+#navbar a:hover {
+    color: rgb(255,2,16);
+}
+
+.note a {
+    color: rgb(255,236,0);
+}

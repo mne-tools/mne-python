@@ -46,8 +46,8 @@ def test_multitaper_psd():
     for adaptive, n_jobs in zip((False, True, True), (1, 1, 2)):
         psd, freqs = multitaper_psd(x, sfreq, adaptive=adaptive, n_jobs=n_jobs,
                                     normalization=norm)
-        freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(x, sfreq,
-            adaptive=adaptive, jackknife=False)
+        freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(
+            x, sfreq, adaptive=adaptive, jackknife=False)
 
         # for some reason nitime returns n_times + 1 frequency points
         # causing the value at 0 to be different

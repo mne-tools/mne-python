@@ -5,11 +5,13 @@
 # License: BSD (3-clause)
 
 import os
-from ..externals.six.moves import queue
-from threading import Thread
-
 import numpy as np
 from scipy.linalg import inv
+from threading import Thread
+
+from ..externals.six.moves import queue
+from ..io.meas_info import _read_dig_points, _make_dig_points
+
 
 # allow import without traits
 try:
@@ -25,40 +27,19 @@ try:
     from tvtk.pyface.scene_editor import SceneEditor
 except:
     from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    Handler = object
-    cached_property = trait_wraith
-    MayaviScene = trait_wraith
-    MlabSceneModel = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    DelegatesTo = trait_wraith
-    Enum = trait_wraith
-    File = trait_wraith
-    Instance = trait_wraith
-    Int = trait_wraith
-    List = trait_wraith
-    Property = trait_wraith
-    Str = trait_wraith
-    Array = trait_wraith
-    spring = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    HGroup = trait_wraith
-    VGroup = trait_wraith
-    EnumEditor = trait_wraith
-    NoButtons = trait_wraith
-    CheckListEditor = trait_wraith
-    SceneEditor = trait_wraith
+    HasTraits = HasPrivateTraits = Handler = object
+    cached_property = MayaviScene = MlabSceneModel = Bool = Button = \
+        DelegatesTo = Enum = File = Instance = Int = List = Property = \
+        Str = Array = spring = View = Item = HGroup = VGroup = EnumEditor = \
+        NoButtons = CheckListEditor = SceneEditor = trait_wraith
 
-from ..io.kit.coreg import read_hsp
 from ..io.kit.kit import RawKIT, KIT
-from ..transforms import apply_trans, als_ras_trans, als_ras_trans_mm
-from ..coreg import (read_elp, _decimate_points, fit_matched_points,
-                     get_ras_to_neuromag_trans)
+from ..transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
+                          get_ras_to_neuromag_trans, Transform)
+from ..coreg import _decimate_points, fit_matched_points
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
-from ._viewer import HeadViewController, headview_item, PointObject
+from ._viewer import (HeadViewController, headview_item, PointObject,
+                      _testing_mode)
 
 
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
@@ -93,8 +74,8 @@ class Kit2FiffModel(HasPrivateTraits):
     stim_chs_manual = Array(int, (8,), range(168, 176))
     stim_slope = Enum("-", "+")
     # Marker Points
-    use_mrk = List(list(range(5)), desc="Which marker points to use for the device "
-                   "head coregistration.")
+    use_mrk = List(list(range(5)), desc="Which marker points to use for the "
+                   "device head coregistration.")
 
     # Derived Traits
     mrk = Property(depends_on=('markers.mrk3.points'))
@@ -127,8 +108,8 @@ class Kit2FiffModel(HasPrivateTraits):
         if not has_sqd:
             return False
 
-        has_all_hsp = (np.any(self.dev_head_trans) and np.any(self.hsp)
-                       and np.any(self.elp) and np.any(self.fid))
+        has_all_hsp = (np.any(self.dev_head_trans) and np.any(self.hsp) and
+                       np.any(self.elp) and np.any(self.fid))
         if has_all_hsp:
             return True
 
@@ -170,7 +151,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = read_elp(self.fid_file)
+            pts = _read_dig_points(self.fid_file)
             if len(pts) < 8:
                 raise ValueError("File contains %i points, need 8" % len(pts))
         except Exception as err:
@@ -202,7 +183,7 @@ class Kit2FiffModel(HasPrivateTraits):
     @cached_property
     def _get_hsp(self):
         if (self.hsp_raw is None) or not np.any(self.polhemus_neuromag_trans):
-            return  np.empty((0, 3))
+            return np.empty((0, 3))
         else:
             pts = apply_trans(self.polhemus_neuromag_trans, self.hsp_raw)
             return pts
@@ -221,8 +202,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = read_hsp(fname)
-
+            pts = _read_dig_points(fname)
             n_pts = len(pts)
             if n_pts > KIT.DIG_POINTS:
                 msg = ("The selected head shape contains {n_in} points, "
@@ -265,7 +245,7 @@ class Kit2FiffModel(HasPrivateTraits):
     def clear_all(self):
         """Clear all specified input parameters"""
         self.markers.clear = True
-        self.reset_traits(['sqd_file', 'hsp_file', 'fid_file'])
+        self.reset_traits(['sqd_file', 'hsp_file', 'fid_file', 'use_mrk'])
 
     def get_event_info(self):
         """
@@ -297,8 +277,11 @@ class Kit2FiffModel(HasPrivateTraits):
                      slope=self.stim_slope)
 
         if np.any(self.fid):
-            raw._set_dig_neuromag(self.fid, self.elp, self.hsp,
-                                  self.dev_head_trans)
+            raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
+                                               self.fid[2], self.elp,
+                                               self.hsp)
+            raw.info['dev_head_t'] = Transform('meg', 'head',
+                                               self.dev_head_trans)
         return raw
 
 
@@ -354,51 +337,50 @@ class Kit2FiffPanel(HasPrivateTraits):
     queue_len_str = Property(Str, depends_on=['queue_len'])
     error = Str('')
 
-    view = View(VGroup(VGroup(Item('sqd_file', label="Data"),
-                              Item('sqd_fname', show_label=False,
-                                   style='readonly'),
-                              Item('hsp_file', label='Dig Head Shape'),
-                              Item('hsp_fname', show_label=False,
-                                   style='readonly'),
-                              Item('fid_file', label='Dig Points'),
-                              Item('fid_fname', show_label=False,
-                                   style='readonly'),
-                              Item('reset_dig', label='Clear Digitizer Files',
-                                   show_label=False),
-                              Item('use_mrk', editor=use_editor,
-                                   style='custom'),
-                              label="Sources", show_border=True),
-                    VGroup(Item('stim_slope', label="Event Onset",
-                                style='custom',
-                                editor=EnumEditor(
-                                           values={'+': '2:Peak (0 to 5 V)',
-                                                   '-': '1:Trough (5 to 0 V)'},
-                                           cols=2),
-                                help="Whether events are marked by a decrease "
-                                "(trough) or an increase (peak) in trigger "
-                                "channel values"),
-                           Item('stim_chs', label="Binary Coding",
-                                style='custom',
-                                editor=EnumEditor(values={'>': '1:1 ... 128',
-                                                          '<': '3:128 ... 1',
-                                                          'man': '2:Manual'},
-                                                  cols=2),
-                                help="Specifies the bit order in event "
-                                "channels. Assign the first bit (1) to the "
-                                "first or the last trigger channel."),
-                           Item('stim_chs_manual', label='Stim Channels',
-                                style='custom',
-                                visible_when="stim_chs == 'man'"),
-                           label='Events', show_border=True),
-                       HGroup(Item('save_as', enabled_when='can_save'), spring,
-                              'clear_all', show_labels=False),
-                       Item('queue_feedback', show_label=False,
-                            style='readonly'),
-                       Item('queue_current', show_label=False,
-                            style='readonly'),
-                       Item('queue_len_str', show_label=False,
-                            style='readonly'),
-                       ))
+    view = View(
+        VGroup(VGroup(Item('sqd_file', label="Data"),
+                      Item('sqd_fname', show_label=False,
+                           style='readonly'),
+                      Item('hsp_file', label='Dig Head Shape'),
+                      Item('hsp_fname', show_label=False,
+                           style='readonly'),
+                      Item('fid_file', label='Dig Points'),
+                      Item('fid_fname', show_label=False,
+                           style='readonly'),
+                      Item('reset_dig', label='Clear Digitizer Files',
+                           show_label=False),
+                      Item('use_mrk', editor=use_editor,
+                           style='custom'),
+                      label="Sources", show_border=True),
+               VGroup(Item('stim_slope', label="Event Onset",
+                           style='custom',
+                           editor=EnumEditor(
+                               values={'+': '2:Peak (0 to 5 V)',
+                                       '-': '1:Trough (5 to 0 V)'},
+                               cols=2),
+                           help="Whether events are marked by a decrease "
+                           "(trough) or an increase (peak) in trigger "
+                           "channel values"),
+                      Item('stim_chs', label="Binary Coding",
+                           style='custom',
+                           editor=EnumEditor(values={'>': '1:1 ... 128',
+                                                     '<': '3:128 ... 1',
+                                                     'man': '2:Manual'},
+                                             cols=2),
+                           help="Specifies the bit order in event "
+                           "channels. Assign the first bit (1) to the "
+                           "first or the last trigger channel."),
+                      Item('stim_chs_manual', label='Stim Channels',
+                           style='custom',
+                           visible_when="stim_chs == 'man'"),
+                      label='Events', show_border=True),
+               HGroup(Item('save_as', enabled_when='can_save'), spring,
+                      'clear_all', show_labels=False),
+               Item('queue_feedback', show_label=False, style='readonly'),
+               Item('queue_current', show_label=False, style='readonly'),
+               Item('queue_len_str', show_label=False, style='readonly')
+               )
+    )
 
     def __init__(self, *args, **kwargs):
         super(Kit2FiffPanel, self).__init__(*args, **kwargs)
@@ -433,21 +415,17 @@ class Kit2FiffPanel(HasPrivateTraits):
         m = self.model
         self.fid_obj = PointObject(scene=self.scene, color=(25, 225, 25),
                                    point_scale=5e-3)
-        m.sync_trait('fid', self.fid_obj, 'points', mutual=False)
-        m.sync_trait('head_dev_trans', self.fid_obj, 'trans', mutual=False)
-
         self.elp_obj = PointObject(scene=self.scene, color=(50, 50, 220),
                                    point_scale=1e-2, opacity=.2)
-        m.sync_trait('elp', self.elp_obj, 'points', mutual=False)
-        m.sync_trait('head_dev_trans', self.elp_obj, 'trans', mutual=False)
-
         self.hsp_obj = PointObject(scene=self.scene, color=(200, 200, 200),
                                    point_scale=2e-3)
-        m.sync_trait('hsp', self.hsp_obj, 'points', mutual=False)
-        m.sync_trait('head_dev_trans', self.hsp_obj, 'trans', mutual=False)
-
-        self.scene.camera.parallel_scale = 0.15
-        self.scene.mlab.view(0, 0, .15)
+        if not _testing_mode():
+            for name, obj in zip(['fid', 'elp', 'hsp'],
+                                 [self.fid_obj, self.elp_obj, self.hsp_obj]):
+                m.sync_trait(name, obj, 'points', mutual=False)
+                m.sync_trait('head_dev_trans', obj, 'trans', mutual=False)
+            self.scene.camera.parallel_scale = 0.15
+            self.scene.mlab.view(0, 0, .15)
 
     def _clear_all_fired(self):
         self.model.clear_all()
@@ -515,7 +493,7 @@ class Kit2FiffFrame(HasTraits):
                        VGroup(Item('kit2fiff_panel', style='custom'),
                               show_labels=False),
                        show_labels=False,
-                      ),
+                       ),
                 handler=Kit2FiffFrameHandler(),
                 height=700, resizable=True, buttons=NoButtons)
 

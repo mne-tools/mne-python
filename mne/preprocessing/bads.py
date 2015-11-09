@@ -3,11 +3,14 @@
 
 
 import numpy as np
-from scipy import stats
 
 
-def find_outliers(X, threshold=3.0):
-    """Find outliers based on Gaussian mixture
+def find_outliers(X, threshold=3.0, max_iter=2):
+    """Find outliers based on iterated Z-scoring
+
+    This procedure compares the absolute z-score against the threshold.
+    After excluding local outliers, the comparison is repeated until no
+    local outlier is present any more.
 
     Parameters
     ----------
@@ -15,18 +18,19 @@ def find_outliers(X, threshold=3.0):
         The scores for which to find outliers.
     threshold : float
         The value above which a feature is classified as outlier.
+    max_iter : int
+        The maximum number of iterations.
 
     Returns
     -------
     bad_idx : np.ndarray of int, shape (n_features)
         The outlier indices.
     """
-    max_iter = 2
+    from scipy.stats import zscore
     my_mask = np.zeros(len(X), dtype=np.bool)
-    X = np.abs(X)
     for _ in range(max_iter):
         X = np.ma.masked_array(X, my_mask)
-        this_z = stats.zscore(X)
+        this_z = np.abs(zscore(X))
         local_bad = this_z > threshold
         my_mask = np.max([my_mask, local_bad], 0)
         if not np.any(local_bad):

@@ -8,26 +8,28 @@ space. It stores the solution in a nifti file for visualisation e.g. with
 Freeview.
 
 """
-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
 from mne.io import Raw
 from mne.beamformer import lcmv
 
+from nilearn.plotting import plot_stat_map
+from nilearn.image import index_img
+
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
+fname_cov = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
 
 ###############################################################################
 # Get epochs
@@ -51,11 +53,10 @@ evoked = epochs.average()
 
 forward = mne.read_forward_solution(fname_fwd)
 
+# Read regularized noise covariance and compute regularized data covariance
 noise_cov = mne.read_cov(fname_cov)
-noise_cov = mne.cov.regularize(noise_cov, evoked.info,
-                               mag=0.05, grad=0.05, eeg=0.1, proj=True)
-
-data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
+                                  method='shrunk')
 
 # Run free orientation (vector) beamformer. Source orientation can be
 # restricted by setting pick_ori to 'max-power' (or 'normal' but only when
@@ -69,19 +70,13 @@ stc.crop(0.0, 0.2)
 
 # Save result in a 4D nifti file
 img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
-        forward['src'], mri_resolution=False)  # True for full MRI resolution
+                             forward['src'], mri_resolution=False)
 
-# plot result (one slice)
-plt.close('all')
-data = img.get_data()
-coronal_slice = data[:, 10, :, 60]
-plt.figure()
-plt.imshow(np.ma.masked_less(coronal_slice, 1), cmap=plt.cm.Reds,
-           interpolation='nearest')
-plt.colorbar()
-plt.contour(coronal_slice != 0, 1, colors=['black'])
-plt.xticks([])
-plt.yticks([])
+t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
+
+# Plotting with nilearn ######################################################
+plot_stat_map(index_img(img, 61), t1_fname, threshold=0.8,
+              title='LCMV (t=%.1f s.)' % stc.times[61])
 
 # plot source time courses with the maximum peak amplitudes
 plt.figure()

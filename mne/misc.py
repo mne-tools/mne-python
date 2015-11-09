@@ -16,9 +16,11 @@ def parse_config(fname):
     -------
     conditions : list of dict
         Each condition is indexed by the event type.
-        A condition contains as keys:
+        A condition contains as keys::
+
             tmin, tmax, name, grad_reject, mag_reject,
             eeg_reject, eog_reject
+
     """
     reject_params = read_reject_parameters(fname)
 
@@ -58,7 +60,13 @@ def parse_config(fname):
 
 
 def read_reject_parameters(fname):
-    """Read rejection parameters from .cov or .ave config file"""
+    """Read rejection parameters from .cov or .ave config file
+
+    Parameters
+    ----------
+    fname : str
+        Filename to read.
+    """
 
     try:
         with open(fname, 'r') as f:
@@ -74,7 +82,7 @@ def read_reject_parameters(fname):
         words = line.split()
         if words[0] in reject_names:
             reject[reject_pynames[reject_names.index(words[0])]] = \
-                                                                float(words[1])
+                float(words[1])
 
     return reject
 
@@ -95,6 +103,6 @@ def read_flat_parameters(fname):
         words = line.split()
         if words[0] in reject_names:
             flat[reject_pynames[reject_names.index(words[0])]] = \
-                                                                float(words[1])
+                float(words[1])
 
     return flat

@@ -3,7 +3,9 @@
 
 You can do for example:
 
-$ mne browse_raw --raw sample_audvis_raw.fif --proj sample_audvis_ecg_proj.fif --eve sample_audvis_raw-eve.fif
+$ mne browse_raw --raw sample_audvis_raw.fif \
+                 --proj sample_audvis_ecg_proj.fif \
+                 --eve sample_audvis_raw-eve.fif
 """
 
 # Authors : Eric Larson, PhD
@@ -12,8 +14,7 @@ import sys
 import mne
 
 
-if __name__ == '__main__':
-
+def run():
     import matplotlib.pyplot as plt
 
     from mne.commands.utils import get_optparser
@@ -46,6 +47,21 @@ if __name__ == '__main__':
     parser.add_option("-s", "--show_options", dest="show_options",
                       help="Show projection options dialog",
                       default=False)
+    parser.add_option("--allowmaxshield", dest="maxshield",
+                      help="Allow loading MaxShield processed data",
+                      action="store_true")
+    parser.add_option("--highpass", dest="highpass", type="float",
+                      help="Display high-pass filter corner frequency",
+                      default=-1)
+    parser.add_option("--lowpass", dest="lowpass", type="float",
+                      help="Display low-pass filter corner frequency",
+                      default=-1)
+    parser.add_option("--filtorder", dest="filtorder", type="int",
+                      help="Display filtering IIR order",
+                      default=4)
+    parser.add_option("--clipping", dest="clipping",
+                      help="Enable trace clipping mode, either 'clip' or "
+                      "'transparent'", default=None)
 
     options, args = parser.parse_args()
 
@@ -58,12 +74,17 @@ if __name__ == '__main__':
     show_options = options.show_options
     proj_in = options.proj_in
     eve_in = options.eve_in
+    maxshield = options.maxshield
+    highpass = options.highpass
+    lowpass = options.lowpass
+    filtorder = options.filtorder
+    clipping = options.clipping
 
     if raw_in is None:
         parser.print_help()
         sys.exit(1)
 
-    raw = mne.io.Raw(raw_in, preload=preload)
+    raw = mne.io.Raw(raw_in, preload=preload, allow_maxshield=maxshield)
     if len(proj_in) > 0:
         projs = mne.read_proj(proj_in)
         raw.info['projs'] = projs
@@ -71,6 +92,16 @@ if __name__ == '__main__':
         events = mne.read_events(eve_in)
     else:
         events = None
-    fig = raw.plot(duration=duration, start=start, n_channels=n_channels,
-                   order=order, show_options=show_options, events=events)
+    highpass = None if highpass < 0 or filtorder <= 0 else highpass
+    lowpass = None if lowpass < 0 or filtorder <= 0 else lowpass
+    filtorder = 4 if filtorder <= 0 else filtorder
+    raw.plot(duration=duration, start=start, n_channels=n_channels,
+             order=order, show_options=show_options, events=events,
+             highpass=highpass, lowpass=lowpass, filtorder=filtorder,
+             clipping=clipping)
     plt.show(block=True)
+
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

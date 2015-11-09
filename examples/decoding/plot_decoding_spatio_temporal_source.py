@@ -9,13 +9,10 @@ selection is employed to confine the classification to the potentially
 relevant features. The classifier then is trained to selected features of
 epochs in source space.
 """
-
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import mne
 import os
@@ -23,6 +20,8 @@ import numpy as np
 from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
+
+print(__doc__)
 
 data_path = sample.data_path()
 fname_fwd = data_path + 'MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
@@ -99,8 +98,8 @@ X -= X.mean(axis=0)
 X /= X.std(axis=0)
 
 # prepare classifier
-from sklearn.svm import SVC
-from sklearn.cross_validation import ShuffleSplit
+from sklearn.svm import SVC  # noqa
+from sklearn.cross_validation import ShuffleSplit  # noqa
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 n_splits = 10
@@ -108,8 +107,8 @@ clf = SVC(C=1, kernel='linear')
 cv = ShuffleSplit(len(X), n_splits, test_size=0.2)
 
 # setup feature selection and classification pipeline
-from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.pipeline import Pipeline
+from sklearn.feature_selection import SelectKBest, f_classif  # noqa
+from sklearn.pipeline import Pipeline  # noqa
 
 # we will use an ANOVA f-test to preselect relevant spatio-temporal units
 feature_selection = SelectKBest(f_classif, k=500)  # take the best 500
@@ -143,12 +142,11 @@ feature_weights -= feature_weights.mean(axis=1)[:, None]
 # unmask, take absolute values, emulate f-value scale
 feature_weights = np.abs(feature_weights.data) * 10
 
-vertices = [stc.lh_vertno, np.array([])]  # empty array for right hemisphere
+vertices = [stc.lh_vertno, np.array([], int)]  # empty array for right hemi
 stc_feat = mne.SourceEstimate(feature_weights, vertices=vertices,
                               tmin=stc.tmin, tstep=stc.tstep,
                               subject='sample')
 
-brain = stc_feat.plot(subject=subject, fmin=1, fmid=5.5, fmax=20)
+brain = stc_feat.plot()
 brain.set_time(100)
-brain.show_view('l')
-# take the medial view to further explore visual areas
+brain.show_view('l')  # take the medial view to further explore visual areas

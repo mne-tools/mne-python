@@ -92,7 +92,8 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
 
 
 def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
-                                     n_nodes=0, node_angles=None, ylim=[9, 10]):
+                                     n_nodes=0, node_angles=None,
+                                     ylim=[9, 10]):
     """Isolates connections around a single node when user left clicks a node.
 
     On right click, resets all connections."""
@@ -114,7 +115,7 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
         fig.canvas.draw()
     elif event.button == 3:  # right click
         patches = event.inaxes.patches
-        for ii in xrange(np.size(indices, axis=1)):
+        for ii in range(np.size(indices, axis=1)):
             patches[ii].set_visible(True)
         fig.canvas.draw()
 
@@ -128,11 +129,12 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
                              fontsize_title=12, fontsize_names=8,
                              fontsize_colorbar=8, padding=6.,
-                             fig=None, subplot=111, interactive=True):
+                             fig=None, subplot=111, interactive=True,
+                             node_linewidth=2., show=True):
     """Visualize connectivity as a circular graph.
 
     Note: This code is based on the circle graph example by Nicolas P. Rougier
-    http://www.loria.fr/~rougier/coding/recipes.html
+    http://www.labri.fr/perso/nrougier/coding/.
 
     Parameters
     ----------
@@ -198,6 +200,10 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     interactive : bool
         When enabled, left-click on a node to show only connections to that
         node. Right-click shows all connections.
+    node_linewidth : float
+        Line with for nodes.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
@@ -324,10 +330,10 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         nodes_n_con_seen[start] += 1
         nodes_n_con_seen[end] += 1
 
-        start_noise[i] *= ((nodes_n_con[start] - nodes_n_con_seen[start])
-                           / float(nodes_n_con[start]))
-        end_noise[i] *= ((nodes_n_con[end] - nodes_n_con_seen[end])
-                         / float(nodes_n_con[end]))
+        start_noise[i] *= ((nodes_n_con[start] - nodes_n_con_seen[start]) /
+                           float(nodes_n_con[start]))
+        end_noise[i] *= ((nodes_n_con[end] - nodes_n_con_seen[end]) /
+                         float(nodes_n_con[end]))
 
     # scale connectivity for colormap (vmin<=>0, vmax<=>1)
     con_val_scaled = (con - vmin) / vrange
@@ -359,8 +365,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     # Draw ring with colored nodes
     height = np.ones(n_nodes) * 1.0
     bars = axes.bar(node_angles, height, width=node_width, bottom=9,
-                    edgecolor=node_edgecolor, lw=2, facecolor='.9',
-                    align='center')
+                    edgecolor=node_edgecolor, lw=node_linewidth,
+                    facecolor='.9', align='center')
 
     for bar, color in zip(bars, node_colors):
         bar.set_facecolor(color)
@@ -395,7 +401,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
 
-    #Add callback for interaction
+    # Add callback for interaction
     if interactive:
         callback = partial(_plot_connectivity_circle_onpick, fig=fig,
                            axes=axes, indices=indices, n_nodes=n_nodes,
@@ -403,6 +409,6 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
         fig.canvas.mpl_connect('button_press_event', callback)
 
+    if show:
+        plt.show()
     return fig, axes
-
-

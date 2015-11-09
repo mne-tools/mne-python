@@ -18,7 +18,7 @@ from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _time_mask
 
 ########################################################################
 # Various connectivity estimators
@@ -181,7 +181,7 @@ class _WPLIEst(_EpochMeanConEstBase):
     def __init__(self, n_cons, n_freqs, n_times):
         super(_WPLIEst, self).__init__(n_cons, n_freqs, n_times)
 
-        #store  both imag(csd) and abs(imag(csd))
+        # store  both imag(csd) and abs(imag(csd))
         acc_shape = (2,) + self.csd_shape
         self._acc = np.zeros(acc_shape)
 
@@ -217,7 +217,7 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
 
     def __init__(self, n_cons, n_freqs, n_times):
         super(_WPLIDebiasedEst, self).__init__(n_cons, n_freqs, n_times)
-        #store imag(csd), abs(imag(csd)), imag(csd)^2
+        # store imag(csd), abs(imag(csd)), imag(csd)^2
         acc_shape = (3,) + self.csd_shape
         self._acc = np.zeros(acc_shape)
 
@@ -260,7 +260,7 @@ class _PPCEst(_EpochMeanConEstBase):
     def __init__(self, n_cons, n_freqs, n_times):
         super(_PPCEst, self).__init__(n_cons, n_freqs, n_times)
 
-        #store csd / abs(csd)
+        # store csd / abs(csd)
         self._acc = np.zeros(self.csd_shape, dtype=np.complex128)
 
     def accumulate(self, con_idx, csd_xy):
@@ -280,18 +280,19 @@ class _PPCEst(_EpochMeanConEstBase):
 
         # note: we use the trick from fieldtrip to compute the
         # the estimate over all pairwise epoch combinations
-        con = ((self._acc[con_idx] * np.conj(self._acc[con_idx]) - n_epochs)
-               / (n_epochs * (n_epochs - 1.)))
+        con = ((self._acc[con_idx] * np.conj(self._acc[con_idx]) - n_epochs) /
+               (n_epochs * (n_epochs - 1.)))
 
         self.con_scores[con_idx] = np.real(con)
 
 
 ###############################################################################
 def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
-                                 mode, window_fun, eigvals, wavelets, freq_mask,
-                                 mt_adaptive, idx_map, block_size, psd,
-                                 accumulate_psd, con_method_types, con_methods,
-                                 n_signals, n_times, accumulate_inplace=True):
+                                 mode, window_fun, eigvals, wavelets,
+                                 freq_mask, mt_adaptive, idx_map, block_size,
+                                 psd, accumulate_psd, con_method_types,
+                                 con_methods, n_signals, n_times,
+                                 accumulate_inplace=True):
     """Connectivity estimation for one epoch see spectral_connectivity"""
 
     n_cons = len(idx_map[0])
@@ -321,16 +322,16 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
             this_n_sig = this_data.shape[0]
             sig_pos_end = sig_pos_start + this_n_sig
             if not isinstance(sig_idx, slice):
-                this_sig_idx = sig_idx[(sig_idx >= sig_pos_start)
-                                & (sig_idx < sig_pos_end)] - sig_pos_start
+                this_sig_idx = sig_idx[(sig_idx >= sig_pos_start) &
+                                       (sig_idx < sig_pos_end)] - sig_pos_start
             else:
                 this_sig_idx = sig_idx
             if isinstance(this_data, _BaseSourceEstimate):
                 _mt_spectra_partial = partial(_mt_spectra, dpss=window_fun,
                                               sfreq=sfreq)
-                this_x_mt = this_data.transform_data(_mt_spectra_partial,
-                                        idx=this_sig_idx, tmin_idx=tmin_idx,
-                                        tmax_idx=tmax_idx)
+                this_x_mt = this_data.transform_data(
+                    _mt_spectra_partial, idx=this_sig_idx, tmin_idx=tmin_idx,
+                    tmax_idx=tmax_idx)
             else:
                 this_x_mt, _ = _mt_spectra(this_data[this_sig_idx,
                                                      tmin_idx:tmax_idx],
@@ -338,8 +339,8 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
 
             if mt_adaptive:
                 # compute PSD and adaptive weights
-                _this_psd, weights = _psd_from_mt_adaptive(this_x_mt, eigvals,
-                                        freq_mask, return_weights=True)
+                _this_psd, weights = _psd_from_mt_adaptive(
+                    this_x_mt, eigvals, freq_mask, return_weights=True)
 
                 # only keep freqs of interest
                 this_x_mt = this_x_mt[:, :, freq_mask]
@@ -375,22 +376,22 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
             this_n_sig = this_data.shape[0]
             sig_pos_end = sig_pos_start + this_n_sig
             if not isinstance(sig_idx, slice):
-                this_sig_idx = sig_idx[(sig_idx >= sig_pos_start)
-                    & (sig_idx < sig_pos_end)] - sig_pos_start
+                this_sig_idx = sig_idx[(sig_idx >= sig_pos_start) &
+                                       (sig_idx < sig_pos_end)] - sig_pos_start
             else:
                 this_sig_idx = sig_idx
             if isinstance(this_data, _BaseSourceEstimate):
                 cwt_partial = partial(cwt, Ws=wavelets, use_fft=True,
                                       mode='same')
-                this_x_cwt = this_data.transform_data(cwt_partial,
-                                idx=this_sig_idx, tmin_idx=tmin_idx,
-                                tmax_idx=tmax_idx)
+                this_x_cwt = this_data.transform_data(
+                    cwt_partial, idx=this_sig_idx, tmin_idx=tmin_idx,
+                    tmax_idx=tmax_idx)
             else:
                 this_x_cwt = cwt(this_data[this_sig_idx, tmin_idx:tmax_idx],
                                  wavelets, use_fft=True, mode='same')
 
             if accumulate_psd:
-                this_psd.append(np.abs(this_x_cwt) ** 2)
+                this_psd.append((this_x_cwt * this_x_cwt.conj()).real)
 
             x_cwt.append(this_x_cwt)
 
@@ -437,8 +438,8 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
         for i in range(0, n_cons, block_size):
             con_idx = slice(i, i + block_size)
 
-            csd = x_cwt[idx_map[0][con_idx]]\
-                  * np.conjugate(x_cwt[idx_map[1][con_idx]])
+            csd = x_cwt[idx_map[0][con_idx]] * \
+                np.conjugate(x_cwt[idx_map[1][con_idx]])
             for method in con_methods:
                 method.accumulate(con_idx, csd)
 
@@ -518,8 +519,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mt_low_bias=True, cwt_frequencies=None,
                           cwt_n_cycles=7, block_size=1000, n_jobs=1,
                           verbose=None):
-    """Compute various frequency-domain and time-frequency domain connectivity
-    measures.
+    """Compute frequency-domain and time-frequency domain connectivity measures
 
     The connectivity method(s) are specified using the "method" parameter.
     All methods are based on estimates of the cross- and power spectral
@@ -536,96 +536,98 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     connectivity matrix). If one is only interested in the connectivity
     between some signals, the "indices" parameter can be used. For example,
     to compute the connectivity between the signal with index 0 and signals
-    "2, 3, 4" (a total of 3 connections) one can use the following:
+    "2, 3, 4" (a total of 3 connections) one can use the following::
 
-    indices = (np.array([0, 0, 0],    # row indices
-               np.array([2, 3, 4])))  # col indices
+        indices = (np.array([0, 0, 0]),    # row indices
+                   np.array([2, 3, 4]))    # col indices
 
-    con_flat = spectral_connectivity(data, method='coh', indices=indices, ...)
+        con_flat = spectral_connectivity(data, method='coh',
+                                         indices=indices, ...)
 
     In this case con_flat.shape = (3, n_freqs). The connectivity scores are
     in the same order as defined indices.
 
-    Supported Connectivity Measures:
+    **Supported Connectivity Measures**
 
     The connectivity method(s) is specified using the "method" parameter. The
-    following methods are supported (note: E[] denotes average over epochs).
-    Multiple measures can be computed at once by using a list/tuple, e.g.
-    "['coh', 'pli']" to compute coherence and PLI.
+    following methods are supported (note: ``E[]`` denotes average over
+    epochs). Multiple measures can be computed at once by using a list/tuple,
+    e.g., ``['coh', 'pli']`` to compute coherence and PLI.
 
-    'coh' : Coherence given by
+        'coh' : Coherence given by::
 
-                 | E[Sxy] |
-        C = ---------------------
-            sqrt(E[Sxx] * E[Syy])
+                     | E[Sxy] |
+            C = ---------------------
+                sqrt(E[Sxx] * E[Syy])
 
-    'cohy' : Coherency given by
+        'cohy' : Coherency given by::
 
-                   E[Sxy]
-        C = ---------------------
-            sqrt(E[Sxx] * E[Syy])
+                       E[Sxy]
+            C = ---------------------
+                sqrt(E[Sxx] * E[Syy])
 
-    'imcoh' : Imaginary coherence [1] given by
+        'imcoh' : Imaginary coherence [1]_ given by::
 
-                  Im(E[Sxy])
-        C = ----------------------
-            sqrt(E[Sxx] * E[Syy])
+                      Im(E[Sxy])
+            C = ----------------------
+                sqrt(E[Sxx] * E[Syy])
 
-    'plv' : Phase-Locking Value (PLV) [2] given by
+        'plv' : Phase-Locking Value (PLV) [2]_ given by::
 
-        PLV = |E[Sxy/|Sxy|]|
+            PLV = |E[Sxy/|Sxy|]|
 
-    'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator of squared
-            PLV [3].
+        'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
+        of squared PLV [3]_.
 
-    'pli' : Phase Lag Index (PLI) [4] given by
+        'pli' : Phase Lag Index (PLI) [4]_ given by::
 
-        PLI = |E[sign(Im(Sxy))]|
+            PLI = |E[sign(Im(Sxy))]|
 
-    'pli2_unbiased' : Unbiased estimator of squared PLI [5].
+        'pli2_unbiased' : Unbiased estimator of squared PLI [5]_.
 
-    'wpli' : Weighted Phase Lag Index (WPLI) [5] given by
+        'wpli' : Weighted Phase Lag Index (WPLI) [5]_ given by::
 
-                  |E[Im(Sxy)]|
-        WPLI = ------------------
-                  E[|Im(Sxy)|]
+                      |E[Im(Sxy)]|
+            WPLI = ------------------
+                      E[|Im(Sxy)|]
 
-    'wpli2_debiased' : Debiased estimator of squared WPLI [5].
+        'wpli2_debiased' : Debiased estimator of squared WPLI [5].
+
 
     References
     ----------
 
-    [1] Nolte et al. "Identifying true brain interaction from EEG data using
-        the imaginary part of coherency" Clinical neurophysiology, vol. 115,
-        no. 10, pp. 2292-2307, Oct. 2004.
+    .. [1] Nolte et al. "Identifying true brain interaction from EEG data using
+           the imaginary part of coherency" Clinical neurophysiology, vol. 115,
+           no. 10, pp. 2292-2307, Oct. 2004.
 
-    [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human brain
-        mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
+    .. [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human
+           brain mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
 
-    [3] Vinck et al. "The pairwise phase consistency: a bias-free measure of
-        rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
-        pp. 112-122, May 2010.
+    .. [3] Vinck et al. "The pairwise phase consistency: a bias-free measure of
+           rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
+           pp. 112-122, May 2010.
 
-    [4] Stam et al. "Phase lag index: assessment of functional connectivity
-        from multi channel EEG and MEG with diminished bias from common
-        sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
-        Nov. 2007.
+    .. [4] Stam et al. "Phase lag index: assessment of functional connectivity
+           from multi channel EEG and MEG with diminished bias from common
+           sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
+           Nov. 2007.
 
-    [5] Vinck et al. "An improved index of phase-synchronization for electro-
-        physiological data in the presence of volume-conduction, noise and
-        sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
+    .. [5] Vinck et al. "An improved index of phase-synchronization for
+           electro-physiological data in the presence of volume-conduction,
+           noise and sample-size bias" NeuroImage, vol. 55, no. 4,
+           pp. 1548-1565, Apr. 2011.
 
     Parameters
     ----------
-    data : array, shape=(n_epochs, n_signals, n_times)
-           or list/generator of array, shape =(n_signals, n_times)
-           or list/generator of SourceEstimate or VolSourceEstimate
-           or Epochs
+    data : array-like, shape=(n_epochs, n_signals, n_times) | Epochs
         The data from which to compute connectivity. Note that it is also
         possible to combine multiple signals by providing a list of tuples,
         e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],
         corresponds to 3 epochs, and arr_* could be an array with the same
-        number of time points as stc_*.
+        number of time points as stc_*. The array-like object can also
+        be a list/generator of array, shape =(n_signals, n_times),
+        or a list/generator of SourceEstimate or VolSourceEstimate objects.
     method : string | list of string
         Connectivity measure(s) to compute.
     indices : tuple of arrays | None
@@ -705,8 +707,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     """
     if n_jobs > 1:
         parallel, my_epoch_spectral_connectivity, _ = \
-                parallel_func(_epoch_spectral_connectivity, n_jobs,
-                              verbose=verbose)
+            parallel_func(_epoch_spectral_connectivity, n_jobs,
+                          verbose=verbose)
 
     # format fmin and fmax and check inputs
     if fmin is None:
@@ -746,12 +748,12 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                    for mtype in con_method_types]
 
     # we only support 3 or 5 arguments
-    if any([n not in (3, 5) for n in n_comp_args]):
+    if any(n not in (3, 5) for n in n_comp_args):
         raise ValueError('The compute_con function needs to have either '
                          '3 or 5 arguments')
 
     # if none of the comp_con functions needs the PSD, we don't estimate it
-    accumulate_psd = any([n == 5 for n in n_comp_args])
+    accumulate_psd = any(n == 5 for n in n_comp_args)
 
     if isinstance(data, Epochs):
         times_in = data.times  # input times for Epochs input type
@@ -768,8 +770,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             first_epoch = epoch_block[0]
 
             # get the data size and time scale
-            n_signals, n_times_in, times_in =\
-                    _get_and_verify_data_sizes(first_epoch)
+            n_signals, n_times_in, times_in = \
+                _get_and_verify_data_sizes(first_epoch)
 
             if times_in is None:
                 # we are not using Epochs or SourceEstimate(s) as input
@@ -777,16 +779,11 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                                        endpoint=False)
 
             n_times_in = len(times_in)
-            tmin_idx = 0
-            tmax_idx = n_times_in
-            tmin_true = times_in[0]
-            tmax_true = times_in[-1]
-            if tmin is not None:
-                tmin_idx = np.argmin(np.abs(times_in - tmin))
-                tmin_true = times_in[tmin_idx]
-            if tmax is not None:
-                tmax_idx = np.argmin(np.abs(times_in - tmax)) + 1
-                tmax_true = times_in[tmax_idx - 1]  # time of last point used
+            mask = _time_mask(times_in, tmin, tmax)
+            tmin_idx, tmax_idx = np.where(mask)[0][[0, -1]]
+            tmax_idx += 1
+            tmin_true = times_in[tmin_idx]
+            tmax_true = times_in[tmax_idx - 1]  # time of last point used
 
             times = times_in[tmin_idx:tmax_idx]
             n_times = len(times)
@@ -859,9 +856,10 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             for i, n_f_band in enumerate([len(f) for f in freqs_bands]):
                 if n_f_band == 0:
                     raise ValueError('There are no frequency points between '
-                        '%0.1fHz and %0.1fHz. Change the band specification '
-                        '(fmin, fmax) or the frequency resolution.'
-                        % (fmin[i], fmax[i]))
+                                     '%0.1fHz and %0.1fHz. Change the band '
+                                     'specification (fmin, fmax) or the '
+                                     'frequency resolution.'
+                                     % (fmin[i], fmax[i]))
 
             if n_bands == 1:
                 logger.info('    frequencies: %0.1fHz..%0.1fHz (%d points)'
@@ -872,7 +870,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 for i, bfreqs in enumerate(freqs_bands):
                     logger.info('     band %d: %0.1fHz..%0.1fHz '
                                 '(%d points)' % (i + 1, bfreqs[0],
-                                bfreqs[-1], len(bfreqs)))
+                                                 bfreqs[-1], len(bfreqs)))
 
             if faverage:
                 logger.info('    connectivity scores will be averaged for '
@@ -922,7 +920,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 if len(cwt_n_cycles) > 1:
                     if len(cwt_n_cycles) != len(cwt_frequencies):
                         raise ValueError('cwt_n_cycles must be float or an '
-                            'array with the same size as cwt_frequencies')
+                                         'array with the same size as '
+                                         'cwt_frequencies')
                     cwt_n_cycles = cwt_n_cycles[freq_mask]
 
                 # get the Morlet wavelets
@@ -956,7 +955,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                            for mtype in con_method_types]
 
             sep = ', '
-            metrics_str = sep.join([method.name for method in con_methods])
+            metrics_str = sep.join([meth.name for meth in con_methods])
             logger.info('    the following metrics will be computed: %s'
                         % metrics_str)
 
@@ -972,7 +971,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                             % (epoch_idx + 1))
 
                 # con methods and psd are updated inplace
-                _epoch_spectral_connectivity(this_epoch, sig_idx, tmin_idx,
+                _epoch_spectral_connectivity(
+                    this_epoch, sig_idx, tmin_idx,
                     tmax_idx, sfreq, mode, window_fun, eigvals, wavelets,
                     freq_mask, mt_adaptive, idx_map, block_size, psd,
                     accumulate_psd, con_method_types, con_methods,
@@ -983,11 +983,12 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             logger.info('    computing connectivity for epochs %d..%d'
                         % (epoch_idx + 1, epoch_idx + len(epoch_block)))
 
-            out = parallel(my_epoch_spectral_connectivity(this_epoch, sig_idx,
-                    tmin_idx, tmax_idx, sfreq, mode, window_fun, eigvals,
-                    wavelets, freq_mask, mt_adaptive, idx_map, block_size, psd,
-                    accumulate_psd, con_method_types, None, n_signals, n_times,
-                    accumulate_inplace=False) for this_epoch in epoch_block)
+            out = parallel(my_epoch_spectral_connectivity(
+                this_epoch, sig_idx,
+                tmin_idx, tmax_idx, sfreq, mode, window_fun, eigvals,
+                wavelets, freq_mask, mt_adaptive, idx_map, block_size, psd,
+                accumulate_psd, con_method_types, None, n_signals, n_times,
+                accumulate_inplace=False) for this_epoch in epoch_block)
 
             # do the accumulation
             for this_out in out:
@@ -1042,8 +1043,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         con_flat = con
         con = []
         for this_con_flat in con_flat:
-            this_con = np.zeros((n_signals, n_signals)
-                                + this_con_flat.shape[1:],
+            this_con = np.zeros((n_signals, n_signals) +
+                                this_con_flat.shape[1:],
                                 dtype=this_con_flat.dtype)
             this_con[indices_use] = this_con_flat
             con.append(this_con)

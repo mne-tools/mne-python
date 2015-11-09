@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -9,12 +10,16 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 from itertools import count
+import warnings
 
 from .tree import dir_tree_find
 from .tag import find_tag
 from .constants import FIFF
 from .pick import pick_types
+from .write import (write_int, write_float, write_string, write_name_list,
+                    write_float_matrix, end_block, start_block)
 from ..utils import logger, verbose
+from ..externals.six import string_types
 
 
 class Projection(dict):
@@ -31,7 +36,34 @@ class Projection(dict):
 
 class ProjMixin(object):
     """Mixin class for Raw, Evoked, Epochs
+
+    Notes
+    -----
+    This mixin adds a proj attribute as a property to data containers.
+    It is True if at least one proj is present and all of them are active.
+    The projs might not be applied yet if data are not preloaded. In
+    this case it's the _projector attribute that does the job.
+    If a private _data attribute is present then the projs applied
+    to it are the ones marked as active.
+
+    A proj parameter passed in constructor of raw or epochs calls
+    apply_proj and hence after the .proj attribute is True.
+
+    As soon as you've applied the projs it will stay active in the
+    remaining pipeline.
+
+    The suggested pipeline is proj=True in epochs (it's cheaper than for raw).
+
+    When you use delayed SSP in Epochs, projs are applied when you call
+    get_data() method. They are not applied to the evoked._data unless you call
+    apply_proj(). The reason is that you want to reject with projs although
+    it's not stored in proj mode.
     """
+    @property
+    def proj(self):
+        return (len(self.info['projs']) > 0 and
+                all(p['active'] for p in self.info['projs']))
+
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
 
@@ -51,7 +83,7 @@ class ProjMixin(object):
             projs = [projs]
 
         if (not isinstance(projs, list) and
-                not all([isinstance(p, Projection) for p in projs])):
+                not all(isinstance(p, Projection) for p in projs)):
             raise ValueError('Only projs can be added. You supplied '
                              'something else.')
 
@@ -96,14 +128,21 @@ class ProjMixin(object):
         self : instance of Raw | Epochs | Evoked
             The instance.
         """
-        if self.info['projs'] is None:
+        from ..epochs import _BaseEpochs
+        from .base import _BaseRaw
+        if self.info['projs'] is None or len(self.info['projs']) == 0:
             logger.info('No projector specified for this dataset.'
                         'Please consider the method self.add_proj.')
             return self
 
-        if all([p['active'] for p in self.info['projs']]):
-            logger.info('Projections have already been applied. Doing '
-                        'nothing.')
+        # Exit delayed mode if you apply proj
+        if isinstance(self, _BaseEpochs) and self._do_delayed_proj:
+            logger.info('Leaving delayed SSP mode.')
+            self._do_delayed_proj = False
+
+        if all(p['active'] for p in self.info['projs']):
+            logger.info('Projections have already been applied. '
+                        'Setting proj attribute to True.')
             return self
 
         _projector, info = setup_proj(deepcopy(self.info), activate=True,
@@ -115,30 +154,18 @@ class ProjMixin(object):
             return self
 
         self._projector, self.info = _projector, info
-        self.proj = True  # track that proj were applied
-        # handle different data / preload attrs and create reference
-        # this also helps avoiding circular imports
-        for attr in ('get_data', '_data', 'data'):
-            data = getattr(self, attr, None)
-            if data is None:
-                continue
-            elif callable(data):
-                if self.preload:
-                    data = np.empty_like(self._data)
-                    for ii, e in enumerate(self._data):
-                        data[ii] = self._preprocess(np.dot(self._projector, e),
-                                                    self.verbose)
-                else:  # get data knows what to do.
-                    data = data()
+        if isinstance(self, _BaseRaw):
+            if self.preload:
+                self._data = np.dot(self._projector, self._data)
+        elif isinstance(self, _BaseEpochs):
+            if self.preload:
+                for ii, e in enumerate(self._data):
+                    self._data[ii] = self._project_epoch(e)
             else:
-                data = np.dot(self._projector, data)
-            break
+                self.load_data()  # will automatically apply
+        else:  # Evoked
+            self.data = np.dot(self._projector, self.data)
         logger.info('SSP projectors applied...')
-        if hasattr(self, '_data'):
-            self._data = data
-        else:
-            self.data = data
-
         return self
 
     def del_proj(self, idx):
@@ -164,8 +191,56 @@ class ProjMixin(object):
 
         return self
 
+    def plot_projs_topomap(self, ch_type=None, layout=None, axes=None):
+        """Plot SSP vector
 
-def proj_equal(a, b):
+        Parameters
+        ----------
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | List
+            The channel type to plot. For 'grad', the gradiometers are collec-
+            ted in pairs and the RMS for each pair is plotted. If None
+            (default), it will return all channel types present. If a list of
+            ch_types is provided, it will return multiple figures.
+        layout : None | Layout | List of Layouts
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct
+            layout file is inferred from the data; if no appropriate layout
+            file was found, the layout is automatically generated from the
+            sensor locations. Or a list of Layout if projections
+            are from different sensor types.
+        axes : instance of Axes | list | None
+            The axes to plot to. If list, the list must be a list of Axes of
+            the same length as the number of projectors. If instance of Axes,
+            there must be only one projector. Defaults to None.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
+        """
+        if self.info['projs'] is not None or len(self.info['projs']) != 0:
+            from ..viz.topomap import plot_projs_topomap
+            from ..channels.layout import find_layout
+            if layout is None:
+                layout = []
+                if ch_type is None:
+                    ch_type = [ch for ch in ['meg', 'eeg'] if ch in self]
+                elif isinstance(ch_type, string_types):
+                    ch_type = [ch_type]
+                for ch in ch_type:
+                    if ch in self:
+                        layout.append(find_layout(self.info, ch, exclude=[]))
+                    else:
+                        err = 'Channel type %s is not found in info.' % ch
+                        warnings.warn(err)
+            fig = plot_projs_topomap(self.info['projs'], layout, axes=axes)
+        else:
+            raise ValueError("Info is missing projs. Nothing to plot.")
+
+        return fig
+
+
+def _proj_equal(a, b):
     """ Test if two projectors are equal """
 
     equal = (a['active'] == b['active'] and
@@ -294,12 +369,9 @@ def _read_proj(fid, node, verbose=None):
 
     return projs
 
+
 ###############################################################################
 # Write
-
-from .write import (write_int, write_float, write_string, write_name_list,
-                    write_float_matrix, end_block, start_block)
-
 
 def _write_proj(fid, projs):
     """Write a projection operator to a file.
@@ -403,8 +475,8 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
 
             # If there is something to pick, pickit
             if len(sel) > 0:
-                for v in range(p['data']['nrow']):
-                    vecs[sel, nvec + v] = p['data']['data'][v, vecsel].T
+                nrow = p['data']['nrow']
+                vecs[sel, nvec:nvec + nrow] = p['data']['data'][:, vecsel].T
 
             # Rescale for better detection of small singular values
             for v in range(p['data']['nrow']):
@@ -538,6 +610,11 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     eeg_proj: instance of Projection
         The SSP/PCA projector.
     """
+    if info.get('custom_ref_applied', False):
+        raise RuntimeError('Cannot add an average EEG reference projection '
+                           'since a custom reference has been applied to the '
+                           'data earlier.')
+
     logger.info("Adding average EEG reference projection.")
     eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
                          exclude='bads')
@@ -559,10 +636,23 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
 def _has_eeg_average_ref_proj(projs):
     """Determine if a list of projectors has an average EEG ref"""
     for proj in projs:
-        if proj['desc'] == 'Average EEG reference' or \
-                proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF:
+        if (proj['desc'] == 'Average EEG reference' or
+                proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF):
             return True
     return False
+
+
+def _needs_eeg_average_ref_proj(info):
+    """Determine if the EEG needs an averge EEG reference
+
+    This returns True if no custom reference has been applied and no average
+    reference projection is present in the list of projections.
+    """
+    eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                         exclude='bads')
+    return (len(eeg_sel) > 0 and
+            not info['custom_ref_applied'] and
+            not _has_eeg_average_ref_proj(info['projs']))
 
 
 @verbose
@@ -590,14 +680,11 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         The modified measurement info (Warning: info is modified inplace).
     """
     # Add EEG ref reference proj if necessary
-    eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                         exclude='bads')
-    if len(eeg_sel) > 0 and not _has_eeg_average_ref_proj(info['projs']) \
-            and add_eeg_ref is True:
+    if _needs_eeg_average_ref_proj(info) and add_eeg_ref:
         eeg_proj = make_eeg_average_ref_proj(info, activate=activate)
         info['projs'].append(eeg_proj)
 
-    #   Create the projector
+    # Create the projector
     projector, nproj = make_projector_info(info)
     if nproj == 0:
         if verbose:
@@ -608,7 +695,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         logger.info('Created an SSP operator (subspace dimension = %d)'
                     % nproj)
 
-    #   The projection items have been activated
+    # The projection items have been activated
     if activate:
         info['projs'] = activate_proj(info['projs'], copy=False)
 
@@ -619,7 +706,7 @@ def _uniquify_projs(projs):
     """Aux function"""
     final_projs = []
     for proj in projs:  # flatten
-        if not any([proj_equal(p, proj) for p in final_projs]):
+        if not any(_proj_equal(p, proj) for p in final_projs):
             final_projs.append(proj)
 
     my_count = count(len(final_projs))

@@ -11,16 +11,14 @@ accuracy is plotted
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
-import time
+import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne.realtime import MockRtClient, RtEpochs
 from mne.datasets import sample
 
-import numpy as np
-import matplotlib.pyplot as plt
+print(__doc__)
 
 # Fiff file to simulate the realtime client
 data_path = sample.data_path()
@@ -53,32 +51,35 @@ rt_client.send_data(rt_epochs, picks, tmin=0, tmax=90, buffer_size=1000)
 # Decoding in sensor space using a linear SVM
 n_times = len(rt_epochs.times)
 
-from sklearn import preprocessing
-from sklearn.svm import SVC
-from sklearn.pipeline import Pipeline
-from sklearn.cross_validation import cross_val_score, ShuffleSplit
+from sklearn import preprocessing  # noqa
+from sklearn.svm import SVC  # noqa
+from sklearn.pipeline import Pipeline  # noqa
+from sklearn.cross_validation import cross_val_score, ShuffleSplit  # noqa
+from mne.decoding import EpochsVectorizer, FilterEstimator  # noqa
 
-from mne.decoding import ConcatenateChannels, FilterEstimator
 
 scores_x, scores, std_scores = [], [], []
 
 filt = FilterEstimator(rt_epochs.info, 1, 40)
 scaler = preprocessing.StandardScaler()
-concatenator = ConcatenateChannels()
+vectorizer = EpochsVectorizer()
 clf = SVC(C=1, kernel='linear')
 
-concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
+concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),
                               ('scaler', scaler), ('svm', clf)])
+
+data_picks = mne.pick_types(rt_epochs.info, meg='grad', eeg=False, eog=True,
+                            stim=False, exclude=raw.info['bads'])
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
     print("Just got epoch %d" % (ev_num + 1))
 
     if ev_num == 0:
-        X = ev.data[None, ...]
-        y = int(ev.comment)
+        X = ev.data[None, data_picks, :]
+        y = int(ev.comment)  # the comment attribute contains the event_id
     else:
-        X = np.concatenate((X, ev.data[None, ...]), axis=0)
+        X = np.concatenate((X, ev.data[None, data_picks, :]), axis=0)
         y = np.append(y, int(ev.comment))
 
     if ev_num >= min_trials:
@@ -94,18 +95,19 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
         # Plot accuracy
         plt.clf()
 
-        plt.plot(scores_x[-5:], scores[-5:], '+', label="Classif. score")
+        plt.plot(scores_x, scores, '+', label="Classif. score")
         plt.hold(True)
-        plt.plot(scores_x[-5:], scores[-5:])
+        plt.plot(scores_x, scores)
         plt.axhline(50, color='k', linestyle='--', label="Chance level")
-        hyp_limits = (np.asarray(scores[-5:]) - np.asarray(std_scores[-5:]),
-                      np.asarray(scores[-5:]) + np.asarray(std_scores[-5:]))
-        plt.fill_between(scores_x[-5:], hyp_limits[0], y2=hyp_limits[1],
+        hyp_limits = (np.asarray(scores) - np.asarray(std_scores),
+                      np.asarray(scores) + np.asarray(std_scores))
+        plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1],
                          color='b', alpha=0.5)
         plt.xlabel('Trials')
         plt.ylabel('Classification score (% correct)')
+        plt.xlim([min_trials, 50])
         plt.ylim([30, 105])
         plt.title('Real-time decoding')
-        plt.show()
-
-        time.sleep(0.1)
+        plt.show(block=False)
+        plt.pause(0.01)
+plt.show()

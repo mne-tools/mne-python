@@ -1,27 +1,39 @@
 import os
 import os.path as op
-from ..externals.six.moves import cPickle as pickle
+import shutil
 import glob
 import warnings
+import sys
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_equal, assert_true, assert_raises
+from scipy import sparse
 
-from mne.datasets import sample
-from mne import (label_time_courses, read_label, stc_to_label,
-                 read_source_estimate, read_source_spaces, grow_labels,
-                 read_labels_from_annot, write_labels_to_annot, split_label)
+from numpy.testing import assert_array_equal, assert_array_almost_equal
+from nose.tools import assert_equal, assert_true, assert_false, assert_raises
+
+from mne.datasets import testing
+from mne import (read_label, stc_to_label, read_source_estimate,
+                 read_source_spaces, grow_labels, read_labels_from_annot,
+                 write_labels_to_annot, split_label, spatial_tris_connectivity,
+                 read_surface)
 from mne.label import Label, _blend_colors
-from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
+from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
+                       run_tests_if_main, slow_test)
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
+from mne.label import _n_colors
+from mne.source_space import SourceSpaces
+from mne.source_estimate import mesh_edges
+from mne.externals.six import string_types
+from mne.externals.six.moves import cPickle as pickle
+
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = sample.data_path(download=False)
+data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
-stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
+stc_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc-meg-lh.stc')
 real_label_fname = op.join(data_path, 'MEG', 'sample', 'labels',
                            'Aud-lh.label')
 real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
@@ -29,14 +41,14 @@ real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
 v1_label_fname = op.join(subjects_dir, 'sample', 'label', 'lh.V1.label')
 
 fwd_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-eeg-oct-6p-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
+label_dir = op.join(subjects_dir, 'sample', 'label', 'aparc')
 
 test_path = op.join(op.split(__file__)[0], '..', 'io', 'tests', 'data')
 label_fname = op.join(test_path, 'test-lh.label')
 label_rh_fname = op.join(test_path, 'test-rh.label')
-tempdir = _TempDir()
 
 # This code was used to generate the "fake" test labels:
 # for hemi in ['lh', 'rh']:
@@ -45,8 +57,105 @@ tempdir = _TempDir()
 #    label.save(op.join(test_path, 'test-%s.label' % hemi))
 
 
-def assert_labels_equal(l0, l1, decimal=5):
-    for attr in ['comment', 'hemi', 'subject', 'color']:
+# XXX : this was added for backward compat and keep the old test_label_in_src
+def _stc_to_label(stc, src, smooth, subjects_dir=None):
+    """Compute a label from the non-zero sources in an stc object.
+
+    Parameters
+    ----------
+    stc : SourceEstimate
+        The source estimates.
+    src : SourceSpaces | str | None
+        The source space over which the source estimates are defined.
+        If it's a string it should the subject name (e.g. fsaverage).
+        Can be None if stc.subject is not None.
+    smooth : int
+        Number of smoothing iterations.
+    subjects_dir : str | None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+
+    Returns
+    -------
+    labels : list of Labels | list of list of Labels
+        The generated labels. If connected is False, it returns
+        a list of Labels (one per hemisphere). If no Label is available
+        in a hemisphere, None is returned. If connected is True,
+        it returns for each hemisphere a list of connected labels
+        ordered in decreasing order depending of the maximum value in the stc.
+        If no Label is available in an hemisphere, an empty list is returned.
+    """
+    src = stc.subject if src is None else src
+
+    if isinstance(src, string_types):
+        subject = src
+    else:
+        subject = stc.subject
+
+    if isinstance(src, string_types):
+        subjects_dir = get_subjects_dir(subjects_dir)
+        surf_path_from = op.join(subjects_dir, src, 'surf')
+        rr_lh, tris_lh = read_surface(op.join(surf_path_from,
+                                      'lh.white'))
+        rr_rh, tris_rh = read_surface(op.join(surf_path_from,
+                                      'rh.white'))
+        rr = [rr_lh, rr_rh]
+        tris = [tris_lh, tris_rh]
+    else:
+        if not isinstance(src, SourceSpaces):
+            raise TypeError('src must be a string or a set of source spaces')
+        if len(src) != 2:
+            raise ValueError('source space should contain the 2 hemispheres')
+        rr = [1e3 * src[0]['rr'], 1e3 * src[1]['rr']]
+        tris = [src[0]['tris'], src[1]['tris']]
+
+    labels = []
+    cnt = 0
+    for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
+            zip(['lh', 'rh'], stc.vertices, tris, rr)):
+        this_data = stc.data[cnt:cnt + len(this_vertno)]
+        e = mesh_edges(this_tris)
+        e.data[e.data == 2] = 1
+        n_vertices = e.shape[0]
+        e = e + sparse.eye(n_vertices, n_vertices)
+
+        clusters = [this_vertno[np.any(this_data, axis=1)]]
+
+        cnt += len(this_vertno)
+
+        clusters = [c for c in clusters if len(c) > 0]
+
+        if len(clusters) == 0:
+            this_labels = None
+        else:
+            this_labels = []
+            colors = _n_colors(len(clusters))
+            for c, color in zip(clusters, colors):
+                idx_use = c
+                for k in range(smooth):
+                    e_use = e[:, idx_use]
+                    data1 = e_use * np.ones(len(idx_use))
+                    idx_use = np.where(data1)[0]
+
+                label = Label(idx_use, this_rr[idx_use], None, hemi,
+                              'Label from stc', subject=subject,
+                              color=color)
+
+                this_labels.append(label)
+
+            this_labels = this_labels[0]
+
+        labels.append(this_labels)
+
+    return labels
+
+
+def assert_labels_equal(l0, l1, decimal=5, comment=True, color=True):
+    if comment:
+        assert_equal(l0.comment, l1.comment)
+    if color:
+        assert_equal(l0.color, l1.color)
+
+    for attr in ['hemi', 'subject']:
         attr0 = getattr(l0, attr)
         attr1 = getattr(l1, attr)
         msg = "label.%s: %r != %r" % (attr, attr0, attr1)
@@ -82,11 +191,23 @@ def test_label_addition():
 
     assert_equal(len(l0), len(idx0))
 
+    l_good = l0.copy()
+    l_good.subject = 'sample'
+    l_bad = l1.copy()
+    l_bad.subject = 'foo'
+    assert_raises(ValueError, l_good.__add__, l_bad)
+    assert_raises(TypeError, l_good.__add__, 'foo')
+    assert_raises(ValueError, l_good.__sub__, l_bad)
+    assert_raises(TypeError, l_good.__sub__, 'foo')
+
     # adding non-overlapping labels
     l01 = l0 + l1
     assert_equal(len(l01), len(l0) + len(l1))
     assert_array_equal(l01.values[:len(l0)], l0.values)
     assert_equal(l01.color, l0.color)
+    # subtraction
+    assert_labels_equal(l01 - l0, l1, comment=False, color=False)
+    assert_labels_equal(l01 - l1, l0, comment=False, color=False)
 
     # adding overlappig labels
     l = l0 + l2
@@ -105,13 +226,29 @@ def test_label_addition():
     assert_equal(bhl.hemi, 'both')
     assert_equal(len(bhl), len(l0) + len(l2))
     assert_equal(bhl.color, l.color)
+    assert_true('BiHemiLabel' in repr(bhl))
+    # subtraction
+    assert_labels_equal(bhl - l0, l2)
+    assert_labels_equal(bhl - l2, l0)
 
     bhl2 = l1 + bhl
     assert_labels_equal(bhl2.lh, l01)
     assert_equal(bhl2.color, _blend_colors(l1.color, bhl.color))
+    assert_array_equal((l2 + bhl).rh.vertices, bhl.rh.vertices)  # rh label
+    assert_array_equal((bhl + bhl).lh.vertices, bhl.lh.vertices)
+    assert_raises(TypeError, bhl.__add__, 5)
+
+    # subtraction
+    bhl_ = bhl2 - l1
+    assert_labels_equal(bhl_.lh, bhl.lh, comment=False, color=False)
+    assert_labels_equal(bhl_.rh, bhl.rh)
+    assert_labels_equal(bhl2 - l2, l0 + l1)
+    assert_labels_equal(bhl2 - l1 - l0, l2)
+    bhl_ = bhl2 - bhl2
+    assert_array_equal(bhl_.vertices, [])
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_label_in_src():
     """Test label in src"""
     src = read_source_spaces(src_fname)
@@ -141,18 +278,23 @@ def test_label_in_src():
     assert_raises(ValueError, Label(vertices, hemi='lh').fill, src)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
-    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
-    assert_true(len(times) == values.shape[1])
-    assert_true(len(vertices) == values.shape[0])
+    stc = read_source_estimate(stc_fname)
+    label = read_label(real_label_fname)
+    stc_label = stc.in_label(label)
+
+    assert_true(len(stc_label.times) == stc_label.data.shape[1])
+    assert_true(len(stc_label.vertices[0]) == stc_label.data.shape[0])
 
 
+@testing.requires_testing_data
 def test_label_io():
     """Test IO of label files
     """
+    tempdir = _TempDir()
     label = read_label(label_fname)
 
     # label attributes
@@ -184,7 +326,54 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
             assert_array_equal(label_a.pos, label_b.pos)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
+def test_annot_io():
+    """Test I/O from and to *.annot files"""
+    # copy necessary files from fsaverage to tempdir
+    tempdir = _TempDir()
+    subject = 'fsaverage'
+    label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
+    surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
+    label_dir = os.path.join(tempdir, subject, 'label')
+    surf_dir = os.path.join(tempdir, subject, 'surf')
+    os.makedirs(label_dir)
+    os.mkdir(surf_dir)
+    shutil.copy(os.path.join(label_src, 'lh.PALS_B12_Lobes.annot'), label_dir)
+    shutil.copy(os.path.join(label_src, 'rh.PALS_B12_Lobes.annot'), label_dir)
+    shutil.copy(os.path.join(surf_src, 'lh.white'), surf_dir)
+    shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
+
+    # read original labels
+    assert_raises(IOError, read_labels_from_annot, subject, 'PALS_B12_Lobesey',
+                  subjects_dir=tempdir)
+    labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
+                                    subjects_dir=tempdir)
+
+    # test saving parcellation only covering one hemisphere
+    parc = [l for l in labels if l.name == 'LOBE.TEMPORAL-lh']
+    write_labels_to_annot(parc, subject, 'myparc', subjects_dir=tempdir)
+    parc1 = read_labels_from_annot(subject, 'myparc', subjects_dir=tempdir)
+    parc1 = [l for l in parc1 if not l.name.startswith('unknown')]
+    assert_equal(len(parc1), len(parc))
+    for l1, l in zip(parc1, parc):
+        assert_labels_equal(l1, l)
+
+    # test saving only one hemisphere
+    parc = [l for l in labels if l.name.startswith('LOBE')]
+    write_labels_to_annot(parc, subject, 'myparc2', hemi='lh',
+                          subjects_dir=tempdir)
+    annot_fname = os.path.join(tempdir, subject, 'label', '%sh.myparc2.annot')
+    assert_true(os.path.isfile(annot_fname % 'l'))
+    assert_false(os.path.isfile(annot_fname % 'r'))
+    parc1 = read_labels_from_annot(subject, 'myparc2',
+                                   annot_fname=annot_fname % 'l',
+                                   subjects_dir=tempdir)
+    parc_lh = [l for l in parc if l.name.endswith('lh')]
+    for l1, l in zip(parc1, parc_lh):
+        assert_labels_equal(l1, l)
+
+
+@testing.requires_testing_data
 def test_read_labels_from_annot():
     """Test reading labels from FreeSurfer parcellation
     """
@@ -200,7 +389,9 @@ def test_read_labels_from_annot():
     for label in labels_lh:
         assert_true(label.name.endswith('-lh'))
         assert_true(label.hemi == 'lh')
-        assert_is_not(label.color, None)
+        # XXX fails on 2.6 for some reason...
+        if sys.version_info[:2] > (2, 6):
+            assert_is_not(label.color, None)
 
     # read labels using annot_fname
     annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')
@@ -242,47 +433,59 @@ def test_read_labels_from_annot():
                   subjects_dir=subjects_dir)
 
 
-@sample.requires_sample_data
-@requires_mne
+@testing.requires_testing_data
 def test_read_labels_from_annot_annot2labels():
     """Test reading labels from parc. by comparing with mne_annot2labels
     """
-
-    def _mne_annot2labels(subject, subjects_dir, parc):
-        """Get labels using mne_annot2lables"""
-        label_dir = _TempDir()
-        cwd = os.getcwd()
-        try:
-            os.chdir(label_dir)
-            env = os.environ.copy()
-            env['SUBJECTS_DIR'] = subjects_dir
-            cmd = ['mne_annot2labels', '--subject', subject, '--parc', parc]
-            run_subprocess(cmd, env=env)
-            label_fnames = glob.glob(label_dir + '/*.label')
-            label_fnames.sort()
-            labels = [read_label(fname) for fname in label_fnames]
-        finally:
-            del label_dir
-            os.chdir(cwd)
-
-        return labels
-
+    label_fnames = glob.glob(label_dir + '/*.label')
+    label_fnames.sort()
+    labels_mne = [read_label(fname) for fname in label_fnames]
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
-    labels_mne = _mne_annot2labels('sample', subjects_dir, 'aparc')
 
     # we have the same result, mne does not fill pos, so ignore it
     _assert_labels_equal(labels, labels_mne, ignore_pos=True)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_write_labels_to_annot():
     """Test writing FreeSurfer parcellation from labels"""
+    tempdir = _TempDir()
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
-    # write left and right hemi labels:
-    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
+    # create temporary subjects-dir skeleton
+    surf_dir = op.join(subjects_dir, 'sample', 'surf')
+    temp_surf_dir = op.join(tempdir, 'sample', 'surf')
+    os.makedirs(temp_surf_dir)
+    shutil.copy(op.join(surf_dir, 'lh.white'), temp_surf_dir)
+    shutil.copy(op.join(surf_dir, 'rh.white'), temp_surf_dir)
+    os.makedirs(op.join(tempdir, 'sample', 'label'))
 
+    # test automatic filenames
+    dst = op.join(tempdir, 'sample', 'label', '%s.%s.annot')
+    write_labels_to_annot(labels, 'sample', 'test1', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test1')))
+    assert_true(op.exists(dst % ('rh', 'test1')))
+    # lh only
+    for label in labels:
+        if label.hemi == 'lh':
+            break
+    write_labels_to_annot([label], 'sample', 'test2', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test2')))
+    assert_true(op.exists(dst % ('rh', 'test2')))
+    # rh only
+    for label in labels:
+        if label.hemi == 'rh':
+            break
+    write_labels_to_annot([label], 'sample', 'test3', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test3')))
+    assert_true(op.exists(dst % ('rh', 'test3')))
+    # label alone
+    assert_raises(TypeError, write_labels_to_annot, labels[0], 'sample',
+                  'test4', subjects_dir=tempdir)
+
+    # write left and right hemi labels with filenames:
+    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
     for fname in fnames:
         write_labels_to_annot(labels, annot_fname=fname)
 
@@ -355,8 +558,14 @@ def test_write_labels_to_annot():
     assert_equal(label1.name, "unknown-lh")
     assert_true(np.all(in1d(label0.vertices, label1.vertices)))
 
+    # unnamed labels
+    labels4 = labels[:]
+    labels4[0].name = None
+    assert_raises(ValueError, write_labels_to_annot, labels4,
+                  annot_fname=fnames[0])
 
-@sample.requires_sample_data
+
+@testing.requires_testing_data
 def test_split_label():
     """Test splitting labels"""
     aparc = read_labels_from_annot('fsaverage', 'aparc', 'lh',
@@ -396,7 +605,8 @@ def test_split_label():
     assert_equal(antmost.name, "lingual_div40-lh")
 
 
-@sample.requires_sample_data
+@slow_test
+@testing.requires_testing_data
 @requires_sklearn
 def test_stc_to_label():
     """Test stc_to_label
@@ -407,11 +617,8 @@ def test_stc_to_label():
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
-    with warnings.catch_warnings(record=True) as w:  # connectedness warning
-        warnings.simplefilter('always')
-        labels1 = stc_to_label(stc, src='sample', smooth=3)
-        labels2 = stc_to_label(stc, src=src, smooth=3)
-    assert_true(len(w) > 0)
+    labels1 = _stc_to_label(stc, src='sample', smooth=3)
+    labels2 = _stc_to_label(stc, src=src, smooth=3)
     assert_equal(len(labels1), len(labels2))
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
@@ -420,6 +627,7 @@ def test_stc_to_label():
         warnings.simplefilter('always')
         labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=True,
                                             connected=True)
+
     assert_true(len(w) > 0)
     assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=True,
                   connected=True)
@@ -427,6 +635,28 @@ def test_stc_to_label():
                   connected=True)
     assert_equal(len(labels_lh), 1)
     assert_equal(len(labels_rh), 1)
+
+    # test getting tris
+    tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertices[0])
+    assert_raises(ValueError, spatial_tris_connectivity, tris,
+                  remap_vertices=False)
+    connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
+    assert_true(connectivity.shape[0] == len(stc.vertices[0]))
+
+    # "src" as a subject name
+    assert_raises(TypeError, stc_to_label, stc, src=1, smooth=False,
+                  connected=False, subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc_to_label, stc, src=SourceSpaces([src[0]]),
+                  smooth=False, connected=False, subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc_to_label, stc, src='sample', smooth=False,
+                  connected=True, subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc_to_label, stc, src='sample', smooth=True,
+                  connected=False, subjects_dir=subjects_dir)
+    labels_lh, labels_rh = stc_to_label(stc, src='sample', smooth=False,
+                                        connected=False,
+                                        subjects_dir=subjects_dir)
+    assert_true(len(labels_lh) > 1)
+    assert_true(len(labels_rh) > 1)
 
     # with smooth='patch'
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
@@ -438,7 +668,8 @@ def test_stc_to_label():
         assert_labels_equal(l1, l2, decimal=4)
 
 
-@sample.requires_sample_data
+@slow_test
+@testing.requires_testing_data
 def test_morph():
     """Test inter-subject label morphing
     """
@@ -452,7 +683,7 @@ def test_morph():
         # this should throw an error because the label has all zero values
         assert_raises(ValueError, label.morph, 'sample', 'fsaverage')
         label.values.fill(1)
-        label.morph(None, 'fsaverage', 5, grade, subjects_dir, 2,
+        label.morph(None, 'fsaverage', 5, grade, subjects_dir, 1,
                     copy=False)
         label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2,
                     copy=False)
@@ -461,14 +692,19 @@ def test_morph():
         vals.append(label.vertices)
     assert_array_equal(vals[0], vals[1])
     # make sure label smoothing can run
-    label.morph(label.subject, 'fsaverage', 5,
-                [np.arange(10242), np.arange(10242)], subjects_dir, 2,
-                copy=False)
-    # subject name should be inferred now
-    label.smooth(subjects_dir=subjects_dir)
+    assert_equal(label.subject, 'sample')
+    verts = [np.arange(10242), np.arange(10242)]
+    for hemi in ['lh', 'rh']:
+        label.hemi = hemi
+        label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
+    assert_raises(TypeError, label.morph, None, 1, 5, verts,
+                  subjects_dir, 2)
+    assert_raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
+                  subjects_dir, 2)
+    label.smooth(subjects_dir=subjects_dir)  # make sure this runs
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_grow_labels():
     """Test generation of circular source labels"""
     seeds = [0, 50000]
@@ -476,8 +712,7 @@ def test_grow_labels():
     should_be_in = [[49, 227], [51207, 48794]]
     hemis = [0, 1]
     names = ['aneurism', 'tumor']
-    labels = grow_labels('sample', seeds, 3, hemis, subjects_dir, n_jobs=2,
-                         names=names)
+    labels = grow_labels('sample', seeds, 3, hemis, subjects_dir, names=names)
 
     tgt_names = ['aneurism-lh', 'tumor-rh']
     tgt_hemis = ['lh', 'rh']
@@ -511,19 +746,4 @@ def test_grow_labels():
     assert_array_equal(l1.vertices, l0.vertices)
 
 
-@sample.requires_sample_data
-def test_label_time_course():
-    """Test extracting label data from SourceEstimate"""
-    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
-    stc = read_source_estimate(stc_fname)
-    label_lh = read_label(real_label_fname)
-    stc_lh = stc.in_label(label_lh)
-    assert_array_almost_equal(stc_lh.data, values)
-    assert_array_almost_equal(stc_lh.times, times)
-    assert_array_almost_equal(stc_lh.vertno[0], vertices)
-
-    label_rh = read_label(real_label_rh_fname)
-    stc_rh = stc.in_label(label_rh)
-    label_bh = label_rh + label_lh
-    stc_bh = stc.in_label(label_bh)
-    assert_array_equal(stc_bh.data, np.vstack((stc_lh.data, stc_rh.data)))
+run_tests_if_main()

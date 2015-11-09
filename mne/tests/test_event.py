@@ -1,15 +1,14 @@
 import os.path as op
 import os
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_raises)
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, find_stim_steps, io, pick_channels)
-from mne.utils import _TempDir
+                 find_events, pick_events, find_stim_steps, io, pick_channels)
+from mne.utils import _TempDir, run_tests_if_main
 from mne.event import define_target_events, merge_events
 
 warnings.simplefilter('always')
@@ -25,8 +24,6 @@ fname_txt_1 = op.join(base_dir, 'test-eve-1.eve')
 fname_txt_mpr = op.join(base_dir, 'test-mpr-eve.eve')
 fname_old_txt = op.join(base_dir, 'test-eve-old-style.eve')
 raw_fname = op.join(base_dir, 'test_raw.fif')
-
-tempdir = _TempDir()
 
 
 def test_add_events():
@@ -73,6 +70,7 @@ def test_merge_events():
 def test_io_events():
     """Test IO for events
     """
+    tempdir = _TempDir()
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
     write_events(op.join(tempdir, 'events-eve.fif'), events)
@@ -103,8 +101,10 @@ def test_io_events():
     # Test event selection
     a = read_events(op.join(tempdir, 'events-eve.fif'), include=1)
     b = read_events(op.join(tempdir, 'events-eve.fif'), include=[1])
-    c = read_events(op.join(tempdir, 'events-eve.fif'), exclude=[2, 3, 4, 5, 32])
-    d = read_events(op.join(tempdir, 'events-eve.fif'), include=1, exclude=[2, 3])
+    c = read_events(op.join(tempdir, 'events-eve.fif'),
+                    exclude=[2, 3, 4, 5, 32])
+    d = read_events(op.join(tempdir, 'events-eve.fif'), include=1,
+                    exclude=[2, 3])
     assert_array_equal(a, b)
     assert_array_equal(a, c)
     assert_array_equal(a, d)
@@ -142,14 +142,34 @@ def test_find_events():
         del os.environ['MNE_STIM_CHANNEL_1']
     events2 = find_events(raw)
     assert_array_almost_equal(events, events2)
+    # now test with mask
+    events11 = find_events(raw, mask=3)
+    events22 = read_events(fname, mask=3)
+    assert_array_equal(events11, events22)
 
     # Reset some data for ease of comparison
-    raw.first_samp = 0
+    raw._first_samps[0] = 0
     raw.info['sfreq'] = 1000
+    raw._update_times()
 
     stim_channel = 'STI 014'
     stim_channel_idx = pick_channels(raw.info['ch_names'],
-                                      include=stim_channel)
+                                     include=[stim_channel])
+
+    # test digital masking
+    raw._data[stim_channel_idx, :5] = np.arange(5)
+    raw._data[stim_channel_idx, 5:] = 0
+    # 1 == '0b1', 2 == '0b10', 3 == '0b11', 4 == '0b100'
+
+    assert_raises(TypeError, find_events, raw, mask="0")
+    assert_array_equal(find_events(raw, shortest_event=1, mask=1),
+                       [[2,    0,    2], [4,    2,    4]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=2),
+                       [[1,    0,    1], [3,    0,    1], [4,    1,    4]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=3),
+                       [[4,    0,    4]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=4),
+                       [[1,    0,    1], [2,    1,    2], [3,    2,    3]])
 
     # test empty events channel
     raw._data[stim_channel_idx, :] = 0
@@ -192,7 +212,8 @@ def test_find_events():
                         [31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_raises(ValueError,find_events,raw, output='step', consecutive=True)
+    assert_raises(ValueError, find_events, raw, output='step',
+                  consecutive=True)
     assert_array_equal(find_events(raw, output='step', consecutive=True,
                                    shortest_event=1),
                        [[10, 0, 5],
@@ -255,6 +276,27 @@ def test_find_events():
             os.environ['MNE_STIM_CHANNEL%s' % s] = o
 
 
+def test_pick_events():
+    """Test pick events in a events ndarray
+    """
+    events = np.array([[1, 0, 1],
+                       [2, 1, 0],
+                       [3, 0, 4],
+                       [4, 4, 2],
+                       [5, 2, 0]])
+    assert_array_equal(pick_events(events, include=[1, 4], exclude=4),
+                       [[1, 0, 1],
+                        [3, 0, 4]])
+    assert_array_equal(pick_events(events, exclude=[0, 2]),
+                       [[1, 0, 1],
+                        [3, 0, 4]])
+    assert_array_equal(pick_events(events, include=[1, 2], step=True),
+                       [[1, 0, 1],
+                        [2, 1, 0],
+                        [4, 4, 2],
+                        [5, 2, 0]])
+
+
 def test_make_fixed_length_events():
     """Test making events of a fixed length
     """
@@ -275,3 +317,23 @@ def test_define_events():
     n_target_ = events_[events_[:, 2] == 42].shape[0]
 
     assert_true(n_target_ == (n_target - n_miss))
+
+    events = np.array([[0, 0, 1],
+                       [375, 0, 2],
+                       [500, 0, 1],
+                       [875, 0, 3],
+                       [1000, 0, 1],
+                       [1375, 0, 3],
+                       [1100, 0, 1],
+                       [1475, 0, 2],
+                       [1500, 0, 1],
+                       [1875, 0, 2]])
+    true_lag_nofill = [1500., 1500., 1500.]
+    true_lag_fill = [1500., np.nan, np.nan, 1500., 1500.]
+    n, lag_nofill = define_target_events(events, 1, 2, 250., 1.4, 1.6, 5)
+    n, lag_fill = define_target_events(events, 1, 2, 250., 1.4, 1.6, 5, 99)
+
+    assert_array_equal(true_lag_fill, lag_fill)
+    assert_array_equal(true_lag_nofill, lag_nofill)
+
+run_tests_if_main()

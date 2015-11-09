@@ -1,25 +1,28 @@
 from __future__ import print_function
+import os
 import os.path as op
 import numpy as np
+import warnings
+from shutil import copyfile
+from scipy import sparse
 from nose.tools import assert_true, assert_raises
-from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_allclose, assert_equal)
+from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
-from mne.datasets import sample
-from mne import (read_bem_surfaces, write_bem_surface, read_surface,
-                 write_surface, decimate_surface)
-from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
-                         fast_cross_3d, get_head_surf,
+from mne.datasets import testing
+from mne import read_surface, write_surface, decimate_surface
+from mne.surface import (read_morph_map, _compute_nearest,
+                         fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
-from mne.utils import _TempDir, requires_tvtk
+from mne.utils import _TempDir, requires_tvtk, run_tests_if_main, slow_test
 from mne.io import read_info
-from mne.transforms import _get_mri_head_t_from_trans_file
+from mne.transforms import _get_mri_head_t
 
-data_path = sample.data_path(download=False)
+data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
-                'sample-5120-5120-5120-bem-sol.fif')
-tempdir = _TempDir()
+                'sample-1280-1280-1280-bem-sol.fif')
+
+warnings.simplefilter('always')
 
 
 def test_helmet():
@@ -34,14 +37,14 @@ def test_helmet():
     fname_ctf_raw = op.join(base_dir, 'tests', 'data', 'test_ctf_raw.fif')
     fname_trans = op.join(base_dir, 'tests', 'data',
                           'sample-audvis-raw-trans.txt')
-    trans = _get_mri_head_t_from_trans_file(fname_trans)
+    trans = _get_mri_head_t(fname_trans)[0]
     for fname in [fname_raw, fname_kit_raw, fname_bti_raw, fname_ctf_raw]:
         helmet = get_meg_helmet_surf(read_info(fname), trans)
         assert_equal(len(helmet['rr']), 304)  # they all have 304 verts
         assert_equal(len(helmet['rr']), len(helmet['nn']))
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_head():
     """Test loading the head surface
     """
@@ -82,45 +85,64 @@ def test_compute_nearest():
         assert_array_equal(nn1, nn2)
 
 
-@sample.requires_sample_data
+@slow_test
+@testing.requires_testing_data
 def test_make_morph_maps():
     """Test reading and creating morph maps
     """
-    mmap = read_morph_map('fsaverage', 'sample', subjects_dir=subjects_dir)
-    mmap2 = _make_morph_map('fsaverage', 'sample', subjects_dir=subjects_dir)
+    # make a new fake subjects_dir
+    tempdir = _TempDir()
+    for subject in ('sample', 'sample_ds', 'fsaverage_ds'):
+        os.mkdir(op.join(tempdir, subject))
+        os.mkdir(op.join(tempdir, subject, 'surf'))
+        for hemi in ['lh', 'rh']:
+            args = [subject, 'surf', hemi + '.sphere.reg']
+            copyfile(op.join(subjects_dir, *args),
+                     op.join(tempdir, *args))
+
+    # this should trigger the creation of morph-maps dir and create the map
+    mmap = read_morph_map('fsaverage_ds', 'sample_ds', tempdir)
+    mmap2 = read_morph_map('fsaverage_ds', 'sample_ds', subjects_dir)
     assert_equal(len(mmap), len(mmap2))
     for m1, m2 in zip(mmap, mmap2):
         # deal with sparse matrix stuff
         diff = (m1 - m2).data
         assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
-
-@sample.requires_sample_data
-def test_io_bem_surfaces():
-    """Test reading of bem surfaces
-    """
-    surf = read_bem_surfaces(fname, add_geom=True)
-    surf = read_bem_surfaces(fname, add_geom=False)
-    print("Number of surfaces : %d" % len(surf))
-
-    write_bem_surface(op.join(tempdir, 'bem_surf.fif'), surf[0])
-    surf_read = read_bem_surfaces(op.join(tempdir, 'bem_surf.fif'),
-                                  add_geom=False)
-
-    for key in surf[0].keys():
-        assert_array_almost_equal(surf[0][key], surf_read[0][key])
+    # This will also trigger creation, but it's trivial
+    mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
+    for mm in mmap:
+        assert_true((mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_io_surface():
     """Test reading and writing of Freesurfer surface mesh files
     """
-    fname = op.join(data_path, 'subjects', 'fsaverage', 'surf', 'lh.inflated')
-    pts, tri = read_surface(fname)
-    write_surface(op.join(tempdir, 'tmp'), pts, tri)
-    c_pts, c_tri = read_surface(op.join(tempdir, 'tmp'))
-    assert_array_equal(pts, c_pts)
-    assert_array_equal(tri, c_tri)
+    tempdir = _TempDir()
+    fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
+                         'lh.inflated.nofix')
+    fname_tri = op.join(data_path, 'subjects', 'fsaverage', 'surf',
+                        'lh.inflated')
+    for fname in (fname_quad, fname_tri):
+        pts, tri = read_surface(fname)
+        write_surface(op.join(tempdir, 'tmp'), pts, tri)
+        c_pts, c_tri = read_surface(op.join(tempdir, 'tmp'))
+        assert_array_equal(pts, c_pts)
+        assert_array_equal(tri, c_tri)
+
+
+@testing.requires_testing_data
+def test_read_curv():
+    """Test reading curvature data
+    """
+    fname_curv = op.join(data_path, 'subjects', 'fsaverage', 'surf', 'lh.curv')
+    fname_surf = op.join(data_path, 'subjects', 'fsaverage', 'surf',
+                         'lh.inflated')
+    bin_curv = read_curvature(fname_curv)
+    rr = read_surface(fname_surf)[0]
+    assert_true(len(bin_curv) == len(rr))
+    assert_true(np.logical_or(bin_curv == 0, bin_curv == 1).all())
 
 
 @requires_tvtk
@@ -138,3 +160,6 @@ def test_decimate_surface():
     nirvana = 5
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, nirvana]])
     assert_raises(ValueError, decimate_surface, points, tris, n_tri)
+
+
+run_tests_if_main()

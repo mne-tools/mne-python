@@ -10,16 +10,17 @@ one label) to sources across the cortical surface. Sensitivity
 to sources outside the label is undesirable, and referred to as
 "leakage" or "cross-talk".
 """
-
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+from mayavi import mlab
 
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import cross_talk_function, read_inverse_operator
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects/'
@@ -31,9 +32,8 @@ fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
                data_path + '/MEG/sample/labels/Vis-rh.label',
                data_path + '/MEG/sample/labels/Vis-lh.label']
 
-# In order to get gain matrix with fixed source orientation,
-# read forward solution with fixed orientations
-forward = mne.read_forward_solution(fname_fwd, force_fixed=True, surf_ori=True)
+# read forward solution
+forward = mne.read_forward_solution(fname_fwd)
 
 # read label(s)
 labels = [mne.read_label(ss) for ss in fname_label]
@@ -47,35 +47,23 @@ mode = 'svd'
 n_svd_comp = 1
 
 method = 'MNE'  # can be 'MNE', 'dSPM', or 'sLORETA'
-stc_ctf_mne = cross_talk_function(inverse_operator, forward, labels,
-                                  method=method, lambda2=lambda2,
-                                  signed=False, mode=mode,
-                                  n_svd_comp=n_svd_comp)
+stc_ctf_mne = cross_talk_function(
+    inverse_operator, forward, labels, method=method, lambda2=lambda2,
+    signed=False, mode=mode, n_svd_comp=n_svd_comp)
 
 method = 'dSPM'
-stc_ctf_dspm = cross_talk_function(inverse_operator, forward, labels,
-                                   method=method, lambda2=lambda2,
-                                   signed=False, mode=mode,
-                                   n_svd_comp=n_svd_comp)
+stc_ctf_dspm = cross_talk_function(
+    inverse_operator, forward, labels, method=method, lambda2=lambda2,
+    signed=False, mode=mode, n_svd_comp=n_svd_comp)
 
-from mayavi import mlab
-fmin = 0.
 time_label = "MNE %d"
-fmax = stc_ctf_mne.data[:, 0].max()
-fmid = fmax / 2.
-brain_mne = stc_ctf_mne.plot(surface='inflated', hemi='rh',
-                             subjects_dir=subjects_dir,
-                             time_label=time_label, fmin=fmin,
-                             fmid=fmid, fmax=fmax,
+brain_mne = stc_ctf_mne.plot(hemi='rh', subjects_dir=subjects_dir,
+                             time_label=time_label,
                              figure=mlab.figure(size=(500, 500)))
 
 time_label = "dSPM %d"
-fmax = stc_ctf_dspm.data[:, 0].max()
-fmid = fmax / 2.
-brain_dspm = stc_ctf_dspm.plot(surface='inflated', hemi='rh',
-                               subjects_dir=subjects_dir,
-                               time_label=time_label, fmin=fmin,
-                               fmid=fmid, fmax=fmax,
+brain_dspm = stc_ctf_dspm.plot(hemi='rh', subjects_dir=subjects_dir,
+                               time_label=time_label,
                                figure=mlab.figure(size=(500, 500)))
 
 # Cross-talk functions for MNE and dSPM (and sLORETA) have the same shapes
