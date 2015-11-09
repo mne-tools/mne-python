@@ -30,12 +30,12 @@ def stft(x, wsize, tstep=None, verbose=None):
         STFT coefficients for positive frequencies with
         n_step = ceil(T / tstep)
 
-    Usage
-    -----
+    Examples
+    --------
     X = stft(x, wsize)
     X = stft(x, wsize, tstep)
 
-    See also
+    See Also
     --------
     istft
     stftfreq
@@ -49,7 +49,7 @@ def stft(x, wsize, tstep=None, verbose=None):
     n_signals, T = x.shape
     wsize = int(wsize)
 
-    ### Errors and warnings ###
+    # Errors and warnings
     if wsize % 4:
         raise ValueError('The window length must be a multiple of 4.')
 
@@ -120,16 +120,16 @@ def istft(X, tstep=None, Tx=None):
     x : 1d array of length Tx
         vector containing the inverse STFT signal
 
-    Usage
-    -----
+    Examples
+    --------
     x = istft(X)
     x = istft(X, tstep)
 
-    See also
+    See Also
     --------
     stft
     """
-    ### Errors and warnings ###
+    # Errors and warnings
     n_signals, n_win, n_step = X.shape
     if (n_win % 2 == 0):
         ValueError('The number of rows of the STFT matrix must be odd.')
@@ -159,10 +159,10 @@ def istft(X, tstep=None, Tx=None):
     if n_signals == 0:
         return x[:, :Tx]
 
-    ### Computing inverse STFT signal ###
     # Defining sine window
     win = np.sin(np.arange(.5, wsize + .5) / wsize * np.pi)
     # win = win / norm(win);
+
     # Pre-processing for edges
     swin = np.zeros(T + wsize - tstep, dtype=np.float)
     for t in range(n_step):
@@ -201,7 +201,7 @@ def stftfreq(wsize, sfreq=None):
         The positive frequencies returned by stft
 
 
-    See also
+    See Also
     --------
     stft
     istft
@@ -228,9 +228,10 @@ def stft_norm2(X):
     Returns
     -------
     norms2 : array
-        The squared L2 norm of every raw of X.
+        The squared L2 norm of every row of X.
     """
-    X2 = np.abs(X) ** 2
-    # compute all L2 coefs and remove freq zero once.
-    norms2 = (2. * X2.sum(axis=2).sum(axis=1) - np.sum(X2[:, 0, :], axis=1))
+    X2 = (X * X.conj()).real
+    # compute all L2 coefs and remove first and last frequency once.
+    norms2 = (2. * X2.sum(axis=2).sum(axis=1) - np.sum(X2[:, 0, :], axis=1) -
+              np.sum(X2[:, -1, :], axis=1))
     return norms2

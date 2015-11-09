@@ -1,33 +1,22 @@
-import numpy as np
-from scipy import stats
-from scipy.stats import f
-fprob = f.sf  # stats.fprob is deprecated
-from scipy.signal import detrend
-from ..fixes import matrix_rank
-from functools import reduce
-from ..externals.six.moves import map  # analysis:ignore
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
 
-defaults_twoway_rm = {
-    'parse': {
-        'A': [0],
-        'B': [1],
-        'A+B': [0, 1],
-        'A:B': [2],
-        'A*B': [0, 1, 2]
-        },
-    'iter_contrasts': np.array([(1, 0, 1), (0, 1, 1), (1, 1, 1)])
-    }
+import numpy as np
+from functools import reduce
+from string import ascii_uppercase
 
+from ..externals.six import string_types
+from ..utils import deprecated
+from ..fixes import matrix_rank
 
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
 # copy the data while keeping the inputs unchanged.
+
+
 def _f_oneway(*args):
     """
     Performs a 1-way ANOVA.
@@ -76,6 +65,8 @@ def _f_oneway(*args):
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
 
     """
+    from scipy import stats
+    sf = stats.f.sf
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
@@ -95,7 +86,7 @@ def _f_oneway(*args):
     msb = ssbn / float(dfbn)
     msw = sswn / float(dfwn)
     f = msb / msw
-    prob = fprob(dfbn, dfwn, f)
+    prob = sf(dfbn, dfwn, f)
     return f, prob
 
 
@@ -104,19 +95,76 @@ def f_oneway(*args):
     return _f_oneway(*args)[0]
 
 
-def _check_effects(effects):
-    """ Aux Function """
-    if effects.upper() not in defaults_twoway_rm['parse']:
-        raise ValueError('The value passed for `effects` is not supported. '
-                         'Please consider the documentation.')
+def _map_effects(n_factors, effects):
+    """Map effects to indices"""
+    if n_factors > len(ascii_uppercase):
+        raise ValueError('Maximum number of factors supported is 26')
 
-    return defaults_twoway_rm['parse'][effects]
+    factor_names = list(ascii_uppercase[:n_factors])
+
+    if isinstance(effects, string_types):
+        if '*' in effects and ':' in effects:
+            raise ValueError('Not "*" and ":" permitted in effects')
+        elif '+' in effects and ':' in effects:
+            raise ValueError('Not "+" and ":" permitted in effects')
+        elif effects == 'all':
+            effects = None
+        elif len(effects) == 1 or ':' in effects:
+            effects = [effects]
+        elif '+' in effects:
+            # all main effects
+            effects = effects.split('+')
+        elif '*' in effects:
+            pass  # handle later
+        else:
+            raise ValueError('"{0}" is not a valid option for "effects"'
+                             .format(effects))
+    if isinstance(effects, list):
+        bad_names = [e for e in effects if e not in factor_names]
+        if len(bad_names) > 1:
+            raise ValueError('Effect names: {0} are not valid. They should '
+                             'the first `n_factors` ({1}) characters from the'
+                             'alphabet'.format(bad_names, n_factors))
+
+    indices = list(np.arange(2 ** n_factors - 1))
+    names = list()
+    for this_effect in indices:
+        contrast_idx = _get_contrast_indices(this_effect + 1, n_factors)
+        this_code = (n_factors - 1) - np.where(contrast_idx == 1)[0]
+        this_name = [factor_names[e] for e in this_code]
+        this_name.sort()
+        names.append(':'.join(this_name))
+
+    if effects is None or isinstance(effects, string_types):
+        effects_ = names
+    else:
+        effects_ = effects
+
+    selection = [names.index(sel) for sel in effects_]
+    names = [names[sel] for sel in selection]
+
+    if isinstance(effects, string_types):
+        if '*' in effects:
+            # hierarchical order of effects
+            # the * based effect can be used as stop index
+            sel_ind = names.index(effects.replace('*', ':')) + 1
+            names = names[:sel_ind]
+            selection = selection[:sel_ind]
+
+    return selection, names
+
+
+def _get_contrast_indices(effect_idx, n_factors):
+    """Henson's factor coding, see num2binvec"""
+    binrepr = np.binary_repr(effect_idx, n_factors)
+    return np.array([int(i) for i in binrepr], dtype=int)
 
 
 def _iter_contrasts(n_subjects, factor_levels, effect_picks):
     """ Aux Function: Setup contrasts """
-    sc, sy, = [], []
-
+    from scipy.signal import detrend
+    sc = []
+    n_factors = len(factor_levels)
     # prepare computation of Kronecker products
     for n_levels in factor_levels:
         # for each factor append
@@ -126,23 +174,29 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
         # main + interaction effects for contrasts
         sc.append([np.ones([n_levels, 1]),
                    detrend(np.eye(n_levels), type='constant')])
-        # main + interaction effects for component means
-        sy.append([np.ones([n_levels, 1]) / n_levels, np.eye(n_levels)])
-        # XXX component means not returned at the moment
 
-    for (c1, c2, c3) in defaults_twoway_rm['iter_contrasts'][effect_picks]:
-        # c1 selects the first factors' level in the column vector
-        # c3 selects the actual factor
-        # c2 selects either its column vector or diag matrix
-        c_ = np.kron(sc[0][c1], sc[c3][c2])
-        # for 3 way anova accumulation of c_ across factors required
+    for this_effect in effect_picks:
+        contrast_idx = _get_contrast_indices(this_effect + 1, n_factors)
+        c_ = sc[0][contrast_idx[n_factors - 1]]
+        for i_contrast in range(1, n_factors):
+            this_contrast = contrast_idx[(n_factors - 1) - i_contrast]
+            c_ = np.kron(c_, sc[i_contrast][this_contrast])
         df1 = matrix_rank(c_)
         df2 = df1 * (n_subjects - 1)
         yield c_, df1, df2
 
 
+@deprecated('"f_threshold_twoway_rm" is deprecated and will be removed in'
+            'MNE-0.11. Please use f_threshold_mway_rm instead')
 def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
                           pvalue=0.05):
+    return f_threshold_mway_rm(
+        n_subjects=n_subjects, factor_levels=factor_levels,
+        effects=effects, pvalue=pvalue)
+
+
+def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
+                        pvalue=0.05):
     """ Compute f-value thesholds for a two-way ANOVA
 
     Parameters
@@ -167,46 +221,71 @@ def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
     f_threshold : list | float
         list of f-values for each effect if the number of effects
         requested > 2, else float.
+
+    See Also
+    --------
+    f_oneway
+    f_mway_rm
+
+    Notes
+    -----
+    .. versionadded:: 0.10
     """
-    effect_picks = _check_effects(effects)
+    from scipy.stats import f
+    effect_picks, _ = _map_effects(len(factor_levels), effects)
 
     f_threshold = []
     for _, df1, df2 in _iter_contrasts(n_subjects, factor_levels,
                                        effect_picks):
-        f_threshold.append(stats.f(df1, df2).isf(pvalue))
+        f_threshold.append(f(df1, df2).isf(pvalue))
 
     return f_threshold if len(f_threshold) > 1 else f_threshold[0]
 
 
 # The following functions based on MATLAB code by Rik Henson
 # and Python code from the pvttble toolbox by Roger Lew.
+@deprecated('"f_twoway_rm" is deprecated and will be removed in MNE 0.11."'
+            " Please use f_mway_rm instead")
 def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
                 correction=False, return_pvals=True):
-    """ 2 way repeated measures ANOVA for fully balanced designs
+    """This function is deprecated, use `f_mway_rm` instead"""
+    return f_mway_rm(data=data, factor_levels=factor_levels, effects=effects,
+                     alpha=alpha, correction=correction,
+                     return_pvals=return_pvals)
 
+
+def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
+              correction=False, return_pvals=True):
+    """M-way repeated measures ANOVA for fully balanced designs
+
+    Parameters
+    ----------
     data : ndarray
         3D array where the first two dimensions are compliant
-        with a subjects X conditions scheme:
+        with a subjects X conditions scheme where the first
+        factor repeats slowest::
 
-        first factor repeats slowest:
-
-                    A1B1 A1B2 A2B1 B2B2
-        subject 1   1.34 2.53 0.97 1.74
-        subject ... .... .... .... ....
-        subject k   2.45 7.90 3.09 4.76
+                        A1B1 A1B2 A2B1 A2B2
+            subject 1   1.34 2.53 0.97 1.74
+            subject ... .... .... .... ....
+            subject k   2.45 7.90 3.09 4.76
 
         The last dimensions is thought to carry the observations
         for mass univariate analysis.
     factor_levels : list-like
         The number of levels per factor.
-    effects : str
+    effects : str | list
         A string denoting the effect to be returned. The following
-        mapping is currently supported:
-            'A': main effect of A
-            'B': main effect of B
-            'A:B': interaction effect
-            'A+B': both main effects
-            'A*B': all three effects
+        mapping is currently supported (example with 2 factors):
+
+            * ``'A'``: main effect of A
+            * ``'B'``: main effect of B
+            * ``'A:B'``: interaction effect
+            * ``'A+B'``: both main effects
+            * ``'A*B'``: all three effects
+            * ``'all'``: all effects (equals 'A*B' in a 2 way design)
+
+        If list, effect names are used: ``['A', 'B', 'A:B']``.
     alpha : float
         The significance threshold.
     correction : bool
@@ -224,14 +303,24 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
         estimated.
     p_vals : ndarray
         If not requested via return_pvals, defaults to an empty array.
+
+    See Also
+    --------
+    f_oneway
+    f_threshold_mway_rm
+
+    Notes
+    -----
+    .. versionadded:: 0.10
     """
+    from scipy.stats import f
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
     elif data.ndim > 3:  # let's allow for some magic here.
-        data = data.reshape(data.shape[0], data.shape[1],
-                            np.prod(data.shape[2:]))
+        data = data.reshape(
+            data.shape[0], data.shape[1], np.prod(data.shape[2:]))
 
-    effect_picks = _check_effects(effects)
+    effect_picks, _ = _map_effects(len(factor_levels), effects)
     n_obs = data.shape[2]
     n_replications = data.shape[0]
 
@@ -259,10 +348,10 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
             df1, df2 = [d[None, :] * eps for d in (df1, df2)]
 
         if return_pvals:
-            pvals = stats.f(df1, df2).sf(fvals)
+            pvals = f(df1, df2).sf(fvals)
         else:
             pvals = np.empty(0)
         pvalues.append(pvals)
 
     # handle single effect returns
-    return [np.squeeze(np.asarray(v)) for v in (fvalues, pvalues)]
+    return [np.squeeze(np.asarray(vv)) for vv in (fvalues, pvalues)]

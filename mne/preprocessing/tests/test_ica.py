@@ -7,11 +7,9 @@ from __future__ import print_function
 
 import os
 import os.path as op
-from functools import wraps
 import warnings
 
 from nose.tools import assert_true, assert_raises, assert_equal
-from copy import deepcopy
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
@@ -22,13 +20,17 @@ from mne import io, Epochs, read_events, pick_types
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
-from mne.preprocessing.ica import score_funcs, _check_n_pca_components
+from mne.preprocessing.ica import get_score_funcs, corrmap
 from mne.io.meas_info import Info
-from mne.utils import set_log_file, check_sklearn_version, _TempDir
+from mne.utils import (set_log_file, _TempDir, requires_sklearn, slow_test,
+                       run_tests_if_main)
+
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
-tempdir = _TempDir()
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
@@ -37,9 +39,8 @@ evoked_nf_name = op.join(data_dir, 'test-nf-ave.fif')
 test_cov_name = op.join(data_dir, 'test-cov.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.2
-start, stop = 0, 6  # if stop is too small pca may fail in some cases, but
-                    # we're okay on this file
-
+# if stop is too small pca may fail in some cases, but we're okay on this file
+start, stop = 0, 6
 score_funcs_unsuited = ['pointbiserialr', 'ansari']
 try:
     from sklearn.utils.validation import NonBLASDotWarning
@@ -48,24 +49,12 @@ except:
     pass
 
 
-def requires_sklearn(function):
-    """Decorator to skip test if scikit-learn >= 0.12 is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        if not check_sklearn_version(min_version='0.12'):
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires scikit-learn >= 0.12'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
-        return ret
-    return dec
-
-
 @requires_sklearn
 def test_ica_full_data_recovery():
     """Test recovery of full data when no source is rejected"""
     # Most basic recovery
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(0.5)
+    raw = io.Raw(raw_fname).crop(0.5, stop, False)
+    raw.load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
@@ -122,7 +111,8 @@ def test_ica_full_data_recovery():
 def test_ica_rank_reduction():
     """Test recovery of full data when no source is rejected"""
     # Most basic recovery
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(0.5)
+    raw = io.Raw(raw_fname).crop(0.5, stop, False)
+    raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
     n_components = 5
@@ -147,9 +137,38 @@ def test_ica_rank_reduction():
 
 
 @requires_sklearn
+def test_ica_reset():
+    """Test ICA resetting"""
+    raw = io.Raw(raw_fname).crop(0.5, stop, False)
+    raw.load_data()
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')[:10]
+
+    run_time_attrs = (
+        '_pre_whitener',
+        'unmixing_matrix_',
+        'mixing_matrix_',
+        'n_components_',
+        'n_samples_',
+        'pca_components_',
+        'pca_explained_variance_',
+        'pca_mean_'
+    )
+    with warnings.catch_warnings(record=True):
+        ica = ICA(
+            n_components=3, max_pca_components=3, n_pca_components=3,
+            method='fastica', max_iter=1).fit(raw, picks=picks)
+
+    assert_true(all(hasattr(ica, attr) for attr in run_time_attrs))
+    ica._reset()
+    assert_true(not any(hasattr(ica, attr) for attr in run_time_attrs))
+
+
+@requires_sklearn
 def test_ica_core():
     """Test ICA on raw and epochs"""
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = io.Raw(raw_fname).crop(1.5, stop, False)
+    raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     # XXX. The None cases helped revealing bugs but are time consuming.
@@ -174,10 +193,11 @@ def test_ica_core():
 
     # test essential core functionality
     for n_cov, n_comp, max_n, pcks, method in iter_ica_params:
-      # Test ICA raw
+        # Test ICA raw
         ica = ICA(noise_cov=n_cov, n_components=n_comp,
                   max_pca_components=max_n, n_pca_components=max_n,
                   random_state=0, method=method, max_iter=1)
+        assert_raises(ValueError, ica.__contains__, 'mag')
 
         print(ica)  # to test repr
 
@@ -189,6 +209,7 @@ def test_ica_core():
         with warnings.catch_warnings(record=True):
             ica.fit(raw, picks=pcks, start=start, stop=stop)
             repr(ica)  # to test repr
+        assert_true('mag' in ica)  # should now work without error
 
         # test re-fit
         unmixing1 = ica.unmixing_matrix_
@@ -245,11 +266,14 @@ def test_ica_core():
     assert_raises(ValueError, ica.apply, offender)
 
 
+@slow_test
 @requires_sklearn
 def test_ica_additional():
     """Test additional ICA functionality"""
+    tempdir = _TempDir()
     stop2 = 500
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = io.Raw(raw_fname).crop(1.5, stop, False)
+    raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     test_cov = read_cov(test_cov_name)
@@ -258,13 +282,19 @@ def test_ica_additional():
                        eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
+    # test if n_components=None works
+    with warnings.catch_warnings(record=True):
+        ica = ICA(n_components=None,
+                  max_pca_components=None,
+                  n_pca_components=None, random_state=0)
+        ica.fit(epochs, picks=picks, decim=3)
     # for testing eog functionality
     picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
                         eog=True, exclude='bads')
     epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                         baseline=(None, 0), preload=True)
 
-    test_cov2 = deepcopy(test_cov)
+    test_cov2 = test_cov.copy()
     ica = ICA(noise_cov=test_cov2, n_components=3, max_pca_components=4,
               n_pca_components=4)
     assert_true(ica.info is None)
@@ -277,7 +307,16 @@ def test_ica_additional():
               n_pca_components=4)
     assert_raises(RuntimeError, ica.save, '')
     with warnings.catch_warnings(record=True):
-        ica.fit(raw, picks=None, start=start, stop=stop2)
+        ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
+
+    # test corrmap
+    ica2 = ica.copy()
+    corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks', plot=True,
+            ch_type="mag")
+    corrmap([ica, ica2], (0, 0), threshold=2, plot=False)
+    assert_true(ica.labels_["blinks"] == ica2.labels_["blinks"])
+    assert_true(0 in ica.labels_["blinks"])
+    plt.close('all')
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
@@ -356,7 +395,10 @@ def test_ica_additional():
         # check type consistency
         attrs = ('mixing_matrix_ unmixing_matrix_ pca_components_ '
                  'pca_explained_variance_ _pre_whitener')
-        f = lambda x, y: getattr(x, y).dtype
+
+        def f(x, y):
+            return getattr(x, y).dtype
+
         for attr in attrs.split():
             assert_equal(f(ica_read, attr), f(ica, attr))
 
@@ -385,7 +427,7 @@ def test_ica_additional():
 
     os.remove(test_ica_fname)
     # check scrore funcs
-    for name, func in score_funcs.items():
+    for name, func in get_score_funcs().items():
         if name in score_funcs_unsuited:
             continue
         scores = ica.score_sources(raw, target='EOG 061', score_func=func,
@@ -425,7 +467,7 @@ def test_ica_additional():
         assert_equal(len(scores[0]), ica.n_components_)
 
     # check score funcs
-    for name, func in score_funcs.items():
+    for name, func in get_score_funcs().items():
         if name in score_funcs_unsuited:
             continue
         scores = ica.score_sources(epochs_eog, target='EOG 061',
@@ -478,14 +520,14 @@ def test_ica_additional():
     ica_chans = [ch for ch in ica_epochs.ch_names if 'ICA' in ch]
     assert_true(ica.n_components_ == len(ica_chans))
     assert_true(ica.n_components_ == ica_epochs.get_data().shape[1])
-    assert_true(ica_epochs.raw is None)
+    assert_true(ica_epochs._raw is None)
     assert_true(ica_epochs.preload is True)
 
     # test float n pca components
     ica.pca_explained_variance_ = np.array([0.2] * 5)
     ica.n_components_ = 0
     for ncomps, expected in [[0.3, 1], [0.9, 4], [1, 1]]:
-        ncomps_ = _check_n_pca_components(ica, ncomps)
+        ncomps_ = ica._check_n_pca_components(ncomps)
         assert_true(ncomps_ == expected)
 
 
@@ -507,7 +549,9 @@ def test_run_ica():
 @requires_sklearn
 def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection"""
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    tempdir = _TempDir()
+    raw = io.Raw(raw_fname).crop(1.5, stop, False)
+    raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4)
@@ -526,7 +570,8 @@ def test_ica_reject_buffer():
 @requires_sklearn
 def test_ica_twice():
     """Test running ICA twice"""
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = io.Raw(raw_fname).crop(1.5, stop, False)
+    raw.load_data()
     picks = pick_types(raw.info, meg='grad', exclude='bads')
     n_components = 0.9
     max_pca_components = None
@@ -543,3 +588,5 @@ def test_ica_twice():
                    n_pca_components=1.0, random_state=0)
         ica2.fit(raw_new, picks=picks, decim=3)
         assert_equal(ica1.n_components_, ica2.n_components_)
+
+run_tests_if_main()

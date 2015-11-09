@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-from ...externals.six import string_types
 import os
 
 import numpy as np
@@ -12,27 +11,30 @@ from nose.tools import (assert_equal, assert_almost_equal, assert_false,
 import warnings
 
 import mne
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import _TempDir, requires_traits, requires_mne_fs_in_env
+from mne.utils import (_TempDir, requires_traits, requires_mne,
+                       requires_freesurfer, run_tests_if_main)
+from mne.externals.six import string_types
 
 
-data_path = sample.data_path(download=False)
-raw_path = os.path.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+data_path = testing.data_path(download=False)
+raw_path = os.path.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc_raw.fif')
+fname_trans = os.path.join(data_path, 'MEG', 'sample',
+                           'sample_audvis_trunc-trans.fif')
 kit_raw_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
 warnings.simplefilter('always')
 
-tempdir = _TempDir()
 
-trans_dst = os.path.join(tempdir, 'test-trans.fif')
-
-
-@sample.requires_sample_data
+@testing.requires_testing_data
 @requires_traits
 def test_coreg_model():
     """Test CoregModel"""
     from mne.gui._coreg_gui import CoregModel
+    tempdir = _TempDir()
+    trans_dst = os.path.join(tempdir, 'test-trans.fif')
 
     model = CoregModel()
     assert_raises(RuntimeError, model.save_trans, 'blah.fif')
@@ -64,8 +66,8 @@ def test_coreg_model():
 
     model.fit_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
-    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2
-             + model.nasion_distance ** 2)
+    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
+             model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
     model.fit_hsp_points()
@@ -99,12 +101,27 @@ def test_coreg_model():
     assert_true(isinstance(model.fid_eval_str, string_types))
     assert_true(isinstance(model.points_eval_str, string_types))
 
+    model.get_prepare_bem_model_job('sample')
+    model.load_trans(fname_trans)
 
-@sample.requires_sample_data
+    from mne.gui._coreg_gui import CoregFrame
+    x = CoregFrame(raw_path, 'sample', subjects_dir)
+    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
+    try:
+        with warnings.catch_warnings(record=True):  # traits spews warnings
+            warnings.simplefilter('always')
+            x._init_plot()
+    finally:
+        del os.environ['_MNE_GUI_TESTING_MODE']
+
+
+@testing.requires_testing_data
 @requires_traits
-@requires_mne_fs_in_env
+@requires_mne
+@requires_freesurfer
 def test_coreg_model_with_fsaverage():
     """Test CoregModel"""
+    tempdir = _TempDir()
     from mne.gui._coreg_gui import CoregModel
 
     mne.create_default_subject(subjects_dir=tempdir)
@@ -140,8 +157,8 @@ def test_coreg_model_with_fsaverage():
 
     model.fit_scale_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
-    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2
-             + model.nasion_distance ** 2)
+    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
+             model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
     model.fit_scale_hsp_points()
@@ -165,3 +182,6 @@ def test_coreg_model_with_fsaverage():
     with warnings.catch_warnings(record=True):
         model.hsp.file = kit_raw_path
     assert_equal(model.hsp.n_omitted, 0)
+
+
+run_tests_if_main()

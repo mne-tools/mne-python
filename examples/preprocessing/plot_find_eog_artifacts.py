@@ -10,13 +10,16 @@ Locate peaks of EOG to spot blinks and general EOG artifacts.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################
@@ -31,7 +34,7 @@ eog_events = mne.preprocessing.find_eog_events(raw, event_id)
 
 # Read epochs
 picks = mne.pick_types(raw.info, meg=False, eeg=False, stim=False, eog=True,
-                        exclude='bads')
+                       exclude='bads')
 tmin, tmax = -0.2, 0.2
 epochs = mne.Epochs(raw, eog_events, event_id, tmin, tmax, picks=picks)
 data = epochs.get_data()

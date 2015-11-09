@@ -1,18 +1,20 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
-from ...externals.six import string_types
 import os
 from os import path as op
 import zipfile
 from sys import stdout
 
-from ...utils import _fetch_file, get_config, set_config, _url_to_local_path
+from ...utils import _fetch_file, _url_to_local_path, verbose
+from ..utils import _get_path, _do_path_update
 from .urls import (url_match, valid_data_types, valid_data_formats,
                    valid_conditions)
 
 
-def data_path(url, path=None, force_update=False, update_path=None):
+@verbose
+def data_path(url, path=None, force_update=False, update_path=None,
+              verbose=None):
     """Get path to local copy of MEGSIM dataset URL
 
     This is a low-level function useful for getting a local copy of a
@@ -35,6 +37,8 @@ def data_path(url, path=None, force_update=False, update_path=None):
     update_path : bool | None
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -60,39 +64,10 @@ def data_path(url, path=None, force_update=False, update_path=None):
         Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
         (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
         Realistic Simulated and Empirical Data. Neuroinform 10:141-158
-    """
-
-    if path is None:
-        # use an intelligent guess if it's not defined
-        def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
-                                      '..', 'examples'))
-        key = 'MNE_DATASETS_MEGSIM_PATH'
-        if get_config(key) is None:
-            key = 'MNE_DATA'
-        path = get_config(key, def_path)
-
-        # use the same for all datasets
-        if not op.exists(path) or not os.access(path, os.W_OK):
-            try:
-                os.mkdir(path)
-            except OSError:
-                try:
-                    logger.info("Checking for megsim data in '~/mne_data'...")
-                    path = op.join(op.expanduser("~"), "mne_data")
-                    if not op.exists(path):
-                        logger.info("Trying to create "
-                                    "'~/mne_data' in home directory")
-                        os.mkdir(path)
-                except OSError:
-                    raise OSError("User does not have write permissions "
-                                  "at '%s', try giving the path as an argument "
-                                  "to data_path() where user has write "
-                                  "permissions, for ex:data_path"
-                                  "('/home/xyz/me2/')" % (path))
-
-    if not isinstance(path, string_types):
-        raise ValueError('path must be a string or None')
-
+    """  # noqa
+    key = 'MNE_DATASETS_MEGSIM_PATH'
+    name = 'MEGSIM'
+    path = _get_path(path, key, name)
     destination = _url_to_local_path(url, op.join(path, 'MEGSIM'))
     destinations = [destination]
 
@@ -121,27 +96,13 @@ def data_path(url, path=None, force_update=False, update_path=None):
         z.close()
         destinations = [op.join(decomp_dir, f) for f in files]
 
-    # Offer to update the path
-    path = op.abspath(path)
-    if update_path is None:
-        if get_config(key, '') != path:
-            update_path = True
-            msg = ('Do you want to set the path:\n    %s\nas the default '
-                   'MEGSIM dataset path in the mne-python config ([y]/n)? '
-                   % path)
-            answer = raw_input(msg)
-            if answer.lower() == 'n':
-                update_path = False
-        else:
-            update_path = False
-    if update_path is True:
-        set_config(key, path)
-
+    path = _do_path_update(path, update_path, key, name)
     return destinations
 
 
+@verbose
 def load_data(condition='visual', data_format='raw', data_type='experimental',
-              path=None, force_update=False, update_path=None):
+              path=None, force_update=False, update_path=None, verbose=None):
     """Get path to local copy of MEGSIM dataset type
 
     Parameters
@@ -165,6 +126,8 @@ def load_data(condition='visual', data_format='raw', data_type='experimental',
     update_path : bool | None
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -187,13 +150,13 @@ def load_data(condition='visual', data_format='raw', data_type='experimental',
         Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
         (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
         Realistic Simulated and Empirical Data. Neuroinform 10:141-158
-    """
+    """  # noqa
 
     if not condition.lower() in valid_conditions:
         raise ValueError('Unknown condition "%s"' % condition)
-    if not data_format in valid_data_formats:
+    if data_format not in valid_data_formats:
         raise ValueError('Unknown data_format "%s"' % data_format)
-    if not data_type in valid_data_types:
+    if data_type not in valid_data_types:
         raise ValueError('Unknown data_type "%s"' % data_type)
     urls = url_match(condition, data_format, data_type)
 

@@ -24,9 +24,18 @@ def read_selection(name, fname=None, verbose=None):
     the file. For example, "name = ['temporal', 'Right-frontal']" will produce
     a comination of "Left-temporal", "Right-temporal", and "Right-frontal".
 
-    * The included selections are: "Vertex", "Left-temporal", "Right-temporal",
-    "Left-parietal", "Right-parietal", "Left-occipital", "Right-occipital",
-    "Left-frontal", and "Right-frontal"
+    The included selections are:
+
+        * ``Vertex``
+        * ``Left-temporal``
+        * ``Right-temporal``
+        * ``Left-parietal``
+        * ``Right-parietal``
+        * ``Left-occipital``
+        * ``Right-occipital``
+        * ``Left-frontal``
+        * ``Right-frontal``
+
 
     Parameters
     ----------

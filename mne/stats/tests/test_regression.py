@@ -1,5 +1,6 @@
-# Authors: Teon Brooks <teon@nyu.edu>
+# Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Denis A. Engemann <denis.engemann@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -7,27 +8,29 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
+
+from scipy.signal import hann
 
 from nose.tools import assert_raises, assert_true, assert_equal
 
 import mne
 from mne import read_source_estimate
-from mne.datasets import sample
-from mne.stats.regression import linear_regression
+from mne.datasets import testing
+from mne.stats.regression import linear_regression, linear_regression_raw
+from mne.io import RawArray
 
-data_path = sample.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
+data_path = testing.data_path(download=False)
+stc_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc-meg-lh.stc')
+raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
+event_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw-eve.fif'
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_regression():
     """Test Ordinary Least Squares Regression
     """
-    data_path = sample.data_path()
-    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-    event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
     tmin, tmax = -0.2, 0.5
     event_id = dict(aud_l=1, aud_r=2)
 
@@ -65,3 +68,43 @@ def test_regression():
     for k in lm1:
         for v1, v2 in zip(lm1[k], lm2[k]):
             assert_array_equal(v1.data, v2.data)
+
+
+@testing.requires_testing_data
+def test_continuous_regression_no_overlap():
+    """Test regression without overlap correction, on real data"""
+    tmin, tmax = -.1, .5
+
+    raw = mne.io.Raw(raw_fname, preload=True)
+    events = mne.read_events(event_fname)
+    event_id = dict(audio_l=1, audio_r=2)
+
+    raw = raw.pick_channels(raw.ch_names[:2])
+
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+                        baseline=None, reject=None)
+
+    revokeds = linear_regression_raw(raw, events, event_id,
+                                     tmin=tmin, tmax=tmax,
+                                     reject=None)
+
+    for cond in event_id.keys():
+        assert_allclose(revokeds[cond].data,
+                        epochs[cond].average().data)
+
+
+def test_continuous_regression_with_overlap():
+    """Test regression with overlap correction"""
+    signal = np.zeros(100000)
+    times = [1000, 2500, 3000, 5000, 5250, 7000, 7250, 8000]
+    events = np.zeros((len(times), 3), int)
+    events[:, 2] = 1
+    events[:, 0] = times
+    signal[events[:, 0]] = 1.
+    effect = hann(101)
+    signal = np.convolve(signal, effect)[:len(signal)]
+    raw = RawArray(signal[np.newaxis, :], mne.create_info(1, 100, 'eeg'))
+
+    assert_allclose(effect,
+                    linear_regression_raw(raw, events, {1: 1}, tmin=0)[1]
+                    .data.flatten())

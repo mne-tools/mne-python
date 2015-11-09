@@ -7,84 +7,12 @@
 from ..externals.six import string_types
 import os
 from warnings import warn
-import logging
 
-import numpy as np
-from scipy import optimize, linalg
 
+from ..bem import fit_sphere_to_headshape
 from ..io import Raw
-from ..io.constants import FIFF
 from ..utils import logger, verbose
 from ..externals.six.moves import map
-from ..externals.six.moves import zip
-
-
-@verbose
-def fit_sphere_to_headshape(info, verbose=None):
-    """ Fit a sphere to the headshape points to determine head center for
-        maxfilter.
-
-    Parameters
-    ----------
-    info : dict
-        Measurement info.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    radius : float
-        Sphere radius in mm.
-    origin_head: ndarray
-        Head center in head coordinates (mm).
-    origin_device: ndarray
-        Head center in device coordinates (mm).
-
-    """
-    # get head digization points, excluding some frontal points (nose etc.)
-    hsp = [p['r'] for p in info['dig'] if p['kind'] == FIFF.FIFFV_POINT_EXTRA
-           and not (p['r'][2] < 0 and p['r'][1] > 0)]
-
-    if len(hsp) == 0:
-        raise ValueError('No head digitization points found')
-
-    hsp = 1e3 * np.array(hsp)
-
-    # initial guess for center and radius
-    xradius = (np.max(hsp[:, 0]) - np.min(hsp[:, 0])) / 2
-    yradius = (np.max(hsp[:, 1]) - np.min(hsp[:, 1])) / 2
-
-    radius_init = (xradius + yradius) / 2
-    center_init = np.array([0.0, 0.0, np.max(hsp[:, 2]) - radius_init])
-
-    # optimization
-    x0 = np.r_[center_init, radius_init]
-    cost_fun = lambda x, hsp:\
-        np.sum((np.sqrt(np.sum((hsp - x[:3]) ** 2, axis=1)) - x[3]) ** 2)
-
-    disp = True if logger.level <= logging.INFO else False
-    x_opt = optimize.fmin_powell(cost_fun, x0, args=(hsp,), disp=disp)
-
-    origin_head = x_opt[:3]
-    radius = x_opt[3]
-
-    # compute origin in device coordinates
-    trans = info['dev_head_t']
-    if trans['from'] != FIFF.FIFFV_COORD_DEVICE\
-        or trans['to'] != FIFF.FIFFV_COORD_HEAD:
-            raise RuntimeError('device to head transform not found')
-
-    head_to_dev = linalg.inv(trans['trans'])
-    origin_device = 1e3 * np.dot(head_to_dev,
-                                 np.r_[1e-3 * origin_head, 1.0])[:3]
-
-    logger.info('Fitted sphere: r = %0.1f mm' % radius)
-    logger.info('Origin head coordinates: %0.1f %0.1f %0.1f mm' %
-                (origin_head[0], origin_head[1], origin_head[2]))
-    logger.info('Origin device coordinates: %0.1f %0.1f %0.1f mm' %
-                (origin_device[0], origin_device[1], origin_device[2]))
-
-    return radius, origin_head, origin_device
 
 
 def _mxwarn(msg):
@@ -287,7 +215,11 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         os.remove(out_fname)
 
     logger.info('Running MaxFilter: %s ' % cmd)
-    st = os.system(cmd)
+    if os.getenv('_MNE_MAXFILTER_TEST', '') != 'true':  # fake maxfilter
+        st = os.system(cmd)
+    else:
+        print(cmd)  # we can check the output
+        st = 0
     if st != 0:
         raise RuntimeError('MaxFilter returned non-zero exit status %d' % st)
     logger.info('[done]')

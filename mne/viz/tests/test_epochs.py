@@ -2,40 +2,38 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: Simplified BSD
 
 import os.path as op
 import warnings
+from nose.tools import assert_raises
 
 import numpy as np
+
+
+from mne import io, read_events, Epochs
+from mne import pick_types
+from mne.utils import run_tests_if_main, requires_version
+from mne.channels import read_layout
+
+from mne.viz import plot_drop_log, plot_epochs_image, plot_image_epochs
+from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
-
-from mne import io, read_events, Epochs
-from mne import pick_types
-from mne.layouts import read_layout
-from mne.datasets import sample
-
-from mne.viz import plot_drop_log, plot_image_epochs
-
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-
-data_dir = sample.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-event_id, tmin, tmax = 1, -0.1, 0.1
+event_id, tmin, tmax = 1, -0.1, 1.0
 n_chan = 15
 layout = read_layout('Vectorview-all')
 
@@ -76,34 +74,75 @@ def _get_epochs_delayed_ssp():
 
 
 def test_plot_epochs():
-    """ Test plotting epochs
-    """
+    """Test epoch plotting"""
+    import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
-    epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
-    # test clicking: should increase coverage on
-    # 3200-3226, 3235, 3237, 3239-3242, 3245-3255, 3260-3280
-    fig = plt.gcf()
-    fig.canvas.button_press_event(10, 10, 'left')
-    # now let's add a bad channel
-    epochs.info['bads'] = [epochs.ch_names[0]]  # include a bad one
-    epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
-    epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
+    fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
+    fig.canvas.key_press_event('escape')
+    plt.close('all')
+    fig = epochs.plot()
+    fig.canvas.key_press_event('left')
+    fig.canvas.key_press_event('right')
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event('pagedown')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event('=')
+    fig.canvas.key_press_event('b')
+    fig.canvas.key_press_event('f11')
+    fig.canvas.key_press_event('home')
+    fig.canvas.key_press_event('?')
+    fig.canvas.key_press_event('h')
+    fig.canvas.key_press_event('o')
+    fig.canvas.key_press_event('end')
+    fig.canvas.resize_event()
+    fig.canvas.close_event()  # closing and epoch dropping
+    plt.close('all')
+    assert_raises(RuntimeError, epochs.plot, picks=[])
+    plt.close('all')
+    with warnings.catch_warnings(record=True):
+        fig = epochs.plot()
+        # test mouse clicks
+        x = fig.get_axes()[0].get_xlim()[1] / 2
+        y = fig.get_axes()[0].get_ylim()[0] / 2
+        data_ax = fig.get_axes()[0]
+        n_epochs = len(epochs)
+        _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
+        _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad epoch
+        _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
+        _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+        _fake_click(fig, data_ax, [-0.1, 0.9], button=3)
+        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change epochs
+        _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # change channels
+        fig.canvas.close_event()  # closing and epoch dropping
+        assert(n_epochs - 1 == len(epochs))
+        plt.close('all')
 
 
-def test_plot_image_epochs():
+def test_plot_epochs_image():
     """Test plotting of epochs image
     """
+    import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    plot_image_epochs(epochs, picks=[1, 2])
+    plot_epochs_image(epochs, picks=[1, 2])
     plt.close('all')
+    with warnings.catch_warnings(record=True):
+        plot_image_epochs(epochs, picks=[1, 2])
+        plt.close('all')
 
 
 def test_plot_drop_log():
     """Test plotting a drop log
     """
+    import matplotlib.pyplot as plt
     epochs = _get_epochs()
+    assert_raises(ValueError, epochs.plot_drop_log)
     epochs.drop_bad_epochs()
 
     warnings.simplefilter('always', UserWarning)
@@ -115,3 +154,18 @@ def test_plot_drop_log():
         plot_drop_log([['One'], ['One', 'Two'], []])
     plt.close('all')
 
+
+@requires_version('scipy', '0.12')
+def test_plot_psd_epochs():
+    """Test plotting epochs psd (+topomap)
+    """
+    import matplotlib.pyplot as plt
+    epochs = _get_epochs()
+    epochs.plot_psd()
+    assert_raises(RuntimeError, epochs.plot_psd_topomap,
+                  bands=[(0, 0.01, 'foo')])  # no freqs in range
+    epochs.plot_psd_topomap()
+    plt.close('all')
+
+
+run_tests_if_main()

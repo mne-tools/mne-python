@@ -4,29 +4,21 @@
 # License: Simplified BSD
 
 import os.path as op
-from functools import wraps
 import warnings
 
 from numpy.testing import assert_raises
 
 from mne import io, read_events, Epochs, read_cov
 from mne import pick_types
-from mne.datasets import sample
-from mne.utils import check_sklearn_version
+from mne.utils import run_tests_if_main, requires_sklearn
+from mne.viz.utils import _fake_click
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
 
-
-data_dir = sample.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -36,21 +28,8 @@ event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 0.2
 
 
-def requires_sklearn(function):
-    """Decorator to skip test if scikit-learn >= 0.12 is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        if not check_sklearn_version(min_version='0.12'):
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires scikit-learn >= 0.12'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
-        return ret
-    return dec
-
-
-def _get_raw():
-    return io.Raw(raw_fname, preload=False)
+def _get_raw(preload=False):
+    return io.Raw(raw_fname, preload=preload)
 
 
 def _get_events():
@@ -74,6 +53,7 @@ def _get_epochs():
 def test_plot_ica_components():
     """Test plotting of ICA solutions
     """
+    import matplotlib.pyplot as plt
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
@@ -84,7 +64,8 @@ def test_plot_ica_components():
         for components in [0, [0], [0, 1], [0, 1] * 2, None]:
             ica.plot_components(components, image_interp='bilinear', res=16)
     ica.info = None
-    assert_raises(RuntimeError, ica.plot_components, 1)
+    assert_raises(ValueError, ica.plot_components, 1)
+    assert_raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
     plt.close('all')
 
 
@@ -92,7 +73,10 @@ def test_plot_ica_components():
 def test_plot_ica_sources():
     """Test plotting of ICA panel
     """
-    raw = io.Raw(raw_fname, preload=True)
+    import matplotlib.pyplot as plt
+    raw = io.Raw(raw_fname, preload=False)
+    raw.crop(0, 1, copy=False)
+    raw.load_data()
     picks = _get_picks(raw)
     epochs = _get_epochs()
     raw.pick_channels([raw.ch_names[k] for k in picks])
@@ -100,10 +84,27 @@ def test_plot_ica_sources():
                            ecg=False, eog=False, exclude='bads')
     ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
     ica.fit(raw, picks=ica_picks)
-    ica.plot_sources(raw)
+    raw.info['bads'] = ['MEG 0113']
+    assert_raises(RuntimeError, ica.plot_sources, inst=raw)
     ica.plot_sources(epochs)
+    epochs.info['bads'] = ['MEG 0113']
+    assert_raises(RuntimeError, ica.plot_sources, inst=epochs)
+    epochs.info['bads'] = []
     with warnings.catch_warnings(record=True):  # no labeled objects mpl
         ica.plot_sources(epochs.average())
+        evoked = epochs.average()
+        fig = ica.plot_sources(evoked)
+        # Test a click
+        ax = fig.get_axes()[0]
+        line = ax.lines[0]
+        _fake_click(fig, ax,
+                    [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+        _fake_click(fig, ax,
+                    [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
+        # plot with bad channels excluded
+        ica.plot_sources(evoked, exclude=[0])
+        ica.exclude = [0]
+        ica.plot_sources(evoked)  # does the same thing
     assert_raises(ValueError, ica.plot_sources, 'meeow')
     plt.close('all')
 
@@ -112,7 +113,8 @@ def test_plot_ica_sources():
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning
     """
-    raw = _get_raw()
+    import matplotlib.pyplot as plt
+    raw = _get_raw(preload=True)
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
@@ -123,6 +125,7 @@ def test_plot_ica_overlay():
     eog_epochs = create_eog_epochs(raw, picks=picks)
     ica.plot_overlay(eog_epochs.average())
     assert_raises(ValueError, ica.plot_overlay, raw[:2, :3][0])
+    ica.plot_overlay(raw)
     plt.close('all')
 
 
@@ -130,6 +133,7 @@ def test_plot_ica_overlay():
 def test_plot_ica_scores():
     """Test plotting of ICA scores
     """
+    import matplotlib.pyplot as plt
     raw = _get_raw()
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
@@ -138,3 +142,59 @@ def test_plot_ica_scores():
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
     assert_raises(ValueError, ica.plot_scores, [0.2])
     plt.close('all')
+
+
+@requires_sklearn
+def test_plot_instance_components():
+    """Test plotting of components as instances of raw and epochs."""
+    import matplotlib.pyplot as plt
+    raw = _get_raw()
+    picks = _get_picks(raw)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica.fit(raw, picks=picks)
+    fig = ica.plot_sources(raw, exclude=[0], title='Components')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('right')
+    fig.canvas.key_press_event('left')
+    fig.canvas.key_press_event('o')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event('=')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event('pagedown')
+    fig.canvas.key_press_event('home')
+    fig.canvas.key_press_event('end')
+    fig.canvas.key_press_event('f11')
+    ax = fig.get_axes()[0]
+    line = ax.lines[0]
+    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+    _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
+    fig.canvas.key_press_event('escape')
+    plt.close('all')
+    epochs = _get_epochs()
+    fig = ica.plot_sources(epochs, exclude=[0], title='Components')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('right')
+    fig.canvas.key_press_event('left')
+    fig.canvas.key_press_event('o')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event('=')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event('pagedown')
+    fig.canvas.key_press_event('home')
+    fig.canvas.key_press_event('end')
+    fig.canvas.key_press_event('f11')
+    # Test a click
+    ax = fig.get_axes()[0]
+    line = ax.lines[0]
+    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+    _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
+    fig.canvas.key_press_event('escape')
+    plt.close('all')
+
+
+run_tests_if_main()

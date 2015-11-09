@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import struct
 import numpy as np
 
 from .constants import FIFF
@@ -14,11 +13,19 @@ from ..utils import logger, verbose
 
 
 def dir_tree_find(tree, kind):
-    """[nodes] = dir_tree_find(tree,kind)
+    """Find nodes of the given kind from a directory tree structure
 
-       Find nodes of the given kind from a directory tree structure
+    Parameters
+    ----------
+    tree : dict
+        Directory tree.
+    kind : int
+        Kind to find.
 
-       Returns a list of matching nodes
+    Returns
+    -------
+    nodes : list
+        List of matching nodes.
     """
     nodes = []
 
@@ -101,10 +108,11 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
         tree['directory'] = None
 
     logger.debug('    ' * (indent + 1) + 'block = %d nent = %d nchild = %d'
-                % (tree['block'], tree['nent'], tree['nchild']))
+                 % (tree['block'], tree['nent'], tree['nchild']))
     logger.debug('    ' * indent + 'end } %d' % block)
     last = this
     return tree, last
+
 
 ###############################################################################
 # Writing
@@ -139,7 +147,7 @@ def copy_tree(fidin, in_id, nodes, fidout):
                 fidin.seek(d.pos, 0)
 
                 s = fidin.read(4 * 4)
-                tag = Tag(*struct.unpack(">iIii", s))
+                tag = Tag(*np.fromstring(s, dtype=('>i4,>I4,>i4,>i4'))[0])
                 tag.data = np.fromstring(fidin.read(tag.size), dtype='>B')
 
                 _write(fidout, tag.data, tag.kind, 1, tag.type, '>B')

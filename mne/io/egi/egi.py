@@ -1,25 +1,18 @@
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
+#
 #          simplified BSD-3 license
 
 import datetime
-import os
 import time
 import warnings
 
 import numpy as np
 
-from ..base import _BaseRaw
-from ..meas_info import Info
+from ..base import _BaseRaw, _check_update_montage
+from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...utils import verbose, logger
-
-_other_fields = [
-    'lowpass', 'buffer_size_sec', 'dev_ctf_t',
-    'meas_id', 'subject_info',
-    'dev_head_t', 'line_freq', 'acq_stim', 'proj_id', 'description',
-    'highpass', 'experimenter', 'file_id', 'proj_name',
-    'dig', 'ctf_head_t', 'orig_blocks', 'acq_pars'
-]
 
 
 def _read_header(fid):
@@ -32,7 +25,10 @@ def _read_header(fid):
     else:
         ValueError('Watchout. This does not seem to be a simple '
                    'binary EGI file.')
-    my_fread = lambda *x, **y: np.fromfile(*x, **y)[0]
+
+    def my_fread(*x, **y):
+        return np.fromfile(*x, **y)[0]
+
     info = dict(
         version=version,
         year=my_fread(fid, '>i2', 1),
@@ -126,7 +122,8 @@ def _combine_triggers(data, remapping=None):
 
 
 @verbose
-def read_raw_egi(input_fname, include=None, exclude=None, verbose=None):
+def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
+                 include=None, exclude=None, verbose=None):
     """Read EGI simple binary as raw object
 
     Note. The trigger channel names are based on the
@@ -146,6 +143,16 @@ def read_raw_egi(input_fname, include=None, exclude=None, verbose=None):
     ----------
     input_fname : str
         Path to the raw file.
+    montage : str | None | instance of montage
+        Path or instance of montage containing electrode positions.
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
+    eog : list or tuple
+        Names of channels or list of indices that should be designated
+        EOG channels. Default is None.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated
+        MISC channels. Default is None.
     include : None | list
        The event channels to be ignored when creating the synthetic
        trigger. Defaults to None.
@@ -160,90 +167,104 @@ def read_raw_egi(input_fname, include=None, exclude=None, verbose=None):
 
     Returns
     -------
-    raw : instance of mne.io.Raw
-        A raw object containing EGI data.
+    raw : Instance of RawEGI
+        A Raw object containing EGI data.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
-    return _RawEGI(input_fname, include, exclude, verbose)
+    return RawEGI(input_fname, montage, eog, misc, include, exclude, verbose)
 
 
-class _RawEGI(_BaseRaw):
+class RawEGI(_BaseRaw):
     """Raw object from EGI simple binary file
     """
     @verbose
-    def __init__(self, input_fname, include=None, exclude=None,
-                 verbose=None):
+    def __init__(self, input_fname, montage=None, eog=None, misc=None,
+                 include=None, exclude=None, verbose=None):
         """docstring for __init__"""
+        if eog is None:
+            eog = []
+        if misc is None:
+            misc = []
         with open(input_fname, 'rb') as fid:  # 'rb' important for py3k
             logger.info('Reading EGI header from %s...' % input_fname)
             egi_info = _read_header(fid)
             logger.info('    Reading events ...')
-            _ = _read_events(fid, egi_info)  # update info + jump
+            _read_events(fid, egi_info)  # update info + jump
             logger.info('    Reading data ...')
             # reads events as well
             data = _read_data(fid, egi_info).astype(np.float64)
-            if egi_info['value_range'] and egi_info['bits']:
-                mv = egi_info['value_range'] / 2 ** egi_info['bits']
+            if egi_info['value_range'] != 0 and egi_info['bits'] != 0:
+                cal = egi_info['value_range'] / 2 ** egi_info['bits']
             else:
-                mv = 1e-6
-            data[:egi_info['n_channels']] = data[:egi_info['n_channels']] * mv
+                cal = 1e-6
+            data[:egi_info['n_channels']] = data[:egi_info['n_channels']] * cal
 
         logger.info('    Assembling measurement info ...')
 
-        event_codes = list(egi_info['event_codes'])
-        egi_events = data[-egi_info['n_events']:]
+        if egi_info['n_events'] > 0:
+            event_codes = list(egi_info['event_codes'])
+            egi_events = data[-egi_info['n_events']:]
 
-        if include is None:
-            exclude_list = ['sync', 'TREV'] if exclude is None else exclude
-            exclude_inds = [i for i, k in enumerate(event_codes) if k in
-                            exclude_list]
-            more_excludes = []
-            if exclude is None:
-                for ii, event in enumerate(egi_events):
-                    if event.sum() <= 1 and event_codes[ii]:
-                        more_excludes.append(ii)
-            if len(exclude_inds) + len(more_excludes) == len(event_codes):
-                warnings.warn('Did not find any event code with more '
-                              'than one event.', RuntimeWarning)
+            if include is None:
+                exclude_list = ['sync', 'TREV'] if exclude is None else exclude
+                exclude_inds = [i for i, k in enumerate(event_codes) if k in
+                                exclude_list]
+                more_excludes = []
+                if exclude is None:
+                    for ii, event in enumerate(egi_events):
+                        if event.sum() <= 1 and event_codes[ii]:
+                            more_excludes.append(ii)
+                if len(exclude_inds) + len(more_excludes) == len(event_codes):
+                    warnings.warn('Did not find any event code with more '
+                                  'than one event.', RuntimeWarning)
+                else:
+                    exclude_inds.extend(more_excludes)
+
+                exclude_inds.sort()
+                include_ = [i for i in np.arange(egi_info['n_events']) if
+                            i not in exclude_inds]
+                include_names = [k for i, k in enumerate(event_codes)
+                                 if i in include_]
             else:
-                exclude_inds.extend(more_excludes)
+                include_ = [i for i, k in enumerate(event_codes)
+                            if k in include]
+                include_names = include
 
-            exclude_inds.sort()
-            include_ = [i for i in np.arange(egi_info['n_events']) if
-                        i not in exclude_inds]
-            include_names = [k for i, k in enumerate(event_codes)
-                             if i in include_]
+            for kk, v in [('include', include_names), ('exclude', exclude)]:
+                if isinstance(v, list):
+                    for k in v:
+                        if k not in event_codes:
+                            raise ValueError('Could find event named "%s"' % k)
+                elif v is not None:
+                    raise ValueError('`%s` must be None or of type list' % kk)
+
+            event_ids = np.arange(len(include_)) + 1
+            try:
+                logger.info('    Synthesizing trigger channel "STI 014" ...')
+                logger.info('    Excluding events {%s} ...' %
+                            ", ".join([k for i, k in enumerate(event_codes)
+                                       if i not in include_]))
+                new_trigger = _combine_triggers(egi_events[include_],
+                                                remapping=event_ids)
+                data = np.concatenate([data, new_trigger])
+            except RuntimeError:
+                logger.info('    Found multiple events at the same time '
+                            'sample. Could not create trigger channel.')
+                new_trigger = None
+
+            self.event_id = dict(zip([e for e in event_codes if e in
+                                      include_names], event_ids))
         else:
-            include_ = [i for i, k in enumerate(event_codes) if k in include]
-            include_names = include
-
-        for kk, v in [('include', include_names), ('exclude', exclude)]:
-            if isinstance(v, list):
-                for k in v:
-                    if k not in event_codes:
-                        raise ValueError('Could find event named "%s"' % k)
-            elif v is not None:
-                raise ValueError('`%s` must be None or of type list' % kk)
-
-        event_ids = np.arange(len(include_)) + 1
-        try:
-            logger.info('    Synthesizing trigger channel "STI 014" ...')
-            logger.info('    Excluding events {%s} ...' %
-                        ", ".join([k for i, k in enumerate(event_codes)
-                                   if i not in include_]))
-            new_trigger = _combine_triggers(egi_events[include_],
-                                            remapping=event_ids)
-            data = np.concatenate([data, new_trigger])
-        except RuntimeError:
-            logger.info('    Found multiple events at the same time sample. '
-                        'Could not create trigger channel.')
+            # No events
+            self.event_id = None
             new_trigger = None
-
-        self.event_id = dict(zip([e for e in event_codes if e in
-                                  include_names], event_ids))
-        self._data = data
-        self.verbose = verbose
-        self.info = info = Info(dict((k, None) for k in _other_fields))
-        info['sfreq'] = egi_info['samp_rate']
+        info = _empty_info()
+        info['hpi_subsystem'] = None
+        info['events'], info['hpi_results'], info['hpi_meas'] = [], [], []
+        info['sfreq'] = float(egi_info['samp_rate'])
         info['filename'] = input_fname
         my_time = datetime.datetime(
             egi_info['year'],
@@ -256,17 +277,19 @@ class _RawEGI(_BaseRaw):
         my_timestamp = time.mktime(my_time.timetuple())
         info['meas_date'] = np.array([my_timestamp], dtype=np.float32)
         info['projs'] = []
-        ch_names = ['EEG %03d' % (i + 1) for i in range(egi_info['n_channels'])]
+        ch_names = ['EEG %03d' % (i + 1) for i in
+                    range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
         if new_trigger is not None:
             ch_names.append('STI 014')  # our new_trigger
-        info['nchan'] = len(data)
+        info['nchan'] = nchan = len(data)
         info['chs'] = []
         info['ch_names'] = ch_names
         info['bads'] = []
         info['comps'] = []
+        info['custom_ref_applied'] = False
         for ii, ch_name in enumerate(ch_names):
-            ch_info = {'cal': 1.0,
+            ch_info = {'cal': cal,
                        'logno': ii + 1,
                        'scanno': ii + 1,
                        'range': 1.0,
@@ -276,47 +299,32 @@ class _RawEGI(_BaseRaw):
                        'coord_frame': FIFF.FIFFV_COORD_HEAD,
                        'coil_type': FIFF.FIFFV_COIL_EEG,
                        'kind': FIFF.FIFFV_EEG_CH,
-                       'eeg_loc': None,
                        'loc': np.array([0, 0, 0, 1] * 3, dtype='f4')}
+            if ch_name in eog or ii in eog or ii - nchan in eog:
+                ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+                ch_info['kind'] = FIFF.FIFFV_EOG_CH
+            if ch_name in misc or ii in misc or ii - nchan in misc:
+                ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+                ch_info['kind'] = FIFF.FIFFV_MISC_CH
 
             if len(ch_name) == 4 or ch_name.startswith('STI'):
                 u = {'unit_mul': 0,
+                     'cal': 1,
                      'coil_type': FIFF.FIFFV_COIL_NONE,
                      'unit': FIFF.FIFF_UNIT_NONE,
                      'kind': FIFF.FIFFV_STIM_CH}
                 ch_info.update(u)
             info['chs'].append(ch_info)
 
-        self.preload = True
-        self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-        self._times = np.arange(self.first_samp, self.last_samp + 1,
-                                dtype=np.float64)
-        self._times /= self.info['sfreq']
+        _check_update_montage(info, montage)
+        orig_format = {'>f2': 'single', '>f4': 'double',
+                       '>i2': 'int'}[egi_info['dtype']]
+        super(RawEGI, self).__init__(
+            info, data, filenames=[input_fname], orig_format=orig_format,
+            verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                     % (self.first_samp, self.last_samp,
                        float(self.first_samp) / self.info['sfreq'],
                        float(self.last_samp) / self.info['sfreq']))
-
-        # Raw attributes
-        self._filenames = list()
-        self._projector = None
-        self.first_samp = 0
-        self.last_samp = egi_info['n_samples'] - 1
-        self.comp = None  # no compensation for egi
-        self.proj = False
-        self._first_samps = np.array([self.first_samp])
-        self._last_samps = np.array([self.last_samp])
-        self._raw_lengths = np.array([egi_info['n_samples']])
-        self.rawdirs = np.array([])
-        self.cals = np.ones(self.info['nchan'])
         # use information from egi
-        self.orig_format = {'>f4': 'single', '>f4': 'double',
-                            '>i2': 'int'}[egi_info['dtype']]
         logger.info('Ready.')
-
-    def __repr__(self):
-        n_chan = self.info['nchan']
-        data_range = self.last_samp - self.first_samp + 1
-        s = ('%r' % os.path.basename(self.info['filename']),
-             "n_channels x n_times : %s x %s" % (n_chan, data_range))
-        return "<RawEGI  |  %s>" % ', '.join(s)

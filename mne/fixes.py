@@ -12,6 +12,7 @@ at which the fixe is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
+from __future__ import division
 import collections
 from operator import itemgetter
 import inspect
@@ -19,15 +20,13 @@ import inspect
 import warnings
 import numpy as np
 import scipy
-from scipy import linalg
+from scipy import linalg, sparse
 from math import ceil, log
 from numpy.fft import irfft
-from nose.tools import assert_true
-from scipy.signal import filtfilt as sp_filtfilt
 from distutils.version import LooseVersion
 from functools import partial
 from .externals import six
-from .externals.six.moves import copyreg
+from .externals.six.moves import copyreg, xrange
 from gzip import GzipFile
 
 
@@ -35,8 +34,6 @@ from gzip import GzipFile
 # Misc
 
 class gzip_open(GzipFile):  # python2.6 doesn't have context managing
-    def __init__(self, *args, **kwargs):
-        return GzipFile.__init__(self, *args, **kwargs)
 
     def __enter__(self):
         if hasattr(GzipFile, '__enter__'):
@@ -148,19 +145,40 @@ else:
     copysign = np.copysign
 
 
-def _in1d(ar1, ar2, assume_unique=False):
+def _in1d(ar1, ar2, assume_unique=False, invert=False):
     """Replacement for in1d that is provided for numpy >= 1.4"""
+    # Ravel both arrays, behavior for the first array could be different
+    ar1 = np.asarray(ar1).ravel()
+    ar2 = np.asarray(ar2).ravel()
+
+    # This code is significantly faster when the condition is satisfied.
+    if len(ar2) < 10 * len(ar1) ** 0.145:
+        if invert:
+            mask = np.ones(len(ar1), dtype=np.bool)
+            for a in ar2:
+                mask &= (ar1 != a)
+        else:
+            mask = np.zeros(len(ar1), dtype=np.bool)
+            for a in ar2:
+                mask |= (ar1 == a)
+        return mask
+
+    # Otherwise use sorting
     if not assume_unique:
         ar1, rev_idx = unique(ar1, return_inverse=True)
         ar2 = np.unique(ar2)
+
     ar = np.concatenate((ar1, ar2))
     # We need this to be a stable sort, so always use 'mergesort'
     # here. The values from the first array should always come before
     # the values from the second array.
     order = ar.argsort(kind='mergesort')
     sar = ar[order]
-    equal_adj = (sar[1:] == sar[:-1])
-    flag = np.concatenate((equal_adj, [False]))
+    if invert:
+        bool_ar = (sar[1:] != sar[:-1])
+    else:
+        bool_ar = (sar[1:] == sar[:-1])
+    flag = np.concatenate((bool_ar, [invert]))
     indx = order.argsort(kind='mergesort')[:len(ar1)]
 
     if assume_unique:
@@ -168,7 +186,8 @@ def _in1d(ar1, ar2, assume_unique=False):
     else:
         return flag[indx][rev_idx]
 
-if not hasattr(np, 'in1d'):
+
+if not hasattr(np, 'in1d') or LooseVersion(np.__version__) < '1.8':
     in1d = _in1d
 else:
     in1d = np.in1d
@@ -283,19 +302,86 @@ else:
     safe_copy = np.copy
 
 
-# wrap filtfilt, excluding padding arguments
-def _filtfilt(*args, **kwargs):
-    # cut out filter args
-    if len(args) > 4:
-        args = args[:4]
-    if 'padlen' in kwargs:
-        del kwargs['padlen']
-    return sp_filtfilt(*args, **kwargs)
+def _meshgrid(*xi, **kwargs):
+    """
+    Return coordinate matrices from coordinate vectors.
+    Make N-D coordinate arrays for vectorized evaluations of
+    N-D scalar/vector fields over N-D grids, given
+    one-dimensional coordinate arrays x1, x2,..., xn.
+    .. versionchanged:: 1.9
+       1-D and 0-D cases are allowed.
+    Parameters
+    ----------
+    x1, x2,..., xn : array_like
+        1-D arrays representing the coordinates of a grid.
+    indexing : {'xy', 'ij'}, optional
+        Cartesian ('xy', default) or matrix ('ij') indexing of output.
+        See Notes for more details.
+        .. versionadded:: 1.7.0
+    sparse : bool, optional
+        If True a sparse grid is returned in order to conserve memory.
+        Default is False.
+        .. versionadded:: 1.7.0
+    copy : bool, optional
+        If False, a view into the original arrays are returned in order to
+        conserve memory.  Default is True.  Please note that
+        ``sparse=False, copy=False`` will likely return non-contiguous
+        arrays.  Furthermore, more than one element of a broadcast array
+        may refer to a single memory location.  If you need to write to the
+        arrays, make copies first.
+        .. versionadded:: 1.7.0
+    Returns
+    -------
+    X1, X2,..., XN : ndarray
+        For vectors `x1`, `x2`,..., 'xn' with lengths ``Ni=len(xi)`` ,
+        return ``(N1, N2, N3,...Nn)`` shaped arrays if indexing='ij'
+        or ``(N2, N1, N3,...Nn)`` shaped arrays if indexing='xy'
+        with the elements of `xi` repeated to fill the matrix along
+        the first dimension for `x1`, the second for `x2` and so on.
+    """
+    ndim = len(xi)
 
-if 'padlen' not in inspect.getargspec(sp_filtfilt)[0]:
-    filtfilt = _filtfilt
+    copy_ = kwargs.pop('copy', True)
+    sparse = kwargs.pop('sparse', False)
+    indexing = kwargs.pop('indexing', 'xy')
+
+    if kwargs:
+        raise TypeError("meshgrid() got an unexpected keyword argument '%s'"
+                        % (list(kwargs)[0],))
+
+    if indexing not in ['xy', 'ij']:
+        raise ValueError(
+            "Valid values for `indexing` are 'xy' and 'ij'.")
+
+    s0 = (1,) * ndim
+    output = [np.asanyarray(x).reshape(s0[:i] + (-1,) + s0[i + 1::])
+              for i, x in enumerate(xi)]
+
+    shape = [x.size for x in output]
+
+    if indexing == 'xy' and ndim > 1:
+        # switch first and second axis
+        output[0].shape = (1, -1) + (1,) * (ndim - 2)
+        output[1].shape = (-1, 1) + (1,) * (ndim - 2)
+        shape[0], shape[1] = shape[1], shape[0]
+
+    if sparse:
+        if copy_:
+            return [x.copy() for x in output]
+        else:
+            return output
+    else:
+        # Return the full N-D matrix (not only the 1-D vector)
+        if copy_:
+            mult_fact = np.ones(shape, dtype=int)
+            return [x * mult_fact for x in output]
+        else:
+            return np.broadcast_arrays(*output)
+
+if LooseVersion(np.__version__) < LooseVersion('1.7'):
+    meshgrid = _meshgrid
 else:
-    filtfilt = sp_filtfilt
+    meshgrid = np.meshgrid
 
 
 ###############################################################################
@@ -358,8 +444,8 @@ def _firwin2(numtaps, freq, gain, nfreqs=None, window='hamming', nyq=1.0):
     A lowpass FIR filter with a response that is 1 on [0.0, 0.5], and
     that decreases linearly on [0.5, 1.0] from 1 to 0:
 
-    >>> taps = firwin2(150, [0.0, 0.5, 1.0], [1.0, 1.0, 0.0])
-    >>> print(taps[72:78])
+    >>> taps = firwin2(150, [0.0, 0.5, 1.0], [1.0, 1.0, 0.0])  # doctest: +SKIP
+    >>> print(taps[72:78])  # doctest: +SKIP
     [-0.02286961 -0.06362756  0.57310236  0.57310236 -0.06362756 -0.02286961]
 
     See also
@@ -449,10 +535,85 @@ def _firwin2(numtaps, freq, gain, nfreqs=None, window='hamming', nyq=1.0):
 
     return out
 
-if hasattr(scipy.signal, 'firwin2'):
-    from scipy.signal import firwin2
-else:
-    firwin2 = _firwin2
+
+def get_firwin2():
+    """Helper to get firwin2"""
+    try:
+        from scipy.signal import firwin2
+    except ImportError:
+        firwin2 = _firwin2
+    return firwin2
+
+
+def _filtfilt(*args, **kwargs):
+    """wrap filtfilt, excluding padding arguments"""
+    from scipy.signal import filtfilt
+    # cut out filter args
+    if len(args) > 4:
+        args = args[:4]
+    if 'padlen' in kwargs:
+        del kwargs['padlen']
+    return filtfilt(*args, **kwargs)
+
+
+def get_filtfilt():
+    """Helper to get filtfilt from scipy"""
+    from scipy.signal import filtfilt
+
+    if 'padlen' in inspect.getargspec(filtfilt)[0]:
+        return filtfilt
+
+    return _filtfilt
+
+
+def _get_argrelmax():
+    try:
+        from scipy.signal import argrelmax
+    except ImportError:
+        argrelmax = _argrelmax
+    return argrelmax
+
+
+def _argrelmax(data, axis=0, order=1, mode='clip'):
+    """Calculate the relative maxima of `data`.
+
+    Parameters
+    ----------
+    data : ndarray
+        Array in which to find the relative maxima.
+    axis : int, optional
+        Axis over which to select from `data`.  Default is 0.
+    order : int, optional
+        How many points on each side to use for the comparison
+        to consider ``comparator(n, n+x)`` to be True.
+    mode : str, optional
+        How the edges of the vector are treated.
+        Available options are 'wrap' (wrap around) or 'clip' (treat overflow
+        as the same as the last (or first) element).
+        Default 'clip'.  See `numpy.take`.
+
+    Returns
+    -------
+    extrema : tuple of ndarrays
+        Indices of the maxima in arrays of integers.  ``extrema[k]`` is
+        the array of indices of axis `k` of `data`.  Note that the
+        return value is a tuple even when `data` is one-dimensional.
+    """
+    comparator = np.greater
+    if((int(order) != order) or (order < 1)):
+        raise ValueError('Order must be an int >= 1')
+    datalen = data.shape[axis]
+    locs = np.arange(0, datalen)
+    results = np.ones(data.shape, dtype=bool)
+    main = data.take(locs, axis=axis, mode=mode)
+    for shift in xrange(1, order + 1):
+        plus = data.take(locs + shift, axis=axis, mode=mode)
+        minus = data.take(locs - shift, axis=axis, mode=mode)
+        results &= comparator(main, plus)
+        results &= comparator(main, minus)
+        if(~results.any()):
+            return results
+    return np.where(results)
 
 
 ###############################################################################
@@ -567,22 +728,161 @@ copyreg.pickle(partial, _reduce_partial)
 def normalize_colors(vmin, vmax, clip=False):
     """Helper to handle matplotlib API"""
     import matplotlib.pyplot as plt
-    if 'Normalize' in vars(plt):
+    try:
         return plt.Normalize(vmin, vmax, clip=clip)
-    else:
+    except AttributeError:
         return plt.normalize(vmin, vmax, clip=clip)
 
 
-def _assert_is(expr1, expr2, msg=None):
-    """Fake assert_is without message"""
-    assert_true(expr2 is expr2)
+def assert_true(expr, msg='False is not True'):
+    """Fake assert_true without message"""
+    if not expr:
+        raise AssertionError(msg)
 
-def _assert_is_not(expr1, expr2, msg=None):
+
+def assert_is(expr1, expr2, msg=None):
+    """Fake assert_is without message"""
+    assert_true(expr2 is expr2, msg)
+
+
+def assert_is_not(expr1, expr2, msg=None):
     """Fake assert_is_not without message"""
-    assert_true(expr2 is not expr2)
+    assert_true(expr1 is not expr2, msg)
+
+
+def _sparse_block_diag(mats, format=None, dtype=None):
+    """An implementation of scipy.sparse.block_diag since old versions of
+    scipy don't have it. Forms a sparse matrix by stacking matrices in block
+    diagonal form.
+
+    Parameters
+    ----------
+    mats : list of matrices
+        Input matrices.
+    format : str, optional
+        The sparse format of the result (e.g. "csr"). If not given, the
+        matrix is returned in "coo" format.
+    dtype : dtype specifier, optional
+        The data-type of the output matrix. If not given, the dtype is
+        determined from that of blocks.
+
+    Returns
+    -------
+    res : sparse matrix
+    """
+    nmat = len(mats)
+    rows = []
+    for ia, a in enumerate(mats):
+        row = [None] * nmat
+        row[ia] = a
+        rows.append(row)
+    return sparse.bmat(rows, format=format, dtype=dtype)
 
 try:
-    from nose.tools import assert_is, assert_is_not
-except ImportError:
-    assert_is = _assert_is
-    assert_is_not = _assert_is_not
+    from scipy.sparse import block_diag as sparse_block_diag
+except Exception:
+    sparse_block_diag = _sparse_block_diag
+
+
+def _isclose(a, b, rtol=1.e-5, atol=1.e-8, equal_nan=False):
+    """
+    Returns a boolean array where two arrays are element-wise equal within a
+    tolerance.
+
+    The tolerance values are positive, typically very small numbers.  The
+    relative difference (`rtol` * abs(`b`)) and the absolute difference
+    `atol` are added together to compare against the absolute difference
+    between `a` and `b`.
+
+    Parameters
+    ----------
+    a, b : array_like
+        Input arrays to compare.
+    rtol : float
+        The relative tolerance parameter (see Notes).
+    atol : float
+        The absolute tolerance parameter (see Notes).
+    equal_nan : bool
+        Whether to compare NaN's as equal.  If True, NaN's in `a` will be
+        considered equal to NaN's in `b` in the output array.
+
+    Returns
+    -------
+    y : array_like
+        Returns a boolean array of where `a` and `b` are equal within the
+        given tolerance. If both `a` and `b` are scalars, returns a single
+        boolean value.
+
+    See Also
+    --------
+    allclose
+
+    Notes
+    -----
+    .. versionadded:: 1.7.0
+
+    For finite values, isclose uses the following equation to test whether
+    two floating point values are equivalent.
+
+     absolute(`a` - `b`) <= (`atol` + `rtol` * absolute(`b`))
+
+    The above equation is not symmetric in `a` and `b`, so that
+    `isclose(a, b)` might be different from `isclose(b, a)` in
+    some rare cases.
+
+    Examples
+    --------
+    >>> isclose([1e10,1e-7], [1.00001e10,1e-8])
+    array([ True, False], dtype=bool)
+    >>> isclose([1e10,1e-8], [1.00001e10,1e-9])
+    array([ True,  True], dtype=bool)
+    >>> isclose([1e10,1e-8], [1.0001e10,1e-9])
+    array([False,  True], dtype=bool)
+    >>> isclose([1.0, np.nan], [1.0, np.nan])
+    array([ True, False], dtype=bool)
+    >>> isclose([1.0, np.nan], [1.0, np.nan], equal_nan=True)
+    array([ True,  True], dtype=bool)
+    """
+    def within_tol(x, y, atol, rtol):
+        with np.errstate(invalid='ignore'):
+            result = np.less_equal(abs(x - y), atol + rtol * abs(y))
+        if np.isscalar(a) and np.isscalar(b):
+            result = bool(result)
+        return result
+
+    x = np.array(a, copy=False, subok=True, ndmin=1)
+    y = np.array(b, copy=False, subok=True, ndmin=1)
+
+    # Make sure y is an inexact type to avoid bad behavior on abs(MIN_INT).
+    # This will cause casting of x later. Also, make sure to allow subclasses
+    # (e.g., for numpy.ma).
+    dt = np.core.multiarray.result_type(y, 1.)
+    y = np.array(y, dtype=dt, copy=False, subok=True)
+
+    xfin = np.isfinite(x)
+    yfin = np.isfinite(y)
+    if np.all(xfin) and np.all(yfin):
+        return within_tol(x, y, atol, rtol)
+    else:
+        finite = xfin & yfin
+        cond = np.zeros_like(finite, subok=True)
+        # Because we're using boolean indexing, x & y must be the same shape.
+        # Ideally, we'd just do x, y = broadcast_arrays(x, y). It's in
+        # lib.stride_tricks, though, so we can't import it here.
+        x = x * np.ones_like(cond)
+        y = y * np.ones_like(cond)
+        # Avoid subtraction with infinite/nan values...
+        cond[finite] = within_tol(x[finite], y[finite], atol, rtol)
+        # Check for equality of infinite values...
+        cond[~finite] = (x[~finite] == y[~finite])
+        if equal_nan:
+            # Make NaN == NaN
+            both_nan = np.isnan(x) & np.isnan(y)
+            cond[both_nan] = both_nan[both_nan]
+        return cond
+
+
+if LooseVersion(np.__version__) < LooseVersion('1.7'):
+    isclose = _isclose
+else:
+    isclose = np.isclose

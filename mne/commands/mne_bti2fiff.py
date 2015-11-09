@@ -29,34 +29,34 @@ import sys
 from mne.io import read_raw_bti
 
 
-if __name__ == '__main__':
-
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
 
     parser.add_option('-p', '--pdf', dest='pdf_fname',
-                    help='Input data file name', metavar='FILE')
+                      help='Input data file name', metavar='FILE')
     parser.add_option('-c', '--config', dest='config_fname',
-                    help='Input config file name', metavar='FILE', default='config')
+                      help='Input config file name', metavar='FILE',
+                      default='config')
     parser.add_option('--head_shape', dest='head_shape_fname',
-                    help='Headshape file name', metavar='FILE',
-                    default='hs_file')
+                      help='Headshape file name', metavar='FILE',
+                      default='hs_file')
     parser.add_option('-o', '--out_fname', dest='out_fname',
                       help='Name of the resulting fiff file',
                       default='as_data_fname')
     parser.add_option('-r', '--rotation_x', dest='rotation_x', type='float',
-                    help='Compensatory rotation about Neuromag x axis, deg',
-                    default=2.0)
+                      help='Compensatory rotation about Neuromag x axis, deg',
+                      default=2.0)
     parser.add_option('-T', '--translation', dest='translation', type='str',
-                    help='Default translation, meter',
-                    default=(0.00, 0.02, 0.11))
+                      help='Default translation, meter',
+                      default=(0.00, 0.02, 0.11))
     parser.add_option('--ecg_ch', dest='ecg_ch', type='str',
-                    help='4D ECG channel name',
-                    default='E31')
+                      help='4D ECG channel name',
+                      default='E31')
     parser.add_option('--eog_ch', dest='eog_ch', type='str',
-                    help='4D EOG channel names',
-                    default='E63,E64')
+                      help='4D EOG channel names',
+                      default='E63,E64')
 
     options, args = parser.parse_args()
 
@@ -83,4 +83,9 @@ if __name__ == '__main__':
 
     raw.save(out_fname)
     raw.close()
-    sys.exit(0)
+    if is_main:
+        sys.exit(0)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

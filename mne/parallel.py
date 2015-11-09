@@ -18,6 +18,7 @@ if 'MNE_FORCE_SERIAL' in os.environ:
 else:
     _force_serial = None
 
+
 @verbose
 def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
     """Return parallel instance with delayed function
@@ -33,7 +34,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         INFO or DEBUG will print parallel status, others will not.
-    max_nbytes int, str, or None
+    max_nbytes : int, str, or None
         Threshold on the minimum size of arrays passed to the workers that
         triggers automated memmory mapping. Can be an int in Bytes,
         or a human-readable string, e.g., '1M' for 1 megabyte.
@@ -69,8 +70,8 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
             return parallel, my_func, n_jobs
 
     # check if joblib is recent enough to support memmaping
-    aspec = inspect.getargspec(Parallel.__init__)
-    joblib_mmap = ('temp_folder' in aspec.args and 'max_nbytes' in aspec.args)
+    p_args = inspect.getargspec(Parallel.__init__).args
+    joblib_mmap = ('temp_folder' in p_args and 'max_nbytes' in p_args)
 
     cache_dir = get_config('MNE_CACHE_DIR', None)
     if isinstance(max_nbytes, string_types) and max_nbytes == 'auto':
@@ -118,17 +119,16 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         The checked number of jobs. Always positive (or 'cuda' if
         applicable.)
     """
-    if _force_serial:
-        n_jobs = 1
-        logger.info('... MNE_FORCE_SERIAL set. Processing in forced '
-                    'serial mode.')
-
-    elif not isinstance(n_jobs, int):
+    if not isinstance(n_jobs, int):
         if not allow_cuda:
             raise ValueError('n_jobs must be an integer')
         elif not isinstance(n_jobs, string_types) or n_jobs != 'cuda':
             raise ValueError('n_jobs must be an integer, or "cuda"')
-        #else, we have n_jobs='cuda' and this is okay, so do nothing
+        # else, we have n_jobs='cuda' and this is okay, so do nothing
+    elif _force_serial:
+        n_jobs = 1
+        logger.info('... MNE_FORCE_SERIAL set. Processing in forced '
+                    'serial mode.')
     elif n_jobs <= 0:
         try:
             import multiprocessing

@@ -7,26 +7,31 @@ import warnings
 
 import mne
 from mne import compute_covariance
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw, tf_lcmv
 from mne.beamformer._lcmv import _lcmv_source_power
-from mne.source_estimate import SourceEstimate, VolSourceEstimate
 from mne.externals.six import advance_iterator
+from mne.utils import run_tests_if_main, slow_test
 
 
-data_path = sample.data_path(download=False)
-fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
+data_path = testing.data_path(download=False)
+fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
+fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-meg-vol-7-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
+                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_event = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
+
+def read_forward_solution_meg(*args, **kwargs):
+    fwd = mne.read_forward_solution(*args, **kwargs)
+    return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 
 def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
@@ -38,10 +43,10 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     raw = mne.io.Raw(fname_raw, preload=True)
     forward = mne.read_forward_solution(fname_fwd)
     if all_forward:
-        forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
-        forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
+        forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
+        forward_fixed = read_forward_solution_meg(fname_fwd, force_fixed=True,
                                                   surf_ori=True)
-        forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
+        forward_vol = read_forward_solution_meg(fname_fwd_vol, surf_ori=True)
     else:
         forward_surf_ori = None
         forward_fixed = None
@@ -77,7 +82,8 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
                                    eeg=0.1, proj=True)
     if data_cov:
-        data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+        with warnings.catch_warnings(record=True):
+            data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
     else:
         data_cov = None
 
@@ -85,7 +91,8 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         forward_surf_ori, forward_fixed, forward_vol
 
 
-@sample.requires_sample_data
+@slow_test
+@testing.requires_testing_data
 def test_lcmv():
     """Test LCMV with evoked data and single trials
     """
@@ -94,32 +101,29 @@ def test_lcmv():
 
     for fwd in [forward, forward_vol]:
         stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01)
-
-        if fwd is forward:
-            assert_true(isinstance(stc, SourceEstimate))
-        else:
-            assert_true(isinstance(stc, VolSourceEstimate))
+        stc.crop(0.02, None)
 
         stc_pow = np.sum(stc.data, axis=1)
         idx = np.argmax(stc_pow)
         max_stc = stc.data[idx]
         tmax = stc.times[np.argmax(max_stc)]
 
-        assert_true(0.09 < tmax < 0.105)
-        assert_true(1.9 < np.max(max_stc) < 3.)
+        assert_true(0.09 < tmax < 0.105, tmax)
+        assert_true(0.9 < np.max(max_stc) < 3., np.max(max_stc))
 
         if fwd is forward:
             # Test picking normal orientation (surface source space only)
             stc_normal = lcmv(evoked, forward_surf_ori, noise_cov, data_cov,
                               reg=0.01, pick_ori="normal")
+            stc_normal.crop(0.02, None)
 
             stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
             idx = np.argmax(stc_pow)
             max_stc = stc_normal.data[idx]
             tmax = stc_normal.times[np.argmax(max_stc)]
 
-            assert_true(0.09 < tmax < 0.11)
-            assert_true(1. < np.max(max_stc) < 2.)
+            assert_true(0.04 < tmax < 0.11, tmax)
+            assert_true(0.4 < np.max(max_stc) < 2., np.max(max_stc))
 
             # The amplitude of normal orientation results should always be
             # smaller than free orientation results
@@ -128,17 +132,18 @@ def test_lcmv():
         # Test picking source orientation maximizing output source power
         stc_max_power = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
                              pick_ori="max-power")
+        stc_max_power.crop(0.02, None)
         stc_pow = np.sum(stc_max_power.data, axis=1)
         idx = np.argmax(stc_pow)
         max_stc = stc_max_power.data[idx]
         tmax = stc.times[np.argmax(max_stc)]
 
-        assert_true(0.09 < tmax < 0.1)
-        assert_true(2. < np.max(max_stc) < 3.)
+        assert_true(0.09 < tmax < 0.11, tmax)
+        assert_true(0.8 < np.max(max_stc) < 3., np.max(max_stc))
 
         # Maximum output source power orientation results should be similar to
         # free orientation results
-        assert_true((stc_max_power.data - stc.data < 0.5).all())
+        assert_true((stc_max_power.data - stc.data < 1).all())
 
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
@@ -185,7 +190,7 @@ def test_lcmv():
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_lcmv_raw():
     """Test LCMV with raw data
     """
@@ -200,7 +205,7 @@ def test_lcmv_raw():
     picks = mne.pick_types(raw.info, meg=True, exclude='bads',
                            selection=left_temporal_channels)
 
-    data_cov = mne.compute_raw_data_covariance(raw, tmin=tmin, tmax=tmax)
+    data_cov = mne.compute_raw_covariance(raw, tmin=tmin, tmax=tmax)
 
     stc = lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=label,
                    start=start, stop=stop, picks=picks)
@@ -211,12 +216,12 @@ def test_lcmv_raw():
 
     # make sure we get an stc with vertices only in the lh
     vertno = [forward['src'][0]['vertno'], forward['src'][1]['vertno']]
-    assert_true(len(stc.vertno[0]) == len(np.intersect1d(vertno[0],
-                                                         label.vertices)))
-    assert_true(len(stc.vertno[1]) == 0)
+    assert_true(len(stc.vertices[0]) == len(np.intersect1d(vertno[0],
+                                                           label.vertices)))
+    assert_true(len(stc.vertices[1]) == 0)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_lcmv_source_power():
     """Test LCMV source power computation
     """
@@ -229,8 +234,8 @@ def test_lcmv_source_power():
     max_source_idx = np.argmax(stc_source_power.data)
     max_source_power = np.max(stc_source_power.data)
 
-    assert_true(max_source_idx == 24)
-    assert_true(2.2 < max_source_power < 2.4)
+    assert_true(max_source_idx == 0, max_source_idx)
+    assert_true(0.4 < max_source_power < 2.4, max_source_power)
 
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = _lcmv_source_power(epochs.info, forward_surf_ori, noise_cov,
@@ -257,12 +262,10 @@ def test_lcmv_source_power():
                   noise_cov, data_cov, pick_ori="normal")
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_tf_lcmv():
     """Test TF beamforming based on LCMV
     """
-    fname_raw = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_filt-0-40_raw.fif')
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
     raw = mne.io.Raw(fname_raw, preload=True)
@@ -298,7 +301,7 @@ def test_tf_lcmv():
         raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1, picks=picks)
         epochs_band = mne.Epochs(raw_band, epochs.events, epochs.event_id,
                                  tmin=tmin, tmax=tmax, baseline=None,
-                                 proj=True)
+                                 proj=True, picks=picks)
         with warnings.catch_warnings(record=True):  # not enough samples
             noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
                                            win_length)
@@ -320,8 +323,9 @@ def test_tf_lcmv():
                                                       reg=reg, label=label)
                 source_power.append(stc_source_power.data)
 
-    stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-                   freq_bins, reg=reg, label=label)
+    with warnings.catch_warnings(record=True):
+        stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep,
+                       win_lengths, freq_bins, reg=reg, label=label)
 
     assert_true(len(stcs) == len(freq_bins))
     assert_true(stcs[0].shape[1] == 4)
@@ -357,8 +361,9 @@ def test_tf_lcmv():
     # the underlying raw object
     epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                                   baseline=(None, 0), preload=True)
-    assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward, noise_covs,
-                  tmin, tmax, tstep, win_lengths, freq_bins)
+    with warnings.catch_warnings(record=True):  # not enough samples
+        assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward,
+                      noise_covs, tmin, tmax, tstep, win_lengths, freq_bins)
 
     with warnings.catch_warnings(record=True):  # not enough samples
         # Pass only one epoch to test if subtracting evoked
@@ -368,3 +373,6 @@ def test_tf_lcmv():
                        label=label)
 
     assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))
+
+
+run_tests_if_main()

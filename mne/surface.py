@@ -4,310 +4,53 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six import string_types
 import os
 from os import path as op
 import sys
 from struct import pack
-import numpy as np
-from scipy.spatial.distance import cdist
-from scipy import sparse
-from fnmatch import fnmatch
+from glob import glob
 
+import numpy as np
+from scipy.sparse import coo_matrix, csr_matrix, eye as speye
+
+from .bem import read_bem_surfaces
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import find_tag
-from .io.write import (write_int, write_float, write_float_matrix,
-                       write_int_matrix, start_file, end_block,
+from .io.write import (write_int, start_file, end_block,
                        start_block, end_file, write_string,
                        write_float_sparse_rcs)
-from .channels import _get_meg_system
+from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to
 from .utils import logger, verbose, get_subjects_dir
-
-
-##############################################################################
-# BEM
-
-@verbose
-def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
-    """Read the BEM surfaces from a FIF file
-
-    Parameters
-    ----------
-    fname : string
-        The name of the file containing the surfaces.
-    add_geom : bool, optional (default False)
-        If True add geometry information to the surfaces.
-    s_id : int | None
-        If int, only read and return the surface with the given s_id.
-        An error will be raised if it doesn't exist. If None, all
-        surfaces are read and returned.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    surf: list | dict
-        A list of dictionaries that each contain a surface. If s_id
-        is not None, only the requested surface will be returned.
-    """
-    #
-    #   Default coordinate frame
-    #
-    coord_frame = FIFF.FIFFV_COORD_MRI
-    #
-    #   Open the file, create directory
-    #
-    fid, tree, _ = fiff_open(fname)
-    #
-    #   Find BEM
-    #
-    bem = dir_tree_find(tree, FIFF.FIFFB_BEM)
-    if bem is None:
-        fid.close()
-        raise ValueError('BEM data not found')
-
-    bem = bem[0]
-    #
-    #   Locate all surfaces
-    #
-    bemsurf = dir_tree_find(bem, FIFF.FIFFB_BEM_SURF)
-    if bemsurf is None:
-        fid.close()
-        raise ValueError('BEM surface data not found')
-
-    logger.info('    %d BEM surfaces found' % len(bemsurf))
-    #
-    #   Coordinate frame possibly at the top level
-    #
-    tag = find_tag(fid, bem, FIFF.FIFF_BEM_COORD_FRAME)
-    if tag is not None:
-        coord_frame = tag.data
-    #
-    #   Read all surfaces
-    #
-    if s_id is not None:
-        surfs = [_read_bem_surface(fid, bsurf, coord_frame, s_id)
-                 for bsurf in bemsurf]
-        surfs = [s for s in surfs if s is not None]
-        if not len(surfs) == 1:
-            raise ValueError('surface with id %d not found' % s_id)
-        fid.close()
-        return surfs[0]
-
-    surf = []
-    for bsurf in bemsurf:
-        logger.info('    Reading a surface...')
-        this = _read_bem_surface(fid, bsurf, coord_frame)
-        logger.info('[done]')
-        if add_geom:
-            _complete_surface_info(this)
-        surf.append(this)
-
-    logger.info('    %d BEM surfaces read' % len(surf))
-
-    fid.close()
-
-    return surf
-
-
-def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
-    """Read one bem surface
-    """
-    res = dict()
-    #
-    #   Read all the interesting stuff
-    #
-    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_ID)
-
-    if tag is None:
-        res['id'] = FIFF.FIFFV_BEM_SURF_ID_UNKNOWN
-    else:
-        res['id'] = int(tag.data)
-
-    if s_id is not None:
-        if res['id'] != s_id:
-            return None
-
-    tag = find_tag(fid, this, FIFF.FIFF_BEM_SIGMA)
-    if tag is None:
-        res['sigma'] = 1.0
-    else:
-        res['sigma'] = float(tag.data)
-
-    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NNODE)
-    if tag is None:
-        fid.close()
-        raise ValueError('Number of vertices not found')
-
-    res['np'] = int(tag.data)
-
-    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NTRI)
-    if tag is None:
-        fid.close()
-        raise ValueError('Number of triangles not found')
-    else:
-        res['ntri'] = int(tag.data)
-
-    tag = find_tag(fid, this, FIFF.FIFF_MNE_COORD_FRAME)
-    if tag is None:
-        tag = find_tag(fid, this, FIFF.FIFF_BEM_COORD_FRAME)
-        if tag is None:
-            res['coord_frame'] = def_coord_frame
-        else:
-            res['coord_frame'] = tag.data
-    else:
-        res['coord_frame'] = tag.data
-    #
-    #   Vertices, normals, and triangles
-    #
-    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NODES)
-    if tag is None:
-        fid.close()
-        raise ValueError('Vertex data not found')
-
-    res['rr'] = tag.data.astype(np.float)  # XXX : double because of mayavi bug
-    if res['rr'].shape[0] != res['np']:
-        fid.close()
-        raise ValueError('Vertex information is incorrect')
-
-    tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS)
-    if tag is None:
-        tag = tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NORMALS)
-    if tag is None:
-        res['nn'] = []
-    else:
-        res['nn'] = tag.data
-        if res['nn'].shape[0] != res['np']:
-            fid.close()
-            raise ValueError('Vertex normal information is incorrect')
-
-    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_TRIANGLES)
-    if tag is None:
-        fid.close()
-        raise ValueError('Triangulation not found')
-
-    res['tris'] = tag.data - 1  # index start at 0 in Python
-    if res['tris'].shape[0] != res['ntri']:
-        fid.close()
-        raise ValueError('Triangulation information is incorrect')
-
-    return res
-
-
-@verbose
-def read_bem_solution(fname, verbose=None):
-    """Read the BEM solution from a file
-
-    Parameters
-    ----------
-    fname : string
-        The file containing the BEM solution.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    bem : dict
-        The BEM solution.
-    """
-    logger.info('Loading surfaces...')
-    bem_surfs = read_bem_surfaces(fname, add_geom=True, verbose=False)
-    if len(bem_surfs) == 3:
-        logger.info('Three-layer model surfaces loaded.')
-        needed = np.array([FIFF.FIFFV_BEM_SURF_ID_HEAD,
-                           FIFF.FIFFV_BEM_SURF_ID_SKULL,
-                           FIFF.FIFFV_BEM_SURF_ID_BRAIN])
-        if not all([x['id'] in needed for x in bem_surfs]):
-            raise RuntimeError('Could not find necessary BEM surfaces')
-        # reorder surfaces as necessary (shouldn't need to?)
-        reorder = [None] * 3
-        for x in bem_surfs:
-            reorder[np.where(x['id'] == needed)[0][0]] = x
-        bem_surfs = reorder
-    elif len(bem_surfs) == 1:
-        if not bem_surfs[0]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN:
-            raise RuntimeError('BEM Surfaces not found')
-        logger.info('Homogeneous model surface loaded.')
-
-    # convert from surfaces to solution
-    bem = dict(surfs=bem_surfs)
-    logger.info('\nLoading the solution matrix...\n')
-    f, tree, _ = fiff_open(fname)
-    with f as fid:
-        # Find the BEM data
-        nodes = dir_tree_find(tree, FIFF.FIFFB_BEM)
-        if len(nodes) == 0:
-            raise RuntimeError('No BEM data in %s' % fname)
-        bem_node = nodes[0]
-
-        # Approximation method
-        tag = find_tag(f, bem_node, FIFF.FIFF_BEM_APPROX)
-        method = tag.data[0]
-        if method == FIFF.FIFFV_BEM_APPROX_CONST:
-            method = 'constant collocation'
-        elif method == FIFF.FIFFV_BEM_APPROX_LINEAR:
-            method = 'linear collocation'
-        else:
-            raise RuntimeError('Cannot handle BEM approximation method : %d'
-                               % method)
-
-        tag = find_tag(fid, bem_node, FIFF.FIFF_BEM_POT_SOLUTION)
-        dims = tag.data.shape
-        if len(dims) != 2:
-            raise RuntimeError('Expected a two-dimensional solution matrix '
-                               'instead of a %d dimensional one' % dims[0])
-
-        dim = 0
-        for surf in bem['surfs']:
-            if method == 'linear collocation':
-                dim += surf['np']
-            else:
-                dim += surf['ntri']
-
-        if dims[0] != dim or dims[1] != dim:
-            raise RuntimeError('Expected a %d x %d solution matrix instead of '
-                               'a %d x %d one' % (dim, dim, dims[1], dims[0]))
-        sol = tag.data
-        nsol = dims[0]
-
-    # Gamma factors and multipliers
-    bem['sigma'] = np.array([surf['sigma'] for surf in bem['surfs']])
-    # Dirty trick for the zero conductivity outside
-    sigma = np.r_[0.0, bem['sigma']]
-    bem['source_mult'] = 2.0 / (sigma[1:] + sigma[:-1])
-    bem['field_mult'] = sigma[1:] - sigma[:-1]
-    # make sure subsequent "zip"s work correctly
-    assert len(bem['surfs']) == len(bem['field_mult'])
-    bem['gamma'] = ((sigma[1:] - sigma[:-1])[np.newaxis, :] /
-                    (sigma[1:] + sigma[:-1])[:, np.newaxis])
-    bem['sol_name'] = fname
-    bem['solution'] = sol
-    bem['nsol'] = nsol
-    bem['bem_method'] = method
-    logger.info('Loaded %s BEM solution from %s', bem['bem_method'], fname)
-    return bem
+from .externals.six import string_types
 
 
 ###############################################################################
 # AUTOMATED SURFACE FINDING
 
-def get_head_surf(subject, source='bem', subjects_dir=None):
+@verbose
+def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
+                  verbose=None):
     """Load the subject head surface
 
     Parameters
     ----------
     subject : str
         Subject name.
-    source : str
+    source : str | list of str
         Type to load. Common choices would be `'bem'` or `'head'`. We first
         try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
-        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory.
+        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory by going
+        through all files matching the pattern. The head surface will be read
+        from the first file containing a head surface. Can also be a list
+        to try multiple strings.
     subjects_dir : str, or None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -317,29 +60,45 @@ def get_head_surf(subject, source='bem', subjects_dir=None):
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
-    this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
-                                    '%s-%s.fif' % (subject, source)))
-    if not op.isfile(this_head):
-        # let's do a more sophisticated search
-        this_head = None
-        path = op.join(subjects_dir, subject, 'bem')
-        if not op.isdir(path):
-            raise IOError('Subject bem directory "%s" does not exist'
-                          % path)
-        files = os.listdir(path)
-        for fname in files:
-            if fnmatch(fname, '%s*%s.fif' % (subject, source)):
-                this_head = op.join(path, fname)
-                break
-        if this_head is None:
-            raise IOError('No file matching "%s*%s" found'
-                          % (subject, source))
-    surf = read_bem_surfaces(this_head, True,
-                             FIFF.FIFFV_BEM_SURF_ID_HEAD)
+    if isinstance(source, string_types):
+        source = [source]
+    surf = None
+    for this_source in source:
+        this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
+                                        '%s-%s.fif' % (subject, this_source)))
+        if op.exists(this_head):
+            surf = read_bem_surfaces(this_head, True,
+                                     FIFF.FIFFV_BEM_SURF_ID_HEAD,
+                                     verbose=False)
+        else:
+            # let's do a more sophisticated search
+            path = op.join(subjects_dir, subject, 'bem')
+            if not op.isdir(path):
+                raise IOError('Subject bem directory "%s" does not exist'
+                              % path)
+            files = sorted(glob(op.join(path, '%s*%s.fif'
+                                        % (subject, this_source))))
+            for this_head in files:
+                try:
+                    surf = read_bem_surfaces(this_head, True,
+                                             FIFF.FIFFV_BEM_SURF_ID_HEAD,
+                                             verbose=False)
+                except ValueError:
+                    pass
+                else:
+                    break
+        if surf is not None:
+            break
+
+    if surf is None:
+        raise IOError('No file matching "%s*%s" and containing a head '
+                      'surface found' % (subject, this_source))
+    logger.info('Using surface from %s' % this_head)
     return surf
 
 
-def get_meg_helmet_surf(info, trans=None):
+@verbose
+def get_meg_helmet_surf(info, trans=None, verbose=None):
     """Load the MEG helmet associated with the MEG sensors
 
     Parameters
@@ -350,6 +109,8 @@ def get_meg_helmet_surf(info, trans=None):
         The head<->MRI transformation, usually obtained using
         read_trans(). Can be None, in which case the surface will
         be in head coordinates instead of MRI coordinates.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -357,9 +118,11 @@ def get_meg_helmet_surf(info, trans=None):
         The MEG helmet as a surface.
     """
     system = _get_meg_system(info)
+    logger.info('Getting helmet for system %s' % system)
     fname = op.join(op.split(__file__)[0], 'data', 'helmets',
                     system + '.fif.gz')
-    surf = read_bem_surfaces(fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET)
+    surf = read_bem_surfaces(fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET,
+                             verbose=False)
 
     # Ignore what the file says, it's in device coords and we want MRI coords
     surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
@@ -407,6 +170,13 @@ def fast_cross_3d(x, y):
                      x[:, 0] * y[:, 1] - x[:, 1] * y[:, 0]]
     else:
         return np.cross(x, y)
+
+
+def _fast_cross_nd_sum(a, b, c):
+    """Fast cross and sum"""
+    return ((a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]) * c[..., 0] +
+            (a[..., 2] * b[..., 0] - a[..., 0] * b[..., 2]) * c[..., 1] +
+            (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2])
 
 
 def _accumulate_normals(tris, tri_nn, npts):
@@ -468,7 +238,8 @@ def _triangle_coords(r, geom, best):
     return x, y, z
 
 
-def _complete_surface_info(this, do_neighbor_vert=False):
+@verbose
+def _complete_surface_info(this, do_neighbor_vert=False, verbose=None):
     """Complete surface info"""
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
 
@@ -509,6 +280,7 @@ def _complete_surface_info(this, do_neighbor_vert=False):
 
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
+        logger.info('    Vertex neighbors...')
         this['neighbor_vert'] = [_get_surf_neighbors(this, k)
                                  for k in range(this['np'])]
 
@@ -517,11 +289,9 @@ def _complete_surface_info(this, do_neighbor_vert=False):
 
 def _get_surf_neighbors(surf, k):
     """Calculate the surface neighbors based on triangulation"""
-    verts = np.concatenate([surf['tris'][nt]
-                            for nt in surf['neighbor_tri'][k]])
+    verts = surf['tris'][surf['neighbor_tri'][k]]
     verts = np.setdiff1d(verts, [k], assume_unique=False)
-    if np.any(verts >= surf['np']):
-        raise RuntimeError
+    assert np.all(verts < surf['np'])
     nneighbors = len(verts)
     nneigh_max = len(surf['neighbor_tri'][k])
     if nneighbors > nneigh_max:
@@ -555,11 +325,15 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
     use_balltree : bool
         Use fast BallTree based search from scikit-learn. If scikit-learn
         is not installed it will fall back to the slow brute force search.
+    return_dists : bool
+        If True, return associated distances.
 
     Returns
     -------
     nearest : array, shape=(n_query,)
         Index of nearest neighbor in xhs for every point in rr.
+    distances : array, shape=(n_query,)
+        The distances. Only returned if return_dists is True.
     """
     if use_balltree:
         try:
@@ -569,6 +343,10 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
                         'faster if scikit-learn is installed.')
             use_balltree = False
 
+    if xhs.size == 0 or rr.size == 0:
+        if return_dists:
+            return np.array([], int), np.array([])
+        return np.array([], int)
     if use_balltree is True:
         ball_tree = BallTree(xhs)
         if return_dists:
@@ -578,6 +356,7 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
             nearest = ball_tree.query(rr, k=1, return_distance=False)[:, 0]
             return nearest
     else:
+        from scipy.spatial.distance import cdist
         if return_dists:
             nearest = list()
             dists = list()
@@ -642,47 +421,43 @@ def read_surface(fname, verbose=None):
     tris : int array, shape=(n_faces, 3)
         Triangulation (each line contains indexes for three points which
         together form a face).
+
+    See Also
+    --------
+    write_surface
     """
     TRIANGLE_MAGIC = 16777214
     QUAD_MAGIC = 16777215
     NEW_QUAD_MAGIC = 16777213
     with open(fname, "rb", buffering=0) as fobj:  # buffering=0 for np bug
         magic = _fread3(fobj)
-        if (magic == QUAD_MAGIC) or (magic == NEW_QUAD_MAGIC):  # Quad file or new quad
+        # Quad file or new quad
+        if magic in (QUAD_MAGIC, NEW_QUAD_MAGIC):
             create_stamp = ''
             nvert = _fread3(fobj)
             nquad = _fread3(fobj)
-            if magic == QUAD_MAGIC:
-                coords = np.fromfile(fobj, ">i2", nvert * 3).astype(np.float) / 100.
-            else:
-                coords = np.fromfile(fobj, ">f4", nvert * 3).astype(np.float)
-
+            (fmt, div) = (">i2", 100.) if magic == QUAD_MAGIC else (">f4", 1.)
+            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float) / div
             coords = coords.reshape(-1, 3)
             quads = _fread3_many(fobj, nquad * 4)
             quads = quads.reshape(nquad, 4)
-            #
-            #   Face splitting follows
-            #
+
+            # Face splitting follows
             faces = np.zeros((2 * nquad, 3), dtype=np.int)
             nface = 0
             for quad in quads:
                 if (quad[0] % 2) == 0:
-                    faces[nface] = quad[0], quad[1], quad[3]
-                    nface += 1
-                    faces[nface] = quad[2], quad[3], quad[1]
-                    nface += 1
+                    faces[nface:nface + 2] = [[quad[0], quad[1], quad[3]],
+                                              [quad[2], quad[3], quad[1]]]
                 else:
-                    faces[nface] = quad[0], quad[1], quad[2]
-                    nface += 1
-                    faces[nface] = quad[0], quad[2], quad[3]
-                    nface += 1
-
+                    faces[nface:nface + 2] = [[quad[0], quad[1], quad[2]],
+                                              [quad[0], quad[2], quad[3]]]
+                nface += 2
         elif magic == TRIANGLE_MAGIC:  # Triangle file
             create_stamp = fobj.readline()
-            _ = fobj.readline()  # analysis:ignore
+            fobj.readline()
             vnum = np.fromfile(fobj, ">i4", 1)[0]
             fnum = np.fromfile(fobj, ">i4", 1)[0]
-            #raise RuntimeError
             coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
             faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
         else:
@@ -696,7 +471,7 @@ def read_surface(fname, verbose=None):
 
 
 @verbose
-def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
+def _read_surface_geom(fname, patch_stats=True, norm_rr=False, verbose=None):
     """Load the surface as dict, optionally add the geometry information"""
     # based on mne_load_surface_geom() in mne_surface_io.c
     if isinstance(fname, string_types):
@@ -709,7 +484,7 @@ def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
         s = fname
     else:
         raise RuntimeError('fname cannot be understood as str or dict')
-    if add_geom is True:
+    if patch_stats is True:
         s = _complete_surface_info(s)
     if norm_rr is True:
         _normalize_vectors(s['rr'])
@@ -719,13 +494,14 @@ def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
 ##############################################################################
 # SURFACE CREATION
 
-def _get_ico_surface(grade):
+def _get_ico_surface(grade, patch_stats=False):
     """Return an icosahedral surface of the desired grade"""
     # always use verbose=False since users don't need to know we're pulling
     # these from a file
     ico_file_name = op.join(op.dirname(__file__), 'data',
                             'icos.fif.gz')
-    ico = read_bem_surfaces(ico_file_name, s_id=9000 + grade, verbose=False)
+    ico = read_bem_surfaces(ico_file_name, patch_stats, s_id=9000 + grade,
+                            verbose=False)
     return ico
 
 
@@ -783,7 +559,7 @@ def _tessellate_sphere(mylevel):
                 /\           Normalize a, b, c
                /  \
              b/____\c        Construct new triangles
-             /\    /\	       [0,b,a]
+             /\    /\        [0,b,a]
             /  \  /  \       [b,1,c]
            /____\/____\      [a,b,c]
           0     a      2     [a,c,2]
@@ -833,10 +609,11 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
     surf = _read_surface_geom(surf)
 
     if stype in ['ico', 'oct']:
-        ### from mne_ico_downsample.c ###
+        # ## from mne_ico_downsample.c ## #
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
-        from_surf = _read_surface_geom(surf_name, norm_rr=True, add_geom=False)
+        from_surf = _read_surface_geom(surf_name, norm_rr=True,
+                                       patch_stats=False)
         if not len(from_surf['rr']) == surf['np']:
             raise RuntimeError('Mismatch between number of surface vertices, '
                                'possible parcellation error?')
@@ -909,6 +686,10 @@ def write_surface(fname, coords, faces, create_stamp=''):
     create_stamp : str
         Comment that is written to the beginning of the file. Can not contain
         line breaks.
+
+    See Also
+    --------
+    read_surface
     """
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")
@@ -926,43 +707,7 @@ def write_surface(fname, coords, faces, create_stamp=''):
 
 
 ###############################################################################
-# Write
-
-def write_bem_surface(fname, surf):
-    """Write one bem surface
-
-    Parameters
-    ----------
-    fname : string
-        File to write
-    surf : dict
-        A surface structured as obtained with read_bem_surfaces
-    """
-
-    # Create the file and save the essentials
-    fid = start_file(fname)
-
-    start_block(fid, FIFF.FIFFB_BEM)
-    start_block(fid, FIFF.FIFFB_BEM_SURF)
-
-    write_int(fid, FIFF.FIFF_BEM_SURF_ID, surf['id'])
-    write_float(fid, FIFF.FIFF_BEM_SIGMA, surf['sigma'])
-    write_int(fid, FIFF.FIFF_BEM_SURF_NNODE, surf['np'])
-    write_int(fid, FIFF.FIFF_BEM_SURF_NTRI, surf['ntri'])
-    write_int(fid, FIFF.FIFF_BEM_COORD_FRAME, surf['coord_frame'])
-    write_float_matrix(fid, FIFF.FIFF_BEM_SURF_NODES, surf['rr'])
-
-    if 'nn' in surf and surf['nn'] is not None and len(surf['nn']) > 0:
-        write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS, surf['nn'])
-
-    # index start at 0 in Python
-    write_int_matrix(fid, FIFF.FIFF_BEM_SURF_TRIANGLES, surf['tris'] + 1)
-
-    end_block(fid, FIFF.FIFFB_BEM_SURF)
-    end_block(fid, FIFF.FIFFB_BEM)
-
-    end_file(fid)
-
+# Decimation
 
 def _decimate_surface(points, triangles, reduction):
     """Aux function"""
@@ -1051,7 +796,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     if not op.isdir(mmap_dir):
         try:
             os.mkdir(mmap_dir)
-        except:
+        except Exception:
             logger.warning('Could not find or make morph map directory "%s"'
                            % mmap_dir)
 
@@ -1104,11 +849,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
                         right_map = tag.data
                         logger.info('    Right-hemisphere map read.')
 
-    if left_map is None:
-        raise ValueError('Left hemisphere map not found in %s' % fname)
-
-    if right_map is None:
-        raise ValueError('Left hemisphere map not found in %s' % fname)
+    if left_map is None or right_map is None:
+        raise ValueError('Could not find both hemispheres in %s' % fname)
 
     return left_map, right_map
 
@@ -1183,7 +925,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
                             '%s.sphere.reg' % hemi)
             from_pts = read_surface(fname, verbose=False)[0]
             n_pts = len(from_pts)
-            morph_maps.append(sparse.eye(n_pts, n_pts, format='csr'))
+            morph_maps.append(speye(n_pts, n_pts, format='csr'))
         return morph_maps
 
     for hemi in ['lh', 'rh']:
@@ -1216,9 +958,8 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
 
         nn_tris = from_tris[nn_tri_inds]
         row_ind = np.repeat(np.arange(n_to_pts), 3)
-        this_map = sparse.csr_matrix((nn_tris_weights,
-                                     (row_ind, nn_tris.ravel())),
-                                     shape=(n_to_pts, n_from_pts))
+        this_map = csr_matrix((nn_tris_weights, (row_ind, nn_tris.ravel())),
+                              shape=(n_to_pts, n_from_pts))
         morph_maps.append(this_map)
 
     return morph_maps
@@ -1295,14 +1036,13 @@ def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
                                0.0), 1.0)
     q0 = np.zeros_like(p0)
     #   Side 2 -> 3
-    t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
-                 + (2.0 * bb - cc) * qq) / (aa + bb - cc))
+    t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp) +
+                 (2.0 * bb - cc) * qq) / (aa + bb - cc))
     t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
     p1 = 1.0 - t1
     q1 = t1
     #   Side 1 -> 3
-    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
-                               / bb, 0.0), 1.0)
+    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc) / bb, 0.0), 1.0)
     p2 = np.zeros_like(q2)
 
     # figure out which one had the lowest distance
@@ -1315,3 +1055,59 @@ def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
     ii = np.argmin(np.abs(dists))
     p, q, pt, dist = pp[ii], qq[ii], pt_tris[ii % len(pt_tris)], dists[ii]
     return p, q, pt, dist
+
+
+def mesh_edges(tris):
+    """Returns sparse matrix with edges as an adjacency matrix
+
+    Parameters
+    ----------
+    tris : array of shape [n_triangles x 3]
+        The triangles.
+
+    Returns
+    -------
+    edges : sparse matrix
+        The adjacency matrix.
+    """
+    if np.max(tris) > len(np.unique(tris)):
+        raise ValueError('Cannot compute connectivity on a selection of '
+                         'triangles.')
+
+    npoints = np.max(tris) + 1
+    ones_ntris = np.ones(3 * len(tris))
+
+    a, b, c = tris.T
+    x = np.concatenate((a, b, c))
+    y = np.concatenate((b, c, a))
+    edges = coo_matrix((ones_ntris, (x, y)), shape=(npoints, npoints))
+    edges = edges.tocsr()
+    edges = edges + edges.T
+    return edges
+
+
+def mesh_dist(tris, vert):
+    """Compute adjacency matrix weighted by distances
+
+    It generates an adjacency matrix where the entries are the distances
+    between neighboring vertices.
+
+    Parameters
+    ----------
+    tris : array (n_tris x 3)
+        Mesh triangulation
+    vert : array (n_vert x 3)
+        Vertex locations
+
+    Returns
+    -------
+    dist_matrix : scipy.sparse.csr_matrix
+        Sparse matrix with distances between adjacent vertices
+    """
+    edges = mesh_edges(tris).tocoo()
+
+    # Euclidean distances between neighboring vertices
+    dist = np.sqrt(np.sum((vert[edges.row, :] - vert[edges.col, :]) ** 2,
+                          axis=1))
+    dist_matrix = csr_matrix((dist, (edges.row, edges.col)), shape=edges.shape)
+    return dist_matrix

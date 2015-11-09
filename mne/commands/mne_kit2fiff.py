@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Authors: Teon Brooks  <teon@nyu.edu>
+# Authors: Teon Brooks  <teon.brooks@gmail.com>
 
 """ Import KIT / NYU data to fif file.
 
@@ -14,8 +14,8 @@ import sys
 import mne
 from mne.io import read_raw_kit
 
-if __name__ == '__main__':
 
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     out_fname = options.out_fname
 
     if isinstance(stim, str):
-        stim = stim.split(':')
+        stim = map(int, stim.split(':'))
 
     raw = read_raw_kit(input_fname=input_fname, mrk=mrk_fname, elp=elp_fname,
                        hsp=hsp_fname, stim=stim, slope=slope,
@@ -66,3 +66,7 @@ if __name__ == '__main__':
     raw.save(out_fname)
     raw.close()
     sys.exit(0)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

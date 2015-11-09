@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Some utility functions"""
 from __future__ import print_function
 
@@ -7,6 +8,7 @@ from __future__ import print_function
 
 import warnings
 import logging
+import time
 from distutils.version import LooseVersion
 import os
 import os.path as op
@@ -15,31 +17,61 @@ import inspect
 from string import Formatter
 import subprocess
 import sys
-from sys import stdout
 import tempfile
 import shutil
 from shutil import rmtree
-import atexit
 from math import log, ceil
 import json
 import ftplib
 import hashlib
+from functools import partial
+import atexit
 
 import numpy as np
-import scipy
-from scipy import linalg
-
+from scipy import linalg, sparse
 
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
+from .fixes import isclose
+
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
+def _memory_usage(*args, **kwargs):
+    if isinstance(args[0], tuple):
+        args[0][0](*args[0][1], **args[0][2])
+    elif not isinstance(args[0], int):  # can be -1 for current use
+        args[0]()
+    return [-1]
+
+try:
+    from memory_profiler import memory_usage
+except ImportError:
+    memory_usage = _memory_usage
+
+
+def nottest(f):
+    """Decorator to mark a function as not a test"""
+    f.__test__ = False
+    return f
+
+
 ###############################################################################
 # RANDOM UTILITIES
+
+def _get_call_line(in_verbose=False):
+    """Helper to get the call line from within a function"""
+    # XXX Eventually we could auto-triage whether in a `verbose` decorated
+    # function or not.
+    # NB This probably only works for functions that are undecorated,
+    # or decorated by `verbose`.
+    back = 2 if not in_verbose else 4
+    call_frame = inspect.getouterframes(inspect.currentframe())[back][0]
+    return inspect.getframeinfo(call_frame).code_context[0].strip()
+
 
 def _sort_keys(x):
     """Sort and return keys of dict"""
@@ -142,6 +174,17 @@ def object_diff(a, b, pre=''):
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
             out += pre + ' StringIO mismatch\n'
+    elif sparse.isspmatrix(a):
+        # sparsity and sparse type of b vs a already checked above by type()
+        if b.shape != a.shape:
+            out += pre + (' sparse matrix a and b shape mismatch'
+                          '(%s vs %s)' % (a.shape, b.shape))
+        else:
+            c = a - b
+            c.eliminate_zeros()
+            if c.nnz > 0:
+                out += pre + (' sparse matrix a and b differ on %s '
+                              'elements' % c.nnz)
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out
@@ -218,9 +261,9 @@ def check_fname(fname, filetype, endings):
     """
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All %s files should end with '
-                      '%s' % (filetype, print_endings))
+        warnings.warn('This filename (%s) does not conform to MNE naming '
+                      'conventions. All %s files should end with '
+                      '%s' % (fname, filetype, print_endings))
 
 
 class WrapStdOut(object):
@@ -234,11 +277,13 @@ class WrapStdOut(object):
 class _TempDir(str):
     """Class for creating and auto-destroying temp dir
 
-    This is designed to be used with testing modules.
+    This is designed to be used with testing modules. Instances should be
+    defined inside test functions. Instances defined at module level can not
+    guarantee proper destruction of the temporary directory.
 
-    We cannot simply use __del__() method for cleanup here because the rmtree
-    function may be cleaned up before this object, so we use the atexit module
-    instead.
+    When used at module level, the current use of the __del__() method for
+    cleanup can fail because the rmtree function may be cleaned up before this
+    object (an alternative could be using the atexit module instead).
     """
     def __new__(self):
         new = str.__new__(self, tempfile.mkdtemp())
@@ -246,14 +291,13 @@ class _TempDir(str):
 
     def __init__(self):
         self._path = self.__str__()
-        atexit.register(self.cleanup)
 
-    def cleanup(self):
+    def __del__(self):
         rmtree(self._path, ignore_errors=True)
 
 
 def estimate_rank(data, tol=1e-4, return_singular=False,
-                  copy=True):
+                  norm=True, copy=True):
     """Helper to estimate the rank of data
 
     This function will normalize the rows of the data (typically
@@ -272,6 +316,9 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
+    norm : bool
+        If True, data will be scaled by their estimated row-wise norm.
+        Else data are assumed to be scaled. Defaults to True.
     copy : bool
         If False, values in data will be modified in-place during
         rank estimation (saves memory).
@@ -286,15 +333,22 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
     """
     if copy is True:
         data = data.copy()
-    norms = np.sqrt(np.sum(data ** 2, axis=1))
-    norms[norms == 0] = 1.0
-    data /= norms[:, np.newaxis]
+    if norm is True:
+        norms = _compute_row_norms(data)
+        data /= norms[:, np.newaxis]
     s = linalg.svd(data, compute_uv=False, overwrite_a=True)
     rank = np.sum(s >= tol)
     if return_singular is True:
         return rank, s
     else:
         return rank
+
+
+def _compute_row_norms(data):
+    """Compute scaling based on estimated norm"""
+    norms = np.sqrt(np.sum(data ** 2, axis=1))
+    norms[norms == 0] = 1.0
+    return norms
 
 
 def _reject_data_segments(data, reject, flat, decim, info, tstep):
@@ -330,64 +384,6 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
                            'consider updating your rejection '
                            'thresholds.')
     return data, drop_inds
-
-
-def run_subprocess(command, *args, **kwargs):
-    """Run command using subprocess.Popen
-
-    Run command and wait for command to complete. If the return code was zero
-    then return, otherwise raise CalledProcessError.
-    By default, this will also add stdout= and stderr=subproces.PIPE
-    to the call to Popen to suppress printing to the terminal.
-
-    Parameters
-    ----------
-    command : list of str
-        Command to run as subprocess (see subprocess.Popen documentation).
-    *args, **kwargs : arguments
-        Arguments to pass to subprocess.Popen.
-
-    Returns
-    -------
-    stdout : str
-        Stdout returned by the process.
-    stderr : str
-        Stderr returned by the process.
-    """
-    if 'stderr' not in kwargs:
-        kwargs['stderr'] = subprocess.PIPE
-    if 'stdout' not in kwargs:
-        kwargs['stdout'] = subprocess.PIPE
-
-    # Check the PATH environment variable. If run_subprocess() is to be called
-    # frequently this should be refactored so as to only check the path once.
-    env = kwargs.get('env', os.environ)
-    if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
-        msg = ("Your PATH environment variable contains at least one path "
-               "starting with a tilde ('~') character. Such paths are not "
-               "interpreted correctly from within Python. It is recommended "
-               "that you use '$HOME' instead of '~'.")
-        warnings.warn(msg)
-
-    logger.info("Running subprocess: %s" % str(command))
-    p = subprocess.Popen(command, *args, **kwargs)
-    stdout_, stderr = p.communicate()
-
-    if stdout_.strip():
-        logger.info("stdout:\n%s" % stdout_)
-    if stderr.strip():
-        logger.info("stderr:\n%s" % stderr)
-
-    output = (stdout_, stderr)
-    if p.returncode:
-        print(output)
-        err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in inspect.getargspec(err_fun).args:
-            raise subprocess.CalledProcessError(p.returncode, command, output)
-        else:
-            raise subprocess.CalledProcessError(p.returncode, command)
-
-    return output
 
 
 class _FormatDict(dict):
@@ -432,14 +428,20 @@ class deprecated(object):
 
     The optional extra argument will be appended to the deprecation message
     and the docstring. Note: to use this with the default value for extra, put
-    in an empty of parentheses:
+    in an empty of parentheses::
 
-    >>> from mne.utils import deprecated
-    >>> deprecated() # doctest: +ELLIPSIS
-    <mne.utils.deprecated object at ...>
+        >>> from mne.utils import deprecated
+        >>> deprecated() # doctest: +ELLIPSIS
+        <mne.utils.deprecated object at ...>
 
-    >>> @deprecated()
-    ... def some_function(): pass
+        >>> @deprecated()
+        ... def some_function(): pass
+
+
+    Parameters
+    ----------
+    extra: string
+        To be added to the deprecation messages.
     """
     # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
     # but with many changes.
@@ -448,16 +450,16 @@ class deprecated(object):
     # sklearn or scikits.learn, so a self-contained example is used above
 
     def __init__(self, extra=''):
-        """
-        Parameters
-        ----------
-        extra: string
-          to be added to the deprecation messages
-
-        """
         self.extra = extra
 
     def __call__(self, obj):
+        """Call
+
+        Parameters
+        ----------
+        obj : object
+            Object to call.
+        """
         if isinstance(obj, type):
             return self._decorate_class(obj)
         else:
@@ -471,14 +473,14 @@ class deprecated(object):
         # FIXME: we should probably reset __new__ for full generality
         init = cls.__init__
 
-        def wrapped(*args, **kwargs):
+        def deprecation_wrapped(*args, **kwargs):
             warnings.warn(msg, category=DeprecationWarning)
             return init(*args, **kwargs)
-        cls.__init__ = wrapped
+        cls.__init__ = deprecation_wrapped
 
-        wrapped.__name__ = '__init__'
-        wrapped.__doc__ = self._update_doc(init.__doc__)
-        wrapped.deprecated_original = init
+        deprecation_wrapped.__name__ = '__init__'
+        deprecation_wrapped.__doc__ = self._update_doc(init.__doc__)
+        deprecation_wrapped.deprecated_original = init
 
         return cls
 
@@ -489,15 +491,15 @@ class deprecated(object):
         if self.extra:
             msg += "; %s" % self.extra
 
-        def wrapped(*args, **kwargs):
+        def deprecation_wrapped(*args, **kwargs):
             warnings.warn(msg, category=DeprecationWarning)
             return fun(*args, **kwargs)
 
-        wrapped.__name__ = fun.__name__
-        wrapped.__dict__ = fun.__dict__
-        wrapped.__doc__ = self._update_doc(fun.__doc__)
+        deprecation_wrapped.__name__ = fun.__name__
+        deprecation_wrapped.__dict__ = fun.__dict__
+        deprecation_wrapped.__doc__ = self._update_doc(fun.__doc__)
 
-        return wrapped
+        return deprecation_wrapped
 
     def _update_doc(self, olddoc):
         newdoc = "DEPRECATED"
@@ -512,368 +514,314 @@ class deprecated(object):
 def verbose(function, *args, **kwargs):
     """Improved verbose decorator to allow functions to override log-level
 
-    Do not call this directly to set global verbosrity level, instead use
+    Do not call this directly to set global verbosity level, instead use
     set_log_level().
 
     Parameters
     ----------
-    function - function
+    function : function
         Function to be decorated by setting the verbosity level.
 
     Returns
     -------
-    dec - function
+    dec : function
         The decorated function
     """
     arg_names = inspect.getargspec(function).args
-
+    default_level = verbose_level = None
     if len(arg_names) > 0 and arg_names[0] == 'self':
         default_level = getattr(args[0], 'verbose', None)
-    else:
-        default_level = None
-
-    if('verbose' in arg_names):
+    if 'verbose' in arg_names:
         verbose_level = args[arg_names.index('verbose')]
-    else:
-        verbose_level = default_level
+    elif 'verbose' in kwargs:
+        verbose_level = kwargs.pop('verbose')
+
+    # This ensures that object.method(verbose=None) will use object.verbose
+    verbose_level = default_level if verbose_level is None else verbose_level
 
     if verbose_level is not None:
         old_level = set_log_level(verbose_level, True)
         # set it back if we get an exception
         try:
-            ret = function(*args, **kwargs)
-        except:
+            return function(*args, **kwargs)
+        finally:
             set_log_level(old_level)
-            raise
-        set_log_level(old_level)
-        return ret
-    else:
-        ret = function(*args, **kwargs)
-        return ret
+    return function(*args, **kwargs)
 
 
-def has_command_line_tools():
-    if 'MNE_ROOT' not in os.environ:
-        return False
-    else:
-        return True
+@nottest
+def slow_test(f):
+    """Decorator for slow tests"""
+    f.slow_test = True
+    return f
 
 
-requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
-                                     'Requires MNE command line tools')
+@nottest
+def ultra_slow_test(f):
+    """Decorator for ultra slow tests"""
+    f.ultra_slow_test = True
+    f.slow_test = True
+    return f
 
 
 def has_nibabel(vox2ras_tkr=False):
+    """Determine if nibabel is installed
+
+    Parameters
+    ----------
+    vox2ras_tkr : bool
+        If True, require nibabel has vox2ras_tkr support.
+
+    Returns
+    -------
+    has : bool
+        True if the user has nibabel.
+    """
     try:
         import nibabel
+        out = True
         if vox2ras_tkr:  # we need MGHHeader to have vox2ras_tkr param
-            mgh_ihdr = getattr(nibabel, 'MGHImage', None)
-            mgh_ihdr = getattr(mgh_ihdr, 'header_class', None)
-            get_vox2ras_tkr = getattr(mgh_ihdr, 'get_vox2ras_tkr', None)
-            if get_vox2ras_tkr is not None:
-                return True
-            else:
-                return False
-        else:
-            return True
+            out = (getattr(getattr(getattr(nibabel, 'MGHImage', 0),
+                                   'header_class', 0),
+                           'get_vox2ras_tkr', None) is not None)
+        return out
     except ImportError:
         return False
+
+
+def has_mne_c():
+    """Aux function"""
+    return 'MNE_ROOT' in os.environ
 
 
 def has_freesurfer():
     """Aux function"""
-    if not 'FREESURFER_HOME' in os.environ:
-        return False
-    else:
-        return True
-
-
-requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
-                                               not has_freesurfer(),
-                                               'Requires nibabel or '
-                                               'Freesurfer')
-
-
-def has_neuromag2ft():
-    """Aux function"""
-    if not 'NEUROMAG2FT_ROOT' in os.environ:
-        return False
-    else:
-        return True
-
-
-requires_neuromag2ft = np.testing.dec.skipif(not has_neuromag2ft(),
-                                             'Requires neuromag2ft')
+    return 'FREESURFER_HOME' in os.environ
 
 
 def requires_nibabel(vox2ras_tkr=False):
     """Aux function"""
-    if vox2ras_tkr:
-        extra = ' with vox2ras_tkr support'
-    else:
-        extra = ''
+    extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
     return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
                                  'Requires nibabel%s' % extra)
 
-requires_freesurfer = np.testing.dec.skipif(not has_freesurfer(),
-                                            'Requires Freesurfer')
 
-
-def requires_mem_gb(requirement):
-    """Decorator to skip test if insufficient memory is available"""
-    def real_decorator(function):
-        # convert to gb
-        req = int(1e9 * requirement)
-        try:
-            import psutil
-            has_psutil = True
-        except ImportError:
-            has_psutil = False
-
-        @wraps(function)
-        def dec(*args, **kwargs):
-            if has_psutil and psutil.virtual_memory().available >= req:
-                skip = False
-            else:
-                skip = True
-
-            if skip is True:
-                from nose.plugins.skip import SkipTest
-                raise SkipTest('Test %s skipped, requires >= %0.1f GB free '
-                               'memory' % (function.__name__, requirement))
-            ret = function(*args, **kwargs)
-            return ret
-        return dec
-    return real_decorator
-
-
-def requires_pandas(function):
-    """Decorator to skip test if pandas is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        skip = False
-        try:
-            import pandas
-            version = LooseVersion(pandas.__version__)
-            if version < '0.8.0':
-                skip = True
-        except ImportError:
-            skip = True
-
-        if skip is True:
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires pandas'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
-
-    return dec
-
-
-def requires_tvtk(function):
-    """Decorator to skip test if TVTK is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        skip = False
-        try:
-            from tvtk.api import tvtk  # analysis:ignore
-        except ImportError:
-            skip = True
-
-        if skip is True:
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires TVTK'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
-
-    return dec
-
-
-def requires_statsmodels(function):
-    """Decorator to skip test if statsmodels is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        skip = False
-        try:
-            import statsmodels  # noqa, analysis:ignore
-        except ImportError:
-            skip = True
-
-        if skip is True:
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires statsmodels'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
-
-    return dec
-
-
-def requires_patsy(function):
-    """
-    Decorator to skip test if patsy is not available. Patsy should be a
-    statsmodels dependency but apparently it's possible to install statsmodels
-    without it.
-    """
-    @wraps(function)
-    def dec(*args, **kwargs):
-        skip = False
-        try:
-            import patsy  # noqa, analysis:ignore
-        except ImportError:
-            skip = True
-
-        if skip is True:
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires patsy'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
-
-    return dec
-
-
-def requires_sklearn(function):
-    """Decorator to skip test if sklearn is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        required_version = '0.14'
-        skip = False
-        try:
-            import sklearn
-            version = LooseVersion(sklearn.__version__)
-            if version < required_version:
-                skip = True
-        except ImportError:
-            skip = True
-
-        if skip is True:
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires sklearn (version >= %s)'
-                           % (function.__name__, required_version))
-        ret = function(*args, **kwargs)
-
-        return ret
-
-    return dec
-
-
-def requires_good_network(function):
+def requires_version(library, min_version):
     """Helper for testing"""
+    return np.testing.dec.skipif(not check_version(library, min_version),
+                                 'Requires %s version >= %s'
+                                 % (library, min_version))
+
+
+def requires_module(function, name, call):
+    """Decorator to skip test if package is not available"""
+    try:
+        from nose.plugins.skip import SkipTest
+    except ImportError:
+        SkipTest = AssertionError
 
     @wraps(function)
     def dec(*args, **kwargs):
-        if int(os.environ.get('MNE_SKIP_NETWORK_TESTS', 0)):
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires a good network '
-                           'connection' % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
-
+        skip = False
+        try:
+            exec(call) in globals(), locals()
+        except Exception:
+            skip = True
+        if skip is True:
+            raise SkipTest('Test %s skipped, requires %s'
+                           % (function.__name__, name))
+        return function(*args, **kwargs)
     return dec
 
 
-def make_skipper_dec(module, skip_str):
-    """Helper to make skipping decorators"""
-    skip = False
-    try:
-        __import__(module)
-    except ImportError:
-        skip = True
-    return np.testing.dec.skipif(skip, skip_str)
+_pandas_call = """
+import pandas
+version = LooseVersion(pandas.__version__)
+if version < '0.8.0':
+    raise ImportError
+"""
+
+_sklearn_call = """
+required_version = '0.14'
+import sklearn
+version = LooseVersion(sklearn.__version__)
+if version < required_version:
+    raise ImportError
+"""
+
+_sklearn_0_15_call = """
+required_version = '0.15'
+import sklearn
+version = LooseVersion(sklearn.__version__)
+if version < required_version:
+    raise ImportError
+"""
+
+_mayavi_call = """
+from mayavi import mlab
+mlab.options.backend = 'test'
+"""
+
+_mne_call = """
+if not has_mne_c():
+    raise ImportError
+"""
+
+_fs_call = """
+if not has_freesurfer():
+    raise ImportError
+"""
+
+_n2ft_call = """
+if 'NEUROMAG2FT_ROOT' not in os.environ:
+    raise ImportError
+"""
+
+_fs_or_ni_call = """
+if not has_nibabel() and not has_freesurfer():
+    raise ImportError
+"""
+
+requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
+requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
+requires_sklearn_0_15 = partial(requires_module, name='sklearn',
+                                call=_sklearn_0_15_call)
+requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
+requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
+requires_freesurfer = partial(requires_module, name='Freesurfer',
+                              call=_fs_call)
+requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
+                               call=_n2ft_call)
+requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
+                                 call=_fs_or_ni_call)
+
+requires_tvtk = partial(requires_module, name='TVTK',
+                        call='from tvtk.api import tvtk')
+requires_statsmodels = partial(requires_module, name='statsmodels',
+                               call='import statsmodels')
+requires_patsy = partial(requires_module, name='patsy',
+                         call='import patsy')
+requires_pysurfer = partial(requires_module, name='PySurfer',
+                            call='from surfer import Brain')
+requires_PIL = partial(requires_module, name='PIL',
+                       call='from PIL import Image')
+requires_good_network = partial(
+    requires_module, name='good network connection',
+    call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
+         '    raise ImportError')
+requires_nitime = partial(requires_module, name='nitime',
+                          call='import nitime')
+requires_traits = partial(requires_module, name='traits',
+                          call='import traits')
+requires_h5py = partial(requires_module, name='h5py', call='import h5py')
 
 
-requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
-requires_traits = make_skipper_dec('traits', 'traits not installed')
-
-
-def _mne_fs_not_in_env():
-    """Aux function"""
-    return (('FREESURFER_HOME' not in os.environ) or
-            ('MNE_ROOT' not in os.environ))
-
-requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env)
-
-
-def _check_mayavi_version(min_version='4.3.0'):
-    """Raise a RuntimeError if the required version of mayavi is not available
+def check_version(library, min_version):
+    """Check minimum library version required
 
     Parameters
     ----------
+    library : str
+        The library name to import. Must have a ``__version__`` property.
     min_version : str
-        The version string. Anything that matches
+        The minimum version string. Anything that matches
         ``'(\\d+ | [a-z]+ | \\.)'``
-    """
-    import mayavi
-    require_mayavi = LooseVersion(min_version)
-    has_mayavi = LooseVersion(mayavi.__version__)
-    if has_mayavi < require_mayavi:
-        raise RuntimeError("Need mayavi >= %s" % require_mayavi)
 
-
-def check_sklearn_version(min_version):
-    """Check minimum sklearn version required
-
-    Parameters
-    ----------
-    min_version : str
-        The version string. Anything that matches
-        ``'(\\d+ | [a-z]+ | \\.)'``
+    Returns
+    -------
+    ok : bool
+        True if the library exists with at least the specified version.
     """
     ok = True
     try:
-        import sklearn
-        this_version = LooseVersion(sklearn.__version__)
-        if this_version < min_version:
-            ok = False
+        library = __import__(library)
     except ImportError:
         ok = False
+    else:
+        this_version = LooseVersion(library.__version__)
+        if this_version < min_version:
+            ok = False
     return ok
 
 
-def check_scipy_version(min_version):
-    """Check minimum sklearn version required
+def _check_mayavi_version(min_version='4.3.0'):
+    """Helper for mayavi"""
+    if not check_version('mayavi', min_version):
+        raise RuntimeError("Need mayavi >= %s" % min_version)
+
+
+@verbose
+def run_subprocess(command, verbose=None, *args, **kwargs):
+    """Run command using subprocess.Popen
+
+    Run command and wait for command to complete. If the return code was zero
+    then return, otherwise raise CalledProcessError.
+    By default, this will also add stdout= and stderr=subproces.PIPE
+    to the call to Popen to suppress printing to the terminal.
 
     Parameters
     ----------
-    min_version : str
-        The version string. Anything that matches
-        ``'(\\d+ | [a-z]+ | \\.)'``
+    command : list of str
+        Command to run as subprocess (see subprocess.Popen documentation).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to self.verbose.
+    *args, **kwargs : arguments
+        Additional arguments to pass to subprocess.Popen.
+
+    Returns
+    -------
+    stdout : str
+        Stdout returned by the process.
+    stderr : str
+        Stderr returned by the process.
     """
-    this_version = LooseVersion(scipy.__version__)
-    return False if this_version < min_version else True
+    for stdxxx, sys_stdxxx in (['stderr', sys.stderr],
+                               ['stdout', sys.stdout]):
+        if stdxxx not in kwargs:
+            kwargs[stdxxx] = subprocess.PIPE
+        elif kwargs[stdxxx] is sys_stdxxx:
+            if isinstance(sys_stdxxx, StringIO):
+                # nose monkey patches sys.stderr and sys.stdout to StringIO
+                kwargs[stdxxx] = subprocess.PIPE
+            else:
+                kwargs[stdxxx] = sys_stdxxx
 
+    # Check the PATH environment variable. If run_subprocess() is to be called
+    # frequently this should be refactored so as to only check the path once.
+    env = kwargs.get('env', os.environ)
+    if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
+        msg = ("Your PATH environment variable contains at least one path "
+               "starting with a tilde ('~') character. Such paths are not "
+               "interpreted correctly from within Python. It is recommended "
+               "that you use '$HOME' instead of '~'.")
+        warnings.warn(msg)
 
-def requires_scipy_version(min_version):
-    """Helper for testing"""
-    ok = check_scipy_version(min_version)
-    return np.testing.dec.skipif(not ok, 'Requires scipy version >= %s'
-                                 % min_version)
-
-
-def _check_pytables():
-    """Helper to error if Pytables is not found"""
+    logger.info("Running subprocess: %s" % ' '.join(command))
     try:
-        import tables as tb
-    except ImportError:
-        raise ImportError('pytables could not be imported')
-    return tb
+        p = subprocess.Popen(command, *args, **kwargs)
+    except Exception:
+        logger.error('Command not found: %s' % (command[0],))
+        raise
+    stdout_, stderr = p.communicate()
+    stdout_ = '' if stdout_ is None else stdout_.decode('utf-8')
+    stderr = '' if stderr is None else stderr.decode('utf-8')
 
+    if stdout_.strip():
+        logger.info("stdout:\n%s" % stdout_)
+    if stderr.strip():
+        logger.info("stderr:\n%s" % stderr)
 
-def requires_pytables():
-    """Helper for testing"""
-    have = True
-    try:
-        _check_pytables()
-    except ImportError:
-        have = False
-    return np.testing.dec.skipif(not have, 'Requires pytables')
+    output = (stdout_, stderr)
+    if p.returncode:
+        print(output)
+        err_fun = subprocess.CalledProcessError.__init__
+        if 'output' in inspect.getargspec(err_fun).args:
+            raise subprocess.CalledProcessError(p.returncode, command, output)
+        else:
+            raise subprocess.CalledProcessError(p.returncode, command)
+
+    return output
 
 
 ###############################################################################
@@ -889,7 +837,7 @@ def set_log_level(verbose=None, return_old_level=False):
         INFO, WARNING, ERROR, or CRITICAL. Note that these are for
         convenience and are equivalent to passing in logging.DEBUG, etc.
         For bool, True is the same as 'INFO', False is the same as 'WARNING'.
-        If None, the environment variable MNE_LOG_LEVEL is read, and if
+        If None, the environment variable MNE_LOGGING_LEVEL is read, and if
         it doesn't exist, defaults to INFO.
     return_old_level : bool
         If True, return the old verbosity level.
@@ -906,7 +854,7 @@ def set_log_level(verbose=None, return_old_level=False):
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
                              CRITICAL=logging.CRITICAL)
-        if not verbose in logging_types:
+        if verbose not in logging_types:
             raise ValueError('verbose must be of a valid type')
         verbose = logging_types[verbose]
     logger = logging.getLogger('mne')
@@ -925,7 +873,9 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         To suppress log outputs, use set_log_level('WARN').
     output_format : str
         Format of the output messages. See the following for examples:
-            http://docs.python.org/dev/howto/logging.html
+
+            https://docs.python.org/dev/howto/logging.html
+
         e.g., "%(asctime)s - %(levelname)s - %(message)s".
     overwrite : bool, or None
         Overwrite the log file (if it exists). Otherwise, statements
@@ -983,8 +933,12 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     return subjects_dir
 
 
+_temp_home_dir = None
+
+
 def _get_extra_data_path(home_dir=None):
     """Get path to extra data (config, tables, etc.)"""
+    global _temp_home_dir
     if home_dir is None:
         # this has been checked on OSX64, Linux64, and Win32
         if 'nt' == os.name.lower():
@@ -996,7 +950,14 @@ def _get_extra_data_path(home_dir=None):
             # of script that isn't launched via the command line (e.g. a script
             # launched via Upstart) then the HOME environment variable will
             # not be set.
-            home_dir = os.path.expanduser('~')
+            if os.getenv('MNE_DONTWRITE_HOME', '') == 'true':
+                if _temp_home_dir is None:
+                    _temp_home_dir = tempfile.mkdtemp()
+                    atexit.register(partial(shutil.rmtree, _temp_home_dir,
+                                            ignore_errors=True))
+                home_dir = _temp_home_dir
+            else:
+                home_dir = os.path.expanduser('~')
 
         if home_dir is None:
             raise ValueError('mne-python config file path could '
@@ -1073,21 +1034,24 @@ known_config_types = [
     'MNE_DATA',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
+    'MNE_DATASETS_SOMATO_PATH',
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
+    'MNE_DATASETS_BRAINSTORM_PATH',
+    'MNE_DATASETS_TESTING_PATH',
     'MNE_LOGGING_LEVEL',
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
     'MNE_CACHE_DIR',
     'MNE_MEMMAP_MIN_SIZE',
-    'MNE_SKIP_SAMPLE_DATASET_TESTS',
+    'MNE_SKIP_TESTING_DATASET_TESTS',
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
-    ]
+]
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
 known_config_wildcards = [
     'MNE_STIM_CHANNEL',
-    ]
+]
 
 
 def get_config(key=None, default=None, raise_error=False, home_dir=None):
@@ -1112,10 +1076,14 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     -------
     value : dict | str | None
         The preference key value.
+
+    See Also
+    --------
+    set_config
     """
 
     if key is not None and not isinstance(key, string_types):
-        raise ValueError('key must be a string')
+        raise TypeError('key must be a string')
 
     # first, check to see if key is in env
     if key is not None and key in os.environ:
@@ -1161,14 +1129,18 @@ def set_config(key, value, home_dir=None):
     home_dir : str | None
         The folder that contains the .mne config folder.
         If None, it is found automatically.
+
+    See Also
+    --------
+    get_config
     """
     if not isinstance(key, string_types):
-        raise ValueError('key must be a string')
+        raise TypeError('key must be a string')
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
     if not isinstance(value, string_types) and value is not None:
-        raise ValueError('value must be a string or None')
-    if not key in known_config_types and not \
+        raise TypeError('value must be a string or None')
+    if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warnings.warn('Setting non-standard config type: "%s"' % key)
 
@@ -1237,7 +1209,7 @@ class ProgressBar(object):
     template = '\r[{0}{1}] {2:.05f} {3} {4}   '
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
-                 progress_character='.', spinner=False):
+                 progress_character='.', spinner=False, verbose_bool=True):
         self.cur_value = initial_value
         self.max_value = float(max_value)
         self.mesg = mesg
@@ -1246,6 +1218,7 @@ class ProgressBar(object):
         self.spinner = spinner
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
+        self._do_print = verbose_bool
 
     def update(self, cur_value, mesg=None):
         """Update progressbar with current value of process
@@ -1264,7 +1237,7 @@ class ProgressBar(object):
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
         self.cur_value = cur_value
-        progress = float(self.cur_value) / self.max_value
+        progress = min(float(self.cur_value) / self.max_value, 1.)
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
 
@@ -1280,14 +1253,14 @@ class ProgressBar(object):
                                    progress * 100,
                                    self.spinner_symbols[self.spinner_index],
                                    self.mesg)
-        sys.stdout.write(bar)
+        # Force a flush because sometimes when using bash scripts and pipes,
+        # the output is not printed until after the program exits.
+        if self._do_print:
+            sys.stdout.write(bar)
+            sys.stdout.flush()
         # Increament the spinner
         if self.spinner:
             self.spinner_index = (self.spinner_index + 1) % self.n_spinner
-
-        # Force a flush because sometimes when using bash scripts and pipes,
-        # the output is not printed until after the program exits.
-        sys.stdout.flush()
 
     def update_with_increment_value(self, increment_value, mesg=None):
         """Update progressbar with the value of the increment instead of the
@@ -1308,21 +1281,7 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-class _HTTPResumeURLOpener(urllib.request.FancyURLopener):
-    """Create sub-class in order to overide error 206.
-
-    This error means a partial file is being sent, which is ok in this case.
-    Do nothing with this error.
-    """
-    # Adapted from:
-    # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-    # http://code.activestate.com/recipes/83208-resuming-download-of-a-file/
-
-    def http_error_206(self, url, fp, errcode, errmsg, headers, data=None):
-        pass
-
-
-def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
+def _chunk_read(response, local_file, initial_size=0, verbose_bool=True):
     """Download a file chunk by chunk and show advancement
 
     Can also be used when resuming downloads over http.
@@ -1333,32 +1292,43 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
         Response to the download request in order to get file size.
     local_file: file
         Hard disk file where data should be written.
-    chunk_size: integer, optional
-        Size of downloaded chunks. Default: 8192
     initial_size: int, optional
         If resuming, indicate the initial size of the file.
+
+    Notes
+    -----
+    The chunk size will be automatically adapted based on the connection
+    speed.
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
 
-    bytes_so_far = initial_size
     # Returns only amount left to download when resuming, not the size of the
     # entire file
-    total_size = int(response.headers['Content-Length'].strip())
+    total_size = int(response.headers.get('Content-Length', '1').strip())
     total_size += initial_size
 
-    progress = ProgressBar(total_size, initial_value=bytes_so_far,
-                           max_chars=40, spinner=True, mesg='downloading')
+    progress = ProgressBar(total_size, initial_value=initial_size,
+                           max_chars=40, spinner=True, mesg='downloading',
+                           verbose_bool=verbose_bool)
+    chunk_size = 8192  # 2 ** 13
     while True:
+        t0 = time.time()
         chunk = response.read(chunk_size)
-        bytes_so_far += len(chunk)
+        dt = time.time() - t0
+        if dt < 0.001:
+            chunk_size *= 2
+        elif dt > 0.5 and chunk_size > 8192:
+            chunk_size = chunk_size // 2
         if not chunk:
-            sys.stderr.write('\n')
+            if verbose_bool:
+                sys.stdout.write('\n')
+                sys.stdout.flush()
             break
         _chunk_write(chunk, local_file, progress)
 
 
-def _chunk_read_ftp_resume(url, temp_file_name, local_file):
+def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
     """Resume downloading of a file from an FTP server"""
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
@@ -1382,12 +1352,17 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     down_cmd = "RETR " + file_name
     file_size = data.size(file_name)
     progress = ProgressBar(file_size, initial_value=local_file_size,
-                           max_chars=40, spinner=True, mesg='downloading')
+                           max_chars=40, spinner=True, mesg='downloading',
+                           verbose_bool=verbose_bool)
+
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
-    chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
+    def chunk_write(chunk):
+        return _chunk_write(chunk, local_file, progress)
     data.retrbinary(down_cmd, chunk_write)
     data.close()
+    sys.stdout.write('\n')
+    sys.stdout.flush()
 
 
 def _chunk_write(chunk, local_file, progress):
@@ -1396,7 +1371,9 @@ def _chunk_write(chunk, local_file, progress):
     progress.update_with_increment_value(len(chunk))
 
 
-def _fetch_file(url, file_name, print_destination=True, resume=True):
+@verbose
+def _fetch_file(url, file_name, print_destination=True, resume=True,
+                hash_=None, verbose=None):
     """Load requested file, downloading it if needed or requested
 
     Parameters
@@ -1410,58 +1387,83 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         download finishes.
     resume: bool, optional
         If true, try to resume partially downloaded files.
+    hash_ : str | None
+        The hash of the file to check. If None, no checking is
+        performed.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-
+    if hash_ is not None and (not isinstance(hash_, string_types) or
+                              len(hash_) != 32):
+        raise ValueError('Bad hash value given, should be a 32-character '
+                         'string:\n%s' % (hash_,))
     temp_file_name = file_name + ".part"
     local_file = None
     initial_size = 0
+    verbose_bool = (logger.level <= 20)  # 20 is info
     try:
         # Checking file size and displaying it alongside the download url
-        u = urllib.request.urlopen(url)
+        u = urllib.request.urlopen(url, timeout=10.)
         try:
-            file_size = int(u.headers['Content-Length'].strip())
+            file_size = int(u.headers.get('Content-Length', '1').strip())
         finally:
+            u.close()
             del u
-        print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
+        logger.info('Downloading data from %s (%s)\n'
+                    % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):
             local_file = open(temp_file_name, "ab")
             # Resuming HTTP and FTP downloads requires different procedures
             scheme = urllib.parse.urlparse(url).scheme
-            if scheme == 'http':
-                url_opener = _HTTPResumeURLOpener()
+            if scheme in ('http', 'https'):
                 local_file_size = os.path.getsize(temp_file_name)
                 # If the file exists, then only download the remainder
-                url_opener.addheader("Range", "bytes=%s-" % (local_file_size))
+                req = urllib.request.Request(url)
+                req.headers["Range"] = "bytes=%s-" % local_file_size
                 try:
-                    data = url_opener.open(url)
-                except urllib.request.HTTPError:
+                    data = urllib.request.urlopen(req)
+                except Exception:
                     # There is a problem that may be due to resuming, some
                     # servers may not support the "Range" header. Switch back
                     # to complete download method
-                    print('Resuming download failed. Attempting to restart '
-                          'downloading the entire file.')
-                    _fetch_file(url, resume=False)
+                    logger.info('Resuming download failed. Attempting to '
+                                'restart downloading the entire file.')
+                    local_file.close()
+                    _fetch_file(url, file_name, resume=False)
                 else:
-                    _chunk_read(data, local_file, initial_size=local_file_size)
+                    _chunk_read(data, local_file, initial_size=local_file_size,
+                                verbose_bool=verbose_bool)
+                    data.close()
                     del data  # should auto-close
             else:
-                _chunk_read_ftp_resume(url, temp_file_name, local_file)
+                _chunk_read_ftp_resume(url, temp_file_name, local_file,
+                                       verbose_bool=verbose_bool)
         else:
             local_file = open(temp_file_name, "wb")
             data = urllib.request.urlopen(url)
             try:
-                _chunk_read(data, local_file, initial_size=initial_size)
+                _chunk_read(data, local_file, initial_size=initial_size,
+                            verbose_bool=verbose_bool)
             finally:
+                data.close()
                 del data  # should auto-close
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
+        # check md5sum
+        if hash_ is not None:
+            logger.info('Verifying download hash.')
+            md5 = md5sum(temp_file_name)
+            if hash_ != md5:
+                raise RuntimeError('Hash mismatch for downloaded file %s, '
+                                   'expected %s but got %s'
+                                   % (temp_file_name, hash_, md5))
         shutil.move(temp_file_name, file_name)
         if print_destination is True:
-            stdout.write('File saved as %s.\n' % file_name)
+            logger.info('File saved as %s.\n' % file_name)
     except Exception as e:
         logger.error('Error while fetching file %s.'
                      ' Dataset fetching aborted.' % url)
@@ -1502,27 +1504,55 @@ def _url_to_local_path(url, path):
     return destination
 
 
-def _get_stim_channel(stim_channel):
-    """Helper to determine the appropriate stim_channel"""
+def _get_stim_channel(stim_channel, info):
+    """Helper to determine the appropriate stim_channel
+
+    First, 'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2', etc.
+    are read. If these are not found, it will fall back to 'STI 014' if
+    present, then fall back to the first channel of type 'stim', if present.
+
+    Parameters
+    ----------
+    stim_channel : str | list of str | None
+        The stim channel selected by the user.
+    info : instance of Info
+        An information structure containing information about the channels.
+
+    Returns
+    -------
+    stim_channel : str | list of str
+        The name of the stim channel(s) to use
+    """
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
             if not isinstance(stim_channel, string_types):
-                raise ValueError('stim_channel must be a str, list, or None')
+                raise TypeError('stim_channel must be a str, list, or None')
             stim_channel = [stim_channel]
-        if not all([isinstance(s, string_types) for s in stim_channel]):
-            raise ValueError('stim_channel list must contain all strings')
+        if not all(isinstance(s, string_types) for s in stim_channel):
+            raise TypeError('stim_channel list must contain all strings')
         return stim_channel
 
     stim_channel = list()
     ch_count = 0
     ch = get_config('MNE_STIM_CHANNEL')
-    while(ch is not None):
+    while(ch is not None and ch in info['ch_names']):
         stim_channel.append(ch)
         ch_count += 1
         ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
-    if ch_count == 0:
-        stim_channel = ['STI 014']
-    return stim_channel
+    if ch_count > 0:
+        return stim_channel
+
+    if 'STI 014' in info['ch_names']:
+        return ['STI 014']
+
+    from .io.pick import pick_types
+    stim_channel = pick_types(info, meg=False, ref_meg=False, stim=True)
+    if len(stim_channel) > 0:
+        stim_channel = [info['ch_names'][ch_] for ch_ in stim_channel]
+        return stim_channel
+
+    raise ValueError("No stim channels found. Consider specifying them "
+                     "manually using the 'stim_channel' parameter.")
 
 
 def _check_fname(fname, overwrite):
@@ -1571,7 +1601,7 @@ def _check_pandas_index_arguments(index, defaults):
     """ Helper function to check pandas index arguments """
     if not any(isinstance(index, k) for k in (list, tuple)):
         index = [index]
-    invalid_choices = [e for e in index if not e in defaults]
+    invalid_choices = [e for e in index if e not in defaults]
     if invalid_choices:
         options = [', '.join(e) for e in [invalid_choices, defaults]]
         raise ValueError('[%s] is not an valid option. Valid index'
@@ -1601,6 +1631,8 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
             name = name.replace(' ', '')
         if '-' in name and before_dash:
             name = name.split('-')[0]
+        if name.endswith('_virtual'):
+            name = name[:-8]
         cleaned.append(name)
 
     return cleaned
@@ -1614,6 +1646,14 @@ def clean_warning_registry():
     for mod in list(sys.modules.values()):
         if mod.__class__.__name__ not in bad_names and hasattr(mod, reg):
             getattr(mod, reg).clear()
+    # hack to deal with old scipy/numpy in tests
+    if os.getenv('TRAVIS') == 'true' and sys.version.startswith('2.6'):
+        warnings.simplefilter('default')
+        try:
+            np.rank([])
+        except Exception:
+            pass
+        warnings.simplefilter('always')
 
 
 def _check_type_picks(picks):
@@ -1622,7 +1662,7 @@ def _check_type_picks(picks):
     if picks is None:
         pass
     elif isinstance(picks, list):
-        if not all([isinstance(i, int) for i in picks]):
+        if not all(isinstance(i, int) for i in picks):
             raise ValueError(err_msg)
         picks = np.array(picks)
     elif isinstance(picks, np.ndarray):
@@ -1631,3 +1671,222 @@ def _check_type_picks(picks):
     else:
         raise ValueError(err_msg)
     return picks
+
+
+@nottest
+def run_tests_if_main(measure_mem=False):
+    """Run tests in a given file if it is run as a script"""
+    local_vars = inspect.currentframe().f_back.f_locals
+    if not local_vars.get('__name__', '') == '__main__':
+        return
+    # we are in a "__main__"
+    try:
+        import faulthandler
+        faulthandler.enable()
+    except Exception:
+        pass
+    with warnings.catch_warnings(record=True):  # memory_usage internal dep.
+        mem = int(round(max(memory_usage(-1)))) if measure_mem else -1
+    if mem >= 0:
+        print('Memory consumption after import: %s' % mem)
+    t0 = time.time()
+    peak_mem, peak_name = mem, 'import'
+    max_elapsed, elapsed_name = 0, 'N/A'
+    count = 0
+    for name in sorted(list(local_vars.keys()), key=lambda x: x.lower()):
+        val = local_vars[name]
+        if name.startswith('_'):
+            continue
+        elif callable(val) and name.startswith('test'):
+            count += 1
+            doc = val.__doc__.strip() if val.__doc__ else name
+            sys.stdout.write('%s ... ' % doc)
+            sys.stdout.flush()
+            try:
+                t1 = time.time()
+                if measure_mem:
+                    with warnings.catch_warnings(record=True):  # dep warn
+                        mem = int(round(max(memory_usage((val, (), {})))))
+                else:
+                    val()
+                    mem = -1
+                if mem >= peak_mem:
+                    peak_mem, peak_name = mem, name
+                mem = (', mem: %s MB' % mem) if mem >= 0 else ''
+                elapsed = int(round(time.time() - t1))
+                if elapsed >= max_elapsed:
+                    max_elapsed, elapsed_name = elapsed, name
+                sys.stdout.write('time: %s sec%s\n' % (elapsed, mem))
+                sys.stdout.flush()
+            except Exception as err:
+                if 'skiptest' in err.__class__.__name__.lower():
+                    sys.stdout.write('SKIP (%s)\n' % str(err))
+                    sys.stdout.flush()
+                else:
+                    raise
+    elapsed = int(round(time.time() - t0))
+    sys.stdout.write('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory'
+                     ' %s MB (%s)\n' % (count, elapsed, max_elapsed,
+                                        elapsed_name, peak_mem, peak_name))
+
+
+class ArgvSetter(object):
+    """Temporarily set sys.argv"""
+    def __init__(self, args=(), disable_stdout=True, disable_stderr=True):
+        self.argv = list(('python',) + args)
+        self.stdout = StringIO() if disable_stdout else sys.stdout
+        self.stderr = StringIO() if disable_stderr else sys.stderr
+
+    def __enter__(self):
+        self.orig_argv = sys.argv
+        sys.argv = self.argv
+        self.orig_stdout = sys.stdout
+        sys.stdout = self.stdout
+        self.orig_stderr = sys.stderr
+        sys.stderr = self.stderr
+        return self
+
+    def __exit__(self, *args):
+        sys.argv = self.orig_argv
+        sys.stdout = self.orig_stdout
+        sys.stderr = self.orig_stderr
+
+
+def md5sum(fname, block_size=1048576):  # 2 ** 20
+    """Calculate the md5sum for a file
+
+    Parameters
+    ----------
+    fname : str
+        Filename.
+    block_size : int
+        Block size to use when reading.
+
+    Returns
+    -------
+    hash_ : str
+        The hexidecimal digest of the hash.
+    """
+    md5 = hashlib.md5()
+    with open(fname, 'rb') as fid:
+        while True:
+            data = fid.read(block_size)
+            if not data:
+                break
+            md5.update(data)
+    return md5.hexdigest()
+
+
+def _sphere_to_cartesian(theta, phi, r):
+    """Transform spherical coordinates to cartesian"""
+    z = r * np.sin(phi)
+    rcos_phi = r * np.cos(phi)
+    x = rcos_phi * np.cos(theta)
+    y = rcos_phi * np.sin(theta)
+    return x, y, z
+
+
+def create_slices(start, stop, step=None, length=1):
+    """ Generate slices of time indexes
+
+    Parameters
+    ----------
+    start : int
+        Index where first slice should start.
+    stop : int
+        Index where last slice should maximally end.
+    length : int
+        Number of time sample included in a given slice.
+    step: int | None
+        Number of time samples separating two slices.
+        If step = None, step = length.
+
+    Returns
+    -------
+    slices : list
+        List of slice objects.
+    """
+
+    # default parameters
+    if step is None:
+        step = length
+
+    # slicing
+    slices = [slice(t, t + length, 1) for t in
+              range(start, stop - length + 1, step)]
+    return slices
+
+
+def _time_mask(times, tmin=None, tmax=None, strict=False):
+    """Helper to safely find sample boundaries"""
+    tmin = -np.inf if tmin is None else tmin
+    tmax = np.inf if tmax is None else tmax
+    mask = (times >= tmin)
+    mask &= (times <= tmax)
+    if not strict:
+        mask |= isclose(times, tmin)
+        mask |= isclose(times, tmax)
+    return mask
+
+
+def _get_fast_dot():
+    """"Helper to get fast dot"""
+    try:
+        from sklearn.utils.extmath import fast_dot
+    except ImportError:
+        fast_dot = np.dot
+    return fast_dot
+
+
+def random_permutation(n_samples, random_state=None):
+    """Helper to emulate the randperm matlab function.
+
+    It returns a vector containing a random permutation of the
+    integers between 0 and n_samples-1. It returns the same random numbers
+    than randperm matlab function whenever the random_state is the same
+    as the matlab's random seed.
+
+    This function is useful for comparing against matlab scripts
+    which use the randperm function.
+
+    Note: the randperm(n_samples) matlab function generates a random
+    sequence between 1 and n_samples, whereas
+    random_permutation(n_samples, random_state) function generates
+    a random sequence between 0 and n_samples-1, that is:
+    randperm(n_samples) = random_permutation(n_samples, random_state) - 1
+
+    Parameters
+    ----------
+    n_samples : int
+        End point of the sequence to be permuted (excluded, i.e., the end point
+        is equal to n_samples-1)
+    random_state : int | None
+        Random seed for initializing the pseudo-random number generator.
+
+    Returns
+    -------
+    randperm : ndarray, int
+        Randomly permuted sequence between 0 and n-1.
+    """
+    rng = check_random_state(random_state)
+    idx = rng.rand(n_samples)
+
+    randperm = np.argsort(idx)
+
+    return randperm
+
+
+def compute_corr(x, y):
+    """Compute pearson correlations between a vector and a matrix"""
+    if len(x) == 0 or len(y) == 0:
+        raise ValueError('x or y has zero length')
+    fast_dot = _get_fast_dot()
+    X = np.array(x, float)
+    Y = np.array(y, float)
+    X -= X.mean(0)
+    Y -= Y.mean(0)
+    x_sd = X.std(0, ddof=1)
+    # if covariance matrix is fully expanded, Y needs a
+    # transpose / broadcasting else Y is correct
+    y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
+    return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)

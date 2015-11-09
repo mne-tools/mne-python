@@ -8,12 +8,32 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
+from ..io.pick import pick_channels
 from ..utils import logger, verbose
-from ..io.constants import FIFF
+from ..forward import convert_forward_solution
 from ..evoked import EvokedArray
 from ..source_estimate import SourceEstimate
 from .inverse import _subject_from_inverse
 from . import apply_inverse
+
+
+def _prepare_info(inverse_operator):
+    """Helper to get a usable dict"""
+    # in order to convert sub-leadfield matrix to evoked data type (pretending
+    # it's an epoch, see in loop below), uses 'info' from inverse solution
+    # because this has all the correct projector information
+    info = deepcopy(inverse_operator['info'])
+    info['sfreq'] = 1000.  # necessary
+    info['projs'] = inverse_operator['projs']
+    return info
+
+
+def _pick_leadfield(leadfield, forward, ch_names):
+    """Helper to pick out correct lead field components"""
+    # NB must pick from fwd['sol']['row_names'], not ['info']['ch_names'],
+    # because ['sol']['data'] may be ordered differently from functional data
+    picks_fwd = pick_channels(forward['sol']['row_names'], ch_names)
+    return leadfield[picks_fwd]
 
 
 @verbose
@@ -29,11 +49,10 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
     Parameters
     ----------
     inverse_operator : instance of InverseOperator
-        Inverse operator read with mne.read_inverse_operator.
+        Inverse operator.
     forward : dict
-        Forward solution, created with "surf_ori=True" and "force_fixed=False"
-        Note: (Bad) channels not included in forward solution will not be used
-        in PSF computation.
+        Forward solution. Note: (Bad) channels not included in forward
+        solution will not be used in PSF computation.
     labels : list of Label
         Labels for which PSFs shall be computed.
     method : 'MNE' | 'dSPM' | 'sLORETA'
@@ -84,23 +103,11 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
 
     logger.info("About to process %d labels" % len(labels))
 
-    if not forward['surf_ori']:
-        raise RuntimeError('Forward has to be surface oriented '
-                           '(surf_ori=True).')
-
-    # get whole leadfield matrix with normal dipole components
-    if not (forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI):
-        # if forward solution already created with force_fixed=True
-        leadfield = forward['sol']['data']
-    else:  # pick normal components of forward solution
-        leadfield = forward['sol']['data'][:, 2::3]
-
-    # in order to convert sub-leadfield matrix to evoked data type (pretending
-    # it's an epoch, see in loop below), uses 'info' from forward solution,
-    # need to add 'sfreq' and 'proj'
-    info = deepcopy(forward['info'])
-    info['sfreq'] = 1000.  # add sfreq or it won't work
-    info['projs'] = []  # add projs
+    forward = convert_forward_solution(forward, force_fixed=False,
+                                       surf_ori=True)
+    info = _prepare_info(inverse_operator)
+    leadfield = _pick_leadfield(forward['sol']['data'][:, 2::3], forward,
+                                info['ch_names'])
 
     # will contain means of subleadfields for all labels
     label_psf_summary = []
@@ -158,8 +165,8 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
                         np.sum(s_svd * s_svd))
             logger.info("Your %d component(s) explain(s) %.1f%% "
                         "variance in label." % (n_svd_comp, comp_var))
-            this_label_psf_summary = (u_svd[:, :n_svd_comp]
-                                      * s_svd[:n_svd_comp][np.newaxis, :])
+            this_label_psf_summary = (u_svd[:, :n_svd_comp] *
+                                      s_svd[:n_svd_comp][np.newaxis, :])
             # transpose required for conversion to "evoked"
             this_label_psf_summary = this_label_psf_summary.T
 
@@ -185,8 +192,8 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
 
 
 def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
-                                      method='dSPM', lambda2=1. / 9., mode='mean',
-                                      n_svd_comp=1):
+                                      method='dSPM', lambda2=1. / 9.,
+                                      mode='mean', n_svd_comp=1):
     """Get inverse matrix from an inverse operator
 
     Currently works only for fixed/loose orientation constraints
@@ -196,9 +203,9 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
     Parameters
     ----------
     inverse_operator : instance of InverseOperator
-        Inverse operator read with mne.read_inverse_operator.
+        The inverse operator.
     forward : dict
-         The forward operator.
+        The forward operator.
     method : 'MNE' | 'dSPM' | 'sLORETA'
         Inverse methods (for apply_inverse).
     labels : list of Label | None
@@ -253,15 +260,10 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
     else:
         logger.info("Computing whole inverse operator.")
 
-    # in order to convert sub-leadfield matrix to evoked data type (pretending
-    # it's an epoch, see in loop below), uses 'info' from forward solution,
-    # need to add 'sfreq' and 'proj'
-    info = deepcopy(forward['info'])
-    info['sfreq'] = 1000.  # add sfreq or it won't work
-    info['projs'] = []  # add projs
+    info = _prepare_info(inverse_operator)
 
     # create identity matrix as input for inverse operator
-    id_mat = np.eye(forward['nchan'])
+    id_mat = np.eye(len(info['ch_names']))
 
     # convert identity matrix to evoked data type (pretending it's an epoch)
     ev_id = EvokedArray(id_mat, info=info, tmin=0.)
@@ -339,8 +341,8 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
                             np.sum(s_svd * s_svd))
                 logger.info("Your %d component(s) explain(s) %.1f%% "
                             "variance in label." % (n_svd_comp, comp_var))
-                this_invmat_summary = (u_svd[:, :n_svd_comp].T
-                                       * s_svd[:n_svd_comp][:, np.newaxis])
+                this_invmat_summary = (u_svd[:, :n_svd_comp].T *
+                                       s_svd[:n_svd_comp][:, np.newaxis])
 
             invmat_summary.append(this_invmat_summary)
 
@@ -364,15 +366,14 @@ def cross_talk_function(inverse_operator, forward, labels,
     Parameters
     ----------
     inverse_operator : instance of InverseOperator
-        Inverse operator read with mne.read_inverse_operator.
+        Inverse operator.
     forward : dict
-         Forward solution, created with "force_fixed=True"
-         Note: (Bad) channels not included in forward solution will not be used
-         in CTF computation.
-    method : 'MNE' | 'dSPM' | 'sLORETA'
-        Inverse method for which CTFs shall be computed.
+        Forward solution. Note: (Bad) channels not included in forward
+        solution will not be used in CTF computation.
     labels : list of Label
         Labels for which CTFs shall be computed.
+    method : 'MNE' | 'dSPM' | 'sLORETA'
+        Inverse method for which CTFs shall be computed.
     lambda2 : float
         The regularization parameter.
     signed : bool
@@ -402,6 +403,9 @@ def cross_talk_function(inverse_operator, forward, labels,
         (i.e. n_svd_comp successive time points in mne_analyze)
         The last sample is the summed CTF across all labels.
     """
+    forward = convert_forward_solution(forward, force_fixed=True,
+                                       surf_ori=True)
+
     # get the inverse matrix corresponding to inverse operator
     out = _get_matrix_from_inverse_operator(inverse_operator, forward,
                                             labels=labels, method=method,
@@ -410,7 +414,8 @@ def cross_talk_function(inverse_operator, forward, labels,
     invmat, label_singvals = out
 
     # get the leadfield matrix from forward solution
-    leadfield = forward['sol']['data']
+    leadfield = _pick_leadfield(forward['sol']['data'], forward,
+                                inverse_operator['info']['ch_names'])
 
     # compute cross-talk functions (CTFs)
     ctfs = np.dot(invmat, leadfield)

@@ -1,12 +1,13 @@
 #! /usr/bin/env python
 #
 
-# Copyright (C) 2011-2014 Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Copyright (C) 2011-2014 Alexandre Gramfort
+# <alexandre.gramfort@telecom-paristech.fr>
 
 import os
 from os import path as op
 
-import setuptools  # noqa; analysis:ignore; we are using a setuptools namespace
+import setuptools  # noqa; we are using a setuptools namespace
 from numpy.distutils.core import setup
 
 # get the version (don't import mne here, so dependencies are not needed)
@@ -60,16 +61,22 @@ if __name__ == "__main__":
           platforms='any',
           packages=['mne', 'mne.tests',
                     'mne.beamformer', 'mne.beamformer.tests',
+                    'mne.commands', 'mne.commands.tests',
                     'mne.connectivity', 'mne.connectivity.tests',
                     'mne.data',
                     'mne.datasets',
-                    'mne.datasets.sample',
-                    'mne.datasets.megsim',
-                    'mne.datasets.spm_face',
                     'mne.datasets.eegbci',
+                    'mne.datasets._fake',
+                    'mne.datasets.megsim',
+                    'mne.datasets.sample',
                     'mne.datasets.somato',
+                    'mne.datasets.spm_face',
+                    'mne.datasets.brainstorm',
+                    'mne.datasets.testing',
+                    'mne.datasets.tests',
                     'mne.externals',
-                    'mne.fiff',
+                    'mne.externals.h5io',
+                    'mne.externals.tempita',
                     'mne.io', 'mne.io.tests',
                     'mne.io.array', 'mne.io.array.tests',
                     'mne.io.brainvision', 'mne.io.brainvision.tests',
@@ -81,9 +88,7 @@ if __name__ == "__main__":
                     'mne.forward', 'mne.forward.tests',
                     'mne.viz', 'mne.viz.tests',
                     'mne.gui', 'mne.gui.tests',
-                    'mne.layouts', 'mne.layouts.tests',
                     'mne.minimum_norm', 'mne.minimum_norm.tests',
-                    'mne.mixed_norm',
                     'mne.inverse_sparse', 'mne.inverse_sparse.tests',
                     'mne.preprocessing', 'mne.preprocessing.tests',
                     'mne.simulation', 'mne.simulation.tests',
@@ -92,14 +97,19 @@ if __name__ == "__main__":
                     'mne.time_frequency', 'mne.time_frequency.tests',
                     'mne.realtime', 'mne.realtime.tests',
                     'mne.decoding', 'mne.decoding.tests',
-                    'mne.commands', 'mne.externals',
-                    'mne.externals.tempita'],
+                    'mne.commands',
+                    'mne.channels', 'mne.channels.tests'],
           package_data={'mne': [op.join('data', '*.sel'),
                                 op.join('data', 'icos.fif.gz'),
-                                op.join('data', 'coil_def.dat'),
+                                op.join('data', 'coil_def*.dat'),
                                 op.join('data', 'helmets', '*.fif.gz'),
-                                op.join('layouts', '*.lout'),
-                                op.join('layouts', '*.lay'),
+                                op.join('data', 'FreeSurferColorLUT.txt'),
+                                op.join('channels', 'data', 'layouts', '*.lout'),
+                                op.join('channels', 'data', 'layouts', '*.lay'),
+                                op.join('channels', 'data', 'montages', '*.sfp'),
+                                op.join('channels', 'data', 'montages', '*.txt'),
+                                op.join('channels', 'data', 'montages', '*.elc'),
+                                op.join('channels', 'data', 'neighbors', '*.mat'),
                                 op.join('html', '*.js'),
                                 op.join('html', '*.css')]},
           scripts=['bin/mne'])

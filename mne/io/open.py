@@ -9,7 +9,7 @@ import os.path as op
 from io import BytesIO
 
 from .tag import read_tag_info, read_tag, read_big, Tag
-from .tree import make_dir_tree
+from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
 from ..utils import logger, verbose
 from ..externals import six
@@ -29,6 +29,47 @@ def _fiff_get_fid(fname):
         fid = fname
         fid.seek(0)
     return fid
+
+
+def _get_next_fname(fid, fname, tree):
+    """Auxiliary function to get the next filename in split files."""
+    nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
+    next_fname = None
+    for nodes in nodes_list:
+        next_fname = None
+        for ent in nodes['directory']:
+            if ent.kind == FIFF.FIFF_REF_ROLE:
+                tag = read_tag(fid, ent.pos)
+                role = int(tag.data)
+                if role != FIFF.FIFFV_ROLE_NEXT_FILE:
+                    next_fname = None
+                    break
+            if ent.kind == FIFF.FIFF_REF_FILE_NAME:
+                tag = read_tag(fid, ent.pos)
+                next_fname = op.join(op.dirname(fname), tag.data)
+            if ent.kind == FIFF.FIFF_REF_FILE_NUM:
+                # Some files don't have the name, just the number. So
+                # we construct the name from the current name.
+                if next_fname is not None:
+                    continue
+                next_num = read_tag(fid, ent.pos).data
+                path, base = op.split(fname)
+                idx = base.find('.')
+                idx2 = base.rfind('-')
+                if idx2 < 0 and next_num == 1:
+                    # this is the first file, which may not be numbered
+                    next_fname = op.join(
+                        path, '%s-%d.%s' % (base[:idx], next_num,
+                                            base[idx + 1:]))
+                    continue
+                num_str = base[idx2 + 1:idx]
+                if not num_str.isdigit():
+                    continue
+                next_fname = op.join(path, '%s-%d.%s' % (base[:idx2],
+                                     next_num, base[idx + 1:]))
+        if next_fname is not None:
+            break
+    return next_fname
 
 
 @verbose
@@ -130,12 +171,11 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
         Max number of characters of string representation to print for
         each tag's data.
     output : type
-        Either str or list. str is equivalent to ``"\n".join(list)``,
-        which is more convenient for using ``print show_fiff(...)``.
+        Either str or list. str is a convenience output for printing.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    if not output in [list, str]:
+    if output not in [list, str]:
         raise ValueError('output must be list or str')
     f, tree, directory = fiff_open(fname)
     with f as fid:
@@ -149,8 +189,8 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
     """Helper to find matching values"""
     vals = [k for k, v in six.iteritems(FIFF)
-            if v == value and any([fmt in k for fmt in fmts])
-            and not any(exc in k for exc in exclude)]
+            if v == value and any(fmt in k for fmt in fmts) and
+            not any(exc in k for exc in exclude)]
     return vals
 
 
@@ -159,8 +199,8 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information
-    out = [this_idt + str(tree['block'][0]) + ' = '
-           + '/'.join(_find_type(tree['block'], fmts=['FIFFB_']))]
+    out = [this_idt + str(tree['block'][0]) + ' = ' +
+           '/'.join(_find_type(tree['block'], fmts=['FIFFB_']))]
     if tree['directory'] is not None:
         kinds = [ent.kind for ent in tree['directory']] + [-1]
         sizes = [ent.size for ent in tree['directory']]
@@ -199,9 +239,9 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                     else:
                         postpend += ' ... (unknown type)'
                 postpend = '>' * 20 + 'BAD' if not good else postpend
-                out += [next_idt + prepend + str(k) + ' = '
-                        + '/'.join(this_type) + ' (' + str(size) + ')'
-                        + postpend]
+                out += [next_idt + prepend + str(k) + ' = ' +
+                        '/'.join(this_type) + ' (' + str(size) + ')' +
+                        postpend]
                 counter = 0
                 good = True
 

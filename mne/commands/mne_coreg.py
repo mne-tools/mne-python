@@ -13,7 +13,7 @@ import sys
 import mne
 
 
-if __name__ == '__main__':
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -21,4 +21,9 @@ if __name__ == '__main__':
 
     os.environ['ETS_TOOLKIT'] = 'qt4'
     mne.gui.coregistration()
-    sys.exit(0)
+    if is_main:
+        sys.exit(0)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

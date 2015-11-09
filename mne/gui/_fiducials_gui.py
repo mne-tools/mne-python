@@ -7,7 +7,6 @@
 from glob import glob
 import os
 from ..externals.six.moves import map
-from ..externals.six.moves import zip
 
 # allow import without traits
 try:
@@ -23,26 +22,11 @@ try:
     from tvtk.pyface.scene_editor import SceneEditor
 except:
     from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    cached_property = trait_wraith
-    on_trait_change = trait_wraith
-    MayaviScene = trait_wraith
-    MlabSceneModel = trait_wraith
-    Array = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    DelegatesTo = trait_wraith
-    Enum = trait_wraith
-    Event = trait_wraith
-    Instance = trait_wraith
-    Property = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    HGroup = trait_wraith
-    VGroup = trait_wraith
-    SceneEditor = trait_wraith
-    NoButtons = trait_wraith
+    HasTraits = HasPrivateTraits = object
+    cached_property = on_trait_change = MayaviScene = MlabSceneModel = \
+        Array = Bool = Button = DelegatesTo = Enum = Event = Instance = \
+        Property = View = Item = HGroup = VGroup = SceneEditor = \
+        NoButtons = trait_wraith
 
 from ..coreg import fid_fname, fid_fname_general, head_bem_fname
 from ..io import write_fiducials
@@ -145,9 +129,9 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
     @cached_property
     def _get_can_save_as(self):
-        can = not (np.all(self.nasion == self.lpa)
-                   or np.all(self.nasion == self.rpa)
-                   or np.all(self.lpa == self.rpa))
+        can = not (np.all(self.nasion == self.lpa) or
+                   np.all(self.nasion == self.rpa) or
+                   np.all(self.lpa == self.rpa))
         return can
 
     @cached_property
@@ -306,7 +290,9 @@ class FiducialsPanel(HasPrivateTraits):
         else:
             logger.debug("GUI: picked object other than MRI")
 
-        round_ = lambda x: round(x, 3)
+        def round_(x):
+            return round(x, 3)
+
         poss = [map(round_, pos) for pos in picker.picked_positions]
         pos = map(round_, picker.pick_position)
         msg = ["Pick Event: %i picked_positions:" % n_pos]

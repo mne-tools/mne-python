@@ -1,5 +1,6 @@
 *.pyc
 *.pyo
+*.sh
 *.so
 *.fif
 *.tar.gz
@@ -28,24 +29,27 @@ memmap*.dat
 tmp-*.w
 tmtags
 auto_examples
-MNE-sample-data*
-MNE-spm-face*
 MNE-eegbci-data*
+MNE-sample-data*
 MNE-somato-data*
+MNE-spm-face*
+MNE-testing-data*
+MNE-brainstorm-data*
 MEGSIM*
 build
 coverage
 
 dist/
 doc/_build/
-doc/build/
+doc/generated/
 doc/auto_examples/
+doc/auto_tutorials/
 doc/modules/generated/
-doc/source/generated/
 pip-log.txt
 .coverage
 tags
 doc/coverages
 doc/samples
+cover
 
 *.orig

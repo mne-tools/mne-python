@@ -1,5 +1,5 @@
 import os.path as op
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import warnings
 
 import numpy as np
@@ -9,14 +9,17 @@ from numpy.testing import (assert_array_almost_equal, assert_allclose,
 import copy as cp
 
 import mne
-from mne.datasets import sample
+from mne.datasets import testing
 from mne import pick_types
 from mne.io import Raw
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
-from mne.io.proj import make_projector, activate_proj
-from mne.proj import read_proj, write_proj, make_eeg_average_ref_proj
+from mne.io.proj import (make_projector, activate_proj,
+                         _needs_eeg_average_ref_proj)
+from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
+                      _has_eeg_average_ref_proj)
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
-from mne.utils import _TempDir
+from mne.utils import (_TempDir, run_tests_if_main, clean_warning_registry,
+                       slow_test)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -27,18 +30,16 @@ proj_fname = op.join(base_dir, 'test-proj.fif')
 proj_gz_fname = op.join(base_dir, 'test-proj.fif.gz')
 bads_fname = op.join(base_dir, 'test_bads.txt')
 
-data_path = sample.data_path(download=False)
-sample_path = op.join(data_path, 'MEG', 'sample')
-fwd_fname = op.join(sample_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
-sensmap_fname = op.join(sample_path, 'sample_audvis-%s-oct-6-fwd-sensmap-%s.w')
+sample_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
+fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+sensmap_fname = op.join(sample_path,
+                        'sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w')
 
 # sample dataset should be updated to reflect mne conventions
 eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
 
-tempdir = _TempDir()
 
-
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
@@ -78,10 +79,15 @@ def test_sensitivity_maps():
     # test corner case for EEG
     stc = sensitivity_map(fwd, projs=[make_eeg_average_ref_proj(fwd['info'])],
                           ch_type='eeg', exclude='bads')
+    # test volume source space
+    fname = op.join(sample_path, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
+    fwd = mne.read_forward_solution(fname)
+    sensitivity_map(fwd)
 
 
 def test_compute_proj_epochs():
     """Test SSP computation on epochs"""
+    tempdir = _TempDir()
     event_id, tmin, tmax = 1, -0.2, 0.3
 
     raw = Raw(raw_fname, preload=True)
@@ -136,12 +142,15 @@ def test_compute_proj_epochs():
     # XXX : test something
 
     # test parallelization
-    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2)
+    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2,
+                                desc_prefix='foobar')
+    assert_true(all('foobar' in x['desc'] for x in projs))
     projs = activate_proj(projs)
     proj_par, _, _ = make_projector(projs, epochs.ch_names, bads=[])
     assert_allclose(proj, proj_par, rtol=1e-8, atol=1e-16)
 
     # test warnings on bad filenames
+    clean_warning_registry()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         proj_badname = op.join(tempdir, 'test-bad-name.fif.gz')
@@ -151,11 +160,14 @@ def test_compute_proj_epochs():
     assert_equal(len(w), 2)
 
 
+@slow_test
 def test_compute_proj_raw():
     """Test SSP computation on raw"""
+    tempdir = _TempDir()
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
-    raw = Raw(raw_fname, preload=True).crop(0, raw_time, False)
+    raw = Raw(raw_fname).crop(0, raw_time, False)
+    raw.load_data()
     for ii in (0.25, 0.5, 1, 2):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
@@ -214,3 +226,53 @@ def test_compute_proj_raw():
     proj, nproj, U = make_projector(projs, raw.ch_names,
                                     bads=raw.ch_names)
     assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+
+
+def test_make_eeg_average_ref_proj():
+    """Test EEG average reference projection"""
+    raw = Raw(raw_fname, add_eeg_ref=False, preload=True)
+    eeg = mne.pick_types(raw.info, meg=False, eeg=True)
+
+    # No average EEG reference
+    assert_true(not np.all(raw._data[eeg].mean(axis=0) < 1e-19))
+
+    # Apply average EEG reference
+    car = make_eeg_average_ref_proj(raw.info)
+    reref = raw.copy()
+    reref.add_proj(car)
+    reref.apply_proj()
+    assert_array_almost_equal(reref._data[eeg].mean(axis=0), 0, decimal=19)
+
+    # Error when custom reference has already been applied
+    raw.info['custom_ref_applied'] = True
+    assert_raises(RuntimeError, make_eeg_average_ref_proj, raw.info)
+
+
+def test_has_eeg_average_ref_proj():
+    """Test checking whether an EEG average reference exists"""
+    assert_true(not _has_eeg_average_ref_proj([]))
+
+    raw = Raw(raw_fname, add_eeg_ref=True, preload=False)
+    assert_true(_has_eeg_average_ref_proj(raw.info['projs']))
+
+
+def test_needs_eeg_average_ref_proj():
+    """Test checking whether a recording needs an EEG average reference"""
+    raw = Raw(raw_fname, add_eeg_ref=False, preload=False)
+    assert_true(_needs_eeg_average_ref_proj(raw.info))
+
+    raw = Raw(raw_fname, add_eeg_ref=True, preload=False)
+    assert_true(not _needs_eeg_average_ref_proj(raw.info))
+
+    # No EEG channels
+    raw = Raw(raw_fname, add_eeg_ref=False, preload=True)
+    eeg = [raw.ch_names[c] for c in pick_types(raw.info, meg=False, eeg=True)]
+    raw.drop_channels(eeg)
+    assert_true(not _needs_eeg_average_ref_proj(raw.info))
+
+    # Custom ref flag set
+    raw = Raw(raw_fname, add_eeg_ref=False, preload=False)
+    raw.info['custom_ref_applied'] = True
+    assert_true(not _needs_eeg_average_ref_proj(raw.info))
+
+run_tests_if_main()

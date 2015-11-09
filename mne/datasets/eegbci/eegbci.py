@@ -3,17 +3,17 @@
 
 import os
 from os import path as op
-from ...externals.six import string_types
-from ...utils import _fetch_file, get_config, set_config, _url_to_local_path
 
-if 'raw_input' not in __builtins__:
-    raw_input = input
+from ..utils import _get_path, _do_path_update
+from ...utils import _fetch_file, _url_to_local_path, verbose
 
 
 EEGMI_URL = 'http://www.physionet.org/physiobank/database/eegmmidb/'
 
 
-def data_path(url, path=None, force_update=False, update_path=None):
+@verbose
+def data_path(url, path=None, force_update=False, update_path=None,
+              verbose=None):
     """Get path to local copy of EEGMMI dataset URL
 
     This is a low-level function useful for getting a local copy of a
@@ -36,6 +36,8 @@ def data_path(url, path=None, force_update=False, update_path=None):
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -64,42 +66,11 @@ def data_path(url, path=None, force_update=False, update_path=None):
         Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
         PhysioToolkit, and PhysioNet: Components of a New Research Resource for
         Complex Physiologic Signals. Circulation 101(23):e215-e220
-    """
+    """  # noqa
 
-    if path is None:
-        # use an intelligent guess if it's not defined
-        def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
-                                       '..', 'examples'))
-
-        key = 'MNE_DATASETS_EEGBCI_PATH'
-        # backward compatibility
-        if get_config(key) is None:
-            key = 'MNE_DATA'
-
-        path = get_config(key, def_path)
-
-        # use the same for all datasets
-        if not op.exists(path) or not os.access(path, os.W_OK):
-            try:
-                os.mkdir(path)
-            except OSError:
-                try:
-                    logger.info("Checking for EEGBCI data in '~/mne_data'...")
-                    path = op.join(op.expanduser("~"), "mne_data")
-                    if not op.exists(path):
-                        logger.info("Trying to create "
-                                    "'~/mne_data' in home directory")
-                        os.mkdir(path)
-                except OSError:
-                    raise OSError("User does not have write permissions "
-                                  "at '%s', try giving the path as an argument "
-                                  "to data_path() where user has write "
-                                  "permissions, for ex:data_path"
-                                  "('/home/xyz/me2/')" % (path))
-
-    if not isinstance(path, string_types):
-        raise ValueError('path must be a string or None')
-
+    key = 'MNE_DATASETS_EEGBCI_PATH'
+    name = 'EEGBCI'
+    path = _get_path(path, key, name)
     destination = _url_to_local_path(url, op.join(path, 'MNE-eegbci-data'))
     destinations = [destination]
 
@@ -112,26 +83,13 @@ def data_path(url, path=None, force_update=False, update_path=None):
         _fetch_file(url, destination, print_destination=False)
 
     # Offer to update the path
-    path = op.abspath(path)
-    if update_path is None:
-        if get_config(key, '') != path:
-            update_path = True
-            msg = ('Do you want to set the path:\n    %s\nas the default '
-                   'EEGBCI dataset path in the mne-python config ([y]/n)? '
-                   % path)
-            answer = raw_input(msg)
-            if answer.lower() == 'n':
-                update_path = False
-        else:
-            update_path = False
-    if update_path is True:
-        set_config(key, path)
-
+    _do_path_update(path, update_path, key, name)
     return destinations
 
 
+@verbose
 def load_data(subject, runs, path=None, force_update=False, update_path=None,
-              base_url=EEGMI_URL):
+              base_url=EEGMI_URL, verbose=None):
     """Get paths to local copy of EEGBCI dataset files
 
     Parameters
@@ -162,6 +120,8 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------

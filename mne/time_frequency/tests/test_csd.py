@@ -1,6 +1,5 @@
 import numpy as np
-from nose.tools import (assert_raises, assert_equal, assert_almost_equal,
-                        assert_true)
+from nose.tools import assert_raises, assert_equal, assert_true
 from numpy.testing import assert_array_equal
 from os import path as op
 import warnings
@@ -9,7 +8,7 @@ import mne
 
 from mne.io import Raw
 from mne.utils import sum_squared
-from mne.time_frequency import compute_epochs_csd, induced_power
+from mne.time_frequency import compute_epochs_csd, tfr_morlet
 
 warnings.simplefilter('always')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -24,7 +23,7 @@ def _get_data():
 
     # Set picks
     picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                                stim=False, exclude='bads')
+                           stim=False, exclude='bads')
 
     # Read several epochs
     event_id, tmin, tmax = 1, -0.2, 0.5
@@ -39,8 +38,8 @@ def _get_data():
                             picks=[0], baseline=(None, 0), preload=True,
                             reject=dict(grad=4000e-13))
     freq = 10
-    epochs_sin._data = np.sin(2 * np.pi * freq
-                              * epochs_sin.times)[None, None, :]
+    epochs_sin._data = np.sin(2 * np.pi * freq *
+                              epochs_sin.times)[None, None, :]
     return epochs, epochs_sin
 
 
@@ -74,11 +73,8 @@ def test_compute_epochs_csd():
 
     # Computing induced power for comparison
     epochs.crop(tmin=0.04, tmax=0.15)
-    with warnings.catch_warnings(record=True):  # deprecation
-        warnings.simplefilter('always')
-        power, _ = induced_power(epochs.get_data(), epochs.info['sfreq'], [10],
-                                 n_cycles=0.6)
-    power = np.mean(power, 2)
+    tfr = tfr_morlet(epochs, freqs=[10], n_cycles=0.6, return_itc=False)
+    power = np.mean(tfr.data, 2)
 
     # Maximum PSD should occur for specific channel
     max_ch_power = power.argmax()
@@ -163,5 +159,5 @@ def test_compute_epochs_csd_on_artificial_data():
                     delta = 0.05
                 else:
                     delta = 0.004
-                assert_true(abs(signal_power_per_sample - mt_power_per_sample)
-                            < delta)
+                assert_true(abs(signal_power_per_sample -
+                                mt_power_per_sample) < delta)

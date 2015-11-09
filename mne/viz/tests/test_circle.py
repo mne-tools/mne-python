@@ -13,12 +13,12 @@ from mne.viz import plot_connectivity_circle, circular_layout
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
 
 
 def test_plot_connectivity_circle():
     """Test plotting connectivity circle
     """
+    import matplotlib.pyplot as plt
     node_order = ['frontalpole-lh', 'parsorbitalis-lh',
                   'lateralorbitofrontal-lh', 'rostralmiddlefrontal-lh',
                   'medialorbitofrontal-lh', 'parstriangularis-lh',
@@ -87,8 +87,8 @@ def test_plot_connectivity_circle():
                              node_angles=node_angles, title='test',
                              )
 
-    plt.close('all')
     assert_raises(ValueError, circular_layout, label_names, node_order,
                   group_boundaries=[-1])
     assert_raises(ValueError, circular_layout, label_names, node_order,
                   group_boundaries=[20, 0])
+    plt.close('all')

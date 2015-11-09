@@ -29,51 +29,26 @@ try:
     from tvtk.pyface.scene_editor import SceneEditor
 except:
     from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    Handler = object
-    cached_property = trait_wraith
-    on_trait_change = trait_wraith
-    MayaviScene = trait_wraith
-    MlabSceneModel = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    DelegatesTo = trait_wraith
-    Directory = trait_wraith
-    Enum = trait_wraith
-    Float = trait_wraith
-    Instance = trait_wraith
-    Int = trait_wraith
-    Property = trait_wraith
-    Str = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    Group = trait_wraith
-    HGroup = trait_wraith
-    VGroup = trait_wraith
-    VGrid = trait_wraith
-    EnumEditor = trait_wraith
-    Label = trait_wraith
-    TextEditor = trait_wraith
-    Action = trait_wraith
-    UndoButton = trait_wraith
-    CancelButton = trait_wraith
-    NoButtons = trait_wraith
-    SceneEditor = trait_wraith
+    HasTraits = HasPrivateTraits = Handler = object
+    cached_property = on_trait_change = MayaviScene = MlabSceneModel =\
+        Bool = Button = DelegatesTo = Directory = Enum = Float = Instance =\
+        Int = Property = Str = View = Item = Group = HGroup = VGroup = VGrid =\
+        EnumEditor = Label = TextEditor = Action = UndoButton = CancelButton =\
+        NoButtons = SceneEditor = trait_wraith
 
 
 from ..coreg import bem_fname, trans_fname
-from ..io.constants import FIFF
 from ..forward import prepare_bem_model
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
-                          translation, scaling, rotation_angles)
+                          translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _point_cloud_error)
 from ..utils import get_subjects_dir, logger
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
-from ._file_traits import (set_mne_root, trans_wildcard, RawSource,
+from ._file_traits import (set_mne_root, trans_wildcard, InstSource,
                            SubjectSelectorPanel)
-from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
+from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
+                      _testing_mode)
 
 
 laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
@@ -102,7 +77,7 @@ class CoregModel(HasPrivateTraits):
     """
     # data sources
     mri = Instance(MRIHeadWithFiducialsModel, ())
-    hsp = Instance(RawSource, ())
+    hsp = Instance(InstSource, ())
 
     # parameters
     grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
@@ -149,7 +124,7 @@ class CoregModel(HasPrivateTraits):
     can_prepare_bem_model = Property(Bool, depends_on=['n_scale_params',
                                                        'subject_has_bem'])
     can_save = Property(Bool, depends_on=['head_mri_trans'])
-    raw_subject = Property(depends_on='hsp.raw_fname', desc="Subject guess "
+    raw_subject = Property(depends_on='hsp.inst_fname', desc="Subject guess "
                            "based on the raw file name.")
 
     # transformed geometry
@@ -265,8 +240,7 @@ class CoregModel(HasPrivateTraits):
                 points[hair] += self.mri.norms[hair] * scaled_hair_dist
                 return points
             else:
-                msg = "Norms missing form bem, can't grow hair"
-                error(None, msg)
+                error(None, "Norms missing form bem, can't grow hair")
                 self.grow_hair = 0
         return self.mri.points
 
@@ -320,8 +294,8 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_point_distance(self):
-        if (len(self.transformed_hsp_points) == 0
-                or len(self.transformed_mri_points) == 0):
+        if (len(self.transformed_hsp_points) == 0 or
+                len(self.transformed_mri_points) == 0):
             return
         dists = cdist(self.transformed_hsp_points, self.transformed_mri_points,
                       'euclidean')
@@ -343,9 +317,9 @@ class CoregModel(HasPrivateTraits):
         return "Average Points Error: %.1f mm" % (av_dist * 1000)
 
     def _get_raw_subject(self):
-        # subject name guessed based on the raw file name
-        if '_' in self.hsp.raw_fname:
-            subject, _ = self.hsp.raw_fname.split('_', 1)
+        # subject name guessed based on the inst file name
+        if '_' in self.hsp.inst_fname:
+            subject, _ = self.hsp.inst_fname.split('_', 1)
             if not subject:
                 subject = None
         else:
@@ -386,7 +360,7 @@ class CoregModel(HasPrivateTraits):
         mri_pts = self.transformed_mri_points
         point_distance = _point_cloud_error(hsp_pts, mri_pts)
         new_sub_filter = point_distance <= distance
-        n_excluded = np.sum(new_sub_filter == False)
+        n_excluded = np.sum(new_sub_filter == False)  # noqa
         logger.info("Coregistration: Excluding %i head shape points with "
                     "distance >= %.3f m.", n_excluded, distance)
 
@@ -600,10 +574,7 @@ class CoregModel(HasPrivateTraits):
         """
         if not self.can_save:
             raise RuntimeError("Not enough information for saving transform")
-        trans_matrix = self.head_mri_trans
-        trans = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
-                 'trans': trans_matrix}
-        write_trans(fname, trans)
+        write_trans(fname, Transform('head', 'mri', self.head_mri_trans))
 
 
 class CoregFrameHandler(Handler):
@@ -611,10 +582,9 @@ class CoregFrameHandler(Handler):
     """
     def close(self, info, is_ok):
         if info.object.queue.unfinished_tasks:
-            msg = ("Can not close the window while saving is still in "
-                   "progress. Please wait until all MRIs are processed.")
-            title = "Saving Still in Progress"
-            information(None, msg, title)
+            information(None, "Can not close the window while saving is still "
+                        "in progress. Please wait until all MRIs are "
+                        "processed.", "Saving Still in Progress")
             return False
         else:
             return True
@@ -774,8 +744,8 @@ class CoregPanel(HasPrivateTraits):
                              Item('rot_z', editor=laggy_float_editor,
                                   show_label=True, tooltip="Rotate along "
                                   "anterior-posterior axis"),
-                                  'rot_z_dec', 'rot_z_inc',
-                                  show_labels=False, columns=4),
+                             'rot_z_dec', 'rot_z_inc',
+                             show_labels=False, columns=4),
                        # buttons
                        HGroup(Item('fit_hsp_points',
                                    enabled_when='has_pts_data',
@@ -972,7 +942,7 @@ class CoregPanel(HasPrivateTraits):
                                   subject_from=subject_from,
                                   subject_to=subject_to)
             ui = mridlg.edit_traits(kind='modal')
-            if ui.result != True:
+            if ui.result != True:  # noqa
                 return
             subject_to = mridlg.subject_to
 
@@ -1037,10 +1007,10 @@ class CoregPanel(HasPrivateTraits):
 
     def _scale_z_dec_fired(self):
         step = 1. / self.scale_step
-        self.scale_x *= step
+        self.scale_z *= step
 
     def _scale_z_inc_fired(self):
-        self.scale_x *= self.scale_step
+        self.scale_z *= self.scale_step
 
     def _trans_x_dec_fired(self):
         self.trans_x -= self.trans_step
@@ -1083,7 +1053,7 @@ class NewMriDialog(HasPrivateTraits):
                      "subject"),
                 width=500,
                 buttons=[CancelButton,
-                           Action(name='OK', enabled_when='can_save')])
+                         Action(name='OK', enabled_when='can_save')])
 
     def _can_overwrite_changed(self, new):
         if not new:
@@ -1174,7 +1144,7 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                       show_labels=False),
                                Item('omitted_info', style='readonly',
                                     show_label=False),
-                               label='Head Shape Source (Raw)',
+                               label='Head Shape Source (Raw/Epochs/Evoked)',
                                show_border=True, show_labels=False),
                         show_labels=False, label="Data Source")
 
@@ -1360,7 +1330,8 @@ class CoregFrame(HasTraits):
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         on_pick = self.scene.mayavi_scene.on_mouse_pick
-        self.picker = on_pick(self.fid_panel._on_pick, type='cell')
+        if not _testing_mode():
+            self.picker = on_pick(self.fid_panel._on_pick, type='cell')
 
         self.headview.left = True
         self.scene.disable_render = False

@@ -107,8 +107,8 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
             ii += 1  # This is a peak
             # Reset peak finding if we had a peak and the next peak is bigger
             # than the last or the left min was small enough to reset.
-            if found_peak and ((x[ii] > peak_mag[-1])
-                               or (left_min < peak_mag[-1] - thresh)):
+            if found_peak and ((x[ii] > peak_mag[-1]) or
+                               (left_min < peak_mag[-1] - thresh)):
                 temp_mag = min_mag
                 found_peak = False
 

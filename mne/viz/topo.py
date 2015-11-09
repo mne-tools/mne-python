@@ -14,24 +14,19 @@ from itertools import cycle
 from functools import partial
 
 import numpy as np
-from scipy import ndimage
 
-# XXX : don't import pyplot here or you will break the doc
-
-from ..baseline import rescale
-from ..utils import deprecated
 from ..io.pick import channel_type, pick_types
 from ..fixes import normalize_colors
-from ..utils import _clean_names
+from ..utils import _clean_names, deprecated
 
-from .utils import _mutable_defaults, _check_delayed_ssp, COLORS
-from .utils import _draw_proj_checkbox
+from ..defaults import _handle_default
+from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
+                    add_background_image)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
-                    axis_spinecolor='k', layout_scale=None,
-                    colorbar=False):
+                    axis_spinecolor='k', layout_scale=None):
     """ Create iterator over channel positions
 
     This function returns a generator that unpacks into
@@ -81,7 +76,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     fig.set_facecolor(fig_facecolor)
     if layout is None:
-        from ..layouts import find_layout
+        from ..channels import find_layout
         layout = find_layout(info)
 
     if on_pick is not None:
@@ -111,8 +106,9 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
 def _plot_topo(info=None, times=None, show_func=None, layout=None,
                decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
-               border='none', cmap=None, layout_scale=None, title=None,
-               x_label=None, y_label=None, vline=None):
+               border='none', axis_facecolor='k', fig_facecolor='k',
+               cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
+               y_label=None, vline=None, font_color='w'):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
 
@@ -127,15 +123,17 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         norm = normalize_colors(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array(np.linspace(vmin, vmax))
-        ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg='k')
+        ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg=fig_facecolor)
         cb = fig.colorbar(sm, ax=ax)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
-        plt.setp(cb_yticks, color='w')
+        plt.setp(cb_yticks, color=font_color)
+        ax.axis('off')
 
     my_topo_plot = iter_topography(info, layout=layout, on_pick=on_pick,
                                    fig=fig, layout_scale=layout_scale,
                                    axis_spinecolor=border,
-                                   colorbar=colorbar)
+                                   axis_facecolor=axis_facecolor,
+                                   fig_facecolor=fig_facecolor)
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
@@ -151,7 +149,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
             plt.ylim(*ylim_)
 
     if title is not None:
-        plt.figtext(0.03, 0.9, title, color='w', fontsize=19)
+        plt.figtext(0.03, 0.9, title, color=font_color, fontsize=19)
 
     return fig
 
@@ -184,23 +182,32 @@ def _plot_topo_onpick(event, show_func=None, colorbar=False):
         raise err
 
 
-def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
-                freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True, cmap=None):
+def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
+                tfr=None, freq=None, vline=None, x_label=None, y_label=None,
+                colorbar=False, picker=True, cmap='RdBu_r', title=None):
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
-    if cmap is None:
-        cmap = plt.cm.jet
-
+    from matplotlib.widgets import RectangleSelector
     extent = (tmin, tmax, freq[0], freq[-1])
-    ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
-              vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
-    if x_label is not None:
-        plt.xlabel(x_label)
-    if y_label is not None:
-        plt.ylabel(y_label)
+    img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
+                    vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
+    if isinstance(ax, plt.Axes):
+        if x_label is not None:
+            ax.set_xlabel(x_label)
+        if y_label is not None:
+            ax.set_ylabel(y_label)
+    else:
+        if x_label is not None:
+            plt.xlabel(x_label)
+        if y_label is not None:
+            plt.ylabel(y_label)
     if colorbar:
-        plt.colorbar()
+        plt.colorbar(mappable=img)
+    if title:
+        plt.title(title)
+    if not isinstance(ax, plt.Axes):
+        ax = plt.gca()
+    ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
@@ -217,7 +224,8 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.plot(times, data_[ch_idx], color_)
     if vline:
-        [plt.axvline(x, color='w', linewidth=0.5) for x in vline]
+        for x in vline:
+            plt.axvline(x, color='w', linewidth=0.5)
     if x_label is not None:
         plt.xlabel(x_label)
     if y_label is not None:
@@ -228,12 +236,16 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 
 def _check_vlim(vlim):
     """AUX function"""
-    return not np.isscalar(vlim) and not vlim is None
+    return not np.isscalar(vlim) and vlim is not None
 
 
+@deprecated("It will be removed in version 0.11. "
+            "Please use evoked.plot_topo or viz.evoked.plot_evoked_topo "
+            "for list of evoked instead.")
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
               border='none', ylim=None, scalings=None, title=None, proj=False,
-              vline=[0.0]):
+              vline=[0.0], fig_facecolor='k', fig_background=None,
+              axis_facecolor='k', font_color='w', show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -256,28 +268,110 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         automatically drawn.
     border : str
         matplotlib borders style to be used for each sensor plot.
-    scalings : dict | None
-        The scalings of the channel types to be applied for plotting. If None,`
-        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
     ylim : dict | None
         ylim for plots. The value determines the upper and lower subplot
         limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
         mag, grad, misc. If None, the ylim parameter for each channel is
         determined by the maximum absolute peak.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    title : str
+        Title of the figure.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
         be shown.
-    title : str
-        Title of the figure.
     vline : list of floats | None
         The values at which to show a vertical line.
+    fig_facecolor : str | obj
+        The figure face color. Defaults to black.
+    fig_background : None | numpy ndarray
+        A background image for the figure. This must work with a call to
+        plt.imshow. Defaults to None.
+    axis_facecolor : str | obj
+        The face color to be used for each sensor plot. Defaults to black.
+    font_color : str | obj
+        The color of text in the colorbar and title. Defaults to white.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    return _plot_evoked_topo(evoked=evoked, layout=layout,
+                             layout_scale=layout_scale, color=color,
+                             border=border, ylim=ylim, scalings=scalings,
+                             title=title, proj=proj, vline=vline,
+                             fig_facecolor=fig_facecolor,
+                             fig_background=fig_background,
+                             axis_facecolor=axis_facecolor,
+                             font_color=font_color, show=show)
+
+
+def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
+                      border='none', ylim=None, scalings=None, title=None,
+                      proj=False, vline=[0.0], fig_facecolor='k',
+                      fig_background=None, axis_facecolor='k', font_color='w',
+                      show=True):
+    """Plot 2D topography of evoked responses.
+
+    Clicking on the plot of an individual sensor opens a new figure showing
+    the evoked response for the selected sensor.
+
+    Parameters
+    ----------
+    evoked : list of Evoked | Evoked
+        The evoked response to plot.
+    layout : instance of Layout | None
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.
+    layout_scale: float
+        Scaling factor for adjusting the relative size of the layout
+        on the canvas
+    color : list of color objects | color object | None
+        Everything matplotlib accepts to specify colors. If not list-like,
+        the color specified will be repeated. If None, colors are
+        automatically drawn.
+    border : str
+        matplotlib borders style to be used for each sensor plot.
+    ylim : dict | None
+        ylim for plots. The value determines the upper and lower subplot
+        limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
+        mag, grad, misc. If None, the ylim parameter for each channel is
+        determined by the maximum absolute peak.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    title : str
+        Title of the figure.
+    proj : bool | 'interactive'
+        If true SSP projections are applied before display. If 'interactive',
+        a check box for reversible selection of SSP projection vectors will
+        be shown.
+    vline : list of floats | None
+        The values at which to show a vertical line.
+    fig_facecolor : str | obj
+        The figure face color. Defaults to black.
+    fig_background : None | numpy ndarray
+        A background image for the figure. This must work with a call to
+        plt.imshow. Defaults to None.
+    axis_facecolor : str | obj
+        The face color to be used for each sensor plot. Defaults to black.
+    font_color : str | obj
+        The color of text in the colorbar and title. Defaults to white.
+    show : bool
+        Show figure if True.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        Images of evoked responses at sensor locations
+    """
+    import matplotlib.pyplot as plt
 
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
@@ -298,56 +392,63 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         color = cycle([color])
 
     times = evoked[0].times
-    if not all([(e.times == times).all() for e in evoked]):
+    if not all((e.times == times).all() for e in evoked):
         raise ValueError('All evoked.times must be the same')
 
     info = evoked[0].info
     ch_names = evoked[0].ch_names
-    if not all([e.ch_names == ch_names for e in evoked]):
+    if not all(e.ch_names == ch_names for e in evoked):
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
 
     if layout is None:
-        from ..layouts.layout import find_layout
+        from ..channels.layout import find_layout
         layout = find_layout(info)
 
     # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
     chs_in_layout = set(layout.names) & set(ch_names)
     types_used = set(channel_type(info, ch_names.index(ch))
                      for ch in chs_in_layout)
+    # remove possible reference meg channels
+    types_used = set.difference(types_used, set('ref_meg'))
     # one check for all vendors
-    meg_types = ['mag'], ['grad'], ['mag', 'grad'],
-    is_meg = any(types_used == set(k) for k in meg_types)
+    meg_types = set(('mag', 'grad'))
+    is_meg = len(set.intersection(types_used, meg_types)) > 0
     if is_meg:
         types_used = list(types_used)[::-1]  # -> restore kwarg order
         picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
                  for kk in types_used]
     else:
         types_used_kwargs = dict((t, True) for t in types_used)
-        picks = [pick_types(info, meg=False, **types_used_kwargs)]
+        picks = [pick_types(info, meg=False, exclude=[], **types_used_kwargs)]
     assert isinstance(picks, list) and len(types_used) == len(picks)
 
-    scalings = _mutable_defaults(('scalings', scalings))[0]
+    scalings = _handle_default('scalings', scalings)
     evoked = [e.copy() for e in evoked]
     for e in evoked:
         for pick, t in zip(picks, types_used):
             e.data[pick] = e.data[pick] * scalings[t]
 
-    if proj is True and all([e.proj is not True for e in evoked]):
+    if proj is True and all(e.proj is not True for e in evoked):
         evoked = [e.apply_proj() for e in evoked]
     elif proj == 'interactive':  # let it fail early.
         for e in evoked:
             _check_delayed_ssp(e)
 
     if ylim is None:
-        set_ylim = lambda x: np.abs(x).max()
+        def set_ylim(x):
+            return np.abs(x).max()
         ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
         ymax = np.array(ylim_)
         ylim_ = (-ymax, ymax)
     elif isinstance(ylim, dict):
-        ylim_ = _mutable_defaults(('ylim', ylim))[0]
+        ylim_ = _handle_default('ylim', ylim)
         ylim_ = [ylim_[kk] for kk in types_used]
-        ylim_ = zip(*[np.array(yl) for yl in ylim_])
+        # extra unpack to avoid bug #1700
+        if len(ylim_) == 1:
+            ylim_ = ylim_[0]
+        else:
+            ylim_ = zip(*[np.array(yl) for yl in ylim_])
     else:
         raise ValueError('ylim must be None ore a dict')
 
@@ -356,8 +457,13 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
                      decim=1, colorbar=False, ylim=ylim_, cmap=None,
-                     layout_scale=layout_scale, border=border, title=title,
-                     x_label='Time (s)', vline=vline)
+                     layout_scale=layout_scale, border=border,
+                     fig_facecolor=fig_facecolor, font_color=font_color,
+                     axis_facecolor=axis_facecolor,
+                     title=title, x_label='Time (s)', vline=vline)
+
+    if fig_background is not None:
+        add_background_image(fig, fig_background)
 
     if proj == 'interactive':
         for e in evoked:
@@ -366,6 +472,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       plot_update_proj_callback=_plot_update_evoked_topo,
                       projs=evoked[0].info['projs'], fig=fig)
         _draw_proj_checkbox(None, params)
+
+    if show:
+        plt.show()
 
     return fig
 
@@ -397,246 +506,17 @@ def _plot_update_evoked_topo(params, bools):
     fig.canvas.draw()
 
 
-@deprecated('`plot_topo_tfr` is deprecated and will be removed in '
-            'MNE 0.9. Use `plot_topo` method on TFR objects.')
-def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
-                  vmax=None, cmap='RdBu_r', layout_scale=0.945, title=None):
-    """Plot time-frequency data on sensor layout
-
-    Clicking on the time-frequency map of an individual sensor opens a
-    new figure showing the time-frequency map of the selected sensor.
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The epochs used to generate the power
-    tfr : 3D-array shape=(n_sensors, n_freqs, n_times)
-        The time-frequency data. Must have the same channels as Epochs.
-    freq : array-like
-        Frequencies of interest as passed to induced_power
-    layout : instance of Layout | None
-        Layout instance specifying sensor positions (does not need to
-        be specified for Neuromag data). If possible, the correct layout is
-        inferred from the data.
-    colorbar : bool
-        If true, colorbar will be added to the plot
-    vmin : float
-        Minimum value mapped to lowermost color
-    vmax : float
-        Minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pyplot.colormap | str
-        Colors to be mapped to the values. Default 'RdBu_r'.
-    layout_scale : float
-        Scaling factor for adjusting the relative size of the layout
-        on the canvas
-    title : str
-        Title of the figure.
-
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figure
-        Images of time-frequency data at sensor locations
-    """
-
-    if vmin is None:
-        vmin = tfr.min()
-    if vmax is None:
-        vmax = tfr.max()
-
-    if layout is None:
-        from ..layouts.layout import find_layout
-        layout = find_layout(epochs.info)
-
-    tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq, cmap=cmap)
-
-    fig = _plot_topo(info=epochs.info, times=epochs.times,
-                     show_func=tfr_imshow, layout=layout, border='w',
-                     colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
-                     layout_scale=layout_scale, title=title,
-                     x_label='Time (s)', y_label='Frequency (Hz)')
-
-    return fig
-
-
-@deprecated('`plot_topo_power` is deprecated and will be removed in '
-            'MNE 0.9. Use `plot_topo` method on TFR objects.')
-def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
-                    mode='mean', decim=1, colorbar=True, vmin=None, vmax=None,
-                    cmap=None, layout_scale=0.945, dB=True, title=None):
-    """Plot induced power on sensor layout
-
-    Clicking on the induced power map of an individual sensor opens a
-    new figure showing the induced power map of the selected sensor.
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The epochs used to generate the power
-    power : 3D-array
-        First return value from mne.time_frequency.induced_power
-    freq : array-like
-        Frequencies of interest as passed to induced_power
-    layout : instance of Layout | None
-        Layout instance specifying sensor positions (does not need to
-        be specified for Neuromag data). If possible, the correct layout is
-        inferred from the data.
-    baseline : tuple or list of length 2
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or z-score (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline))
-        If None, baseline no correction will be performed.
-    decim : integer
-        Increment for selecting each nth time slice
-    colorbar : bool
-        If true, colorbar will be added to the plot
-    vmin : float
-        Minimum value mapped to lowermost color
-    vmax : float
-        Minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pyplot.colormap
-        Colors to be mapped to the values
-    layout_scale : float
-        Scaling factor for adjusting the relative size of the layout
-        on the canvas
-    dB : bool
-        If True, log10 will be applied to the data.
-    title : str
-        Title of the figure.
-
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figure
-        Images of induced power at sensor locations
-    """
-    times = epochs.times[::decim].copy()
-    if mode is not None:
-        if baseline is None:
-            baseline = epochs.baseline
-        power = rescale(power.copy(), times, baseline, mode)
-    times *= 1e3
-    if dB:
-        power = 20 * np.log10(power)
-    if vmin is None:
-        vmin = power.min()
-    if vmax is None:
-        vmax = power.max()
-    if layout is None:
-        from ..layouts.layout import find_layout
-        layout = find_layout(epochs.info)
-
-    power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
-
-    fig = _plot_topo(info=epochs.info, times=times,
-                     show_func=power_imshow, layout=layout, decim=decim,
-                     colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
-                     layout_scale=layout_scale, title=title, border='w',
-                     x_label='Time (s)', y_label='Frequency (Hz)')
-
-    return fig
-
-
-@deprecated('`plot_topo_phase_lock` is deprecated and will be removed in '
-            'MNE 0.9. Use `plot_topo` method on TFR objects.')
-def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
-                         mode='mean', decim=1, colorbar=True, vmin=None,
-                         vmax=None, cmap=None, layout_scale=0.945,
-                         title=None):
-    """Plot phase locking values (PLV) on sensor layout
-
-    Clicking on the PLV map of an individual sensor opens a new figure
-    showing the PLV map of the selected sensor.
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The epochs used to generate the phase locking value
-    phase_lock : 3D-array
-        Phase locking value, second return value from
-        mne.time_frequency.induced_power.
-    freq : array-like
-        Frequencies of interest as passed to induced_power
-    layout : instance of Layout | None
-        Layout instance specifying sensor positions (does not need to
-        be specified for Neuromag data). If possible, the correct layout is
-        inferred from the data.
-    baseline : tuple or list of length 2
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent' | None
-        Do baseline correction with ratio (phase is divided by mean
-        phase during baseline) or z-score (phase is divided by standard
-        deviation of phase during baseline after subtracting the mean,
-        phase = [phase - mean(phase_baseline)] / std(phase_baseline)).
-        If None, baseline no correction will be performed.
-    decim : integer
-        Increment for selecting each nth time slice
-    colorbar : bool
-        If true, colorbar will be added to the plot
-    vmin : float
-        Minimum value mapped to lowermost color
-    vmax : float
-        Minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pyplot.colormap
-        Colors to be mapped to the values
-    layout_scale : float
-        Scaling factor for adjusting the relative size of the layout
-        on the canvas.
-    title : str
-        Title of the figure.
-
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figrue
-        Phase lock images at sensor locations
-    """
-    times = epochs.times[::decim] * 1e3
-    if mode is not None:
-        if baseline is None:
-            baseline = epochs.baseline
-        phase = rescale(phase.copy(), times, baseline, mode)
-    if vmin is None:
-        vmin = phase.min()
-    if vmax is None:
-        vmax = phase.max()
-    if layout is None:
-        from ..layouts.layout import find_layout
-        layout = find_layout(epochs.info)
-
-    phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
-
-    fig = _plot_topo(info=epochs.info, times=times,
-                     show_func=phase_imshow, layout=layout, decim=decim,
-                     colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
-                     layout_scale=layout_scale, title=title, border='w',
-                     x_label='Time (s)', y_label='Frequency (Hz)')
-
-    return fig
-
-
 def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                      data=None, epochs=None, sigma=None,
                      order=None, scalings=None, vline=None,
-                     x_label=None, y_label=None, colorbar=False):
+                     x_label=None, y_label=None, colorbar=False,
+                     cmap='RdBu_r'):
     """Aux function to plot erfimage on sensor topography"""
-
+    from scipy import ndimage
     import matplotlib.pyplot as plt
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
-    if not ch_type in scalings:
+    if ch_type not in scalings:
         raise KeyError('%s channel type not in scalings' % ch_type)
     this_data *= scalings[ch_type]
 
@@ -646,10 +526,12 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
     if order is not None:
         this_data = this_data[order]
 
-    this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+    if sigma > 0.:
+        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
 
     ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
-              origin='lower', vmin=vmin, vmax=vmax, picker=True)
+              origin='lower', vmin=vmin, vmax=vmax, picker=True,
+              cmap=cmap, interpolation='nearest')
 
     if x_label is not None:
         plt.xlabel(x_label)
@@ -659,9 +541,11 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
         plt.colorbar()
 
 
-def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
-                           vmax=None, colorbar=True, order=None, cmap=None,
-                           layout_scale=.95, title=None, scalings=None):
+def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
+                           vmax=None, colorbar=True, order=None, cmap='RdBu_r',
+                           layout_scale=.95, title=None, scalings=None,
+                           border='none', fig_facecolor='k', font_color='w',
+                           show=True):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -672,7 +556,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         System specific sensor positions.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
-        the epoch axis to apply in the image.
+        the epoch axis to apply in the image. If 0., no smoothing is applied.
     vmin : float
         The min value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
@@ -697,29 +581,42 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If
         None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    border : str
+        matplotlib borders style to be used for each sensor plot.
+    fig_facecolor : str | obj
+        The figure face color. Defaults to black.
+    font_color : str | obj
+        The color of tick labels in the colorbar. Defaults to white.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    scalings = _mutable_defaults(('scalings', scalings))[0]
+    import matplotlib.pyplot as plt
+    scalings = _handle_default('scalings', scalings)
     data = epochs.get_data()
     if vmin is None:
         vmin = data.min()
     if vmax is None:
         vmax = data.max()
     if layout is None:
-        from ..layouts.layout import find_layout
+        from ..channels.layout import find_layout
         layout = find_layout(epochs.info)
 
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
-                         data=data, epochs=epochs, sigma=sigma)
+                         data=data, epochs=epochs, sigma=sigma,
+                         cmap=cmap)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,
                      show_func=erf_imshow, layout=layout, decim=1,
                      colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                      layout_scale=layout_scale, title=title,
-                     border='w', x_label='Time (s)', y_label='Epoch')
-
+                     fig_facecolor=fig_facecolor,
+                     font_color=font_color, border=border,
+                     x_label='Time (s)', y_label='Epoch')
+    if show:
+        plt.show()
     return fig

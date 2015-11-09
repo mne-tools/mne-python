@@ -7,16 +7,16 @@
 import math
 
 import numpy as np
-from scipy.stats import kurtosis
 
-from ..utils import logger, verbose, check_random_state
+from ..utils import logger, verbose, check_random_state, random_permutation
 
 
 @verbose
 def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             anneal_deg=60., anneal_step=0.9, extended=False, n_subgauss=1,
             kurt_size=6000, ext_blocks=1, max_iter=200,
-            random_state=None, verbose=None):
+            random_state=None, blowup=1e4, blowup_fac=0.5, n_small_angle=20,
+            use_bias=True, verbose=None):
     """Run the (extended) Infomax ICA decomposition on raw data
 
     based on the publications of Bell & Sejnowski 1995 (Infomax)
@@ -56,10 +56,39 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         The window size for kurtosis estimation. Only considered for extended
         Infomax.
     ext_blocks : int
-        The number of blocks after which to recompute Kurtosis.
         Only considered for extended Infomax.
+        If positive, it denotes the number of blocks after which to recompute
+        the Kurtosis, which is used to estimate the signs of the sources.
+        In this case the number of sub-gaussian sources is automatically
+        determined.
+        If negative, the number of sub-gaussian sources to be used is fixed
+        and equal to n_subgauss. In this case the Kurtosis is not estimated.
     max_iter : int
         The maximum number of iterations. Defaults to 200.
+    random_state : int | np.random.RandomState
+        If random_state is an int, use random_state as seed of the random
+        number generator.
+        If random_state is already a np.random.RandomState instance, use
+        random_state as random number generator.
+    blowup : float
+        The maximum difference allowed between two succesive estimations of the
+        unmixing matrix. Defaults to 1e4
+    blowup_fac : float
+        The factor by which the learning rate will be reduced if the
+        difference between two succesive estimations of the
+        unmixing matrix exceededs ``blowup``:
+            l_rate *= blowup_fac
+        Defaults to 0.5
+    n_small_angle : int | None
+        The maximum number of allowed steps in which the angle between two
+        succesive estimations of the unmixing matrix is less than
+        ``anneal_deg``.
+        If None, this parameter is not taken into account to stop the
+        iterations.
+        Defaults to 20
+    use_bias : bool
+        This quantity indicates if the bias should be computed.
+        Defaults to True
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -68,15 +97,13 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     unmixing_matrix : np.ndarray of float, shape (n_features, n_features)
         The linear unmixing operator.
     """
+    from scipy.stats import kurtosis
     rng = check_random_state(random_state)
 
     # define some default parameter
     max_weight = 1e8
     restart_fac = 0.9
     min_l_rate = 1e-10
-    blowup = 1e4
-    blowup_fac = 0.5
-    n_small_angle = 20
     degconst = 180.0 / np.pi
 
     # for extended Infomax
@@ -84,8 +111,6 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     signsbias = 0.02
     signcount_threshold = 25
     signcount_step = 2
-    if ext_blocks > 0:  # allow not to recompute kurtosis
-        n_subgauss = 1  # but initialize n_subgauss to 1 if you recompute
 
     # check data shape
     n_samples, n_features = data.shape
@@ -122,23 +147,25 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     wts_blowup = False
     blockno = 0
     signcount = 0
+    initial_ext_blocks = ext_blocks   # save the initial value in case of reset
 
     # for extended Infomax
     if extended is True:
-        signs = np.identity(n_features)
-        signs.flat[slice(0, n_features * n_subgauss, n_features)]
+        signs = np.ones(n_features)
+
+        for k in range(n_subgauss):
+            signs[k] = -1
+
         kurt_size = min(kurt_size, n_samples)
         old_kurt = np.zeros(n_features, dtype=np.float64)
-        oldsigns = np.zeros((n_features, n_features))
+        oldsigns = np.zeros(n_features)
 
     # trainings loop
     olddelta, oldchange = 1., 0.
     while step < max_iter:
 
         # shuffle data at each step
-        rng.seed(step)  # --> permutation is fixed but differs at each step
-        permute = list(range(n_samples))
-        rng.shuffle(permute)
+        permute = random_permutation(n_samples, rng)
 
         # ICA training block
         # loop across block samples
@@ -150,19 +177,24 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                 # extended ICA update
                 y = np.tanh(u)
                 weights += l_rate * np.dot(weights,
-                                           BI - np.dot(np.dot(u.T, y), signs) -
+                                           BI -
+                                           signs[None, :] * np.dot(u.T, y) -
                                            np.dot(u.T, u))
-                bias += l_rate * np.reshape(np.sum(y, axis=0,
-                                            dtype=np.float64) * -2.0,
-                                            (n_features, 1))
+                if use_bias:
+                    bias += l_rate * np.reshape(np.sum(y, axis=0,
+                                                dtype=np.float64) * -2.0,
+                                                (n_features, 1))
 
             else:
                 # logistic ICA weights update
                 y = 1.0 / (1.0 + np.exp(-u))
                 weights += l_rate * np.dot(weights,
                                            BI + np.dot(u.T, (1.0 - 2.0 * y)))
-                bias += l_rate * np.reshape(np.sum((1.0 - 2.0 * y), axis=0,
-                                            dtype=np.float64), (n_features, 1))
+
+                if use_bias:
+                    bias += l_rate * np.reshape(np.sum((1.0 - 2.0 * y), axis=0,
+                                                dtype=np.float64),
+                                                (n_features, 1))
 
             # check change limit
             max_weight_val = np.max(np.abs(weights))
@@ -176,9 +208,8 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             # ICA kurtosis estimation
             if extended is True:
 
-                n = np.fix(blockno / ext_blocks)
+                if ext_blocks > 0 and blockno % ext_blocks == 0:
 
-                if np.abs(n) * ext_blocks == blockno:
                     if kurt_size < n_samples:
                         rp = np.floor(rng.uniform(0, 1, kurt_size) *
                                       (n_samples - 1))
@@ -195,11 +226,9 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                         old_kurt = kurt
 
                     # estimate weighted signs
-                    signs.flat[::n_features + 1] = ((kurt + signsbias) /
-                                                    np.abs(kurt + signsbias))
+                    signs = np.sign(kurt + signsbias)
 
-                    ndiff = ((signs.flat[::n_features + 1] -
-                              oldsigns.flat[::n_features + 1]) != 0).sum()
+                    ndiff = (signs - oldsigns != 0).sum()
                     if ndiff == 0:
                         signcount += 1
                     else:
@@ -219,10 +248,15 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             angledelta = 0.0
             delta = oldwtchange.reshape(1, n_features_square)
             change = np.sum(delta * delta, dtype=np.float64)
-            if step > 1:
+            if step > 2:
                 angledelta = math.acos(np.sum(delta * olddelta) /
                                        math.sqrt(change * oldchange))
                 angledelta *= degconst
+
+            if verbose:
+                logger.info(
+                    'step %d - lrate %5f, wchange %8.8f, angledelta %4.1f deg'
+                    % (step, l_rate, change, angledelta))
 
             # anneal learning rate
             oldweights = weights.copy()
@@ -236,9 +270,11 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                 if step == 1:  # on first step only
                     olddelta = delta  # initialize
                     oldchange = change
-                count_small_angle += 1
-                if count_small_angle > n_small_angle:
-                    max_iter = step
+
+                if n_small_angle is not None:
+                    count_small_angle += 1
+                    if count_small_angle > n_small_angle:
+                        max_iter = step
 
             # apply stopping rule
             if step > 2 and change < w_change:
@@ -258,11 +294,14 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             olddelta = np.zeros((1, n_features_square), dtype=np.float64)
             bias = np.zeros((n_features, 1), dtype=np.float64)
 
+            ext_blocks = initial_ext_blocks
+
             # for extended Infomax
             if extended:
-                signs = np.identity(n_features)
-                signs.flat[slice(0, n_features * n_subgauss, n_features)]
-                oldsigns = np.zeros((n_features, n_features))
+                signs = np.ones(n_features)
+                for k in range(n_subgauss):
+                    signs[k] = -1
+                oldsigns = np.zeros(n_features)
 
             if l_rate > min_l_rate:
                 if verbose:

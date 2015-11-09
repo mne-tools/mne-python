@@ -12,12 +12,10 @@ from ..event import find_events
 class MockRtClient(object):
     """Mock Realtime Client
 
-    Attributes
+    Parameters
     ----------
     raw : instance of Raw object
         The raw object which simulates the RtClient
-    info : dict
-        Measurement info.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
@@ -72,13 +70,10 @@ class MockRtClient(object):
             data, times = self.raw[:, start:stop]
 
             # to undo the calibration done in _process_raw_buffer
-            cals = np.zeros(self.info['nchan'])
-            for k in range(self.info['nchan']):
-                cals[k] = (self.info['chs'][k]['range']
-                           * self.info['chs'][k]['cal'])
+            cals = np.array([[self.info['chs'][k]['range'] *
+                              self.info['chs'][k]['cal'] for k in picks]]).T
 
-            self._cals = cals[:, None]
-            data[picks, :] = data[picks, :] / self._cals
+            data[picks, :] = data[picks, :] / cals
 
             epochs._process_raw_buffer(data)
 
@@ -103,6 +98,8 @@ class MockRtClient(object):
             Start time before event.
         tmax : float
             End time after event.
+        picks : array-like of int
+            Indices of channels.
         stim_channel : None | string | list of string
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables
@@ -159,15 +156,33 @@ class MockRtClient(object):
             return None
 
     def register_receive_callback(self, x):
-        """API boilerplate"""
+        """API boilerplate
+
+        Parameters
+        ----------
+        x : None
+            Not used.
+        """
         pass
 
     def start_receive_thread(self, x):
-        """API boilerplate"""
+        """API boilerplate
+
+        Parameters
+        ----------
+        x : None
+            Not used.
+        """
         pass
 
     def unregister_receive_callback(self, x):
-        """API boilerplate"""
+        """API boilerplate
+
+        Parameters
+        ----------
+        x : None
+            Not used.
+        """
         pass
 
     def _stop_receive_thread(self):
