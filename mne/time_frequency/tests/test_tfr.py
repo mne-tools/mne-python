@@ -142,7 +142,7 @@ def test_time_frequency():
     power_pick = power.pick_channels(power.ch_names[:10:2])
     assert_equal(len(power_pick.ch_names), len(power.ch_names[:10:2]))
     assert_equal(power_pick.data.shape[0], len(power.ch_names[:10:2]))
-    power_drop = power.drop_channels(power.ch_names[1:10:2], copy=True)
+    power_drop = power.drop_channels(power.ch_names[1:10:2])
     assert_equal(power_drop.ch_names, power_pick.ch_names)
     assert_equal(power_pick.data.shape[0], len(power_drop.ch_names))
 
