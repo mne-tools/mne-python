@@ -23,6 +23,43 @@ from ..utils import logger, verbose
 from ..externals import six
 
 
+def _prepare_source_params(inst, inverse_operator, label=None,
+                           lambda2=1.0 / 9.0, method="dSPM", nave=1,
+                           decim=1, pca=True, pick_ori="normal",
+                           prepared=False, verbose=None):
+    """Prepare inverse operator and params for spectral / TFR analysis"""
+    if not prepared:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
+    #
+    #   Pick the correct channels from the data
+    #
+    sel = _pick_channels_inverse_operator(inst.ch_names, inv)
+    logger.info('Picked %d channels from the data' % len(sel))
+    logger.info('Computing inverse...')
+    #
+    #   Simple matrix multiplication followed by combination of the
+    #   three current components
+    #
+    #   This does all the data transformations to compute the weights for the
+    #   eigenleads
+    #
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
+
+    if pca:
+        U, s, Vh = linalg.svd(K, full_matrices=False)
+        rank = np.sum(s > 1e-8 * s[0])
+        K = s[:rank] * U[:, :rank]
+        Vh = Vh[:rank]
+        logger.info('Reducing data rank to %d' % rank)
+    else:
+        Vh = None
+    is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+
+    return K, sel, Vh, vertno, is_free_ori, noise_norm
+
+
 @verbose
 def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               lambda2=1.0 / 9.0, method="dSPM", nave=1,
@@ -121,10 +158,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     return stcs
 
 
-@verbose
-def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
-                     pick_ori, decim, verbose=None):
-    """Aux function for source_induced_power"""
+def _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori):
+    """Aux function to prepare TFR source localization"""
     n_times = data[:, :, ::decim].shape[2]
     n_freqs = len(Ws)
     n_sources = K.shape[0]
@@ -134,58 +169,83 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
         n_sources //= 3
 
     shape = (n_sources, n_freqs, n_times)
-    power = np.zeros(shape, dtype=np.float)  # power
-    if with_plv:
-        shape = (n_sources, n_freqs, n_times)
-        plv = np.zeros(shape, dtype=np.complex)  # phase lock
-    else:
-        plv = None
+    return shape, is_free_ori
 
-    for e in data:
-        e = e[sel]  # keep only selected channels
+
+@verbose
+def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
+                     with_power, with_plv, pick_ori, decim, verbose=None):
+    """Aux function for induced power and PLV"""
+    shape, is_free_ori = _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori)
+    n_sources, n_times = shape[:2]
+    power = np.zeros(shape, dtype=np.float)  # power or raw TFR
+    # phase lock
+    plv = np.zeros(shape, dtype=np.complex) if with_plv else None
+
+    for epoch in data:
+        epoch = epoch[sel]  # keep only selected channels
 
         if Vh is not None:
-            e = np.dot(Vh, e)  # reducing data rank
+            epoch = np.dot(Vh, epoch)  # reducing data rank
 
-        for f, w in enumerate(Ws):
-            tfr = cwt(e, [w], use_fft=use_fft, decim=decim)
-            tfr = np.asfortranarray(tfr.reshape(len(e), -1))
+        power_e, plv_e = _single_epoch_tfr(
+            data=epoch, is_free_ori=is_free_ori, K=K, Ws=Ws, use_fft=use_fft,
+            decim=decim, shape=shape, with_plv=with_plv, with_power=with_power)
 
-            # phase lock and power at freq f
-            if with_plv:
-                plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
-            pow_f = np.zeros((n_sources, n_times), dtype=np.float)
-
-            for k, t in enumerate([np.real(tfr), np.imag(tfr)]):
-                sol = np.dot(K, t)
-
-                sol_pick_normal = sol
-                if is_free_ori:
-                    sol_pick_normal = sol[2::3]
-
-                if with_plv:
-                    if k == 0:  # real
-                        plv_f += sol_pick_normal
-                    else:  # imag
-                        plv_f += 1j * sol_pick_normal
-
-                if is_free_ori:
-                    logger.debug('combining the current components...')
-                    sol = combine_xyz(sol, square=True)
-                else:
-                    np.power(sol, 2, sol)
-                pow_f += sol
-                del sol
-
-            power[:, f, :] += pow_f
-            del pow_f
-
-            if with_plv:
-                plv_f /= np.abs(plv_f)
-                plv[:, f, :] += plv_f
-                del plv_f
+        power += power_e
+        if with_plv:
+            plv += plv_e
 
     return power, plv
+
+
+def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
+                      with_plv, with_power):
+    """Compute single trial TFRs, either ITC, power or raw TFR"""
+    tfr_e = np.zeros(shape, dtype=np.float)  # power or raw TFR
+    # phase lock
+    plv_e = np.zeros(shape, dtype=np.complex) if with_plv else None
+    n_sources, _, n_times = shape
+    for f, w in enumerate(Ws):
+        tfr_ = cwt(data, [w], use_fft=use_fft, decim=decim)
+        tfr_ = np.asfortranarray(tfr_.reshape(len(data), -1))
+
+        # phase lock and power at freq f
+        if with_plv:
+            plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
+
+        tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
+
+        for k, t in enumerate([np.real(tfr_), np.imag(tfr_)]):
+            sol = np.dot(K, t)
+
+            sol_pick_normal = sol
+            if is_free_ori:
+                sol_pick_normal = sol[2::3]
+
+            if with_plv:
+                if k == 0:  # real
+                    plv_f += sol_pick_normal
+                else:  # imag
+                    plv_f += 1j * sol_pick_normal
+
+            if is_free_ori:
+                logger.debug('combining the current components...')
+                sol = combine_xyz(sol, square=with_power)
+            elif with_power:
+                sol *= sol
+            tfr_f += sol
+            del sol
+
+        tfr_e[:, f, :] += tfr_f
+        del tfr_f
+
+        if with_plv:
+            plv_f /= np.abs(plv_f)
+            plv_e[:, f, :] += plv_f
+            del plv_f
+
+    return tfr_e, plv_e
 
 
 @verbose
@@ -194,43 +254,16 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
                           decim=1, use_fft=False, pca=True, pick_ori="normal",
                           n_jobs=1, with_plv=True, zero_mean=False,
                           prepared=False, verbose=None):
-    """Aux function for source_induced_power
-    """
-    parallel, my_compute_pow_plv, n_jobs = parallel_func(_compute_pow_plv,
-                                                         n_jobs)
-    #
-    #   Set up the inverse according to the parameters
-    #
+    """Aux function for source induced power"""
     epochs_data = epochs.get_data()
+    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+        inst=epochs, inverse_operator=inverse_operator, label=label,
+        lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
+        prepared=prepared, verbose=verbose)
 
-    if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
-    else:
-        inv = inverse_operator
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
-    #
-    #   Simple matrix multiplication followed by combination of the
-    #   three current components
-    #
-    #   This does all the data transformations to compute the weights for the
-    #   eigenleads
-    #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
-
-    if pca:
-        U, s, Vh = linalg.svd(K, full_matrices=False)
-        rank = np.sum(s > 1e-8 * s[0])
-        K = s[:rank] * U[:, :rank]
-        Vh = Vh[:rank]
-        logger.info('Reducing data rank to %d' % rank)
-    else:
-        Vh = None
-
+    inv = inverse_operator
+    parallel, my_compute_source_tfrs, n_jobs = parallel_func(
+        _compute_pow_plv, n_jobs)
     Fs = epochs.info['sfreq']  # sampling in Hz
 
     logger.info('Computing source power ...')
@@ -238,9 +271,11 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
     n_jobs = min(n_jobs, len(epochs_data))
-    out = parallel(my_compute_pow_plv(data, K, sel, Ws,
-                                      inv['source_ori'], use_fft, Vh,
-                                      with_plv, pick_ori, decim)
+    out = parallel(my_compute_source_tfrs(data=data, K=K, sel=sel, Ws=Ws,
+                                          source_ori=inv['source_ori'],
+                                          use_fft=use_fft, Vh=Vh,
+                                          with_plv=with_plv, with_power=True,
+                                          pick_ori=pick_ori, decim=decim)
                    for data in np.array_split(epochs_data, n_jobs))
     power = sum(o[0] for o in out)
     power /= len(epochs_data)  # average power over epochs
@@ -401,35 +436,10 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
-    if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
-    else:
-        inv = inverse_operator
-    is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(raw.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
-    #
-    #   Simple matrix multiplication followed by combination of the
-    #   three current components
-    #
-    #   This does all the data transformations to compute the weights for the
-    #   eigenleads
-    #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
-
-    if pca:
-        U, s, Vh = linalg.svd(K, full_matrices=False)
-        rank = np.sum(s > 1e-8 * s[0])
-        K = s[:rank] * U[:, :rank]
-        Vh = Vh[:rank]
-        logger.info('Reducing data rank to %d' % rank)
-    else:
-        Vh = None
+    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+        inst=raw, inverse_operator=inverse_operator, label=label,
+        lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
+        prepared=prepared, verbose=verbose)
 
     start, stop = 0, raw.last_samp + 1 - raw.first_samp
     if tmin is not None:
@@ -492,35 +502,10 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
-    if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
-    else:
-        inv = inverse_operator
-    is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
-    #
-    #   Simple matrix multiplication followed by combination of the
-    #   three current components
-    #
-    #   This does all the data transformations to compute the weights for the
-    #   eigenleads
-    #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
-
-    if pca:
-        U, s, Vh = linalg.svd(K, full_matrices=False)
-        rank = np.sum(s > 1e-8 * s[0])
-        K = s[:rank] * U[:, :rank]
-        Vh = Vh[:rank]
-        logger.info('Reducing data rank to %d' % rank)
-    else:
-        Vh = None
+    K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
+        inst=epochs, inverse_operator=inverse_operator, label=label,
+        lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
+        prepared=prepared, verbose=verbose)
 
     # split the inverse operator
     if inv_split is not None:

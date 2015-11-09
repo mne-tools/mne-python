@@ -4,7 +4,7 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
 from mne import io, pick_types, Epochs, read_events
-from mne.utils import requires_scipy_version, slow_test
+from mne.utils import requires_version, slow_test
 from mne.time_frequency import compute_raw_psd, compute_epochs_psd
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -12,7 +12,7 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 
 
-@requires_scipy_version('0.12')
+@requires_version('scipy', '0.12')
 def test_psd():
     """Test PSD estimation
     """
@@ -51,7 +51,7 @@ def test_psd():
     assert_true(np.sum(psds < 0) == 0)
 
 
-@requires_scipy_version('0.12')
+@requires_version('scipy', '0.12')
 def test_psd_epochs():
     """Test PSD estimation on epochs
     """
@@ -67,7 +67,7 @@ def test_psd_epochs():
 
     n_fft = 512  # the FFT size (n_fft). Ideally a power of 2
 
-    tmin, tmax, event_id = -1, 1, 1
+    tmin, tmax, event_id = -0.5, 0.5, 1
     include = []
     raw.info['bads'] += ['MEG 2443']  # bads
 
@@ -76,15 +76,30 @@ def test_psd_epochs():
                        stim=False, include=include, exclude='bads')
 
     events = read_events(event_fname)
+
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(grad=4000e-13, eog=150e-6), proj=False,
                     preload=True)
 
+    tmin_full, tmax_full = -1, 1
+    epochs_full = Epochs(raw, events[:10], event_id, tmax=tmax_full,
+                         tmin=tmin_full, picks=picks,
+                         baseline=(None, 0),
+                         reject=dict(grad=4000e-13, eog=150e-6), proj=False,
+                         preload=True)
+
     picks = pick_types(epochs.info, meg='grad', eeg=False, eog=True,
                        stim=False, include=include, exclude='bads')
     psds, freqs = compute_epochs_psd(epochs[:1], fmin=2, fmax=300,
                                      n_fft=n_fft, picks=picks)
+
+    psds_t, freqs_t = compute_epochs_psd(epochs_full[:1], fmin=2, fmax=300,
+                                         tmin=tmin, tmax=tmax,
+                                         n_fft=n_fft, picks=picks)
+    # this one will fail if you add for example 0.1 to tmin
+    assert_array_almost_equal(psds, psds_t, 27)
+
     psds_proj, _ = compute_epochs_psd(epochs[:1].apply_proj(), fmin=2,
                                       fmax=300, n_fft=n_fft, picks=picks)
 
@@ -95,7 +110,7 @@ def test_psd_epochs():
 
 
 @slow_test
-@requires_scipy_version('0.12')
+@requires_version('scipy', '0.12')
 def test_compares_psd():
     """Test PSD estimation on raw for plt.psd and scipy.signal.welch
     """

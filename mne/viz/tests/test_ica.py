@@ -64,7 +64,8 @@ def test_plot_ica_components():
         for components in [0, [0], [0, 1], [0, 1] * 2, None]:
             ica.plot_components(components, image_interp='bilinear', res=16)
     ica.info = None
-    assert_raises(RuntimeError, ica.plot_components, 1)
+    assert_raises(ValueError, ica.plot_components, 1)
+    assert_raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
     plt.close('all')
 
 
@@ -75,7 +76,7 @@ def test_plot_ica_sources():
     import matplotlib.pyplot as plt
     raw = io.Raw(raw_fname, preload=False)
     raw.crop(0, 1, copy=False)
-    raw.preload_data()
+    raw.load_data()
     picks = _get_picks(raw)
     epochs = _get_epochs()
     raw.pick_channels([raw.ch_names[k] for k in picks])
@@ -140,6 +141,59 @@ def test_plot_ica_scores():
     ica.fit(raw, picks=picks)
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
     assert_raises(ValueError, ica.plot_scores, [0.2])
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_instance_components():
+    """Test plotting of components as instances of raw and epochs."""
+    import matplotlib.pyplot as plt
+    raw = _get_raw()
+    picks = _get_picks(raw)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica.fit(raw, picks=picks)
+    fig = ica.plot_sources(raw, exclude=[0], title='Components')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('right')
+    fig.canvas.key_press_event('left')
+    fig.canvas.key_press_event('o')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event('=')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event('pagedown')
+    fig.canvas.key_press_event('home')
+    fig.canvas.key_press_event('end')
+    fig.canvas.key_press_event('f11')
+    ax = fig.get_axes()[0]
+    line = ax.lines[0]
+    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+    _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
+    fig.canvas.key_press_event('escape')
+    plt.close('all')
+    epochs = _get_epochs()
+    fig = ica.plot_sources(epochs, exclude=[0], title='Components')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('right')
+    fig.canvas.key_press_event('left')
+    fig.canvas.key_press_event('o')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event('=')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event('pagedown')
+    fig.canvas.key_press_event('home')
+    fig.canvas.key_press_event('end')
+    fig.canvas.key_press_event('f11')
+    # Test a click
+    ax = fig.get_axes()[0]
+    line = ax.lines[0]
+    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+    _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
+    fig.canvas.key_press_event('escape')
     plt.close('all')
 
 

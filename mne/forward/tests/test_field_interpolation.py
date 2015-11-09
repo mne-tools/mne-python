@@ -11,12 +11,11 @@ from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_lut_fast,
                                     _get_legen_lut_accurate,
                                     _do_cross_dots)
-from mne.forward._make_forward import _create_coils
+from mne.forward._make_forward import _create_meg_coils
 from mne.forward._field_interpolation import _setup_dots
 from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import testing
 from mne import read_evokeds
-from mne.io.constants import FIFF
 from mne.fixes import partial
 from mne.externals.six.moves import zip
 from mne.utils import run_tests_if_main, slow_test
@@ -173,8 +172,7 @@ def test_make_field_map_meg():
 
 def _setup_args(info):
     """Helper to test_as_meg_type_evoked."""
-    coils = _create_coils(info['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
-                          info['dev_head_t'], 'meg')
+    coils = _create_meg_coils(info['chs'], 'normal', info['dev_head_t'])
     my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots('fast',
                                                              coils,
                                                              'meg')
@@ -207,7 +205,8 @@ def test_as_meg_type_evoked():
 
     # set up things
     args1, args2 = _setup_args(info_from), _setup_args(info_to)
-    args1.update(coils2=args2['coils1']), args2.update(coils2=args1['coils1'])
+    args1.update(coils2=args2['coils1'])
+    args2.update(coils2=args1['coils1'])
 
     # test cross dots
     cross_dots1 = _do_cross_dots(**args1)

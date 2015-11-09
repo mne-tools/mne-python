@@ -5,9 +5,10 @@ from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_almost_equal
 import numpy as np
 
-from ...io import Raw
-from ...io.proj import make_projector, activate_proj
-from ..ssp import compute_proj_ecg, compute_proj_eog
+from mne.io import Raw
+from mne.io.proj import make_projector, activate_proj
+from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
+from mne.utils import run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -20,7 +21,7 @@ eog_times = np.array([0.5, 2.3, 3.6, 14.5])
 def test_compute_proj_ecg():
     """Test computation of ECG SSP projectors"""
     raw = Raw(raw_fname).crop(0, 10, False)
-    raw.preload_data()
+    raw.load_data()
     for average in [False, True]:
         # For speed, let's not filter here (must also not reject then)
         projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
@@ -50,7 +51,7 @@ def test_compute_proj_ecg():
 def test_compute_proj_eog():
     """Test computation of EOG SSP projectors"""
     raw = Raw(raw_fname).crop(0, 10, False)
-    raw.preload_data()
+    raw.load_data()
     for average in [False, True]:
         n_projs_init = len(raw.info['projs'])
         projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
@@ -78,7 +79,7 @@ def test_compute_proj_eog():
 def test_compute_proj_parallel():
     """Test computation of ExG projectors using parallelization"""
     raw_0 = Raw(raw_fname).crop(0, 10, False)
-    raw_0.preload_data()
+    raw_0.load_data()
     raw = raw_0.copy()
     projs, _ = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                 bads=['MEG 2443'], average=False,
@@ -98,3 +99,5 @@ def test_compute_proj_parallel():
     projs_2, _, _ = make_projector(projs_2, raw_2.info['ch_names'],
                                    bads=['MEG 2443'])
     assert_array_almost_equal(projs, projs_2, 10)
+
+run_tests_if_main()

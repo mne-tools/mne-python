@@ -56,8 +56,8 @@ tmin, tmax = -0.55, 0.75  # s
 tmin_plot, tmax_plot = -0.3, 0.5  # s
 
 # Read epochs. Note that preload is set to False to enable tf_lcmv to read the
-# underlying raw object from epochs.raw, which would be set to None during
-# preloading. Filtering is then performed on raw data in tf_lcmv and the epochs
+# underlying raw object.
+# Filtering is then performed on raw data in tf_lcmv and the epochs
 # parameters passed here are used to create epochs from filtered data. However,
 # reading epochs without preloading means that bad epoch rejection is delayed
 # until later. To perform bad epoch rejection based on the reject parameter

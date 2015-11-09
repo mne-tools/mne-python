@@ -8,7 +8,7 @@ import warnings
 from numpy.testing import assert_raises
 
 from mne import io, read_events, pick_types
-from mne.utils import requires_scipy_version, run_tests_if_main
+from mne.utils import requires_version, run_tests_if_main
 from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
@@ -48,10 +48,13 @@ def test_plot_raw():
         _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
         _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
         _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
+        _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
         _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
         _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
         _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
         fig.canvas.button_press_event(1, 1, 1)  # outside any axes
+        fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+        fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
         # sadly these fail when no renderer is used (i.e., when using Agg):
         # ssp_fig = set(plt.get_fignums()) - set([fig.number])
         # assert_equal(len(ssp_fig), 1)
@@ -69,6 +72,15 @@ def test_plot_raw():
         fig.canvas.key_press_event('right')
         fig.canvas.key_press_event('left')
         fig.canvas.key_press_event('o')
+        fig.canvas.key_press_event('-')
+        fig.canvas.key_press_event('+')
+        fig.canvas.key_press_event('=')
+        fig.canvas.key_press_event('pageup')
+        fig.canvas.key_press_event('pagedown')
+        fig.canvas.key_press_event('home')
+        fig.canvas.key_press_event('end')
+        fig.canvas.key_press_event('?')
+        fig.canvas.key_press_event('f11')
         fig.canvas.key_press_event('escape')
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
@@ -77,7 +89,7 @@ def test_plot_raw():
         plt.close('all')
 
 
-@requires_scipy_version('0.10')
+@requires_version('scipy', '0.10')
 def test_plot_raw_filtered():
     """Test filtering of raw plots
     """
@@ -92,7 +104,7 @@ def test_plot_raw_filtered():
     raw.plot(highpass=1, lowpass=2)
 
 
-@requires_scipy_version('0.12')
+@requires_version('scipy', '0.12')
 def test_plot_raw_psd():
     """Test plotting of raw psds
     """

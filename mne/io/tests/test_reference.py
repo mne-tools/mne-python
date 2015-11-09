@@ -166,7 +166,7 @@ def test_set_bipolar_reference():
     bp_info = reref.info['chs'][reref.ch_names.index('bipolar')]
     an_info = reref.info['chs'][raw.ch_names.index('EEG 001')]
     for key in bp_info:
-        if key == 'loc' or key == 'eeg_loc':
+        if key == 'loc':
             assert_array_equal(bp_info[key], 0)
         elif key == 'coil_type':
             assert_equal(bp_info[key], FIFF.FIFFV_COIL_EEG_BIPOLAR)
@@ -213,8 +213,10 @@ def test_add_reference():
     assert_equal(raw_ref._data.shape[0], raw._data.shape[0] + 1)
     assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
 
+    orig_nchan = raw.info['nchan']
     raw = add_reference_channels(raw, 'Ref', copy=False)
     assert_array_equal(raw._data, raw_ref._data)
+    assert_equal(raw.info['nchan'], orig_nchan + 1)
 
     ref_idx = raw.ch_names.index('Ref')
     ref_data, _ = raw[ref_idx]

@@ -31,6 +31,20 @@ def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
     fid.write(np.array(data, dtype=dtype).tostring())
 
 
+def _get_split_size(split_size):
+    """Convert human-readable bytes to machine-readable bytes."""
+    if isinstance(split_size, string_types):
+        exp = dict(MB=20, GB=30).get(split_size[-2:], None)
+        if exp is None:
+            raise ValueError('split_size has to end with either'
+                             '"MB" or "GB"')
+        split_size = int(float(split_size[:-2]) * 2 ** exp)
+
+    if split_size > 2147483648:
+        raise ValueError('split_size cannot be larger than 2GB')
+    return split_size
+
+
 def write_int(fid, kind, data):
     """Writes a 32-bit integer tag to a fif file"""
     data_size = 4
@@ -366,6 +380,16 @@ def _generate_meas_id():
     id_ = dict()
     id_['version'] = (1 << 16) | 2
     id_['machid'] = get_machid()
-    id_['secs'] = time.time()
-    id_['usecs'] = 0            # Do not know how we could get this XXX
+    id_['secs'], id_['usecs'] = _date_now()
     return id_
+
+
+def _date_now():
+    """Helper to get date in secs, usecs"""
+    now = time.time()
+    # Get date in secs/usecs (as in `fill_measurement_info` in
+    # mne/forward/forward.py)
+    date_arr = np.array([np.floor(now), 1e6 * (now - np.floor(now))],
+                        dtype='int32')
+
+    return date_arr

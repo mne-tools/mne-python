@@ -20,7 +20,7 @@ import numpy as np
 
 from mne import pick_types, concatenate_raws
 from mne.externals.six import iterbytes
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, requires_pandas
 from mne.io import Raw, read_raw_edf, RawArray
 from mne.io.tests.test_raw import _test_concat
 import mne.io.edf.edf as edfmodule
@@ -66,9 +66,9 @@ def test_bdf_data():
     assert_array_almost_equal(data_py, data_eeglab, 8)
 
     # Manually checking that float coordinates are imported
-    assert_true((raw_py.info['chs'][0]['eeg_loc']).any())
-    assert_true((raw_py.info['chs'][25]['eeg_loc']).any())
-    assert_true((raw_py.info['chs'][63]['eeg_loc']).any())
+    assert_true((raw_py.info['chs'][0]['loc']).any())
+    assert_true((raw_py.info['chs'][25]['loc']).any())
+    assert_true((raw_py.info['chs'][63]['loc']).any())
 
     # Make sure concatenation works
     raw_concat = concatenate_raws([raw_py.copy(), raw_py])
@@ -132,7 +132,7 @@ def test_read_segment():
     for preload in (buffer_fname, True, False):  # false here means "delayed"
         raw2 = read_raw_edf(edf_path, stim_channel=None, preload=preload)
         if preload is False:
-            raw2.preload_data()
+            raw2.load_data()
         raw2_file = op.join(tempdir, 'test2-raw.fif')
         raw2.save(raw2_file, overwrite=True)
         data2, times2 = raw2[:139, :]
@@ -256,6 +256,20 @@ def test_edf_stim_channel():
 
     # assert data are equal
     assert_array_almost_equal(true_data[0:-1] * 1e-6, edf_data[0:-1])
+
+
+@requires_pandas
+def test_to_data_frame():
+    """Test edf Raw Pandas exporter"""
+    for path in [edf_path, bdf_path]:
+        raw = read_raw_edf(path, stim_channel=None, preload=True)
+        _, times = raw[0, :10]
+        df = raw.to_data_frame()
+        assert_true((df.columns == raw.ch_names).all())
+        assert_array_equal(np.round(times * 1e3), df.index.values[:10])
+        df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
+        assert_true('time' in df.index.names)
+        assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
 
 
 run_tests_if_main()

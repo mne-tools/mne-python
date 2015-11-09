@@ -4,6 +4,7 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 
+from copy import deepcopy
 import warnings
 from math import sqrt, ceil
 import numpy as np
@@ -494,6 +495,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
     """Solves L0.5/L2 mixed-norm inverse problem with active set strategy
 
     Algorithm is detailed in:
+
     Strohmeier D., Haueisen J., and Gramfort A.:
     Improved MEG/EEG source localization with reweighted mixed-norms,
     4th International Workshop on Pattern Recognition in Neuroimaging,
@@ -669,11 +671,292 @@ class _PhiT(object):
                      self.n_times)
 
 
+def norm_l21_tf(Z, shape, n_orient):
+    if Z.shape[0]:
+        Z2 = Z.reshape(*shape)
+        l21_norm = np.sqrt(stft_norm2(Z2).reshape(-1, n_orient).sum(axis=1))
+        l21_norm = l21_norm.sum()
+    else:
+        l21_norm = 0.
+    return l21_norm
+
+
+def norm_l1_tf(Z, shape, n_orient):
+    if Z.shape[0]:
+        n_positions = Z.shape[0] // n_orient
+        Z_ = np.sqrt(np.sum((np.abs(Z) ** 2.).reshape((n_orient, -1),
+                     order='F'), axis=0))
+        Z_ = Z_.reshape((n_positions, -1), order='F').reshape(*shape)
+        l1_norm = (2. * Z_.sum(axis=2).sum(axis=1) - np.sum(Z_[:, 0, :],
+                   axis=1) - np.sum(Z_[:, -1, :], axis=1))
+        l1_norm = l1_norm.sum()
+    else:
+        l1_norm = 0.
+    return l1_norm
+
+
+@verbose
+def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha_space, alpha_time,
+                               lipschitz_constant, phi, phiT,
+                               wsize=64, tstep=4, n_orient=1,
+                               maxit=200, tol=1e-8, log_objective=True,
+                               perc=None, verbose=None):
+    # First make G fortran for faster access to blocks of columns
+    G = np.asfortranarray(G)
+
+    n_sensors, n_times = M.shape
+    n_sources = G.shape[1]
+    n_positions = n_sources // n_orient
+
+    n_step = int(ceil(n_times / float(tstep)))
+    n_freq = wsize // 2 + 1
+    shape = (-1, n_freq, n_step)
+
+    G = dict(zip(np.arange(n_positions), np.hsplit(G, n_positions)))
+    R = M.copy()  # residual
+    active = np.where(active_set)[0][::n_orient] // n_orient
+    for idx in active:
+        R -= np.dot(G[idx], phiT(Z[idx]))
+
+    E = []  # track cost function
+
+    alpha_time_lc = alpha_time / lipschitz_constant
+    alpha_space_lc = alpha_space / lipschitz_constant
+
+    converged = False
+
+    for i in range(maxit):
+        val_norm_l21_tf = 0.0
+        val_norm_l1_tf = 0.0
+        max_diff = 0.0
+        active_set_0 = active_set.copy()
+        for j in range(n_positions):
+            ids = j * n_orient
+            ide = ids + n_orient
+
+            G_j = G[j]
+            Z_j = Z[j]
+            active_set_j = active_set[ids:ide]
+
+            Z0 = deepcopy(Z_j)
+
+            was_active = np.any(active_set_j)
+
+            # gradient step
+            GTR = np.dot(G_j.T, R) / lipschitz_constant[j]
+            X_j_new = GTR.copy()
+
+            if was_active:
+                X_j = phiT(Z_j)
+                R += np.dot(G_j, X_j)
+                X_j_new += X_j
+
+            rows_norm = linalg.norm(X_j_new, 'fro')
+            if rows_norm <= alpha_space_lc[j]:
+                if was_active:
+                    Z[j] = 0.0
+                    active_set_j[:] = False
+            else:
+                if was_active:
+                    Z_j_new = Z_j + phi(GTR)
+                else:
+                    Z_j_new = phi(GTR)
+
+                col_norm = np.sqrt(np.sum(np.abs(Z_j_new) ** 2, axis=0))
+
+                if np.all(col_norm <= alpha_time_lc[j]):
+                    Z[j] = 0.0
+                    active_set_j[:] = False
+                else:
+                    # l1
+                    shrink = np.maximum(1.0 - alpha_time_lc[j] / np.maximum(
+                                        col_norm, alpha_time_lc[j]), 0.0)
+                    Z_j_new *= shrink[np.newaxis, :]
+
+                    # l21
+                    shape_init = Z_j_new.shape
+                    Z_j_new = Z_j_new.reshape(*shape)
+                    row_norm = np.sqrt(stft_norm2(Z_j_new).sum())
+                    if row_norm <= alpha_space_lc[j]:
+                        Z[j] = 0.0
+                        active_set_j[:] = False
+                    else:
+                        shrink = np.maximum(1.0 - alpha_space_lc[j] /
+                                            np.maximum(row_norm,
+                                            alpha_space_lc[j]), 0.0)
+                        Z_j_new *= shrink
+                        Z[j] = Z_j_new.reshape(-1, *shape_init[1:]).copy()
+                        active_set_j[:] = True
+                        R -= np.dot(G_j, phiT(Z[j]))
+
+                        if log_objective:
+                            val_norm_l21_tf += norm_l21_tf(
+                                Z[j], shape, n_orient)
+                            val_norm_l1_tf += norm_l1_tf(
+                                Z[j], shape, n_orient)
+
+            max_diff = np.maximum(max_diff, np.max(np.abs(Z[j] - Z0)))
+
+        if log_objective:  # log cost function value
+            pobj = (0.5 * (R ** 2.).sum() + alpha_space * val_norm_l21_tf +
+                    alpha_time * val_norm_l1_tf)
+            E.append(pobj)
+            logger.info("Iteration %d :: pobj %f :: n_active %d" % (i + 1,
+                        pobj, np.sum(active_set) / n_orient))
+        else:
+            logger.info("Iteration %d" % (i + 1))
+
+        if perc is not None:
+            if np.sum(active_set) / float(n_orient) <= perc * n_positions:
+                break
+
+        if np.array_equal(active_set, active_set_0):
+            if max_diff < tol:
+                logger.info("Convergence reached !")
+                converged = True
+                break
+
+    return Z, active_set, E, converged
+
+
+@verbose
+def _tf_mixed_norm_solver_bcd_active_set(
+        M, G, alpha_space, alpha_time, lipschitz_constant, phi, phiT,
+        Z_init=None, wsize=64, tstep=4, n_orient=1, maxit=200, tol=1e-8,
+        log_objective=True, perc=None, verbose=None):
+    """Solves TF L21+L1 inverse solver with BCD and active set approach
+
+    Algorithm is detailed in:
+
+    Strohmeier D., Gramfort A., and Haueisen J.:
+    MEG/EEG source imaging with a non-convex penalty in the time-
+    frequency domain,
+    5th International Workshop on Pattern Recognition in Neuroimaging,
+    Stanford University, 2015
+
+    Parameters
+    ----------
+    M : array
+        The data.
+    G : array
+        The forward operator.
+    alpha_space : float in [0, 100]
+        Regularization parameter for spatial sparsity. If larger than 100,
+        then no source will be active.
+    alpha_time : float in [0, 100]
+        Regularization parameter for temporal sparsity. It set to 0,
+        no temporal regularization is applied. It this case, TF-MxNE is
+        equivalent to MxNE with L21 norm.
+    lipschitz_constant : float
+        The lipschitz constant of the spatio temporal linear operator.
+    phi : instance of _Phi
+        The TF operator.
+    phiT : instance of _PhiT
+        The transpose of the TF operator.
+    Z_init : None | array
+        The initialization of the TF coefficient matrix. If None, zeros
+        will be used for all coefficients.
+    wsize: int
+        length of the STFT window in samples (must be a multiple of 4).
+    tstep: int
+        step between successive windows in samples (must be a multiple of 2,
+        a divider of wsize and smaller than wsize/2) (default: wsize/2).
+    n_orient : int
+        The number of orientation (1 : fixed or 3 : free or loose).
+    maxit : int
+        The number of iterations.
+    tol : float
+        If absolute difference between estimates at 2 successive iterations
+        is lower than tol, the convergence is reached.
+    log_objective : bool
+        If True, the value of the minimized objective function is computed
+        and stored at every iteration.
+    perc : None | float in [0, 1]
+        The early stopping parameter used for BCD with active set approach.
+        If the active set size is smaller than perc * n_sources, the
+        subproblem limited to the active set is stopped. If None, full
+        convergence will be achieved.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    X : array
+        The source estimates.
+    active_set : array
+        The mask of active sources.
+    E : list
+        The value of the objective function at each iteration. If log_objective
+        is False, it will be empty.
+    """
+    n_sources = G.shape[1]
+    n_positions = n_sources // n_orient
+
+    if Z_init is None:
+        Z = dict.fromkeys(range(n_positions), 0.0)
+        active_set = np.zeros(n_sources, dtype=np.bool)
+    else:
+        active_set = np.zeros(n_sources, dtype=np.bool)
+        active = list()
+        for i in range(n_positions):
+            if np.any(Z_init[i * n_orient:(i + 1) * n_orient]):
+                active_set[i * n_orient:(i + 1) * n_orient] = True
+                active.append(i)
+        Z = dict.fromkeys(range(n_positions), 0.0)
+        if len(active):
+            Z.update(dict(zip(active, np.vsplit(Z_init[active_set],
+                     len(active)))))
+
+    Z, active_set, E, _ = _tf_mixed_norm_solver_bcd_(
+        M, G, Z, active_set, alpha_space, alpha_time, lipschitz_constant,
+        phi, phiT, wsize=wsize, tstep=tstep, n_orient=n_orient, maxit=1,
+        tol=tol, log_objective=log_objective, perc=None, verbose=verbose)
+
+    while active_set.sum():
+        active = np.where(active_set)[0][::n_orient] // n_orient
+        Z_init = dict(zip(range(len(active)), [Z[idx] for idx in active]))
+        Z, as_, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
+            M, G[:, active_set], Z_init,
+            np.ones(len(active) * n_orient, dtype=np.bool),
+            alpha_space, alpha_time,
+            lipschitz_constant[active_set[::n_orient]],
+            phi, phiT, wsize=wsize, tstep=tstep, n_orient=n_orient,
+            maxit=maxit, tol=tol, log_objective=log_objective,
+            perc=0.5, verbose=verbose)
+        E += E_tmp
+        active = np.where(active_set)[0][::n_orient] // n_orient
+        Z_init = dict.fromkeys(range(n_positions), 0.0)
+        Z_init.update(dict(zip(active, Z.values())))
+        active_set[active_set] = as_
+        active_set_0 = active_set.copy()
+        Z, active_set, E_tmp, _ = _tf_mixed_norm_solver_bcd_(
+            M, G, Z_init, active_set, alpha_space, alpha_time,
+            lipschitz_constant, phi, phiT, wsize=wsize, tstep=tstep,
+            n_orient=n_orient, maxit=1, tol=tol, log_objective=log_objective,
+            perc=None, verbose=verbose)
+        E += E_tmp
+        if converged:
+            if np.array_equal(active_set_0, active_set):
+                break
+
+    if active_set.sum():
+        Z = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
+        X = phiT(Z)
+    else:
+        n_sensors, n_times = M.shape
+        n_step = int(ceil(n_times / float(tstep)))
+        n_freq = wsize // 2 + 1
+        Z = np.zeros((0, n_step * n_freq), dtype=np.complex)
+        X = np.zeros((0, n_times))
+
+    return X, Z, active_set, E
+
+
 @verbose
 def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
                          n_orient=1, maxit=200, tol=1e-8, log_objective=True,
-                         lipschitz_constant=None, debias=True, verbose=None):
-    """Solves TF L21+L1 inverse solver
+                         debias=True, verbose=None):
+    """Solves TF L21+L1 inverse solver with BCD and active set approach
 
     Algorithm is detailed in:
 
@@ -717,9 +1000,6 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     log_objective : bool
         If True, the value of the minimized objective function is computed
         and stored at every iteration.
-    lipschitz_constant : float | None
-        The lipschitz constant of the spatio temporal linear operator.
-        If None it is estimated.
     debias : bool
         Debias source estimates.
     verbose : bool, str, int, or None
@@ -736,7 +1016,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         is False, it will be empty.
     """
     n_sensors, n_times = M.shape
-    n_dipoles = G.shape[1]
+    n_sensors, n_sources = G.shape
+    n_positions = n_sources // n_orient
 
     n_step = int(ceil(n_times / float(tstep)))
     n_freq = wsize // 2 + 1
@@ -744,87 +1025,19 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     phi = _Phi(wsize, tstep, n_coefs)
     phiT = _PhiT(tstep, n_freq, n_step, n_times)
 
-    Z = np.zeros((0, n_coefs), dtype=np.complex)
-    active_set = np.zeros(n_dipoles, dtype=np.bool)
-    R = M.copy()  # residual
+    if n_orient == 1:
+        lc = np.sum(G * G, axis=0)
+    else:
+        lc = np.empty(n_positions)
+        for j in range(n_positions):
+            G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
+            lc[j] = linalg.norm(np.dot(G_tmp.T, G_tmp), ord=2)
 
-    if lipschitz_constant is None:
-        lipschitz_constant = 1.1 * tf_lipschitz_constant(M, G, phi, phiT)
-
-    logger.info("lipschitz_constant : %s" % lipschitz_constant)
-
-    t = 1.0
-    Y = np.zeros((n_dipoles, n_coefs), dtype=np.complex)  # FISTA aux variable
-    Y[active_set] = Z
-    E = []  # track cost function
-    Y_time_as = None
-    Y_as = None
-
-    alpha_time_lc = alpha_time / lipschitz_constant
-    alpha_space_lc = alpha_space / lipschitz_constant
-    for i in range(maxit):
-        Z0, active_set_0 = Z, active_set  # store previous values
-
-        if active_set.sum() < len(R) and Y_time_as is not None:
-            # trick when using tight frame to do a first screen based on
-            # L21 prox (L21 norms are not changed by phi)
-            GTR = np.dot(G.T, R) / lipschitz_constant
-            A = GTR.copy()
-            A[Y_as] += Y_time_as
-            _, active_set_l21 = prox_l21(A, alpha_space_lc, n_orient)
-            # just compute prox_l1 on rows that won't be zeroed by prox_l21
-            B = Y[active_set_l21] + phi(GTR[active_set_l21])
-            Z, active_set_l1 = prox_l1(B, alpha_time_lc, n_orient)
-            active_set_l21[active_set_l21] = active_set_l1
-            active_set_l1 = active_set_l21
-        else:
-            Y += np.dot(G.T, phi(R)) / lipschitz_constant  # ISTA step
-            Z, active_set_l1 = prox_l1(Y, alpha_time_lc, n_orient)
-
-        Z, active_set_l21 = prox_l21(Z, alpha_space_lc, n_orient,
-                                     shape=(-1, n_freq, n_step), is_stft=True)
-        active_set = active_set_l1
-        active_set[active_set_l1] = active_set_l21
-
-        # Check convergence : max(abs(Z - Z0)) < tol
-        stop = (safe_max_abs(Z, ~active_set_0[active_set]) < tol and
-                safe_max_abs(Z0, ~active_set[active_set_0]) < tol and
-                safe_max_abs_diff(Z, active_set_0[active_set],
-                                  Z0, active_set[active_set_0]) < tol)
-        if stop:
-            print('Convergence reached !')
-            break
-
-        # FISTA 2 steps
-        # compute efficiently : Y = Z + ((t0 - 1.0) / t) * (Z - Z0)
-        t0 = t
-        t = 0.5 * (1.0 + sqrt(1.0 + 4.0 * t ** 2))
-        Y.fill(0.0)
-        dt = ((t0 - 1.0) / t)
-        Y[active_set] = (1.0 + dt) * Z
-        if len(Z0):
-            Y[active_set_0] -= dt * Z0
-        Y_as = active_set_0 | active_set
-
-        Y_time_as = phiT(Y[Y_as])
-        R = M - np.dot(G[:, Y_as], Y_time_as)
-
-        if log_objective:  # log cost function value
-            Z2 = np.abs(Z)
-            Z2 **= 2
-            X = phiT(Z)
-            RZ = M - np.dot(G[:, active_set], X)
-            pobj = (0.5 * linalg.norm(RZ, ord='fro') ** 2 +
-                    alpha_space * norm_l21(X, n_orient) +
-                    alpha_time * np.sqrt(np.sum(Z2.T.reshape(-1, n_orient),
-                                                axis=1)).sum())
-            E.append(pobj)
-            logger.info("Iteration %d :: pobj %f :: n_active %d" % (i + 1,
-                        pobj, np.sum(active_set)))
-        else:
-            logger.info("Iteration %d" % i + 1)
-
-    X = phiT(Z)
+    logger.info("Using block coordinate descent and active set approach")
+    X, Z, active_set, E = _tf_mixed_norm_solver_bcd_active_set(
+        M, G, alpha_space, alpha_time, lc, phi, phiT, Z_init=None,
+        wsize=wsize, tstep=tstep, n_orient=n_orient, maxit=maxit, tol=tol,
+        log_objective=log_objective, verbose=None)
 
     if np.any(active_set) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)

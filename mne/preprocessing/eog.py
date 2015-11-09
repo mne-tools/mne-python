@@ -94,8 +94,9 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
     eog_events += n_samples_start
     n_events = len(eog_events)
     logger.info("Number of EOG events detected : %d" % n_events)
-    eog_events = np.c_[eog_events + first_samp, np.zeros(n_events),
-                       event_id * np.ones(n_events)]
+    eog_events = np.array([eog_events + first_samp,
+                           np.zeros(n_events, int),
+                           event_id * np.ones(n_events, int)]).T
 
     return eog_events
 
@@ -138,8 +139,8 @@ def _get_eog_channel_index(ch_name, inst):
 @verbose
 def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
                       tmin=-0.5, tmax=0.5, l_freq=1, h_freq=10,
-                      reject=None, flat=None,
-                      baseline=None, verbose=None):
+                      reject=None, flat=None, baseline=None,
+                      preload=True, verbose=None):
     """Conveniently generate epochs around EOG artifact events
 
     Parameters
@@ -186,6 +187,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used. If None, no correction is applied.
+    preload : bool
+        Preload epochs or not.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -201,5 +204,5 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
     eog_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False, reject=reject,
                         flat=flat, picks=picks, baseline=baseline,
-                        preload=True)
+                        preload=preload)
     return eog_epochs

@@ -310,6 +310,10 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     stc : SourceEstimate | VolSourceEstimate
         Source time courses
 
+    See Also
+    --------
+    lcmv_raw, lcmv_epochs
+
     Notes
     -----
     The original reference is:
@@ -388,6 +392,10 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     -------
     stc: list | generator of (SourceEstimate | VolSourceEstimate)
         The source estimates for all epochs
+
+    See Also
+    --------
+    lcmv_raw, lcmv
 
     Notes
     -----
@@ -470,6 +478,10 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     -------
     stc : SourceEstimate | VolSourceEstimate
         Source time courses
+
+    See Also
+    --------
+    lcmv, lcmv_epochs
 
     Notes
     -----
@@ -708,7 +720,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                          'window lengths')
 
     # Extract raw object from the epochs object
-    raw = epochs.raw
+    raw = epochs._raw
     if raw is None:
         raise ValueError('The provided epochs object does not contain the '
                          'underlying raw object. Please use preload=False '

@@ -7,14 +7,14 @@
 from copy import deepcopy
 
 DEFAULTS = dict(
-    color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
+    color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m',
                emg='k', ref_meg='steelblue', misc='k', stim='k',
                resp='k', chpi='k', exci='k', ias='k', syst='k',
                seeg='k'),
     config_opts=dict(),
-    units=dict(eeg='uV', grad='fT/cm', mag='fT', misc='AU',
+    units=dict(eeg='uV', grad='fT/cm', mag='fT', eog='uV', misc='AU',
                seeg='uV'),
-    scalings=dict(mag=1e15, grad=1e13, eeg=1e6,
+    scalings=dict(mag=1e15, grad=1e13, eeg=1e6, eog=1e6,
                   misc=1.0, seeg=1e4),
     scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6,
                            eog=150e-6, ecg=5e-4, emg=1e-3,

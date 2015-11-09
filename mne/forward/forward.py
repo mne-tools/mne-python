@@ -19,6 +19,7 @@ from os import path as op
 import tempfile
 
 from ..fixes import sparse_block_diag
+from ..io import RawArray
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tree import dir_tree_find
@@ -32,7 +33,7 @@ from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_ch_info, write_name_list,
                         write_string, start_file, end_file, write_id)
 from ..io.base import _BaseRaw
-from ..evoked import Evoked, write_evokeds
+from ..evoked import Evoked, write_evokeds, EvokedArray
 from ..epochs import Epochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi,
@@ -347,11 +348,13 @@ def _read_forward_meas_info(tree, fid):
         raise ValueError('MEG/head coordinate transformation not found')
 
     info['bads'] = read_bad_channels(fid, parent_meg)
+    # clean up our bad list, old versions could have non-existent bads
+    info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
 
     # Check if a custom reference has been applied
     tag = find_tag(fid, parent_mri, FIFF.FIFF_CUSTOM_REF)
     info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
-
+    info._check_consistency()
     return info
 
 
@@ -423,6 +426,10 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     -------
     fwd : instance of Forward
         The forward solution.
+
+    See Also
+    --------
+    write_forward_solution, make_forward_solution
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
@@ -518,8 +525,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     #   if necessary
 
     # Make sure forward solution is in either the MRI or HEAD coordinate frame
-    if (fwd['coord_frame'] != FIFF.FIFFV_COORD_MRI and
-            fwd['coord_frame'] != FIFF.FIFFV_COORD_HEAD):
+    if fwd['coord_frame'] not in (FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_COORD_HEAD):
         raise ValueError('Only forward solutions computed in MRI or head '
                          'coordinates are acceptable')
 
@@ -689,6 +695,10 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         If True, overwrite destination file (if it exists).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    read_forward_solution
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
@@ -855,6 +865,7 @@ def write_forward_meas_info(fid, info):
     info : instance of mne.io.meas_info.Info
         The measurement info.
     """
+    info._check_consistency()
     #
     # Information from the MEG file
     #
@@ -1099,8 +1110,8 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
-                  verbose=None):
+def apply_forward(fwd, stc, info=None, start=None, stop=None,
+                  verbose=None, evoked_template=None):
     """
     Project source space currents to sensor space using a forward operator.
 
@@ -1120,14 +1131,16 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    evoked_template : Evoked object
-        Evoked object used as template to generate the output argument.
+    info : instance of mne.io.meas_info.Info
+        Measurement info to generate the evoked.
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    evoked_template : Evoked object (deprecated)
+        Evoked object used as template to generate the output argument.
 
     Returns
     -------
@@ -1138,35 +1151,47 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
+    if evoked_template is None and info is None:
+        raise ValueError('You have to provide the info parameter.')
+
+    if evoked_template is not None and not isinstance(evoked_template, Info):
+        warnings.warn('The "evoked_template" parameter is being deprecated '
+                      'and will be removed in MNE-0.11. '
+                      'Please provide info parameter instead',
+                      DeprecationWarning)
+        info = evoked_template.info
+
+    if info is not None and not isinstance(info, Info):
+        warnings.warn('The "evoked_template" parameter is being deprecated '
+                      'and will be removed in MNE-0.11. '
+                      'Please provide info parameter instead',
+                      DeprecationWarning)
+        info = info.info
 
     # make sure evoked_template contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
-        if ch_name not in evoked_template.ch_names:
+        if ch_name not in info['ch_names']:
             raise ValueError('Channel %s of forward operator not present in '
                              'evoked_template.' % ch_name)
 
     # project the source estimate to the sensor space
     data, times = _apply_forward(fwd, stc, start, stop)
 
-    # store sensor data in an Evoked object using the template
-    evoked = deepcopy(evoked_template)
-
-    evoked.nave = 1
-    evoked.data = data
-    evoked.times = times
-
+    # fill the measurement info
     sfreq = float(1.0 / stc.tstep)
+    info_out = _fill_measurement_info(info, fwd, sfreq)
+
+    evoked = EvokedArray(data, info_out, times[0], nave=1)
+
+    evoked.times = times
     evoked.first = int(np.round(evoked.times[0] * sfreq))
     evoked.last = evoked.first + evoked.data.shape[1] - 1
-
-    # fill the measurement info
-    evoked.info = _fill_measurement_info(evoked.info, fwd, sfreq)
 
     return evoked
 
 
 @verbose
-def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
+def apply_forward_raw(fwd, stc, info, start=None, stop=None,
                       verbose=None):
     """Project source space currents to sensor space using a forward operator
 
@@ -1174,10 +1199,10 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     pick_channels_forward or pick_types_forward to restrict the solution to a
     subset of channels.
 
-    The function returns a Raw object, which is constructed from raw_template.
-    The raw_template should be from the same MEG system on which the original
-    data was acquired. An exception will be raised if the forward operator
-    contains channels that are not present in the template.
+    The function returns a Raw object, which is constructed using provided
+    info. The info object should be from the same MEG system on which the
+    original data was acquired. An exception will be raised if the forward
+    operator contains channels that are not present in the info.
 
     Parameters
     ----------
@@ -1185,8 +1210,8 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    raw_template : Raw object
-        Raw object used as template to generate the output argument.
+    info : Instance of mne.io.meas_info.Info
+        The measurement info.
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
@@ -1203,28 +1228,31 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     --------
     apply_forward: Compute sensor space data and return an Evoked object.
     """
+    if isinstance(info, _BaseRaw):
+        warnings.warn('The "Raw_template" parameter is being deprecated '
+                      'and will be removed in MNE-0.11. '
+                      'Please provide info parameter instead',
+                      DeprecationWarning)
+        info = info.info
 
-    # make sure raw_template contains all channels in fwd
+    # make sure info contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
-        if ch_name not in raw_template.ch_names:
+        if ch_name not in info['ch_names']:
             raise ValueError('Channel %s of forward operator not present in '
-                             'raw_template.' % ch_name)
+                             'info.' % ch_name)
 
     # project the source estimate to the sensor space
     data, times = _apply_forward(fwd, stc, start, stop)
 
-    # store sensor data in Raw object using the template
-    raw = raw_template.copy()
-    raw.preload = True
-    raw._data = data
-
     sfreq = 1.0 / stc.tstep
+    info = _fill_measurement_info(info, fwd, sfreq)
+    info['projs'] = []
+    # store sensor data in Raw object using the info
+    raw = RawArray(data, info)
+    raw.preload = True
+
     raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
     raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
-
-    # fill the measurement info
-    raw.info = _fill_measurement_info(raw.info, fwd, sfreq)
-    raw.info['projs'] = []
     raw._projector = None
     raw._update_times()
     return raw
@@ -1244,6 +1272,10 @@ def restrict_forward_to_stc(fwd, stc):
     -------
     fwd_out : dict
         Restricted forward operator.
+
+    See Also
+    --------
+    restrict_forward_to_label
     """
 
     fwd_out = deepcopy(fwd)
@@ -1287,6 +1319,10 @@ def restrict_forward_to_label(fwd, labels):
     -------
     fwd_out : dict
         Restricted forward operator.
+
+    See Also
+    --------
+    restrict_forward_to_stc
     """
 
     if not isinstance(labels, list):
@@ -1403,6 +1439,10 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         Override the SUBJECTS_DIR environment variable.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    forward.make_forward_solution
 
     Returns
     -------

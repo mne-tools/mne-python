@@ -2,7 +2,6 @@
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
-
 import warnings
 import copy
 import os.path as op
@@ -12,8 +11,9 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_sklearn, slow_test
-from mne.decoding import GeneralizationAcrossTime
+from mne.utils import (requires_sklearn, requires_sklearn_0_15, slow_test,
+                       run_tests_if_main)
+from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -25,15 +25,7 @@ event_id = dict(aud_l=1, vis_l=3)
 event_id_gen = dict(aud_l=2, vis_l=4)
 
 
-@slow_test
-@requires_sklearn
-def test_generalization_across_time():
-    """Test time generalization decoding
-    """
-    from sklearn.svm import SVC
-    from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import mean_squared_error
-
+def make_epochs():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
@@ -45,6 +37,22 @@ def test_generalization_across_time():
     with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True, decim=decim)
+    return epochs
+
+
+@slow_test
+@requires_sklearn_0_15
+def test_generalization_across_time():
+    """Test time generalization decoding
+    """
+    from sklearn.svm import SVC
+    from sklearn.linear_model import RANSACRegressor, LinearRegression
+    from sklearn.preprocessing import LabelEncoder
+    from sklearn.metrics import mean_squared_error
+    from sklearn.cross_validation import LeaveOneLabelOut
+
+    epochs = make_epochs()
+
     # Test default running
     gat = GeneralizationAcrossTime(picks='foo')
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
@@ -136,13 +144,14 @@ def test_generalization_across_time():
     assert_true(len(gat.scores_) == len(gat.estimators_) == 8)  # training time
     assert_equal(len(gat.scores_[0]), 15)  # testing time
 
-    # Test start stop training
-    gat = GeneralizationAcrossTime(train_times={'start': 0.090,
-                                                'stop': 0.250})
+    # Test start stop training & test cv without n_fold params
+    y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
+    gat = GeneralizationAcrossTime(cv=LeaveOneLabelOut(y_4classes),
+                                   train_times={'start': 0.090, 'stop': 0.250})
     # predict without fit
     assert_raises(RuntimeError, gat.predict, epochs)
     with warnings.catch_warnings(record=True):
-        gat.fit(epochs)
+        gat.fit(epochs, y=y_4classes)
     gat.score(epochs)
     assert_equal(len(gat.scores_), 4)
     assert_equal(gat.train_times_['times'][0], epochs.times[6])
@@ -167,10 +176,45 @@ def test_generalization_across_time():
     gat.predict(epochs[7:])
     gat.score(epochs[7:])
 
-    # Test wrong testing time
+    # Test training time parameters
+    gat_ = copy.deepcopy(gat)
+    # --- start stop outside time range
+    gat_.train_times = dict(start=-999.)
+    assert_raises(ValueError, gat_.fit, epochs)
+    gat_.train_times = dict(start=999.)
+    assert_raises(ValueError, gat_.fit, epochs)
+    # --- impossible slices
+    gat_.train_times = dict(step=.000001)
+    assert_raises(ValueError, gat_.fit, epochs)
+    gat_.train_times = dict(length=.000001)
+    assert_raises(ValueError, gat_.fit, epochs)
+    gat_.train_times = dict(length=999.)
+    assert_raises(ValueError, gat_.fit, epochs)
+
+    # Test testing time parameters
+    # --- outside time range
+    gat.test_times = dict(start=-999.)
+    assert_raises(ValueError, gat.predict, epochs)
+    gat.test_times = dict(start=999.)
+    assert_raises(ValueError, gat.predict, epochs)
+    # --- impossible slices
+    gat.test_times = dict(step=.000001)
+    assert_raises(ValueError, gat.predict, epochs)
+    gat_ = copy.deepcopy(gat)
+    gat_.train_times_['length'] = .000001
+    gat_.test_times = dict(length=.000001)
+    assert_raises(ValueError, gat_.predict, epochs)
+    # --- test time region of interest
+    gat.test_times = dict(step=.150)
+    gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 5, 14, 1))
+    # --- silly value
     gat.test_times = 'foo'
     assert_raises(ValueError, gat.predict, epochs)
     assert_raises(RuntimeError, gat.score)
+    # --- unmatched length between training and testing time
+    gat.test_times = dict(length=.150)
+    assert_raises(ValueError, gat.predict, epochs)
 
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
@@ -191,8 +235,17 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime()
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
+
     gat.predict(epochs)
     assert_raises(ValueError, gat.predict, epochs[:10])
+
+    # Check that still works with classifier that output y_pred with
+    # shape = (n_trials, 1) instead of (n_trials,)
+    gat = GeneralizationAcrossTime(clf=RANSACRegressor(LinearRegression()),
+                                   cv=2)
+    epochs.crop(None, epochs.times[2])
+    gat.fit(epochs)
+    gat.predict(epochs)
 
     # Test combinations of complex scenarios
     # 2 or more distinct classes
@@ -223,3 +276,34 @@ def test_generalization_across_time():
                                                    scorer=scorer)
                     gat.fit(epochs, y=y_)
                     gat.score(epochs, y=y_)
+
+
+@requires_sklearn
+def test_decoding_time():
+    """Test TimeDecoding
+    """
+    epochs = make_epochs()
+    tg = TimeDecoding()
+    assert_equal("<TimeDecoding | no fit, no prediction, no score>", '%s' % tg)
+    assert_true(hasattr(tg, 'times'))
+    assert_true(not hasattr(tg, 'train_times'))
+    assert_true(not hasattr(tg, 'test_times'))
+    tg.fit(epochs)
+    assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
+                 "(s), no prediction, no score>", '%s' % tg)
+    assert_true(not hasattr(tg, 'train_times_'))
+    assert_true(not hasattr(tg, 'test_times_'))
+    assert_raises(RuntimeError, tg.score, epochs=None)
+    tg.predict(epochs)
+    assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
+                 "(s), predicted 14 epochs, no score>",
+                 '%s' % tg)
+    assert_array_equal(np.shape(tg.y_pred_), [15, 14, 1])
+    tg.score(epochs)
+    tg.score()
+    assert_array_equal(np.shape(tg.scores_), [15])
+    assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
+                 "(s), predicted 14 epochs,\n scored (accuracy_score)>",
+                 '%s' % tg)
+
+run_tests_if_main()

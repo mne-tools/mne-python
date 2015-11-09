@@ -31,13 +31,11 @@ The data set is available at PhysioNet [3]
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mne import Epochs, pick_types
-from mne.io import concatenate_raws
-from mne.io.edf import read_raw_edf
-from mne.datasets import eegbci
-from mne.event import find_events
-from mne.decoding import CSP
+from mne import Epochs, pick_types, find_events
 from mne.channels import read_layout
+from mne.io import concatenate_raws, read_raw_edf
+from mne.datasets import eegbci
+from mne.decoding import CSP
 
 print(__doc__)
 
@@ -55,8 +53,8 @@ raw_fnames = eegbci.load_data(subject, runs)
 raw_files = [read_raw_edf(f, preload=True) for f in raw_fnames]
 raw = concatenate_raws(raw_files)
 
-# strip channel names
-raw.info['ch_names'] = [chn.strip('.') for chn in raw.info['ch_names']]
+# strip channel names of "." characters
+raw.rename_channels(lambda x: x.strip('.'))
 
 # Apply band-pass filter
 raw.filter(7., 30., method='iir')

@@ -1,4 +1,4 @@
-"""Conversion tool from EDF+,BDF to FIF
+"""Conversion tool from EDF, EDF+, BDF to FIF
 
 """
 
@@ -26,7 +26,7 @@ from ...externals.six.moves import zip
 
 
 class RawEDF(_BaseRaw):
-    """Raw object from EDF+,BDF file
+    """Raw object from EDF, EDF+, BDF file
 
     Parameters
     ----------
@@ -34,7 +34,8 @@ class RawEDF(_BaseRaw):
         Path to the EDF+,BDF file.
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0).
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the electrodes in the
@@ -389,7 +390,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         info['nchan'] = nchan = int(fid.read(4).decode())
         channels = list(range(info['nchan']))
         ch_names = [fid.read(16).strip().decode() for ch in channels]
-        [fid.read(80).strip().decode() for ch in channels]  # transducer
+        for ch in channels:
+            fid.read(80)  # transducer
         units = [fid.read(8).strip().decode() for ch in channels]
         for i, unit in enumerate(units):
             if unit == 'uV':
@@ -487,7 +489,6 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['eeg_loc'] = np.zeros(3)
         chan_info['loc'] = np.zeros(12)
         if ch_name in eog or idx in eog or idx - nchan in eog:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
@@ -583,7 +584,8 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Path to the EDF+,BDF file.
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0).
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the electrodes in the

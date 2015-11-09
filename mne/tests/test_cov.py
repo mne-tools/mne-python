@@ -18,26 +18,16 @@ from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
                      _undo_scaling_cov)
 
 from mne import (read_cov, write_cov, Epochs, merge_events,
-                 find_events, compute_raw_data_covariance,
+                 find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_channels, pick_types, pick_info,
                  make_ad_hoc_cov)
 from mne.io import Raw
-from mne.utils import _TempDir, slow_test, requires_module, run_tests_if_main
+from mne.utils import (_TempDir, slow_test, requires_sklearn_0_15,
+                       run_tests_if_main)
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type
-from mne.fixes import partial
 
-_recent_sklearn_call = """
-required_version = '0.15'
-import sklearn
-version = LooseVersion(sklearn.__version__)
-if version < required_version:
-    raise ImportError
-"""
-
-requires_sklearn_0_15 = partial(requires_module, name='sklearn',
-                                call=_recent_sklearn_call)
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -108,7 +98,7 @@ def test_cov_estimation_on_raw_segment():
     """
     tempdir = _TempDir()
     raw = Raw(raw_fname, preload=False)
-    cov = compute_raw_data_covariance(raw)
+    cov = compute_raw_covariance(raw)
     cov_mne = read_cov(erm_cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
     assert_true(linalg.norm(cov.data - cov_mne.data, ord='fro') /
@@ -123,7 +113,7 @@ def test_cov_estimation_on_raw_segment():
 
     # test with a subset of channels
     picks = pick_channels(raw.ch_names, include=raw.ch_names[:5])
-    cov = compute_raw_data_covariance(raw, picks=picks)
+    cov = compute_raw_covariance(raw, picks=picks)
     assert_true(cov_mne.ch_names[:5] == cov.ch_names)
     assert_true(linalg.norm(cov.data - cov_mne.data[picks][:, picks],
                 ord='fro') / linalg.norm(cov.data, ord='fro') < 1e-4)
@@ -131,7 +121,7 @@ def test_cov_estimation_on_raw_segment():
     raw_2 = raw.crop(0, 1)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        cov = compute_raw_data_covariance(raw_2)
+        cov = compute_raw_covariance(raw_2)
     assert_true(len(w) == 1)
 
 
@@ -274,12 +264,12 @@ def test_rank():
     raw_sss = Raw(hp_fif_fname)
     raw_sss.add_proj(compute_proj_raw(raw_sss))
 
-    cov_sample = compute_raw_data_covariance(raw_sample)
-    cov_sample_proj = compute_raw_data_covariance(
+    cov_sample = compute_raw_covariance(raw_sample)
+    cov_sample_proj = compute_raw_covariance(
         raw_sample.copy().apply_proj())
 
-    cov_sss = compute_raw_data_covariance(raw_sss)
-    cov_sss_proj = compute_raw_data_covariance(
+    cov_sss = compute_raw_covariance(raw_sss)
+    cov_sss_proj = compute_raw_covariance(
         raw_sss.copy().apply_proj())
 
     picks_all_sample = pick_types(raw_sample.info, meg=True, eeg=True)
@@ -422,6 +412,7 @@ def test_auto_low_rank():
                   n_jobs=n_jobs, method_params=method_params, cv=cv)
 
 
+@slow_test
 @requires_sklearn_0_15
 def test_compute_covariance_auto_reg():
     """Test automated regularization"""
@@ -434,21 +425,20 @@ def test_compute_covariance_auto_reg():
     # cov with merged events and keep_sample_mean=True
     events_merged = merge_events(events, event_ids, 1234)
     picks = pick_types(raw.info, meg='mag', eeg=False)
-    epochs = Epochs(raw, events_merged, 1234, tmin=-0.2, tmax=0,
-                    picks=picks[:5], baseline=(-0.2, -0.1), proj=True,
-                    reject=reject, preload=True)
-    epochs.crop(None, 0)[:10]
+    epochs = Epochs(
+        raw, events_merged, 1234, tmin=-0.2, tmax=0,
+        picks=picks[:10],  # we need a few channels for numerical reasons
+        # in PCA/FA.
+        baseline=(-0.2, -0.1), proj=True, reject=reject, preload=True)
+    epochs = epochs.crop(None, 0)[:10]
 
-    method_params = dict(factor_analysis=dict(iter_n_components=[30]),
-                         pca=dict(iter_n_components=[30]))
+    method_params = dict(factor_analysis=dict(iter_n_components=[3]),
+                         pca=dict(iter_n_components=[3]))
 
-    with warnings.catch_warnings(record=True) as w:
-        covs = compute_covariance(epochs, method='auto',
-                                  method_params=method_params,
-                                  projs=True,
-                                  return_estimators=True)
-        warnings.simplefilter('always')
-        assert_equal(len(w), 1)
+    covs = compute_covariance(epochs, method='auto',
+                              method_params=method_params,
+                              projs=True,
+                              return_estimators=True)
 
     logliks = [c['loglik'] for c in covs]
     assert_true(np.diff(logliks).max() <= 0)  # descending order
@@ -456,21 +446,13 @@ def test_compute_covariance_auto_reg():
     methods = ['empirical',
                'factor_analysis',
                'ledoit_wolf',
-               # 'pca',  XXX FAILS
-               ]
-    with warnings.catch_warnings(record=True) as w:
-        cov3 = compute_covariance(epochs, method=methods,
-                                  method_params=method_params, projs=False,
-                                  return_estimators=True)
-        warnings.simplefilter('always')
-        assert_equal(len(w), 1)
+               'pca']
+    cov3 = compute_covariance(epochs, method=methods,
+                              method_params=method_params, projs=None,
+                              return_estimators=True)
 
     assert_equal(set([c['method'] for c in cov3]),
                  set(methods))
-
-    # projs not allowed with FA or PCA
-    assert_raises(ValueError, compute_covariance, epochs, method='pca',
-                  projs=True)
 
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')

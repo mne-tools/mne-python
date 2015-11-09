@@ -14,7 +14,6 @@ from .. import pick_channels
 from ..utils import logger, verbose
 from ..epochs import _BaseEpochs
 from ..event import _find_events
-from ..io.proj import setup_proj
 
 
 class RtEpochs(_BaseEpochs):
@@ -148,13 +147,10 @@ class RtEpochs(_BaseEpochs):
 
         # call _BaseEpochs constructor
         super(RtEpochs, self).__init__(
-            info, event_id, tmin, tmax, baseline=baseline, picks=picks,
+            info, None, None, event_id, tmin, tmax, baseline, picks=picks,
             name=name, reject=reject, flat=flat, decim=decim,
             reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
-            add_eeg_ref=add_eeg_ref, verbose=verbose)
-
-        self._projector, self.info = setup_proj(self.info, add_eeg_ref,
-                                                activate=proj)
+            add_eeg_ref=add_eeg_ref, verbose=verbose, proj=True)
 
         self._client = client
 
@@ -289,7 +285,7 @@ class RtEpochs(_BaseEpochs):
                 raise RuntimeError('Not enough epochs in queue and currently '
                                    'not receiving epochs, cannot get epochs!')
 
-    def _get_data_from_disk(self):
+    def _get_data(self):
         """Return the data for n_epochs epochs"""
 
         epochs = list()
@@ -399,16 +395,11 @@ class RtEpochs(_BaseEpochs):
         # select the channels
         epoch = epoch[self.picks, :]
 
-        # handle offset
-        if self._offset is not None:
-            epoch += self._offset
+        # Detrend, baseline correct, decimate
+        epoch = self._detrend_offset_decim(epoch, verbose='ERROR')
 
         # apply SSP
-        if self.proj and self._projector is not None:
-            epoch = np.dot(self._projector, epoch)
-
-        # Detrend, baseline correct, decimate
-        epoch = self._preprocess(epoch, verbose='ERROR')
+        epoch = self._project_epoch(epoch)
 
         # Decide if this is a good epoch
         is_good, _ = self._is_good_epoch(epoch, verbose='ERROR')

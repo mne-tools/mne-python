@@ -3,11 +3,9 @@
 #
 # License: BSD (3-clause)
 
-import struct
 import os
 import gzip
 import numpy as np
-from scipy import linalg
 
 from .constants import FIFF
 
@@ -142,7 +140,7 @@ def read_tag_info(fid):
     s = fid.read(4 * 4)
     if len(s) == 0:
         return None
-    tag = Tag(*struct.unpack(">iiii", s))
+    tag = Tag(*np.fromstring(s, '>i4'))
     if tag.next == 0:
         fid.seek(tag.size, 1)
     elif tag.next > 0:
@@ -182,13 +180,27 @@ def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
     return out
 
 
-def _loc_to_trans(loc):
+def _loc_to_coil_trans(loc):
     """Helper to convert loc vector to coil_trans"""
     # deal with nasty OSX Anaconda bug by casting to float64
     loc = loc.astype(np.float64)
     coil_trans = np.concatenate([loc.reshape(4, 3).T[:, [1, 2, 3, 0]],
                                  np.array([0, 0, 0, 1]).reshape(1, 4)])
     return coil_trans
+
+
+def _coil_trans_to_loc(coil_trans):
+    """Helper to convert coil_trans to loc"""
+    coil_trans = coil_trans.astype(np.float64)
+    return np.roll(coil_trans.T[:, :3], 1, 0).flatten()
+
+
+def _loc_to_eeg_loc(loc):
+    """Helper to convert a loc to an EEG loc"""
+    if loc[3:6].any():
+        return np.array([loc[0:3], loc[3:6]]).T
+    else:
+        return loc[0:3][:, np.newaxis].copy()
 
 
 def read_tag(fid, pos=None, shape=None, rlims=None):
@@ -204,9 +216,10 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
         If tuple, the shape of the stored matrix. Only to be used with
         data stored as a vector (not implemented for matrices yet).
     rlims : tuple | None
-        If tuple, the first and last rows to retrieve. Note that data are
-        assumed to be stored row-major in the file. Only to be used with
-        data stored as a vector (not implemented for matrices yet).
+        If tuple, the first (inclusive) and last (exclusive) rows to retrieve.
+        Note that data are assumed to be stored row-major in the file. Only to
+        be used with data stored as a vector (not implemented for matrices
+        yet).
 
     Returns
     -------
@@ -217,7 +230,8 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
         fid.seek(pos, 0)
 
     s = fid.read(4 * 4)
-    tag = Tag(*struct.unpack(">iIii", s))
+
+    tag = Tag(*np.fromstring(s, dtype='>i4,>u4,>i4,>i4')[0])
 
     #
     #   The magic hexadecimal values
@@ -403,20 +417,18 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 tag.data['r'] = np.fromstring(fid.read(12), dtype=">f4")
                 tag.data['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
             elif tag.type == FIFF.FIFFT_COORD_TRANS_STRUCT:
-                tag.data = dict()
-                tag.data['from'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-                tag.data['to'] = int(np.fromstring(fid.read(4), dtype=">i4"))
+                from ..transforms import Transform
+                fro = int(np.fromstring(fid.read(4), dtype=">i4"))
+                to = int(np.fromstring(fid.read(4), dtype=">i4"))
                 rot = np.fromstring(fid.read(36), dtype=">f4").reshape(3, 3)
                 move = np.fromstring(fid.read(12), dtype=">f4")
-                tag.data['trans'] = np.r_[np.c_[rot, move],
-                                          np.array([[0], [0], [0], [1]]).T]
-                #
+                trans = np.r_[np.c_[rot, move],
+                              np.array([[0], [0], [0], [1]]).T]
+                tag.data = Transform(fro, to, trans)
                 # Skip over the inverse transformation
-                # It is easier to just use inverse of trans in Matlab
-                #
                 fid.seek(12 * 4, 1)
             elif tag.type == FIFF.FIFFT_CH_INFO_STRUCT:
-                d = dict()
+                d = tag.data = dict()
                 d['scanno'] = int(np.fromstring(fid.read(4), dtype=">i4"))
                 d['logno'] = int(np.fromstring(fid.read(4), dtype=">i4"))
                 d['kind'] = int(np.fromstring(fid.read(4), dtype=">i4"))
@@ -427,40 +439,29 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 #   Read the coil coordinate system definition
                 #
                 d['loc'] = np.fromstring(fid.read(48), dtype=">f4")
-                d['coil_trans'] = None
-                d['eeg_loc'] = None
-                d['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
-                tag.data = d
+                # deal with nasty OSX Anaconda bug by casting to float64
+                d['loc'] = d['loc'].astype(np.float64)
                 #
                 #   Convert loc into a more useful format
                 #
-                loc = tag.data['loc']
-                kind = tag.data['kind']
+                kind = d['kind']
                 if kind in [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH]:
-                    tag.data['coil_trans'] = _loc_to_trans(loc)
-                    tag.data['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-                elif tag.data['kind'] == FIFF.FIFFV_EEG_CH:
-                    # deal with nasty OSX Anaconda bug by casting to float64
-                    loc = loc.astype(np.float64)
-                    if linalg.norm(loc[3:6]) > 0.:
-                        tag.data['eeg_loc'] = np.c_[loc[0:3], loc[3:6]]
-                    else:
-                        tag.data['eeg_loc'] = loc[0:3][:, np.newaxis].copy()
-                    tag.data['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+                    d['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+                elif d['kind'] == FIFF.FIFFV_EEG_CH:
+                    d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+                else:
+                    d['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
                 #
                 #   Unit and exponent
                 #
-                tag.data['unit'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-                tag.data['unit_mul'] = int(np.fromstring(fid.read(4),
-                                                         dtype=">i4"))
+                d['unit'] = int(np.fromstring(fid.read(4), dtype=">i4"))
+                d['unit_mul'] = int(np.fromstring(fid.read(4), dtype=">i4"))
                 #
                 #   Handle the channel name
                 #
                 ch_name = np.fromstring(fid.read(16), dtype=">c")
                 ch_name = ch_name[:np.argmax(ch_name == b'')].tostring()
-                # Use unicode or bytes depending on Py2/3
-                tag.data['ch_name'] = str(ch_name.decode())
-
+                d['ch_name'] = ch_name.decode()
             elif tag.type == FIFF.FIFFT_OLD_PACK:
                 offset = float(np.fromstring(fid.read(4), dtype=">f4"))
                 scale = float(np.fromstring(fid.read(4), dtype=">f4"))
@@ -470,7 +471,8 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 tag.data = list()
                 for _ in range(tag.size // 16 - 1):
                     s = fid.read(4 * 4)
-                    tag.data.append(Tag(*struct.unpack(">iIii", s)))
+                    tag.data.append(Tag(*np.fromstring(
+                        s, dtype='>i4,>u4,>i4,>i4')[0]))
             elif tag.type == FIFF.FIFFT_JULIAN:
                 tag.data = int(np.fromstring(fid.read(4), dtype=">i4"))
                 tag.data = jd2jcal(tag.data)

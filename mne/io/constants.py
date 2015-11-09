@@ -136,10 +136,11 @@ FIFF.FIFF_NAME           = 233          # Intended to be a short name.
 FIFF.FIFF_DESCRIPTION    = FIFF.FIFF_COMMENT # (Textual) Description of an object
 FIFF.FIFF_DIG_STRING     = 234          # String of digitized points
 FIFF.FIFF_LINE_FREQ      = 235    # Line frequency
-FIFF.FIFF_CUSTOM_REF     = 236    # Whether a custom reference was applied to the data
+FIFF.FIFF_CUSTOM_REF     = 236    # Whether a custom reference was applied to the data (NB: overlaps with HPI const #)
 #
 # HPI fitting program tags
 #
+FIFF.FIFF_HPI_COIL_FREQ          = 236   # HPI coil excitation frequency
 FIFF.FIFF_HPI_COIL_MOMENTS       = 240   # Estimated moment vectors for the HPI coil magnetic dipoles
 FIFF.FIFF_HPI_FIT_GOODNESS       = 241   # Three floats indicating the goodness of fit
 FIFF.FIFF_HPI_FIT_ACCEPT         = 242   # Bitmask indicating acceptance (see below)

@@ -2,10 +2,17 @@
 from __future__ import print_function
 
 from nose.plugins.skip import SkipTest
+from nose.tools import assert_true
 from os import path as op
+import sys
 import inspect
 import warnings
 import imp
+
+from pkgutil import walk_packages
+from inspect import getsource
+
+import mne
 from mne.utils import run_tests_if_main
 
 public_modules = [
@@ -54,11 +61,15 @@ def get_name(func):
     return '.'.join(parts)
 
 
-# functions to ignore # of args b/c we deprecated a name and moved it
-# to the end
-_deprecation_ignores = [
+# functions to ignore args / docstring of
+_docstring_ignores = [
     'mne.io.write',  # always ignore these
     'mne.fixes._in1d',  # fix function
+    'mne.gui.coregistration',  # deprecated single argument w/None
+]
+
+_tab_ignores = [
+    'mne.channels.tests.test_montage',  # demo data has a tab
 ]
 
 
@@ -88,7 +99,8 @@ def check_parameters_match(func, doc=None):
     if len(param_names) != len(args):
         bad = str(sorted(list(set(param_names) - set(args)) +
                          list(set(args) - set(param_names))))
-        if not any(d in name_ for d in _deprecation_ignores):
+        if not any(d in name_ for d in _docstring_ignores) and \
+                'deprecation_wrapped' not in func.__code__.co_name:
             incorrect += [name_ + ' arg mismatch: ' + bad]
     else:
         for n1, n2 in zip(param_names, args):
@@ -130,6 +142,19 @@ def test_docstring_parameters():
     msg = '\n' + '\n'.join(sorted(list(set(incorrect))))
     if len(incorrect) > 0:
         raise AssertionError(msg)
+
+
+def test_tabs():
+    """Test that there are no tabs in our source files"""
+    for importer, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
+        if not ispkg and modname not in _tab_ignores:
+            # mod = importlib.import_module(modname)  # not py26 compatible!
+            __import__(modname)  # because we don't import e.g. mne.tests w/mne
+            mod = sys.modules[modname]
+            source = getsource(mod)
+            assert_true('\t' not in source,
+                        '"%s" has tabs, please remove them or add it to the'
+                        'ignore list' % modname)
 
 
 run_tests_if_main()

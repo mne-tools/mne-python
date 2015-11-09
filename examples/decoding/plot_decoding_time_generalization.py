@@ -29,7 +29,6 @@ print(__doc__)
 data_path = spm_face.data_path()
 # Load and filter data, set up epochs
 raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
-events_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 raw = mne.io.Raw(raw_fname % 1, preload=True)  # Take first run
 
@@ -45,7 +44,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=None, preload=True,
                     reject=dict(mag=1.5e-12), decim=decim, verbose=False)
 
-# Define decoder. The decision_function is employed to use AUC for scoring
+# Define decoder. The decision function is employed to use cross-validation
 gat = GeneralizationAcrossTime(predict_mode='cross-validation', n_jobs=2)
 
 # fit and score

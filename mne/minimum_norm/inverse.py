@@ -23,14 +23,14 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         write_coord_trans, write_string)
 
 from ..io.pick import channel_type, pick_info, pick_types
-from ..cov import prepare_noise_cov, _read_cov, _write_cov
+from ..cov import prepare_noise_cov, _read_cov, _write_cov, Covariance
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
                        compute_orient_prior, convert_forward_solution)
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
-from ..transforms import invert_transform, transform_surface_to
+from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc
 from ..utils import check_fname, logger, verbose
 from functools import reduce
@@ -76,7 +76,7 @@ def _pick_channels_inverse_operator(ch_names, inv):
     an inverse operator
     """
     sel = []
-    for name in inv['noise_cov']['names']:
+    for name in inv['noise_cov'].ch_names:
         if name in ch_names:
             sel.append(ch_names.index(name))
         else:
@@ -103,6 +103,10 @@ def read_inverse_operator(fname, verbose=None):
     -------
     inv : instance of InverseOperator
         The inverse operator.
+
+    See Also
+    --------
+    write_inverse_operator, make_inverse_operator
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 
@@ -211,7 +215,8 @@ def read_inverse_operator(fname, verbose=None):
         #
         #   Read the covariance matrices
         #
-        inv['noise_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
+        inv['noise_cov'] = Covariance(
+            **_read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV, limited=True))
         logger.info('    Noise covariance matrix read.')
 
         inv['source_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
@@ -248,14 +253,7 @@ def read_inverse_operator(fname, verbose=None):
         tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
         if tag is None:
             raise Exception('MRI/head coordinate transformation not found')
-        mri_head_t = tag.data
-        if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
-                mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
-            mri_head_t = invert_transform(mri_head_t)
-            if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
-                    mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
-                raise Exception('MRI/head coordinate transformation '
-                                'not found')
+        mri_head_t = _ensure_trans(tag.data, 'mri', 'head')
 
         inv['mri_head_t'] = mri_head_t
 
@@ -268,8 +266,8 @@ def read_inverse_operator(fname, verbose=None):
         #   Transform the source spaces to the correct coordinate frame
         #   if necessary
         #
-        if inv['coord_frame'] != FIFF.FIFFV_COORD_MRI and \
-                inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
+        if inv['coord_frame'] not in (FIFF.FIFFV_COORD_MRI,
+                                      FIFF.FIFFV_COORD_HEAD):
             raise Exception('Only inverse solutions computed in MRI or '
                             'head coordinates are acceptable')
 
@@ -323,6 +321,10 @@ def write_inverse_operator(fname, inv, verbose=None):
         The inverse operator.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    read_inverse_operator
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 
@@ -464,7 +466,7 @@ def _check_ch_names(inv, info):
 
     inv_ch_names = inv['eigen_fields']['col_names']
 
-    if inv['noise_cov']['names'] != inv_ch_names:
+    if inv['noise_cov'].ch_names != inv_ch_names:
         raise ValueError('Channels in inverse operator eigen fields do not '
                          'match noise covariance channels.')
     data_ch_names = info['ch_names']
@@ -754,6 +756,11 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
     -------
     stc : SourceEstimate | VolSourceEstimate
         The source estimates
+
+    See Also
+    --------
+    apply_inverse_raw : Apply inverse operator to raw object
+    apply_inverse_epochs : Apply inverse operator to epochs object
     """
     _check_reference(evoked)
     method = _check_method(method)
@@ -851,6 +858,11 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     -------
     stc : SourceEstimate | VolSourceEstimate
         The source estimates.
+
+    See Also
+    --------
+    apply_inverse_epochs : Apply inverse operator to epochs object
+    apply_inverse : Apply inverse operator to evoked object
     """
     _check_reference(raw)
     method = _check_method(method)
@@ -1019,6 +1031,11 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     -------
     stc : list of SourceEstimate or VolSourceEstimate
         The source estimates for all epochs.
+
+    See Also
+    --------
+    apply_inverse_raw : Apply inverse operator to raw object
+    apply_inverse : Apply inverse operator to evoked object
     """
     _check_reference(epochs)
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
@@ -1087,11 +1104,12 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
                      verbose=None):
     """Util function to prepare forward solution for inverse solvers
     """
-    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
+    # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
+    fwd_sol_ch_names = forward['sol']['row_names']
     ch_names = [c['ch_name'] for c in info['chs']
                 if ((c['ch_name'] not in info['bads'] and
                      c['ch_name'] not in noise_cov['bads']) and
-                    (c['ch_name'] in fwd_ch_names and
+                    (c['ch_name'] in fwd_sol_ch_names and
                      c['ch_name'] in noise_cov.ch_names))]
 
     if not len(info['bads']) == len(noise_cov['bads']) or \
@@ -1124,8 +1142,12 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
 
     gain = forward['sol']['data']
 
-    fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
+    # This actually reorders the gain matrix to conform to the info ch order
+    fwd_idx = [fwd_sol_ch_names.index(name) for name in ch_names]
     gain = gain[fwd_idx]
+    # Any function calling this helper will be using the returned fwd_info
+    # dict, so fwd['sol']['row_names'] becomes obsolete and is NOT re-ordered
+
     info_idx = [info['ch_names'].index(name) for name in ch_names]
     fwd_info = pick_info(info, info_idx)
 
@@ -1147,7 +1169,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         Bad channels in info['bads'] are not used.
     forward : dict
         Forward operator.
-    noise_cov : Covariance
+    noise_cov : instance of Covariance
         The noise covariance matrix.
     loose : None | float in [0, 1]
         Value that weights the source variances of the dipole components
@@ -1263,6 +1285,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     gain_info, gain, noise_cov, whitener, n_nzero = \
         _prepare_forward(forward, info, noise_cov, rank=rank)
+    forward['info']._check_consistency()
 
     #
     # 5. Compose the depth-weighting matrix
@@ -1400,7 +1423,9 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                   source_nn=forward['source_nn'].copy(),
                   src=deepcopy(forward['src']), fmri_prior=None)
     inv_info = deepcopy(forward['info'])
-    inv_info['bads'] = deepcopy(info['bads'])
+    inv_info['bads'] = [bad for bad in info['bads']
+                        if bad in inv_info['ch_names']]
+    inv_info._check_consistency()
     inv_op['units'] = 'Am'
     inv_op['info'] = inv_info
 

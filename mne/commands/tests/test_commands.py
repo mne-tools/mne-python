@@ -10,11 +10,13 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_flash_bem_model, mne_kit2fiff,
                           mne_make_scalp_surfaces, mne_maxfilter,
-                          mne_report, mne_surf2bem)
+                          mne_report, mne_surf2bem, mne_watershed_bem,
+                          mne_compare_fiff, mne_flash_bem)
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
-                       requires_mayavi, requires_tvtk, ArgvSetter, slow_test)
+                       requires_mayavi, requires_tvtk, requires_freesurfer,
+                       ArgvSetter, slow_test, ultra_slow_test)
 from mne.io import Raw
-from mne.datasets import testing
+from mne.datasets import testing, sample
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -45,6 +47,11 @@ def test_browse_raw():
 def test_bti2fiff():
     """Test mne bti2fiff"""
     check_usage(mne_bti2fiff)
+
+
+def test_compare_fiff():
+    """Test mne compare_fiff"""
+    check_usage(mne_compare_fiff)
 
 
 @requires_mne
@@ -175,6 +182,63 @@ def test_report():
 def test_surf2bem():
     """Test mne surf2bem"""
     check_usage(mne_surf2bem)
+
+
+@ultra_slow_test
+@requires_freesurfer
+@testing.requires_testing_data
+def test_watershed_bem():
+    """Test mne watershed bem"""
+    check_usage(mne_watershed_bem)
+    # Copy necessary files to tempdir
+    tempdir = _TempDir()
+    mridata_path = op.join(subjects_dir, 'sample', 'mri')
+    mridata_path_new = op.join(tempdir, 'sample', 'mri')
+    os.mkdir(op.join(tempdir, 'sample'))
+    os.mkdir(mridata_path_new)
+    if op.exists(op.join(mridata_path, 'T1')):
+        shutil.copytree(op.join(mridata_path, 'T1'), op.join(mridata_path_new,
+                        'T1'))
+    if op.exists(op.join(mridata_path, 'T1.mgz')):
+        shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
+                        op.join(mridata_path_new, 'T1.mgz'))
+
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-o'),
+                    disable_stdout=False, disable_stderr=False):
+        mne_watershed_bem.run()
+
+
+@slow_test
+@requires_mne
+@requires_freesurfer
+@sample.requires_sample_data
+def test_flash_bem():
+    """Test mne flash_bem"""
+    check_usage(mne_flash_bem, force_help=True)
+    # Using the sample dataset
+    subjects_dir = op.join(sample.data_path(download=False), 'subjects')
+    # Copy necessary files to tempdir
+    tempdir = _TempDir()
+    mridata_path = op.join(subjects_dir, 'sample', 'mri')
+    mridata_path_new = op.join(tempdir, 'sample', 'mri')
+    os.makedirs(op.join(mridata_path_new, 'flash'))
+    os.makedirs(op.join(tempdir, 'sample', 'bem'))
+    shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
+                    op.join(mridata_path_new, 'T1.mgz'))
+    shutil.copyfile(op.join(mridata_path, 'brain.mgz'),
+                    op.join(mridata_path_new, 'brain.mgz'))
+    # Copy the available mri/flash/mef*.mgz files from the dataset
+    files = glob.glob(op.join(mridata_path, 'flash', 'mef*.mgz'))
+    for infile in files:
+        shutil.copyfile(infile, op.join(mridata_path_new, 'flash',
+                                        op.basename(infile)))
+    # Test mne flash_bem with --noconvert option
+    # (since there are no DICOM Flash images in dataset)
+    currdir = os.getcwd()
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n'),
+                    disable_stdout=False, disable_stderr=False):
+        mne_flash_bem.run()
+    os.chdir(currdir)
 
 
 run_tests_if_main()

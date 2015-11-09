@@ -55,6 +55,10 @@ class Layout(object):
         ----------
         fname : str
             The file name (e.g. 'my_layout.lout').
+
+        See Also
+        --------
+        read_layout
         """
         x = self.pos[:, 0]
         y = self.pos[:, 1]
@@ -145,6 +149,10 @@ def read_layout(kind, path=None, scale=True):
     -------
     layout : instance of Layout
         The layout.
+
+    See Also
+    --------
+    Layout.save
     """
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'layouts')
@@ -197,10 +205,15 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
     exclude : list of string | str
         List of channels to exclude. If empty do not exclude any.
         If 'bads', exclude channels in info['bads'] (default).
+
     Returns
     -------
     layout : Layout
         The generated Layout.
+
+    See Also
+    --------
+    make_grid_layout, generate_2d_layout
     """
     if not (0 <= radius <= 0.5):
         raise ValueError('The radius parameter should be between 0 and 0.5.')
@@ -267,6 +280,10 @@ def make_grid_layout(info, picks=None, n_col=None):
     -------
     layout : Layout
         The generated layout.
+
+    See Also
+    --------
+    make_eeg_layout, generate_2d_layout
     """
     if picks is None:
         picks = pick_types(info, misc=True, ref_meg=False, exclude='bads')
@@ -578,7 +595,6 @@ def _auto_topomap_coords(info, picks):
             if ch['kind'] != FIFF.FIFFV_EEG_CH:
                 raise ValueError("Cannot determine location of MEG/EOG/ECG "
                                  "channels using digitization points.")
-                break
 
         eeg_ch_names = [ch['ch_name'] for ch in info['chs']
                         if ch['kind'] == FIFF.FIFFV_EEG_CH]
@@ -725,12 +741,14 @@ def _merge_grad_data(data):
 def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
                        ch_indices=None, name='ecog', bg_image=None):
     """Generate a custom 2D layout from xy points.
+
     Generates a 2-D layout for plotting with plot_topo methods and
     functions. XY points will be normalized between 0 and 1, where
     normalization extremes will be either the min/max of xy, or
     the width/height of bg_image.
+
     Parameters
-    -------
+    ----------
     xy : ndarray (N x 2)
         The xy coordinates of sensor locations.
     w : float
@@ -753,11 +771,17 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         image file, or an array that can be plotted with plt.imshow. If
         provided, xy points will be normalized by the width/height of this
         image. If not, xy points will be normalized by their own min/max.
+
     Returns
     -------
     layout : Layout
         A Layout object that can be plotted with plot_topo
         functions and methods.
+
+    See Also
+    --------
+    make_eeg_layout, make_grid_layout
+
     Notes
     -----
     .. versionadded:: 0.9.0

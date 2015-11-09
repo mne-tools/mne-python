@@ -38,15 +38,14 @@ except:
 
 
 from ..coreg import bem_fname, trans_fname
-from ..io.constants import FIFF
 from ..forward import prepare_bem_model
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
-                          translation, scaling, rotation_angles)
+                          translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _point_cloud_error)
 from ..utils import get_subjects_dir, logger
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
-from ._file_traits import (set_mne_root, trans_wildcard, RawSource,
+from ._file_traits import (set_mne_root, trans_wildcard, InstSource,
                            SubjectSelectorPanel)
 from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
                       _testing_mode)
@@ -78,7 +77,7 @@ class CoregModel(HasPrivateTraits):
     """
     # data sources
     mri = Instance(MRIHeadWithFiducialsModel, ())
-    hsp = Instance(RawSource, ())
+    hsp = Instance(InstSource, ())
 
     # parameters
     grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
@@ -125,7 +124,7 @@ class CoregModel(HasPrivateTraits):
     can_prepare_bem_model = Property(Bool, depends_on=['n_scale_params',
                                                        'subject_has_bem'])
     can_save = Property(Bool, depends_on=['head_mri_trans'])
-    raw_subject = Property(depends_on='hsp.raw_fname', desc="Subject guess "
+    raw_subject = Property(depends_on='hsp.inst_fname', desc="Subject guess "
                            "based on the raw file name.")
 
     # transformed geometry
@@ -318,9 +317,9 @@ class CoregModel(HasPrivateTraits):
         return "Average Points Error: %.1f mm" % (av_dist * 1000)
 
     def _get_raw_subject(self):
-        # subject name guessed based on the raw file name
-        if '_' in self.hsp.raw_fname:
-            subject, _ = self.hsp.raw_fname.split('_', 1)
+        # subject name guessed based on the inst file name
+        if '_' in self.hsp.inst_fname:
+            subject, _ = self.hsp.inst_fname.split('_', 1)
             if not subject:
                 subject = None
         else:
@@ -575,10 +574,7 @@ class CoregModel(HasPrivateTraits):
         """
         if not self.can_save:
             raise RuntimeError("Not enough information for saving transform")
-        trans_matrix = self.head_mri_trans
-        trans = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
-                 'trans': trans_matrix}
-        write_trans(fname, trans)
+        write_trans(fname, Transform('head', 'mri', self.head_mri_trans))
 
 
 class CoregFrameHandler(Handler):
@@ -1148,7 +1144,7 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                       show_labels=False),
                                Item('omitted_info', style='readonly',
                                     show_label=False),
-                               label='Head Shape Source (Raw)',
+                               label='Head Shape Source (Raw/Epochs/Evoked)',
                                show_border=True, show_labels=False),
                         show_labels=False, label="Data Source")
 

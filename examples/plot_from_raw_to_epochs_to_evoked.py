@@ -35,21 +35,22 @@ raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Plot raw data
-fig = raw.plot(events=events, event_color={1: 'cyan', -1: 'lightgray'})
+raw.plot(events=events, event_color={1: 'cyan', -1: 'lightgray'})
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
-raw.info['bads'] += ['EEG 053']  # bads + 1 more
+raw.info['bads'] = ['MEG 2443', 'EEG 053']  # set bads
 
-# pick EEG channels
-picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
+# pick EEG and MEG channels
+picks = mne.pick_types(raw.info, meg=True, eeg=True, stim=False, eog=True,
                        include=include, exclude='bads')
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6),
                     preload=True)
 
-epochs.plot()
+# Plot epochs.
+epochs.plot(title='Auditory left/right')
 
 # Look at channels that caused dropped events, showing that the subject's
 # blinks were likely to blame for most epochs being dropped
@@ -64,7 +65,7 @@ evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
 ###############################################################################
 # View evoked response
 
-evoked.plot()
+evoked.plot(gfp=True)
 
 ###############################################################################
 # Save evoked responses for different conditions to disk

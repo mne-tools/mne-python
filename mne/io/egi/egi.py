@@ -145,7 +145,8 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
         Path to the raw file.
     montage : str | None | instance of montage
         Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0).
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Default is None.
@@ -298,7 +299,6 @@ class RawEGI(_BaseRaw):
                        'coord_frame': FIFF.FIFFV_COORD_HEAD,
                        'coil_type': FIFF.FIFFV_COIL_EEG,
                        'kind': FIFF.FIFFV_EEG_CH,
-                       'eeg_loc': None,
                        'loc': np.array([0, 0, 0, 1] * 3, dtype='f4')}
             if ch_name in eog or ii in eog or ii - nchan in eog:
                 ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
@@ -317,7 +317,7 @@ class RawEGI(_BaseRaw):
             info['chs'].append(ch_info)
 
         _check_update_montage(info, montage)
-        orig_format = {'>f4': 'single', '>f4': 'double',
+        orig_format = {'>f2': 'single', '>f4': 'double',
                        '>i2': 'int'}[egi_info['dtype']]
         super(RawEGI, self).__init__(
             info, data, filenames=[input_fname], orig_format=orig_format,

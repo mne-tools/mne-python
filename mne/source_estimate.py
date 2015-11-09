@@ -5,27 +5,30 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six import string_types
 import os
 import copy
 from math import ceil
-import numpy as np
-from scipy import linalg, sparse
-from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
-from ._hdf5 import read_hdf5, write_hdf5
+import numpy as np
+from scipy import linalg, sparse
+from scipy.sparse import coo_matrix
+
 from .filter import resample
 from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
-                      _compute_nearest)
+                      _compute_nearest, mesh_edges)
+from .source_space import (_ensure_src, _get_morph_src_reordering,
+                           _ensure_src_subject)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask)
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
-from .externals.six.moves import zip
 from .io.base import ToDataFrameMixin
+from .externals.six.moves import zip
+from .externals.six import string_types
+from .externals.h5io import read_hdf5, write_hdf5
 
 
 def _read_stc(filename):
@@ -319,7 +322,7 @@ def read_source_estimate(fname, subject=None):
         kwargs['tmin'] = 0.0
         kwargs['tstep'] = 1.0
     elif ftype == 'h5':
-        kwargs = read_hdf5(fname + '-stc.h5')
+        kwargs = read_hdf5(fname + '-stc.h5', title='mnepython')
 
     if ftype != 'volume':
         # Make sure the vertices are ordered
@@ -991,7 +994,7 @@ class SourceEstimate(_BaseSourceEstimate):
             write_hdf5(fname + '-stc.h5',
                        dict(vertices=self.vertices, data=self.data,
                             tmin=self.tmin, tstep=self.tstep,
-                            subject=self.subject))
+                            subject=self.subject), title='mnepython')
         logger.info('[done]')
 
     def __repr__(self):
@@ -1150,8 +1153,8 @@ class SourceEstimate(_BaseSourceEstimate):
               and flip is a sing-flip vector based on the vertex normals. This
               procedure assures that the phase does not randomly change by 180
               degrees from one stc to the next.
-
             - 'max': Max value within each label.
+
 
         Parameters
         ----------
@@ -1362,6 +1365,41 @@ class SourceEstimate(_BaseSourceEstimate):
                                       views=views, colorbar=colorbar,
                                       clim=clim)
         return brain
+
+    @verbose
+    def to_original_src(self, src_orig, subject_orig=None,
+                        subjects_dir=None, verbose=None):
+        """Return a SourceEstimate from morphed source to the original subject
+
+        Parameters
+        ----------
+        src_orig : instance of SourceSpaces
+            The original source spaces that were morphed to the current
+            subject.
+        subject_orig : str | None
+            The original subject. For most source spaces this shouldn't need
+            to be provided, since it is stored in the source space itself.
+        subjects_dir : string, or None
+            Path to SUBJECTS_DIR if it is not set in the environment.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        See Also
+        --------
+        morph_source_spaces
+
+        Notes
+        -----
+        .. versionadded:: 0.10.0
+        """
+        if self.subject is None:
+            raise ValueError('stc.subject must be set')
+        src_orig = _ensure_src(src_orig)
+        subject_orig = _ensure_src_subject(src_orig, subject_orig)
+        data_idx, vertices = _get_morph_src_reordering(
+            self.vertices, src_orig, subject_orig, self.subject, subjects_dir)
+        return SourceEstimate(self._data[data_idx], vertices,
+                              self.tmin, self.tstep, subject_orig)
 
     @verbose
     def morph(self, subject_to, grade=5, smooth=None, subjects_dir=None,
@@ -1733,11 +1771,11 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                                      verbose=verbose)
 
     def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
-                     colormap='hot', time_label='time=%02.f ms',
-                     smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-                     transparent=True, alpha=1.0, time_viewer=False,
+                     colormap='auto', time_label='time=%02.f ms',
+                     smoothing_steps=10,
+                     transparent=None, alpha=1.0, time_viewer=False,
                      config_opts={}, subjects_dir=None, figure=None,
-                     views='lat', colorbar=True):
+                     views='lat', colorbar=True, clim='auto'):
         """Plot surface source estimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1761,20 +1799,15 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         hemi : str, 'lh' | 'rh' | 'split' | 'both'
             The hemisphere to display. Using 'both' or 'split' requires
             PySurfer version 0.4 or above.
-        colormap : str
-            The type of colormap to use.
+        colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+            Name of colormap to use. See `plot_source_estimates`.
         time_label : str
             How to print info about the time instant visualized.
         smoothing_steps : int
             The amount of smoothing.
-        fmin : float
-            The minimum value to display.
-        fmid : float
-            The middle value on the colormap.
-        fmax : float
-            The maximum value for the colormap.
-        transparent : bool
+        transparent : bool | None
             If True, use a linear transparency between fmin and fmid.
+            None will choose automatically based on colormap type.
         alpha : float
             Alpha value to apply globally to the overlay.
         time_viewer : bool
@@ -1792,6 +1825,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             View to use. See surfer.Brain().
         colorbar : bool
             If True, display colorbar on scene.
+        clim : str | dict
+            Colorbar properties specification. See `plot_source_estimates`.
 
         Returns
         -------
@@ -1800,6 +1835,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         """
 
         # extract surface source spaces
+        src = _ensure_src(src)
         surf = [s for s in src if s['type'] == 'surf']
         if len(surf) != 2:
             raise ValueError('Source space must contain exactly two surfaces.')
@@ -1814,74 +1850,15 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         return plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
                                      colormap=colormap, time_label=time_label,
                                      smoothing_steps=smoothing_steps,
-                                     fmin=fmin, fmid=fmid, fmax=fmax,
                                      transparent=transparent, alpha=alpha,
                                      time_viewer=time_viewer,
                                      config_opts=config_opts,
                                      subjects_dir=subjects_dir, figure=figure,
-                                     views=views, colorbar=colorbar)
+                                     views=views, colorbar=colorbar, clim=clim)
 
 
 ###############################################################################
 # Morphing
-
-
-def mesh_edges(tris):
-    """Returns sparse matrix with edges as an adjacency matrix
-
-    Parameters
-    ----------
-    tris : array of shape [n_triangles x 3]
-        The triangles.
-
-    Returns
-    -------
-    edges : sparse matrix
-        The adjacency matrix.
-    """
-    if np.max(tris) > len(np.unique(tris)):
-        raise ValueError('Cannot compute connectivity on a selection of '
-                         'triangles.')
-
-    npoints = np.max(tris) + 1
-    ones_ntris = np.ones(3 * len(tris))
-
-    a, b, c = tris.T
-    x = np.concatenate((a, b, c))
-    y = np.concatenate((b, c, a))
-    edges = coo_matrix((ones_ntris, (x, y)), shape=(npoints, npoints))
-    edges = edges.tocsr()
-    edges = edges + edges.T
-    return edges
-
-
-def mesh_dist(tris, vert):
-    """Compute adjacency matrix weighted by distances
-
-    It generates an adjacency matrix where the entries are the distances
-    between neighboring vertices.
-
-    Parameters
-    ----------
-    tris : array (n_tris x 3)
-        Mesh triangulation
-    vert : array (n_vert x 3)
-        Vertex locations
-
-    Returns
-    -------
-    dist_matrix : scipy.sparse.csr_matrix
-        Sparse matrix with distances between adjacent vertices
-    """
-    edges = mesh_edges(tris).tocoo()
-
-    # Euclidean distances between neighboring vertices
-    dist = np.sqrt(np.sum((vert[edges.row, :] - vert[edges.col, :]) ** 2,
-                          axis=1))
-
-    dist_matrix = csr_matrix((dist, (edges.row, edges.col)), shape=edges.shape)
-
-    return dist_matrix
 
 
 @verbose
@@ -2828,8 +2805,8 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
           and flip is a sing-flip vector based on the vertex normals. This
           procedure assures that the phase does not randomly change by 180
           degrees from one stc to the next.
-
         - 'max': Max value within each label.
+
 
     Parameters
     ----------
@@ -2851,10 +2828,9 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     Returns
     -------
-    label_tc : array | list (or generator) of array,
-               shape=(len(labels), n_times)
+    label_tc : array | list (or generator) of array, shape=(len(labels), n_times)
         Extracted time course for each label and source estimate.
-    """
+    """  # noqa
     # convert inputs to lists
     if isinstance(stcs, SourceEstimate):
         stcs = [stcs]

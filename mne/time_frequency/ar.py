@@ -57,7 +57,7 @@ def yule_walker(X, order=1, method="unbiased", df=None, inv=False,
     method = str(method).lower()
     if method not in ["unbiased", "mle"]:
         raise ValueError("ACF estimation method must be 'unbiased' or 'MLE'")
-    X = np.array(X)
+    X = np.array(X, float)
     if demean:
         X -= X.mean()                  # automatically demean's X
     n = df or X.shape[0]
@@ -132,8 +132,8 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
 
     .. math::
 
-        H(\\exp^{jw}) = \\frac{1}{a[0] + a[1]\\exp{-jw} + ...
-                                  + a[n]\\exp{-jnw}}
+        H(e^{jw}) = \\frac{1}{a[0] + a[1]e^{-jw} + ...
+                                  + a[n]e^{-jnw}}
 
     Parameters
     ----------

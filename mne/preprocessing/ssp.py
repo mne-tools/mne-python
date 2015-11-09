@@ -35,8 +35,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       filter_method, iir_params=None, verbose=None):
     """Compute SSP/PCA projections for ECG or EOG artifacts
 
-    Note: raw has to be constructed with preload=True (or string)
-    Warning: raw will be modified by this function
+    .. note:: raw data must be preloaded.
 
     Parameters
     ----------
@@ -221,8 +220,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      iir_params=None, copy=True, verbose=None):
     """Compute SSP/PCA projections for ECG artifacts
 
-    Note: raw has to be constructed with preload=True (or string)
-    Warning: raw will be modified by this function
+    .. note:: raw data must be preloaded.
 
     Parameters
     ----------
@@ -317,8 +315,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      iir_params=None, ch_name=None, copy=True, verbose=None):
     """Compute SSP/PCA projections for EOG artifacts
 
-    Note: raw has to be constructed with preload=True (or string)
-    Warning: raw will be modified by this function
+    .. note:: raw data must be preloaded.
 
     Parameters
     ----------

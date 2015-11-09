@@ -14,7 +14,7 @@ from mne import find_events, Epochs, pick_types, concatenate_raws
 from mne.io import Raw
 from mne.io.array import RawArray
 from mne.io.meas_info import create_info, _kind_dict
-from mne.utils import _TempDir, slow_test, requires_scipy_version
+from mne.utils import _TempDir, slow_test, requires_version
 
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -25,10 +25,11 @@ fif_fname = op.join(base_dir, 'test_raw.fif')
 
 
 @slow_test
-@requires_scipy_version('0.12')
+@requires_version('scipy', '0.12')
 def test_array_raw():
     """Test creating raw from array
     """
+    import matplotlib.pyplot as plt
     tempdir = _TempDir()
     # creating
     raw = Raw(fif_fname).crop(2, 5, copy=False)
@@ -97,6 +98,7 @@ def test_array_raw():
     # plotting
     raw2.plot()
     raw2.plot_psd()
+    plt.close('all')
 
     # epoching
     events = find_events(raw2, stim_channel='STI 014')
@@ -104,6 +106,9 @@ def test_array_raw():
     assert_true(len(events) > 2)
     epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True)
     epochs.plot_drop_log()
-    epochs.plot()
+    with warnings.catch_warnings(record=True):  # deprecation
+        warnings.simplefilter('always')
+        epochs.plot()
     evoked = epochs.average()
     evoked.plot()
+    plt.close('all')

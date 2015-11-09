@@ -124,6 +124,7 @@ def test_render_report():
 def test_render_add_sections():
     """Test adding figures/images to section.
     """
+    from PIL import Image
     tempdir = _TempDir()
     import matplotlib.pyplot as plt
     report = Report(subjects_dir=subjects_dir)
@@ -141,13 +142,23 @@ def test_render_add_sections():
     # need to recreate because calls above change size
     fig = plt.plot([1, 2], [1, 2])[0].figure
 
-    # Check add_images_to_section
+    # Check add_images_to_section with png and then gif
     img_fname = op.join(tempdir, 'testimage.png')
     fig.savefig(img_fname)
     report.add_images_to_section(fnames=[img_fname],
                                  captions=['evoked response'])
+
+    im = Image.open(img_fname)
+    op.join(tempdir, 'testimage.gif')
+    im.save(img_fname)  # matplotlib does not support gif
+    report.add_images_to_section(fnames=[img_fname],
+                                 captions=['evoked response'])
+
     assert_raises(ValueError, report.add_images_to_section,
                   fnames=[img_fname, img_fname], captions='H')
+
+    assert_raises(ValueError, report.add_images_to_section,
+                  fnames=['foobar.xxx'], captions='H')
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
@@ -208,7 +219,31 @@ def test_add_htmls_to_section():
     report.add_htmls_to_section(html, caption, section)
     idx = report._sectionlabels.index('report_' + section)
     html_compare = report.html[idx]
-    assert_equal(html, html_compare)
+    assert_true(html in html_compare)
+
+
+def test_add_slider_to_section():
+    """Test adding a slider with a series of images to mne report.
+    """
+    tempdir = _TempDir()
+    from matplotlib import pyplot as plt
+    report = Report(info_fname=raw_fname,
+                    subject='sample', subjects_dir=subjects_dir)
+    section = 'slider_section'
+    figs = list()
+    figs.append(plt.figure())
+    plt.plot([1, 2, 3])
+    plt.close('all')
+    figs.append(plt.figure())
+    plt.plot([3, 2, 1])
+    plt.close('all')
+    report.add_slider_to_section(figs, section=section)
+    report.save(op.join(tempdir, 'report.html'), open_browser=False)
+
+    assert_raises(NotImplementedError, report.add_slider_to_section,
+                  [figs, figs])
+    assert_raises(ValueError, report.add_slider_to_section, figs, ['wug'])
+    assert_raises(TypeError, report.add_slider_to_section, figs, 'wug')
 
 
 def test_validate_input():

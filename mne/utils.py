@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """Some utility functions"""
 from __future__ import print_function
@@ -29,9 +28,7 @@ from functools import partial
 import atexit
 
 import numpy as np
-import scipy
 from scipy import linalg, sparse
-
 
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
@@ -64,6 +61,17 @@ def nottest(f):
 
 ###############################################################################
 # RANDOM UTILITIES
+
+def _get_call_line(in_verbose=False):
+    """Helper to get the call line from within a function"""
+    # XXX Eventually we could auto-triage whether in a `verbose` decorated
+    # function or not.
+    # NB This probably only works for functions that are undecorated,
+    # or decorated by `verbose`.
+    back = 2 if not in_verbose else 4
+    call_frame = inspect.getouterframes(inspect.currentframe())[back][0]
+    return inspect.getframeinfo(call_frame).code_context[0].strip()
+
 
 def _sort_keys(x):
     """Sort and return keys of dict"""
@@ -465,14 +473,14 @@ class deprecated(object):
         # FIXME: we should probably reset __new__ for full generality
         init = cls.__init__
 
-        def wrapped(*args, **kwargs):
+        def deprecation_wrapped(*args, **kwargs):
             warnings.warn(msg, category=DeprecationWarning)
             return init(*args, **kwargs)
-        cls.__init__ = wrapped
+        cls.__init__ = deprecation_wrapped
 
-        wrapped.__name__ = '__init__'
-        wrapped.__doc__ = self._update_doc(init.__doc__)
-        wrapped.deprecated_original = init
+        deprecation_wrapped.__name__ = '__init__'
+        deprecation_wrapped.__doc__ = self._update_doc(init.__doc__)
+        deprecation_wrapped.deprecated_original = init
 
         return cls
 
@@ -483,15 +491,15 @@ class deprecated(object):
         if self.extra:
             msg += "; %s" % self.extra
 
-        def wrapped(*args, **kwargs):
+        def deprecation_wrapped(*args, **kwargs):
             warnings.warn(msg, category=DeprecationWarning)
             return fun(*args, **kwargs)
 
-        wrapped.__name__ = fun.__name__
-        wrapped.__dict__ = fun.__dict__
-        wrapped.__doc__ = self._update_doc(fun.__doc__)
+        deprecation_wrapped.__name__ = fun.__name__
+        deprecation_wrapped.__dict__ = fun.__dict__
+        deprecation_wrapped.__doc__ = self._update_doc(fun.__doc__)
 
-        return wrapped
+        return deprecation_wrapped
 
     def _update_doc(self, olddoc):
         newdoc = "DEPRECATED"
@@ -548,6 +556,14 @@ def slow_test(f):
     return f
 
 
+@nottest
+def ultra_slow_test(f):
+    """Decorator for ultra slow tests"""
+    f.ultra_slow_test = True
+    f.slow_test = True
+    return f
+
+
 def has_nibabel(vox2ras_tkr=False):
     """Determine if nibabel is installed
 
@@ -590,10 +606,11 @@ def requires_nibabel(vox2ras_tkr=False):
                                  'Requires nibabel%s' % extra)
 
 
-def requires_scipy_version(min_version):
+def requires_version(library, min_version):
     """Helper for testing"""
-    return np.testing.dec.skipif(not check_scipy_version(min_version),
-                                 'Requires scipy version >= %s' % min_version)
+    return np.testing.dec.skipif(not check_version(library, min_version),
+                                 'Requires %s version >= %s'
+                                 % (library, min_version))
 
 
 def requires_module(function, name, call):
@@ -632,6 +649,14 @@ if version < required_version:
     raise ImportError
 """
 
+_sklearn_0_15_call = """
+required_version = '0.15'
+import sklearn
+version = LooseVersion(sklearn.__version__)
+if version < required_version:
+    raise ImportError
+"""
+
 _mayavi_call = """
 from mayavi import mlab
 mlab.options.backend = 'test'
@@ -659,6 +684,8 @@ if not has_nibabel() and not has_freesurfer():
 
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
+requires_sklearn_0_15 = partial(requires_module, name='sklearn',
+                                call=_sklearn_0_15_call)
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
 requires_freesurfer = partial(requires_module, name='Freesurfer',
@@ -689,52 +716,38 @@ requires_traits = partial(requires_module, name='traits',
 requires_h5py = partial(requires_module, name='h5py', call='import h5py')
 
 
-def _check_mayavi_version(min_version='4.3.0'):
-    """Raise a RuntimeError if the required version of mayavi is not available
+def check_version(library, min_version):
+    """Check minimum library version required
 
     Parameters
     ----------
+    library : str
+        The library name to import. Must have a ``__version__`` property.
     min_version : str
-        The version string. Anything that matches
+        The minimum version string. Anything that matches
         ``'(\\d+ | [a-z]+ | \\.)'``
-    """
-    import mayavi
-    require_mayavi = LooseVersion(min_version)
-    if LooseVersion(mayavi.__version__) < require_mayavi:
-        raise RuntimeError("Need mayavi >= %s" % require_mayavi)
 
-
-def check_sklearn_version(min_version):
-    """Check minimum sklearn version required
-
-    Parameters
-    ----------
-    min_version : str
-        The version string. Anything that matches
-        ``'(\\d+ | [a-z]+ | \\.)'``
+    Returns
+    -------
+    ok : bool
+        True if the library exists with at least the specified version.
     """
     ok = True
     try:
-        import sklearn
-        this_version = LooseVersion(sklearn.__version__)
-        if this_version < min_version:
-            ok = False
+        library = __import__(library)
     except ImportError:
         ok = False
+    else:
+        this_version = LooseVersion(library.__version__)
+        if this_version < min_version:
+            ok = False
     return ok
 
 
-def check_scipy_version(min_version):
-    """Check minimum sklearn version required
-
-    Parameters
-    ----------
-    min_version : str
-        The version string. Anything that matches
-        ``'(\\d+ | [a-z]+ | \\.)'``
-    """
-    this_version = LooseVersion(scipy.__version__)
-    return False if this_version < min_version else True
+def _check_mayavi_version(min_version='4.3.0'):
+    """Helper for mayavi"""
+    if not check_version('mayavi', min_version):
+        raise RuntimeError("Need mayavi >= %s" % min_version)
 
 
 @verbose
@@ -763,10 +776,16 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     stderr : str
         Stderr returned by the process.
     """
-    if 'stderr' not in kwargs:
-        kwargs['stderr'] = subprocess.PIPE
-    if 'stdout' not in kwargs:
-        kwargs['stdout'] = subprocess.PIPE
+    for stdxxx, sys_stdxxx in (['stderr', sys.stderr],
+                               ['stdout', sys.stdout]):
+        if stdxxx not in kwargs:
+            kwargs[stdxxx] = subprocess.PIPE
+        elif kwargs[stdxxx] is sys_stdxxx:
+            if isinstance(sys_stdxxx, StringIO):
+                # nose monkey patches sys.stderr and sys.stdout to StringIO
+                kwargs[stdxxx] = subprocess.PIPE
+            else:
+                kwargs[stdxxx] = sys_stdxxx
 
     # Check the PATH environment variable. If run_subprocess() is to be called
     # frequently this should be refactored so as to only check the path once.
@@ -778,7 +797,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
                "that you use '$HOME' instead of '~'.")
         warnings.warn(msg)
 
-    logger.info("Running subprocess: %s" % str(command))
+    logger.info("Running subprocess: %s" % ' '.join(command))
     try:
         p = subprocess.Popen(command, *args, **kwargs)
     except Exception:
@@ -1018,6 +1037,7 @@ known_config_types = [
     'MNE_DATASETS_SOMATO_PATH',
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
+    'MNE_DATASETS_BRAINSTORM_PATH',
     'MNE_DATASETS_TESTING_PATH',
     'MNE_LOGGING_LEVEL',
     'MNE_USE_CUDA',
@@ -1056,6 +1076,10 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     -------
     value : dict | str | None
         The preference key value.
+
+    See Also
+    --------
+    set_config
     """
 
     if key is not None and not isinstance(key, string_types):
@@ -1105,6 +1129,10 @@ def set_config(key, value, home_dir=None):
     home_dir : str | None
         The folder that contains the .mne config folder.
         If None, it is found automatically.
+
+    See Also
+    --------
+    get_config
     """
     if not isinstance(key, string_types):
         raise TypeError('key must be a string')
@@ -1403,7 +1431,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
                     # to complete download method
                     logger.info('Resuming download failed. Attempting to '
                                 'restart downloading the entire file.')
-                    _fetch_file(url, resume=False)
+                    local_file.close()
+                    _fetch_file(url, file_name, resume=False)
                 else:
                     _chunk_read(data, local_file, initial_size=local_file_size,
                                 verbose_bool=verbose_bool)
@@ -1475,8 +1504,25 @@ def _url_to_local_path(url, path):
     return destination
 
 
-def _get_stim_channel(stim_channel):
-    """Helper to determine the appropriate stim_channel"""
+def _get_stim_channel(stim_channel, info):
+    """Helper to determine the appropriate stim_channel
+
+    First, 'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2', etc.
+    are read. If these are not found, it will fall back to 'STI 014' if
+    present, then fall back to the first channel of type 'stim', if present.
+
+    Parameters
+    ----------
+    stim_channel : str | list of str | None
+        The stim channel selected by the user.
+    info : instance of Info
+        An information structure containing information about the channels.
+
+    Returns
+    -------
+    stim_channel : str | list of str
+        The name of the stim channel(s) to use
+    """
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
             if not isinstance(stim_channel, string_types):
@@ -1489,13 +1535,24 @@ def _get_stim_channel(stim_channel):
     stim_channel = list()
     ch_count = 0
     ch = get_config('MNE_STIM_CHANNEL')
-    while(ch is not None):
+    while(ch is not None and ch in info['ch_names']):
         stim_channel.append(ch)
         ch_count += 1
         ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
-    if ch_count == 0:
-        stim_channel = ['STI 014']
-    return stim_channel
+    if ch_count > 0:
+        return stim_channel
+
+    if 'STI 014' in info['ch_names']:
+        return ['STI 014']
+
+    from .io.pick import pick_types
+    stim_channel = pick_types(info, meg=False, ref_meg=False, stim=True)
+    if len(stim_channel) > 0:
+        stim_channel = [info['ch_names'][ch_] for ch_ in stim_channel]
+        return stim_channel
+
+    raise ValueError("No stim channels found. Consider specifying them "
+                     "manually using the 'stim_channel' parameter.")
 
 
 def _check_fname(fname, overwrite):
@@ -1628,7 +1685,8 @@ def run_tests_if_main(measure_mem=False):
         faulthandler.enable()
     except Exception:
         pass
-    mem = int(round(max(memory_usage(-1)))) if measure_mem else -1
+    with warnings.catch_warnings(record=True):  # memory_usage internal dep.
+        mem = int(round(max(memory_usage(-1)))) if measure_mem else -1
     if mem >= 0:
         print('Memory consumption after import: %s' % mem)
     t0 = time.time()
@@ -1647,7 +1705,8 @@ def run_tests_if_main(measure_mem=False):
             try:
                 t1 = time.time()
                 if measure_mem:
-                    mem = int(round(max(memory_usage((val, (), {})))))
+                    with warnings.catch_warnings(record=True):  # dep warn
+                        mem = int(round(max(memory_usage((val, (), {})))))
                 else:
                     val()
                     mem = -1
@@ -1768,3 +1827,66 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
         mask |= isclose(times, tmin)
         mask |= isclose(times, tmax)
     return mask
+
+
+def _get_fast_dot():
+    """"Helper to get fast dot"""
+    try:
+        from sklearn.utils.extmath import fast_dot
+    except ImportError:
+        fast_dot = np.dot
+    return fast_dot
+
+
+def random_permutation(n_samples, random_state=None):
+    """Helper to emulate the randperm matlab function.
+
+    It returns a vector containing a random permutation of the
+    integers between 0 and n_samples-1. It returns the same random numbers
+    than randperm matlab function whenever the random_state is the same
+    as the matlab's random seed.
+
+    This function is useful for comparing against matlab scripts
+    which use the randperm function.
+
+    Note: the randperm(n_samples) matlab function generates a random
+    sequence between 1 and n_samples, whereas
+    random_permutation(n_samples, random_state) function generates
+    a random sequence between 0 and n_samples-1, that is:
+    randperm(n_samples) = random_permutation(n_samples, random_state) - 1
+
+    Parameters
+    ----------
+    n_samples : int
+        End point of the sequence to be permuted (excluded, i.e., the end point
+        is equal to n_samples-1)
+    random_state : int | None
+        Random seed for initializing the pseudo-random number generator.
+
+    Returns
+    -------
+    randperm : ndarray, int
+        Randomly permuted sequence between 0 and n-1.
+    """
+    rng = check_random_state(random_state)
+    idx = rng.rand(n_samples)
+
+    randperm = np.argsort(idx)
+
+    return randperm
+
+
+def compute_corr(x, y):
+    """Compute pearson correlations between a vector and a matrix"""
+    if len(x) == 0 or len(y) == 0:
+        raise ValueError('x or y has zero length')
+    fast_dot = _get_fast_dot()
+    X = np.array(x, float)
+    Y = np.array(y, float)
+    X -= X.mean(0)
+    Y -= Y.mean(0)
+    x_sd = X.std(0, ddof=1)
+    # if covariance matrix is fully expanded, Y needs a
+    # transpose / broadcasting else Y is correct
+    y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
+    return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)

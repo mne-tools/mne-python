@@ -79,6 +79,10 @@ def test_sensitivity_maps():
     # test corner case for EEG
     stc = sensitivity_map(fwd, projs=[make_eeg_average_ref_proj(fwd['info'])],
                           ch_type='eeg', exclude='bads')
+    # test volume source space
+    fname = op.join(sample_path, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
+    fwd = mne.read_forward_solution(fname)
+    sensitivity_map(fwd)
 
 
 def test_compute_proj_epochs():
@@ -138,7 +142,9 @@ def test_compute_proj_epochs():
     # XXX : test something
 
     # test parallelization
-    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2)
+    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2,
+                                desc_prefix='foobar')
+    assert_true(all('foobar' in x['desc'] for x in projs))
     projs = activate_proj(projs)
     proj_par, _, _ = make_projector(projs, epochs.ch_names, bads=[])
     assert_allclose(proj, proj_par, rtol=1e-8, atol=1e-16)
@@ -161,7 +167,7 @@ def test_compute_proj_raw():
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
     raw = Raw(raw_fname).crop(0, raw_time, False)
-    raw.preload_data()
+    raw.load_data()
     for ii in (0.25, 0.5, 1, 2):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')

@@ -9,7 +9,6 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 
 from mne.datasets import testing
-from mne.io import Raw
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
                  convert_forward_solution)
@@ -165,7 +164,8 @@ def test_apply_forward():
     # Evoked
     with warnings.catch_warnings(record=True) as w:
         evoked = read_evokeds(fname_evoked, condition=0)
-        evoked = apply_forward(fwd, stc, evoked, start=start, stop=stop)
+        evoked.pick_types(meg=True)
+        evoked = apply_forward(fwd, stc, evoked.info, start=start, stop=stop)
         assert_equal(len(w), 2)
         data = evoked.data
         times = evoked.times
@@ -177,8 +177,8 @@ def test_apply_forward():
         assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
 
         # Raw
-        raw = Raw(fname_raw)
-        raw_proj = apply_forward_raw(fwd, stc, raw, start=start, stop=stop)
+        raw_proj = apply_forward_raw(fwd, stc, evoked.info, start=start,
+                                     stop=stop)
         data, times = raw_proj[:, :]
 
         # do some tests

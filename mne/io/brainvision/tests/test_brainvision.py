@@ -10,14 +10,13 @@ import inspect
 
 from nose.tools import assert_equal, assert_raises, assert_true
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_allclose)
 
-import mne
-from mne.utils import _TempDir
-from mne import pick_types, concatenate_raws
+from mne.utils import _TempDir, run_tests_if_main
+from mne import pick_types, concatenate_raws, find_events
 from mne.io.constants import FIFF
-from mne.io import Raw
-from mne.io import read_raw_brainvision
+from mne.io import Raw, read_raw_brainvision
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -44,10 +43,10 @@ def test_brainvision_data():
     """Test reading raw Brain Vision files
     """
     assert_raises(IOError, read_raw_brainvision, vmrk_path)
-    assert_raises(TypeError, read_raw_brainvision, vhdr_path, montage,
-                  preload=True, scale="0")
+    assert_raises(ValueError, read_raw_brainvision, vhdr_path, montage,
+                  preload=True, scale="foo")
     raw_py = read_raw_brainvision(vhdr_path, montage, eog=eog, preload=True)
-    raw_py.preload_data()  # currently does nothing
+    raw_py.load_data()  # currently does nothing
     assert_true('RawBrainVision' in repr(raw_py))
 
     assert_equal(raw_py.info['highpass'], 0.)
@@ -88,9 +87,43 @@ def test_brainvision_data():
 def test_events():
     """Test reading and modifying events"""
     tempdir = _TempDir()
-    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True)
 
     # check that events are read and stim channel is synthesized correcly
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True)
+    events = raw.get_brainvision_events()
+    assert_array_equal(events, [[487, 1, 253],
+                                [497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6000, 1, 255],
+                                [6620, 1, 254],
+                                [6630, 1, 255]])
+
+    # check that events are read and stim channel is synthesized correcly and
+    # response triggers are shifted like they're supposed to be.
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
+                               response_trig_shift=1000)
+    events = raw.get_brainvision_events()
+    assert_array_equal(events, [[487, 1, 253],
+                                [497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6000, 1, 1255],
+                                [6620, 1, 254],
+                                [6630, 1, 255]])
+
+    # check that events are read and stim channel is synthesized correcly and
+    # response triggers are ignored.
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
+                               response_trig_shift=None)
     events = raw.get_brainvision_events()
     assert_array_equal(events, [[487, 1, 253],
                                 [497, 1, 255],
@@ -103,14 +136,19 @@ def test_events():
                                 [6620, 1, 254],
                                 [6630, 1, 255]])
 
-    mne_events = mne.find_events(raw, stim_channel='STI 014')
+    assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+                  preload=True, response_trig_shift=0.1)
+    assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
+                  preload=True, response_trig_shift=np.nan)
+
+    mne_events = find_events(raw, stim_channel='STI 014')
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 
     # modify events and check that stim channel is updated
     index = events[:, 2] == 255
     events = events[index]
     raw.set_brainvision_events(events)
-    mne_events = mne.find_events(raw, stim_channel='STI 014')
+    mne_events = find_events(raw, stim_channel='STI 014')
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 
     # remove events
@@ -118,9 +156,11 @@ def test_events():
     ch_name = raw.info['chs'][-2]['ch_name']
     events = np.empty((0, 3))
     raw.set_brainvision_events(events)
-    assert_equal(raw.info['nchan'], nchan - 1)
-    assert_equal(len(raw._data), nchan - 1)
-    assert_equal(raw.info['chs'][-1]['ch_name'], ch_name)
+    assert_equal(raw.info['nchan'], nchan)
+    assert_equal(len(raw._data), nchan)
+    assert_equal(raw.info['chs'][-2]['ch_name'], ch_name)
+    assert_equal(len(find_events(raw, 'STI 014')), 0)
+    assert_allclose(raw[-1][0], 0.)
     fname = op.join(tempdir, 'evt_raw.fif')
     raw.save(fname)
 
@@ -163,3 +203,5 @@ def test_read_segment():
     raw3.save(raw3_file, buffer_size_sec=2)
     raw3 = Raw(raw3_file, preload=True)
     assert_array_equal(raw3._data, raw1._data)
+
+run_tests_if_main()

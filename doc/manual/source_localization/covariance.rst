@@ -1,0 +1,5 @@
+.. _covariance:
+
+==========
+Covariance
+==========

@@ -205,7 +205,7 @@ def test_lcmv_raw():
     picks = mne.pick_types(raw.info, meg=True, exclude='bads',
                            selection=left_temporal_channels)
 
-    data_cov = mne.compute_raw_data_covariance(raw, tmin=tmin, tmax=tmax)
+    data_cov = mne.compute_raw_covariance(raw, tmin=tmin, tmax=tmax)
 
     stc = lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=label,
                    start=start, stop=stop, picks=picks)
@@ -361,8 +361,9 @@ def test_tf_lcmv():
     # the underlying raw object
     epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                                   baseline=(None, 0), preload=True)
-    assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward, noise_covs,
-                  tmin, tmax, tstep, win_lengths, freq_bins)
+    with warnings.catch_warnings(record=True):  # not enough samples
+        assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward,
+                      noise_covs, tmin, tmax, tstep, win_lengths, freq_bins)
 
     with warnings.catch_warnings(record=True):  # not enough samples
         # Pass only one epoch to test if subtracting evoked

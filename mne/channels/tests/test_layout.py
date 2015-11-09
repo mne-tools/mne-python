@@ -20,8 +20,8 @@ from mne.channels.layout import (_box_size, _auto_topomap_coords,
                                  generate_2d_layout)
 from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
-from mne.io import Raw
-from mne.io import read_raw_kit
+from mne.io import Raw, read_raw_kit
+from mne.io.meas_info import _empty_info
 from mne.io.constants import FIFF
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.utils import _TempDir
@@ -43,14 +43,13 @@ fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 fname_kit_157 = op.join(op.dirname(__file__), '..', '..',  'io', 'kit',
                         'tests', 'data', 'test.sqd')
 
-test_info = {
+test_info = _empty_info()
+test_info.update({
     'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
     'chs': [{'cal': 1,
              'ch_name': 'ICA 001',
-             'coil_trans': None,
              'coil_type': 0,
              'coord_Frame': 0,
-             'eeg_loc': None,
              'kind': 502,
              'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
                              dtype=np.float32),
@@ -61,10 +60,8 @@ test_info = {
              'unit_mul': 0},
             {'cal': 1,
              'ch_name': 'ICA 002',
-             'coil_trans': None,
              'coil_type': 0,
              'coord_Frame': 0,
-             'eeg_loc': None,
              'kind': 502,
              'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
                              dtype=np.float32),
@@ -75,10 +72,8 @@ test_info = {
              'unit_mul': 0},
             {'cal': 0.002142000012099743,
              'ch_name': 'EOG 061',
-             'coil_trans': None,
              'coil_type': 1,
              'coord_frame': 0,
-             'eeg_loc': None,
              'kind': 202,
              'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
                              dtype=np.float32),
@@ -87,7 +82,7 @@ test_info = {
              'scanno': 376,
              'unit': 107,
              'unit_mul': 0}],
-    'nchan': 3}
+    'nchan': 3})
 
 
 def test_io_layout_lout():
@@ -139,10 +134,10 @@ def test_auto_topomap_coords():
     # Remove electrode position information, use digitization points from now
     # on.
     for ch in info['chs']:
-        ch['loc'] = np.zeros(12)
+        ch['loc'].fill(0)
 
     l1 = _auto_topomap_coords(info, picks)
-    assert_allclose(l1, l0)
+    assert_allclose(l1, l0, atol=1e-3)
 
     # Test plotting mag topomap without channel locations: it should fail
     mag_picks = pick_types(info, meg='mag')

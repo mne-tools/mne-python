@@ -26,7 +26,7 @@ from numpy.fft import irfft
 from distutils.version import LooseVersion
 from functools import partial
 from .externals import six
-from .externals.six.moves import copyreg
+from .externals.six.moves import copyreg, xrange
 from gzip import GzipFile
 
 
@@ -34,8 +34,6 @@ from gzip import GzipFile
 # Misc
 
 class gzip_open(GzipFile):  # python2.6 doesn't have context managing
-    def __init__(self, *args, **kwargs):
-        return GzipFile.__init__(self, *args, **kwargs)
 
     def __enter__(self):
         if hasattr(GzipFile, '__enter__'):
@@ -568,6 +566,56 @@ def get_filtfilt():
     return _filtfilt
 
 
+def _get_argrelmax():
+    try:
+        from scipy.signal import argrelmax
+    except ImportError:
+        argrelmax = _argrelmax
+    return argrelmax
+
+
+def _argrelmax(data, axis=0, order=1, mode='clip'):
+    """Calculate the relative maxima of `data`.
+
+    Parameters
+    ----------
+    data : ndarray
+        Array in which to find the relative maxima.
+    axis : int, optional
+        Axis over which to select from `data`.  Default is 0.
+    order : int, optional
+        How many points on each side to use for the comparison
+        to consider ``comparator(n, n+x)`` to be True.
+    mode : str, optional
+        How the edges of the vector are treated.
+        Available options are 'wrap' (wrap around) or 'clip' (treat overflow
+        as the same as the last (or first) element).
+        Default 'clip'.  See `numpy.take`.
+
+    Returns
+    -------
+    extrema : tuple of ndarrays
+        Indices of the maxima in arrays of integers.  ``extrema[k]`` is
+        the array of indices of axis `k` of `data`.  Note that the
+        return value is a tuple even when `data` is one-dimensional.
+    """
+    comparator = np.greater
+    if((int(order) != order) or (order < 1)):
+        raise ValueError('Order must be an int >= 1')
+    datalen = data.shape[axis]
+    locs = np.arange(0, datalen)
+    results = np.ones(data.shape, dtype=bool)
+    main = data.take(locs, axis=axis, mode=mode)
+    for shift in xrange(1, order + 1):
+        plus = data.take(locs + shift, axis=axis, mode=mode)
+        minus = data.take(locs - shift, axis=axis, mode=mode)
+        results &= comparator(main, plus)
+        results &= comparator(main, minus)
+        if(~results.any()):
+            return results
+    return np.where(results)
+
+
 ###############################################################################
 # Back porting matrix_rank for numpy < 1.7
 
@@ -813,7 +861,7 @@ def _isclose(a, b, rtol=1.e-5, atol=1.e-8, equal_nan=False):
 
     xfin = np.isfinite(x)
     yfin = np.isfinite(y)
-    if all(xfin) and all(yfin):
+    if np.all(xfin) and np.all(yfin):
         return within_tol(x, y, atol, rtol)
     else:
         finite = xfin & yfin

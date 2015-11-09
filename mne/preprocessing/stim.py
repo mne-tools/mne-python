@@ -100,7 +100,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         else:
             events_sel = (events[:, 2] == event_id)
         event_start = events[events_sel, 0]
-        data, _ = inst[:, :]
+        data = inst._data
         for event_idx in event_start:
             first_samp = int(event_idx) - inst.first_samp + s_start
             last_samp = int(event_idx) - inst.first_samp + s_end

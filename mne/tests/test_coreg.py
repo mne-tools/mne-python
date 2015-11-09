@@ -12,13 +12,13 @@ from mne.coreg import (fit_matched_points, fit_point_cloud,
                        create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space)
 from mne.utils import (requires_mne, requires_freesurfer, _TempDir,
-                       run_tests_if_main, requires_scipy_version)
+                       run_tests_if_main, requires_version)
 from functools import reduce
 
 
 @requires_mne
 @requires_freesurfer
-@requires_scipy_version('0.11')
+@requires_version('scipy', '0.11')
 def test_scale_mri():
     """Test creating fsaverage and scaling it"""
     # create fsaverage

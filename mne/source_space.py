@@ -17,20 +17,21 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_sparse_rcs, write_string,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
+from .bem import read_bem_surfaces
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
-                      _tessellate_sphere_surf, read_bem_surfaces,
+                      _tessellate_sphere_surf, _get_surf_neighbors,
                       _read_surface_geom, _normalize_vectors,
                       _complete_surface_info, _compute_nearest,
-                      fast_cross_3d, _fast_cross_nd_sum)
-from .source_estimate import mesh_dist
+                      fast_cross_3d, _fast_cross_nd_sum, mesh_dist,
+                      _triangle_neighbors)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
-                    check_scipy_version)
+                    check_version, _get_call_line)
 from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_mri_head_t,
-                         _coord_frame_name)
+                         _coord_frame_name, Transform)
 from .externals.six import string_types
 
 
@@ -306,8 +307,7 @@ class SourceSpaces(list):
 
                 # combine transforms, from HEAD to MRI_VOXEL
                 affine = combine_transforms(head_mri_t, affine,
-                                            FIFF.FIFFV_COORD_HEAD,
-                                            FIFF.FIFFV_MNE_COORD_MRI_VOXEL)
+                                            'head', 'mri_voxel')
 
             # loop through the surface source spaces
             if include_surfaces:
@@ -486,10 +486,8 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
 
         src.append(this)
 
-    src = SourceSpaces(src)
     logger.info('    %d source spaces read' % len(spaces))
-
-    return src
+    return SourceSpaces(src)
 
 
 @verbose
@@ -510,6 +508,10 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     -------
     src : SourceSpaces
         The source spaces.
+
+    See Also
+    --------
+    write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
@@ -896,6 +898,10 @@ def write_source_spaces(fname, src, verbose=None):
         The source spaces (as returned by read_source_spaces).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    read_source_spaces
     """
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
 
@@ -1169,22 +1175,16 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 
     # extract the MRI_VOXEL to MRI transform
     t_orig = nt_orig[1]
-    vox_mri_t = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
-                 'to': FIFF.FIFFV_COORD_MRI,
-                 'trans': t_orig}
+    vox_mri_t = Transform('mri_voxel', 'mri', t_orig)
 
     # invert MRI_VOXEL to MRI to get the MRI to MRI_VOXEL transform
     mri_vox_t = invert_transform(vox_mri_t)
 
     # construct an MRI to RAS transform
-    mri_ras_t = combine_transforms(mri_vox_t, vox_ras_t,
-                                   FIFF.FIFFV_COORD_MRI,
-                                   FIFF.FIFFV_MNE_COORD_RAS)
+    mri_ras_t = combine_transforms(mri_vox_t, vox_ras_t, 'mri', 'ras')
 
     # construct the MRI to MNI transform
-    mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t,
-                                   FIFF.FIFFV_COORD_MRI,
-                                   FIFF.FIFFV_MNE_COORD_MNI_TAL)
+    mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
     return mri_mni_t
 
 
@@ -1564,8 +1564,7 @@ def _make_voxel_ras_trans(move, ras, voxel_size):
     assert rot.shape[0] == 3
     assert rot.shape[1] == 3
     trans = np.c_[np.r_[rot, np.zeros((1, 3))], np.r_[move, 1.0]]
-    t = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL, 'to': FIFF.FIFFV_COORD_MRI,
-         'trans': trans}
+    t = Transform('mri_voxel', 'mri', trans)
     return t
 
 
@@ -1869,12 +1868,10 @@ def _add_interpolator(s, mri_name, add_interpolator):
                   mri_depth=mri_depth))
     trans = header['vox2ras_tkr'].copy()
     trans[:3, :] /= 1000.0
-    s['vox_mri_t'] = {'trans': trans, 'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
-                      'to': FIFF.FIFFV_COORD_MRI}  # ras_tkr
+    s['vox_mri_t'] = Transform('mri_voxel', 'mri', trans)  # ras_tkr
     trans = linalg.inv(np.dot(header['vox2ras_tkr'], header['ras2vox']))
     trans[:3, 3] /= 1000.0
-    s['mri_ras_t'] = {'trans': trans, 'from': FIFF.FIFFV_COORD_MRI,
-                      'to': FIFF.FIFFV_MNE_COORD_RAS}  # ras
+    s['mri_ras_t'] = Transform('mri', 'ras', trans)  # ras
     s['mri_volume_name'] = mri_name
     nvox = mri_width * mri_height * mri_depth
     if not add_interpolator:
@@ -1891,8 +1888,7 @@ def _add_interpolator(s, mri_name, add_interpolator):
     #
     combo_trans = combine_transforms(s['vox_mri_t'],
                                      invert_transform(s['src_mri_t']),
-                                     FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
-                                     FIFF.FIFFV_MNE_COORD_MRI_VOXEL)
+                                     'mri_voxel', 'mri_voxel')
     combo_trans['trans'] = combo_trans['trans'].astype(np.float32)
 
     logger.info('Setting up interpolation...')
@@ -2110,6 +2106,33 @@ def _get_solids(tri_rrs, fros):
 
 
 @verbose
+def _ensure_src(src, verbose=None):
+    """Helper to ensure we have a source space"""
+    if isinstance(src, string_types):
+        if not op.isfile(src):
+            raise IOError('Source space file "%s" not found' % src)
+        logger.info('Reading %s...' % src)
+        src = read_source_spaces(src, verbose=False)
+    if not isinstance(src, SourceSpaces):
+        raise ValueError('src must be a string or instance of SourceSpaces')
+    return src
+
+
+def _ensure_src_subject(src, subject):
+    src_subject = src[0].get('subject_his_id', None)
+    if subject is None:
+        subject = src_subject
+        if subject is None:
+            raise ValueError('source space is too old, subject must be '
+                             'provided')
+    elif src_subject is not None and subject != src_subject:
+        raise ValueError('Mismatch between provided subject "%s" and subject '
+                         'name "%s" in the source space'
+                         % (subject, src_subject))
+    return subject
+
+
+@verbose
 def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """Compute inter-source distances along the cortical surface
 
@@ -2153,11 +2176,10 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     stored along with the source space data for future use.
     """
     n_jobs = check_n_jobs(n_jobs)
-    if not isinstance(src, SourceSpaces):
-        raise ValueError('"src" must be an instance of SourceSpaces')
+    src = _ensure_src(src)
     if not np.isscalar(dist_limit):
         raise ValueError('limit must be a scalar, got %s' % repr(dist_limit))
-    if not check_scipy_version('0.11'):
+    if not check_version('scipy', '0.11'):
         raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
                            'if dist_limit < np.inf')
 
@@ -2195,13 +2217,13 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         min_dists.append(min_dist)
         min_idxs.append(min_idx)
         # now actually deal with distances, convert to sparse representation
-        d = np.concatenate([dd[0] for dd in d], axis=0)
-        i, j = np.meshgrid(s['vertno'], s['vertno'])
-        d = d.ravel()
-        i = i.ravel()
-        j = j.ravel()
+        d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
         idx = d > 0
-        d = sparse.csr_matrix((d[idx], (i[idx], j[idx])),
+        d = d[idx]
+        i, j = np.meshgrid(s['vertno'], s['vertno'])
+        i = i.ravel()[idx]
+        j = j.ravel()[idx]
+        d = sparse.csr_matrix((d, (i, j)),
                               shape=(s['np'], s['np']), dtype=np.float32)
         s['dist'] = d
         s['dist_limit'] = np.array([dist_limit], np.float32)
@@ -2224,10 +2246,11 @@ def _do_src_distances(con, vertno, run_inds, limit):
         func = partial(sparse.csgraph.dijkstra, limit=limit)
     else:
         func = sparse.csgraph.dijkstra
-    chunk_size = 100  # save memory by chunking (only a little slower)
+    chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
     n_chunks = len(lims) - 1
-    d = np.empty((len(run_inds), len(vertno)))
+    # eventually we want this in float32, so save memory by only storing 32-bit
+    d = np.empty((len(run_inds), len(vertno)), np.float32)
     min_dist = np.empty((n_chunks, con.shape[0]))
     min_idx = np.empty((n_chunks, con.shape[0]), np.int32)
     range_idx = np.arange(con.shape[0])
@@ -2276,7 +2299,198 @@ def get_volume_labels_from_aseg(mgz_fname):
     return label_names
 
 
-def _compare_source_spaces(src0, src1, mode='exact'):
+def _get_hemi(s):
+    """Helper to get a hemisphere from a given source space"""
+    if s['type'] != 'surf':
+        raise RuntimeError('Only surface source spaces supported')
+    if s['id'] == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
+        return 'lh', 0, s['id']
+    elif s['id'] == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
+        return 'rh', 1, s['id']
+    else:
+        raise ValueError('unknown surface ID %s' % s['id'])
+
+
+def _get_vertex_map_nn(fro_src, subject_from, subject_to, hemi, subjects_dir,
+                       to_neighbor_tri=None):
+    """Helper to get a nearest-neigbor vertex match for a given hemi src
+
+    The to_neighbor_tri can optionally be passed in to avoid recomputation
+    if it's already available.
+    """
+    # adapted from mne_make_source_space.c, knowing accurate=False (i.e.
+    # nearest-neighbor mode should be used)
+    logger.info('Mapping %s %s -> %s (nearest neighbor)...'
+                % (hemi, subject_from, subject_to))
+    regs = [op.join(subjects_dir, s, 'surf', '%s.sphere.reg' % hemi)
+            for s in (subject_from, subject_to)]
+    reg_fro, reg_to = [_read_surface_geom(r, patch_stats=False) for r in regs]
+    if to_neighbor_tri is None:
+        to_neighbor_tri = _triangle_neighbors(reg_to['tris'], reg_to['np'])
+    morph_inuse = np.zeros(len(reg_to['rr']), bool)
+    best = np.zeros(fro_src['np'], int)
+    ones = _compute_nearest(reg_to['rr'], reg_fro['rr'][fro_src['vertno']])
+    for v, one in zip(fro_src['vertno'], ones):
+        # if it were actually a proper morph map, we would do this, but since
+        # we know it's nearest neighbor list, we don't need to:
+        # this_mm = mm[v]
+        # one = this_mm.indices[this_mm.data.argmax()]
+        if morph_inuse[one]:
+            # Try the nearest neighbors
+            neigh = _get_surf_neighbors(reg_to, one)  # on demand calc
+            was = one
+            one = neigh[np.where(~morph_inuse[neigh])[0]]
+            if len(one) == 0:
+                raise RuntimeError('vertex %d would be used multiple times.'
+                                   % one)
+            one = one[0]
+            logger.info('Source space vertex moved from %d to %d because of '
+                        'double occupation.' % (was, one))
+        best[v] = one
+        morph_inuse[one] = True
+    return best
+
+
+@verbose
+def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
+                        subjects_dir=None, verbose=None):
+    """Morph an existing source space to a different subject
+
+    .. warning:: This can be used in place of morphing source estimates for
+                 multiple subjects, but there may be consequences in terms
+                 of dipole topology.
+
+    Parameters
+    ----------
+    src_from : instance of SourceSpaces
+        Surface source spaces to morph.
+    subject_to : str
+        The destination subject.
+    surf : str
+        The brain surface to use for the new source space.
+    subject_from : str | None
+        The "from" subject. For most source spaces this shouldn't need
+        to be provided, since it is stored in the source space itself.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    src : instance of SourceSpaces
+        The morphed source spaces.
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
+    """
+    # adapted from mne_make_source_space.c
+    src_from = _ensure_src(src_from)
+    subject_from = _ensure_src_subject(src_from, subject_from)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    src_out = list()
+    for fro in src_from:
+        hemi, idx, id_ = _get_hemi(fro)
+        to = op.join(subjects_dir, subject_to, 'surf', '%s.%s' % (hemi, surf,))
+        logger.info('Reading destination surface %s' % (to,))
+        to = _read_surface_geom(to, patch_stats=False, verbose=False)
+        _complete_surface_info(to)
+        # Now we morph the vertices to the destination
+        # The C code does something like this, but with a nearest-neighbor
+        # mapping instead of the weighted one::
+        #
+        #     >>> mm = read_morph_map(subject_from, subject_to, subjects_dir)
+        #
+        # Here we use a direct NN calculation, since picking the max from the
+        # existing morph map (which naively one might expect to be equivalent)
+        # differs for ~3% of vertices.
+        best = _get_vertex_map_nn(fro, subject_from, subject_to, hemi,
+                                  subjects_dir, to['neighbor_tri'])
+        for key in ('neighbor_tri', 'tri_area', 'tri_cent', 'tri_nn',
+                    'use_tris'):
+            del to[key]
+        to['vertno'] = np.sort(best[fro['vertno']])
+        to['inuse'] = np.zeros(len(to['rr']), int)
+        to['inuse'][to['vertno']] = True
+        to['use_tris'] = best[fro['use_tris']]
+        to.update(nuse=len(to['vertno']), nuse_tri=len(to['use_tris']),
+                  nearest=None, nearest_dist=None, patch_inds=None, pinfo=None,
+                  dist=None, id=id_, dist_limit=None, type='surf',
+                  coord_frame=FIFF.FIFFV_COORD_MRI, subject_his_id=subject_to,
+                  rr=to['rr'] / 1000.)
+        src_out.append(to)
+        logger.info('[done]\n')
+    info = dict(working_dir=os.getcwd(),
+                command_line=_get_call_line(in_verbose=True))
+    return SourceSpaces(src_out, info=info)
+
+
+@verbose
+def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
+                              subjects_dir=None, verbose=None):
+    """Get the reordering indices for a morphed source space
+
+    Parameters
+    ----------
+    vertices : list
+        The vertices for the left and right hemispheres.
+    src_from : instance of SourceSpaces
+        The original source space.
+    subject_from : str
+        The source subject.
+    subject_to : str
+        The destination subject.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    data_idx : ndarray, shape (n_vertices,)
+        The array used to reshape the data.
+    from_vertices : list
+        The right and left hemisphere vertex numbers for the "from" subject.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    from_vertices = list()
+    data_idxs = list()
+    offset = 0
+    for ii, hemi in enumerate(('lh', 'rh')):
+        # Get the mapping from the original source space to the destination
+        # subject's surface vertex numbers
+        best = _get_vertex_map_nn(src_from[ii], subject_from, subject_to,
+                                  hemi, subjects_dir)
+        full_mapping = best[src_from[ii]['vertno']]
+        # Tragically, we might not have all of our vertno left (e.g. because
+        # some are omitted during fwd calc), so we must do some indexing magic:
+
+        # From all vertices, a subset could be chosen by fwd calc:
+        used_vertices = in1d(full_mapping, vertices[ii])
+        from_vertices.append(src_from[ii]['vertno'][used_vertices])
+        remaining_mapping = full_mapping[used_vertices]
+        if not np.array_equal(np.sort(remaining_mapping), vertices[ii]) or \
+                not in1d(vertices[ii], full_mapping).all():
+            raise RuntimeError('Could not map vertices, perhaps the wrong '
+                               'subject "%s" was provided?' % subject_from)
+
+        # And our data have been implicitly remapped by the forced ascending
+        # vertno order in source spaces
+        implicit_mapping = np.argsort(remaining_mapping)  # happens to data
+        data_idx = np.argsort(implicit_mapping)  # to reverse the mapping
+        data_idx += offset  # hemisphere offset
+        data_idxs.append(data_idx)
+        offset += len(implicit_mapping)
+    data_idx = np.concatenate(data_idxs)
+    # this one is really just a sanity check for us, should never be violated
+    # by users
+    assert np.array_equal(np.sort(data_idx),
+                          np.arange(sum(len(v) for v in vertices)))
+    return data_idx, from_vertices
+
+
+def _compare_source_spaces(src0, src1, mode='exact', dist_tol=1.5e-3):
     """Compare two source spaces
 
     Note: this function is also used by forward/tests/test_make_forward.py
@@ -2288,6 +2502,9 @@ def _compare_source_spaces(src0, src1, mode='exact'):
         raise RuntimeError('unknown mode %s' % mode)
 
     for s0, s1 in zip(src0, src1):
+        # first check the keys
+        a, b = set(s0.keys()), set(s1.keys())
+        assert_equal(a, b, str(a ^ b))
         for name in ['nuse', 'ntri', 'np', 'type', 'id']:
             assert_equal(s0[name], s1[name], name)
         for name in ['subject_his_id']:
@@ -2306,7 +2523,8 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 if mode == 'exact':
                     assert_array_equal(s0[name], s1[name], name)
                 else:  # 'approx' in mode
-                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4,
+                    atol = 1e-3 if name == 'nn' else 1e-4
+                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=atol,
                                     err_msg=name)
         for name in ['seg_name']:
             if name in s0 or name in s1:
@@ -2334,18 +2552,20 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                         assert_true(all(p1 == p2))
         else:  # 'approx' in mode:
             # deal with vertno, inuse, and use_tris carefully
-            assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0])
-            assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0])
+            assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0],
+                               'left hemisphere vertices')
+            assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0],
+                               'right hemisphere vertices')
             assert_equal(len(s0['vertno']), len(s1['vertno']))
             agreement = np.mean(s0['inuse'] == s1['inuse'])
-            assert_true(agreement > 0.99)
+            assert_true(agreement >= 0.99, "%s < 0.99" % agreement)
             if agreement < 1.0:
                 # make sure mismatched vertno are within 1.5mm
                 v0 = np.setdiff1d(s0['vertno'], s1['vertno'])
                 v1 = np.setdiff1d(s1['vertno'], s0['vertno'])
                 dists = cdist(s0['rr'][v0], s1['rr'][v1])
                 assert_allclose(np.min(dists, axis=1), np.zeros(len(v0)),
-                                atol=1.5e-3)
+                                atol=dist_tol, err_msg='mismatched vertno')
             if s0['use_tris'] is not None:  # for "spacing"
                 assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
             else:
@@ -2358,6 +2578,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
             assert_equal(src0.info[name], src1.info[name])
         else:  # 'approx' in mode:
             if name in src0.info:
-                assert_true(name in src1.info, name)
+                assert_true(name in src1.info, '"%s" missing' % name)
             else:
-                assert_true(name not in src1.info, name)
+                assert_true(name not in src1.info,
+                            '"%s" should not exist' % name)

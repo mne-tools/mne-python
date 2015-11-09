@@ -138,6 +138,7 @@ def _interpolate_bads_eeg(inst):
     goods_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
+    inst.info._check_consistency()
     bads_idx[picks] = [inst.ch_names[ch] in inst.info['bads'] for ch in picks]
 
     if len(picks) == 0 or len(bads_idx) == 0:

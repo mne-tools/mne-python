@@ -19,12 +19,11 @@ from ..pick import pick_types
 from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
-                           get_ras_to_neuromag_trans)
+                           get_ras_to_neuromag_trans, Transform)
 from ..base import _BaseRaw
-from ...epochs import EpochsArray
+from ...epochs import _BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
-from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
 from ...externals.six import string_types
@@ -71,6 +70,13 @@ class RawKIT(_BaseRaw):
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Notes
+    -----
+    ``elp`` and ``hsp`` are usually the exported text files (*.txt) from the
+    Polhemus FastScan system. hsp refers to the headshape surface points. elp
+    refers to the points in head-space that corresponds to the HPI points.
+    Currently, '*.elp' and '*.hsp' files are NOT supported.
 
     See Also
     --------
@@ -206,8 +212,6 @@ class RawKIT(_BaseRaw):
         # RawFIF and RawEDF think of "stop" differently, easiest to increment
         # here and refactor later
         stop += 1
-        sel = np.arange(self.info['nchan'])[idx]
-
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             data_offset = KIT.RAW_OFFSET
@@ -247,10 +251,10 @@ class RawKIT(_BaseRaw):
             stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
             data_ = np.vstack((data_, stim_ch))
         data[:, offset:offset + (stop - start)] = \
-            np.dot(mult, data_) if mult is not None else data_[sel]
+            np.dot(mult, data_) if mult is not None else data_[idx]
 
 
-class EpochsKIT(EpochsArray):
+class EpochsKIT(_BaseEpochs):
     """Epochs Array object from KIT SQD file
 
     Parameters
@@ -317,6 +321,13 @@ class EpochsKIT(EpochsArray):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
+    Notes
+    -----
+    ``elp`` and ``hsp`` are usually the exported text files (*.txt) from the
+    Polhemus FastScan system. hsp refers to the headshape surface points. elp
+    refers to the points in head-space that corresponds to the HPI points.
+    Currently, '*.elp' and '*.hsp' files are NOT supported.
+
     See Also
     --------
     mne.Epochs : Documentation of attribute and methods.
@@ -367,21 +378,20 @@ class EpochsKIT(EpochsArray):
                                  '(event id %i)' % (key, val))
 
         self._filename = input_fname
-        data = self._read_data()
+        data = self._read_kit_data()
         assert data.shape == (self._raw_extras[0]['n_epochs'],
                               self.info['nchan'],
                               self._raw_extras[0]['frame_length'])
-
-        super(EpochsKIT, self).__init__(data=data, info=self.info,
-                                        events=events, event_id=event_id,
-                                        baseline=baseline, tmin=tmin,
+        tmax = ((data.shape[2] - 1) / self.info['sfreq']) + tmin
+        super(EpochsKIT, self).__init__(self.info, data, events, event_id,
+                                        tmin, tmax, baseline,
                                         reject=reject, flat=flat,
                                         reject_tmin=reject_tmin,
                                         reject_tmax=reject_tmax,
                                         verbose=verbose)
         logger.info('Ready.')
 
-    def _read_data(self):
+    def _read_kit_data(self):
         """Read epochs data
 
         Returns
@@ -498,8 +508,7 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
     elp = elp[3:]
 
     dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp)
-    dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE, 'to': FIFF.FIFFV_COORD_HEAD,
-                  'trans': trans}
+    dev_head_t = Transform('meg', 'head', trans)
 
     return dig_points, dev_head_t
 
@@ -632,23 +641,9 @@ def get_kit_info(rawfile):
 
         # Create raw.info dict for raw fif object with SQD data
         info = _empty_info()
-        info['events'] = []
-        info['meas_id'] = None
-        info['file_id'] = None
-        info['meas_date'] = int(time.time())
-        info['projs'] = []
-        info['comps'] = []
-        info['lowpass'] = sqd['lowpass']
-        info['highpass'] = sqd['highpass']
-        info['sfreq'] = float(sqd['sfreq'])
-        info['bads'] = []
-        info['acq_pars'], info['acq_stim'] = None, None
-        info['filename'] = rawfile
-        info['ctf_head_t'] = None
-        info['dev_ctf_t'] = []
-        info['nchan'] = sqd['nchan']
-        info['dig'] = None
-        info['dev_head_t'] = None
+        info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
+                    highpass=sqd['highpass'], sfreq=float(sqd['sfreq']),
+                    filename=rawfile, nchan=sqd['nchan'])
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
@@ -679,7 +674,6 @@ def get_kit_info(rawfile):
             else:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_REF_MAG
                 chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
-            chan_info['eeg_loc'] = None
 
             # create three orthogonal vector
             # ch_angles[0]: theta, ch_angles[1]: phi
@@ -708,7 +702,6 @@ def get_kit_info(rawfile):
             vecs = np.vstack((vec_x, vec_y, vec_z))
             vecs = apply_trans(als_ras_trans, vecs)
             chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
-            chan_info['coil_trans'] = _loc_to_trans(chan_info['loc'])
             info['chs'].append(chan_info)
 
         # label trigger and misc channels

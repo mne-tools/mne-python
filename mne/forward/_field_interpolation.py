@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
@@ -8,7 +10,7 @@ from ..surface import get_head_surf, get_meg_helmet_surf
 
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import transform_surface_to, read_trans, _find_trans
-from ._make_forward import _create_coils
+from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _get_legen_lut_fast, _get_legen_lut_accurate,
                          _do_cross_dots)
@@ -130,10 +132,11 @@ def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
 
     # no need to apply trans because both from and to coils are in device
     # coordinates
-    coils_from = _create_coils(info_from['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
-                               info_from['dev_head_t'], 'meg')
-    coils_to = _create_coils(info_to['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
-                             info_to['dev_head_t'], 'meg')
+    templates = _read_coil_defs()
+    coils_from = _create_meg_coils(info_from['chs'], 'normal',
+                                   info_from['dev_head_t'], templates)
+    coils_to = _create_meg_coils(info_to['chs'], 'normal',
+                                 info_to['dev_head_t'], templates)
     miss = 1e-4  # Smoothing criterion for MEG
 
     #
@@ -259,12 +262,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         raise ValueError('mode must be "accurate" or "fast", not "%s"' % mode)
 
     # deal with coordinate frames here -- always go to "head" (easiest)
-    if surf['coord_frame'] == FIFF.FIFFV_COORD_MRI:
-        if trans is None or FIFF.FIFFV_COORD_MRI not in [trans['to'],
-                                                         trans['from']]:
-            raise ValueError('trans must be a Head<->MRI transform if the '
-                             'surface is not in head coordinates.')
-        surf = transform_surface_to(deepcopy(surf), 'head', trans)
+    surf = transform_surface_to(deepcopy(surf), 'head', trans)
 
     n_jobs = check_n_jobs(n_jobs)
 
@@ -287,12 +285,11 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     # create coil defs in head coordinates
     if ch_type == 'meg':
         # Put them in head coordinates
-        coils = _create_coils(chs, FIFF.FWD_COIL_ACCURACY_NORMAL,
-                              info['dev_head_t'], 'meg')
+        coils = _create_meg_coils(chs, 'normal', info['dev_head_t'])
         type_str = 'coils'
         miss = 1e-4  # Smoothing criterion for MEG
     else:  # EEG
-        coils = _create_coils(chs, coil_type='eeg')
+        coils = _create_eeg_els(chs)
         type_str = 'electrodes'
         miss = 1e-3  # Smoothing criterion for EEG
 

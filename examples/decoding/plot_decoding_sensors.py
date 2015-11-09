@@ -8,15 +8,16 @@ data in sensor space. Here the classifier is applied to every time
 point.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 import mne
 from mne import io
 from mne.datasets import sample
+from mne.decoding import TimeDecoding
 
 print(__doc__)
 
@@ -48,53 +49,14 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 
 epochs_list = [epochs[k] for k in event_id]
 mne.epochs.equalize_epoch_counts(epochs_list)
+data_picks = mne.pick_types(epochs.info, meg=True, exclude='bads')
 
 ###############################################################################
-# Decoding in sensor space using a linear SVM
-n_times = len(epochs.times)
-# Take only the data channels (here the gradiometers)
-data_picks = mne.pick_types(epochs.info, meg=True, exclude='bads')
-# Make arrays X and y such that :
-# X is 3d with X.shape[0] is the total number of epochs to classify
-# y is filled with integers coding for the class to predict
-# We must have X.shape[0] equal to y.shape[0]
-X = [e.get_data()[:, data_picks, :] for e in epochs_list]
-y = [k * np.ones(len(this_X)) for k, this_X in enumerate(X)]
-X = np.concatenate(X)
-y = np.concatenate(y)
-
-from sklearn.svm import SVC  # noqa
-from sklearn.cross_validation import cross_val_score, ShuffleSplit  # noqa
-
-clf = SVC(C=1, kernel='linear')
-# Define a monte-carlo cross-validation generator (reduce variance):
-cv = ShuffleSplit(len(X), 10, test_size=0.2)
-
-scores = np.empty(n_times)
-std_scores = np.empty(n_times)
-
-for t in range(n_times):
-    Xt = X[:, :, t]
-    # Standardize features
-    Xt -= Xt.mean(axis=0)
-    Xt /= Xt.std(axis=0)
-    # Run cross-validation
-    # Note : for sklearn the Xt matrix should be 2d (n_samples x n_features)
-    scores_t = cross_val_score(clf, Xt, y, cv=cv, n_jobs=1)
-    scores[t] = scores_t.mean()
-    std_scores[t] = scores_t.std()
-
-times = 1e3 * epochs.times
-scores *= 100  # make it percentage
-std_scores *= 100
-plt.plot(times, scores, label="Classif. score")
-plt.axhline(50, color='k', linestyle='--', label="Chance level")
-plt.axvline(0, color='r', label='stim onset')
-plt.legend()
-hyp_limits = (scores - std_scores, scores + std_scores)
-plt.fill_between(times, hyp_limits[0], y2=hyp_limits[1], color='b', alpha=0.5)
-plt.xlabel('Times (ms)')
-plt.ylabel('CV classification score (% correct)')
-plt.ylim([30, 100])
-plt.title('Sensor space decoding')
-plt.show()
+# Setup decoding: default is linear SVC
+td = TimeDecoding(predict_mode='cross-validation', n_jobs=1)
+# Fit
+td.fit(epochs)
+# Compute accuracy
+td.score(epochs)
+# Plot scores across time
+td.plot(title='Sensor space decoding')

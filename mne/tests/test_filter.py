@@ -1,19 +1,73 @@
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
-                           assert_array_equal)
+                           assert_array_equal, assert_allclose)
 from nose.tools import assert_equal, assert_true, assert_raises
 import os.path as op
 import warnings
 from scipy.signal import resample as sp_resample
 
 from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
-                        band_stop_filter, resample, construct_iir_filter,
-                        notch_filter, detrend)
+                        band_stop_filter, resample, _resample_stim_channels,
+                        construct_iir_filter, notch_filter, detrend,
+                        _overlap_add_filter, _smart_pad)
 
 from mne import set_log_file
 from mne.utils import _TempDir, sum_squared, run_tests_if_main, slow_test
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
+
+def test_1d_filter():
+    """Test our private overlap-add filtering function"""
+    rng = np.random.RandomState(0)
+    # make some random signals and filters
+    for n_signal in (1, 2, 5, 10, 20, 40, 100, 200, 400, 1000, 2000):
+        x = rng.randn(n_signal)
+        for n_filter in (2, 5, 10, 20, 40, 100, 200, 400, 1000, 2000):
+            # Don't test n_filter == 1 because scipy can't handle it.
+            if n_filter > n_signal:
+                continue  # only equal or lesser lengths supported
+            for filter_type in ('identity', 'random'):
+                if filter_type == 'random':
+                    h = rng.randn(n_filter)
+                else:  # filter_type == 'identity'
+                    h = np.concatenate([[1.], np.zeros(n_filter - 1)])
+                # ensure we pad the signal the same way for both filters
+                n_pad = max(min(n_filter, n_signal - 1), 0)
+                x_pad = _smart_pad(x, n_pad)
+                for zero_phase in (True, False):
+                    # compute our expected result the slow way
+                    if zero_phase:
+                        x_expected = np.convolve(x_pad, h)[::-1]
+                        x_expected = np.convolve(x_expected, h)[::-1]
+                        x_expected = x_expected[len(h) - 1:-(len(h) - 1)]
+                    else:
+                        x_expected = np.convolve(x_pad, h)
+                        x_expected = x_expected[:-(len(h) - 1)]
+                    # remove padding
+                    if n_pad > 0:
+                        x_expected = x_expected[n_pad:-n_pad]
+                    # make sure we actually set things up reasonably
+                    if filter_type == 'identity':
+                        assert_allclose(x_expected, x)
+                    # compute our version
+                    for n_fft in (None, 32, 128, 129, 1023, 1024, 1025, 2048):
+                        # need to use .copy() b/c signal gets modified inplace
+                        x_copy = x[np.newaxis, :].copy()
+                        if (n_fft is not None and n_fft < 2 * n_filter - 1 and
+                                zero_phase):
+                            assert_raises(ValueError, _overlap_add_filter,
+                                          x_copy, h, n_fft, zero_phase)
+                        elif (n_fft is not None and n_fft < n_filter and not
+                                zero_phase):
+                            assert_raises(ValueError, _overlap_add_filter,
+                                          x_copy, h, n_fft, zero_phase)
+                        else:
+                            # bad len warning
+                            with warnings.catch_warnings(record=True):
+                                x_filtered = _overlap_add_filter(
+                                    x_copy, h, n_fft, zero_phase)[0]
+                            assert_allclose(x_expected, x_filtered)
 
 
 def test_iir_stability():
@@ -101,6 +155,37 @@ def test_resample():
     x_3_rs = resample(x_3, 1, 2, 10, 0)
     assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
+    # make sure we cast to array if necessary
+    assert_array_equal(resample([0, 0], 2, 1), [0., 0., 0., 0.])
+
+
+def test_resample_stim_channel():
+    """Test resampling of stim channels"""
+
+    # Downsampling
+    assert_array_equal(
+        _resample_stim_channels([1, 0, 0, 0, 2, 0, 0, 0], 1, 2),
+        [[1, 0, 2, 0]])
+    assert_array_equal(
+        _resample_stim_channels([1, 0, 0, 0, 2, 0, 0, 0], 1, 1.5),
+        [[1, 0, 0, 2, 0]])
+    assert_array_equal(
+        _resample_stim_channels([1, 0, 0, 1, 2, 0, 0, 1], 1, 2),
+        [[1, 1, 2, 1]])
+
+    # Upsampling
+    assert_array_equal(
+        _resample_stim_channels([1, 2, 3], 2, 1), [[1, 1, 2, 2, 3, 3]])
+    assert_array_equal(
+        _resample_stim_channels([1, 2, 3], 2.5, 1), [[1, 1, 1, 2, 2, 3, 3, 3]])
+
+    # Proper number of samples in stim channel resampling from io/base.py
+    data_chunk = np.zeros((1, 315600))
+    for new_data_len in (52598, 52599, 52600, 52601, 315599, 315600):
+        new_data = _resample_stim_channels(data_chunk, new_data_len,
+                                           data_chunk.shape[1])
+        assert_equal(new_data.shape[1], new_data_len)
+
 
 @slow_test
 def test_filters():
@@ -144,7 +229,11 @@ def test_filters():
     lp_oa = low_pass_filter(a, sfreq, 8, filter_length)
     hp_oa = high_pass_filter(lp_oa, sfreq, 4, filter_length)
     assert_array_almost_equal(hp_oa, bp_oa, 2)
-    assert_array_almost_equal(bp_oa + bs_oa, a, 2)
+    # Our filters are no longer quite complementary with linear rolloffs :(
+    # this is the tradeoff for stability of the filtering
+    # obtained by directly using the result of firwin2 instead of
+    # modifying it...
+    assert_array_almost_equal(bp_oa + bs_oa, a, 1)
 
     # The two methods should give the same result
     # As filtering for short signals uses a circular convolution (FFT) and
@@ -206,6 +295,19 @@ def test_filters():
     assert_raises(ValueError, band_pass_filter, a, sfreq, Fp1=4, Fp2=8,
                   picks=np.array([0, 1]))
 
+    # test that our overlap-add filtering doesn't introduce strange
+    # artifacts (from mne_analyze mailing list 2015/06/25)
+    N = 300
+    sfreq = 100.
+    lp = 10.
+    sine_freq = 1.
+    x = np.ones(N)
+    x += np.sin(2 * np.pi * sine_freq * np.arange(N) / sfreq)
+    with warnings.catch_warnings(record=True):  # filter attenuation
+        x_filt = low_pass_filter(x, sfreq, lp, '1s')
+    # the firwin2 function gets us this close
+    assert_allclose(x, x_filt, rtol=1e-3, atol=1e-3)
+
 
 def test_cuda():
     """Test CUDA-based filtering
@@ -260,6 +362,9 @@ def test_cuda():
     a4 = resample(a, 2, 1, n_jobs='cuda', npad=0)
     assert_array_almost_equal(a3, a4, 14)
     assert_array_almost_equal(a1, a2, 14)
+    assert_array_equal(resample([0, 0], 2, 1, n_jobs='cuda'), [0., 0., 0., 0.])
+    assert_array_equal(resample(np.zeros(2, np.float32), 2, 1, n_jobs='cuda'),
+                       [0., 0., 0., 0.])
 
 
 def test_detrend():

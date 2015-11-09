@@ -11,14 +11,14 @@ import numpy as np
 import warnings
 
 from .baseline import rescale
-from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
+from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
-                  plot_evoked_image)
+                  plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import _plot_evoked_white
 from .externals.six import string_types
 
@@ -34,13 +34,13 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_id)
 from .io.base import ToDataFrameMixin
 
-aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
-               'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
-aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
-              str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
+_aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
+                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
+_aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
+               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
 
-class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
+class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              SetChannelsMixin, InterpolationMixin, FilterMixin,
              ToDataFrameMixin):
     """Evoked data
@@ -121,13 +121,14 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
             # find string-based entry
             if isinstance(condition, string_types):
-                if kind not in aspect_dict.keys():
+                if kind not in _aspect_dict.keys():
                     raise ValueError('kind must be "average" or '
                                      '"standard_error"')
 
                 comments, aspect_kinds, t = _get_entries(fid, evoked_node)
                 goods = np.logical_and(in1d(comments, [condition]),
-                                       in1d(aspect_kinds, [aspect_dict[kind]]))
+                                       in1d(aspect_kinds,
+                                            [_aspect_dict[kind]]))
                 found_cond = np.where(goods)[0]
                 if len(found_cond) != 1:
                     raise ValueError('condition "%s" (%s) not found, out of '
@@ -258,7 +259,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # Put the rest together all together
         self.nave = nave
         self._aspect_kind = aspect_kind
-        self.kind = aspect_rev.get(str(self._aspect_kind), 'Unknown')
+        self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
         self.first = first
         self.last = last
         self.comment = comment
@@ -344,8 +345,12 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
-             titles=None, axes=None):
+             titles=None, axes=None, gfp=False):
         """Plot evoked data as butterfly plots
+
+        Left click to a line shows the channel name. Selecting an area by
+        clicking and holding left mouse button plots a topographic map of the
+        painted area.
 
         Note: If bad channels are not excluded they are shown in red.
 
@@ -361,7 +366,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         show : bool
             Call pyplot.show() at the end or not.
         ylim : dict
-            ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
+            ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e-6])
             Valid keys are eeg, mag, grad
         xlim : 'tight' | tuple | None
             xlim for plots.
@@ -384,11 +389,14 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The axes to plot to. If list, the list must be a list of Axes of
             the same length as the number of channel types. If instance of
             Axes, there must be only one channel type plotted.
+        gfp : bool | 'only'
+            Plot GFP in green if True or "only". If "only", then the individual
+            channel traces will not be shown.
         """
         return plot_evoked(self, picks=picks, exclude=exclude, unit=unit,
                            show=show, ylim=ylim, proj=proj, xlim=xlim,
                            hline=hline, units=units, scalings=scalings,
-                           titles=titles, axes=axes)
+                           titles=titles, axes=axes, gfp=gfp)
 
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, xlim='tight', proj=False, units=None,
@@ -436,21 +444,92 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                  units=units, scalings=scalings,
                                  titles=titles, axes=axes, cmap=cmap)
 
-    def plot_topomap(self, times=None, ch_type=None, layout=None, vmin=None,
+    def plot_topo(self, layout=None, layout_scale=0.945, color=None,
+                  border='none', ylim=None, scalings=None, title=None,
+                  proj=False, vline=[0.0], fig_facecolor='k',
+                  fig_background=None, axis_facecolor='k', font_color='w',
+                  show=True):
+        """Plot 2D topography of evoked responses.
+
+        Clicking on the plot of an individual sensor opens a new figure showing
+        the evoked response for the selected sensor.
+
+        Parameters
+        ----------
+        layout : instance of Layout | None
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct layout is
+            inferred from the data.
+        layout_scale: float
+            Scaling factor for adjusting the relative size of the layout
+            on the canvas
+        color : list of color objects | color object | None
+            Everything matplotlib accepts to specify colors. If not list-like,
+            the color specified will be repeated. If None, colors are
+            automatically drawn.
+        border : str
+            matplotlib borders style to be used for each sensor plot.
+        ylim : dict | None
+            ylim for plots. The value determines the upper and lower subplot
+            limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
+            mag, grad, misc. If None, the ylim parameter for each channel is
+            determined by the maximum absolute peak.
+        scalings : dict | None
+            The scalings of the channel types to be applied for plotting. If
+            None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        title : str
+            Title of the figure.
+        proj : bool | 'interactive'
+            If true SSP projections are applied before display. If
+            'interactive', a check box for reversible selection of SSP
+            projection vectors will be shown.
+        vline : list of floats | None
+            The values at which to show a vertical line.
+        fig_facecolor : str | obj
+            The figure face color. Defaults to black.
+        fig_background : None | numpy ndarray
+            A background image for the figure. This must work with a call to
+            plt.imshow. Defaults to None.
+        axis_facecolor : str | obj
+            The face color to be used for each sensor plot. Defaults to black.
+        font_color : str | obj
+            The color of text in the colorbar and title. Defaults to white.
+        show : bool
+            Show figure if True.
+
+        Returns
+        -------
+        fig : Instance of matplotlib.figure.Figure
+            Images of evoked responses at sensor locations
+
+        .. versionadded:: 0.10.0
+        """
+        return plot_evoked_topo(self, layout=layout, layout_scale=layout_scale,
+                                color=color, border=border, ylim=ylim,
+                                scalings=scalings, title=title, proj=proj,
+                                vline=vline, fig_facecolor=fig_facecolor,
+                                fig_background=fig_background,
+                                axis_facecolor=axis_facecolor,
+                                font_color=font_color, show=show)
+
+    def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
                      vmax=None, cmap='RdBu_r', sensors=True, colorbar=True,
                      scale=None, scale_time=1e3, unit=None, res=64, size=1,
                      cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None):
+                     image_interp='bilinear', average=None, head_pos=None,
+                     axes=None):
         """Plot topographic maps of specific time points
 
         Parameters
         ----------
-        times : float | array of floats | None.
-            The time point(s) to plot. If None, 10 topographies will be shown
-            will a regular time spacing between the first and last time
-            instant.
+        times : float | array of floats | "auto" | "peaks".
+            The time point(s) to plot. If "auto", the number of ``axes``
+            determines the amount of time point(s). If ``axes`` is also None,
+            10 topographies will be shown with a regular time spacing between
+            the first and last time instant. If "peaks", finds time points
+            automatically by checking for local maxima in Global Field Power.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are collec-
             ted in pairs and the RMS for each pair is plotted.
@@ -468,7 +547,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         vmax : float | callable
             The value specfying the upper bound of the color range.
             If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.min(data).
+            but vmax is not, defaults to np.max(data).
             If callable, the output equals vmax(data).
         cmap : matplotlib colormap
             Colormap. Defaults to 'RdBu_r'.
@@ -518,15 +597,17 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Default (None) equals:
             ``dict(marker='o', markerfacecolor='w', markeredgecolor='k',
             linewidth=0, markersize=4)``.
-        outlines : 'head' | dict | None
-            The outlines to be drawn. If 'head', a head scheme will be drawn.
-            If dict, each key refers to a tuple of x and y positions.
-            The values in 'mask_pos' will serve as image mask. If None, nothing
-            will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-            field will trigger automated shrinking of the positions due to
-            points outside the outline. Moreover, a matplotlib patch object can
-            be passed for advanced masking options, either directly or as a
-            function that returns patches (required for multi-axis plots).
+        outlines : 'head' | 'skirt' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will
+            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
+            allowed to be plotted outside of the head circle. If dict, each key
+            refers to a tuple of x and y positions, the values in 'mask_pos'
+            will serve as image mask, and the 'autoshrink' (bool) field will
+            trigger automated shrinking of the positions due to points outside
+            the outline. Alternatively, a matplotlib patch object can be passed
+            for advanced masking options, either directly or as a function that
+            returns patches (required for multi-axis plots). If None, nothing
+            will be drawn. Defaults to 'head'.
         contours : int | False | None
             The number of contour lines to draw. If 0, no contours will be
             drawn.
@@ -543,6 +624,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             the head circle. If dict, can have entries 'center' (tuple) and
             'scale' (tuple) for what the center and scale of the head should be
             relative to the electrode locations.
+        axes : instance of Axes | list | None
+            The axes to plot to. If list, the list must be a list of Axes of
+            the same length as ``times`` (unless ``times`` is None). If
+            instance of Axes, ``times`` must be a float or a list of one float.
+            Defaults to None.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
@@ -556,7 +642,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                    mask_params=mask_params,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
-                                   average=average, head_pos=head_pos)
+                                   average=average, head_pos=head_pos,
+                                   axes=axes)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
@@ -599,7 +686,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Parameters
         ----------
-        noise_cov : list | instance of Covariance
+        noise_cov : list | instance of Covariance | str
             The noise covariance as computed by ``mne.cov.compute_covariance``.
         show : bool
             Whether to show the figure or not. Defaults to True.
@@ -818,6 +905,10 @@ class EvokedArray(Evoked):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
+
+    See Also
+    --------
+    EpochsArray, io.RawArray, create_info
     """
 
     @verbose
@@ -841,9 +932,8 @@ class EvokedArray(Evoked):
         # XXX: this should use round and be tested
         self.first = int(tmin * info['sfreq'])
         self.last = self.first + np.shape(data)[-1] - 1
-        self.times = np.arange(self.first, self.last + 1, dtype=np.float)
-        self.times /= info['sfreq']
-
+        self.times = np.arange(self.first, self.last + 1,
+                               dtype=np.float) / info['sfreq']
         self.info = info
         self.nave = nave
         self.kind = kind
@@ -852,9 +942,9 @@ class EvokedArray(Evoked):
         self.verbose = verbose
         self._projector = None
         if self.kind == 'average':
-            self._aspect_kind = aspect_dict['average']
+            self._aspect_kind = _aspect_dict['average']
         else:
-            self._aspect_kind = aspect_dict['standard_error']
+            self._aspect_kind = _aspect_dict['standard_error']
 
 
 def _get_entries(fid, evoked_node):
@@ -881,7 +971,7 @@ def _get_entries(fid, evoked_node):
         fid.close()
         raise ValueError('Dataset names in FIF file '
                          'could not be found.')
-    t = [aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
+    t = [_aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ')' for tt, c in zip(t, comments)]
     t = '  ' + '\n  '.join(t)
     return comments, aspect_kinds, t
@@ -1036,6 +1126,10 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     evoked : Evoked (if condition is int or str) or list of Evoked (if
         condition is None or list)
         The evoked dataset(s).
+
+    See Also
+    --------
+    write_evokeds
     """
     check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
 
@@ -1064,6 +1158,10 @@ def write_evokeds(fname, evoked):
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
+
+    See Also
+    --------
+    read_evokeds
     """
     check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
 

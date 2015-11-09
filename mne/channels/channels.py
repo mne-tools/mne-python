@@ -16,7 +16,8 @@ from scipy import sparse
 from ..externals.six import string_types
 
 from ..utils import verbose, logger
-from ..io.pick import channel_type, pick_info, pick_types
+from ..io.pick import (channel_type, pick_info, pick_types,
+                       _check_excludes_includes)
 from ..io.constants import FIFF
 
 
@@ -114,11 +115,11 @@ def equalize_channels(candidates, verbose=None):
     This function operates inplace.
     """
     from ..io.base import _BaseRaw
-    from ..epochs import Epochs
+    from ..epochs import _BaseEpochs
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
 
-    if not all(isinstance(c, (_BaseRaw, Epochs, Evoked, AverageTFR))
+    if not all(isinstance(c, (_BaseRaw, _BaseEpochs, Evoked, AverageTFR))
                for c in candidates):
         valid = ['Raw', 'Epochs', 'Evoked', 'AverageTFR']
         raise ValueError('candidates must be ' + ' or '.join(valid))
@@ -287,9 +288,10 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        mapping : dict
+        mapping : dict | callable
             a dictionary mapping the old channel to a new channel name
-            e.g. {'EEG061' : 'EEG161'}.
+            e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+            that takes and returns a string (new in version 0.10.0).
 
         Notes
         -----
@@ -314,7 +316,7 @@ class SetChannelsMixin(object):
         _set_montage(self.info, montage)
 
 
-class PickDropChannelsMixin(object):
+class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR
     """
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
@@ -395,11 +397,16 @@ class PickDropChannelsMixin(object):
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
 
+        See Also
+        --------
+        drop_channels
+
         Notes
         -----
         .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
+        _check_excludes_includes(ch_names)
 
         idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
         inst._pick_drop_channels(idx)
@@ -417,6 +424,10 @@ class PickDropChannelsMixin(object):
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
 
+        See Also
+        --------
+        pick_channels
+
         Notes
         -----
         .. versionadded:: 0.9.0
@@ -433,14 +444,14 @@ class PickDropChannelsMixin(object):
     def _pick_drop_channels(self, idx):
         # avoid circular imports
         from ..io.base import _BaseRaw
-        from ..epochs import Epochs
+        from ..epochs import _BaseEpochs
         from ..evoked import Evoked
         from ..time_frequency import AverageTFR
 
-        if isinstance(self, (_BaseRaw, Epochs)):
+        if isinstance(self, (_BaseRaw, _BaseEpochs)):
             if not self.preload:
-                raise RuntimeError('Raw data must be preloaded to drop or pick'
-                                   ' channels')
+                raise RuntimeError('If Raw or Epochs, data must be preloaded '
+                                   'to drop or pick channels')
 
         def inst_has(attr):
             return getattr(self, attr, None) is not None
@@ -458,12 +469,79 @@ class PickDropChannelsMixin(object):
 
         if isinstance(self, _BaseRaw) and inst_has('_data'):
             self._data = self._data.take(idx, axis=0)
-        elif isinstance(self, Epochs) and inst_has('_data'):
+        elif isinstance(self, _BaseEpochs) and inst_has('_data'):
             self._data = self._data.take(idx, axis=1)
         elif isinstance(self, AverageTFR) and inst_has('data'):
             self.data = self.data.take(idx, axis=0)
         elif isinstance(self, Evoked):
             self.data = self.data.take(idx, axis=0)
+
+    def add_channels(self, add_list, copy=False):
+        """Append new channels to the instance.
+
+        Parameters
+        ----------
+        add_list : list
+            A list of objects to append to self. Must contain all the same
+            type as the current object
+        copy : bool
+            Whether to return a new instance or modify in place
+
+        Returns
+        -------
+        out : MNE object of type(self)
+            An object with new channels appended (will be the same
+            object if copy==False)
+        """
+        # avoid circular imports
+        from ..io.base import _BaseRaw
+        from ..epochs import _BaseEpochs
+        from ..io.meas_info import _merge_info
+
+        if not isinstance(add_list, (list, tuple)):
+            raise AssertionError('Input must be a list or tuple of objs')
+
+        # Object-specific checks
+        if isinstance(self, (_BaseRaw, _BaseEpochs)):
+            if not all([inst.preload for inst in add_list] + [self.preload]):
+                raise AssertionError('All data must be preloaded')
+            data_name = '_data'
+            if isinstance(self, _BaseRaw):
+                con_axis = 0
+                comp_class = _BaseRaw
+            elif isinstance(self, _BaseEpochs):
+                con_axis = 1
+                comp_class = _BaseEpochs
+        else:
+            data_name = 'data'
+            con_axis = 0
+            comp_class = type(self)
+        if not all(isinstance(inst, comp_class) for inst in add_list):
+            raise AssertionError('All input data must be of same type')
+        data = [getattr(inst, data_name) for inst in [self] + add_list]
+
+        # Make sure that all dimensions other than channel axis are the same
+        compare_axes = [i for i in range(data[0].ndim) if i != con_axis]
+        shapes = np.array([dat.shape for dat in data])[:, compare_axes]
+        if not ((shapes[0] - shapes) == 0).all():
+            raise AssertionError('All dimensions except channels must match')
+
+        # Create final data / info objects
+        data = np.concatenate(data, axis=con_axis)
+        infos = [self.info] + [inst.info for inst in add_list]
+        new_info = _merge_info(infos)
+
+        # Now update the attributes
+        if copy is True:
+            out = self.copy()
+        else:
+            out = self
+        setattr(out, data_name, data)
+        out.info = new_info
+        if isinstance(self, _BaseRaw):
+            out._cals = np.concatenate([getattr(inst, '_cals')
+                                        for inst in [self] + add_list])
+        return out
 
 
 class InterpolationMixin(object):
@@ -514,42 +592,53 @@ def rename_channels(info, mapping):
     ----------
     info : dict
         Measurement info.
-    mapping : dict
+    mapping : dict | callable
         a dictionary mapping the old channel to a new channel name
-        e.g. {'EEG061' : 'EEG161'}.
+        e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+        that takes and returns a string (new in version 0.10.0).
     """
-    bads, chs = info['bads'], info['chs']
-    ch_names = info['ch_names']
-    new_names, new_kinds, new_bads = list(), list(), list()
+    info._check_consistency()
+    bads = list(info['bads'])  # make our own local copies
+    ch_names = list(info['ch_names'])
 
     # first check and assemble clean mappings of index and name
-    for ch_name, new_name in mapping.items():
-        if ch_name not in ch_names:
-            raise ValueError("This channel name (%s) doesn't exist in info."
-                             % ch_name)
+    if isinstance(mapping, dict):
+        orig_names = sorted(list(mapping.keys()))
+        missing = [orig_name not in ch_names for orig_name in orig_names]
+        if any(missing):
+            raise ValueError("Channel name(s) in mapping missing from info: "
+                             "%s" % np.array(orig_names)[np.array(missing)])
+        new_names = [(ch_names.index(ch_name), new_name)
+                     for ch_name, new_name in mapping.items()]
+    elif callable(mapping):
+        new_names = [(ci, mapping(ch_name))
+                     for ci, ch_name in enumerate(ch_names)]
+    else:
+        raise ValueError('mapping must be callable or dict, not %s'
+                         % (type(mapping),))
 
-        c_ind = ch_names.index(ch_name)
-        if not isinstance(new_name, string_types):
-            raise ValueError('Your mapping is not configured properly. '
-                             'Please see the help: mne.rename_channels?')
-        new_names.append((c_ind, new_name))
-        if ch_name in bads:  # check bads
-            new_bads.append((bads.index(ch_name), new_name))
+    # check we got all strings out of the mapping
+    if any(not isinstance(new_name[1], string_types)
+           for new_name in new_names):
+        raise ValueError('New channel mapping must only be to strings')
 
-    # Reset ch_names and Check that all the channel names are unique.
-    for key, collection in [('ch_name', new_names), ('kind', new_kinds)]:
-        for c_ind, new_name in collection:
-            chs[c_ind][key] = new_name
+    # do the remapping locally
+    for c_ind, new_name in new_names:
+        for bi, bad in enumerate(bads):
+            if bad == ch_names[c_ind]:
+                bads[bi] = new_name
+        ch_names[c_ind] = new_name
 
-    for c_ind, new_name in new_bads:
-        bads[c_ind] = new_name
+    # check that all the channel names are unique
+    if len(ch_names) != len(np.unique(ch_names)):
+        raise ValueError('New channel names are not unique, renaming failed')
 
-    # reference magic, please don't change (with the local binding
-    # it doesn't work)
-    info['ch_names'] = [c['ch_name'] for c in chs]
-
-    # assert channel names are unique
-    assert len(info['ch_names']) == np.unique(info['ch_names']).shape[0]
+    # do the reampping in info
+    info['bads'] = bads
+    info['ch_names'] = ch_names
+    for ch, ch_name in zip(info['chs'], ch_names):
+        ch['ch_name'] = ch_name
+    info._check_consistency()
 
 
 def _recursive_flatten(cell, dtype):
@@ -655,3 +744,40 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
     ch_connectivity = sparse.csr_matrix(ch_connectivity)
     return ch_connectivity
+
+
+def fix_mag_coil_types(info):
+    """Fix Elekta magnetometer coil types
+
+    Parameters
+    ----------
+    info : dict
+        The info dict to correct. Corrections are done in-place.
+
+    Notes
+    -----
+    This function changes magnetometer coil types 3022 (T1: SQ20483N) and
+    3023 (T2: SQ20483-A) to 3024 (T3: SQ20950N) in the channel definition
+    records in the info structure.
+
+    Neuromag Vectorview systems can contain magnetometers with two
+    different coil sizes (3022 and 3023 vs. 3024). The systems
+    incorporating coils of type 3024 were introduced last and are used at
+    the majority of MEG sites. At some sites with 3024 magnetometers,
+    the data files have still defined the magnetometers to be of type
+    3022 to ensure compatibility with older versions of Neuromag software.
+    In the MNE software as well as in the present version of Neuromag
+    software coil type 3024 is fully supported. Therefore, it is now safe
+    to upgrade the data files to use the true coil type.
+
+    .. note:: The effect of the difference between the coil sizes on the
+              current estimates computed by the MNE software is very small.
+              Therefore the use of mne_fix_mag_coil_types is not mandatory.
+    """
+    picks = pick_types(info, meg='mag')
+    for ii in picks:
+        ch = info['chs'][ii]
+        if ch['coil_type'] in (FIFF.FIFFV_COIL_VV_MAG_T1,
+                               FIFF.FIFFV_COIL_VV_MAG_T2):
+            ch['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
+    info._check_consistency()

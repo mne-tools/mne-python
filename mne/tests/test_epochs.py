@@ -25,14 +25,14 @@ from mne.epochs import (
     EpochsArray, concatenate_epochs, _BaseEpochs)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
-                       requires_scipy_version)
+                       requires_version)
 
 from mne.io.meas_info import create_info
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.io.constants import FIFF
-from mne.externals.six.moves import zip
-from mne.externals.six.moves import cPickle as pickle
+from mne.externals.six import text_type
+from mne.externals.six.moves import zip, cPickle as pickle
 
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -48,7 +48,7 @@ event_id_2 = 2
 
 
 def _get_data():
-    raw = io.Raw(raw_fname, add_eeg_ref=False)
+    raw = io.Raw(raw_fname, add_eeg_ref=False, proj=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                        ecg=True, eog=True, include=['STI 014'],
@@ -61,17 +61,195 @@ flat = dict(grad=1e-15, mag=1e-15)
 clean_warning_registry()  # really clean warning stack
 
 
+def test_reject():
+    """Test epochs rejection
+    """
+    raw, events, picks = _get_data()
+    # cull the list just to contain the relevant event
+    events = events[events[:, 2] == event_id, :]
+    selection = np.arange(3)
+    drop_log = [[]] * 3 + [['MEG 2443']] * 4
+    assert_raises(TypeError, pick_types, raw)
+    picks_meg = pick_types(raw.info, meg=True, eeg=False)
+    assert_raises(TypeError, Epochs, raw, events, event_id, tmin, tmax,
+                  picks=picks, preload=False, reject='foo')
+    assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax,
+                  picks=picks_meg, preload=False, reject=dict(eeg=1.))
+    assert_raises(KeyError, Epochs, raw, events, event_id, tmin, tmax,
+                  picks=picks, preload=False, reject=dict(foo=1.))
+
+    data_7 = dict()
+    keep_idx = [0, 1, 2]
+    for preload in (True, False):
+        for proj in (True, False, 'delayed'):
+            # no rejection
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            preload=preload)
+            assert_raises(ValueError, epochs.drop_bad_epochs, reject='foo')
+            epochs.drop_bad_epochs()
+            assert_equal(len(epochs), len(events))
+            assert_array_equal(epochs.selection, np.arange(len(events)))
+            assert_array_equal(epochs.drop_log, [[]] * 7)
+            if proj not in data_7:
+                data_7[proj] = epochs.get_data()
+            assert_array_equal(epochs.get_data(), data_7[proj])
+
+            # with rejection
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            reject=reject, preload=preload)
+            epochs.drop_bad_epochs()
+            assert_equal(len(epochs), len(events) - 4)
+            assert_array_equal(epochs.selection, selection)
+            assert_array_equal(epochs.drop_log, drop_log)
+            assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
+
+            # rejection post-hoc
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            preload=preload)
+            epochs.drop_bad_epochs()
+            assert_equal(len(epochs), len(events))
+            assert_array_equal(epochs.get_data(), data_7[proj])
+            epochs.drop_bad_epochs(reject)
+            assert_equal(len(epochs), len(events) - 4)
+            assert_equal(len(epochs), len(epochs.get_data()))
+            assert_array_equal(epochs.selection, selection)
+            assert_array_equal(epochs.drop_log, drop_log)
+            assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
+
+            # rejection twice
+            reject_part = dict(grad=1100e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            reject=reject_part, preload=preload)
+            epochs.drop_bad_epochs()
+            assert_equal(len(epochs), len(events) - 1)
+            epochs.drop_bad_epochs(reject)
+            assert_equal(len(epochs), len(events) - 4)
+            assert_array_equal(epochs.selection, selection)
+            assert_array_equal(epochs.drop_log, drop_log)
+            assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
+
+            # ensure that thresholds must become more stringent, not less
+            assert_raises(ValueError, epochs.drop_bad_epochs, reject_part)
+            assert_equal(len(epochs), len(events) - 4)
+            assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
+            epochs.drop_bad_epochs(flat=dict(mag=1.))
+            assert_equal(len(epochs), 0)
+            assert_raises(ValueError, epochs.drop_bad_epochs,
+                          flat=dict(mag=0.))
+
+            # rejection of subset of trials (ensure array ownership)
+            reject_part = dict(grad=1100e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            reject=None, preload=preload)
+            epochs = epochs[:-1]
+            epochs.drop_bad_epochs(reject=reject)
+            assert_equal(len(epochs), len(events) - 4)
+            assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
+
+
+def test_decim():
+    """Test epochs decimation
+    """
+    # First with EpochsArray
+    n_epochs, n_channels, n_times = 5, 10, 20
+    dec_1, dec_2 = 2, 3
+    decim = dec_1 * dec_2
+    sfreq = 1000.
+    sfreq_new = sfreq / decim
+    data = np.random.randn(n_epochs, n_channels, n_times)
+    events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    info = create_info(n_channels, sfreq, 'eeg')
+    info['lowpass'] = sfreq_new / float(decim)
+    epochs = EpochsArray(data, info, events)
+    data_epochs = epochs.decimate(decim, copy=True).get_data()
+    data_epochs_2 = epochs.decimate(dec_1).decimate(dec_2).get_data()
+    assert_array_equal(data_epochs, data[:, :, ::decim])
+    assert_array_equal(data_epochs, data_epochs_2)
+
+    # Now let's do it with some real data
+    raw, events, picks = _get_data()
+    sfreq_new = raw.info['sfreq'] / decim
+    raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    preload=False)
+    assert_raises(ValueError, epochs.decimate, -1)
+    expected_data = epochs.get_data()[:, :, ::decim]
+    expected_times = epochs.times[::decim]
+    for preload in (True, False):
+        # at init
+        epochs = Epochs(raw, events, event_id, tmin, tmax, decim=decim,
+                        preload=preload)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        assert_array_equal(epochs.times, expected_times)
+
+        # split between init and afterward
+        epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_1,
+                        preload=preload).decimate(dec_2)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        assert_array_equal(epochs.times, expected_times)
+        epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_2,
+                        preload=preload).decimate(dec_1)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        assert_array_equal(epochs.times, expected_times)
+
+        # split between init and afterward, with preload in between
+        epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_1,
+                        preload=preload)
+        epochs.load_data()
+        epochs = epochs.decimate(dec_2)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        assert_array_equal(epochs.times, expected_times)
+        epochs = Epochs(raw, events, event_id, tmin, tmax, decim=dec_2,
+                        preload=preload)
+        epochs.load_data()
+        epochs = epochs.decimate(dec_1)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        assert_array_equal(epochs.times, expected_times)
+
+        # decimate afterward
+        epochs = Epochs(raw, events, event_id, tmin, tmax,
+                        preload=preload).decimate(decim)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        assert_array_equal(epochs.times, expected_times)
+
+        # decimate afterward, with preload in between
+        epochs = Epochs(raw, events, event_id, tmin, tmax,
+                        preload=preload)
+        epochs.load_data()
+        epochs.decimate(decim)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_allclose(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        assert_array_equal(epochs.times, expected_times)
+
+
 def test_base_epochs():
     """Test base epochs class
     """
     raw = _get_data()[0]
-    epochs = _BaseEpochs(raw.info, event_id, tmin, tmax)
+    epochs = _BaseEpochs(raw.info, None, np.ones((1, 3), int),
+                         event_id, tmin, tmax)
     assert_raises(NotImplementedError, epochs.get_data)
-    assert_raises(NotImplementedError, epochs.__next__)
-    assert_equal(epochs.__iter__()._current, 0)
+    # events with non integers
+    assert_raises(ValueError, _BaseEpochs, raw.info, None,
+                  np.ones((1, 3), float), event_id, tmin, tmax)
+    assert_raises(ValueError, _BaseEpochs, raw.info, None,
+                  np.ones((1, 3, 2), int), event_id, tmin, tmax)
 
 
-@requires_scipy_version('0.14')
+@requires_version('scipy', '0.14')
 def test_savgol_filter():
     """Test savgol filtering
     """
@@ -195,8 +373,15 @@ def test_read_write_epochs():
     """
     raw, events, picks = _get_data()
     tempdir = _TempDir()
+    temp_fname = op.join(tempdir, 'test-epo.fif')
+    temp_fname_no_bl = op.join(tempdir, 'test_no_bl-epo.fif')
+    baseline = (None, 0)
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=baseline, preload=True)
+    epochs_orig = epochs.copy()
+    epochs_no_bl = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                          baseline=None, preload=True)
+    assert_true(epochs_no_bl.baseline is None)
     evoked = epochs.average()
     data = epochs.get_data()
 
@@ -235,10 +420,12 @@ def test_read_write_epochs():
         raw.info['lowpass'] = lowpass
 
     data_dec = epochs_dec.get_data()
-    assert_array_equal(data[:, :, epochs_dec._decim_idx], data_dec)
+    assert_allclose(data[:, :, epochs_dec._decim_slice], data_dec, rtol=1e-7,
+                    atol=1e-12)
 
     evoked_dec = epochs_dec.average()
-    assert_array_equal(evoked.data[:, epochs_dec._decim_idx], evoked_dec.data)
+    assert_allclose(evoked.data[:, epochs_dec._decim_slice],
+                    evoked_dec.data, rtol=1e-12)
 
     n = evoked.data.shape[1]
     n_dec = evoked_dec.data.shape[1]
@@ -246,68 +433,147 @@ def test_read_write_epochs():
     assert_true(n_dec_min <= n_dec <= n_dec_min + 1)
     assert_true(evoked_dec.info['sfreq'] == evoked.info['sfreq'] / 4)
 
-    # test IO
-    epochs.save(op.join(tempdir, 'test-epo.fif'))
-    epochs_read = read_epochs(op.join(tempdir, 'test-epo.fif'))
+    # Test event access on non-preloaded data (#2345)
 
-    assert_array_almost_equal(epochs_read.get_data(), epochs.get_data())
-    assert_array_equal(epochs_read.times, epochs.times)
-    assert_array_almost_equal(epochs_read.average().data, evoked.data)
-    assert_equal(epochs_read.proj, epochs.proj)
-    bmin, bmax = epochs.baseline
-    if bmin is None:
-        bmin = epochs.times[0]
-    if bmax is None:
-        bmax = epochs.times[-1]
-    baseline = (bmin, bmax)
-    assert_array_almost_equal(epochs_read.baseline, baseline)
-    assert_array_almost_equal(epochs_read.tmin, epochs.tmin, 2)
-    assert_array_almost_equal(epochs_read.tmax, epochs.tmax, 2)
-    assert_equal(epochs_read.event_id, epochs.event_id)
+    # due to reapplication of the proj matrix, this is our quality limit
+    # for some tests
+    tols = dict(atol=1e-3, rtol=1e-20)
 
-    epochs.event_id.pop('1')
-    epochs.event_id.update({'a:a': 1})  # test allow for ':' in key
-    epochs.save(op.join(tempdir, 'foo-epo.fif'))
-    epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'))
-    assert_equal(epochs_read2.event_id, epochs.event_id)
+    raw, events, picks = _get_data()
+    events[::2, 1] = 1
+    events[1::2, 2] = 2
+    event_ids = dict(a=1, b=2)
+    for proj in (True, 'delayed', False):
+        epochs = Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
+                        baseline=(None, 0), proj=proj, reject=reject,
+                        add_eeg_ref=True)
+        data1 = epochs.get_data()
+        data2 = epochs.apply_proj().get_data()
+        assert_allclose(data1, data2, **tols)
+        epochs.save(temp_fname)
+        epochs_read = read_epochs(temp_fname, preload=False)
+        assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
+        assert_allclose(epochs['a'].get_data(),
+                        epochs_read['a'].get_data(), **tols)
+        assert_allclose(epochs['b'].get_data(),
+                        epochs_read['b'].get_data(), **tols)
 
-    # add reject here so some of the epochs get dropped
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject)
-    epochs.save(op.join(tempdir, 'test-epo.fif'))
-    # ensure bad events are not saved
-    epochs_read3 = read_epochs(op.join(tempdir, 'test-epo.fif'))
-    assert_array_equal(epochs_read3.events, epochs.events)
-    data = epochs.get_data()
-    assert_true(epochs_read3.events.shape[0] == data.shape[0])
-
-    # test copying loaded one (raw property)
-    epochs_read4 = epochs_read3.copy()
-    assert_array_almost_equal(epochs_read4.get_data(), data)
-    # test equalizing loaded one (drop_log property)
-    epochs_read4.equalize_event_counts(epochs.event_id)
-
-    epochs.drop_epochs([1, 2], reason='can we recover orig ID?')
-    epochs.save(op.join(tempdir, 'test-epo.fif'))
-    epochs_read5 = read_epochs(op.join(tempdir, 'test-epo.fif'))
-    assert_array_equal(epochs_read5.selection, epochs.selection)
-    assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
-
-    # Test that one can drop channels on read file
-    epochs_read5.drop_channels(epochs_read5.ch_names[:1])
-
-    # test warnings on bad filenames
+    # ensure we don't leak file descriptors
+    epochs_read = read_epochs(temp_fname, preload=False)
+    epochs_copy = epochs_read.copy()
+    del epochs_read
+    epochs_copy.get_data()
     with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        epochs_badname = op.join(tempdir, 'test-bad-name.fif.gz')
-        epochs.save(epochs_badname)
-        read_epochs(epochs_badname)
-    assert_true(len(w) == 2)
+        del epochs_copy
+    assert_equal(len(w), 0)
+
+    # test IO
+    for preload in (False, True):
+        epochs = epochs_orig.copy()
+        epochs.save(temp_fname)
+        epochs_no_bl.save(temp_fname_no_bl)
+        epochs_read = read_epochs(temp_fname, preload=preload)
+        epochs_no_bl.save(temp_fname_no_bl)
+        epochs_read = read_epochs(temp_fname)
+        epochs_no_bl_read = read_epochs(temp_fname_no_bl)
+        assert_raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
+        epochs_no_bl_read.apply_baseline(baseline)
+        assert_true(epochs_no_bl_read.baseline == baseline)
+        assert_true(str(epochs_read).startswith('<Epochs'))
+
+        assert_array_equal(epochs_no_bl_read.times, epochs.times)
+        assert_array_almost_equal(epochs_read.get_data(), epochs.get_data())
+        assert_array_almost_equal(epochs.get_data(),
+                                  epochs_no_bl_read.get_data())
+        assert_array_equal(epochs_read.times, epochs.times)
+        assert_array_almost_equal(epochs_read.average().data, evoked.data)
+        assert_equal(epochs_read.proj, epochs.proj)
+        bmin, bmax = epochs.baseline
+        if bmin is None:
+            bmin = epochs.times[0]
+        if bmax is None:
+            bmax = epochs.times[-1]
+        baseline = (bmin, bmax)
+        assert_array_almost_equal(epochs_read.baseline, baseline)
+        assert_array_almost_equal(epochs_read.tmin, epochs.tmin, 2)
+        assert_array_almost_equal(epochs_read.tmax, epochs.tmax, 2)
+        assert_equal(epochs_read.event_id, epochs.event_id)
+
+        epochs.event_id.pop('1')
+        epochs.event_id.update({'a:a': 1})  # test allow for ':' in key
+        epochs.save(op.join(tempdir, 'foo-epo.fif'))
+        epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'),
+                                   preload=preload)
+        assert_equal(epochs_read2.event_id, epochs.event_id)
+
+        # add reject here so some of the epochs get dropped
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0), reject=reject)
+        epochs.save(temp_fname)
+        # ensure bad events are not saved
+        epochs_read3 = read_epochs(temp_fname, preload=preload)
+        assert_array_equal(epochs_read3.events, epochs.events)
+        data = epochs.get_data()
+        assert_true(epochs_read3.events.shape[0] == data.shape[0])
+
+        # test copying loaded one (raw property)
+        epochs_read4 = epochs_read3.copy()
+        assert_array_almost_equal(epochs_read4.get_data(), data)
+        # test equalizing loaded one (drop_log property)
+        epochs_read4.equalize_event_counts(epochs.event_id)
+
+        epochs.drop_epochs([1, 2], reason='can we recover orig ID?')
+        epochs.save(temp_fname)
+        epochs_read5 = read_epochs(temp_fname, preload=preload)
+        assert_array_equal(epochs_read5.selection, epochs.selection)
+        assert_equal(len(epochs_read5.selection), len(epochs_read5.events))
+        assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
+
+        if preload:
+            # Test that one can drop channels on read file
+            epochs_read5.drop_channels(epochs_read5.ch_names[:1])
+
+        # test warnings on bad filenames
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            epochs_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+            epochs.save(epochs_badname)
+            read_epochs(epochs_badname, preload=preload)
+        assert_true(len(w) == 2)
+
+        # test loading epochs with missing events
+        epochs = Epochs(raw, events, dict(foo=1, bar=999), tmin, tmax,
+                        picks=picks, on_missing='ignore')
+        epochs.save(temp_fname)
+        epochs_read = read_epochs(temp_fname, preload=preload)
+        assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
+        assert_array_equal(epochs.events, epochs_read.events)
+        assert_equal(set(epochs.event_id.keys()),
+                     set(text_type(x) for x in epochs_read.event_id.keys()))
+
+        # test saving split epoch files
+        epochs.save(temp_fname, split_size='7MB')
+        epochs_read = read_epochs(temp_fname, preload=preload)
+        assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
+        assert_array_equal(epochs.events, epochs_read.events)
+        assert_array_equal(epochs.selection, epochs_read.selection)
+        assert_equal(epochs.drop_log, epochs_read.drop_log)
+
+        # Test that having a single time point works
+        epochs.load_data()
+        epochs.crop(0, 0, copy=False)
+        assert_equal(len(epochs.times), 1)
+        assert_equal(epochs.get_data().shape[-1], 1)
+        epochs.save(temp_fname)
+        epochs_read = read_epochs(temp_fname, preload=preload)
+        assert_equal(len(epochs_read.times), 1)
+        assert_equal(epochs.get_data().shape[-1], 1)
 
 
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
     """
+    tempdir = _TempDir()
     raw, events, picks = _get_data()
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
     this_picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
@@ -346,6 +612,22 @@ def test_epochs_proj():
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True)
     assert_true(not _has_eeg_average_ref_proj(epochs.info['projs']))
+
+    # From GH#2200:
+    # This has no problem
+    proj = raw.info['projs']
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
+                    baseline=(None, 0), proj=False)
+    epochs.info['projs'] = []
+    data = epochs.copy().add_proj(proj).apply_proj().get_data()
+    # save and reload data
+    fname_epo = op.join(tempdir, 'temp-epo.fif')
+    epochs.save(fname_epo)  # Save without proj added
+    epochs_read = read_epochs(fname_epo)
+    epochs_read.add_proj(proj)
+    epochs_read.apply_proj()  # This used to bomb
+    data_2 = epochs_read.get_data()  # Let's check the result
+    assert_allclose(data, data_2, atol=1e-15, rtol=1e-3)
 
 
 def test_evoked_arithmetic():
@@ -621,6 +903,15 @@ def test_crop():
     assert_array_equal(data2, data_normal[:, :, tmask])
     assert_array_equal(data3, data_normal[:, :, tmask])
 
+    # test time info is correct
+    epochs = EpochsArray(np.zeros((1, 1, 1000)), create_info(1, 1000., 'eeg'),
+                         np.ones((1, 3), int), tmin=-0.2)
+    epochs.crop(-.200, .700)
+    last_time = epochs.times[-1]
+    with warnings.catch_warnings(record=True):  # not LP filtered
+        epochs.decimate(10)
+    assert_allclose(last_time, epochs.times[-1])
+
 
 def test_resample():
     """Test of resample of epochs
@@ -630,13 +921,17 @@ def test_resample():
                     baseline=(None, 0), preload=False,
                     reject=reject, flat=flat)
     assert_raises(RuntimeError, epochs.resample, 100)
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True,
-                    reject=reject, flat=flat)
+
+    epochs_o = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                      baseline=(None, 0), preload=True,
+                      reject=reject, flat=flat)
+    epochs = epochs_o.copy()
+
     data_normal = cp.deepcopy(epochs.get_data())
     times_normal = cp.deepcopy(epochs.times)
     sfreq_normal = epochs.info['sfreq']
     # upsample by 2
+    epochs = epochs_o.copy()
     epochs.resample(sfreq_normal * 2, npad=0)
     data_up = cp.deepcopy(epochs.get_data())
     times_up = cp.deepcopy(epochs.times)
@@ -655,11 +950,16 @@ def test_resample():
     assert_array_almost_equal(data_new, data_normal, 5)
 
     # use parallel
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True,
-                    reject=reject, flat=flat)
+    epochs = epochs_o.copy()
     epochs.resample(sfreq_normal * 2, n_jobs=2, npad=0)
     assert_true(np.allclose(data_up, epochs._data, rtol=1e-8, atol=1e-16))
+
+    # test copy flag
+    epochs = epochs_o.copy()
+    epochs_resampled = epochs.resample(sfreq_normal * 2, npad=0, copy=True)
+    assert_true(epochs_resampled is not epochs)
+    epochs_resampled = epochs.resample(sfreq_normal * 2, npad=0, copy=False)
+    assert_true(epochs_resampled is epochs)
 
 
 def test_detrend():
@@ -773,7 +1073,7 @@ def test_subtract_evoked():
     # if we compute the evoked response after subtracting it we get zero
     zero_evoked = epochs.average()
     data = zero_evoked.data
-    assert_array_almost_equal(data, np.zeros_like(data), decimal=20)
+    assert_allclose(data, np.zeros_like(data), atol=1e-15)
 
 
 def test_epoch_eq():
@@ -854,6 +1154,16 @@ def test_epoch_eq():
     assert_true(epochs['ab'].events.shape[0] == old_shapes[0] + old_shapes[1])
     assert_true(epochs['ab'].events.shape[0] == epochs['cd'].events.shape[0])
 
+    # equalizing with hierarchical tags
+    epochs = Epochs(raw, events, {'a/x': 1, 'b/x': 2, 'a/y': 3, 'b/y': 4},
+                    tmin, tmax, picks=picks, reject=reject)
+    cond1, cond2 = ['a', ['b/x', 'b/y']], [['a/x', 'a/y'], 'b']
+    es = [epochs.equalize_event_counts(c)[0] for c in (cond1, cond2)]
+    assert_array_equal(es[0].events[:, 0], es[1].events[:, 0])
+    cond1, cond2 = ['a', ['b', 'b/y']], [['a/x', 'a/y'], 'x']
+    for c in (cond1, cond2):  # error b/c tag and id mix/non-orthogonal tags
+        assert_raises(ValueError, epochs.equalize_event_counts, c)
+
 
 def test_access_by_name():
     """Test accessing epochs by event name and on_missing for rare events
@@ -903,8 +1213,9 @@ def test_access_by_name():
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks,
                     preload=True)
     assert_raises(KeyError, epochs.__getitem__, 'bar')
-    epochs.save(op.join(tempdir, 'test-epo.fif'))
-    epochs2 = read_epochs(op.join(tempdir, 'test-epo.fif'))
+    temp_fname = op.join(tempdir, 'test-epo.fif')
+    epochs.save(temp_fname)
+    epochs2 = read_epochs(temp_fname)
 
     for ep in [epochs, epochs2]:
         data = ep['a'].get_data()
@@ -958,7 +1269,8 @@ def test_to_data_frame():
         df = epochs.to_data_frame(index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
         # test that non-indexed data were present as categorial variables
-        df.reset_index().columns[:3] == ['condition', 'epoch', 'time']
+        assert_array_equal(sorted(df.reset_index().columns[:3]),
+                           sorted(['time', 'condition', 'epoch']))
 
 
 def test_epochs_proj_mixin():
@@ -993,20 +1305,17 @@ def test_epochs_proj_mixin():
     # wrong proj argument
     assert_raises(ValueError, Epochs, raw, events[:4], event_id, tmin, tmax,
                   picks=picks, baseline=(None, 0), proj='crazy')
-    # delayed without reject params
-    assert_raises(RuntimeError, Epochs, raw, events[:4], event_id, tmin, tmax,
-                  picks=picks, baseline=(None, 0), proj='delayed', reject=None)
 
     for preload in [True, False]:
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), proj='delayed', preload=preload,
-                        add_eeg_ref=True, verbose=True, reject=reject)
+                        add_eeg_ref=True, reject=reject)
         epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                          baseline=(None, 0), proj=True, preload=preload,
                          add_eeg_ref=True, reject=reject)
 
         assert_allclose(epochs.copy().apply_proj().get_data()[0],
-                        epochs2.get_data()[0])
+                        epochs2.get_data()[0], rtol=1e-10, atol=1e-25)
 
         # make sure data output is constant across repeated calls
         # e.g. drop bads
@@ -1029,6 +1338,37 @@ def test_epochs_proj_mixin():
     data = epochs.get_data().copy()
     epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
+
+
+def test_delayed_epochs():
+    """Test delayed projection
+    """
+    raw, events, picks = _get_data()
+    events = events[:10]
+    picks = np.concatenate([pick_types(raw.info, meg=True, eeg=True)[::22],
+                            pick_types(raw.info, meg=False, eeg=False,
+                                       ecg=True, eog=True)])
+    picks = np.sort(picks)
+    raw.info['lowpass'] = 40.  # fake the LP info so no warnings
+    for preload in (True, False):
+        for proj in (True, False, 'delayed'):
+            for decim in (1, 3):
+                for ii in range(2):
+                    epochs = Epochs(raw, events, event_id, tmin, tmax,
+                                    picks=picks, proj=proj, reject=reject,
+                                    preload=preload, decim=decim)
+                    if ii == 1:
+                        epochs.load_data()
+                    picks_data = pick_types(epochs.info, meg=True, eeg=True)
+                    evoked = epochs.average(picks=picks_data)
+                    if proj is True:
+                        evoked.apply_proj()
+                    epochs_data = epochs.get_data().mean(axis=0)[picks_data]
+                    assert_array_equal(evoked.ch_names,
+                                       np.array(epochs.ch_names)[picks_data])
+                    assert_allclose(evoked.times, epochs.times)
+                    assert_allclose(evoked.data, epochs_data,
+                                    rtol=1e-5, atol=1e-15)
 
 
 def test_drop_epochs():
@@ -1189,31 +1529,34 @@ def test_add_channels_epochs():
     """Test adding channels"""
     raw, events, picks = _get_data()
 
-    def make_epochs(picks):
+    def make_epochs(picks, proj):
         return Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
-                      reject=None, preload=True, proj=False, picks=picks)
+                      reject=None, preload=True, proj=proj, picks=picks)
 
     picks = pick_types(raw.info, meg=True, eeg=True, exclude='bads')
     picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude='bads')
     picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
 
-    epochs = make_epochs(picks=picks)
-    epochs_meg = make_epochs(picks=picks_meg)
-    epochs_eeg = make_epochs(picks=picks_eeg)
+    for proj in (False, True):
+        epochs = make_epochs(picks=picks, proj=proj)
+        epochs_meg = make_epochs(picks=picks_meg, proj=proj)
+        epochs_eeg = make_epochs(picks=picks_eeg, proj=proj)
+        epochs.info._check_consistency()
+        epochs_meg.info._check_consistency()
+        epochs_eeg.info._check_consistency()
 
-    epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
+        epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
 
-    assert_equal(len(epochs.info['projs']), len(epochs2.info['projs']))
-    assert_equal(len(epochs.info.keys()), len(epochs2.info.keys()))
+        assert_equal(len(epochs.info['projs']), len(epochs2.info['projs']))
+        assert_equal(len(epochs.info.keys()), len(epochs2.info.keys()))
 
-    data1 = epochs.get_data()
-    data2 = epochs2.get_data()
-    data3 = np.concatenate([e.get_data() for e in
-                            [epochs_meg, epochs_eeg]], axis=1)
-    assert_array_equal(data1.shape, data2.shape)
-    # XXX unrelated bug? this crashes when proj == True
-    assert_array_equal(data1, data3)
-    assert_array_equal(data1, data2)
+        data1 = epochs.get_data()
+        data2 = epochs2.get_data()
+        data3 = np.concatenate([e.get_data() for e in
+                                [epochs_meg, epochs_eeg]], axis=1)
+        assert_array_equal(data1.shape, data2.shape)
+        assert_allclose(data1, data3, atol=1e-25)
+        assert_allclose(data1, data2, atol=1e-25)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['meas_date'] += 10
@@ -1232,6 +1575,8 @@ def test_add_channels_epochs():
                   [epochs_meg, epochs_eeg[:2]])
 
     epochs_meg.info['chs'].pop(0)
+    epochs_meg.info['ch_names'].pop(0)
+    epochs_meg.info['nchan'] -= 1
     assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg, epochs_eeg])
 
@@ -1247,6 +1592,7 @@ def test_add_channels_epochs():
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['ch_names'][1] = epochs_meg2.info['ch_names'][0]
+    epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][1]
     assert_raises(ValueError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
@@ -1294,6 +1640,7 @@ def test_add_channels_epochs():
 def test_array_epochs():
     """Test creating epochs from array
     """
+    import matplotlib.pyplot as plt
     tempdir = _TempDir()
 
     # creating
@@ -1304,11 +1651,16 @@ def test_array_epochs():
     types = ['eeg'] * 20
     info = create_info(ch_names, sfreq, types)
     events = np.c_[np.arange(1, 600, 60),
-                   np.zeros(10),
+                   np.zeros(10, int),
                    [1, 2] * 5]
     event_id = {'a': 1, 'b': 2}
-    epochs = EpochsArray(data, info, events=events, event_id=event_id,
-                         tmin=-.2)
+    epochs = EpochsArray(data, info, events, tmin, event_id)
+    assert_true(str(epochs).startswith('<EpochsArray'))
+    # From GH#1963
+    assert_raises(ValueError, EpochsArray, data[:-1], info, events, tmin,
+                  event_id)
+    assert_raises(ValueError, EpochsArray, data, info, events, tmin,
+                  dict(a=1))
 
     # saving
     temp_fname = op.join(tempdir, 'test-epo.fif')
@@ -1322,6 +1674,7 @@ def test_array_epochs():
 
     # plotting
     epochs[0].plot()
+    plt.close('all')
 
     # indexing
     assert_array_equal(np.unique(epochs['a'].events[:, 2]), np.array([1]))
@@ -1335,7 +1688,8 @@ def test_array_epochs():
                          reject_tmin=0.1, reject_tmax=0.2)
     assert_equal(len(epochs), len(events) - 2)
     assert_equal(epochs.drop_log[0], ['EEG 006'])
-    assert_equal(len(events), len(epochs.selection))
+    assert_equal(len(epochs.drop_log), 10)
+    assert_equal(len(epochs.events), len(epochs.selection))
 
     # baseline
     data = np.ones((10, 20, 300))
@@ -1344,10 +1698,26 @@ def test_array_epochs():
     ep_data = epochs.get_data()
     assert_array_equal(np.zeros_like(ep_data), ep_data)
 
+    # one time point
+    epochs = EpochsArray(data[:, :, :1], info, events=events,
+                         event_id=event_id, tmin=0., baseline=None)
+    assert_allclose(epochs.times, [0.])
+    assert_allclose(epochs.get_data(), data[:, :, :1])
+    epochs.save(temp_fname)
+    epochs_read = read_epochs(temp_fname)
+    assert_allclose(epochs_read.times, [0.])
+    assert_allclose(epochs_read.get_data(), data[:, :, :1])
+
+    # event as integer (#2435)
+    mask = (events[:, 2] == 1)
+    data_1 = data[mask]
+    events_1 = events[mask]
+    epochs = EpochsArray(data_1, info, events=events_1, event_id=1,
+                         tmin=-0.2, baseline=(None, 0))
+
 
 def test_concatenate_epochs():
-    """test concatenate epochs"""
-
+    """Test concatenate epochs"""
     raw, events, picks = _get_data()
     epochs = Epochs(
         raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax,
@@ -1377,7 +1747,47 @@ def test_concatenate_epochs():
         ValueError,
         concatenate_epochs, [epochs, epochs2])
 
-    assert_equal(epochs_conc.raw, None)
+    assert_equal(epochs_conc._raw, None)
+
+    # check if baseline is same for all epochs
+    epochs2.baseline = (-0.1, None)
+    assert_raises(ValueError, concatenate_epochs, [epochs, epochs2])
+
+
+def test_add_channels():
+    """Test epoch splitting / re-appending channel types
+    """
+    raw, events, picks = _get_data()
+    epoch_nopre = Epochs(
+        raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax,
+        picks=picks)
+    epoch = Epochs(
+        raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax,
+        picks=picks, preload=True)
+    epoch_eeg = epoch.pick_types(meg=False, eeg=True, copy=True)
+    epoch_meg = epoch.pick_types(meg=True, copy=True)
+    epoch_stim = epoch.pick_types(meg=False, stim=True, copy=True)
+    epoch_eeg_meg = epoch.pick_types(meg=True, eeg=True, copy=True)
+    epoch_new = epoch_meg.add_channels([epoch_eeg, epoch_stim], copy=True)
+    assert_true(all(ch in epoch_new.ch_names
+                    for ch in epoch_stim.ch_names + epoch_meg.ch_names))
+    epoch_new = epoch_meg.add_channels([epoch_eeg], copy=True)
+
+    assert_true(ch in epoch_new.ch_names for ch in epoch.ch_names)
+    assert_array_equal(epoch_new._data, epoch_eeg_meg._data)
+    assert_true(all(ch not in epoch_new.ch_names
+                    for ch in epoch_stim.ch_names))
+
+    # Now test errors
+    epoch_badsf = epoch_eeg.copy()
+    epoch_badsf.info['sfreq'] = 3.1415927
+    epoch_eeg = epoch_eeg.crop(-.1, .1)
+
+    assert_raises(AssertionError, epoch_meg.add_channels, [epoch_nopre])
+    assert_raises(RuntimeError, epoch_meg.add_channels, [epoch_badsf])
+    assert_raises(AssertionError, epoch_meg.add_channels, [epoch_eeg])
+    assert_raises(ValueError, epoch_meg.add_channels, [epoch_meg])
+    assert_raises(AssertionError, epoch_meg.add_channels, epoch_badsf)
 
 
 run_tests_if_main()

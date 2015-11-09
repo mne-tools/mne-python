@@ -14,7 +14,7 @@ import os.path as op
 import numpy as np
 
 from ..constants import FIFF
-from ..open import fiff_open, _fiff_get_fid
+from ..open import fiff_open, _fiff_get_fid, _get_next_fname
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
@@ -150,24 +150,29 @@ class RawFIF(_BaseRaw):
         ff, tree, _ = fiff_open(fname, preload=whole_file)
         with ff as fid:
             #   Read the measurement info
+
             info, meas = read_meas_info(fid, tree)
 
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
             if len(raw_node) == 0:
                 raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
-                if (len(raw_node) == 0) and allow_maxshield:
+                if (len(raw_node) == 0):
                     raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
-                    msg = ('This file contains raw Internal Active Shielding '
-                           'data. It may be distorted. Elekta recommends it be'
-                           ' run through MaxFilter to produce reliable '
-                           'results. Consider closing the file and running '
-                           'MaxFilter on the data.')
-                    info['maxshield'] = True
-                    warnings.warn(msg)
-
-            if len(raw_node) == 0:
-                raise ValueError('No raw data in %s' % fname)
+                    msg = ('This file contains raw Internal Active '
+                           'Shielding data. It may be distorted. Elekta '
+                           'recommends it be run through MaxFilter to '
+                           'produce reliable results. Consider closing '
+                           'the file and running MaxFilter on the data.')
+                    if (len(raw_node) == 0):
+                        raise ValueError('No raw data in %s' % fname)
+                    elif allow_maxshield:
+                        info['maxshield'] = True
+                        warnings.warn(msg)
+                    else:
+                        msg += (' Use allow_maxshield=True if you are sure you'
+                                ' want to load the data despite this warning.')
+                        raise ValueError(msg)
 
             if len(raw_node) == 1:
                 raw_node = raw_node[0]
@@ -264,43 +269,7 @@ class RawFIF(_BaseRaw):
                                            nsamp=nsamp))
                     first_samp += nsamp
 
-            # Try to get the next filename tag for split files
-            nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
-            next_fname = None
-            for nodes in nodes_list:
-                next_fname = None
-                for ent in nodes['directory']:
-                    if ent.kind == FIFF.FIFF_REF_ROLE:
-                        tag = read_tag(fid, ent.pos)
-                        role = int(tag.data)
-                        if role != FIFF.FIFFV_ROLE_NEXT_FILE:
-                            next_fname = None
-                            break
-                    if ent.kind == FIFF.FIFF_REF_FILE_NAME:
-                        tag = read_tag(fid, ent.pos)
-                        next_fname = op.join(op.dirname(fname), tag.data)
-                    if ent.kind == FIFF.FIFF_REF_FILE_NUM:
-                        # Some files don't have the name, just the number. So
-                        # we construct the name from the current name.
-                        if next_fname is not None:
-                            continue
-                        next_num = read_tag(fid, ent.pos).data
-                        path, base = op.split(fname)
-                        idx = base.find('.')
-                        idx2 = base.rfind('-')
-                        if idx2 < 0 and next_num == 1:
-                            # this is the first file, which may not be numbered
-                            next_fname = op.join(
-                                path, '%s-%d.%s' % (base[:idx], next_num,
-                                                    base[idx + 1:]))
-                            continue
-                        num_str = base[idx2 + 1:idx]
-                        if not num_str.isdigit():
-                            continue
-                        next_fname = op.join(path, '%s-%d.%s' % (base[:idx2],
-                                             next_num, base[idx + 1:]))
-                if next_fname is not None:
-                    break
+            next_fname = _get_next_fname(fid, fname, tree)
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
@@ -430,6 +399,38 @@ class RawFIF(_BaseRaw):
                 #   Done?
                 if this['last'] >= stop:
                     break
+
+    def fix_mag_coil_types(self):
+        """Fix Elekta magnetometer coil types
+
+        Returns
+        -------
+        raw : instance of Raw
+            The raw object. Operates in place.
+
+        Notes
+        -----
+        This function changes magnetometer coil types 3022 (T1: SQ20483N) and
+        3023 (T2: SQ20483-A) to 3024 (T3: SQ20950N) in the channel definition
+        records in the info structure.
+
+        Neuromag Vectorview systems can contain magnetometers with two
+        different coil sizes (3022 and 3023 vs. 3024). The systems
+        incorporating coils of type 3024 were introduced last and are used at
+        the majority of MEG sites. At some sites with 3024 magnetometers,
+        the data files have still defined the magnetometers to be of type
+        3022 to ensure compatibility with older versions of Neuromag software.
+        In the MNE software as well as in the present version of Neuromag
+        software coil type 3024 is fully supported. Therefore, it is now safe
+        to upgrade the data files to use the true coil type.
+
+        .. note:: The effect of the difference between the coil sizes on the
+                  current estimates computed by the MNE software is very small.
+                  Therefore the use of mne_fix_mag_coil_types is not mandatory.
+        """
+        from ...channels import fix_mag_coil_types
+        fix_mag_coil_types(self.info)
+        return self
 
 
 def read_raw_fif(fnames, allow_maxshield=False, preload=False,

@@ -1,0 +1,56 @@
+From: Michael Hanke <michael.hanke@gmail.com>
+Subject: Debian path config for ext. depdendencies
+
+This should deal with the issue of minified javascript libs, by using system
+libs. This does not deal with the missing bootstrap v3 library (the Debian
+package seems stuck on v2).
+
+The idea is to patch upstream to use system libs, whenever they are giving by
+their absolute path.
+
+Additional overhead comes from UTF-8 encoding handling that differs between
+Python 2x and 3x.
+--- a/mne/report.py
++++ b/mne/report.py
+@@ -32,7 +32,7 @@
+ 
+ from .externals.tempita import HTMLTemplate, Template
+ from .externals.six import BytesIO
+-from .externals.six import moves
++from .externals.six import moves, PY3
+ 
+ VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
+                     '-eve.fif', '-eve.fif.gz', '-cov.fif', '-cov.fif.gz',
+@@ -1160,21 +1160,27 @@
+         """Initialize the renderer.
+         """
+ 
+-        inc_fnames = ['jquery-1.10.2.min.js', 'jquery-ui.min.js',
++        inc_fnames = ['/usr/share/javascript/jquery/jquery.min.js',
++                      '/usr/share/javascript/jquery-ui/jquery-ui.min.js',
+                       'bootstrap.min.js', 'jquery-ui.min.css',
+                       'bootstrap.min.css']
+ 
+         include = list()
+         for inc_fname in inc_fnames:
+             logger.info('Embedding : %s' % inc_fname)
+-            f = open(op.join(op.dirname(__file__), 'html', inc_fname),
+-                     'r')
++            if not os.path.isabs(inc_fname):
++                inc_fname = op.join(op.dirname(__file__), 'html', inc_fname)
++            f = open(inc_fname, 'r')
++            if PY3:
++                f_contents = f.read()
++            else:
++                f_contents = f.read().decode('UTF-8')
+             if inc_fname.endswith('.js'):
+                 include.append(u'<script type="text/javascript">' +
+-                               f.read() + u'</script>')
++                               f_contents + u'</script>')
+             elif inc_fname.endswith('.css'):
+                 include.append(u'<style type="text/css">' +
+-                               f.read() + u'</style>')
++                               f_contents + u'</style>')
+             f.close()
+ 
+         self.include = ''.join(include)
