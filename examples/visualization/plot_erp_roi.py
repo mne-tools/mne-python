@@ -40,8 +40,8 @@ def _percentiles(ch_names=None, pos=None,
 
     arr = np.zeros(pos[:, :2].shape)
 
-    pctl_x = [v / columns * 100. for v in range(1, columns)]
-    pctl_y = [v / rows * 100. for v in range(1, rows)]
+    pctl_x = [v / (columns * 100.) for v in range(1, columns)]
+    pctl_y = [v / (rows * 100.) for v in range(1, rows)]
 
     bounds = np.percentile(pos[:, 0], pctl_x)
     for bound in bounds:
