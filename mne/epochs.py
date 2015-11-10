@@ -2230,7 +2230,7 @@ def _read_one_epoch_file(f, tree, fname, preload, fix_tags):
 
 @verbose
 def read_epochs(fname, proj=True, add_eeg_ref=True, preload=True,
-                verbose=None):
+                fix_tags=False, verbose=None):
     """Read epochs from a fif file
 
     Parameters
@@ -2254,6 +2254,8 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, preload=True,
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
+    fix_tags : bool
+        If True, read epochs with old tagging system. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -2263,7 +2265,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, preload=True,
     epochs : instance of Epochs
         The epochs
     """
-    return EpochsFIF(fname, proj, add_eeg_ref, preload, verbose)
+    return EpochsFIF(fname, proj, add_eeg_ref, preload, fix_tags, verbose)
 
 
 class _RawContainer(object):
