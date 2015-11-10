@@ -2113,7 +2113,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
 
 
 @verbose
-def _read_one_epoch_file(f, tree, fname, preload):
+def _read_one_epoch_file(f, tree, fname, preload, fix_tags):
     """Helper to read a single FIF file"""
 
     with f as fid:
@@ -2128,9 +2128,18 @@ def _read_one_epoch_file(f, tree, fname, preload):
         if len(processed) == 0:
             raise ValueError('Could not find processed data')
 
-        epochs_node = dir_tree_find(tree, FIFF.FIFFB_EPOCHS)
+        if fix_tags:
+            epochs_node = dir_tree_find(tree, 122)
+        else:
+            epochs_node = dir_tree_find(tree, FIFF.FIFFB_EPOCHS)
         if len(epochs_node) == 0:
-            raise ValueError('Could not find epochs data')
+            if fix_tags:
+                msg = 'Could not find epochs data'
+            else:
+                msg = ('Could not find epochs data. If the data is saved with '
+                       'old tagging system, the data can be read by using '
+                       'fix_tags option.')
+            raise ValueError(msg)
 
         my_epochs = epochs_node[0]
 
@@ -2294,6 +2303,8 @@ class EpochsFIF(_BaseEpochs):
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
+    fix_tags : bool
+        If True, read epochs with old tagging system. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -2306,7 +2317,7 @@ class EpochsFIF(_BaseEpochs):
     """
     @verbose
     def __init__(self, fname, proj=True, add_eeg_ref=True, preload=True,
-                 verbose=None):
+                 fix_tags=False, verbose=None):
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
 
         fnames = [fname]
@@ -2318,7 +2329,7 @@ class EpochsFIF(_BaseEpochs):
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, tmin, tmax, baseline,
              name, selection, drop_log, epoch_shape, cals) = \
-                _read_one_epoch_file(fid, tree, fname, preload)
+                _read_one_epoch_file(fid, tree, fname, preload, fix_tags)
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
             epoch = _BaseEpochs(

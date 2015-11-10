@@ -55,7 +55,7 @@ FIFF.FIFFB_REF                = 118
 FIFF.FIFFB_SMSH_RAW_DATA      = 119
 FIFF.FIFFB_SMSH_ASPECT        = 120
 FIFF.FIFFB_HPI_SUBSYSTEM      = 121
-FIFF.FIFFB_EPOCHS             = 122
+FIFFB_PHANTOM_SUBSYSTEM       = 122
 FIFF.FIFFB_ICA                = 123
 
 FIFF.FIFFB_SPHERE             = 300   # Concentric sphere model related
@@ -367,7 +367,7 @@ FIFF.FIFFV_MRI_PIXEL_BYTE_RGB_COLOR     = 6
 FIFF.FIFFV_MRI_PIXEL_BYTE_RLE_RGB_COLOR = 7
 FIFF.FIFFV_MRI_PIXEL_BIT_RLE            = 8
 #
-#   These are the MNE fiff definitions
+#   These are the MNE fiff definitions (range 350-390 reserved for MNE)
 #
 FIFF.FIFFB_MNE                    = 350
 FIFF.FIFFB_MNE_SOURCE_SPACE       = 351
@@ -391,6 +391,8 @@ FIFF.FIFFB_MNE_SURFACE_MAP_GROUP  = 364
 FIFF.FIFFB_MNE_CTF_COMP           = 370
 FIFF.FIFFB_MNE_CTF_COMP_DATA      = 371
 FIFF.FIFFB_MNE_DERIVATIONS        = 372
+
+FIFF.FIFFB_EPOCHS                 = 373
 #
 # Fiff tags associated with MNE computations (3500...)
 #
