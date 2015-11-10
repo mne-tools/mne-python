@@ -1,12 +1,11 @@
 from collections import defaultdict
 import warnings
-import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
-from mne.utils import split_list, logger
+from mne.utils import logger
 from mne.io import Raw
 from mne.datasets import sample
 from mne.io.pick import channel_type
@@ -67,19 +66,19 @@ def plot_roi(evokeds,
              roi_to_chan="percentiles", ch_type='eeg',
              conds=None):
     """Plot evoked data per ROI, multiple conditions
-    
+
     By assigning channels to regions of interest/ROIs, this function can
     summarize multi-channel data for multiple conditions. ROIs can be
     constructed automatically, or supplied as a dictionary. ROIs are
     assigned in a rectangular fashion.
-    
+
     Note: in this form, gradiometers may prove problematic.
     Also, top left/right and bottom left/right ROIs will often
     feature few channels.
-    
+
     Parameters
     ----------
-    
+
     evokeds : dict
         A dictionary where the keys are condition names and the values
         Evoked objects.
@@ -114,7 +113,7 @@ def plot_roi(evokeds,
 
     picks = [ch_name for idx, ch_name in enumerate(info["ch_names"])
              if channel_type(info, idx) == ch_type]
-    
+
     for evoked in evokeds.values():
         evoked.pick_channels(picks)
     if conds is not None:
@@ -141,21 +140,16 @@ def plot_roi(evokeds,
     ch_names = info["ch_names"]
     pos = layout.find_layout(info).pos
     for p in pos:
-        p[0] += p[2]/2
-        p[1] += p[3]/2
-
-    roi_to_name = {roi:name for roi, name
-                   in zip(range(len(ch_names)), roi_names)}
-    name_to_roi = {name:roi for roi, name
-                   in zip(range(len(ch_names)), roi_names)}
+        p[0] += p[2] / 2
+        p[1] += p[3] / 2
 
     if not isinstance(roi_to_chan, dict):
         roi_to_chan = _percentiles(ch_names=ch_names, pos=pos,
                                    rows=rows, columns=columns,
                                    row_names=row_names,
                                    column_names=column_names)
-    roi_sel =  ", ".join([": ".join((k, ", ".join(v)))
-                         for k, v in roi_to_chan.items()])
+    roi_sel = ", ".join([": ".join((k, ", ".join(v)))
+                        for k, v in roi_to_chan.items()])
     logger.info("ROIs: " + roi_sel)
 
     if len(roi_to_chan) < (columns * rows):
@@ -182,11 +176,11 @@ def plot_roi(evokeds,
                 if len(roi_to_chan[roi]) > 1:
                     d = evokeds[cond].pick_channels(ch, copy=True).data
                     p.plot(evokeds[cond].times, np.mean(d, axis=0) * s,
-                    color=color)
+                           color=color)
                 elif len(roi_to_chan[roi]) == 1:
                     d = evokeds[cond].pick_channels(ch, copy=True).data.T
                     p.plot(evokeds[cond].times, d * s, color=color)
-            if tsx == None:
+            if tsx is None:
                 old_x = [x for x in p.get_xticks() if x > 0]
                 tsx = (0, old_x[int((len(old_x) - 1) / 2)])
 
@@ -199,7 +193,7 @@ def plot_roi(evokeds,
                 p.set_ylabel(r, labelpad=15)
                 p.yaxis.set_label_position("right")
                 p.yaxis.get_label().set_rotation(270)
-            plt.suptitle(ch_type.upper() +  " channel ROIs", y=.95)
+            plt.suptitle(ch_type.upper() + " channel ROIs", y=.95)
 
             max_y.append(max(abs(p.get_yticks())))
             if c in column_names[0]:
