@@ -27,6 +27,7 @@ from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_version)
 
+from mne.io import RawArray
 from mne.io.meas_info import create_info
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
@@ -47,8 +48,8 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
 
 
-def _get_data():
-    raw = io.Raw(raw_fname, add_eeg_ref=False, proj=False)
+def _get_data(preload=False):
+    raw = io.Raw(raw_fname, preload=preload, add_eeg_ref=False, proj=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                        ecg=True, eog=True, include=['STI 014'],
@@ -1437,18 +1438,30 @@ def test_contains():
     """Test membership API"""
     # TODO This raw data does not contain seeg. The test cannot completely test
     # membership.
-    raw, events = _get_data()[:2]
+    raw, events = _get_data(True)[:2]
 
-    tests = [(('mag', False), ('grad', 'eeg')),
-             (('grad', False), ('mag', 'eeg')),
-             ((False, True), ('grad', 'mag'))]
+    seeg = RawArray(np.zeros((1, len(raw.times))),
+                    create_info(['SEEG 001'], raw.info['sfreq'], 'seeg'))
+    for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass',
+                'filename', 'dig'):
+        seeg.info[key] = raw.info[key]
+    raw.add_channels([seeg])
+    tests = [(('mag', False, False), ('grad', 'eeg', 'seeg')),
+             (('grad', False, False), ('mag', 'eeg', 'seeg')),
+             ((False, True, False), ('grad', 'mag', 'seeg')),
+             ((False, False, True), ('grad', 'mag', 'eeg'))]
 
-    for (meg, eeg), others in tests:
-        picks_contains = pick_types(raw.info, meg=meg, eeg=eeg)
+    for (meg, eeg, seeg), others in tests:
+        picks_contains = pick_types(raw.info, meg=meg, eeg=eeg, seeg=seeg)
         epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax,
                         picks=picks_contains, reject=None,
                         preload=False)
-        test = 'eeg' if eeg is True else meg
+        if eeg:
+            test = 'eeg'
+        elif seeg:
+            test = 'seeg'
+        else:
+            test = meg
         assert_true(test in epochs)
         assert_true(not any(o in epochs for o in others))
 
