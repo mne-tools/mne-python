@@ -4,11 +4,13 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import inspect
 
 from mne import concatenate_raws
 from mne.io import read_raw_nicolet
 
-base_dir = op.join(op.dirname(op.realpath(__file__)), 'data')
+FILE = inspect.getfile(inspect.currentframe())
+base_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 fname = op.join(base_dir, 'test_nicolet_raw.data')
 
 

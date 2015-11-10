@@ -181,6 +181,7 @@ class RawNicolet(_BaseRaw):
     """
     def __init__(self, input_fname, montage, eog=None, ecg=None, emg=None,
                  misc=None, stim_channel=-1, preload=False, verbose=None):
+        input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, eog, ecg, emg, misc)
         last_samps = [header_info['num_samples']]
         super(RawNicolet, self).__init__(
