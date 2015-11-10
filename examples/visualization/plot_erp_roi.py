@@ -131,18 +131,14 @@ def plot_roi(evokeds,
         logger.warning(w)
         warnings.warn(w)
 
-    # we construct dicts and lists to map between electrodes, ROIs, etc & back
-    # and check these to know what ROI an electrode ended up in
-    roi_names = [col + " " + row
-                 for row in reversed(row_names)
-                 for col in column_names]
-
     ch_names = info["ch_names"]
     pos = layout.find_layout(info).pos
     for p in pos:
         p[0] += p[2] / 2
         p[1] += p[3] / 2
 
+    # we construct dicts and lists to map between electrodes, ROIs, etc & back
+    # and check these to know what ROI an electrode ended up in
     if not isinstance(roi_to_chan, dict):
         roi_to_chan = _percentiles(ch_names=ch_names, pos=pos,
                                    rows=rows, columns=columns,
