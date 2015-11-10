@@ -44,6 +44,12 @@ def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, emg=None,
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. If None, (default) none of the channels are designated.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -89,7 +95,8 @@ def _get_nicolet_info(fname, eog, ecg, emg, misc):
     if emg is None:
         emg = [idx for idx, ch in enumerate(ch_names) if ch.startswith('EMG')]
     if misc is None:
-        misc = list()
+        # Add photo stimulation channel to misc. 
+        misc = [idx for idx, ch in enumerate(ch_names) if ch.startswith('PHO')]
 
     date, time = header_info['start_ts'].split()
     date = date.split('-')
