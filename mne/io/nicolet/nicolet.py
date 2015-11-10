@@ -95,7 +95,7 @@ def _get_nicolet_info(fname, eog, ecg, emg, misc):
     if emg is None:
         emg = [idx for idx, ch in enumerate(ch_names) if ch.startswith('EMG')]
     if misc is None:
-        # Add photo stimulation channel to misc. 
+        # Add photo stimulation channel to misc.
         misc = [idx for idx, ch in enumerate(ch_names) if ch.startswith('PHO')]
 
     date, time = header_info['start_ts'].split()
