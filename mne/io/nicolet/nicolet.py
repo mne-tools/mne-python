@@ -69,7 +69,7 @@ def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, emg=None,
 def _get_nicolet_info(fname, eog, ecg, emg, misc):
     """Function for extracting info from Nicolet header files."""
     info = _empty_info()
-    fname = fname.split('.')[0]
+    fname = path.splitext(fname)[0]
     header = fname + '.head'
     if not path.exists(header):
         raise IOError('Cannot find header file %s.' % header)
