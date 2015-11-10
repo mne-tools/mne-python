@@ -106,7 +106,7 @@ def equalize_channels(candidates, verbose=None):
     Parameters
     ----------
     candidates : list
-        list Raw | Epochs | Evoked.
+        list Raw | Epochs | Evoked | AverageTFR
     verbose : None | bool
         whether to be verbose or not.
 

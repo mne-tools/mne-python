@@ -1912,3 +1912,76 @@ def compute_corr(x, y):
     # transpose / broadcasting else Y is correct
     y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
     return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
+
+
+def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
+    """Make grand average of a list evoked or AverageTFR data
+
+    For evoked data, the function interpolates bad channels based on
+    `interpolate_bads` parameter. If `interpolate_bads` is True, the grand
+    average file will contain good channels and the bad channels interpolated
+    from the good MEG/EEG channels.
+    For AverageTFR data, the function takes the subset of channels not marked
+    as bad in any of the instances.
+
+    The grand_average.nave attribute will be equal to the number
+    of evoked datasets used to calculate the grand average.
+
+    Note: Grand average evoked should not be used for source localization.
+
+    Parameters
+    ----------
+    all_inst : list of Evoked or AverageTFR data
+        The evoked datasets.
+    interpolate_bads : bool
+        If True, bad MEG and EEG channels are interpolated. Ignored for
+        AverageTFR.
+    drop_bads : bool
+        If True, drop all bad channels marked as bad in any data set.
+        If neither interpolate_bads nor drop_bads is True, in the output file,
+        every channel marked as bad in at least one of the input files will be
+        marked as bad, but no interpolation or dropping will be performed.
+
+    Returns
+    -------
+    grand_average : Evoked | AverageTFR
+        The grand average data. Same type as input.
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
+    """
+    # check if all elements in the given list are evoked data
+    from .evoked import Evoked
+    from .time_frequency import AverageTFR
+    from .channels.channels import equalize_channels
+    if not any([(all(isinstance(inst, t) for inst in all_inst)
+                for t in (Evoked, AverageTFR))]):
+        raise ValueError("Not all input elements are Evoked or AverageTFR")
+
+    # Copy channels to leave the original evoked datasets intact.
+    all_inst = [inst.copy() for inst in all_inst]
+
+    # Interpolates if necessary
+    if isinstance(all_inst[0], Evoked):
+        if interpolate_bads:
+            all_inst = [inst.interpolate_bads() if len(inst.info['bads']) > 0
+                        else inst for inst in all_inst]
+        equalize_channels(all_inst)  # apply equalize_channels
+        from .evoked import combine_evoked as combine
+    elif isinstance(all_inst[0], AverageTFR):
+        from .time_frequency.tfr import combine_tfr as combine
+
+    if drop_bads:
+        bads = list(set((b for inst in all_inst for b in inst.info['bads'])))
+        if bads:
+            for inst in all_inst:
+                inst.drop_channels(bads, copy=False)
+
+    # make grand_average object using combine_[evoked/tfr]
+    grand_average = combine(all_inst, weights='equal')
+    # change the grand_average.nave to the number of Evokeds
+    grand_average.nave = len(all_inst)
+    # change comment field
+    grand_average.comment = "Grand average (n = %d)" % grand_average.nave
+    return grand_average
