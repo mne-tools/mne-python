@@ -126,7 +126,7 @@ def plot_roi(evokeds,
     columns, rows = len(column_names), len(row_names)
 
     if not columns % 2:
-        w = ("Warning: an even number of coronal cuts is requested. "
+        w = ("An even number of coronal cuts is requested. "
              "This will lead to strange results if midline electrodes "
              "are used.")
         logger.warning(w)
@@ -159,11 +159,11 @@ def plot_roi(evokeds,
     logger.info("ROIs: " + roi_sel)
 
     if len(roi_to_chan) < (columns * rows):
-        error = "Error: sensor coverage too sparse for requested layout."
+        error = "Sensor coverage too sparse for requested layout."
         raise ValueError(error)
 
     if any([len(v) == 1 for v in roi_to_chan.values()]):
-        w = ("Warning: sensor coverage sparse compared to requested layout; "
+        w = ("Sensor coverage sparse compared to requested layout; "
              "some ROIs only contain one channel.")
         logger.warning(w)
         warnings.warn(w)
