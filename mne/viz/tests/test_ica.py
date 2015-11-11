@@ -139,8 +139,10 @@ def test_plot_ica_scores():
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
     ica.fit(raw, picks=picks)
-    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='foo')
     assert_raises(ValueError, ica.plot_scores, [0.2])
+    assert_raises(ValueError, ica.plot_scores, [0.3, 0.2],
+                  axhline=[0.1, -0.1], labels=['foo', 'moo'])
     plt.close('all')
 
 

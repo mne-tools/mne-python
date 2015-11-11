@@ -909,7 +909,7 @@ class ICA(ContainsMixin):
             if verbose is not None:
                 verbose = self.verbose
             ecg, times = _make_ecg(inst, start, stop, verbose)
-            ch_name = 'ECG'
+            ch_name = 'ECG-MAG'
         else:
             ecg = inst.ch_names[idx_ecg]
 
@@ -949,6 +949,7 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'labels_'):
             self.labels_ = dict()
         self.labels_['ecg'] = list(ecg_idx)
+        self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
 
     @verbose
@@ -1015,13 +1016,19 @@ class ICA(ContainsMixin):
         if inst.ch_names != self.ch_names:
             inst = inst.pick_channels(self.ch_names, copy=True)
 
-        for eog_ch, target in zip(eog_chs, targets):
+        if not hasattr(self, 'labels_'):
+            self.labels_ = dict()
+
+        for ii, (eog_ch, target) in enumerate(zip(eog_chs, targets)):
             scores += [self.score_sources(inst, target=target,
                                           score_func='pearsonr',
                                           start=start, stop=stop,
                                           l_freq=l_freq, h_freq=h_freq,
                                           verbose=verbose)]
-            eog_idx += [find_outliers(scores[-1], threshold=threshold)]
+            # pick last scores
+            this_idx = find_outliers(scores[-1], threshold=threshold)
+            eog_idx += [this_idx]
+            self.labels_[('eog/%i/' % ii) + eog_ch] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
         # EOG channels
@@ -1037,10 +1044,8 @@ class ICA(ContainsMixin):
                 eog_idx_unique.remove(i)
         if len(scores) == 1:
             scores = scores[0]
-
-        if not hasattr(self, 'labels_'):
-            self.labels_ = dict()
         self.labels_['eog'] = list(eog_idx)
+
         return self.labels_['eog'], scores
 
     def apply(self, inst, include=None, exclude=None,
@@ -1421,7 +1426,7 @@ class ICA(ContainsMixin):
                                 title=title, start=start, stop=stop, show=show,
                                 block=block)
 
-    def plot_scores(self, scores, exclude=None, axhline=None,
+    def plot_scores(self, scores, exclude=None, labels=None, axhline=None,
                     title='ICA component scores', figsize=(12, 6),
                     show=True):
         """Plot scores related to detected components.
@@ -1436,6 +1441,10 @@ class ICA(ContainsMixin):
         exclude : array_like of int
             The components marked for exclusion. If None (default), ICA.exclude
             will be used.
+        labels : str | list | 'ecg' | 'eog' | None
+            The labels to consider for the axes tests. Defaults to None.
+            If list, should match the outer shape of `scores`.
+            If 'ecg' or 'eog', the labels_ attributes will be looked up.
         axhline : float
             Draw horizontal line to e.g. visualize rejection threshold.
         title : str
@@ -1450,9 +1459,9 @@ class ICA(ContainsMixin):
         fig : instance of matplotlib.pyplot.Figure
             The figure object.
         """
-        return plot_ica_scores(ica=self, scores=scores, exclude=exclude,
-                               axhline=axhline, title=title,
-                               figsize=figsize, show=show)
+        return plot_ica_scores(
+            ica=self, scores=scores, exclude=exclude, labels=labels,
+            axhline=axhline, title=title, figsize=figsize, show=show)
 
     def plot_overlay(self, inst, exclude=None, picks=None, start=None,
                      stop=None, title=None, show=True):
@@ -1748,6 +1757,7 @@ def _serialize(dict_, outer_sep=';', inner_sep=':'):
             v = v.__name__
         elif isinstance(v, int):
             v = int(v)
+
         for cls in (np.random.RandomState, Covariance):
             if isinstance(v, cls):
                 v = cls.__name__
@@ -1761,7 +1771,7 @@ def _deserialize(str_, outer_sep=';', inner_sep=':'):
     """Aux Function"""
     out = {}
     for mapping in str_.split(outer_sep):
-        k, v = mapping.split(inner_sep)
+        k, v = mapping.split(inner_sep, 1)
         vv = json.loads(v)
         out[k] = vv if not isinstance(vv, text_type) else str(vv)
 
@@ -1805,8 +1815,9 @@ def _write_ica(fid, ica):
         write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, ica.ch_names)
 
     # samples on fit
-    ica_misc = {'n_samples_': getattr(ica, 'n_samples_', None)}
-    #   ICA init params
+    ica_misc = {'n_samples_': getattr(ica, 'n_samples_', None),
+                'labels_': getattr(ica, 'labels_', None)}
+
     write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
                  _serialize(ica_init))
 
@@ -1936,6 +1947,8 @@ def read_ica(fname):
     ica.info = info
     if 'n_samples_' in ica_misc:
         ica.n_samples_ = ica_misc['n_samples_']
+    if 'labels_' in ica_misc:
+        ica.labels_ = ica_misc['labels_']
 
     logger.info('Ready.')
 

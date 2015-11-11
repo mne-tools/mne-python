@@ -361,10 +361,11 @@ def test_ica_additional():
 
         for exclude in [[], [0]]:
             ica.exclude = [0]
+            ica.labels_ = {'foo': [0]}
             ica.save(test_ica_fname)
             ica_read = read_ica(test_ica_fname)
             assert_true(ica.exclude == ica_read.exclude)
-
+            assert_equal(ica.labels_, ica_read.labels_)
             ica.exclude = []
             ica.apply(raw, exclude=[1])
             assert_true(ica.exclude == [])

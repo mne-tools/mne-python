@@ -23,6 +23,7 @@ from ..utils import logger
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types
+from ..externals.six import string_types
 
 
 def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
@@ -120,10 +121,9 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         sources = ica.get_sources(inst)
         if start is not None or stop is not None:
             inst = inst.crop(start, stop, copy=True)
-        fig = _plot_ica_sources_evoked(evoked=sources,
-                                       picks=picks,
-                                       exclude=exclude,
-                                       title=title, show=show)
+        fig = _plot_ica_sources_evoked(
+            evoked=sources, picks=picks, exclude=exclude, title=title,
+            labels=getattr(ica, 'labels_', None), show=show)
     else:
         raise ValueError('Data input must be of Raw or Epochs type')
 
@@ -201,7 +201,7 @@ def _plot_ica_grid(sources, start, stop,
     return fig
 
 
-def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
+def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     """Plot average over epochs in ICA space
 
     Parameters
@@ -218,6 +218,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
         The figure title.
     show : bool
         Show figure if True.
+    labels : None | dict
+        The ICA labels attribute.
     """
     import matplotlib.pyplot as plt
     if title is None:
@@ -234,12 +236,38 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     texts = list()
     if picks is None:
         picks = np.arange(evoked.data.shape[0])
+    picks = np.sort(picks)
     idxs = [picks]
+    color = 'r'
+
+    if labels is not None:
+        labels_used = [k for k in labels if '/' not in k]
+
+    exclude_labels = list()
     for ii in picks:
         if ii in exclude:
-            label = 'ICA %03d' % (ii + 1)
+            line_label = 'ICA %03d' % (ii + 1)
+            if labels is not None:
+                annot = list()
+                for this_label in labels_used:
+                    indices = labels[this_label]
+                    if ii in indices:
+                        annot.append(this_label)
+                line_label += (' - ' + ', '.join(annot))
+            exclude_labels.append(line_label)
+        else:
+            exclude_labels.append(None)
+
+    if labels is not None:
+        unique_labels = set([k.split(' - ')[1] for k in exclude_labels if k])
+        label_colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_labels)))
+        label_colors = dict(zip(unique_labels, label_colors))
+
+    for exc_label, ii in zip(exclude_labels, picks):
+        if exc_label is not None:
+            color = label_colors[exc_label.split(' - ')[1]]
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
-                         zorder=1, color='r', label=label))
+                         zorder=1, color=color, label=exc_label))
         else:
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
                                  color='k', zorder=0))
@@ -281,7 +309,9 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     return fig
 
 
-def plot_ica_scores(ica, scores, exclude=None, axhline=None,
+def plot_ica_scores(ica, scores,
+                    exclude=None, labels=None,
+                    axhline=None,
                     title='ICA component scores',
                     figsize=(12, 6), show=True):
     """Plot scores related to detected components.
@@ -298,6 +328,10 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
     exclude : array_like of int
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
+    labels : str | list | 'ecg' | 'eog' | None
+        The labels to consider for the axes tests. Defaults to None.
+        If list, should match the outer shape of `scores`.
+        If 'ecg' or 'eog', the labels_ attributes will be looked up.
     axhline : float
         Draw horizontal line to e.g. visualize rejection threshold.
     title : str
@@ -327,7 +361,22 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
     else:
         axes = [axes]
     plt.suptitle(title)
-    for this_scores, ax in zip(scores, axes):
+
+    if labels == 'ecg':
+        labels = [l for l in ica.labels_ if l.startswith('ecg')]
+    elif labels == 'eog':
+        labels = [l for l in ica.labels_ if l.startswith('eog/')]
+        labels.sort(key=lambda l: l.split('/')[1])  # sort by index
+    elif isinstance(labels, string_types):
+        if len(axes) > 1:
+            raise ValueError('Need as amny labels as axes (%i)' % len(axes))
+        labels = [labels]
+    elif isinstance(labels, (tuple, list)):
+        if len(labels) != len(axes):
+            raise ValueError('Need as amny labels as axes (%i)' % len(axes))
+    elif labels is None:
+        labels = (None, None)
+    for label, this_scores, ax in zip(labels, scores, axes):
         if len(my_range) != len(this_scores):
             raise ValueError('The length of `scores` must equal the '
                              'number of ICA components.')
@@ -340,6 +389,14 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
             for axl in axhline:
                 ax.axhline(axl, color='r', linestyle='--')
         ax.set_ylabel('score')
+
+        if label is not None:
+            if 'eog/' in label:
+                split = label.split('/')
+                label = ', '.join([split[0], split[2]])
+            elif '/' in label:
+                label = ', '.join(label.split('/'))
+            ax.set_title('(%s)' % label)
         ax.set_xlabel('ICA components')
         ax.set_xlim(0, len(this_scores))
 

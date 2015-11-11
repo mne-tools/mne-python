@@ -14,6 +14,8 @@ from ..filter import band_pass_filter
 from ..epochs import Epochs, _BaseEpochs
 from ..io.base import _BaseRaw
 from ..evoked import Evoked
+from ..io import RawArray
+from .. import create_info
 
 
 def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
@@ -129,7 +131,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 @verbose
 def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     l_freq=5, h_freq=35, qrs_threshold='auto',
-                    filter_length='10s', verbose=None):
+                    filter_length='10s', return_ecg=False, verbose=None):
     """Find ECG peaks
 
     Parameters
@@ -156,6 +158,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         number of heartbeats (40-160 beats / min).
     filter_length : str | int | None
         Number of taps to use for filtering.
+    return_ecg : bool
+        Return ecg channel if synthesized. Defaults to False. If True and
+        and ecg exists this will yield None.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -169,11 +174,13 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Estimated average pulse.
     """
     idx_ecg = _get_ecg_channel_index(ch_name, raw)
+    created_ecg = False
     if idx_ecg is not None:
         logger.info('Using channel %s to identify heart beats.'
                     % raw.ch_names[idx_ecg])
         ecg, times = raw[idx_ecg, :]
     else:
+        created_ecg = True
         ecg, times = _make_ecg(raw, None, None, verbose)
 
     # detecting QRS and generating event file
@@ -189,7 +196,10 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ecg_events = np.array([ecg_events + raw.first_samp,
                            np.zeros(n_events, int),
                            event_id * np.ones(n_events, int)]).T
-    return ecg_events, idx_ecg, average_pulse
+    out = (ecg_events, idx_ecg, average_pulse)
+    if return_ecg:
+        out += (ecg if created_ecg else None,)
+    return out
 
 
 def _get_ecg_channel_index(ch_name, inst):
@@ -278,18 +288,35 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
     ecg_epochs : instance of Epochs
         Data epoched around ECG r-peaks.
     """
-
-    events, _, _ = find_ecg_events(raw, ch_name=ch_name, event_id=event_id,
-                                   l_freq=l_freq, h_freq=h_freq,
-                                   verbose=verbose)
+    if 'ecg' not in raw:
+        ecg, times = _make_ecg(raw, None, None, verbose)
+    events, _, _, ecg = find_ecg_events(
+        raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
+        return_ecg=True,
+        verbose=verbose)
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=False)
 
     # create epochs around ECG events and baseline (important)
+    if ecg is not None:
+        ecg_raw = RawArray(
+            ecg[None],
+            create_info(['ECG-SYN'],
+                        raw.info['sfreq'], ch_types=['ecg']))
+        for k, v in raw.info.items():
+            if k not in ['chs', 'nchan', 'bads']:
+                ecg_raw.info[k] = v
+
+        raw.load_data()
+        raw.add_channels([ecg_raw])
+
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False,
                         picks=picks, reject=reject, baseline=baseline,
                         verbose=verbose, preload=preload)
+    if ecg is not None:
+        raw.drop_channels(['ECG-SYN'])
+
     return ecg_epochs
 
 
