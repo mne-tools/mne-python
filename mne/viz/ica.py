@@ -262,6 +262,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
         unique_labels = set([k.split(' - ')[1] for k in exclude_labels if k])
         label_colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_labels)))
         label_colors = dict(zip(unique_labels, label_colors))
+    else:
+        label_colors = dict((k, 'red') for k in exclude_labels)
 
     for exc_label, ii in zip(exclude_labels, picks):
         if exc_label is not None:
