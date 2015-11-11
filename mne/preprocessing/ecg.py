@@ -320,9 +320,10 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
         picks = pick_types(raw.info, meg=True, eeg=True, ecg=True,
                            ref_meg=False)
     elif keep_ecg and not_has_ecg:
-        picks = np.concatenate(
-            picks, pick_types(raw.info, meg=False, eeg=False, ecg=True,
-                              ref_meg=False))
+        picks_extra = pick_types(raw.info, meg=False, eeg=False, ecg=True,
+                                 ref_meg=False)
+        picks = np.concatenate([picks, picks_extra])
+
     # create epochs around ECG events and baseline (important)
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False,
