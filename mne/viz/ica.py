@@ -267,7 +267,9 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
 
     for exc_label, ii in zip(exclude_labels, picks):
         if exc_label is not None:
-            color = label_colors[exc_label.split(' - ')[1]]
+            if labels is not None:
+                exc_label = exc_label.split(' - ')[1]
+            color = label_colors[exc_label]
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
                          zorder=1, color=color, label=exc_label))
         else:
