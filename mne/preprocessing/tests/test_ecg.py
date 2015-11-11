@@ -22,5 +22,5 @@ def test_find_ecg():
     assert_true(55 < average_pulse < 60)
 
     ecg_epochs = create_ecg_epochs(raw)
-    assert_true('ECG-SYN' in ecg_epochs.ch_names)
     assert_equal(len(ecg_epochs.events), n_events)
+    assert_true('ECG-SYN' not in raw.ch_names)

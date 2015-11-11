@@ -301,10 +301,13 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
     if ecg is not None:
         ecg_raw = RawArray(
             ecg[None],
-            create_info(['ECG-SYN'],
-                        raw.info['sfreq'], ch_types=['ecg']))
+            create_info(ch_names=['ECG-SYN'],
+                        sfreq=raw.info['sfreq'], ch_types=['ecg']))
+        copy_fields = [
+            'dev_head_t', 'acq_pars', 'buffer_size_sec', 'description',
+            'filename', 'highpass', 'lowpass']
         for k, v in raw.info.items():
-            if k not in ['chs', 'nchan', 'bads']:
+            if k in copy_fields:
                 ecg_raw.info[k] = v
 
         raw.load_data()
