@@ -1754,17 +1754,24 @@ def _find_sources(sources, target, score_func):
 def _serialize(dict_, outer_sep=';', inner_sep=':'):
     """Aux function"""
     s = []
-    for k, v in dict_.items():
-        if callable(v):
-            v = v.__name__
-        elif isinstance(v, int):
-            v = int(v)
+    for key, value in dict_.items():
+        if callable(value):
+            value = value.__name__
+        elif isinstance(value, int):
+            value = int(value)
+        elif isinstance(value, dict):
+            # py35 json does not support numpy int64
+            for subkey, subvalue in value.items():
+                if isinstance(subvalue, list):
+                    if len(subvalue) > 0:
+                        if isinstance(subvalue[0], (int, np.integer)):
+                            value[subkey] = [int(i) for i in subvalue]
 
         for cls in (np.random.RandomState, Covariance):
-            if isinstance(v, cls):
-                v = cls.__name__
+            if isinstance(value, cls):
+                value = cls.__name__
 
-        s.append(k + inner_sep + json.dumps(v))
+        s.append(key + inner_sep + json.dumps(value))
 
     return outer_sep.join(s)
 
