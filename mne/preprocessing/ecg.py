@@ -304,11 +304,9 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
             ecg[None],
             create_info(ch_names=['ECG-SYN'],
                         sfreq=raw.info['sfreq'], ch_types=['ecg']))
-        copy_fields = [
-            'dev_head_t', 'acq_pars', 'buffer_size_sec', 'description',
-            'filename', 'highpass', 'lowpass']
+        ignore = ['ch_names', 'chs', 'nchan']
         for k, v in raw.info.items():
-            if k in copy_fields:
+            if k not in ignore:
                 ecg_raw.info[k] = v
         raw.load_data()
         raw.add_channels([ecg_raw])

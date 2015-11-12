@@ -336,6 +336,9 @@ def plot_ica_scores(ica, scores,
         The labels to consider for the axes tests. Defaults to None.
         If list, should match the outer shape of `scores`.
         If 'ecg' or 'eog', the labels_ attributes will be looked up.
+        Note that '/' is used internally for sublabels specifying ECG and
+        EOG channels. Unless you want to lookup these labels don not use
+        '/'.
     axhline : float
         Draw horizontal line to e.g. visualize rejection threshold.
     title : str
@@ -367,17 +370,17 @@ def plot_ica_scores(ica, scores,
     plt.suptitle(title)
 
     if labels == 'ecg':
-        labels = [l for l in ica.labels_ if l.startswith('ecg')]
+        labels = [l for l in ica.labels_ if l.startswith('ecg|')]
     elif labels == 'eog':
-        labels = [l for l in ica.labels_ if l.startswith('eog/')]
+        labels = [l for l in ica.labels_ if l.startswith('eog|')]
         labels.sort(key=lambda l: l.split('/')[1])  # sort by index
     elif isinstance(labels, string_types):
         if len(axes) > 1:
-            raise ValueError('Need as amny labels as axes (%i)' % len(axes))
+            raise ValueError('Need as many labels as axes (%i)' % len(axes))
         labels = [labels]
     elif isinstance(labels, (tuple, list)):
         if len(labels) != len(axes):
-            raise ValueError('Need as amny labels as axes (%i)' % len(axes))
+            raise ValueError('Need as many labels as axes (%i)' % len(axes))
     elif labels is None:
         labels = (None, None)
     for label, this_scores, ax in zip(labels, scores, axes):
