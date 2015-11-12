@@ -8,7 +8,7 @@ import datetime
 import calendar
 
 from ...utils import logger
-from ..base import _BaseRaw
+from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
 
@@ -160,10 +160,6 @@ class RawNicolet(_BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         data file. Default is None.
-    stim_channel : str | int | None
-        The channel name or channel index (starting at 0).
-        -1 corresponds to the last channel (default).
-        If None, there will be no stim channel added.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -178,10 +174,11 @@ class RawNicolet(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     def __init__(self, input_fname, montage, eog=None, ecg=None, emg=None,
-                 misc=None, stim_channel=-1, preload=False, verbose=None):
+                 misc=None, preload=False, verbose=None):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, eog, ecg, emg, misc)
         last_samps = [header_info['num_samples']]
+        _check_update_montage(info, montage)
         super(RawNicolet, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format='int',
