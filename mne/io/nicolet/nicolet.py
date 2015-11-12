@@ -71,8 +71,6 @@ def _get_nicolet_info(fname, eog, ecg, emg, misc):
     info = _empty_info()
     fname = path.splitext(fname)[0]
     header = fname + '.head'
-    if not path.exists(header):
-        raise IOError('Cannot find header file %s.' % header)
 
     logger.info('Reading header...')
     header_info = dict()
