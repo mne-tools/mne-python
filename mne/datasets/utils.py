@@ -188,7 +188,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
              'datasets/%s',
     )
     hashes = dict(
-        sample='f73186795af820428e5e8e779ce5bfcf',
+        sample='ccf5cbc41a3727ed02821330a07abb13',
         spm='3e9e83c642136e5b720e2ecc5dcc3244',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
         brainstorm=None,
