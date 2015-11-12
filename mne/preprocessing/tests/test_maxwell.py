@@ -18,9 +18,9 @@ from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.io import Raw, proc_history, read_info
 from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
-                                       _sss_basis, _sh_complex_to_real,
+                                       _sss_basis_basic, _sh_complex_to_real,
                                        _sh_real_to_complex, _sh_negate,
-                                       _bases_complex_to_real,
+                                       _bases_complex_to_real, _sss_basis,
                                        _bases_real_to_complex, _sph_harm)
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, catch_logging,
                        requires_version, object_diff)
@@ -160,8 +160,8 @@ def test_multipolar_bases():
     for origin in ((0, 0, 0.04), (0, 0.02, 0.02)):
         o_str = ''.join('%d' % (1000 * n) for n in origin)
 
-        S_tot = _sss_basis(origin, coils, int_order, ext_order,
-                           method='alternative')
+        S_tot = _sss_basis_basic(origin, coils, int_order, ext_order,
+                                 method='alternative')
         # Test our real<->complex conversion functions
         S_tot_complex = _bases_real_to_complex(S_tot, int_order, ext_order)
         S_tot_round = _bases_complex_to_real(S_tot_complex,
@@ -179,7 +179,6 @@ def test_multipolar_bases():
         assert_allclose(S_tot, S_tot_mat_real, rtol=1e-4, atol=1e-8)
 
         # Now normalize our columns
-        S_tot /= np.sqrt(np.sum(S_tot * S_tot, axis=0))[np.newaxis]
         S_tot_complex /= np.sqrt(np.sum(
             (S_tot_complex * S_tot_complex.conj()).real, axis=0))[np.newaxis]
         # Check against a known benchmark
@@ -193,9 +192,15 @@ def test_multipolar_bases():
         assert_allclose(S_tot_mat, S_tot_mat_round, atol=1e-7)
         assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-4, atol=1e-8)
 
+        # Now test our optimized version
+        S_tot = _sss_basis_basic(origin, coils, int_order, ext_order)
+        S_tot_fast = _sss_basis(origin, coils, int_order, ext_order)
+        # there are some sign differences in here...
+        assert_allclose(np.abs(S_tot), np.abs(S_tot_fast), atol=1e-16)
+
 
 @testing.requires_testing_data
-def test_maxwell_filter():
+def test_basic():
     """Test Maxwell filter basic version"""
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     with warnings.catch_warnings(record=True):  # maxshield
@@ -215,7 +220,7 @@ def test_maxwell_filter():
 
     # Test SSS computation at the standard head origin
     raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None)
-    _assert_snr(raw_sss, Raw(sss_std_fname), 200.)
+    _assert_snr(raw_sss, Raw(sss_std_fname), 200., 1000.)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert_equal(len(py_cal), 0)
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
@@ -226,13 +231,13 @@ def test_maxwell_filter():
 
     # Test SSS computation at non-standard head origin
     raw_sss = maxwell_filter(raw, origin=[0., 0.02, 0.02], regularize=None)
-    _assert_snr(raw_sss, Raw(sss_nonstd_fname), 250.)
+    _assert_snr(raw_sss, Raw(sss_nonstd_fname), 250., 700.)
 
     # Test SSS computation at device origin
     sss_erm_std = Raw(sss_erm_std_fname)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg',
                              origin=mf_meg_origin, regularize=None)
-    _assert_snr(raw_sss, sss_erm_std, 100.)
+    _assert_snr(raw_sss, sss_erm_std, 100., 900.)
     for key in ('job', 'frame'):
         vals = [x.info['proc_history'][0]['max_info']['sss_info'][key]
                 for x in [raw_sss, sss_erm_std]]
@@ -426,7 +431,7 @@ def test_maxwell_filter_regularization():
 
 
 @testing.requires_testing_data
-def test_maxwell_filter_cross_talk():
+def test_cross_talk():
     """Test Maxwell filter cross-talk cancellation"""
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
@@ -445,7 +450,7 @@ def test_maxwell_filter_cross_talk():
 
 
 @testing.requires_testing_data
-def test_maxwell_filter_head_translation():
+def test_head_translation():
     """Test Maxwell filter head translation"""
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
@@ -488,7 +493,7 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor):
 @slow_test
 @requires_svd_convergence
 @testing.requires_testing_data
-def test_maxwell_noise_rejection():
+def test_noise_rejection():
     """Test Maxwell filter shielding factor using empty room"""
     with warnings.catch_warnings(record=True):  # maxshield
         raw_erm = Raw(erm_fname, allow_maxshield=True, preload=True)
@@ -564,7 +569,7 @@ def test_maxwell_noise_rejection():
 @slow_test
 @requires_svd_convergence
 @testing.requires_testing_data
-def test_maxwell_all():
+def test_all():
     """Test maxwell filter using all options"""
     raw_fnames = (raw_fname, raw_fname, erm_fname, sample_fname)
     sss_fnames = (sss_st1FineCalCrossTalkRegIn_fname,

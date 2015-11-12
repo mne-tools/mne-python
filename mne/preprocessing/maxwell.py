@@ -547,37 +547,9 @@ def _concatenate_sph_coils(coils):
 _mu_0 = 4e-7 * np.pi  # magnetic permeability
 
 
-def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.,
-               method='standard'):
-    """Compute SSS basis for given conditions.
-
-    Parameters
-    ----------
-    origin : ndarray, shape (3,)
-        Origin of the multipolar moment space in millimeters
-    coils : list
-        List of MEG coils. Each should contain coil information dict specifying
-        position, normals, weights, number of integration points and channel
-        type. All coil geometry must be in the same coordinate frame
-        as ``origin`` (``head`` or ``meg``).
-    int_order : int
-        Order of the internal multipolar moment space
-    ext_order : int
-        Order of the external multipolar moment space
-    scale : float
-        Scale factor for magnetometers.
-    method : str
-        Basis calculation method. Used only for testing.
-
-    Returns
-    -------
-    bases : ndarray, shape (n_coils, n_mult_moments)
-        Internal and external basis sets as a single ndarray.
-
-    Notes
-    -----
-    Incorporates magnetometer scaling factor. Does not normalize spaces.
-    """
+def _sss_basis_basic(origin, coils, int_order, ext_order, mag_scale=100.,
+                     method='standard'):
+    """Compute SSS basis using non-optimized (but more readable) algorithms"""
     # Compute vector between origin and coil, convert to spherical coords
     if method == 'standard':
         # Get position, normal, weights, and number of integration pts.
@@ -676,6 +648,209 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.,
         # savings by changing how spc/S_tot is assigned above (real only)
         S_tot = _bases_complex_to_real(S_tot, int_order, ext_order)
     return S_tot
+
+
+def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
+    """Compute SSS basis for given conditions.
+
+    Parameters
+    ----------
+    origin : ndarray, shape (3,)
+        Origin of the multipolar moment space in millimeters
+    coils : list
+        List of MEG coils. Each should contain coil information dict specifying
+        position, normals, weights, number of integration points and channel
+        type. All coil geometry must be in the same coordinate frame
+        as ``origin`` (``head`` or ``meg``).
+    int_order : int
+        Order of the internal multipolar moment space
+    ext_order : int
+        Order of the external multipolar moment space
+    scale : float
+        Scale factor for magnetometers.
+    method : str
+        Basis calculation method. Used only for testing.
+
+    Returns
+    -------
+    bases : ndarray, shape (n_coils, n_mult_moments)
+        Internal and external basis sets as a single ndarray.
+
+    Notes
+    -----
+    Incorporates magnetometer scaling factor. Does not normalize spaces.
+
+    Adapted from code provided by Jukka Nenonen.
+    """
+    # Get position, normal, weights, and number of integration pts.
+    rmags, cosmags, wcoils, bins = _concatenate_coils(coils)
+    rmags -= origin
+    # Convert points to spherical coordinates
+    rad, az, pol = _cart_to_sph(rmags).T
+    cosmags *= wcoils[:, np.newaxis]
+    del wcoils
+    out_type = np.float64
+    n_coils = len(coils)
+
+    # Set up output matrices
+    n_in, n_out = _get_n_moments([int_order, ext_order])
+    S_tot = np.empty((len(coils), n_in + n_out), out_type)
+    S_in = S_tot[:, :n_in]
+    S_out = S_tot[:, n_in:]
+
+    # Set all magnetometers (with 'coil_class' == 1.0) to be scaled by 100
+    coil_scale = np.ones(n_coils)
+    coil_scale[np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
+                         for coil in coils])] = mag_scale
+
+    # do the heavy lifting
+    max_order = max(int_order, ext_order)
+    L = _tabular_legendre(rmags, max_order)
+    phi = np.arctan2(rmags[:, 1], rmags[:, 0])
+    r_n = np.sqrt(np.sum(rmags * rmags, axis=1))
+    r_xy = np.sqrt(rmags[:, 0] * rmags[:, 0] + rmags[:, 1] * rmags[:, 1])
+    cos_pol = rmags[:, 2] / r_n  # cos(theta); theta 0...pi
+    sin_pol = np.sqrt(1. - cos_pol * cos_pol)  # sin(theta)
+    z_only = (r_xy <= 1e-16)
+    r_xy[z_only] = 1.
+    cos_az = rmags[:, 0] / r_xy  # cos(phi)
+    cos_az[z_only] = 1.
+    sin_az = rmags[:, 1] / r_xy  # sin(phi)
+    sin_az[z_only] = 0.
+    del rmags
+    # Appropriate vector spherical harmonics terms
+    #  JNE 2012-02-08: modified alm -> 2*alm, blm -> -2*blm
+    r_nn2 = r_n.copy()
+    r_nn1 = 1.0 / (r_n * r_n)
+    for degree in range(max_order + 1):
+        if degree <= ext_order:
+            r_nn1 *= r_n  # r^(l-1)
+        if degree <= int_order:
+            r_nn2 *= r_n  # r^(l+2)
+
+        # mu_0*sqrt((2l+1)/4pi (l-m)!/(l+m)!)
+        mult = 2e-7 * np.sqrt((2 * degree + 1) * np.pi)
+
+        if degree > 0:
+            idx = _deg_order_idx(degree, 0)
+            # alpha
+            if degree <= int_order:
+                b_r = mult * (degree + 1) * L[degree][0] / r_nn2
+                b_pol = -mult * L[degree][1] / r_nn2
+                S_in[:, idx] = _integrate_points(
+                    cos_az, sin_az, cos_pol, sin_pol, b_r, 0., b_pol,
+                    cosmags, bins, n_coils)
+            # beta
+            if degree <= ext_order:
+                b_r = -mult * degree * L[degree][0] * r_nn1
+                b_pol = -mult * L[degree][1] * r_nn1
+                S_out[:, idx] = _integrate_points(
+                    cos_az, sin_az, cos_pol, sin_pol, b_r, 0., b_pol,
+                    cosmags, bins, n_coils)
+        for order in range(1, degree + 1):
+            sin_order = np.sin(order * phi)
+            cos_order = np.cos(order * phi)
+            mult /= np.sqrt((degree - order + 1) * (degree + order))
+            factor = mult * np.sqrt(2)  # equivalence fix (Elekta uses 2.)
+
+            # Real
+            idx = _deg_order_idx(degree, order)
+            r_fact = factor * L[degree][order] * cos_order
+            az_fact = factor * order * sin_order * L[degree][order]
+            pol_fact = -factor * (L[degree][order + 1] -
+                                  (degree + order) * (degree - order + 1) *
+                                  L[degree][order - 1]) * cos_order
+            # alpha
+            if degree <= int_order:
+                b_r = (degree + 1) * r_fact / r_nn2
+                b_az = az_fact / (sin_pol * r_nn2)
+                b_az[z_only] = 0.
+                b_pol = pol_fact / (2 * r_nn2)
+                S_in[:, idx] = _integrate_points(
+                    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
+                    cosmags, bins, n_coils)
+            # beta
+            if degree <= ext_order:
+                b_r = -degree * r_fact * r_nn1
+                b_az = az_fact * r_nn1 / sin_pol
+                b_az[z_only] = 0.
+                b_pol = pol_fact * r_nn1 / 2.
+                S_out[:, idx] = _integrate_points(
+                    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
+                    cosmags, bins, n_coils)
+
+            # Imaginary
+            idx = _deg_order_idx(degree, -order)
+            r_fact = factor * L[degree][order] * sin_order
+            az_fact = factor * order * cos_order * L[degree][order]
+            pol_fact = factor * (L[degree][order + 1] -
+                                 (degree + order) * (degree - order + 1) *
+                                 L[degree][order - 1]) * sin_order
+            # alpha
+            if degree <= int_order:
+                b_r = -(degree + 1) * r_fact / r_nn2
+                b_az = az_fact / (sin_pol * r_nn2)
+                b_az[z_only] = 0.
+                b_pol = pol_fact / (2 * r_nn2)
+                S_in[:, idx] = _integrate_points(
+                    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
+                    cosmags, bins, n_coils)
+            # beta
+            if degree <= ext_order:
+                b_r = degree * r_fact * r_nn1
+                b_az = az_fact * r_nn1 / sin_pol
+                b_az[z_only] = 0.
+                b_pol = pol_fact * r_nn1 / 2.
+                S_out[:, idx] = _integrate_points(
+                    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
+                    cosmags, bins, n_coils)
+
+    # Scale magnetometers
+    S_tot *= coil_scale[:, np.newaxis]
+    return S_tot
+
+
+def _integrate_points(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
+                      cosmags, bins, n_coils):
+    """Helper to integrate points in spherical coords"""
+    grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
+    grads = np.einsum('ij,ij->i', grads, cosmags)
+    return np.bincount(bins, grads, n_coils)
+
+
+def _tabular_legendre(r, nind):
+    """Helper to compute associated Legendre polynomials"""
+    r_n = np.sqrt(np.sum(r * r, axis=1))
+    x = r[:, 2] / r_n  # cos(theta)
+    L = list()
+    for degree in range(nind + 1):
+        L.append(np.zeros((degree + 2, len(r))))
+    L[0][0] = 1.
+    pnn = 1.
+    fact = 1.
+    sx2 = np.sqrt((1. - x) * (1. + x))
+    for degree in range(nind + 1):
+        L[degree][degree] = pnn
+        pnn *= (-fact * sx2)
+        fact += 2.
+        if degree < nind:
+            L[degree + 1][degree] = x * (2 * degree + 1) * L[degree][degree]
+        if degree >= 2:
+            for order in range(degree - 1):
+                L[degree][order] = (x * (2 * degree - 1) *
+                                    L[degree - 1][order] -
+                                    (degree + order - 1) *
+                                    L[degree - 2][order]) / (degree - order)
+    return L
+
+
+def _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol):
+    """Helper to convert spherical coords to cartesian"""
+    return np.array([(sin_pol * cos_az * b_r +
+                      cos_pol * cos_az * b_pol - sin_az * b_az),
+                     (sin_pol * sin_az * b_r +
+                      cos_pol * sin_az * b_pol + cos_az * b_az),
+                     cos_pol * b_r - sin_pol * b_pol])
 
 
 def _get_degrees_orders(order):
