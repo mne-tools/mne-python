@@ -28,6 +28,7 @@ from . import pick
 
 from .array import RawArray
 from .brainvision import read_raw_brainvision
+from .brainvision import read_raw_brainvision2
 from .bti import read_raw_bti
 from .ctf import read_raw_ctf
 from .edf import read_raw_edf
