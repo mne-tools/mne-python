@@ -26,7 +26,7 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag, read_tag_info
 from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
-                      pick_channels, pick_info)
+                      pick_channels, pick_info, _pick_data_channels)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin
 from .evoked import EvokedArray, _aspect_rev
@@ -534,9 +534,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # Detrend
         if self.detrend is not None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               ref_meg=True, eog=False, ecg=False, seeg=True,
-                               emg=False, exclude=[])
+            picks = _pick_data_channels(self.info, exclude=[])
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
         # Baseline correct
@@ -608,7 +606,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             diff_idx = [self.ch_names.index(ch) for ch in diff_ch]
             diff_types = [channel_type(self.info, idx) for idx in diff_idx]
             bad_idx = [diff_types.index(t) for t in diff_types if t in
-                       ['grad', 'mag', 'eeg']]
+                       ['grad', 'mag', 'eeg', 'seeg']]
             if len(bad_idx) > 0:
                 bad_str = ', '.join([diff_ch[ii] for ii in bad_idx])
                 raise ValueError('The following data channels are missing '
@@ -736,9 +734,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # pick channels
         if picks is None:
-            picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=True,
-                               stim=False, eog=False, ecg=False, seeg=True,
-                               emg=False, exclude=[])
+            picks = _pick_data_channels(evoked.info, exclude=[])
 
         ch_names = [evoked.ch_names[p] for p in picks]
         evoked.pick_channels(ch_names)
