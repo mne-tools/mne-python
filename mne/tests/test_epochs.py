@@ -1441,7 +1441,8 @@ def test_contains():
     seeg = RawArray(np.zeros((1, len(raw.times))),
                     create_info(['SEEG 001'], raw.info['sfreq'], 'seeg'))
     for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass',
-                'filename', 'dig'):
+                'filename', 'dig', 'description', 'acq_pars', 'experimenter',
+                'proj_name'):
         seeg.info[key] = raw.info[key]
     raw.add_channels([seeg])
     tests = [(('mag', False, False), ('grad', 'eeg', 'seeg')),
