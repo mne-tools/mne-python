@@ -173,7 +173,7 @@ class RawNicolet(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    def __init__(self, input_fname, montage, eog=None, ecg=None, emg=None,
+    def __init__(self, input_fname, montage=None, eog=None, ecg=None, emg=None,
                  misc=None, preload=False, verbose=None):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, eog, ecg, emg, misc)
