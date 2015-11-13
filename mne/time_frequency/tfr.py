@@ -1401,7 +1401,7 @@ def combine_tfr(all_tfr, weights='nave'):
 
     Notes
     -----
-    .. versionadded:: 0.10.0
+    .. versionadded:: 0.11.0
     """
     tfr = all_tfr[0].copy()
     if isinstance(weights, string_types):

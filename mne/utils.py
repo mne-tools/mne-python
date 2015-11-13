@@ -1949,7 +1949,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
 
     Notes
     -----
-    .. versionadded:: 0.10.0
+    .. versionadded:: 0.11.0
     """
     # check if all elements in the given list are evoked data
     from .evoked import Evoked
