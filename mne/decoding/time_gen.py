@@ -673,7 +673,7 @@ def _predict(X, estimators):
 class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     """Generalize across time and conditions
 
-    Creates and estimator object used to 1) fit a series of classifiers on
+    Creates an estimator object used to 1) fit a series of classifiers on
     multidimensional time-resolved data, and 2) test the ability of each
     classifier to generalize across other time samples.
 
