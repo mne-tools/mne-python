@@ -25,7 +25,8 @@ Changelog
 BUG
 ~~~
 
-    - None
+    - Fix bug that prevented homo bem surfaces to be displayed in HTML reports by
+    `Denis Engemann`_
 
 API
 ~~~

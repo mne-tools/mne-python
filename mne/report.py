@@ -1745,12 +1745,13 @@ class Report(object):
         for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
             surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
             if len(surf_fname) > 0:
-                surf_fname = surf_fname[0]
+                surf_fnames.append(surf_fname[0])
             else:
                 warnings.warn('No surface found for %s.' % surf_name)
-                return self._render_image(mri_fname, cmap='gray')
-            surf_fnames.append(surf_fname)
-
+                continue
+        if len(surf_fnames) == 0:
+            warnings.warn('No surfaces found at all, rendering empty MRI')
+            return self._render_image(mri_fname, cmap='gray')
         # XXX : find a better way to get max range of slices
         nim = nib.load(mri_fname)
         data = nim.get_data()
