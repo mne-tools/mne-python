@@ -197,17 +197,16 @@ class RawNicolet(_BaseRaw):
         data_left = (stop - start + 1) * nchan
         # Read up to 100 MB of data at a time.
         blk_size = min(data_left, (50000000 // nchan) * nchan)
-        blk_start = 0
+
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             fid.seek(data_offset)
             # extract data in chunks
-            while data_left > 0:
-                this_data = np.fromfile(fid, '<i2', min(blk_size, data_left))
+            for blk_start in np.arange(0, data_left, blk_size) // nchan:
+                blk_size = min(blk_size, data_left - blk_start * nchan)
+                this_data = np.fromfile(fid, '<i2', blk_size)
                 this_data = this_data.reshape(nchan, len(this_data) // nchan,
-                                              order='F').astype(float)[sel]
-                blk_stop = blk_start + len(this_data[0])
-                for idx in sel:
-                    data[idx][blk_start:blk_stop] = this_data[idx] * cal[idx]
-                data_left -= blk_size
-                blk_start = blk_stop
+                                              order='F')[sel].astype(float)
+                blk_stop = blk_start + this_data.shape[1]
+                data[:, blk_start:blk_stop][sel] = (this_data[sel]
+                                                    * cal[sel, np.newaxis])
         return data
