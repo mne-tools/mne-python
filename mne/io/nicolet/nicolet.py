@@ -13,8 +13,8 @@ from ..meas_info import _empty_info
 from ..constants import FIFF
 
 
-def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, emg=None,
-                     misc=None, preload=False, verbose=None):
+def read_raw_nicolet(input_fname, montage=None, eog=None, misc=None, ecg=None,
+                     emg=None, preload=False, verbose=None):
     """Read Nicolet data as raw object
 
     Note. This reader takes data files with the extension ``.data`` as an
@@ -33,6 +33,9 @@ def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, emg=None,
         Names of channels or list of indices that should be designated
         EOG channels. If None (default), the channel names beginning with
         ``EOG`` are used.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated
+        MISC channels. If None, (default) none of the channels are designated.
     ecg : list or tuple
         Names of channels or list of indices that should be designated
         ECG channels. If None (default), the channel names beginning with
@@ -41,9 +44,6 @@ def read_raw_nicolet(input_fname, montage=None, eog=None, ecg=None, emg=None,
         Names of channels or list of indices that should be designated
         EMG channels. If None (default), the channel names beginning with
         ``EMG`` are used.
-    misc : list or tuple
-        Names of channels or list of indices that should be designated
-        MISC channels. If None, (default) none of the channels are designated.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -191,7 +191,6 @@ class RawNicolet(_BaseRaw):
             raise NotImplementedError()
         nchan = self.info['nchan']
         sel = np.arange(nchan)[idx]
-
         cal = np.array([ch['cal'] for ch in self.info['chs']])
 
         data_offset = self.info['nchan'] * start * 2
@@ -200,9 +199,8 @@ class RawNicolet(_BaseRaw):
         blk_size = min(data_left, (50000000 // nchan) * nchan)
         blk_start = 0
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
-            # extract data
             fid.seek(data_offset)
-
+            # extract data in chunks
             while data_left > 0:
                 this_data = np.fromfile(fid, '<i2', min(blk_size, data_left))
                 this_data = this_data.reshape(nchan, len(this_data) // nchan,
