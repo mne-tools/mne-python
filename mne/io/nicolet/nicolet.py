@@ -203,10 +203,10 @@ class RawNicolet(_BaseRaw):
             # extract data in chunks
             for blk_start in np.arange(0, data_left, blk_size) // nchan:
                 blk_size = min(blk_size, data_left - blk_start * nchan)
-                this_data = np.fromfile(fid, '<i2', blk_size)
-                this_data = this_data.reshape(nchan, len(this_data) // nchan,
-                                              order='F')[sel].astype(float)
-                blk_stop = blk_start + this_data.shape[1]
-                data[:, blk_start:blk_stop][sel] = (this_data[sel]
-                                                    * cal[sel, np.newaxis])
+                block = np.fromfile(fid, '<i2', blk_size)
+                block = block.reshape(nchan, len(block) // nchan,
+                                      order='F')[sel].astype(float)
+                blk_stop = blk_start + block.shape[1]
+                data[:, blk_start:blk_stop][sel] = block[sel] * cal[sel,
+                                                                    np.newaxis]
         return data
