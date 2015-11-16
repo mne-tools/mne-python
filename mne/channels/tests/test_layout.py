@@ -353,7 +353,7 @@ def test_generate_2d_layout():
     snobg = 10
     sbg = 15
     side = range(snobg)
-    bg_image = np.random.randn(sbg, sbg)
+    bg_image = np.random.RandomState(42).randn(sbg, sbg)
     w, h = [.2, .5]
 
     # Generate fake data

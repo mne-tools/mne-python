@@ -82,7 +82,7 @@ def test_plot_connectivity_circle():
     group_boundaries = [0, len(label_names) / 2]
     node_angles = circular_layout(label_names, node_order, start_pos=90,
                                   group_boundaries=group_boundaries)
-    con = np.random.randn(68, 68)
+    con = np.random.RandomState(0).randn(68, 68)
     plot_connectivity_circle(con, label_names, n_lines=300,
                              node_angles=node_angles, title='test',
                              )

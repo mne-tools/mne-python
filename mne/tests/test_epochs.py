@@ -46,6 +46,7 @@ evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
+rng = np.random.RandomState(42)
 
 
 def _get_data(preload=False):
@@ -157,7 +158,7 @@ def test_decim():
     decim = dec_1 * dec_2
     sfreq = 1000.
     sfreq_new = sfreq / decim
-    data = np.random.randn(n_epochs, n_channels, n_times)
+    data = rng.randn(n_epochs, n_channels, n_times)
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
     info = create_info(n_channels, sfreq, 'eeg')
     info['lowpass'] = sfreq_new / float(decim)
@@ -295,7 +296,7 @@ def test_event_ordering():
     """Test event order"""
     raw, events = _get_data()[:2]
     events2 = events.copy()
-    np.random.shuffle(events2)
+    rng.shuffle(events2)
     for ii, eve in enumerate([events, events2]):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
@@ -843,7 +844,7 @@ def test_indexing_slicing():
         assert_array_equal(data, data_normal[[idx]])
 
         # using indexing with an array
-        idx = np.random.randint(0, data_epochs2_sliced.shape[0], 10)
+        idx = rng.randint(0, data_epochs2_sliced.shape[0], 10)
         data = epochs2[idx].get_data()
         assert_array_equal(data, data_normal[idx])
 
@@ -1658,7 +1659,6 @@ def test_array_epochs():
     tempdir = _TempDir()
 
     # creating
-    rng = np.random.RandomState(42)
     data = rng.random_sample((10, 20, 300))
     sfreq = 1e3
     ch_names = ['EEG %03d' % (i + 1) for i in range(20)]

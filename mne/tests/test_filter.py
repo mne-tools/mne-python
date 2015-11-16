@@ -13,11 +13,11 @@ from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
 from mne.utils import sum_squared, run_tests_if_main, slow_test, catch_logging
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
+rng = np.random.RandomState(0)
 
 
 def test_1d_filter():
     """Test our private overlap-add filtering function"""
-    rng = np.random.RandomState(0)
     # make some random signals and filters
     for n_signal in (1, 2, 5, 10, 20, 40, 100, 200, 400, 1000, 2000):
         x = rng.randn(n_signal)
@@ -104,7 +104,6 @@ def test_notch_filters():
     freqs = np.arange(60, 241, 60)
 
     # make a "signal"
-    rng = np.random.RandomState(0)
     a = rng.randn(int(sig_len_secs * sfreq))
     orig_power = np.sqrt(np.mean(a ** 2))
     # make line noise
@@ -134,7 +133,7 @@ def test_notch_filters():
 
 def test_resample():
     """Test resampling"""
-    x = np.random.RandomState(0).normal(0, 1, (10, 10, 10))
+    x = rng.normal(0, 1, (10, 10, 10))
     x_rs = resample(x, 1, 2, 10)
     assert_equal(x.shape, (10, 10, 10))
     assert_equal(x_rs.shape, (10, 10, 5))
@@ -186,7 +185,7 @@ def test_filters():
     sfreq = 500
     sig_len_secs = 30
 
-    a = np.random.RandomState(0).randn(2, sig_len_secs * sfreq)
+    a = rng.randn(2, sig_len_secs * sfreq)
 
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
@@ -273,7 +272,7 @@ def test_filters():
     assert_true(iir_params['b'].size - 1 == 4)
 
     # check that picks work for 3d array with one channel and picks=[0]
-    a = np.random.randn(5 * sfreq, 5 * sfreq)
+    a = rng.randn(5 * sfreq, 5 * sfreq)
     b = a[:, None, :]
 
     with warnings.catch_warnings(record=True) as w:
@@ -283,7 +282,7 @@ def test_filters():
     assert_array_equal(a_filt[:, None, :], b_filt)
 
     # check for n-dimensional case
-    a = np.random.randn(2, 2, 2, 2)
+    a = rng.randn(2, 2, 2, 2)
     assert_raises(ValueError, band_pass_filter, a, sfreq, Fp1=4, Fp2=8,
                   picks=np.array([0, 1]))
 
@@ -310,7 +309,7 @@ def test_cuda():
     # as it should fall back to using n_jobs=1.
     sfreq = 500
     sig_len_secs = 20
-    a = np.random.RandomState(0).randn(sig_len_secs * sfreq)
+    a = rng.randn(sig_len_secs * sfreq)
 
     with catch_logging() as log_file:
         for fl in ['10s', None, 2048]:
@@ -343,7 +342,7 @@ def test_cuda():
                      for o in out]) == tot)
 
     # check resampling
-    a = np.random.RandomState(0).randn(3, sig_len_secs * sfreq)
+    a = rng.randn(3, sig_len_secs * sfreq)
     a1 = resample(a, 1, 2, n_jobs=2, npad=0)
     a2 = resample(a, 1, 2, n_jobs='cuda', npad=0)
     a3 = resample(a, 2, 1, n_jobs=2, npad=0)
