@@ -134,7 +134,7 @@ def test_notch_filters():
 
 def test_resample():
     """Test resampling"""
-    x = np.random.normal(0, 1, (10, 10, 10))
+    x = np.random.RandomState(0).normal(0, 1, (10, 10, 10))
     x_rs = resample(x, 1, 2, 10)
     assert_equal(x.shape, (10, 10, 10))
     assert_equal(x_rs.shape, (10, 10, 5))
@@ -186,7 +186,7 @@ def test_filters():
     sfreq = 500
     sig_len_secs = 30
 
-    a = np.random.randn(2, sig_len_secs * sfreq)
+    a = np.random.RandomState(0).randn(2, sig_len_secs * sfreq)
 
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
@@ -310,7 +310,7 @@ def test_cuda():
     # as it should fall back to using n_jobs=1.
     sfreq = 500
     sig_len_secs = 20
-    a = np.random.randn(sig_len_secs * sfreq)
+    a = np.random.RandomState(0).randn(sig_len_secs * sfreq)
 
     with catch_logging() as log_file:
         for fl in ['10s', None, 2048]:

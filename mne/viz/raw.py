@@ -13,7 +13,7 @@ from functools import partial
 import numpy as np
 
 from ..externals.six import string_types
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _pick_data_channels
 from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import compute_raw_psd
@@ -44,7 +44,7 @@ def _update_raw_data(params):
     start = params['t_start']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
     start = params['raw'].time_as_index(start)[0]
-    data_picks = pick_types(params['raw'].info, meg=True, eeg=True)
+    data_picks = _pick_data_channels(params['raw'].info)
     data, times = params['raw'][:, start:stop]
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
