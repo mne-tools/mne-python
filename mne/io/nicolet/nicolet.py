@@ -177,7 +177,7 @@ class RawNicolet(_BaseRaw):
                  misc=None, preload=False, verbose=None):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, eog, ecg, emg, misc)
-        last_samps = [header_info['num_samples']]
+        last_samps = [header_info['num_samples'] - 1]
         _check_update_montage(info, montage)
         super(RawNicolet, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
@@ -189,22 +189,27 @@ class RawNicolet(_BaseRaw):
         """Read a chunk of raw data"""
         if mult is not None:
             raise NotImplementedError()
-        sel = np.arange(self.info['nchan'])[idx]
+        nchan = self.info['nchan']
+        sel = np.arange(nchan)[idx]
 
         cal = np.array([ch['cal'] for ch in self.info['chs']])
 
-        data = data[:, offset:offset + (stop + 1 - start)]
         data_offset = self.info['nchan'] * start * 2
+        data_left = (stop - start + 1) * nchan
+        # Read up to 100 MB of data at a time.
+        blk_size = min(data_left, (50000000 // nchan) * nchan)
+        blk_start = 0
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             fid.seek(data_offset)
-            for bi in range(stop - start):
-                for ch_idx in range(self.info['nchan']):
-                    if ch_idx not in sel:
-                        fid.seek(2, 1)
-                        continue
-                    else:
-                        byte = fid.read(2)
-                        this_data = np.fromstring(byte, '<i2')[0]
-                        data[ch_idx, bi] = this_data * cal[ch_idx]
+
+            while data_left > 0:
+                this_data = np.fromfile(fid, '<i2', min(blk_size, data_left))
+                this_data = this_data.reshape(nchan, len(this_data) // nchan,
+                                              order='F').astype(float)[sel]
+                blk_stop = blk_start + len(this_data[0])
+                for idx in sel:
+                    data[idx][blk_start:blk_stop] = this_data[idx] * cal[idx]
+                data_left -= blk_size
+                blk_start = blk_stop
         return data
