@@ -3,7 +3,12 @@
 from .externals.six import string_types, integer_types
 import warnings
 import numpy as np
-from scipy.fftpack import fft, ifftshift, fftfreq
+from scipy.fftpack import ifftshift, fftfreq
+#try:
+#    from mklfft.fftpack import fft
+#except ImportError:
+#    from scipy.fftpack import fft
+
 from copy import deepcopy
 
 from .fixes import get_firwin2, get_filtfilt
@@ -11,7 +16,7 @@ from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .parallel import parallel_func, check_n_jobs
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
-from .utils import logger, verbose, sum_squared, check_version
+from .utils import logger, verbose, sum_squared, check_version, _get_mkl_fft
 
 
 def is_power2(num):
@@ -120,6 +125,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
         warnings.warn("FFT length is not a power of 2. Can be slower.")
 
     # Filter in frequency domain
+    fft = _get_mkl_fft("fft", n_jobs)
     h_fft = fft(np.concatenate([h, np.zeros(n_fft - n_h, dtype=h.dtype)]))
     assert(len(h_fft) == n_fft)
 
@@ -333,6 +339,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
                           '%0.1fdB.' % (att_freq, att_db))
 
         # Make zero-phase filter function
+        fft = _get_mkl_fft("fft", n_jobs)
         B = np.abs(fft(h)).ravel()
 
         # Figure out if we should use CUDA
@@ -1333,6 +1340,7 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
                 window.shape == (orig_len,):
             W = window
         else:
+            ifftshift = _get_mkl_fft("ifftshift")
             W = ifftshift(get_window(window, orig_len))
     else:
         W = np.ones(orig_len)
