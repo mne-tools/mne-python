@@ -1340,7 +1340,6 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
                 window.shape == (orig_len,):
             W = window
         else:
-            ifftshift = _get_mkl_fft("ifftshift")
             W = ifftshift(get_window(window, orig_len))
     else:
         W = np.ones(orig_len)
