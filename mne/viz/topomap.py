@@ -1263,7 +1263,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     if title is not None:
         plt.suptitle(title, verticalalignment='top', size='x-large')
-        tight_layout(pad=size, fig=fig)
 
     if colorbar:
         cax = plt.subplot(1, n_times + 1, n_times + 1)
