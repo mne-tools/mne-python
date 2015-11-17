@@ -42,6 +42,7 @@ fname_vol = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 fname_vsrc = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-vol-7-fwd.fif')
+rng = np.random.RandomState(0)
 
 
 @slow_test
@@ -497,8 +498,8 @@ def test_transform_data():
     """Test applying linear (time) transform to data"""
     # make up some data
     n_sensors, n_vertices, n_times = 10, 20, 4
-    kernel = np.random.randn(n_vertices, n_sensors)
-    sens_data = np.random.randn(n_sensors, n_times)
+    kernel = rng.randn(n_vertices, n_sensors)
+    sens_data = rng.randn(n_sensors, n_times)
 
     vertices = np.arange(n_vertices)
     data = np.dot(kernel, sens_data)
@@ -528,7 +529,7 @@ def test_transform():
     # make up some data
     n_verts_lh, n_verts_rh, n_times = 10, 10, 10
     vertices = [np.arange(n_verts_lh), n_verts_lh + np.arange(n_verts_rh)]
-    data = np.random.randn(n_verts_lh + n_verts_rh, n_times)
+    data = rng.randn(n_verts_lh + n_verts_rh, n_times)
     stc = SourceEstimate(data, vertices=vertices, tmin=-0.1, tstep=0.1)
 
     # data_t.ndim > 2 & copy is True
@@ -629,7 +630,7 @@ def test_to_data_frame():
     """Test stc Pandas exporter"""
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
-    data = np.random.randn(n_vert, n_times)
+    data = rng.randn(n_vert, n_times)
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
     stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
@@ -651,7 +652,7 @@ def test_get_peak():
     """
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
-    data = np.random.randn(n_vert, n_times)
+    data = rng.randn(n_vert, n_times)
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
 
@@ -682,7 +683,7 @@ def test_mixed_stc():
     T = 2  # number of time points
     S = 3  # number of source spaces
 
-    data = np.random.randn(N, T)
+    data = rng.randn(N, T)
     vertno = S * [np.arange(N // S)]
 
     # make sure error is raised if vertices are not a list of length >= 2

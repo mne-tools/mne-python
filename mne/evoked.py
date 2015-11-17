@@ -720,7 +720,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                   rank=None, show=show)
 
     def as_type(self, ch_type='grad', mode='fast'):
-        """Compute virtual evoked using interpolated fields in mag/grad channels.
+        """Compute virtual evoked using interpolated fields in mag/grad
+        channels.
 
         .. Warning:: Using virtual evoked to compute inverse can yield
             unexpected results. The virtual channels have `'_virtual'` appended
@@ -782,12 +783,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Either 0 or 1, the order of the detrending. 0 is a constant
             (DC) detrend, 1 is a linear detrend.
         picks : array-like of int | None
-            If None only MEG and EEG channels are detrended.
+            If None only MEG, EEG and SEEG channels are detrended.
         """
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
                                stim=False, eog=False, ecg=False, emg=False,
-                               exclude='bads')
+                               seeg=True, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
     def copy(self):
@@ -827,14 +828,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        ch_type : {'mag', 'grad', 'eeg', 'misc', None}
+        ch_type : {'mag', 'grad', 'eeg', 'seeg', 'misc', None}
             The channel type to use. Defaults to None. If more than one sensor
             Type is present in the data the channel type has to be explicitly
             set.
         tmin : float | None
             The minimum point in time to be considered for peak getting.
+            If None (default), the beginning of the data is used.
         tmax : float | None
             The maximum point in time to be considered for peak getting.
+            If None (default), the end of the data is used.
         mode : {'pos', 'neg', 'abs'}
             How to deal with the sign of the data. If 'pos' only positive
             values will be considered. If 'neg' only negative values will
@@ -851,9 +854,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The time point of the maximum response, either latency in seconds
             or index.
         """
-        supported = ('mag', 'grad', 'eeg', 'misc', 'None')
+        supported = ('mag', 'grad', 'eeg', 'seeg', 'misc', 'None')
 
-        data_picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False)
+        data_picks = pick_types(self.info, meg=True, eeg=True, seeg=True,
+                                ref_meg=False)
         types_used = set([channel_type(self.info, idx) for idx in data_picks])
 
         if str(ch_type) not in supported:
@@ -871,7 +875,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                'must not be `None`, pass a sensor type '
                                'value instead')
 
-        meg, eeg, misc, picks = False, False, False, None
+        meg, eeg, misc, seeg, picks = False, False, False, False, None
 
         if ch_type == 'mag':
             meg = ch_type
@@ -881,10 +885,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             eeg = True
         elif ch_type == 'misc':
             misc = True
+        elif ch_type == 'seeg':
+            seeg = True
 
         if ch_type is not None:
             picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
-                               ref_meg=False)
+                               seeg=seeg, ref_meg=False)
 
         data = self.data if picks is None else self.data[picks]
         ch_idx, time_idx = _get_peak(data, self.times, tmin,

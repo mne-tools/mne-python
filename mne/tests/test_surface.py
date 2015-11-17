@@ -23,6 +23,7 @@ fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-1280-1280-1280-bem-sol.fif')
 
 warnings.simplefilter('always')
+rng = np.random.RandomState(0)
 
 
 def test_helmet():
@@ -56,8 +57,8 @@ def test_head():
 def test_huge_cross():
     """Test cross product with lots of elements
     """
-    x = np.random.rand(100000, 3)
-    y = np.random.rand(1, 3)
+    x = rng.rand(100000, 3)
+    y = rng.rand(1, 3)
     z = np.cross(x, y)
     zz = fast_cross_3d(x, y)
     assert_array_equal(z, zz)
@@ -65,9 +66,9 @@ def test_huge_cross():
 
 def test_compute_nearest():
     """Test nearest neighbor searches"""
-    x = np.random.randn(500, 3)
+    x = rng.randn(500, 3)
     x /= np.sqrt(np.sum(x ** 2, axis=1))[:, None]
-    nn_true = np.random.permutation(np.arange(500, dtype=np.int))[:20]
+    nn_true = rng.permutation(np.arange(500, dtype=np.int))[:20]
     y = x[nn_true]
 
     nn1 = _compute_nearest(x, y, use_balltree=False)

@@ -399,7 +399,7 @@ def test_fetch_file():
 def test_sum_squared():
     """Test optimized sum of squares
     """
-    X = np.random.randint(0, 50, (3, 3))
+    X = np.random.RandomState(0).randint(0, 50, (3, 3))
     assert_equal(np.sum(X ** 2), sum_squared(X))
 
 

@@ -39,6 +39,7 @@ fname_morph = op.join(subjects_dir, 'sample', 'bem',
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_small = op.join(base_dir, 'small-src.fif.gz')
+rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
@@ -287,7 +288,6 @@ def test_triangle_neighbors():
 def test_accumulate_normals():
     """Test efficient normal accumulation for surfaces"""
     # set up comparison
-    rng = np.random.RandomState(0)
     n_pts = int(1.6e5)  # approx number in sample source space
     n_tris = int(3.2e5)
     # use all positive to make a worst-case for cumulative summation
@@ -434,8 +434,8 @@ def test_vertex_to_mni_fs_nibabel():
     """
     n_check = 1000
     subject = 'sample'
-    vertices = np.random.randint(0, 100000, n_check)
-    hemis = np.random.randint(0, 1, n_check)
+    vertices = rng.randint(0, 100000, n_check)
+    hemis = rng.randint(0, 1, n_check)
     coords = vertex_to_mni(vertices, hemis, subject, subjects_dir,
                            'nibabel')
     coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir,
@@ -512,7 +512,7 @@ def test_combine_source_spaces():
                                     mri=aseg_fname, add_interpolator=False)
 
     # setup a discrete source space
-    rr = np.random.randint(0, 20, (100, 3)) * 1e-3
+    rr = rng.randint(0, 20, (100, 3)) * 1e-3
     nn = np.zeros(rr.shape)
     nn[:, -1] = 1
     pos = {'rr': rr, 'nn': nn}
@@ -578,7 +578,6 @@ def test_morph_source_spaces():
 def test_morphed_source_space_return():
     """Test returning a morphed source space to the original subject"""
     # let's create some random data on fsaverage
-    rng = np.random.RandomState(0)
     data = rng.randn(20484, 1)
     tmin, tstep = 0, 1.
     src_fs = read_source_spaces(fname_fs)

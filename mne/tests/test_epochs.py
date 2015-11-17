@@ -27,6 +27,7 @@ from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_version)
 
+from mne.io import RawArray
 from mne.io.meas_info import create_info
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
@@ -45,10 +46,11 @@ evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
+rng = np.random.RandomState(42)
 
 
-def _get_data():
-    raw = io.Raw(raw_fname, add_eeg_ref=False, proj=False)
+def _get_data(preload=False):
+    raw = io.Raw(raw_fname, preload=preload, add_eeg_ref=False, proj=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                        ecg=True, eog=True, include=['STI 014'],
@@ -156,7 +158,7 @@ def test_decim():
     decim = dec_1 * dec_2
     sfreq = 1000.
     sfreq_new = sfreq / decim
-    data = np.random.randn(n_epochs, n_channels, n_times)
+    data = rng.randn(n_epochs, n_channels, n_times)
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
     info = create_info(n_channels, sfreq, 'eeg')
     info['lowpass'] = sfreq_new / float(decim)
@@ -294,7 +296,7 @@ def test_event_ordering():
     """Test event order"""
     raw, events = _get_data()[:2]
     events2 = events.copy()
-    np.random.shuffle(events2)
+    rng.shuffle(events2)
     for ii, eve in enumerate([events, events2]):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
@@ -842,7 +844,7 @@ def test_indexing_slicing():
         assert_array_equal(data, data_normal[[idx]])
 
         # using indexing with an array
-        idx = np.random.randint(0, data_epochs2_sliced.shape[0], 10)
+        idx = rng.randint(0, data_epochs2_sliced.shape[0], 10)
         data = epochs2[idx].get_data()
         assert_array_equal(data, data_normal[idx])
 
@@ -1435,18 +1437,31 @@ def test_drop_epochs_mult():
 
 def test_contains():
     """Test membership API"""
-    raw, events = _get_data()[:2]
+    raw, events = _get_data(True)[:2]
+    # Add seeg channel
+    seeg = RawArray(np.zeros((1, len(raw.times))),
+                    create_info(['SEEG 001'], raw.info['sfreq'], 'seeg'))
+    for key in ('dev_head_t', 'buffer_size_sec', 'highpass', 'lowpass',
+                'filename', 'dig', 'description', 'acq_pars', 'experimenter',
+                'proj_name'):
+        seeg.info[key] = raw.info[key]
+    raw.add_channels([seeg])
+    tests = [(('mag', False, False), ('grad', 'eeg', 'seeg')),
+             (('grad', False, False), ('mag', 'eeg', 'seeg')),
+             ((False, True, False), ('grad', 'mag', 'seeg')),
+             ((False, False, True), ('grad', 'mag', 'eeg'))]
 
-    tests = [(('mag', False), ('grad', 'eeg')),
-             (('grad', False), ('mag', 'eeg')),
-             ((False, True), ('grad', 'mag'))]
-
-    for (meg, eeg), others in tests:
-        picks_contains = pick_types(raw.info, meg=meg, eeg=eeg)
+    for (meg, eeg, seeg), others in tests:
+        picks_contains = pick_types(raw.info, meg=meg, eeg=eeg, seeg=seeg)
         epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax,
                         picks=picks_contains, reject=None,
                         preload=False)
-        test = 'eeg' if eeg is True else meg
+        if eeg:
+            test = 'eeg'
+        elif seeg:
+            test = 'seeg'
+        else:
+            test = meg
         assert_true(test in epochs)
         assert_true(not any(o in epochs for o in others))
 
@@ -1644,7 +1659,6 @@ def test_array_epochs():
     tempdir = _TempDir()
 
     # creating
-    rng = np.random.RandomState(42)
     data = rng.random_sample((10, 20, 300))
     sfreq = 1e3
     ch_names = ['EEG %03d' % (i + 1) for i in range(20)]
@@ -1788,6 +1802,18 @@ def test_add_channels():
     assert_raises(AssertionError, epoch_meg.add_channels, [epoch_eeg])
     assert_raises(ValueError, epoch_meg.add_channels, [epoch_meg])
     assert_raises(AssertionError, epoch_meg.add_channels, epoch_badsf)
+
+
+def test_seeg():
+    """Test the compatibility of the Epoch object with SEEG data."""
+    n_epochs, n_channels, n_times, sfreq = 5, 10, 20, 1000.
+    data = np.ones((n_epochs, n_channels, n_times))
+    events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    info = create_info(n_channels, sfreq, 'seeg')
+    epochs = EpochsArray(data, info, events)
+    picks = pick_types(epochs.info, meg=False, eeg=False, stim=False,
+                       eog=False, ecg=False, seeg=True, emg=False, exclude=[])
+    assert_equal(len(picks), n_channels)
 
 
 run_tests_if_main()

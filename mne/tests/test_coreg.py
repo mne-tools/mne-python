@@ -73,7 +73,7 @@ def test_scale_mri():
 
 def test_fit_matched_points():
     """Test fit_matched_points: fitting two matching sets of points"""
-    tgt_pts = np.random.uniform(size=(6, 3))
+    tgt_pts = np.random.RandomState(42).uniform(size=(6, 3))
 
     # rotation only
     trans = rotation(2, 6, 3)
