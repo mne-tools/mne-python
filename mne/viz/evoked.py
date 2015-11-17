@@ -11,8 +11,6 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 
-from itertools import cycle
-
 import numpy as np
 
 from ..io.pick import channel_type, pick_types, _picks_by_type
@@ -218,17 +216,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         idx = list(picks[types == t])
         idxs.append(idx)
         if len(idx) > 0:
+            # Set amplitude scaling
+            D = this_scaling * evoked.data[idx, :]
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
-                if any(i in bad_ch_idx for i in idx):
-                    colors = ['k'] * len(idx)
-                    for i in bad_ch_idx:
-                        if i in idx:
-                            colors[idx.index(i)] = 'r'
-
-                    ax._get_lines.color_cycle = iter(colors)
-                else:
-                    ax._get_lines.color_cycle = cycle(['k'])
                 text = ax.annotate('Loading...', xy=(0.01, 0.1),
                                    xycoords='axes fraction', fontsize=20,
                                    color='green')
@@ -242,14 +233,14 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                               useblit=blit,
                                               rectprops=dict(alpha=0.5,
                                                              facecolor='red')))
-            # Set amplitude scaling
-            D = this_scaling * evoked.data[idx, :]
-            if plot_type == 'butterfly':
+
                 gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
                 if not gfp_only:
-                    lines.append(ax.plot(times, D.T, picker=3., zorder=0))
+                    lines.append(ax.plot(times, D.T, picker=3., zorder=0,
+                                         color='k'))
                     for ii, line in zip(idx, lines[-1]):
                         if ii in bad_ch_idx:
+                            line.set_color('r')
                             line.set_zorder(1)
                 if gfp:  # 'only' or boolean True
                     gfp_color = (0., 1., 0.)
