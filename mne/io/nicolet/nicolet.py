@@ -207,6 +207,6 @@ class RawNicolet(_BaseRaw):
                 block = block.reshape(nchan, len(block) // nchan,
                                       order='F')[sel].astype(float)
                 blk_stop = blk_start + block.shape[1]
-                data[:, blk_start:blk_stop][sel] = block[sel] * cal[sel,
-                                                                    np.newaxis]
+                data[:, blk_start:blk_stop][sel] = block[sel] *\
+                    np.expand_dims(cal[sel], axis=1)
         return data
