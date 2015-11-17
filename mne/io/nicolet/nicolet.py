@@ -190,7 +190,7 @@ class RawNicolet(_BaseRaw):
         if mult is not None:
             raise NotImplementedError()
         nchan = self.info['nchan']
-        sel = np.arange(nchan)[idx]
+        sel = idx if idx == slice(None, None, None) else np.arange(nchan)[idx]
         cal = np.array([ch['cal'] for ch in self.info['chs']])
 
         data_offset = self.info['nchan'] * start * 2
@@ -207,6 +207,6 @@ class RawNicolet(_BaseRaw):
                 block = block.reshape(nchan, len(block) // nchan,
                                       order='F')[sel].astype(float)
                 blk_stop = blk_start + block.shape[1]
-                data[:, blk_start:blk_stop][sel] = block[sel] *\
-                    np.expand_dims(cal[sel], axis=1)
+                data[:, blk_start:blk_stop] = block * np.expand_dims(cal[sel],
+                                                                     axis=1)
         return data

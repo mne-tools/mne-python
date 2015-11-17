@@ -5,7 +5,8 @@
 
 import os.path as op
 import inspect
-from numpy.testing import assert_array_almost_equal
+import numpy as np
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import concatenate_raws
 from mne.io import read_raw_nicolet, Raw
@@ -34,3 +35,8 @@ def test_data():
     data2, times2 = raw2[:10, :]
     assert_array_almost_equal(data1, data2, 9)
     assert_array_almost_equal(times1, times2)
+
+    data_frame = np.zeros((4, 11))
+    data = raw._read_segment_file(data_frame, slice(1, 5), None, 0, 10, 20,
+                                  None, None)
+    assert_array_equal(raw._data[1:5, 10:21], data)
