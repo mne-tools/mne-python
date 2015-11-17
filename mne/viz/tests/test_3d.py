@@ -55,7 +55,7 @@ def test_plot_sparse_source_estimates():
     stc_data = np.zeros((n_verts * n_time))
     stc_size = stc_data.size
     stc_data[(np.random.rand(stc_size / 20) * stc_size).astype(int)] = \
-            np.random.RandomState(0).rand(stc_data.size / 20)
+        np.random.RandomState(0).rand(stc_data.size / 20)
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     colormap = 'mne_analyze'

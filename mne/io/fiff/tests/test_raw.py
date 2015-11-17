@@ -46,6 +46,7 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 rng = np.random.RandomState(0)
 
+
 def test_fix_types():
     """Test fixing of channel types
     """
