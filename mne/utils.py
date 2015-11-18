@@ -52,7 +52,7 @@ try:
 except ImportError:
     from scipy.fftpack import fft, ifft, fftn, ifftn
 
-for f in (fft, ifft, fftn, ifftn):
+for f in (fft, ifft, fftn, ifftn, mkl):
     assert f  # to avoid pyflakes complaining about unused imports
 
 
