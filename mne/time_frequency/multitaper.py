@@ -5,11 +5,12 @@
 from warnings import warn
 
 import numpy as np
-from scipy import fftpack, linalg
+from scipy import linalg
+from scipy.fftpack import fftfreq
 import warnings
 
 from ..parallel import parallel_func
-from ..utils import verbose, sum_squared
+from ..utils import verbose, sum_squared, fft, ifft
 
 
 def tridisolve(d, e, b, overwrite_b=True):

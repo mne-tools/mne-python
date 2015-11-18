@@ -3,9 +3,8 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy.fftpack import fft, ifft
 
-from .utils import sizeof_fmt, logger, get_config
+from .utils import sizeof_fmt, logger, get_config, fft, ifft
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda

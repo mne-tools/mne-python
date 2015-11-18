@@ -6,7 +6,8 @@
 from warnings import warn
 
 import numpy as np
-from scipy import linalg, fftpack
+from scipy import linalg
+from scipy.fftpack import fftfreq
 import warnings
 
 from ..io.constants import FIFF
@@ -19,7 +20,7 @@ from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose
+from ..utils import logger, verbose, fft
 from ..externals import six
 
 
@@ -449,7 +450,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     n_fft = int(n_fft)
     Fs = raw.info['sfreq']
     window = hanning(n_fft)
-    freqs = fftpack.fftfreq(n_fft, 1. / Fs)
+    freqs = fftfreq(n_fft, 1. / Fs)
     freqs_mask = (freqs >= 0) & (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freqs_mask]
     fstep = np.mean(np.diff(freqs))
@@ -467,7 +468,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
         data *= window[None, :]
 
-        data_fft = fftpack.fft(data)[:, freqs_mask]
+        data_fft = fft(data)[:, freqs_mask]
         sol = np.dot(K, data_fft)
 
         if is_free_ori and pick_ori is None:

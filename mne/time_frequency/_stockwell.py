@@ -6,11 +6,11 @@
 from copy import deepcopy
 import math
 import numpy as np
-from scipy import fftpack
+from scipy.fftpack import fftfreq
 # XXX explore cuda optimazation at some point.
 
 from ..io.pick import pick_types, pick_info
-from ..utils import logger, verbose
+from ..utils import logger, verbose, fft, ifft
 from ..parallel import parallel_func, check_n_jobs
 from .tfr import AverageTFR, _get_data
 

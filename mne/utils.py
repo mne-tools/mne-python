@@ -30,6 +30,11 @@ import atexit
 import numpy as np
 from scipy import linalg, sparse
 
+try:
+    from mkl.fftpack import fft, ifft, fftn, ifftn
+except ImportError:
+    from scipy.fftpack import fft, ifft, fftn, ifftn
+
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
@@ -1985,25 +1990,3 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     # change comment field
     grand_average.comment = "Grand average (n = %d)" % grand_average.nave
     return grand_average
-
-
-def _get_mkl_fft(f, n_jobs):
-    if isinstance(n_jobs, int):
-        try:
-            import mklfft.fftpack as fftpack
-            try:
-                import mkl
-                mkl.set_num_threads(n_jobs)
-            except ImportError:
-                m = ("Trying to use mklfft, but mkl-service is not available. "
-                     "Can't set number of threads. Try installing mkl-service."
-                     )
-                raise ImportError(m)
-            if n_jobs < 2:
-                m = "Using mklfft, but only 1 job selected. No speedup."
-                warnings.warn(m)
-        except ImportError:
-            import scipy.fftpack as fftpack
-    else:
-        import scipy.fftpack as fftpack
-    return getattr(fftpack, f)
