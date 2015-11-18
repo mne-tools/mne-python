@@ -181,7 +181,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample="https://s3.amazonaws.com/mne-python/datasets/%s",
         spm='https://s3.amazonaws.com/mne-python/datasets/%s',
         somato='https://s3.amazonaws.com/mne-python/datasets/%s',
-        brainstorm='https://s3.amazonaws.com/mne-python/datasets/%s',
+        brainstorm='https://s3.amazonaws.com/mne-python/datasets/'
+                   'MNE-brainstorm-data/%s',
         testing='https://github.com/mne-tools/mne-testing-data/archive/'
                 'master.tar.gz',
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
