@@ -35,6 +35,9 @@ try:
 except ImportError:
     from scipy.fftpack import fft, ifft, fftn, ifftn
 
+for f in (fft, ifft, fftn, ifftn):
+    assert f  # to avoid pyflakes complaining about unused imports
+
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
