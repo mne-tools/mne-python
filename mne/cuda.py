@@ -4,7 +4,8 @@
 
 import numpy as np
 
-from .utils import sizeof_fmt, logger, get_config, fft, ifft
+from .utils import sizeof_fmt, logger, get_config, fft
+from scipy.fftpack import ifft
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda

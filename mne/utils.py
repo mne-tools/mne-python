@@ -30,11 +30,6 @@ import atexit
 import numpy as np
 from scipy import linalg, sparse
 
-try:
-    from mkl.fftpack import fft, ifft, fftn, ifftn
-except ImportError:
-    from scipy.fftpack import fft, ifft, fftn, ifftn
-
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
@@ -44,6 +39,18 @@ from .fixes import isclose, _get_args
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
+try:
+    from mklfft.fftpack import fft, ifft, fftn, ifftn
+    try:
+        import mkl
+    except ImportError:
+        warnings.warn("`mklfft` found, but `mkl` could not be loaded. Not able"
+                      " to set the number of threads via mkl.set_num_threads."
+                      " Note that single-threaded `mklfft` is not expected to"
+                      " be faster than Scipy's regular FFT.")
+    logger.info("Using `mklfft` for FFT.")
+except ImportError:
+    from scipy.fftpack import fft, ifft, fftn, ifftn
 
 def _memory_usage(*args, **kwargs):
     if isinstance(args[0], tuple):
