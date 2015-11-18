@@ -52,6 +52,10 @@ try:
 except ImportError:
     from scipy.fftpack import fft, ifft, fftn, ifftn
 
+for f in (fft, ifft, fftn, ifftn):
+    assert f  # to avoid pyflakes complaining about unused imports
+
+
 def _memory_usage(*args, **kwargs):
     if isinstance(args[0], tuple):
         args[0][0](*args[0][1], **args[0][2])
