@@ -204,8 +204,7 @@ class RawNicolet(_BaseRaw):
                 block = np.fromfile(fid, '<i2', blk_size)
                 block = block.reshape(nchan, -1, order='F')[sel].astype(float)
                 blk_stop = blk_start + block.shape[1]
-                data[:, blk_start:blk_stop] = block * np.expand_dims(cal[sel],
-                                                                     axis=1)
+                data[:, blk_start:blk_stop] = block * cal[sel][:, np.newaxis]
         if mult is not None:
             data = np.dot(mult, data)
         return data
