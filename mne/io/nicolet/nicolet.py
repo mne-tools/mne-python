@@ -188,9 +188,7 @@ class RawNicolet(_BaseRaw):
                            mult):
         """Read a chunk of raw data"""
         nchan = self.info['nchan']
-        sel = idx if idx == slice(None, None, None) else np.arange(nchan)[idx]
         cal = np.array([ch['cal'] for ch in self.info['chs']])
-
         data_offset = self.info['nchan'] * start * 2
         data_left = (stop - start + 1) * nchan
         # Read up to 100 MB of data at a time.
@@ -202,9 +200,9 @@ class RawNicolet(_BaseRaw):
             for blk_start in np.arange(0, data_left, blk_size) // nchan:
                 blk_size = min(blk_size, data_left - blk_start * nchan)
                 block = np.fromfile(fid, '<i2', blk_size)
-                block = block.reshape(nchan, -1, order='F')[sel].astype(float)
+                block = block.reshape(nchan, -1, order='F')[idx].astype(float)
                 blk_stop = blk_start + block.shape[1]
-                data[:, blk_start:blk_stop] = block * cal[sel][:, np.newaxis]
+                data[:, blk_start:blk_stop] = block * cal[idx][:, np.newaxis]
         if mult is not None:
             data = np.dot(mult, data)
         return data
