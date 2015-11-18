@@ -334,7 +334,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
                           '%0.1fdB.' % (att_freq, att_db))
 
         # Make zero-phase filter function
-            B = np.abs(fft(h)).ravel()
+        B = np.abs(fft(h)).ravel()
 
         # Figure out if we should use CUDA
         n_jobs, cuda_dict, B = setup_cuda_fft_multiply_repeated(n_jobs, B)
