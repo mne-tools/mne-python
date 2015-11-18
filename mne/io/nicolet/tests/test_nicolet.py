@@ -20,7 +20,12 @@ fname = op.join(base_dir, 'test_nicolet_raw.data')
 def test_data():
     """Test reading raw nicolet files."""
     tempdir = _TempDir()
-    read_raw_nicolet(fname, preload=False)
+    data = list()
+    for preload in [False, True]:
+        raw = read_raw_nicolet(fname, preload=preload)
+        picks = [2, 3, 12, 13]
+        data.append(raw[picks, 20:30][0])
+    assert_array_equal(data[0], data[1])
 
     # Make sure concatenation works
     raw = read_raw_nicolet(fname, preload=True)

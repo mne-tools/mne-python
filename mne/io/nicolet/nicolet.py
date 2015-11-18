@@ -187,8 +187,6 @@ class RawNicolet(_BaseRaw):
     def _read_segment_file(self, data, idx, offset, fi, start, stop, cals,
                            mult):
         """Read a chunk of raw data"""
-        if mult is not None:
-            raise NotImplementedError()
         nchan = self.info['nchan']
         sel = idx if idx == slice(None, None, None) else np.arange(nchan)[idx]
         cal = np.array([ch['cal'] for ch in self.info['chs']])
@@ -204,9 +202,10 @@ class RawNicolet(_BaseRaw):
             for blk_start in np.arange(0, data_left, blk_size) // nchan:
                 blk_size = min(blk_size, data_left - blk_start * nchan)
                 block = np.fromfile(fid, '<i2', blk_size)
-                block = block.reshape(nchan, len(block) // nchan,
-                                      order='F')[sel].astype(float)
+                block = block.reshape(nchan, -1, order='F')[sel].astype(float)
                 blk_stop = blk_start + block.shape[1]
                 data[:, blk_start:blk_stop] = block * np.expand_dims(cal[sel],
                                                                      axis=1)
+        if mult is not None:
+            data = np.dot(mult, data)
         return data
