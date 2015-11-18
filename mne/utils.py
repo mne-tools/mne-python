@@ -43,6 +43,7 @@ try:
     from mklfft.fftpack import fft, ifft, fftn, ifftn
     try:
         import mkl
+        assert mkl
     except ImportError:
         warnings.warn("`mklfft` found, but `mkl` could not be loaded. Not able"
                       " to set the number of threads via mkl.set_num_threads."
@@ -52,7 +53,7 @@ try:
 except ImportError:
     from scipy.fftpack import fft, ifft, fftn, ifftn
 
-for f in (fft, ifft, fftn, ifftn, mkl):
+for f in (fft, ifft, fftn, ifftn):
     assert f  # to avoid pyflakes complaining about unused imports
 
 
