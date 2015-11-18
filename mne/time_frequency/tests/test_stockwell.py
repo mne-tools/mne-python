@@ -14,7 +14,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.time_frequency._stockwell import (tfr_stockwell, _st,
                                            _precompute_st_windows)
 from mne.time_frequency.tfr import AverageTFR
-from mne.utils import fft
+from mne.utils import ifft
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
