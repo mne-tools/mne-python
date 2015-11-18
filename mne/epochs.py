@@ -2001,6 +2001,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     return epochs
 
 
+@verbose
 def equalize_epoch_counts(epochs_list, method='mintime', verbose=None):
     """Equalize the number of trials in multiple Epoch instances
 
