@@ -12,7 +12,7 @@ from mne.io.pick import _pick_data_channels
 
 
 def _test_raw_object(reader, *args):
-    """Test reading, writing, concatenating and filtering of raw classes."""
+    """Test reading, writing and concatenating of raw classes."""
     tempdir = _TempDir()
     raw = reader(*args, preload=False)
     raw_preload = reader(*args, preload=True)
@@ -37,30 +37,33 @@ def _test_raw_object(reader, *args):
     assert_array_almost_equal(data1, data3, 9)
     assert_array_almost_equal(times1, times2)
     assert_array_almost_equal(times1, times3)
+    return raw_preload  # raw object to feed for filter test
 
-    # filtering
-    picks = _pick_data_channels(raw_preload.info)[:4]
+
+def _test_raw_filter(raw, precision=5):
+    """Test filtering of raw classes."""
+    picks = _pick_data_channels(raw.info)[:4]
     assert_equal(len(picks), 4)
-    raw_lp = raw_preload.copy()
+    raw_lp = raw.copy()
     with warnings.catch_warnings(record=True):
         raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2)
-    raw_hp = raw_preload.copy()
+    raw_hp = raw.copy()
     with warnings.catch_warnings(record=True):
         raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2)
-    raw_bp = raw_preload.copy()
+    raw_bp = raw.copy()
     with warnings.catch_warnings(record=True):
         raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
-    raw_bs = raw_preload.copy()
+    raw_bs = raw.copy()
     with warnings.catch_warnings(record=True):
         raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2)
-    data, _ = raw_preload[picks, :]
+    data, _ = raw[picks, :]
     lp_data, _ = raw_lp[picks, :]
     hp_data, _ = raw_hp[picks, :]
     bp_data, _ = raw_bp[picks, :]
     bs_data, _ = raw_bs[picks, :]
 
-    assert_array_almost_equal(data, lp_data + bp_data + hp_data, 5)
-    assert_array_almost_equal(data, bp_data + bs_data, 6)
+    assert_array_almost_equal(data, lp_data + bp_data + hp_data, precision)
+    assert_array_almost_equal(data, bp_data + bs_data, precision)
 
 
 def _test_concat(reader, *args):
