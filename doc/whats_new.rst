@@ -24,6 +24,10 @@ Changelog
 
     - Add reader for Nicolet files in :func:`mne.io.read_raw_nicolet` by `Jaakko Leppakangas`_
 
+    - Add FIFF persistence for ICA labels by `Denis Engemann`_
+
+    - Display ICA labels in :func:`mne.viz.plot_ica_scores` and :func:`mne.viz.plot_ica_sources` (for evoked objects) by `Denis Engemann`_
+
 BUG
 ~~~
 
