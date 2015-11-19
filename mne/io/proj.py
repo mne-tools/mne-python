@@ -383,6 +383,8 @@ def _write_proj(fid, projs):
     projs : dict
         The projection operator.
     """
+    if len(projs) == 0:
+        return
     start_block(fid, FIFF.FIFFB_PROJ)
 
     for proj in projs:

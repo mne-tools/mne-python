@@ -32,7 +32,7 @@ from ...event import read_events
 
 
 class RawKIT(_BaseRaw):
-    """Raw object from KIT SQD file adapted from bti/raw.py
+    """Raw object from KIT SQD file
 
     Parameters
     ----------

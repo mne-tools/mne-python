@@ -17,6 +17,7 @@ from . import array
 from . import base
 from . import brainvision
 from . import bti
+from . import ctf
 from . import constants
 from . import edf
 from . import egi
@@ -28,6 +29,7 @@ from . import pick
 from .array import RawArray
 from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
+from .ctf import read_raw_ctf
 from .edf import read_raw_edf
 from .egi import read_raw_egi
 from .kit import read_raw_kit, read_epochs_kit

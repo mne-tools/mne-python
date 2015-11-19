@@ -241,10 +241,11 @@ def write_ctf_comp(fid, comps):
         start_block(fid, FIFF.FIFFB_MNE_CTF_COMP_DATA)
         #    Write the compensation kind
         write_int(fid, FIFF.FIFF_MNE_CTF_COMP_KIND, comp['ctfkind'])
-        write_int(fid, FIFF.FIFF_MNE_CTF_COMP_CALIBRATED,
-                  comp['save_calibrated'])
+        if 'save_calibrated' in comp:
+            write_int(fid, FIFF.FIFF_MNE_CTF_COMP_CALIBRATED,
+                      comp['save_calibrated'])
 
-        if not comp['save_calibrated']:
+        if not comp.get('save_calibrated', True):
             # Undo calibration
             comp = deepcopy(comp)
             data = ((1. / comp['rowcals'][:, None]) * comp['data']['data'] *
