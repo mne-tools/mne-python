@@ -11,24 +11,39 @@ from mne.utils import _TempDir
 from mne.io.pick import _pick_data_channels
 
 
-def _test_raw_object(reader, *args):
-    """Test reading, writing and concatenating of raw classes."""
+def _test_raw_object(reader, test_preloading, **kwargs):
+    """Test reading, writing and concatenating of raw classes.
+
+     Parameters
+    ----------
+    reader : function
+        Function to test.
+    test_preloading : bool
+        Whether not preloading is implemented for the reader. If True, both
+        cases are tested.
+    **kwargs :
+        Arguments for the reader.
+    """
     tempdir = _TempDir()
-    raw = reader(*args, preload=False)
-    raw_preload = reader(*args, preload=True)
-    picks = [1, 3, 5]
-    assert_array_equal(raw[picks, 20:30][0], raw_preload[picks, 20:30][0])
+    raws = list()
+    raws.append(reader(**kwargs))
+    if test_preloading:
+        raws.append(reader(preload=True, **kwargs))
+        picks = [1, 3, 5]
+        assert_array_equal(raws[0][picks, 20:30][0], raws[1][picks, 20:30][0])
+    raw = raws[-1]  # use preloaded raw
 
     # Make sure concatenation works
-    raw2 = base.concatenate_raws([raw_preload.copy(), raw_preload])
+    raw2 = base.concatenate_raws([raw.copy(), raw])
 
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')
-    for obj in [raw, raw_preload]:
-        obj.save(out_fname, tmax=raw.times[-1], overwrite=True)
-        Raw(out_fname)
+    for obj in raws:
+        obj.save(out_fname, tmax=obj.times[-1], overwrite=True)
+        raw3 = Raw(out_fname)
+        assert_equal(sorted(raw.info.keys()), sorted(raw3.info.keys()))
 
-    full_data = raw_preload._data
+    full_data = raw._data
     data1, times1 = raw[:10:3, 10:12]
     data2, times2 = raw2[:10:3, 10:12]
     data3, times3 = raw2[[0, 3, 6, 9], 10:12]
@@ -37,10 +52,10 @@ def _test_raw_object(reader, *args):
     assert_array_almost_equal(data1, data3, 9)
     assert_array_almost_equal(times1, times2)
     assert_array_almost_equal(times1, times3)
-    return raw_preload  # raw object to feed for filter test
+    return raw  # raw object to feed for filter test
 
 
-def _test_raw_filter(raw, precision=5):
+def _test_raw_filter(raw, precision):
     """Test filtering of raw classes."""
     picks = _pick_data_channels(raw.info)[:4]
     assert_equal(len(picks), 4)

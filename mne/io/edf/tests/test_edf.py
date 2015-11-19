@@ -22,7 +22,8 @@ from mne import pick_types, concatenate_raws
 from mne.externals.six import iterbytes
 from mne.utils import _TempDir, run_tests_if_main, requires_pandas
 from mne.io import Raw, read_raw_edf, RawArray
-from mne.io.tests.test_raw import _test_concat
+from mne.io.tests.test_raw import (_test_concat, _test_raw_object,
+                                   _test_raw_filter)
 import mne.io.edf.edf as edfmodule
 from mne.event import find_events
 
@@ -52,8 +53,8 @@ def test_concat():
 
 def test_bdf_data():
     """Test reading raw bdf files"""
-    raw_py = read_raw_edf(bdf_path, montage=montage_path, eog=eog,
-                          misc=misc, preload=True)
+    raw_py = _test_raw_object(read_raw_edf, True, input_fname=bdf_path,
+                              montage=montage_path, eog=eog, misc=misc)
     assert_true('RawEDF' in repr(raw_py))
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
@@ -69,10 +70,7 @@ def test_bdf_data():
     assert_true((raw_py.info['chs'][0]['loc']).any())
     assert_true((raw_py.info['chs'][25]['loc']).any())
     assert_true((raw_py.info['chs'][63]['loc']).any())
-
-    # Make sure concatenation works
-    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
-    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
+    _test_raw_filter(raw_py, precision=5)
 
 
 def test_edf_data():
@@ -110,6 +108,8 @@ def test_edf_data():
     upsample = len(data_eeglab) / len(raw_py)
     data_py = np.repeat(data_py, repeats=upsample)
     assert_array_equal(data_py, data_eeglab)
+
+    assert_raises(RuntimeError, read_raw_edf, edf_path, preload=False)
 
 
 def test_read_segment():
@@ -157,7 +157,7 @@ def test_read_segment():
 def test_append():
     """Test appending raw edf objects using Raw.append"""
     for preload in (True, False):
-        raw = read_raw_edf(bdf_path, preload=False)
+        raw = read_raw_edf(bdf_path, preload=preload)
         raw0 = raw.copy()
         raw1 = raw.copy()
         raw0.append(raw1)
@@ -222,23 +222,6 @@ def test_edf_annotations():
     events[1::2, [0, 1]] = offsets
 
     assert_array_equal(edf_events, events)
-
-
-def test_write_annotations():
-    """Test writing raw files when annotations were parsed."""
-    tempdir = _TempDir()
-    raw1 = read_raw_edf(edf_path, preload=True)
-    raw1_file = op.join(tempdir, 'test1-raw.fif')
-    raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
-    raw11 = Raw(raw1_file, preload=True)
-    data1, times1 = raw1[:, :]
-    data11, times11 = raw11[:, :]
-
-    assert_array_almost_equal(data1, data11)
-    assert_array_almost_equal(times1, times11)
-    assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
-
-    assert_raises(RuntimeError, read_raw_edf, edf_path, preload=False)
 
 
 def test_edf_stim_channel():

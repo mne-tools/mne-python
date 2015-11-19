@@ -16,5 +16,5 @@ fname = op.join(base_dir, 'test_nicolet_raw.data')
 
 def test_data():
     """Test reading raw nicolet files."""
-    raw = _test_raw_object(read_raw_nicolet, fname)
+    raw = _test_raw_object(read_raw_nicolet, True, input_fname=fname)
     _test_raw_filter(raw, precision=5)
