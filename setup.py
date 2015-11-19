@@ -81,6 +81,7 @@ if __name__ == "__main__":
                     'mne.io.array', 'mne.io.array.tests',
                     'mne.io.brainvision', 'mne.io.brainvision.tests',
                     'mne.io.bti', 'mne.io.bti.tests',
+                    'mne.io.ctf', 'mne.io.ctf.tests',
                     'mne.io.edf', 'mne.io.edf.tests',
                     'mne.io.egi', 'mne.io.egi.tests',
                     'mne.io.fiff', 'mne.io.fiff.tests',

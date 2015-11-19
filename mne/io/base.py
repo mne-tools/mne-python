@@ -1832,7 +1832,24 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
 
+def _mult_cal_one(data_view, one, idx, fi, cals, mult):
+    """Take a chunk of raw data, multiply by mult or cals, and store"""
+    one = one.astype(data_view.dtype)
+    if mult is not None:
+        data_view[:] = np.dot(mult[fi], one)
+    else:  # cals is not None
+        if isinstance(idx, slice):
+            data_view[:] = one[idx]
+        else:
+            # faster to iterate than doing
+            # one = one[idx]
+            for ii, ix in enumerate(idx):
+                data_view[ii] = one[ix]
+        data_view *= cals
+
+
 def _allocate_data(data, data_buffer, data_shape, dtype):
+    """Helper to data in memory or in memmap for preloading"""
     if data is None:
         # if not already done, allocate array with right type
         if isinstance(data_buffer, string_types):

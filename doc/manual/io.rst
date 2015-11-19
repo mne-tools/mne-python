@@ -85,10 +85,7 @@ See :ref:`mne_create_comp_data` for command-line options.
 Importing CTF data
 ==================
 
-The C command line tools include a utility :ref:`mne_ctf2fiff`,
-based on the BrainStorm Matlab code by Richard Leahy, John Mosher,
-and Sylvain Baillet, to convert data in CTF ds directory to fif
-format.
+In MNE-Python, :func:`mne.io.read_raw_ctf` can be used to read CTF data.
 
 
 Importing CTF Polhemus data

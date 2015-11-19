@@ -20,7 +20,8 @@ from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
 from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
 from ..compensator import get_current_comp, set_current_comp, make_compensator
-from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
+from ..base import (_BaseRaw, _RawShell, _check_raw_compatibility,
+                    _mult_cal_one)
 
 from ...utils import check_fname, logger, verbose
 
@@ -381,19 +382,8 @@ class RawFIF(_BaseRaw):
                                                   self.info['nchan']),
                                            rlims=(first_pick, last_pick)).data
                             one.shape = (picksamp, self.info['nchan'])
-                            one = one.T.astype(data.dtype)
-                            data_view = data[:, offset:(offset + picksamp)]
-                            if mult is not None:
-                                data_view[:] = np.dot(mult[fi], one)
-                            else:  # cals is not None
-                                if isinstance(idx, slice):
-                                    data_view[:] = one[idx]
-                                else:
-                                    # faster to iterate than doing
-                                    # one = one[idx]
-                                    for ii, ix in enumerate(idx):
-                                        data_view[ii] = one[ix]
-                                data_view *= cals
+                            _mult_cal_one(data[:, offset:(offset + picksamp)],
+                                          one.T, idx, fi, cals, mult)
                         offset += picksamp
 
                 #   Done?
