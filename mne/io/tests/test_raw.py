@@ -4,11 +4,26 @@ from numpy.testing import assert_allclose
 
 from mne.datasets import testing
 from mne.io import Raw
+from mne.utils import _TempDir
+from numpy.ma.testutils import assert_array_equal
+
+
+def _test_raw_object(reader, *args):
+    """Test reading and writing of raw classes."""
+    tempdir = _TempDir()
+    for preload in (True, False):
+        raw = reader(*args, preload=preload)
+        data = raw[:, :][0]
+        out_fname = op.join(tempdir, 'test_raw.fif')
+        raw.save(out_fname, overwrite=True)
+        raw = Raw(out_fname)
+        assert_array_equal(raw[:, :][0], data)
 
 
 def _test_concat(reader, *args):
     """Test concatenation of raw classes that allow not preloading"""
     data = None
+
     for preload in (True, False):
         raw1 = reader(*args, preload=preload)
         raw2 = reader(*args, preload=preload)
@@ -17,6 +32,7 @@ def _test_concat(reader, *args):
         if data is None:
             data = raw1[:, :][0]
         assert_allclose(data, raw1[:, :][0])
+
     for first_preload in (True, False):
         raw = reader(*args, preload=first_preload)
         data = raw[:, :][0]
