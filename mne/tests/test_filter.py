@@ -123,9 +123,9 @@ def test_notch_filters():
 
         if lf is None:
             out = log_file.getvalue().split('\n')[:-1]
-            if len(out) != 2:
+            if len(out) != 2 and len(out) != 3:  # force_serial: len(out) == 3
                 raise ValueError('Detected frequencies not logged properly')
-            out = np.fromstring(out[1], sep=', ')
+            out = np.fromstring(out[-1], sep=', ')
             assert_array_almost_equal(out, freqs)
         new_power = np.sqrt(sum_squared(b) / b.size)
         assert_almost_equal(new_power, orig_power, tol)
