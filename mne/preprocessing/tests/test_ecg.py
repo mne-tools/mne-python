@@ -15,12 +15,16 @@ proj_fname = op.join(data_path, 'test-proj.fif')
 def test_find_ecg():
     """Test find ECG peaks"""
     raw = Raw(raw_fname)
-    events, ch_ECG, average_pulse, ecg = find_ecg_events(
-        raw, event_id=999, ch_name=None, return_ecg=True)
-    assert_equal(len(raw.times), len(ecg))
-    n_events = len(events)
-    _, times = raw[0, :]
-    assert_true(55 < average_pulse < 60)
+
+    # once with mag-trick
+    # once with characteristic channel
+    for ch_name in ['MEG 1531', None]:
+        events, ch_ECG, average_pulse, ecg = find_ecg_events(
+            raw, event_id=999, ch_name=None, return_ecg=True)
+        assert_equal(len(raw.times), len(ecg))
+        n_events = len(events)
+        _, times = raw[0, :]
+        assert_true(55 < average_pulse < 60)
 
     picks = pick_types(
         raw.info, meg='grad', eeg=False, stim=False,
