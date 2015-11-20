@@ -28,13 +28,16 @@ def _test_raw_object(reader, test_preloading, **kwargs):
     raws = list()
     raws.append(reader(**kwargs))
     if test_preloading:
+        buffer_fname = op.join(tempdir, 'buffer')
+        raws.append(reader(preload=buffer_fname, **kwargs))
         raws.append(reader(preload=True, **kwargs))
         picks = [1, 3, 5]
-        assert_array_equal(raws[0][picks, 20:30][0], raws[1][picks, 20:30][0])
+        assert_array_equal(raws[0][picks, 20:30][0], raws[-1][picks, 20:30][0])
     raw = raws[-1]  # use preloaded raw
     full_data = raw._data
     # Make sure concatenation works
     raw2 = base.concatenate_raws([raw.copy(), raw])
+    assert_equal(raw2.n_times, 2 * raw.n_times)
 
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')

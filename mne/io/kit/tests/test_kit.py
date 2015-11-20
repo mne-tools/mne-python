@@ -123,9 +123,9 @@ def test_read_segment():
     raw1.save(raw1_file, buffer_size_sec=.1, overwrite=True)
     raw1 = Raw(raw1_file, preload=True)
     buffer_fname = op.join(tempdir, 'buffer')
-    raw5 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
+    raw2 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
                         preload=buffer_fname)
-    assert_array_almost_equal(raw1._data, raw5._data)
+    assert_array_almost_equal(raw1._data, raw2._data)
 
 
 def test_ch_loc():
