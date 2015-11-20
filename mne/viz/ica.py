@@ -337,8 +337,7 @@ def plot_ica_scores(ica, scores,
         If list, should match the outer shape of `scores`.
         If 'ecg' or 'eog', the labels_ attributes will be looked up.
         Note that '/' is used internally for sublabels specifying ECG and
-        EOG channels. Unless you want to lookup these labels don not use
-        '/'.
+        EOG channels.
     axhline : float
         Draw horizontal line to e.g. visualize rejection threshold.
     title : str
@@ -370,9 +369,9 @@ def plot_ica_scores(ica, scores,
     plt.suptitle(title)
 
     if labels == 'ecg':
-        labels = [l for l in ica.labels_ if l.startswith('ecg|')]
+        labels = [l for l in ica.labels_ if l.startswith('ecg/')]
     elif labels == 'eog':
-        labels = [l for l in ica.labels_ if l.startswith('eog|')]
+        labels = [l for l in ica.labels_ if l.startswith('eog/')]
         labels.sort(key=lambda l: l.split('/')[1])  # sort by index
     elif isinstance(labels, string_types):
         if len(axes) > 1:

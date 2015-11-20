@@ -304,11 +304,10 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
             ecg[None],
             create_info(ch_names=['ECG-SYN'],
                         sfreq=raw.info['sfreq'], ch_types=['ecg']))
-        ignore = ['ch_names', 'chs', 'nchan']
+        ignore = ['ch_names', 'chs', 'nchan', 'bads']
         for k, v in raw.info.items():
             if k not in ignore:
                 ecg_raw.info[k] = v
-        raw.load_data()
         raw.add_channels([ecg_raw])
 
     if picks is None and not keep_ecg:
