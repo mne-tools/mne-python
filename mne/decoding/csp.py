@@ -1,6 +1,7 @@
 # Authors: Romain Trachel <trachelr@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Alexandre Barachant <alexandre.barachant@gmail.com>
+#          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD (3-clause)
 
