@@ -115,33 +115,16 @@ class CSP(TransformerMixin):
         """Aux Function (modifies cov_a and cov_b in-place)."""
         cov_a /= np.trace(cov_a)
         cov_b /= np.trace(cov_b)
-        # computes the eigen values
-        lambda_, u = linalg.eigh(cov_a + cov_b)
-        # sort them
-        ind = np.argsort(lambda_)[::-1]
-        lambda2_ = lambda_[ind]
 
-        u = u[:, ind]
-        p = np.dot(np.sqrt(linalg.pinv(np.diag(lambda2_))), u.T)
-
-        # Compute the generalized eigen value problem
-        w_a = np.dot(np.dot(p, cov_a), p.T)
-        w_b = np.dot(np.dot(p, cov_b), p.T)
-        # and solve it
-        vals, vecs = linalg.eigh(w_a, w_b)
-        # sort vectors by discriminative power using eigenvalues
-        ind = np.argsort(vals)[::-1]
-        vecs = vecs[:, ind]
-        # re-order (first, last, second, second last, third, ...)
-        n_vals = len(ind)
+        e, w = linalg.eigh(cov_a, cov_a + cov_b)
+        w = w[:, ::-1]  # descending order
+        n_vals = len(e)
+        ind = np.empty(n_vals, dtype=int)
         ind[::2] = np.arange(0, int(np.ceil(n_vals / 2.0)))
         ind[1::2] = np.arange(n_vals - 1, int(np.ceil(n_vals / 2.0)) - 1, -1)
-        vecs = vecs[:, ind]
-        # and project
-        w = np.dot(vecs.T, p)
-
+        w = w[:, ind]  # first, last, second, second last, third, ...
         self.filters_ = w
-        self.patterns_ = linalg.pinv(w).T
+        self.patterns_ = np.linalg.pinv(w)
 
     def transform(self, epochs_data, y=None):
         """Estimate epochs sources given the CSP filters.
