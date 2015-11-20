@@ -32,20 +32,19 @@ def _test_raw_object(reader, test_preloading, **kwargs):
         picks = [1, 3, 5]
         assert_array_equal(raws[0][picks, 20:30][0], raws[1][picks, 20:30][0])
     raw = raws[-1]  # use preloaded raw
-
+    full_data = raw._data
     # Make sure concatenation works
     raw2 = base.concatenate_raws([raw.copy(), raw])
 
     # Test saving and reading
-    raw3 = None
     out_fname = op.join(tempdir, 'test_raw.fif')
     for obj in raws:
         obj.save(out_fname, tmax=obj.times[-1], overwrite=True)
         raw3 = Raw(out_fname)
         assert_equal(sorted(raw.info.keys()), sorted(raw3.info.keys()))
+        assert_array_almost_equal(raw3.load_data()._data[0:20],
+                                  full_data[0:20])
 
-    assert_array_almost_equal(raw3.load_data()._data[0:20], raw._data[0:20])
-    full_data = raw._data
     data1, times1 = raw[:10:3, 10:12]
     data2, times2 = raw2[:10:3, 10:12]
     data3, times3 = raw2[[0, 3, 6, 9], 10:12]
