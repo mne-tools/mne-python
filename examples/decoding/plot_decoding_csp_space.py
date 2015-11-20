@@ -103,5 +103,5 @@ print(scores.mean())  # should get better results than above
 csp.fit_transform(epochs_data, labels)
 evoked.data = csp.patterns_.T
 evoked.times = np.arange(evoked.data.shape[0])
-evoked.plot_topomap(times=[0, 1, 201, 202], ch_type='grad',
+evoked.plot_topomap(times=[0, 1, 2, 3], ch_type='grad',
                     colorbar=False, size=1.5)
