@@ -70,7 +70,7 @@ def test_bdf_data():
     assert_true((raw_py.info['chs'][0]['loc']).any())
     assert_true((raw_py.info['chs'][25]['loc']).any())
     assert_true((raw_py.info['chs'][63]['loc']).any())
-    _test_raw_filter(raw_py, precision=5)
+    _test_raw_filter(raw_py)
 
 
 def test_edf_data():

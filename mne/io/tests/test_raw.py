@@ -14,7 +14,7 @@ from mne.io.pick import _pick_data_channels
 def _test_raw_object(reader, test_preloading, **kwargs):
     """Test reading, writing and concatenating of raw classes.
 
-     Parameters
+    Parameters
     ----------
     reader : function
         Function to test.
@@ -42,6 +42,8 @@ def _test_raw_object(reader, test_preloading, **kwargs):
         obj.save(out_fname, tmax=obj.times[-1], overwrite=True)
         raw3 = Raw(out_fname)
         assert_equal(sorted(raw.info.keys()), sorted(raw3.info.keys()))
+        assert_array_almost_equal(raw._data[:, 0:10],
+                                  raw3._read_segment(0, 10)[0], 9)
 
     full_data = raw._data
     data1, times1 = raw[:10:3, 10:12]
@@ -55,8 +57,17 @@ def _test_raw_object(reader, test_preloading, **kwargs):
     return raw  # raw object to feed for filter test
 
 
-def _test_raw_filter(raw, precision):
-    """Test filtering of raw classes."""
+def _test_raw_filter(raw, atol=0):
+    """Test filtering of raw classes.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Raw object to test.
+    atol : float
+        Absolute tolerance added for the tests.
+        Comparison to: ``atol + 0.015 * abs(desired)``. 0 by default.
+    """
     picks = _pick_data_channels(raw.info)[:4]
     assert_equal(len(picks), 4)
     raw_lp = raw.copy()
@@ -77,8 +88,8 @@ def _test_raw_filter(raw, precision):
     bp_data, _ = raw_bp[picks, :]
     bs_data, _ = raw_bs[picks, :]
 
-    assert_array_almost_equal(data, lp_data + bp_data + hp_data, precision)
-    assert_array_almost_equal(data, bp_data + bs_data, precision)
+    assert_allclose(data, lp_data + bp_data + hp_data, 0.015, atol=atol)
+    assert_allclose(data, bp_data + bs_data, 0.015, atol=atol)
 
 
 def _test_concat(reader, *args):

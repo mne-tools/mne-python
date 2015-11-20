@@ -38,7 +38,7 @@ def test_io_egi():
                            include=include)
     repr(raw)
     repr(raw.info)
-    _test_raw_filter(raw, precision=4)
+    _test_raw_filter(raw)
 
     assert_equal('eeg' in raw, True)
 
