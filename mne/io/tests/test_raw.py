@@ -37,14 +37,14 @@ def _test_raw_object(reader, test_preloading, **kwargs):
     raw2 = base.concatenate_raws([raw.copy(), raw])
 
     # Test saving and reading
+    raw3 = None
     out_fname = op.join(tempdir, 'test_raw.fif')
     for obj in raws:
         obj.save(out_fname, tmax=obj.times[-1], overwrite=True)
         raw3 = Raw(out_fname)
         assert_equal(sorted(raw.info.keys()), sorted(raw3.info.keys()))
-        assert_array_almost_equal(raw._data[:, 0:10],
-                                  raw3._read_segment(0, 10)[0], 9)
 
+    assert_array_almost_equal(raw3.load_data()._data[0:20], raw._data[0:20])
     full_data = raw._data
     data1, times1 = raw[:10:3, 10:12]
     data2, times2 = raw2[:10:3, 10:12]

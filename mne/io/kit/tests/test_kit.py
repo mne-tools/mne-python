@@ -9,15 +9,15 @@ import os.path as op
 import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_equal, assert_raises, assert_true
+from nose.tools import assert_raises, assert_true
 import scipy.io
 
-from mne import pick_types, concatenate_raws, Epochs, find_events, read_events
+from mne import pick_types, Epochs, find_events, read_events
 from mne.utils import _TempDir, run_tests_if_main
 from mne.io import Raw
 from mne.io import read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
-from mne.io.tests.test_raw import _test_concat
+from mne.io.tests.test_raw import _test_concat, _test_raw_object
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
@@ -51,9 +51,10 @@ def test_data():
     # check functionality
     _ = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_path,
                      hsp_path)
-    raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path,
-                          stim=list(range(167, 159, -1)), slope='+',
-                          stimthresh=1, preload=True)
+    raw_py = _test_raw_object(read_raw_kit, test_preloading=True,
+                              input_fname=sqd_path, mrk=mrk_path, elp=elp_path,
+                              hsp=hsp_path, stim=list(range(167, 159, -1)),
+                              slope='+', stimthresh=1)
     assert_true('RawKIT' in repr(raw_py))
 
     # Binary file only stores the sensor channels
@@ -75,10 +76,6 @@ def test_data():
                           exclude='bads')
     data_py, _ = raw_py[py_picks]
     assert_array_almost_equal(data_py, data_bin)
-
-    # Make sure concatenation works
-    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
-    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
 
 def test_epochs():
@@ -119,30 +116,13 @@ def test_read_segment():
     """Test writing raw kit files when preload is False
     """
     tempdir = _TempDir()
+
     raw1 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
                         preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, buffer_size_sec=.1, overwrite=True)
-    raw2 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=True)
-    raw2_file = op.join(tempdir, 'test2-raw.fif')
-    raw2.save(raw2_file, buffer_size_sec=.1, overwrite=True)
-    data1, times1 = raw1[0, 0:1]
-
     raw1 = Raw(raw1_file, preload=True)
-    raw2 = Raw(raw2_file, preload=True)
-    assert_array_equal(raw1._data, raw2._data)
-    data2, times2 = raw2[0, 0:1]
-    assert_array_almost_equal(data1, data2)
-    assert_array_almost_equal(times1, times2)
-    raw3 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=True)
-    assert_array_almost_equal(raw1._data, raw3._data)
-    raw4 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=False)
-    raw4.load_data()
     buffer_fname = op.join(tempdir, 'buffer')
-    assert_array_almost_equal(raw1._data, raw4._data)
     raw5 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
                         preload=buffer_fname)
     assert_array_almost_equal(raw1._data, raw5._data)
