@@ -124,7 +124,7 @@ class CSP(TransformerMixin):
         ind[1::2] = np.arange(n_vals - 1, int(np.ceil(n_vals / 2.0)) - 1, -1)
         w = w[:, ind]  # first, last, second, second last, third, ...
         self.filters_ = w
-        self.patterns_ = np.linalg.pinv(w)
+        self.patterns_ = linalg.pinv(w)
 
     def transform(self, epochs_data, y=None):
         """Estimate epochs sources given the CSP filters.
