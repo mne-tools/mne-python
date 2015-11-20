@@ -31,6 +31,7 @@ def test_find_ecg():
         eog=False, ecg=True, emg=False, ref_meg=False,
         exclude='bads')
 
+    raw.load_data()
     ecg_epochs = create_ecg_epochs(raw, picks=picks, keep_ecg=True)
     assert_equal(len(ecg_epochs.events), n_events)
     assert_true('ECG-SYN' not in raw.ch_names)
