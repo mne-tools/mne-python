@@ -71,8 +71,6 @@ def test_brainvision_data():
     assert_array_almost_equal(times_py, times_bin)
 
     # Make sure EOG channels are marked correctly
-    #raw_py = read_raw_brainvision(vhdr_path, montage, eog=eog,
-    #                              preload=True)
     for ch in raw_py.info['chs']:
         if ch['ch_name'] in eog:
             assert_equal(ch['kind'], FIFF.FIFFV_EOG_CH)
