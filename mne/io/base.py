@@ -387,7 +387,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             n_read = stop_file - start_file + 1
             this_sl = slice(offset, offset + n_read)
             self._read_segment_file(data[:, this_sl], idx, fi,
-                                    start_file, stop_file, cals, mult)
+                                    int(start_file), int(stop_file),
+                                    cals, mult)
             offset += n_read
 
         logger.info('[done]')

@@ -104,7 +104,7 @@ class RawEDF(_BaseRaw):
         sel = np.arange(self.info['nchan'])[idx]
 
         n_samps = self._raw_extras[fi]['n_samps']
-        buf_len = self._raw_extras[fi]['max_samp']
+        buf_len = int(self._raw_extras[fi]['max_samp'])
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
         data_size = self._raw_extras[fi]['data_size']
