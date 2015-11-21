@@ -82,8 +82,7 @@ class RawBrainVision(_BaseRaw):
             info, last_samps=last_samps, filenames=[info['filename']],
             orig_format=fmt, preload=preload, verbose=verbose)
 
-    def _read_segment_file(self, data, idx, offset, fi, start, stop,
-                           cals, mult):
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
         # read data
         n_data_ch = len(self.ch_names) - 1
@@ -103,8 +102,7 @@ class RawBrainVision(_BaseRaw):
         del data_buffer
         data_[-1] = _synthesize_stim_channel(self._events, start, stop + 1)
         data_ *= self._cals[:, np.newaxis]
-        data[:, offset:offset + stop - start + 1] = \
-            np.dot(mult, data_) if mult is not None else data_[idx]
+        data[:] = np.dot(mult, data_) if mult is not None else data_[idx]
 
     def get_brainvision_events(self):
         """Retrieve the events associated with the Brain Vision Raw object

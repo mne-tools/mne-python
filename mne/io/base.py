@@ -218,8 +218,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     Subclasses must provide the following methods:
 
-        * _read_segment_file(self, data, idx, offset, fi, start, stop,
-                             cals, mult)
+        * _read_segment_file(self, data, idx, i, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
 
     The `_BaseRaw._raw_extras` list can contain whatever data is necessary for
@@ -385,17 +384,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     stop_file > self._last_samps[fi] or \
                     stop_file < start_file or start_file > stop_file:
                 raise ValueError('Bad array indexing, could be a bug')
-
-            self._read_segment_file(data, idx, offset, fi,
+            n_read = stop_file - start_file + 1
+            this_sl = slice(offset, offset + n_read)
+            self._read_segment_file(data[:, this_sl], idx, fi,
                                     start_file, stop_file, cals, mult)
-            offset += stop_file - start_file + 1
+            offset += n_read
 
         logger.info('[done]')
         times = np.arange(start, stop) / self.info['sfreq']
         return data, times
 
-    def _read_segment_file(self, data, idx, offset, fi, start, stop,
-                           cals, mult):
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file
 
         Only needs to be implemented for readers that support
@@ -403,15 +402,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        data : ndarray, shape (len(idx), n_samp)
+        data : ndarray, shape (len(idx), stop - start + 1)
             The data array. Should be modified inplace.
         idx : ndarray | slice
             The requested channel indices.
-        offset : int
-            Offset. Data should be stored in something like::
-
-                data[:, offset:offset + (start - stop + 1)] = r[idx]
-
         fi : int
             The file index that must be read from.
         start : int
@@ -1846,6 +1840,107 @@ def _mult_cal_one(data_view, one, idx, fi, cals, mult):
             for ii, ix in enumerate(idx):
                 data_view[ii] = one[ix]
         data_view *= cals
+
+
+def _blk_read_lims(start, stop, buf_len):
+    """Helper to deal with indexing in the middle of a data block
+
+    Parameters
+    ----------
+    start : int
+        Starting index.
+    stop : int
+        Ending index (inclusive).
+    buf_len : int
+        Buffer size in samples.
+
+    Returns
+    -------
+    block_start_idx : int
+        The first block to start reading from.
+    r_lims : list
+        The read limits.
+    d_lims : list
+        The write limits.
+
+    Notes
+    -----
+    Consider this example::
+
+        >>> tmin, tmax = (2, 27)
+        >>> read_size = 30
+        >>> buf_len = 10
+        >>> sfreq = 1.
+
+                    +---------+---------+---------+
+    File structure: |  buf0   |   buf1  |   buf2  |
+                    +---------+---------+---------+
+    File time:      0        10        20        30
+                    +---------+---------+---------+
+    Requested time:   2                       27
+
+                    |                             |
+                blockstart                    blockstop
+                      |                        |
+                    start                    stop
+
+    We need 27 - 2 = 25 samples (per channel) to store our data, and
+    we need to read from 3 buffers (30 samples) to get all of our data.
+
+    On all reads but the first, the data we read starts at
+    the first sample of the buffer. On all reads but the last,
+    the data we read ends on the last sample of the buffer.
+
+    We call this_data the variable that stores the current buffer's data,
+    and data the variable that stores the total output.
+
+    On the first read, we need to do this::
+
+        >>> data[0:buf_len-2] = this_data[2:buf_len]  # doctest: +SKIP
+
+    On the second read, we need to do::
+
+        >>> data[1*buf_len-2:2*buf_len-2] = this_data[0:buf_len]  # doctest: +SKIP
+
+    On the final read, we need to do::
+
+        >>> data[2*buf_len-2:3*buf_len-2-3] = this_data[0:buf_len-3]  # doctest: +SKIP
+
+    This function helps simplify this by allowing a loop over blocks, where
+    data is stored using the following limits::
+
+        >>> data[d_lims[ii, 0]:d_lims[ii, 1]] = this_data[r_lims[ii, 0]:r_lims[ii, 1]]  # doctest: +SKIP
+
+    """  # noqa
+    # this is used to deal with indexing in the middle of a sampling period
+    assert all(isinstance(x, int) for x in (start, stop, buf_len))
+    block_start_idx = (start // buf_len)
+    block_start = block_start_idx * buf_len
+    block_stop = ((stop // buf_len) + 1) * buf_len
+    read_size = block_stop - block_start
+    n_blk = read_size // buf_len + (read_size % buf_len != 0)
+    start_offset = start - block_start
+    end_offset = block_stop - stop - 1
+    d_lims = np.empty((n_blk, 2), int)
+    r_lims = np.empty((n_blk, 2), int)
+    for bi in range(n_blk):
+        # Triage start (sidx) and end (eidx) indices for
+        # data (d) and read (r)
+        if bi == 0:
+            d_sidx = 0
+            r_sidx = start_offset
+        else:
+            d_sidx = bi * buf_len - start_offset
+            r_sidx = 0
+        if bi == n_blk - 1:
+            d_eidx = stop - start + 1
+            r_eidx = buf_len - end_offset
+        else:
+            d_eidx = (bi + 1) * buf_len - start_offset
+            r_eidx = buf_len
+        d_lims[bi] = [d_sidx, d_eidx]
+        r_lims[bi] = [r_sidx, r_eidx]
+    return block_start_idx, r_lims, d_lims
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):

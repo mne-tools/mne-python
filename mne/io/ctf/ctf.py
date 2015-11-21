@@ -11,7 +11,7 @@ from os import path as op
 import numpy as np
 
 from ...utils import verbose, logger
-from ..base import _BaseRaw, _mult_cal_one
+from ..base import _BaseRaw, _mult_cal_one, _blk_read_lims
 from ...externals.six import string_types
 
 from .res4 import _read_res4, _make_ctf_name
@@ -75,6 +75,10 @@ class RawCTF(_BaseRaw):
             sample_info = _get_sample_info(meg4_name, res4)
             if sample_info['n_samp'] == 0:
                 break
+            if len(fnames) == 0:
+                info['buffer_size_sec'] = \
+                    sample_info['block_size'] / info['sfreq']
+                info['filename'] = directory
             fnames.append(meg4_name)
             last_samps.append(sample_info['n_samp'] - 1)
             raw_extras.append(sample_info)
@@ -83,27 +87,29 @@ class RawCTF(_BaseRaw):
             raw_extras=raw_extras, orig_format='int', verbose=verbose)
 
     @verbose
-    def _read_segment_file(self, data, idx, offset, fi, start, stop,
-                           cals, mult):
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
         si = self._raw_extras[fi]
+        offset = 0
+        trial_start_idx, r_lims, d_lims = _blk_read_lims(start, stop,
+                                                         int(si['block_size']))
         with open(self._filenames[fi], 'rb') as fid:
-            read_offsets = np.arange(start, stop + 1, si['block_size'])
-            for t, read_offset in enumerate(read_offsets):
-                n_read = min(stop + 1 - read_offset, si['block_size'])
-                data_view = data[:, offset:offset + n_read]
+            for bi in range(len(r_lims)):
+                if si['n_trial'] == 1:
+                    raise NotImplementedError  # XXX WE NEED TO TEST THIS!
+                else:
+                    samp_offset = (bi + trial_start_idx) * si['res4_nsamp']
+                n_read = min(si['n_samp'] - samp_offset, si['block_size'])
                 # read the chunk of data
                 pos = CTF.HEADER_SIZE
-                if si['n_trial'] == 1:
-                    pos += read_offset * 4
-                else:
-                    pos += t * (si['res4_nsamp'] * si['n_chan']) * 4
+                pos += samp_offset * si['n_chan'] * 4
                 fid.seek(pos, 0)
-                one = np.fromstring(fid.read(si['n_chan'] * n_read * 4), '>i4')
-                if len(one) != si['n_chan'] * n_read:
-                    raise RuntimeError('Cannot read data')
-                one.shape = (si['n_chan'], n_read)
-                _mult_cal_one(data_view, one, idx, fi, cals, mult)
+                this_data = np.fromstring(
+                    fid.read(si['n_chan'] * n_read * 4), '>i4')
+                this_data.shape = (si['n_chan'], n_read)
+                this_data = this_data[:, r_lims[bi, 0]:r_lims[bi, 1]]
+                data_view = data[:, d_lims[bi, 0]:d_lims[bi, 1]]
+                _mult_cal_one(data_view, this_data, idx, fi, cals, mult)
                 offset += n_read
 
 
@@ -111,35 +117,28 @@ def _get_sample_info(fname, res4):
     """Helper to determine the number of valid samples"""
     logger.info('Finding samples for %s: ' % (fname,))
     clock_ch = -1
-    data = None
     for k, ch in enumerate(res4['chs']):
-        if ch['name'] == CTF.SYSTEM_CLOCK_CH:
+        if ch['ch_name'] == CTF.SYSTEM_CLOCK_CH:
             clock_ch = k
             break
     with open(fname, 'rb') as fid:
         fid.seek(0, os.SEEK_END)
         st_size = fid.tell()
         fid.seek(0, 0)
-        if (st_size - CTF.HEADER_SIZE) % (4 * res4['nchan']) != 0:
-            raise RuntimeError('The number of samples is not an even multiple '
-                               'of the number of channels')
         if (st_size - CTF.HEADER_SIZE) % (4 * res4['nsamp'] *
                                           res4['nchan']) != 0:
             raise RuntimeError('The number of samples is not an even multiple '
                                'of the trial size')
         n_samp_tot = (st_size - CTF.HEADER_SIZE) // (4 * res4['nchan'])
         n_trial = n_samp_tot // res4['nsamp']
+        n_samp = n_samp_tot
         if clock_ch < 0:
             logger.info('    System clock channel is not available, assuming '
                         'all samples to be valid.')
-            n_samp = n_samp_tot
         else:
             logger.info('    System clock channel is available, checking '
                         'which samples are valid.')
-            data = np.empty(n_samp_tot, np.int32)
-            t = 0
             for t in range(n_trial):
-                this_sl = slice(t * res4['nsamp'], (t + 1) * res4['nsamp'])
                 # Skip to the correct trial
                 offset = CTF.HEADER_SIZE + (t * (res4['nsamp'] *
                                                  res4['nchan']) +
@@ -149,9 +148,10 @@ def _get_sample_info(fname, res4):
                 if len(this_data) != res4['nsamp']:
                     raise RuntimeError('Cannot read data for trial %d'
                                        % (t + 1))
-                data[this_sl] = this_data
-            end = np.where(data == 0)[0]
-            n_samp = end[0] if len(end) > 0 else n_samp_tot
+                end = np.where(this_data == 0)[0]
+                if len(end) > 0:
+                    n_samp = offset + end[0]
+                    break
     if n_samp < res4['nsamp']:
         n_trial = 1
         logger.info('    %d x %d = %d samples from %d chs'
@@ -164,10 +164,7 @@ def _get_sample_info(fname, res4):
                     % (n_trial, res4['nsamp'], n_samp, res4['nchan']))
         if n_omit != 0:
             logger.info('    %d samples omitted at the end' % n_omit)
-    if n_trial == 1:
-        block_size = 2000
-    else:
-        block_size = res4['nsamp']
+    block_size = 2000 if n_trial == 1 else res4['nsamp']
     return dict(n_samp=n_samp, n_samp_tot=n_samp_tot, block_size=block_size,
                 n_trial=n_trial, res4_nsamp=res4['nsamp'],
                 n_chan=res4['nchan'])

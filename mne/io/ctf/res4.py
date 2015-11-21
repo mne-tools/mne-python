@@ -81,7 +81,7 @@ def _read_channel(fid):
     ch['io_gain'] = _read_double(fid)
     ch['io_offset'] = _read_double(fid)
     ch['num_coils'] = _read_int2(fid)
-    ch['grad_order_no'] = _read_int2(fid)
+    ch['grad_order_no'] = int(_read_int2(fid))
     _read_int(fid)  # pad
     ch['coil'] = dict()
     ch['head_coil'] = dict()
@@ -134,7 +134,7 @@ def _read_comp_coeff(fid, d):
 
         comp['scanno'] = -1
         for p in range(d['nchan']):
-            if d['chs'][p]['name'] == comp['sensor_name']:
+            if d['chs'][p]['ch_name'] == comp['sensor_name']:
                 comp['scanno'] = p
                 break
 
@@ -208,7 +208,7 @@ def _read_res4(dsdir):
         res['chs'] = list()
         for k in range(res['nchan']):
             res['chs'].append(dict())
-            res['chs'][k]['name'] = _read_string(fid, 32)
+            res['chs'][k]['ch_name'] = _read_string(fid, 32)
         for k in range(res['nchan']):
             res['chs'][k].update(_read_channel(fid))
 

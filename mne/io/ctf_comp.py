@@ -104,6 +104,42 @@ def _read_named_matrix(fid, node, matkind):
     return mat
 
 
+def _add_kind(one):
+    """Convert CTF kind to MNE kind"""
+    if one['ctfkind'] == int('47314252', 16):  # hex2dec('47314252'):
+        one['kind'] = 1
+    elif one['ctfkind'] == int('47324252', 16):  # hex2dec('47324252'):
+        one['kind'] = 2
+    elif one['ctfkind'] == int('47334252', 16):  # hex2dec('47334252'):
+        one['kind'] = 3
+    else:
+        one['kind'] = int(one['ctfkind'])
+
+
+def _calibrate_comp(comp, chs, row_names, col_names,
+                    mult_keys=('range', 'cal'), flip=False):
+    """Helper to get row and column cals"""
+    ch_names = [c['ch_name'] for c in chs]
+    row_cals = np.zeros(len(row_names))
+    col_cals = np.zeros(len(col_names))
+    for names, cals, inv in zip((row_names, col_names), (row_cals, col_cals),
+                                (False, True)):
+        for ii in range(len(cals)):
+            p = ch_names.count(names[ii])
+            if p != 1:
+                raise RuntimeError('Channel %s does not appear exactly once '
+                                   'in data' % names[ii])
+            idx = ch_names.index(names[ii])
+            val = chs[idx][mult_keys[0]] * chs[idx][mult_keys[1]]
+            val = float(1. / val) if inv else float(val)
+            val = 1. / val if flip else val
+            cals[ii] = val
+    comp['rowcals'] = row_cals
+    comp['colcals'] = col_cals
+    comp['data']['data'] = (row_cals[:, None] *
+                            comp['data']['data'] * col_cals[None, :])
+
+
 @verbose
 def read_ctf_comp(fid, node, chs, verbose=None):
     """Read the CTF software compensation data from the given node
@@ -142,16 +178,7 @@ def read_ctf_comp(fid, node, chs, verbose=None):
         #   Get the compensation kind and map it to a simple number
         one = dict(ctfkind=tag.data)
         del tag
-
-        if one['ctfkind'] == int('47314252', 16):  # hex2dec('47314252'):
-            one['kind'] = 1
-        elif one['ctfkind'] == int('47324252', 16):  # hex2dec('47324252'):
-            one['kind'] = 2
-        elif one['ctfkind'] == int('47334252', 16):  # hex2dec('47334252'):
-            one['kind'] = 3
-        else:
-            one['kind'] = int(one['ctfkind'])
-
+        _add_kind(one)
         for p in range(node['nent']):
             kind = node['directory'][p].kind
             pos = node['directory'][p].pos
@@ -162,55 +189,16 @@ def read_ctf_comp(fid, node, chs, verbose=None):
         else:
             calibrated = False
 
-        one['save_calibrated'] = calibrated
-        one['rowcals'] = np.ones(mat['data'].shape[0], dtype=np.float)
-        one['colcals'] = np.ones(mat['data'].shape[1], dtype=np.float)
-
-        row_cals, col_cals = None, None  # initialize cals
-
-        if not calibrated:
-            #
-            #   Calibrate...
-            #
-            #   Do the columns first
-            #
-            ch_names = [c['ch_name'] for c in chs]
-
-            col_cals = np.zeros(mat['data'].shape[1], dtype=np.float)
-            for col in range(mat['data'].shape[1]):
-                p = ch_names.count(mat['col_names'][col])
-                if p == 0:
-                    raise Exception('Channel %s is not available in data'
-                                    % mat['col_names'][col])
-                elif p > 1:
-                    raise Exception('Ambiguous channel %s' %
-                                    mat['col_names'][col])
-                idx = ch_names.index(mat['col_names'][col])
-                col_cals[col] = 1.0 / (chs[idx]['range'] * chs[idx]['cal'])
-
-            #    Then the rows
-            row_cals = np.zeros(mat['data'].shape[0])
-            for row in range(mat['data'].shape[0]):
-                p = ch_names.count(mat['row_names'][row])
-                if p == 0:
-                    raise Exception('Channel %s is not available in data'
-                                    % mat['row_names'][row])
-                elif p > 1:
-                    raise Exception('Ambiguous channel %s' %
-                                    mat['row_names'][row])
-                idx = ch_names.index(mat['row_names'][row])
-                row_cals[row] = chs[idx]['range'] * chs[idx]['cal']
-
-            mat['data'] = row_cals[:, None] * mat['data'] * col_cals[None, :]
-            one['rowcals'] = row_cals
-            one['colcals'] = col_cals
-
+        one['save_calibrated'] = bool(calibrated)
         one['data'] = mat
+        if not calibrated:
+            #   Calibrate...
+            _calibrate_comp(one, chs, mat['row_names'], mat['col_names'])
+        else:
+            one['rowcals'] = np.ones(mat['data'].shape[0], dtype=np.float)
+            one['colcals'] = np.ones(mat['data'].shape[1], dtype=np.float)
+
         compdata.append(one)
-        if row_cals is not None:
-            del row_cals
-        if col_cals is not None:
-            del col_cals
 
     if len(compdata) > 0:
         logger.info('    Read %d compensation matrices' % len(compdata))
@@ -241,7 +229,7 @@ def write_ctf_comp(fid, comps):
         start_block(fid, FIFF.FIFFB_MNE_CTF_COMP_DATA)
         #    Write the compensation kind
         write_int(fid, FIFF.FIFF_MNE_CTF_COMP_KIND, comp['ctfkind'])
-        if 'save_calibrated' in comp:
+        if comp.get('save_calibrated', False):
             write_int(fid, FIFF.FIFF_MNE_CTF_COMP_CALIBRATED,
                       comp['save_calibrated'])
 

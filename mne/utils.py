@@ -152,24 +152,24 @@ def object_diff(a, b, pre=''):
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)
         if len(m1):
-            out += pre + ' x1 missing keys %s\n' % (m1)
+            out += pre + ' left missing keys %s\n' % (m1)
         for key in k1s:
             if key not in k2s:
-                out += pre + ' x2 missing key %s\n' % key
+                out += pre + ' right missing key %s\n' % key
             else:
-                out += object_diff(a[key], b[key], pre + 'd1[%s]' % repr(key))
+                out += object_diff(a[key], b[key], pre + '[%s]' % repr(key))
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
         else:
-            for xx1, xx2 in zip(a, b):
-                out += object_diff(xx1, xx2, pre='')
+            for ii, (xx1, xx2) in enumerate(zip(a, b)):
+                out += object_diff(xx1, xx2, pre + '[%s]' % ii)
     elif isinstance(a, (string_types, int, float, bytes)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
         if b is not None:
-            out += pre + ' a is None, b is not (%s)\n' % (b)
+            out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
         if not np.array_equal(a, b):
             out += pre + ' array mismatch\n'
