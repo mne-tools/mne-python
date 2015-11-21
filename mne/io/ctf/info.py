@@ -5,8 +5,6 @@
 #
 # License: BSD (3-clause)
 
-from time import strptime, mktime
-
 import numpy as np
 
 from ...utils import logger
@@ -54,6 +52,7 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
     return dig, [hpi_result]
 
 
+# from time import strptime, mktime
 # def _convert_time(date_str, time_str):
 #     """Convert date and time strings to float time"""
 #     for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y"):
@@ -213,14 +212,9 @@ def _convert_channel_info(res4, t, use_eeg_pos):
     return chs
 
 
-def _comp_coeff(c1, c2):
+def _comp_sort_keys(c):
     """This is for sorting the compensation data"""
-    if c1['coeff_type'] > c2['coeff_type']:
-        return 1
-    elif c1['coeff_type'] < c2['coeff_type']:
-        return -1
-    else:
-        return np.sign(c1['scanno'] - c2['scanno'])
+    return (int(c['coeff_type']), int(c['scanno']))
 
 
 def _check_comp(comp):
@@ -269,7 +263,7 @@ def _convert_comp_data(res4):
     if res4['ncomp'] == 0:
         return
     # Sort the coefficients in our favorite order
-    res4['comp'] = sorted(res4['comp'], _comp_coeff)
+    res4['comp'] = sorted(res4['comp'], key=_comp_sort_keys)
     # Check that all items for a given compensation type have the correct
     # number of channels
     _check_comp(res4['comp'])
@@ -375,9 +369,9 @@ def _compose_meas_info(res4, coils, trans, eeg):
             info['lowpass'] = filt['freq']
         elif filt['type'] == CTF.CTFV_FILTER_HIGHPASS:
             info['highpass'] = filt['freq']
-    if info['lowpass'] < 0.:
+    if info['lowpass'] is None or info['lowpass'] < 0.:
         info['lowpass'] = info['sfreq'] / 2.
-    if info['highpass'] < 0.:
+    if info['highpass'] is None or info['highpass'] < 0.:
         info['highpass'] = 0.
     info['dig'], info['hpi_results'] = _pick_isotrak_and_hpi_coils(
         res4, coils, trans)

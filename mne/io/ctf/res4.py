@@ -32,7 +32,7 @@ def _read_double(fid):
 def _read_string(fid, n_bytes, decode=True):
     """Read string"""
     s0 = fid.read(n_bytes)
-    s = s0.split('\x00')[0]
+    s = s0.split(b'\x00')[0]
     return s.decode('utf-8') if decode else s
 
 

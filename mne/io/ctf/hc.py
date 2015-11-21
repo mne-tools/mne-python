@@ -28,7 +28,7 @@ def _read_one_coil_point(fid):
         one = fid.readline()
     if len(one) == 0:
         return None
-    one = one.strip()
+    one = one.strip().decode('utf-8')
     if 'Unable' in one:
         raise RuntimeError("HPI information not available")
 
