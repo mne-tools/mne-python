@@ -23,6 +23,30 @@ from .constants import CTF
 
 
 def read_raw_ctf(directory, preload=False, verbose=None):
+    """Raw object from CTF directory
+
+    Parameters
+    ----------
+    directory : str
+        Path to the KIT data (ending in ``'.ds'``).
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    raw : instance of RawCTF
+        The raw data.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
+    """
     return RawCTF(directory, preload, verbose)
 
 
