@@ -342,9 +342,9 @@ class RawFIF(_BaseRaw):
         self._dtype_ = dtype
         return dtype
 
-    def _read_segment_file(self, data, idx, offset, fi, start, stop,
-                           cals, mult):
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file"""
+        offset = 0
         with _fiff_get_fid(self._filenames[fi]) as fid:
             for this in self._raw_extras[fi]:
                 #  Do we need this buffer

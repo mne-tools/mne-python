@@ -12,12 +12,11 @@ import calendar
 import datetime
 import re
 import warnings
-from math import ceil, floor
 
 import numpy as np
 
 from ...utils import verbose, logger
-from ..base import _BaseRaw, _check_update_montage
+from ..base import _BaseRaw, _check_update_montage, _blk_read_lims
 from ..meas_info import _empty_info
 from ..pick import pick_types
 from ..constants import FIFF
@@ -94,8 +93,7 @@ class RawEDF(_BaseRaw):
         logger.info('Ready.')
 
     @verbose
-    def _read_segment_file(self, data, idx, offset, fi, start, stop,
-                           cals, mult):
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
         from scipy.interpolate import interp1d
         if mult is not None:
@@ -103,9 +101,6 @@ class RawEDF(_BaseRaw):
             # and for efficiency we want to be able to combine mult and cals
             # so proj support will have to wait until this is resolved
             raise NotImplementedError('mult is not supported yet')
-        # RawFIF and RawEDF think of "stop" differently, easiest to increment
-        # here and refactor later
-        stop += 1
         sel = np.arange(self.info['nchan'])[idx]
 
         n_samps = self._raw_extras[fi]['n_samps']
@@ -119,10 +114,6 @@ class RawEDF(_BaseRaw):
         annot = self._raw_extras[fi]['annot']
         annotmap = self._raw_extras[fi]['annotmap']
         subtype = self._raw_extras[fi]['subtype']
-
-        # this is used to deal with indexing in the middle of a sampling period
-        blockstart = int(floor(float(start) / buf_len) * buf_len)
-        blockstop = int(ceil(float(stop) / buf_len) * buf_len)
 
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
@@ -139,73 +130,16 @@ class RawEDF(_BaseRaw):
         if tal_channel is not None:
             offsets[tal_channel] = 0
 
-        read_size = blockstop - blockstart
-        this_data = np.empty((len(sel), buf_len))
-        data = data[:, offset:offset + (stop - start)]
-        """
-        Consider this example:
-
-        tmin, tmax = (2, 27)
-        read_size = 30
-        buf_len = 10
-        sfreq = 1.
-
-                        +---------+---------+---------+
-        File structure: |  buf0   |   buf1  |   buf2  |
-                        +---------+---------+---------+
-        File time:      0        10        20        30
-                        +---------+---------+---------+
-        Requested time:   2                       27
-
-                        |                             |
-                    blockstart                    blockstop
-                          |                        |
-                        start                    stop
-
-        We need 27 - 2 = 25 samples (per channel) to store our data, and
-        we need to read from 3 buffers (30 samples) to get all of our data.
-
-        On all reads but the first, the data we read starts at
-        the first sample of the buffer. On all reads but the last,
-        the data we read ends on the last sample of the buffer.
-
-        We call this_data the variable that stores the current buffer's data,
-        and data the variable that stores the total output.
-
-        On the first read, we need to do this::
-
-            >>> data[0:buf_len-2] = this_data[2:buf_len]
-
-        On the second read, we need to do::
-
-            >>> data[1*buf_len-2:2*buf_len-2] = this_data[0:buf_len]
-
-        On the final read, we need to do::
-
-            >>> data[2*buf_len-2:3*buf_len-2-3] = this_data[0:buf_len-3]
-
-        """
+        block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
+        read_size = len(r_lims) * buf_len
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
-            fid.seek(data_offset + blockstart * n_chan * data_size)
-            n_blk = int(ceil(float(read_size) / buf_len))
-            start_offset = start - blockstart
-            end_offset = blockstop - stop
-            for bi in range(n_blk):
-                # Triage start (sidx) and end (eidx) indices for
-                # data (d) and read (r)
-                if bi == 0:
-                    d_sidx = 0
-                    r_sidx = start_offset
-                else:
-                    d_sidx = bi * buf_len - start_offset
-                    r_sidx = 0
-                if bi == n_blk - 1:
-                    d_eidx = data.shape[1]
-                    r_eidx = buf_len - end_offset
-                else:
-                    d_eidx = (bi + 1) * buf_len - start_offset
-                    r_eidx = buf_len
+            fid.seek(data_offset +
+                     block_start_idx * buf_len * n_chan * data_size)
+            this_data = np.empty((len(sel), buf_len))
+            for bi in range(len(r_lims)):
+                d_sidx, d_eidx = d_lims[bi]
+                r_sidx, r_eidx = r_lims[bi]
                 n_buf_samp = r_eidx - r_sidx
                 count = 0
                 for j, samp in enumerate(n_samps):
@@ -260,7 +194,7 @@ class RawEDF(_BaseRaw):
             if annot and annotmap:
                 evts = _read_annot(annot, annotmap, sfreq,
                                    self._last_samps[fi])
-                data[stim_channel_idx, :] = evts[start:stop]
+                data[stim_channel_idx, :] = evts[start:stop + 1]
             elif tal_channel is not None:
                 tal_channel_idx = np.where(sel == tal_channel)[0][0]
                 evts = _parse_tal_channel(data[tal_channel_idx])
@@ -280,7 +214,7 @@ class RawEDF(_BaseRaw):
                         raise NotImplementedError('EDF+ with overlapping '
                                                   'events not supported.')
                     stim[n_start:n_stop] = evid
-                data[stim_channel_idx, :] = stim[start:stop]
+                data[stim_channel_idx, :] = stim[start:stop + 1]
             else:
                 # Allows support for up to 17-bit trigger values (2 ** 17 - 1)
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),

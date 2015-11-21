@@ -10,8 +10,10 @@ from time import strptime, mktime
 import numpy as np
 
 from ...utils import logger
-from ...transforms import apply_trans, _coord_frame_name, invert_transform
+from ...transforms import (apply_trans, _coord_frame_name, invert_transform,
+                           combine_transforms)
 from ..meas_info import _empty_info
+from ..ctf_comp import _add_kind, _calibrate_comp
 from ..constants import FIFF
 from .constants import CTF
 
@@ -31,7 +33,8 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
                     raise RuntimeError('No coordinate transformation '
                                        'available for HPI coil locations')
                 d = dict(kind=FIFF.FIFFV_POINT_HPI, ident=p['kind'],
-                         r=apply_trans(t['t_ctf_dev_dev'], p['r']))
+                         r=apply_trans(t['t_ctf_dev_dev'], p['r']),
+                         coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
                 hpi_result['dig_points'].append(d)
                 n_coil_dev += 1
             elif p['coord_frame'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD:
@@ -39,7 +42,8 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
                     raise RuntimeError('No coordinate transformation '
                                        'available for (virtual) Polhemus data')
                 d = dict(kind=FIFF.FIFFV_POINT_HPI, ident=p['kind'],
-                         r=apply_trans(t['t_ctf_head_head'], p['r']))
+                         r=apply_trans(t['t_ctf_head_head'], p['r']),
+                         coord_frame=FIFF.FIFFV_COORD_HEAD)
                 dig.append(d)
                 n_coil_head += 1
     if n_coil_head > 0:
@@ -50,30 +54,30 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
     return dig, [hpi_result]
 
 
-def _convert_time(date_str, time_str):
-    """Convert date and time strings to float time"""
-    for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y"):
-        try:
-            date = strptime(date_str, fmt)
-        except ValueError:
-            pass
-        else:
-            break
-    else:
-        raise RuntimeError("Illegal date: %s" % date)
-    for fmt in ('%H:%M:%S', '%H:%M'):
-        try:
-            time = strptime(time_str, fmt)
-        except ValueError:
-            pass
-        else:
-            break
-    else:
-        raise RuntimeError('Illegal time: %s' % time)
-    res = mktime((date.tm_year, date.tm_mon, date.tm_mday,
-                  time.tm_hour, time.tm_min, time.tm_sec,
-                  date.tm_wday, date.tm_yday, date.tm_isdst))
-    return res
+# def _convert_time(date_str, time_str):
+#     """Convert date and time strings to float time"""
+#     for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y"):
+#         try:
+#             date = strptime(date_str, fmt)
+#         except ValueError:
+#             pass
+#         else:
+#             break
+#     else:
+#         raise RuntimeError("Illegal date: %s" % date)
+#     for fmt in ('%H:%M:%S', '%H:%M'):
+#         try:
+#             time = strptime(time_str, fmt)
+#         except ValueError:
+#             pass
+#         else:
+#             break
+#     else:
+#         raise RuntimeError('Illegal time: %s' % time)
+#     res = mktime((date.tm_year, date.tm_mon, date.tm_mday,
+#                   time.tm_hour, time.tm_min, time.tm_sec,
+#                   date.tm_wday, date.tm_yday, date.tm_isdst))
+#     return res
 
 
 def _get_plane_vectors(ez):
@@ -107,9 +111,9 @@ def _convert_channel_info(res4, t, use_eeg_pos):
     nmeg = neeg = nstim = nmisc = nref = 0
     chs = list()
     for k, cch in enumerate(res4['chs']):
-        cal = 1. / (cch['proper_gain'] * cch['qgain'])
+        cal = float(1. / (cch['proper_gain'] * cch['qgain']))
         ch = dict(scanno=k + 1, range=1., cal=cal, loc=np.zeros(12),
-                  unit_mul=FIFF.FIFF_UNITM_NONE, ch_name=cch['name'][:15],
+                  unit_mul=FIFF.FIFF_UNITM_NONE, ch_name=cch['ch_name'][:15],
                   coil_type=FIFF.FIFFV_COIL_NONE)
         del k
         chs.append(ch)
@@ -132,7 +136,7 @@ def _convert_channel_info(res4, t, use_eeg_pos):
             if cch['sensor_type_index'] == CTF.CTFV_REF_GRAD_CH:
                 # We use the same convention for ex as for Neuromag planar
                 # gradiometers: pointing in the positive gradient direction
-                diff = cch['coil']['pos'][1] - cch['coil']['pos'][0]
+                diff = cch['coil']['pos'][0] - cch['coil']['pos'][1]
                 size = np.sqrt(np.sum(diff * diff))
                 if size > 0.:
                     diff /= size
@@ -146,7 +150,7 @@ def _convert_channel_info(res4, t, use_eeg_pos):
             else:
                 # ex and ey are arbitrary in the plane normal to ex
                 pos['ex'][:], pos['ey'][:] = _get_plane_vectors(pos['ez'])
-            # Transform int a Neuromag-like coordinate system
+            # Transform into a Neuromag-like coordinate system
             pos['r0'][:] = apply_trans(t['t_ctf_dev_dev'], pos['r0'])
             for key in ('ex', 'ey', 'ez'):
                 pos[key][:] = apply_trans(t['t_ctf_dev_dev'], pos[key],
@@ -172,7 +176,9 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 ch['logno'] = nmeg
             # Encode the software gradiometer order
             ch['coil_type'] = ch['coil_type'] | (cch['grad_order_no'] << 16)
+            ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
         elif cch['sensor_type_index'] == CTF.CTFV_EEG_CH:
+            coord_frame = FIFF.FIFFV_COORD_HEAD
             if use_eeg_pos:
                 # EEG electrode coordinates may be present but in the
                 # CTF head frame
@@ -183,6 +189,7 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                                        'because of missing HPI information'
                                        % (ch['ch_name']))
                         pos['r0'][:] = np.zeros(3)
+                        coord_frame = FIFF.FIFFV_COORD_CTF_HEAD
                     else:
                         pos['r0'][:] = apply_trans(t['t_ctf_head_head'],
                                                    pos['r0'])
@@ -190,16 +197,19 @@ def _convert_channel_info(res4, t, use_eeg_pos):
             ch['logno'] = neeg
             ch['kind'] = FIFF.FIFFV_EEG_CH
             ch['unit'] = FIFF.FIFF_UNIT_V
+            ch['coord_frame'] = coord_frame
         elif cch['sensor_type_index'] == CTF.CTFV_STIM_CH:
             nstim += 1
             ch['logno'] = nstim
             ch['kind'] = FIFF.FIFFV_STIM_CH
             ch['unit'] = FIFF.FIFF_UNIT_V
+            ch['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
         else:
             nmisc += 1
             ch['logno'] = nmisc
             ch['kind'] = FIFF.FIFFV_MISC_CH
             ch['unit'] = FIFF.FIFF_UNIT_V
+            ch['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
     return chs
 
 
@@ -234,9 +244,11 @@ def _check_comp(comp):
                                        'matrix')
 
 
-def _conv_comp(comp, first, last):
+def _conv_comp(comp, first, last, chs):
     """Add a new converted compensation data item"""
-    ccomp = dict(ctfkind=comp[first]['coeff_type'])
+    ccomp = dict(ctfkind=np.array([comp[first]['coeff_type']]),
+                 save_calibrated=False)
+    _add_kind(ccomp)
     n_col = comp[first]['ncoeff']
     n_row = last - first + 1
     col_names = comp[first]['sensors'][:n_col]
@@ -247,6 +259,8 @@ def _conv_comp(comp, first, last):
         data[ii, :] = coeffs['coeffs'][:]
     ccomp['data'] = dict(row_names=row_names, col_names=col_names,
                          data=data, nrow=len(row_names), ncol=len(col_names))
+    mk = ('proper_gain', 'qgain')
+    _calibrate_comp(ccomp, chs, row_names, col_names, mult_keys=mk, flip=True)
     return ccomp
 
 
@@ -266,10 +280,11 @@ def _convert_comp_data(res4):
     for k in range(len(res4['comp'])):
         if res4['comp'][k]['coeff_type'] != kind:
             if k > 0:
-                comps.append(_conv_comp(res4['comp'], first, k - 1))
+                comps.append(_conv_comp(res4['comp'], first, k - 1,
+                                        res4['chs']))
             kind = res4['comp'][k]['coeff_type']
             first = k
-    comps.append(_conv_comp(res4['comp'], first, k))
+    comps.append(_conv_comp(res4['comp'], first, k, res4['chs']))
     return comps
 
 
@@ -323,7 +338,7 @@ def _add_eeg_pos(eeg, t, c):
     fid_count = eeg_count = extra_count = 0
     for k in range(eeg['np']):
         d = dict(r=eeg['rr'][k].copy(), kind=eeg['kinds'][k],
-                 ident=eeg['ids'][k])
+                 ident=eeg['ids'][k], coord_frame=FIFF.FIFFV_COORD_HEAD)
         c['dig'].append(d)
         if eeg['coord_frame'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD:
             d['r'] = apply_trans(t['t_ctf_head_head'], d['r'])
@@ -351,7 +366,7 @@ def _compose_meas_info(res4, coils, trans, eeg):
     info = _empty_info()
 
     # Collect all the necessary data from the structures read
-    info['date_time'] = _convert_time(res4['data_date'], res4['data_time'])
+    # info['date_time'] = _convert_time(res4['data_date'], res4['data_time'])
     for c_key, r_key in (('experimenter', 'nf_operator'), ('sfreq', 'sfreq')):
         info[c_key] = res4[r_key]
     info['subject_info'] = dict(his_id=res4['nf_subject_id'])
@@ -367,12 +382,16 @@ def _compose_meas_info(res4, coils, trans, eeg):
     info['dig'], info['hpi_results'] = _pick_isotrak_and_hpi_coils(
         res4, coils, trans)
     if trans is not None:
-        if trans['t_dev_head'] is not None:
-            info['trans'] = trans['t_dev_head']
         if len(info['hpi_results']) > 0:
             info['hpi_results'][0]['coord_trans'] = trans['t_ctf_head_head']
+        if trans['t_dev_head'] is not None:
+            info['dev_head_t'] = trans['t_dev_head']
+            info['dev_ctf_t'] = combine_transforms(
+                trans['t_dev_head'],
+                invert_transform(trans['t_ctf_head_head']),
+                FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_MNE_COORD_CTF_HEAD)
         if trans['t_ctf_head_head'] is not None:
-            info['head_trans'] = trans['t_ctf_head_head']
+            info['ctf_head_t'] = trans['t_ctf_head_head']
     info['chs'] = _convert_channel_info(res4, trans, eeg is None)
     info['nchan'] = len(info['chs'])
     info['comps'] = _convert_comp_data(res4)

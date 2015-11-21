@@ -217,8 +217,7 @@ class RawKIT(_BaseRaw):
         self._raw_extras[0]['stim_code'] = stim_code
 
     @verbose
-    def _read_segment_file(self, data, idx, offset, fi, start, stop,
-                           cals, mult):
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
         # cals are all unity, so can be ignored
 
@@ -268,8 +267,7 @@ class RawKIT(_BaseRaw):
             trig_chs = trig_chs * trig_vals
             stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
             data_ = np.vstack((data_, stim_ch))
-        data[:, offset:offset + (stop - start)] = \
-            np.dot(mult, data_) if mult is not None else data_[idx]
+        data[:] = np.dot(mult, data_) if mult is not None else data_[idx]
 
 
 class EpochsKIT(_BaseEpochs):
