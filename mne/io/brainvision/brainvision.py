@@ -163,9 +163,9 @@ def _read_vmrk_events(fname, response_trig_shift=0):
     start_tag = 'Brain Vision Data Exchange Marker File'
     if not header.startswith(start_tag):
         raise ValueError("vmrk file should start with %r" % start_tag)
-    end_tag = 'Version 1.0'
-    if not header.endswith(end_tag):
-        raise ValueError("vmrk file should be %r" % end_tag)
+    end_tags = ['Version 1.0', 'Version 2.0']
+    if not any([header.endswith(end_tag) for end_tag in end_tags]):
+        raise ValueError("vmrk file should be %r" % str(end_tags))
     if (response_trig_shift is not None and
             not isinstance(response_trig_shift, int)):
         raise TypeError("response_trig_shift must be an integer or None")
@@ -191,6 +191,10 @@ def _read_vmrk_events(fname, response_trig_shift=0):
                     trigger += response_trig_shift
                 onset = int(onset)
                 duration = int(duration)
+                if mtype == 'Pulse Artifact':
+                    trigger = 9999999
+                elif mtype == 'Bad Interval':
+                    trigger = 9999998
                 events.append((onset, duration, trigger))
         except IndexError:
             pass
@@ -271,7 +275,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
         l = f.readline().decode('utf-8').strip()
-        assert l == 'Brain Vision Data Exchange Header File Version 1.0'
+        end_tags = ['Version 1.0', 'Version 2.0']
+        if not any([l.endswith(end_tag) for end_tag in end_tags]):
+            raise ValueError("vmrk file should be %r" % str(end_tags))
         settings = f.read().decode('utf-8')
 
     if settings.find('[Comment]') != -1:
