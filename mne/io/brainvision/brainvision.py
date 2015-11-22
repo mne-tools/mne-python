@@ -163,9 +163,7 @@ def _read_vmrk_events(fname, response_trig_shift=0):
     start_tag = 'Brain Vision Data Exchange Marker File'
     if not header.startswith(start_tag):
         raise ValueError("vmrk file should start with %r" % start_tag)
-    end_tags = ['Version 1.0', 'Version 2.0']
-    if not any([header.endswith(end_tag) for end_tag in end_tags]):
-        raise ValueError("vmrk file should be %r" % str(end_tags))
+    _check_version(header)
     if (response_trig_shift is not None and
             not isinstance(response_trig_shift, int)):
         raise TypeError("response_trig_shift must be an integer or None")
@@ -192,9 +190,9 @@ def _read_vmrk_events(fname, response_trig_shift=0):
                 onset = int(onset)
                 duration = int(duration)
                 if mtype == 'Pulse Artifact':
-                    trigger = 9999999
+                    trigger = 999
                 elif mtype == 'Bad Interval':
-                    trigger = 9999998
+                    trigger = 998
                 events.append((onset, duration, trigger))
         except IndexError:
             pass
@@ -226,6 +224,13 @@ def _synthesize_stim_channel(events, n_samp):
     for onset, duration, trigger in events:
         stim_channel[onset:onset + duration] = trigger
     return stim_channel
+
+
+def _check_version(header):
+    end_tags = ['Version 1.0', 'Version 2.0']
+    if not any([header.endswith(end_tag) for end_tag in end_tags]):
+        raise ValueError("Currently only support %r. "
+                         "Contact MNE-Developers for support." % str(end_tags))
 
 
 _orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
@@ -279,9 +284,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale, montage):
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
         l = f.readline().decode('utf-8').strip()
-        end_tags = ['Version 1.0', 'Version 2.0']
-        if not any([l.endswith(end_tag) for end_tag in end_tags]):
-            raise ValueError("vmrk file should be %r" % str(end_tags))
+        _check_version(l)
         settings = f.read().decode('utf-8')
 
     if settings.find('[Comment]') != -1:
@@ -327,10 +330,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale, montage):
         name, _, resolution, unit = props[:4]
         ch_dict.append([chan, name])
         ch_names[n] = name
-        if resolution == "" and not(unit):  # For truncated vhdrs (e.g. EEGLAB export)
-            resolution = 0.000001
-        else:
-            resolution = 1.
+        if resolution == "":
+            if not(unit):  # For truncated vhdrs (e.g. EEGLAB export)
+                resolution = 0.000001
+            else:
+                resolution = 1.  # for files with units specified, but not res
         unit = unit.replace(u'\xc2', u'')  # Remove unwanted control characters
         cals[n] = float(resolution)
         ranges[n] = _unit_dict.get(unit, unit) * scale
