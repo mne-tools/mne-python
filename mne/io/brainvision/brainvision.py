@@ -321,7 +321,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
             props += ('V',)
         name, _, resolution, unit = props[:4]
         ch_names[n] = name
-        if resolution == "":  # For truncated vhdrs (e.g. EEGLAB export)
+        if resolution == "" and not(unit):  # For truncated vhdrs (e.g. EEGLAB export)
             resolution = 0.000001
         unit = unit.replace(u'\xc2', u'')  # Remove unwanted control characters
         cals[n] = float(resolution)
