@@ -68,8 +68,8 @@ class RawBrainVision(_BaseRaw):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        info, fmt, self._order, events = _get_vhdr_info(
-            vhdr_fname, eog, misc, response_trig_shift, scale)
+        info, fmt, self._order, events, montage = _get_vhdr_info(
+            vhdr_fname, eog, misc, response_trig_shift, scale, montage)
         _check_update_montage(info, montage)
         with open(info['filename'], 'rb') as f:
             f.seek(0, os.SEEK_END)
@@ -235,7 +235,7 @@ _fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
 _unit_dict = {'V': 1., u'µV': 1e-6}
 
 
-def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
+def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale, montage):
     """Extracts all the information from the header file.
 
     Parameters
@@ -254,6 +254,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1.. For microvolts, the scale factor would be 1e-6. This is
         used when the header file does not specify the scale factor.
+    montage : str | True | None | instance of Montage
+        Path or instance of montage containing electrode positions.
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
 
     Returns
     -------
@@ -314,18 +318,40 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
     cals = np.empty(info['nchan'])
     ranges = np.empty(info['nchan'])
     cals.fill(np.nan)
+    ch_dict = list()
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
         props = props.split(',')
         if len(props) < 4:
             props += ('V',)
         name, _, resolution, unit = props[:4]
+        ch_dict.append([chan, name])
         ch_names[n] = name
         if resolution == "" and not(unit):  # For truncated vhdrs (e.g. EEGLAB export)
             resolution = 0.000001
+        else:
+            resolution = 1.
         unit = unit.replace(u'\xc2', u'')  # Remove unwanted control characters
         cals[n] = float(resolution)
         ranges[n] = _unit_dict.get(unit, unit) * scale
+    ch_dict = dict(ch_dict)
+
+    # create montage
+    if montage is True:
+        from ...transforms import _sphere_to_cartesian
+        from ...channels.montage import Montage
+        montage_pos = list()
+        montage_names = list()
+        for ch in cfg.items('Coordinates'):
+            montage_names.append(ch_dict[ch[0]])
+            radius, theta, phi = map(float, ch[1].split(','))
+            # 1: radius, 2: theta, 3: phi
+            pos = _sphere_to_cartesian(r=radius, theta=theta, phi=phi)
+            montage_pos.append(pos)
+        montage_sel = np.arange(len(montage_pos))
+        montage = Montage(montage_pos, montage_names, 'Brainvision',
+                          montage_sel)
+
     ch_names[-1] = 'STI 014'
     cals[-1] = 1.
     ranges[-1] = 1.
@@ -424,7 +450,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
     marker_id = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
     events = _read_vmrk_events(marker_id, response_trig_shift)
     info._check_consistency()
-    return info, fmt, order, events
+    return info, fmt, order, events, montage
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,
