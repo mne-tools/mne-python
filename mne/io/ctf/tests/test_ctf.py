@@ -5,6 +5,7 @@
 from os import path as op
 
 import numpy as np
+from nose.tools import assert_raises
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 from mne.io import Raw, read_raw_ctf
@@ -32,7 +33,7 @@ single_trials = (
     ctf_fname_1_trial,
 )
 
-ctf_fnames = list(block_sizes.keys())
+ctf_fnames = list(sorted(block_sizes.keys()))
 
 
 @slow_test
@@ -42,13 +43,15 @@ def test_read_ctf():
     temp_dir = _TempDir()
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
     for fname in ctf_fnames:
-        raw = read_raw_ctf(fname)
         raw_c = Raw(fname + '_raw.fif', add_eeg_ref=False, preload=True)
+        raw = read_raw_ctf(fname)
 
         # check info match
         assert_array_equal(raw.ch_names, raw_c.ch_names)
         assert_allclose(raw.times, raw_c.times)
-        assert_allclose(raw_c._cals, raw._cals)
+        assert_allclose(raw._cals, raw_c._cals)
+        for key in ('version', 'secs', 'usecs'):
+            assert_equal(raw.info['meas_id'][key], raw_c.info['meas_id'][key])
         for t in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_allclose(raw.info[t]['trans'], raw_c.info[t]['trans'],
                             rtol=1e-4, atol=1e-7)
@@ -86,7 +89,7 @@ def test_read_ctf():
             assert_allclose(d['r'], d_c['r'], atol=1e-7)
 
         # check data match
-        raw.save(out_fname, overwrite=True, buffer_size_sec=1.)
+        raw_c.save(out_fname, overwrite=True, buffer_size_sec=1.)
         raw_read = Raw(out_fname, add_eeg_ref=False)
 
         rng = np.random.RandomState(0)
@@ -107,5 +110,7 @@ def test_read_ctf():
         # all data / preload
         raw = read_raw_ctf(fname, preload=True)
         assert_allclose(raw[:][0], raw_c[:][0])
+    assert_raises(TypeError, read_raw_ctf, 1)
+    assert_raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')
 
 run_tests_if_main()

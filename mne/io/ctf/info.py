@@ -5,12 +5,15 @@
 #
 # License: BSD (3-clause)
 
+from time import strptime, mktime
+
 import numpy as np
 
 from ...utils import logger
 from ...transforms import (apply_trans, _coord_frame_name, invert_transform,
                            combine_transforms)
 from ..meas_info import _empty_info
+from ..write import get_new_file_id
 from ..ctf_comp import _add_kind, _calibrate_comp
 from ..constants import FIFF
 from .constants import CTF
@@ -52,31 +55,30 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
     return dig, [hpi_result]
 
 
-# from time import strptime, mktime
-# def _convert_time(date_str, time_str):
-#     """Convert date and time strings to float time"""
-#     for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y"):
-#         try:
-#             date = strptime(date_str, fmt)
-#         except ValueError:
-#             pass
-#         else:
-#             break
-#     else:
-#         raise RuntimeError("Illegal date: %s" % date)
-#     for fmt in ('%H:%M:%S', '%H:%M'):
-#         try:
-#             time = strptime(time_str, fmt)
-#         except ValueError:
-#             pass
-#         else:
-#             break
-#     else:
-#         raise RuntimeError('Illegal time: %s' % time)
-#     res = mktime((date.tm_year, date.tm_mon, date.tm_mday,
-#                   time.tm_hour, time.tm_min, time.tm_sec,
-#                   date.tm_wday, date.tm_yday, date.tm_isdst))
-#     return res
+def _convert_time(date_str, time_str):
+    """Convert date and time strings to float time"""
+    for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y"):
+        try:
+            date = strptime(date_str, fmt)
+        except ValueError:
+            pass
+        else:
+            break
+    else:
+        raise RuntimeError("Illegal date: %s" % date)
+    for fmt in ('%H:%M:%S', '%H:%M'):
+        try:
+            time = strptime(time_str, fmt)
+        except ValueError:
+            pass
+        else:
+            break
+    else:
+        raise RuntimeError('Illegal time: %s' % time)
+    res = mktime((date.tm_year, date.tm_mon, date.tm_mday,
+                  time.tm_hour, time.tm_min, time.tm_sec,
+                  date.tm_wday, date.tm_yday, date.tm_isdst))
+    return res
 
 
 def _get_plane_vectors(ez):
@@ -219,23 +221,15 @@ def _comp_sort_keys(c):
 
 def _check_comp(comp):
     """Check that conversion to named matrices is, indeed possible"""
-    if len(comp) == 0:
-        return
-    ref = 0
     ref_sens = None
     kind = -1
-    for k in range(len(comp)):
-        if comp[k]['coeff_type'] != kind:
-            ref = k
-            ref_sens = comp[ref]['sensors']
-            kind = comp[k]['coeff_type']
-        else:
-            if comp[ref]['ncoeff'] != comp[k]['ncoeff']:
-                raise RuntimeError('Cannot use an uneven compensation matrix')
-            for p in range(comp[k]['ncoeff']):
-                if comp[k]['sensors'][p] != ref_sens[p]:
-                    raise RuntimeError('Cannot use an uneven compensation '
-                                       'matrix')
+    for k, c_k in enumerate(comp):
+        if c_k['coeff_type'] != kind:
+            c_ref = c_k
+            ref_sens = c_ref['sensors']
+            kind = c_k['coeff_type']
+        elif not c_k['sensors'] == ref_sens:
+            raise RuntimeError('Cannot use an uneven compensation matrix')
 
 
 def _conv_comp(comp, first, last, chs):
@@ -355,20 +349,25 @@ def _add_eeg_pos(eeg, t, c):
             logger.info('    %d %s added to Polhemus data.' % (count, kind))
 
 
+_filt_map = {CTF.CTFV_FILTER_LOWPASS: 'lowpass',
+             CTF.CTFV_FILTER_HIGHPASS: 'highpass'}
+
+
 def _compose_meas_info(res4, coils, trans, eeg):
     """Create meas info from CTF data"""
     info = _empty_info()
 
     # Collect all the necessary data from the structures read
-    # info['date_time'] = _convert_time(res4['data_date'], res4['data_time'])
+    info['meas_id'] = get_new_file_id()
+    info['meas_id']['usecs'] = 0
+    info['meas_id']['secs'] = _convert_time(res4['data_date'],
+                                            res4['data_time'])
     for c_key, r_key in (('experimenter', 'nf_operator'), ('sfreq', 'sfreq')):
         info[c_key] = res4[r_key]
     info['subject_info'] = dict(his_id=res4['nf_subject_id'])
     for filt in res4['filters']:
-        if filt['type'] == CTF.CTFV_FILTER_LOWPASS:
-            info['lowpass'] = filt['freq']
-        elif filt['type'] == CTF.CTFV_FILTER_HIGHPASS:
-            info['highpass'] = filt['freq']
+        if filt['type'] in _filt_map:
+            info[_filt_map[filt['type']]] = filt['freq']
     if info['lowpass'] is None or info['lowpass'] < 0.:
         info['lowpass'] = info['sfreq'] / 2.
     if info['highpass'] is None or info['highpass'] < 0.:

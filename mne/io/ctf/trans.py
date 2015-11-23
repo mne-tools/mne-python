@@ -94,7 +94,7 @@ def _quaternion_align(from_frame, to_frame, from_pts, to_pts):
 def _make_ctf_coord_trans_set(res4, coils):
     """Figure out the necessary coordinate transforms"""
     # CTF head > Neuromag head
-    lpa = rpa = nas = None
+    lpa = rpa = nas = T1 = T2 = T3 = T5 = None
     if coils is not None:
         for p in coils:
             if p['valid'] and (p['coord_frame'] ==
@@ -112,8 +112,6 @@ def _make_ctf_coord_trans_set(res4, coils):
                                  FIFF.FIFFV_MNE_COORD_CTF_HEAD,
                                  lpa['r'], nas['r'], rpa['r'])
         T3 = invert_transform(t)
-    else:  # HPI information not present
-        T3 = None
 
     # CTF device -> Neuromag device
     #
@@ -159,8 +157,6 @@ def _make_ctf_coord_trans_set(res4, coils):
         r_dev = np.array([d_pts[kind] for kind in use_kinds])
         T2 = _quaternion_align(FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
                                FIFF.FIFFV_MNE_COORD_CTF_HEAD, r_dev, r_head)
-    else:  # HPI information not present
-        T2 = None
 
     # The final missing transform
     if T3 is not None and T2 is not None:
@@ -168,8 +164,6 @@ def _make_ctf_coord_trans_set(res4, coils):
                                 FIFF.FIFFV_COORD_HEAD)
         T1 = combine_transforms(invert_transform(T4), T5,
                                 FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD)
-    else:
-        T1 = T5 = None
     s = dict(t_dev_head=T1, t_ctf_dev_ctf_head=T2, t_ctf_head_head=T3,
              t_ctf_dev_dev=T4, t_ctf_dev_head=T5)
     logger.info('    Coordinate transformations established.')
