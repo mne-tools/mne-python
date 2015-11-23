@@ -27,7 +27,6 @@ def test_io_egi():
         warnings.simplefilter('always', category=RuntimeWarning)
         raw = read_raw_egi(egi_fname, include=None)
         assert_true('RawEGI' in repr(raw))
-        raw.load_data()  # currently does nothing
         assert_equal(len(w), 1)
         assert_true(w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
@@ -36,8 +35,7 @@ def test_io_egi():
     include = ['TRSP', 'XXX1']
     raw = _test_raw_object(read_raw_egi, False, input_fname=egi_fname,
                            include=include)
-    repr(raw)
-    repr(raw.info)
+
     _test_raw_filter(raw)
 
     assert_equal('eeg' in raw, True)

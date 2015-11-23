@@ -13,7 +13,7 @@ from nose.tools import assert_raises, assert_true
 import scipy.io
 
 from mne import pick_types, Epochs, find_events, read_events
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import run_tests_if_main
 from mne.io import Raw
 from mne.io import read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
@@ -110,22 +110,6 @@ def test_raw_events():
     raw = read_raw_kit(sqd_path, stim='<', slope='+', stim_code='channel')
     assert_array_equal(find_events(raw, output='step', consecutive=True),
                        evts(0, 160, 0, 160, 0))
-
-
-def test_read_segment():
-    """Test writing raw kit files when preload is False
-    """
-    tempdir = _TempDir()
-
-    raw1 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=False)
-    raw1_file = op.join(tempdir, 'test1-raw.fif')
-    raw1.save(raw1_file, buffer_size_sec=.1, overwrite=True)
-    raw1 = Raw(raw1_file, preload=True)
-    buffer_fname = op.join(tempdir, 'buffer')
-    raw2 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=buffer_fname)
-    assert_array_almost_equal(raw1._data, raw2._data)
 
 
 def test_ch_loc():

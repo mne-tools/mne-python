@@ -3,7 +3,7 @@ import warnings
 from os import path as op
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_array_equal)
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_true
 
 from mne.datasets import testing
 from mne.io import Raw, base
@@ -35,7 +35,20 @@ def _test_raw_object(reader, test_preloading, **kwargs):
         assert_array_equal(raws[0][picks, 20:30][0], raws[-1][picks, 20:30][0])
     raw = raws[-1]  # use preloaded raw
     full_data = raw._data
-    # Make sure concatenation works
+
+    print(raw)  # to test repr
+    print(raw.info)  # to test Info repr
+
+    # Test cropping
+    data, times = raw[:]
+    t0, t1 = 0.25 * times[-1], 0.75 * times[-1]
+    mask = (t0 <= times) * (times <= t1)
+    raw_ = raw.crop(t0, t1)
+    data_, _ = raw_[:]
+    assert_true(data_.shape[1] == mask.sum())
+    assert_true(data_.shape[0] == data.shape[0])
+
+    # Test concatenation
     raw2 = base.concatenate_raws([raw.copy(), raw])
     assert_equal(raw2.n_times, 2 * raw.n_times)
 

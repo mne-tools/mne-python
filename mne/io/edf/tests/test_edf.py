@@ -74,7 +74,38 @@ def test_bdf_data():
 
 
 def test_edf_data():
-    """Test reading raw edf files"""
+    """Test edf files"""
+    raw_py = _test_raw_object(read_raw_edf, True, input_fname=edf_path,
+                              stim_channel=None)
+    _test_raw_filter(raw_py)
+
+    edf_events = find_events(raw_py, output='step', shortest_event=0,
+                             stim_channel='STI 014')
+
+    # onset, duration, id
+    events = [[0.1344, 0.2560, 2],
+              [0.3904, 1.0000, 2],
+              [2.0000, 0.0000, 3],
+              [2.5000, 2.5000, 2]]
+    events = np.array(events)
+    events[:, :2] *= 512  # convert time to samples
+    events = np.array(events, dtype=int)
+    events[:, 1] -= 1
+    events[events[:, 1] <= 0, 1] = 1
+    events[:, 1] += events[:, 0]
+
+    onsets = events[:, [0, 2]]
+    offsets = events[:, [1, 2]]
+
+    events = np.zeros((2 * events.shape[0], 3), dtype=int)
+    events[0::2, [0, 2]] = onsets
+    events[1::2, [0, 1]] = offsets
+
+    assert_array_equal(edf_events, events)
+
+
+def test_stim_channel():
+    """Test reading raw edf files with stim channel"""
     raw_py = read_raw_edf(edf_path, misc=range(-4, 0), stim_channel=139,
                           preload=True)
 
@@ -92,10 +123,6 @@ def test_edf_data():
 
     assert_array_almost_equal(data_py, data_eeglab, 10)
 
-    # Make sure concatenation works
-    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
-    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
-
     # Test uneven sampling
     raw_py = read_raw_edf(edf_uneven_path, stim_channel=None)
     data_py, _ = raw_py[0]
@@ -110,66 +137,6 @@ def test_edf_data():
     assert_array_equal(data_py, data_eeglab)
 
     assert_raises(RuntimeError, read_raw_edf, edf_path, preload=False)
-
-
-def test_read_segment():
-    """Test writing raw edf files when preload is False"""
-    tempdir = _TempDir()
-    raw1 = read_raw_edf(edf_path, stim_channel=None, preload=False)
-    raw1_file = op.join(tempdir, 'test1-raw.fif')
-    raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
-    raw11 = Raw(raw1_file, preload=True)
-    data1, times1 = raw1[:139, :]
-    data11, times11 = raw11[:139, :]
-    assert_allclose(data1, data11, rtol=1e-6)
-    assert_array_almost_equal(times1, times11)
-    assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
-    data2, times2 = raw1[0, 0:1]
-    assert_array_equal(data2[0], data1[0, 0:1])
-    assert_array_equal(times2, times1[0:1])
-
-    buffer_fname = op.join(tempdir, 'buffer')
-    for preload in (buffer_fname, True, False):  # false here means "delayed"
-        raw2 = read_raw_edf(edf_path, stim_channel=None, preload=preload)
-        if preload is False:
-            raw2.load_data()
-        raw2_file = op.join(tempdir, 'test2-raw.fif')
-        raw2.save(raw2_file, overwrite=True)
-        data2, times2 = raw2[:139, :]
-        assert_allclose(data1, data2, rtol=1e-6)
-        assert_array_equal(times1, times2)
-
-    raw1 = Raw(raw1_file, preload=True)
-    raw2 = Raw(raw2_file, preload=True)
-    assert_array_equal(raw1._data, raw2._data)
-
-    # test the _read_segment function by only loading some of the data
-    raw1 = read_raw_edf(edf_path, stim_channel=None, preload=False)
-    raw2 = read_raw_edf(edf_path, stim_channel=None, preload=True)
-
-    # select some random range of data to compare
-    data1, times1 = raw1[:, 345:417]
-    data2, times2 = raw2[:, 345:417]
-    assert_array_equal(data1, data2)
-    assert_array_equal(times1, times2)
-
-
-def test_append():
-    """Test appending raw edf objects using Raw.append"""
-    for preload in (True, False):
-        raw = read_raw_edf(bdf_path, preload=preload)
-        raw0 = raw.copy()
-        raw1 = raw.copy()
-        raw0.append(raw1)
-        assert_true(2 * len(raw) == len(raw0))
-        assert_allclose(np.tile(raw[:, :][0], (1, 2)), raw0[:, :][0])
-
-    # different types can't combine
-    raw = read_raw_edf(bdf_path, preload=True)
-    raw0 = raw.copy()
-    raw1 = raw.copy()
-    raw2 = RawArray(raw[:, :][0], raw.info)
-    assert_raises(ValueError, raw.append, raw2)
 
 
 def test_parse_annotation():

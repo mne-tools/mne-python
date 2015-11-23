@@ -50,7 +50,7 @@ def test_brainvision_data():
                   preload=True, scale="foo")
     raw_py = _test_raw_object(read_raw_brainvision, test_preloading=True,
                               vhdr_fname=vhdr_path, montage=montage, eog=eog)
-    raw_py.load_data()  # currently does nothing
+
     assert_true('RawBrainVision' in repr(raw_py))
 
     assert_equal(raw_py.info['highpass'], 0.)
@@ -58,9 +58,6 @@ def test_brainvision_data():
 
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, times_py = raw_py[picks]
-
-    print(raw_py)  # to test repr
-    print(raw_py.info)  # to test Info repr
 
     # compare with a file that was generated using MNE-C
     raw_bin = Raw(eeg_bin, preload=True)
