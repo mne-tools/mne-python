@@ -8,22 +8,23 @@ source space based on dSPM inverse solutions and a FreeSurfer cortical
 parcellation. The connectivity is visualized using a circular graph which
 is ordered based on the locations of the regions.
 """
-
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
 from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import spectral_connectivity
 from mne.viz import circular_layout, plot_connectivity_circle
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -81,9 +82,9 @@ fmin = 8.
 fmax = 13.
 sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['pli', 'wpli2_debiased']
-con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
-        method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
-        fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
+con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+    label_ts, method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
+    fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
 
 # con is a 3D array, get the connectivity for the first (and only) freq. band
 # for each method
@@ -106,7 +107,7 @@ for name in lh_labels:
     label_ypos.append(ypos)
 
 # Reorder the labels based on their location
-lh_labels = [label for (ypos, label) in sorted(zip(label_ypos, lh_labels))]
+lh_labels = [label for (yp, label) in sorted(zip(label_ypos, lh_labels))]
 
 # For the right hemi
 rh_labels = [label[:-2] + 'rh' for label in lh_labels]
@@ -125,7 +126,6 @@ plot_connectivity_circle(con_res['pli'], label_names, n_lines=300,
                          node_angles=node_angles, node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
                                'Condition (PLI)')
-import matplotlib.pyplot as plt
 plt.savefig('circle.png', facecolor='black')
 
 # Plot connectivity for both methods in the same plot

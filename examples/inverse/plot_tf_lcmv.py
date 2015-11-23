@@ -10,12 +10,9 @@ The original reference is:
 Dalal et al. Five-dimensional neuroimaging: Localization of the time-frequency
 dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 """
-
 # Author: Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import mne
 from mne import compute_covariance
@@ -25,6 +22,7 @@ from mne.event import make_fixed_length_events
 from mne.beamformer import tf_lcmv
 from mne.viz import plot_source_spectrogram
 
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -58,8 +56,8 @@ tmin, tmax = -0.55, 0.75  # s
 tmin_plot, tmax_plot = -0.3, 0.5  # s
 
 # Read epochs. Note that preload is set to False to enable tf_lcmv to read the
-# underlying raw object from epochs.raw, which would be set to None during
-# preloading. Filtering is then performed on raw data in tf_lcmv and the epochs
+# underlying raw object.
+# Filtering is then performed on raw data in tf_lcmv and the epochs
 # parameters passed here are used to create epochs from filtered data. However,
 # reading epochs without preloading means that bad epoch rejection is delayed
 # until later. To perform bad epoch rejection based on the reject parameter
@@ -102,9 +100,7 @@ win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 # Setting the time step
 tstep = 0.05
 
-# Setting the noise covariance and whitened data covariance regularization
-# parameters
-noise_reg = 0.03
+# Setting the whitened data covariance regularization parameter
 data_reg = 0.001
 
 # Subtract evoked response prior to computation?
@@ -123,9 +119,7 @@ for (l_freq, h_freq) in freq_bins:
                              tmin=tmin_plot, tmax=tmax_plot, baseline=None,
                              picks=epochs.picks, proj=True)
 
-    noise_cov = compute_covariance(epochs_band)
-    noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=noise_reg,
-                                   grad=noise_reg, eeg=noise_reg, proj=True)
+    noise_cov = compute_covariance(epochs_band, method='shrunk')
     noise_covs.append(noise_cov)
     del raw_band  # to save memory
 

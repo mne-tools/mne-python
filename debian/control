@@ -23,8 +23,7 @@ Build-Depends: debhelper (>= 9),
                libjs-jquery,
                libjs-jquery-ui,
                yui-compressor,
-               mayavi2,
-Standards-Version: 3.9.5
+Standards-Version: 3.9.6
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=debian-med/python-mne.git
 Vcs-Git: git://anonscm.debian.org/debian-med/python-mne.git
 Homepage: http://martinos.org/mne

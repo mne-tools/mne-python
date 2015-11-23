@@ -12,12 +12,14 @@ is linear based on dSPM inverse operator.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 import mne
 from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, source_band_induced_power
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -36,7 +38,7 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                        stim=False, include=include, exclude='bads')
+                       stim=False, include=include, exclude='bads')
 
 # Load condition 1
 event_id = 1
@@ -57,7 +59,6 @@ for b, stc in stcs.iteritems():
 
 ###############################################################################
 # plot mean power
-import matplotlib.pyplot as plt
 plt.plot(stcs['alpha'].times, stcs['alpha'].data.mean(axis=0), label='Alpha')
 plt.plot(stcs['beta'].times, stcs['beta'].data.mean(axis=0), label='Beta')
 plt.xlabel('Time (ms)')
