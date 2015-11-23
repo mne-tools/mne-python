@@ -14,21 +14,22 @@ Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
 (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
 Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
-print(__doc__)
 
 from mne import find_events, Epochs, pick_types, read_evokeds
 from mne.io import Raw
 from mne.datasets.megsim import load_data
 
+print(__doc__)
+
 condition = 'visual'  # or 'auditory' or 'somatosensory'
 
 # Load experimental RAW files for the visual condition
 raw_fnames = load_data(condition=condition, data_format='raw',
-                       data_type='experimental')
+                       data_type='experimental', verbose=True)
 
 # Load simulation evoked files for the visual condition
 evoked_fnames = load_data(condition=condition, data_format='evoked',
-                          data_type='simulation')
+                          data_type='simulation', verbose=True)
 
 raw = Raw(raw_fnames[0])
 events = find_events(raw, stim_channel="STI 014", shortest_event=1)

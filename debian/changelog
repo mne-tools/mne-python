@@ -1,3 +1,11 @@
+python-mne (0.10+dfsg-1.1) UNRELEASED; urgency=medium
+
+  * NMU
+  * New upstream version
+  * Removed depedency on mayavi2
+
+ -- Jaakko Leppakangas <jaeilepp@student.jyu.fi>  Mon, 09 Nov 2015 05:59:55 -0500
+
 python-mne (0.8.6+dfsg-1) unstable; urgency=low
 
   * New upstream version

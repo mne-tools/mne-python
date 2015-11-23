@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+# Automatically added by dh_python2:
+if which pycompile >/dev/null 2>&1; then
+	pycompile -p python-mne 
+fi
+
+# End automatically added section
