@@ -9,108 +9,21 @@ from copy import deepcopy
 import numpy as np
 
 from .constants import FIFF
-from .tag import find_tag, has_tag, read_tag
+from .tag import read_tag
 from .tree import dir_tree_find
 from .write import start_block, end_block, write_int
-from .matrix import write_named_matrix
+from .matrix import write_named_matrix, _read_named_matrix
 
 from ..utils import logger, verbose
 
 
-def hex2dec(s):
-    return int(s, 16)
-
-
-def _read_named_matrix(fid, node, matkind):
-    """read_named_matrix(fid,node)
-
-    Read named matrix from the given node
-
-    Parameters
-    ----------
-    fid : file
-        The file descriptor
-    node : dict
-        Node
-    matkind : mat kind
-        XXX
-    Returns
-    -------
-    mat : dict
-        The matrix with row and col names.
-    """
-
-    #   Descend one level if necessary
-    if node['block'] != FIFF.FIFFB_MNE_NAMED_MATRIX:
-        for k in range(node['nchild']):
-            if node['children'][k]['block'] == FIFF.FIFFB_MNE_NAMED_MATRIX:
-                if has_tag(node['children'][k], matkind):
-                    node = node['children'][k]
-                    break
-        else:
-            raise ValueError('Desired named matrix (kind = %d) not'
-                             ' available' % matkind)
-
-    else:
-        if not has_tag(node, matkind):
-            raise ValueError('Desired named matrix (kind = %d) not available'
-                             % matkind)
-
-    #   Read everything we need
-    tag = find_tag(fid, node, matkind)
-    if tag is None:
-        raise ValueError('Matrix data missing')
-    else:
-        data = tag.data
-
-    nrow, ncol = data.shape
-    tag = find_tag(fid, node, FIFF.FIFF_MNE_NROW)
-    if tag is not None:
-        if tag.data != nrow:
-            raise ValueError('Number of rows in matrix data and '
-                             'FIFF_MNE_NROW tag do not match')
-
-    tag = find_tag(fid, node, FIFF.FIFF_MNE_NCOL)
-    if tag is not None:
-        if tag.data != ncol:
-            raise ValueError('Number of columns in matrix data and '
-                             'FIFF_MNE_NCOL tag do not match')
-
-    tag = find_tag(fid, node, FIFF.FIFF_MNE_ROW_NAMES)
-    if tag is not None:
-        row_names = tag.data
-    else:
-        row_names = None
-
-    tag = find_tag(fid, node, FIFF.FIFF_MNE_COL_NAMES)
-    if tag is not None:
-        col_names = tag.data
-    else:
-        col_names = None
-
-    #   Put it together
-    mat = dict(nrow=nrow, ncol=ncol)
-    if row_names is not None:
-        mat['row_names'] = row_names.split(':')
-    else:
-        mat['row_names'] = None
-
-    if col_names is not None:
-        mat['col_names'] = col_names.split(':')
-    else:
-        mat['col_names'] = None
-
-    mat['data'] = data.astype(np.float)
-    return mat
-
-
 def _add_kind(one):
     """Convert CTF kind to MNE kind"""
-    if one['ctfkind'] == int('47314252', 16):  # hex2dec('47314252'):
+    if one['ctfkind'] == int('47314252', 16):
         one['kind'] = 1
-    elif one['ctfkind'] == int('47324252', 16):  # hex2dec('47324252'):
+    elif one['ctfkind'] == int('47324252', 16):
         one['kind'] = 2
-    elif one['ctfkind'] == int('47334252', 16):  # hex2dec('47334252'):
+    elif one['ctfkind'] == int('47334252', 16):
         one['kind'] = 3
     else:
         one['kind'] = int(one['ctfkind'])
@@ -151,7 +64,8 @@ def read_ctf_comp(fid, node, chs, verbose=None):
     node : dict
         The node in the FIF tree.
     chs : list
-        The list of channels # XXX unclear.
+        The list of channels from info['chs'] to match with
+        compensators that are read.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
