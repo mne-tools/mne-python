@@ -119,10 +119,7 @@ class RawCTF(_BaseRaw):
                                                          int(si['block_size']))
         with open(self._filenames[fi], 'rb') as fid:
             for bi in range(len(r_lims)):
-                if si['n_trial'] == 1:
-                    raise NotImplementedError  # XXX WE NEED TO TEST THIS!
-                else:
-                    samp_offset = (bi + trial_start_idx) * si['res4_nsamp']
+                samp_offset = (bi + trial_start_idx) * si['res4_nsamp']
                 n_read = min(si['n_samp'] - samp_offset, si['block_size'])
                 # read the chunk of data
                 pos = CTF.HEADER_SIZE
@@ -140,7 +137,10 @@ class RawCTF(_BaseRaw):
 def _get_sample_info(fname, res4):
     """Helper to determine the number of valid samples"""
     logger.info('Finding samples for %s: ' % (fname,))
-    clock_ch = -1
+    if CTF.SYSTEM_CLOCK_CH in res4['ch_names']:
+        clock_ch = res4['ch_names'].index(CTF.SYSTEM_CLOCK_CH)
+    else:
+        clock_ch = None
     for k, ch in enumerate(res4['chs']):
         if ch['ch_name'] == CTF.SYSTEM_CLOCK_CH:
             clock_ch = k
@@ -156,7 +156,7 @@ def _get_sample_info(fname, res4):
         n_samp_tot = (st_size - CTF.HEADER_SIZE) // (4 * res4['nchan'])
         n_trial = n_samp_tot // res4['nsamp']
         n_samp = n_samp_tot
-        if clock_ch < 0:
+        if clock_ch is None:
             logger.info('    System clock channel is not available, assuming '
                         'all samples to be valid.')
         else:
@@ -188,7 +188,6 @@ def _get_sample_info(fname, res4):
                     % (n_trial, res4['nsamp'], n_samp, res4['nchan']))
         if n_omit != 0:
             logger.info('    %d samples omitted at the end' % n_omit)
-    block_size = 2000 if n_trial == 1 else res4['nsamp']
-    return dict(n_samp=n_samp, n_samp_tot=n_samp_tot, block_size=block_size,
+    return dict(n_samp=n_samp, n_samp_tot=n_samp_tot, block_size=res4['nsamp'],
                 n_trial=n_trial, res4_nsamp=res4['nsamp'],
                 n_chan=res4['nchan'])

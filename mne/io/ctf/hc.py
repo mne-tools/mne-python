@@ -52,7 +52,10 @@ def _read_one_coil_point(fid):
     # Three coordinates
     p['r'] = np.empty(3)
     for ii, coord in enumerate('xyz'):
-        sp = fid.readline().decode('utf-8').strip().split(' ')
+        sp = fid.readline().decode('utf-8').strip()
+        if len(sp) == 0:  # blank line
+            continue
+        sp = sp.split(' ')
         if len(sp) != 3 or sp[0] != coord or sp[1] != '=':
             raise RuntimeError('Bad line: %s' % one)
         # We do not deal with centimeters
