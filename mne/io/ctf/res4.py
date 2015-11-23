@@ -24,9 +24,9 @@ def _make_ctf_name(directory, extra, raise_error=True):
     return fname
 
 
-def _read_double(fid):
+def _read_double(fid, n=1):
     """Read a double"""
-    return np.fromstring(fid.read(8), '>f8')[0]
+    return np.fromfile(fid, '>f8', n)
 
 
 def _read_string(fid, n_bytes, decode=True):
@@ -38,17 +38,17 @@ def _read_string(fid, n_bytes, decode=True):
 
 def _read_ustring(fid, n_bytes):
     """Read unsigned character string"""
-    return np.fromstring(fid.read(n_bytes), '>B')
+    return np.fromfile(fid, '>B', n_bytes)
 
 
 def _read_int2(fid):
     """Read int from short"""
-    return np.fromstring(fid.read(2), '>i2')[0]
+    return np.fromfile(fid, '>i2', 1)[0]
 
 
 def _read_int(fid):
     """Read a 32-bit integer"""
-    return np.fromstring(fid.read(4), '>i4')[0]
+    return np.fromfile(fid, '>i4', 1)[0]
 
 
 def _move_to_next(fid, byte=8):
@@ -62,11 +62,11 @@ def _move_to_next(fid, byte=8):
 def _read_filter(fid):
     """Read filter information"""
     f = dict()
-    f['freq'] = _read_double(fid)
+    f['freq'] = _read_double(fid)[0]
     f['class'] = _read_int(fid)
     f['type'] = _read_int(fid)
     f['npar'] = _read_int2(fid)
-    f['pars'] = [_read_double(fid) for _ in range(f['npar'])]
+    f['pars'] = _read_double(fid, f['npar'])
     return f
 
 
@@ -76,35 +76,31 @@ def _read_channel(fid):
     ch['sensor_type_index'] = _read_int2(fid)
     ch['original_run_no'] = _read_int2(fid)
     ch['coil_type'] = _read_int(fid)
-    ch['proper_gain'] = _read_double(fid)
-    ch['qgain'] = _read_double(fid)
-    ch['io_gain'] = _read_double(fid)
-    ch['io_offset'] = _read_double(fid)
+    ch['proper_gain'] = _read_double(fid)[0]
+    ch['qgain'] = _read_double(fid)[0]
+    ch['io_gain'] = _read_double(fid)[0]
+    ch['io_offset'] = _read_double(fid)[0]
     ch['num_coils'] = _read_int2(fid)
     ch['grad_order_no'] = int(_read_int2(fid))
     _read_int(fid)  # pad
     ch['coil'] = dict()
     ch['head_coil'] = dict()
-
     for coil in (ch['coil'], ch['head_coil']):
         coil['pos'] = list()
         coil['norm'] = list()
         coil['turns'] = np.empty(CTF.CTFV_MAX_COILS)
         coil['area'] = np.empty(CTF.CTFV_MAX_COILS)
         for k in range(CTF.CTFV_MAX_COILS):
-            coil['pos'].append(np.array([_read_double(fid)
-                                         for _ in range(3)]))
             # It would have been wonderful to use meters in the first place
-            coil['pos'][-1] /= 100.0
-            _read_double(fid)  # dummy
-            coil['norm'].append(np.array([_read_double(fid)
-                                          for _ in range(3)]))
-            _read_double(fid)  # dummy
+            coil['pos'].append(_read_double(fid, 3) / 100.)
+            fid.seek(8, 1)  # dummy double
+            coil['norm'].append(_read_double(fid, 3))
+            fid.seek(8, 1)  # dummy double
             coil['turns'][k] = _read_int2(fid)
             _read_int(fid)  # pad
             _read_int2(fid)  # pad
             # Looks like this is given in cm^2
-            coil['area'][k] = _read_double(fid) * 1e-4
+            coil['area'][k] = _read_double(fid)[0] * 1e-4
     return ch
 
 
@@ -122,21 +118,14 @@ def _read_comp_coeff(fid, d):
         _read_int(fid)  # pad
         comp['ncoeff'] = _read_int2(fid)
         comp['coeffs'] = np.zeros(comp['ncoeff'])
-        comp['sensors'] = list()
-        for p in range(CTF.CTFV_MAX_BALANCING):
-            sn = _read_string(fid, CTF.CTFV_SENSOR_LABEL, decode=False)
-            comp['sensors'].append(sn.decode('utf-8')
-                                   if p < comp['ncoeff'] else '')
-        for p in range(CTF.CTFV_MAX_BALANCING):
-            dval = _read_double(fid)
-            if p < comp['ncoeff']:
-                comp['coeffs'][p] = dval
-
-        comp['scanno'] = -1
-        for p in range(d['nchan']):
-            if d['chs'][p]['ch_name'] == comp['sensor_name']:
-                comp['scanno'] = p
-                break
+        comp['sensors'] = [_read_string(fid, CTF.CTFV_SENSOR_LABEL)
+                           for p in range(comp['ncoeff'])]
+        unused = CTF.CTFV_MAX_BALANCING - comp['ncoeff']
+        comp['sensors'] += [''] * unused
+        fid.seek(unused * CTF.CTFV_SENSOR_LABEL, 1)
+        comp['coeffs'][:comp['ncoeff']] = _read_double(fid, comp['ncoeff'])
+        fid.seek(unused * 8, 1)
+        comp['scanno'] = d['ch_names'].index(comp['sensor_name'])
 
 
 def _read_res4(dsdir):
@@ -162,8 +151,8 @@ def _read_res4(dsdir):
         res['nsamp'] = _read_int(fid)
         res['nchan'] = _read_int2(fid)
         _move_to_next(fid, 8)
-        res['sfreq'] = _read_double(fid)
-        res['epoch_time'] = _read_double(fid)
+        res['sfreq'] = _read_double(fid)[0]
+        res['epoch_time'] = _read_double(fid)[0]
         res['no_trials'] = _read_int2(fid)
         _move_to_next(fid, 4)
         res['pre_trig_pts'] = _read_int(fid)
@@ -190,6 +179,8 @@ def _read_res4(dsdir):
         res['nf_collect_descriptor'] = _read_string(fid, 32)
         res['nf_subject_id'] = _read_string(fid, 32)
         res['nf_operator'] = _read_string(fid, 32)
+        if len(res['nf_operator']) == 0:
+            res['nf_operator'] = None
         res['nf_sensor_file_name'] = _read_ustring(fid, 60)
         _move_to_next(fid, 4)
         res['rdlen'] = _read_int(fid)
@@ -206,9 +197,12 @@ def _read_res4(dsdir):
 
         # Channel information
         res['chs'] = list()
+        res['ch_names'] = list()
         for k in range(res['nchan']):
             res['chs'].append(dict())
-            res['chs'][k]['ch_name'] = _read_string(fid, 32)
+            ch_name = _read_string(fid, 32)
+            res['chs'][k]['ch_name'] = ch_name
+            res['ch_names'].append(ch_name)
         for k in range(res['nchan']):
             res['chs'][k].update(_read_channel(fid))
 
