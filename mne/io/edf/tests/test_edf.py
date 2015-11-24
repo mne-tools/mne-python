@@ -14,14 +14,14 @@ import warnings
 
 from nose.tools import assert_equal, assert_true
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_raises, assert_allclose)
+                           assert_raises)
 from scipy import io
 import numpy as np
 
-from mne import pick_types, concatenate_raws
+from mne import pick_types
 from mne.externals.six import iterbytes
-from mne.utils import _TempDir, run_tests_if_main, requires_pandas
-from mne.io import Raw, read_raw_edf, RawArray
+from mne.utils import run_tests_if_main, requires_pandas
+from mne.io import read_raw_edf
 from mne.io.tests.test_raw import (_test_concat, _test_raw_object,
                                    _test_raw_filter)
 import mne.io.edf.edf as edfmodule
@@ -77,8 +77,9 @@ def test_edf_data():
     """Test edf files"""
     raw_py = _test_raw_object(read_raw_edf, True, input_fname=edf_path,
                               stim_channel=None)
-    _test_raw_filter(raw_py)
+    _test_raw_filter(raw_py, atol=1e-5)
 
+    raw_py = read_raw_edf(edf_path, preload=True)
     edf_events = find_events(raw_py, output='step', shortest_event=0,
                              stim_channel='STI 014')
 
