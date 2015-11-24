@@ -23,6 +23,7 @@ from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .topomap import _prepare_topo_plot, plot_topomap
+from ..transforms import _cartesian_to_sphere, _polar_to_cartesian
 
 
 def _butterfly_onpick(event, params):
@@ -210,6 +211,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w",
                                                alpha=0.75)]
     for ax, t in zip(axes, ch_types_used):
+        line_list = list()  # 'line_list' contains the lines for this axes
         ch_unit = units[t]
         this_scaling = scalings[t]
         if unit is False:
@@ -222,20 +224,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             D = this_scaling * evoked.data[idx, :]
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
-                if any(i in bad_ch_idx for i in idx):
-                    colors = ['k'] * len(idx)
-                    for i in bad_ch_idx:
-                        if i in idx:
-                            colors[idx.index(i)] = 'r'
-                    ax._get_lines.color_cycle = iter(colors)
-
-                if spatial_colors:
-                    chs = [evoked.info['chs'][ii] for ii in idx]
-                    chspace = np.asarray([list(chs[ch]['loc'][0:3])
-                                          for ch in range(len(chs))])
-                    chspace -= chspace.min()
-                    chspace /= chspace.max()
-                    ax._get_lines.color_cycle = iter(chspace)
 
                 text = ax.annotate('Loading...', xy=(0.01, 0.1),
                                    xycoords='axes fraction', fontsize=20,
@@ -253,12 +241,26 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
                 gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
                 if not gfp_only:
-                    lines.append(ax.plot(times, D.T, picker=3., zorder=0,
-                                         color='k'))
-                    for ii, line in zip(idx, lines[-1]):
-                        if ii in bad_ch_idx:
-                            line.set_color('r')
-                            line.set_zorder(1)
+                    if spatial_colors:
+                        chs = [evoked.info['chs'][i] for i in idx]
+                        locs3d = np.array([ch['loc'][:3] for ch in chs])
+                        x, y, z = locs3d.T
+                        az, el, _ = _cartesian_to_sphere(x, y, z)
+                        locs2d = np.c_[_polar_to_cartesian(az, np.pi / 2 - el)]
+                        locs2d -= locs2d.min()
+                        locs2d /= locs2d.max()
+                        colors = np.transpose([locs2d[:, 0],
+                                               np.zeros(len(idx)),
+                                               locs2d[:, 1]])
+                    else:
+                        colors = ['k'] * len(idx)
+                        for i in bad_ch_idx:
+                            if i in idx:
+                                colors[idx.index(i)] = 'r'
+                    for ch_idx in range(len(D)):
+                        line_list.append(ax.plot(times, D[ch_idx], picker=3.,
+                                                 zorder=0,
+                                                 color=colors[ch_idx])[0])
                 if gfp:  # 'only' or boolean True
                     gfp_color = (0., 1., 0.)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
@@ -270,16 +272,15 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     this_gfp += y_offset
                     ax.fill_between(times, y_offset, this_gfp, color='none',
                                     facecolor=gfp_color, zorder=0, alpha=0.25)
-                    ax.plot(times, this_gfp, color=gfp_color, zorder=2)
+                    line_list.append(ax.plot(times, this_gfp, color=gfp_color,
+                                             zorder=2)[0])
                     ax.text(times[0] + 0.01 * (times[-1] - times[0]),
                             this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
                             'GFP', zorder=3, color=gfp_color,
                             path_effects=gfp_path_effects)
-                lines.append(ax.plot(times, D.T, picker=3., zorder=0))
-                for ii, line in zip(idx, lines[-1]):
+                for ii, line in zip(idx, line_list):
                     if ii in bad_ch_idx:
                         line.set_zorder(1)
-                        # setting markers is not as easy as colors
                         if spatial_colors:
                             line.set_linestyle("--")
                 ax.set_ylabel('data (%s)' % ch_unit)
@@ -316,6 +317,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             if (plot_type == 'butterfly') and (hline is not None):
                 for h in hline:
                     ax.axhline(h, color='r', linestyle='--', linewidth=2)
+        lines.append(line_list)
     if plot_type == 'butterfly':
         params = dict(axes=axes, texts=texts, lines=lines,
                       ch_names=evoked.ch_names, idxs=idxs, need_draw=False,
