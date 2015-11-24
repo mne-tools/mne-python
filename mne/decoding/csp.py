@@ -102,9 +102,18 @@ class CSP(TransformerMixin):
 
         cov_1 = _regularized_covariance(class_1, reg=self.reg)
         cov_2 = _regularized_covariance(class_2, reg=self.reg)
+        cov_1 /= np.trace(cov_1)
+        cov_2 /= np.trace(cov_2)
 
-        # then fit on covariance
-        self._fit(cov_1, cov_2)
+        e, w = linalg.eigh(cov_1, cov_1 + cov_2)
+        n_vals = len(e)
+        # Rearrange vectors
+        ind = np.empty(n_vals, dtype=int)
+        ind[::2] = np.arange(n_vals - 1, n_vals // 2 - 1, -1)
+        ind[1::2] = np.arange(0, int(np.ceil(n_vals / 2.0)) - 1)
+        w = w[:, ind]  # first, last, second, second last, third, ...
+        self.filters_ = w.T
+        self.patterns_ = linalg.pinv(w)
 
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
@@ -117,20 +126,6 @@ class CSP(TransformerMixin):
         self.std_ = X.std(axis=0)
 
         return self
-
-    def _fit(self, cov_a, cov_b):
-        """Aux Function (modifies cov_a and cov_b in-place)."""
-        cov_a /= np.trace(cov_a)
-        cov_b /= np.trace(cov_b)
-
-        e, w = linalg.eigh(cov_a, cov_a + cov_b)
-        n_vals = len(e)
-        ind = np.empty(n_vals, dtype=int)
-        ind[::2] = np.arange(n_vals - 1, n_vals // 2 - 1, -1)
-        ind[1::2] = np.arange(0, int(np.ceil(n_vals / 2.0)) - 1)
-        w = w[:, ind]  # first, last, second, second last, third, ...
-        self.filters_ = w.T
-        self.patterns_ = linalg.pinv(w)
 
     def transform(self, epochs_data, y=None):
         """Estimate epochs sources given the CSP filters.
