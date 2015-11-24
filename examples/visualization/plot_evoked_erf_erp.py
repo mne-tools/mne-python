@@ -26,13 +26,13 @@ evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 # Plot the evoked response with spatially color coded lines.
 # Note: You can paint the area with left mouse button to show the topographic
 # map of the N100.
-evoked.plot(spatial_colors='rgb')
+evoked.plot(spatial_colors=True)
 
 ###############################################################################
 # Or plot manually after extracting peak latency
 
 evoked = evoked.pick_types(meg=False, eeg=True)
-times = 1e3 * evoked.times  # time in miliseconds
+times = 1e3 * evoked.times  # time in milliseconds
 
 ch_max_name, latency = evoked.get_peak(mode='neg')
 
