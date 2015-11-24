@@ -12,6 +12,11 @@ from ..constants import FIFF
 from .res4 import _make_ctf_name
 
 
+_cardinal_dict = dict(nasion=FIFF.FIFFV_POINT_NASION,
+                      lpa=FIFF.FIFFV_POINT_LPA, left=FIFF.FIFFV_POINT_LPA,
+                      rpa=FIFF.FIFFV_POINT_RPA, right=FIFF.FIFFV_POINT_RPA)
+
+
 def _read_eeg(directory):
     """Read the .eeg file"""
     # Missing file is ok
@@ -25,23 +30,17 @@ def _read_eeg(directory):
         for line in fid:
             line = line.strip()
             if len(line) > 0:
-                parts = line.split()
+                parts = line.decode('utf-8').split()
                 if len(parts) != 5:
                     raise RuntimeError('Illegal data in EEG position file: %s'
                                        % line)
-                id_, label = int(parts[0]), parts[1]
                 r = np.array([float(p) for p in parts[2:]]) / 100.
                 if (r * r).sum() > 1e-4:
+                    label = parts[1]
                     eeg['labels'].append(label)
                     eeg['rr'].append(r)
-                    if label.lower() == 'nasion':
-                        id_ = FIFF.FIFFV_POINT_NASION
-                        kind = FIFF.FIFFV_POINT_CARDINAL
-                    elif label.lower() in ('left', 'lpa'):
-                        id_ = FIFF.FIFFV_POINT_LPA
-                        kind = FIFF.FIFFV_POINT_CARDINAL
-                    elif label.lower() in ('right', 'rpa'):
-                        id_ = FIFF.FIFFV_POINT_RPA
+                    id_ = _cardinal_dict.get(label.lower(), int(parts[0]))
+                    if label.lower() in _cardinal_dict:
                         kind = FIFF.FIFFV_POINT_CARDINAL
                     else:
                         kind = FIFF.FIFFV_POINT_EXTRA
