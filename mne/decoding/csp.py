@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 # Authors: Romain Trachel <trachelr@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Alexandre Barachant <alexandre.barachant@gmail.com>
+#          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -18,7 +20,8 @@ class CSP(TransformerMixin):
 
     This object can be used as a supervised decomposition to estimate
     spatial filters for feature extraction in a 2 class decoding problem.
-    See [1].
+    CSP in the context of EEG was first described in [1]; a comprehensive
+    tutorial on CSP can be found in [2].
 
     Parameters
     ----------
@@ -47,9 +50,13 @@ class CSP(TransformerMixin):
 
     References
     ----------
-    [1] Zoltan J. Koles. The quantitative extraction and topographic mapping
-    of the abnormal components in the clinical EEG. Electroencephalography
-    and Clinical Neurophysiology, 79(6):440--447, December 1991.
+    [1] Zoltan J. Koles, Michael S. Lazar, Steven Z. Zhou. Spatial Patterns
+        Underlying Population Differences in the Background EEG. Brain
+        Topography 2(4), 275-284, 1990.
+    [2] Benjamin Blankertz, Ryota Tomioka, Steven Lemm, Motoaki Kawanabe,
+        Klaus-Robert Müller. Optimizing Spatial Filters for Robust EEG
+        Single-Trial Analysis. IEEE Signal Processing Magazine 25(1), 41-56,
+        2008.
     """
 
     def __init__(self, n_components=4, reg=None, log=True):
@@ -95,12 +102,21 @@ class CSP(TransformerMixin):
 
         cov_1 = _regularized_covariance(class_1, reg=self.reg)
         cov_2 = _regularized_covariance(class_2, reg=self.reg)
+        cov_1 /= np.trace(cov_1)
+        cov_2 /= np.trace(cov_2)
 
-        # then fit on covariance
-        self._fit(cov_1, cov_2)
+        e, w = linalg.eigh(cov_1, cov_1 + cov_2)
+        n_vals = len(e)
+        # Rearrange vectors
+        ind = np.empty(n_vals, dtype=int)
+        ind[::2] = np.arange(n_vals - 1, n_vals // 2 - 1, -1)
+        ind[1::2] = np.arange(0, int(np.ceil(n_vals / 2.0)) - 1)
+        w = w[:, ind]  # first, last, second, second last, third, ...
+        self.filters_ = w.T
+        self.patterns_ = linalg.pinv(w)
 
         pick_filters = self.filters_[:self.n_components]
-        X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
+        X = np.asarray([np.dot(pick_filters, epoch) for epoch in epochs_data])
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
@@ -110,38 +126,6 @@ class CSP(TransformerMixin):
         self.std_ = X.std(axis=0)
 
         return self
-
-    def _fit(self, cov_a, cov_b):
-        """Aux Function (modifies cov_a and cov_b in-place)."""
-        cov_a /= np.trace(cov_a)
-        cov_b /= np.trace(cov_b)
-        # computes the eigen values
-        lambda_, u = linalg.eigh(cov_a + cov_b)
-        # sort them
-        ind = np.argsort(lambda_)[::-1]
-        lambda2_ = lambda_[ind]
-
-        u = u[:, ind]
-        p = np.dot(np.sqrt(linalg.pinv(np.diag(lambda2_))), u.T)
-
-        # Compute the generalized eigen value problem
-        w_a = np.dot(np.dot(p, cov_a), p.T)
-        w_b = np.dot(np.dot(p, cov_b), p.T)
-        # and solve it
-        vals, vecs = linalg.eigh(w_a, w_b)
-        # sort vectors by discriminative power using eigenvalues
-        ind = np.argsort(vals)[::-1]
-        vecs = vecs[:, ind]
-        # re-order (first, last, second, second last, third, ...)
-        n_vals = len(ind)
-        ind[::2] = np.arange(0, int(np.ceil(n_vals / 2.0)))
-        ind[1::2] = np.arange(n_vals - 1, int(np.ceil(n_vals / 2.0)) - 1, -1)
-        vecs = vecs[:, ind]
-        # and project
-        w = np.dot(vecs.T, p)
-
-        self.filters_ = w
-        self.patterns_ = linalg.pinv(w).T
 
     def transform(self, epochs_data, y=None):
         """Estimate epochs sources given the CSP filters.
@@ -166,7 +150,7 @@ class CSP(TransformerMixin):
                                'decomposition.')
 
         pick_filters = self.filters_[:self.n_components]
-        X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
+        X = np.asarray([np.dot(pick_filters, epoch) for epoch in epochs_data])
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
