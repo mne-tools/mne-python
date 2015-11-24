@@ -19,7 +19,8 @@ class CSP(TransformerMixin):
 
     This object can be used as a supervised decomposition to estimate
     spatial filters for feature extraction in a 2 class decoding problem.
-    See [1].
+    CSP in the context of EEG was first described in [1]; a comprehensive
+    tutorial on CSP can be found in [2].
 
     Parameters
     ----------
@@ -48,9 +49,13 @@ class CSP(TransformerMixin):
 
     References
     ----------
-    [1] Zoltan J. Koles. The quantitative extraction and topographic mapping
-    of the abnormal components in the clinical EEG. Electroencephalography
-    and Clinical Neurophysiology, 79(6):440--447, December 1991.
+    [1] Zoltan J. Koles, Michael S. Lazar, Steven Z. Zhou. Spatial Patterns
+        Underlying Population Differences in the Background EEG. Brain
+        Topography 2(4), 275-284, 1990.
+    [2] Benjamin Blankertz, Ryota Tomioka, Steven Lemm, Motoaki Kawanabe,
+        Klaus-Robert Müller. Optimizing Spatial Filters for Robust EEG
+        Single-Trial Analysis. IEEE Signal Processing Magazine 25(1), 41-56,
+        2008.
     """
 
     def __init__(self, n_components=4, reg=None, log=True):
