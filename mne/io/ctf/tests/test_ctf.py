@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+import os
 from os import path as op
 import shutil
 
@@ -16,12 +17,12 @@ from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.datasets import testing
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
-ctf_fname_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
-ctf_fname_1_trial = op.join(ctf_dir, 'testdata_ctf_short.ds')
-ctf_fname_2_trials = op.join(ctf_dir, 'testdata_ctf_pseudocontinuous.ds')
-ctf_fname_discont = op.join(ctf_dir, 'testdata_ctf_short_discontinuous.ds')
-ctf_fname_somato = op.join(ctf_dir, 'somMDYO-18av.ds')
-ctf_fname_catch = op.join(ctf_dir, 'catch-alp-good-f.ds')
+ctf_fname_continuous = 'testdata_ctf.ds'
+ctf_fname_1_trial = 'testdata_ctf_short.ds'
+ctf_fname_2_trials = 'testdata_ctf_pseudocontinuous.ds'
+ctf_fname_discont = 'testdata_ctf_short_discontinuous.ds'
+ctf_fname_somato = 'somMDYO-18av.ds'
+ctf_fname_catch = 'catch-alp-good-f.ds'
 
 block_sizes = {
     ctf_fname_continuous: 12000,
@@ -36,7 +37,7 @@ single_trials = (
     ctf_fname_1_trial,
 )
 
-ctf_fnames = list(sorted(block_sizes.keys()))
+ctf_fnames = tuple(sorted(block_sizes.keys()))
 
 
 @slow_test
@@ -47,12 +48,18 @@ def test_read_ctf():
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
 
     # Create a dummy .eeg file so we can test our reading/application of it
-    ctf_eeg_fname = op.join(temp_dir, op.basename(ctf_fname_catch))
-    shutil.copytree(ctf_fname_catch, ctf_eeg_fname)
+    os.mkdir(op.join(temp_dir, 'randpos'))
+    ctf_eeg_fname = op.join(temp_dir, 'randpos', ctf_fname_catch)
+    shutil.copytree(op.join(ctf_dir, ctf_fname_catch), ctf_eeg_fname)
     raw = read_raw_ctf(ctf_eeg_fname)
     picks = pick_types(raw.info, meg=False, eeg=True)
     pos = np.random.RandomState(42).randn(len(picks), 3)
     fake_eeg_fname = op.join(ctf_eeg_fname, 'catch-alp-good-f.eeg')
+    # Create a bad file
+    with open(fake_eeg_fname, 'wb') as fid:
+        fid.write('foo\n')
+    assert_raises(RuntimeError, read_raw_ctf, ctf_eeg_fname)
+    # Create a good file
     with open(fake_eeg_fname, 'wb') as fid:
         for ii, ch_num in enumerate(picks):
             args = (str(ch_num + 1), raw.ch_names[ch_num],) + tuple(
@@ -64,12 +71,24 @@ def test_read_ctf():
     assert_allclose(apply_trans(raw.info['ctf_head_t'], pos), pos_read,
                     rtol=1e-5, atol=1e-5)
     assert_true((pos_read == pos_read_old).mean() < 0.1)
-    # Now create a bad file
-    with open(fake_eeg_fname, 'wb') as fid:
-        fid.write('foo\n')
-    assert_raises(RuntimeError, read_raw_ctf, ctf_eeg_fname)
+    shutil.copy(op.join(ctf_dir, 'catch-alp-good-f.ds_randpos_raw.fif'),
+                op.join(temp_dir, 'randpos', 'catch-alp-good-f.ds_raw.fif'))
 
-    for fname in ctf_fnames:
+    # Create a version with no hc, starting out *with* EEG pos (error)
+    os.mkdir(op.join(temp_dir, 'nohc'))
+    ctf_no_hc_fname = op.join(temp_dir, 'no_hc', ctf_fname_catch)
+    shutil.copytree(ctf_eeg_fname, ctf_no_hc_fname)
+    remove_base = op.join(ctf_no_hc_fname, op.basename(ctf_fname_catch[:-3]))
+    os.remove(remove_base + '.hc')
+    assert_raises(RuntimeError, read_raw_ctf, ctf_no_hc_fname)  # no coord tr
+    os.remove(remove_base + '.eeg')
+    shutil.copy(op.join(ctf_dir, 'catch-alp-good-f.ds_nohc_raw.fif'),
+                op.join(temp_dir, 'no_hc', 'catch-alp-good-f.ds_raw.fif'))
+
+    # All our files
+    use_fnames = [ctf_eeg_fname, ctf_no_hc_fname]
+    use_fnames = [op.join(ctf_dir, c) for c in ctf_fnames]
+    for fname in use_fnames:
         raw_c = Raw(fname + '_raw.fif', add_eeg_ref=False, preload=True)
         raw = read_raw_ctf(fname)
 
@@ -92,7 +111,7 @@ def test_read_ctf():
                     'lowpass', 'nchan', 'proj_id', 'proj_name',
                     'projs', 'sfreq', 'subject_info'):
             assert_equal(raw.info[key], raw_c.info[key], key)
-        if fname not in single_trials:
+        if op.basename(fname) not in single_trials:
             # We don't force buffer size to be smaller like MNE-C
             assert_equal(raw.info['buffer_size_sec'],
                          raw_c.info['buffer_size_sec'])
@@ -117,7 +136,7 @@ def test_read_ctf():
                 assert_allclose(c1[key], c2[key], atol=1e-6, rtol=1e-4,
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
         for d, d_c in zip(raw.info['dig'], raw_c.info['dig']):
-            assert_allclose(d['r'], d_c['r'], atol=1e-7)
+            assert_allclose(d['r'], d_c['r'], atol=1e-5)
 
         # check data match
         raw_c.save(out_fname, overwrite=True, buffer_size_sec=1.)
@@ -127,10 +146,10 @@ def test_read_ctf():
         pick_ch = rng.permutation(np.arange(len(raw.ch_names)))[:10]
         # so let's check tricky cases based on sample boundaries
         bnd = raw._raw_extras[0]['block_size']
-        assert_equal(bnd, block_sizes[fname])
+        assert_equal(bnd, block_sizes[op.basename(fname)])
         slices = (slice(0, bnd), slice(bnd - 1, bnd), slice(3, bnd),
                   slice(3, 300), slice(None))
-        if fname not in single_trials:
+        if op.basename(fname) not in single_trials:
             slices = slices + (slice(bnd, 2 * bnd), slice(bnd, bnd + 1),
                                slice(0, bnd + 100))
         for sl_time in slices:
