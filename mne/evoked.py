@@ -403,8 +403,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         window_title : str | None
             The title to put at the top of the figure window.
         spatial_colors : bool
-            Color code lines by mapping their x/y/z coordinates into RGB
-            values. Spatially similar channels will have similar colors.
+            Color code lines by mapping their x/y coordinates into RGB values
+            so that a shift on x-axis adjusts red, while shift on y-axis
+            adjusts blue. Spatially similar channels will have similar colors.
             Bad channels will be dotted.
         """
         return plot_evoked(self, picks=picks, exclude=exclude, unit=unit,
