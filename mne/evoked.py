@@ -402,12 +402,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             channel traces will not be shown.
         window_title : str | None
             The title to put at the top of the figure window.
-        spatial_colors : bool | str
-            Color code lines by mapping their x/y coordinates into RGB values
-            so that a shift on x-axis adjusts red, while shift on y-axis
-            adjusts blue. Spatially similar channels will have similar colors.
-            Bad channels will be dotted. If 'rgb', the x/y/z locations of the
-            sensors are mapped straight to RGB values. Defaults to False.
+        spatial_colors : bool
+            Color code lines by mapping physical sensor coordinates into color
+            values. Spatially similar channels will have similar colors.
+            Bad channels will be dotted.
         """
         return plot_evoked(self, picks=picks, exclude=exclude, unit=unit,
                            show=show, ylim=ylim, proj=proj, xlim=xlim,
