@@ -27,6 +27,7 @@ from ..time_frequency import compute_epochs_psd
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 from ..fixes import _get_argrelmax
+from ..externals.six import string_types
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -222,7 +223,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
             pos = l.pos[idx]
             if is_vv and grad_pairs:
                 from ..channels.layout import _merge_grad_data
-                shape = (len(idx) / 2, 2, -1)
+                shape = (len(idx) // 2, 2, -1)
                 pos = pos.reshape(shape).mean(axis=1)
                 data = _merge_grad_data(data[grad_pairs]).ravel()
 
@@ -1131,14 +1132,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if isinstance(axes, plt.Axes):
         axes = [axes]
 
-    if times == "peaks":
-        npeaks = 10 if axes is None else len(axes)
-        times = _find_peaks(evoked, npeaks)
-    elif times == "auto":
-        if axes is None:
-            times = np.linspace(evoked.times[0], evoked.times[-1], 10)
-        else:
-            times = np.linspace(evoked.times[0], evoked.times[-1], len(axes))
+    if isinstance(times, string_types):
+        if times == "peaks":
+            npeaks = 10 if axes is None else len(axes)
+            times = _find_peaks(evoked, npeaks)
+        elif times == "auto":
+            if axes is None:
+                times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+            else:
+                times = np.linspace(evoked.times[0], evoked.times[-1],
+                                    len(axes))
     elif np.isscalar(times):
         times = [times]
 
