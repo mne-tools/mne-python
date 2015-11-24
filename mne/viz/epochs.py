@@ -463,7 +463,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    import matplotlib.pyplot as plt
     from .raw import _set_psd_plot_params
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         epochs.info, proj, picks, ax, area_mode)
@@ -507,7 +506,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-    plt.show(show)
+    plt_show(show)
     return fig
 
 

@@ -799,5 +799,5 @@ def plot_snr_estimate(evoked, inv, show=True):
     if evoked.comment is not None:
         ax.set_title(evoked.comment)
     plt.draw()
-    plt.show(show)
+    plt_show(show)
     return fig

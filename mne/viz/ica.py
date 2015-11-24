@@ -404,7 +404,7 @@ def plot_ica_scores(ica, scores,
     tight_layout(fig=fig)
     if len(axes) > 1:
         plt.subplots_adjust(top=0.9)
-    plt.show(show)
+    plt_show(show)
     return fig
 
 

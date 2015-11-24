@@ -34,7 +34,7 @@ from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
                    plot_ica_sources, plot_ica_overlay)
-from ..viz.utils import (_prepare_trellis, tight_layout,
+from ..viz.utils import (_prepare_trellis, tight_layout, plt_show,
                          _setup_vmin_vmax)
 from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
                            plot_topomap)
@@ -2249,8 +2249,6 @@ def _find_max_corrs(all_maps, target, threshold):
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
                   layout, cmap, contours):
     """Customized ica.plot_components for corrmap"""
-    import matplotlib.pyplot as plt
-
     title = 'Detected components'
     if label is not None:
         title += ' of type ' + label
@@ -2297,8 +2295,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.8)
     fig.canvas.draw()
-    if show is True:
-        plt.show()
+    plt_show(show)
     return fig
 
 

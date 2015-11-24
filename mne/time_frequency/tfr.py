@@ -23,7 +23,7 @@ from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
 from ..utils import check_fname
 from .multitaper import dpss_windows
-from ..viz.utils import figure_nobar
+from ..viz.utils import figure_nobar, plt_show
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
 
@@ -725,8 +725,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             if title:
                 fig.suptitle(title)
             colorbar = False  # only one colorbar for multiple axes
-        if show:
-            plt.show()
+        plt_show(show)
         return fig
 
     def _onselect(self, eclick, erelease, baseline, mode, layout):
@@ -843,7 +842,6 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             The figure containing the topography.
         """
         from ..viz.topo import _imshow_tfr, _plot_topo
-        import matplotlib.pyplot as plt
         times = self.times.copy()
         freqs = self.freqs
         data = self.data
@@ -870,10 +868,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                          title=title, border=border, x_label='Time (ms)',
                          y_label='Frequency (Hz)', fig_facecolor=fig_facecolor,
                          font_color=font_color)
-
-        if show:
-            plt.show()
-
+        plt_show(show)
         return fig
 
     def _check_compat(self, tfr):
