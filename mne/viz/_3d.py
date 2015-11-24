@@ -31,7 +31,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
 from ..utils import get_subjects_dir, logger, _check_subject, verbose
 from ..fixes import _get_args
 from ..defaults import _handle_default
-from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
+from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
 from ..externals.six import BytesIO
 
 
@@ -262,8 +262,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     if show:
         plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                             hspace=0.)
-        plt.show()
-
+    plt_show(show)
     return fig if img_output is None else outs
 
 
@@ -820,9 +819,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     if fig_name is not None:
         plt.title(fig_name)
-
-    if show:
-        plt.show()
+    plt_show(show)
 
     surface.actor.property.backface_culling = True
     surface.actor.property.shading = True

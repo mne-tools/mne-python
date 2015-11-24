@@ -21,7 +21,7 @@ from ..utils import _clean_names
 
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
-                    add_background_image)
+                    add_background_image, plt_show)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -299,8 +299,6 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
-    import matplotlib.pyplot as plt
-
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
@@ -401,9 +399,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       projs=evoked[0].info['projs'], fig=fig)
         _draw_proj_checkbox(None, params)
 
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
@@ -523,7 +519,6 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    import matplotlib.pyplot as plt
     scalings = _handle_default('scalings', scalings)
     data = epochs.get_data()
     if vmin is None:
@@ -545,6 +540,5 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
                      fig_facecolor=fig_facecolor,
                      font_color=font_color, border=border,
                      x_label='Time (s)', y_label='Epoch')
-    if show:
-        plt.show()
+    plt_show(show)
     return fig

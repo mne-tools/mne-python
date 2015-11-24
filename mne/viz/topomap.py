@@ -21,11 +21,13 @@ from ..io.constants import FIFF
 from ..io.pick import pick_types
 from ..utils import _clean_names, _time_mask, verbose, logger
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
-                    _check_delayed_ssp, _draw_proj_checkbox, figure_nobar)
+                    _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
+                    plt_show)
 from ..time_frequency import compute_epochs_psd
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 from ..fixes import _get_argrelmax
+from ..externals.six import string_types
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -221,7 +223,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
             pos = l.pos[idx]
             if is_vv and grad_pairs:
                 from ..channels.layout import _merge_grad_data
-                shape = (len(idx) / 2, 2, -1)
+                shape = (len(idx) // 2, 2, -1)
                 pos = pos.reshape(shape).mean(axis=1)
                 data = _merge_grad_data(data[grad_pairs]).ravel()
 
@@ -238,9 +240,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
             raise RuntimeError('Cannot find a proper layout for projection %s'
                                % proj['desc'])
     tight_layout(fig=axes[0].get_figure())
-    if show and plt.get_backend() != 'agg':
-        plt.show()
-
+    plt_show(show)
     return axes[0].get_figure()
 
 
@@ -604,8 +604,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
 
     if onselect is not None:
         ax.RS = RectangleSelector(ax, onselect=onselect)
-    if show:
-        plt.show()
+    plt_show(show)
     return im, cont
 
 
@@ -805,9 +804,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
-
-    if show is True:
-        plt.show()
+    plt_show(show)
     return fig
 
 
@@ -995,9 +992,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         cbar.ax.tick_params(labelsize=12)
         cbar.ax.set_title('AU')
 
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
@@ -1137,14 +1132,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if isinstance(axes, plt.Axes):
         axes = [axes]
 
-    if times == "peaks":
-        npeaks = 10 if axes is None else len(axes)
-        times = _find_peaks(evoked, npeaks)
-    elif times == "auto":
-        if axes is None:
-            times = np.linspace(evoked.times[0], evoked.times[-1], 10)
-        else:
-            times = np.linspace(evoked.times[0], evoked.times[-1], len(axes))
+    if isinstance(times, string_types):
+        if times == "peaks":
+            npeaks = 10 if axes is None else len(axes)
+            times = _find_peaks(evoked, npeaks)
+        elif times == "auto":
+            if axes is None:
+                times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+            else:
+                times = np.linspace(evoked.times[0], evoked.times[-1],
+                                    len(axes))
     elif np.isscalar(times):
         times = [times]
 
@@ -1288,9 +1285,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                       plot_update_proj_callback=_plot_update_evoked_topomap)
         _draw_proj_checkbox(None, params)
 
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
@@ -1531,8 +1526,7 @@ def plot_psds_topomap(
                                  colorbar=True, unit=unit, cbar_fmt=cbar_fmt)
     tight_layout(fig=fig)
     fig.canvas.draw()
-    if show:
-        plt.show()
+    plt_show(show)
     return fig
 
 
@@ -1599,7 +1593,7 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
         fig[0].get_axes()[1].cbar.on_mappable_changed(mappable=img)
     fig[0].canvas.draw()
     plt.figure(fig[0].number)
-    plt.show()
+    plt_show(True)
 
 
 def _find_peaks(evoked, npeaks):
