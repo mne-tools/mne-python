@@ -123,11 +123,10 @@ class CSP(TransformerMixin):
         cov_b /= np.trace(cov_b)
 
         e, w = linalg.eigh(cov_a, cov_a + cov_b)
-        w = w[:, ::-1]  # descending order
         n_vals = len(e)
         ind = np.empty(n_vals, dtype=int)
-        ind[::2] = np.arange(0, int(np.ceil(n_vals / 2.0)))
-        ind[1::2] = np.arange(n_vals - 1, int(np.ceil(n_vals / 2.0)) - 1, -1)
+        ind[::2] = np.arange(n_vals - 1, int(np.ceil(n_vals / 2.0)) - 1, -1)
+        ind[1::2] = np.arange(0, int(np.ceil(n_vals / 2.0)))
         w = w[:, ind]  # first, last, second, second last, third, ...
         self.filters_ = w.T
         self.patterns_ = linalg.pinv(w)
