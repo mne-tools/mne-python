@@ -116,7 +116,7 @@ class CSP(TransformerMixin):
         self.patterns_ = linalg.pinv(w)
 
         pick_filters = self.filters_[:self.n_components]
-        X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
+        X = np.asarray([np.dot(pick_filters, epoch) for epoch in epochs_data])
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
@@ -150,7 +150,7 @@ class CSP(TransformerMixin):
                                'decomposition.')
 
         pick_filters = self.filters_[:self.n_components]
-        X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
+        X = np.asarray([np.dot(pick_filters, epoch) for epoch in epochs_data])
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
