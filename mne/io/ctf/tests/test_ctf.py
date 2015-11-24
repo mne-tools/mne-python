@@ -3,11 +3,14 @@
 # License: BSD (3-clause)
 
 from os import path as op
+import shutil
 
 import numpy as np
 from nose.tools import assert_raises, assert_true
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
+from mne import pick_types
+from mne.transforms import apply_trans
 from mne.io import Raw, read_raw_ctf
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.datasets import testing
@@ -42,6 +45,30 @@ def test_read_ctf():
     """Test CTF reader"""
     temp_dir = _TempDir()
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
+
+    # Create a dummy .eeg file so we can test our reading/application of it
+    ctf_eeg_fname = op.join(temp_dir, op.basename(ctf_fname_catch))
+    shutil.copytree(ctf_fname_catch, ctf_eeg_fname)
+    raw = read_raw_ctf(ctf_eeg_fname)
+    picks = pick_types(raw.info, meg=False, eeg=True)
+    pos = np.random.RandomState(42).randn(len(picks), 3)
+    fake_eeg_fname = op.join(ctf_eeg_fname, 'catch-alp-good-f.eeg')
+    with open(fake_eeg_fname, 'wb') as fid:
+        for ii, ch_num in enumerate(picks):
+            args = (str(ch_num + 1), raw.ch_names[ch_num],) + tuple(
+                '%0.5f' % x for x in 100 * pos[ii])  # convert to cm
+            fid.write(('\t'.join(args) + '\n').encode('ascii'))
+    pos_read_old = np.array([raw.info['chs'][p]['loc'][:3] for p in picks])
+    raw = read_raw_ctf(ctf_eeg_fname)  # read modified data
+    pos_read = np.array([raw.info['chs'][p]['loc'][:3] for p in picks])
+    assert_allclose(apply_trans(raw.info['ctf_head_t'], pos), pos_read,
+                    rtol=1e-5, atol=1e-5)
+    assert_true((pos_read == pos_read_old).mean() < 0.1)
+    # Now create a bad file
+    with open(fake_eeg_fname, 'wb') as fid:
+        fid.write('foo\n')
+    assert_raises(RuntimeError, read_raw_ctf, ctf_eeg_fname)
+
     for fname in ctf_fnames:
         raw_c = Raw(fname + '_raw.fif', add_eeg_ref=False, preload=True)
         raw = read_raw_ctf(fname)
