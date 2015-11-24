@@ -119,6 +119,23 @@ def _topo_closed(events, ax, lines, fill):
     ax.get_figure().canvas.draw()
 
 
+def _RdBl_DrBr(x, y, z):
+    """Helper to transform x, y, z values into red/blue, dark/bright
+    gradient colors"""
+    az, el, _ = _cartesian_to_sphere(x, y, z)
+    locs2d = np.c_[_polar_to_cartesian(az, np.pi / 2 - el)]
+    locs2d -= locs2d.min()
+    locs2d /= locs2d.max()
+    return np.transpose([locs2d[:, 0], np.zeros(len(x)), locs2d[:, 1]])
+
+
+def _rgb(x, y, z):
+    for dim in (x, y, z):
+        dim -= dim.min()
+        dim /= dim.max()
+    return np.asarray([x, y, z]).T
+
+
 def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
@@ -245,13 +262,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         chs = [evoked.info['chs'][i] for i in idx]
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
-                        az, el, _ = _cartesian_to_sphere(x, y, z)
-                        locs2d = np.c_[_polar_to_cartesian(az, np.pi / 2 - el)]
-                        locs2d -= locs2d.min()
-                        locs2d /= locs2d.max()
-                        colors = np.transpose([locs2d[:, 0],
-                                               np.zeros(len(idx)),
-                                               locs2d[:, 1]])
+                        _color_transform = (_RdBl_DrBr if not
+                                           spatial_colors == "rgb"
+                                           else _rgb)
+                        colors = _color_transform(x, y, z)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
@@ -401,9 +415,11 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         channel traces will not be shown.
     window_title : str | None
         The title to put at the top of the figure.
-    spatial_colors : bool
-        Color code lines by mapping their x/y/z coordinates into RGB values.
+    spatial_colors : bool | str
+        Color code lines by mapping physical sensor coordinates into color values.
         Spatially similar channels will have similar colors.
+        Currently supported color "maps" are 'RdBl_DrBr' (Red to blue, dark to
+        bright; the default), 'rgb' (x, y and z to RGB).
         Bad channels will be dotted.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
