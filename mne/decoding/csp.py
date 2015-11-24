@@ -110,7 +110,7 @@ class CSP(TransformerMixin):
         # Rearrange vectors
         ind = np.empty(n_vals, dtype=int)
         ind[::2] = np.arange(n_vals - 1, n_vals // 2 - 1, -1)
-        ind[1::2] = np.arange(0, int(np.ceil(n_vals / 2.0)) - 1)
+        ind[1::2] = np.arange(0, n_vals // 2)
         w = w[:, ind]  # first, last, second, second last, third, ...
         self.filters_ = w.T
         self.patterns_ = linalg.pinv(w)
