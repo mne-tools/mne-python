@@ -130,6 +130,7 @@ def _RdBl_DrBr(x, y, z):
 
 
 def _rgb(x, y, z):
+    """Helper to transform x, y, z values into RGB colors"""
     for dim in (x, y, z):
         dim -= dim.min()
         dim /= dim.max()
