@@ -5,7 +5,8 @@
 #
 # License: BSD (3-clause)
 
-from time import strptime, mktime
+from time import strptime
+from calendar import timegm
 
 import numpy as np
 
@@ -75,7 +76,12 @@ def _convert_time(date_str, time_str):
             break
     else:
         raise RuntimeError('Illegal time: %s' % time)
-    res = mktime((date.tm_year, date.tm_mon, date.tm_mday,
+    # MNE-C uses mktime which uses local time, but here we instead decouple
+    # conversion location from the process, and instead assume that the
+    # acquisiton was in GMT. This will be wrong for most sites, but at least
+    # the value we obtain here won't depend on the geographical location
+    # that the file was converted.
+    res = timegm((date.tm_year, date.tm_mon, date.tm_mday,
                   time.tm_hour, time.tm_min, time.tm_sec,
                   date.tm_wday, date.tm_yday, date.tm_isdst))
     return res
