@@ -49,6 +49,13 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     return vmin, vmax
 
 
+def plt_show(show=True, **kwargs):
+    """Helper to show a figure while suppressing warnings"""
+    import matplotlib.pyplot as plt
+    if show:
+        plt.show(warn=False, **kwargs)
+
+
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     """ Adjust subplot parameters to give specified padding.
 
@@ -358,7 +365,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     # this should work for non-test cases
     try:
         fig_proj.canvas.draw()
-        fig_proj.show()
+        fig_proj.show(warn=False)
     except Exception:
         pass
 
@@ -691,7 +698,7 @@ def _onclick_help(event, params):
     # this should work for non-test cases
     try:
         fig_help.canvas.draw()
-        fig_help.show()
+        fig_help.show(warn=False)
     except Exception:
         pass
 
@@ -724,7 +731,7 @@ class ClickableImage(object):
 
     def __init__(self, imdata, **kwargs):
         """Display the image for clicking."""
-        from matplotlib.pyplot import figure, show
+        from matplotlib.pyplot import figure
         self.coords = []
         self.imdata = imdata
         self.fig = figure()
@@ -736,7 +743,7 @@ class ClickableImage(object):
                                  picker=True, **kwargs)
         self.ax.axis('off')
         self.fig.canvas.mpl_connect('pick_event', self.onclick)
-        show()
+        plt_show()
 
     def onclick(self, event):
         """Mouse click handler.
@@ -757,7 +764,7 @@ class ClickableImage(object):
         **kwargs : dict
             Arguments are passed to imshow in displaying the bg image.
         """
-        from matplotlib.pyplot import subplots, show
+        from matplotlib.pyplot import subplots
         f, ax = subplots()
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
         xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
@@ -768,7 +775,7 @@ class ClickableImage(object):
             ax.annotate(txt, coord, fontsize=20, color='r')
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
-        show()
+        plt_show()
 
     def to_layout(self, **kwargs):
         """Turn coordinates into an MNE Layout object.

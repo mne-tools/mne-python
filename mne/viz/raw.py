@@ -18,10 +18,10 @@ from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import compute_raw_psd
 from .topo import _plot_topo, _plot_timeseries
-from .utils import _toggle_options, _toggle_proj, tight_layout
-from .utils import _layout_figure, _plot_raw_onkey, figure_nobar
-from .utils import _plot_raw_onscroll, _mouse_click
-from .utils import _helper_raw_resize, _select_bads, _onclick_help
+from .utils import (_toggle_options, _toggle_proj, tight_layout,
+                    _layout_figure, _plot_raw_onkey, figure_nobar,
+                    _plot_raw_onscroll, _mouse_click, plt_show,
+                    _helper_raw_resize, _select_bads, _onclick_help)
 from ..defaults import _handle_default
 
 
@@ -332,11 +332,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     if show_options is True:
         _toggle_options(None, params)
 
-    if show:
-        try:
-            plt.show(block=block)
-        except TypeError:  # not all versions have this
-            plt.show()
+    try:
+        plt_show(show, block=block)
+    except TypeError:  # not all versions have this
+        plt_show(show)
 
     return params['fig']
 
@@ -464,7 +463,6 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     fig : instance of matplotlib figure
         Figure with frequency spectra of the data channels.
     """
-    import matplotlib.pyplot as plt
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
 
@@ -503,8 +501,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-    if show is True:
-        plt.show()
+    plt_show(show)
     return fig
 
 
@@ -724,8 +721,6 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    import matplotlib.pyplot as plt
-
     if layout is None:
         from ..channels.layout import find_layout
         layout = find_layout(raw.info)
@@ -746,6 +741,5 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
                      fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
                      y_label=y_label)
 
-    if show:
-        plt.show()
+    plt_show(show)
     return fig

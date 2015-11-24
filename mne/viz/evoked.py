@@ -16,7 +16,8 @@ import numpy as np
 from ..io.pick import channel_type, pick_types, _picks_by_type
 from ..externals.six import string_types
 from ..defaults import _handle_default
-from .utils import _draw_proj_checkbox, tight_layout, _check_delayed_ssp
+from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
+                    plt_show)
 from ..utils import logger
 from ..fixes import partial
 from ..io.pick import pick_info
@@ -99,7 +100,7 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     fig.suptitle('Average over %.2fs - %.2fs' % (xmin, xmax), fontsize=15,
                  y=0.1)
     tight_layout(pad=2.0, fig=fig)
-    plt.show()
+    plt_show()
     if text is not None:
         text.set_visible(False)
         close_callback = partial(_topo_closed, ax=ax, lines=vert_lines,
@@ -314,9 +315,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
 
-    if show and plt.get_backend() != 'agg':
-        plt.show()
-        fig.canvas.draw()  # for axes plots update axes.
+    plt_show(show)
+    fig.canvas.draw()  # for axes plots update axes.
     tight_layout(fig=fig)
 
     return fig
@@ -756,8 +756,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         fig.subplots_adjust(**params)
     fig.canvas.draw()
 
-    if show is True:
-        plt.show()
+    plt_show(show)
     return fig
 
 
@@ -800,6 +799,5 @@ def plot_snr_estimate(evoked, inv, show=True):
     if evoked.comment is not None:
         ax.set_title(evoked.comment)
     plt.draw()
-    if show:
-        plt.show()
+    plt.show(show)
     return fig

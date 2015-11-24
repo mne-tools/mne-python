@@ -14,15 +14,14 @@ import copy
 
 import numpy as np
 
-from ..utils import verbose, get_config, set_config
-from ..utils import logger
+from ..utils import verbose, get_config, set_config, logger
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
 from ..time_frequency import compute_epochs_psd
-from .utils import tight_layout, figure_nobar, _toggle_proj
-from .utils import _toggle_options, _layout_figure, _setup_vmin_vmax
-from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
+from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
+                    _layout_figure, _setup_vmin_vmax, _channels_changed,
+                    _plot_raw_onscroll, _onclick_help, plt_show)
 from ..defaults import _handle_default
 
 
@@ -156,9 +155,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             plt.colorbar(im, cax=ax3)
             tight_layout(fig=this_fig)
 
-    if show:
-        plt.show()
-
+    plt_show(show)
     return figs
 
 
@@ -238,10 +235,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     plt.ylabel('% of epochs rejected')
     plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
     plt.grid(True, axis='y')
-
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
@@ -390,7 +384,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     with home/end and page down/page up keys. Butterfly plot can be toggled
     with ``b`` key. Right mouse click adds a vertical line to the plot.
     """
-    import matplotlib.pyplot as plt
     epochs.drop_bad_epochs()
     scalings = _handle_default('scalings_plot_raw', scalings)
 
@@ -409,11 +402,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
-    if show:
-        try:
-            plt.show(block=block)
-        except TypeError:  # not all versions have this
-            plt.show()
+    try:
+        plt_show(show, block=block)
+    except TypeError:  # not all versions have this
+        plt_show(show)
 
     return params['fig']
 
@@ -515,8 +507,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-    if show:
-        plt.show()
+    plt.show(show)
     return fig
 
 
@@ -1437,7 +1428,7 @@ def _open_options(params):
     params['fig_options'].canvas.mpl_connect('close_event', close_callback)
     try:
         params['fig_options'].canvas.draw()
-        params['fig_options'].show()
+        params['fig_options'].show(warn=False)
         if params['fig_proj'] is not None:
             params['fig_proj'].canvas.draw()
     except Exception:
@@ -1495,7 +1486,7 @@ def _plot_histogram(params):
     params['histogram'].suptitle('Peak-to-peak histogram', y=0.99)
     params['histogram'].subplots_adjust(hspace=0.6)
     try:
-        params['histogram'].show()
+        params['histogram'].show(warn=False)
     except:
         pass
     if params['fig_proj'] is not None:

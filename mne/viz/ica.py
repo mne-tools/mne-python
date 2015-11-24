@@ -12,9 +12,9 @@ from functools import partial
 
 import numpy as np
 
-from .utils import tight_layout, _prepare_trellis, _select_bads
-from .utils import _layout_figure, _plot_raw_onscroll, _mouse_click
-from .utils import _helper_raw_resize, _plot_raw_onkey
+from .utils import (tight_layout, _prepare_trellis, _select_bads,
+                    _layout_figure, _plot_raw_onscroll, _mouse_click,
+                    _helper_raw_resize, _plot_raw_onkey, plt_show)
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
@@ -194,10 +194,7 @@ def _plot_ica_grid(sources, start, stop,
     # register callback
     callback = partial(_ica_plot_sources_onpick_, sources=sources, ylims=ylims)
     fig.canvas.mpl_connect('pick_event', callback)
-
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
@@ -307,9 +304,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     fig.canvas.mpl_connect('button_press_event',
                            partial(_butterfly_on_button_press,
                                    params=params))
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
@@ -409,9 +404,7 @@ def plot_ica_scores(ica, scores,
     tight_layout(fig=fig)
     if len(axes) > 1:
         plt.subplots_adjust(top=0.9)
-
-    if show:
-        plt.show()
+    plt.show(show)
     return fig
 
 
@@ -536,10 +529,7 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
 
     fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
-
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
@@ -583,17 +573,13 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
-
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
 def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                       block):
     """Function for plotting the ICA components as raw array."""
-    import matplotlib.pyplot as plt
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
     if picks is None:
@@ -669,12 +655,10 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     params['event_times'] = None
     params['update_fun']()
     params['plot_fun']()
-    if show:
-        try:
-            plt.show(block=block)
-        except TypeError:  # not all versions have this
-            plt.show()
-
+    try:
+        plt_show(show, block=block)
+    except TypeError:  # not all versions have this
+        plt_show(show)
     return params['fig']
 
 
@@ -706,7 +690,6 @@ def _close_event(events, params):
 def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                          title, block):
     """Function for plotting the components as epochs."""
-    import matplotlib.pyplot as plt
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
@@ -760,12 +743,10 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     params['hsel_patch'].set_x(params['t_start'])
     callback_close = partial(_close_epochs_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
-    if show:
-        try:
-            plt.show(block=block)
-        except TypeError:  # not all versions have this
-            plt.show()
-
+    try:
+        plt_show(show, block=block)
+    except TypeError:  # not all versions have this
+        plt_show(show)
     return params['fig']
 
 
@@ -834,5 +815,4 @@ def _label_clicked(pos, params):
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
-
-    plt.show()
+    plt_show(True)
