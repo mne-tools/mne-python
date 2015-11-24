@@ -57,7 +57,7 @@ def test_read_ctf():
     fake_eeg_fname = op.join(ctf_eeg_fname, 'catch-alp-good-f.eeg')
     # Create a bad file
     with open(fake_eeg_fname, 'wb') as fid:
-        fid.write('foo\n')
+        fid.write('foo\n'.encode('ascii'))
     assert_raises(RuntimeError, read_raw_ctf, ctf_eeg_fname)
     # Create a good file
     with open(fake_eeg_fname, 'wb') as fid:
