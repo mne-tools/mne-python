@@ -594,7 +594,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind == FIFF.FIFF_LINE_FREQ:
             tag = read_tag(fid, pos)
             line_freq = float(tag.data)
-        elif kind == FIFF.FIFF_CUSTOM_REF:
+        elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, FIFF.FIFF_CUSTOM_REF]:
             tag = read_tag(fid, pos)
             custom_ref_applied = bool(tag.data)
 
@@ -1051,7 +1051,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if data_type is not None:
         write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
     if info.get('custom_ref_applied'):
-        write_int(fid, FIFF.FIFF_CUSTOM_REF, info['custom_ref_applied'])
+        write_int(fid, FIFF.FIFF_MNE_CUSTOM_REF, info['custom_ref_applied'])
 
     #  Channel information
     for k, c in enumerate(info['chs']):
