@@ -112,6 +112,8 @@ def test_regularized_csp():
 
 @requires_sklearn
 def test_csp_pipeline():
+    """Test if CSP works in a pipeline
+    """
     csp = CSP(reg=1)
     svc = SVC()
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])
