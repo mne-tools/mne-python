@@ -36,6 +36,7 @@ Classes
    Label
    BiHemiLabel
    Transform
+   io.Info
    preprocessing.ICA
    decoding.CSP
    decoding.Scaler

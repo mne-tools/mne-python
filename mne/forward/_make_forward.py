@@ -9,13 +9,9 @@ import os
 from os import path as op
 import numpy as np
 
-from .. import pick_types, pick_info
-from ..io.pick import _has_kit_refs
-from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc
-from ..io.meas_info import Info
+from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc, Info
+from ..io.pick import _has_kit_refs, pick_types, pick_info
 from ..io.constants import FIFF
-from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
-from ._compute_forward import _compute_forwards
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform)
@@ -24,6 +20,9 @@ from ..source_space import _ensure_src, _filter_source_spaces
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
+
+from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
+from ._compute_forward import _compute_forwards
 
 
 _accuracy_dict = dict(normal=FIFF.FWD_COIL_ACCURACY_NORMAL,
