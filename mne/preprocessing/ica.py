@@ -1813,7 +1813,7 @@ def _write_ica(fid, ica):
         write_meas_info(fid, ica.info)
         end_block(fid, FIFF.FIFFB_MEAS)
 
-    start_block(fid, FIFF.FIFFB_ICA)
+    start_block(fid, FIFF.FIFFB_MNE_ICA)
 
     #   ICA interface params
     write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
@@ -1856,7 +1856,7 @@ def _write_ica(fid, ica):
     write_int(fid, FIFF.FIFF_MNE_ICA_BADS, ica.exclude)
 
     # Done!
-    end_block(fid, FIFF.FIFFB_ICA)
+    end_block(fid, FIFF.FIFFB_MNE_ICA)
 
 
 @verbose
@@ -1890,10 +1890,12 @@ def read_ica(fname):
     else:
         info['filename'] = fname
 
-    ica_data = dir_tree_find(tree, FIFF.FIFFB_ICA)
+    ica_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ICA)
     if len(ica_data) == 0:
-        fid.close()
-        raise ValueError('Could not find ICA data')
+        ica_data = dir_tree_find(tree, FIFF.FIFFB_ICA)  # Used before v 0.11
+        if len(ica_data) == 0:
+            fid.close()
+            raise ValueError('Could not find ICA data')
 
     my_ica_data = ica_data[0]
     for d in my_ica_data['directory']:
