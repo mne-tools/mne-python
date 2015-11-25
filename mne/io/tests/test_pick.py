@@ -5,17 +5,17 @@ import os.path as op
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
-                 pick_info, pick_channels, __file__)
-
-from mne.io.meas_info import create_info
-from mne.io.array import RawArray
+                 pick_info, pick_channels, __file__, create_info)
+from mne.io import Raw, RawArray
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type)
 from mne.io.constants import FIFF
-from mne.io import Raw
 from mne.datasets import testing
-from mne.forward.tests import test_forward
 from mne.utils import run_tests_if_main
+
+data_path = testing.data_path(download=False)
+fname_meeg = op.join(data_path, 'MEG', 'sample',
+                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 
 
 def test_pick_channels_regexp():
@@ -60,7 +60,7 @@ def _check_fwd_n_chan_consistent(fwd, n_expected):
 def test_pick_forward_seeg():
     """Test picking forward with SEEG
     """
-    fwd = read_forward_solution(test_forward.fname_meeg)
+    fwd = read_forward_solution(fname_meeg)
     counts = channel_indices_by_type(fwd['info'])
     for key in counts.keys():
         counts[key] = len(counts[key])

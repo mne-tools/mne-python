@@ -20,8 +20,7 @@ from mne.channels.layout import (_box_size, _auto_topomap_coords,
                                  generate_2d_layout)
 from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
-from mne.io import Raw, read_raw_kit
-from mne.io.meas_info import _empty_info
+from mne.io import Raw, read_raw_kit, _empty_info
 from mne.io.constants import FIFF
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.utils import _TempDir

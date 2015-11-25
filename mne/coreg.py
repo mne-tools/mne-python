@@ -13,11 +13,12 @@ import sys
 import re
 import shutil
 from warnings import warn
+from functools import reduce
 
 import numpy as np
 from numpy import dot
 
-from .io.meas_info import read_fiducials, write_fiducials
+from .io import read_fiducials, write_fiducials
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)
@@ -25,7 +26,6 @@ from .surface import read_surface, write_surface
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import rotation, rotation3d, scaling, translation
 from .utils import get_config, get_subjects_dir, logger, pformat
-from functools import reduce
 from .externals.six.moves import zip
 
 

@@ -16,13 +16,12 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
-                 grand_average, combine_evoked)
+                 grand_average, combine_evoked, create_info)
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.epochs import EpochsArray
 
 from mne.utils import _TempDir, requires_pandas, slow_test, requires_version
 
-from mne.io.meas_info import create_info
 from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')

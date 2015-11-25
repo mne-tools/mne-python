@@ -56,7 +56,7 @@ def _contains_ch_type(info, ch_type):
 
     Parameters
     ---------
-    info : instance of mne.io.meas_info.Info
+    info : instance of mne.io.Info
         The measurement information.
     ch_type : str
         the channel type to be checked for
@@ -494,9 +494,8 @@ class UpdateChannelsMixin(object):
             object if copy==False)
         """
         # avoid circular imports
-        from ..io.base import _BaseRaw
+        from ..io import _BaseRaw, _merge_info
         from ..epochs import _BaseEpochs
-        from ..io.meas_info import _merge_info
 
         if not isinstance(add_list, (list, tuple)):
             raise AssertionError('Input must be a list or tuple of objs')

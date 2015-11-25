@@ -17,9 +17,9 @@ import warnings
 from scipy import fftpack
 import matplotlib
 
-from mne import (io, Epochs, read_events, pick_events, read_epochs,
+from mne import (Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
-                 write_evokeds)
+                 write_evokeds, create_info)
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, _BaseEpochs)
@@ -27,8 +27,7 @@ from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_version)
 
-from mne.io import RawArray
-from mne.io.meas_info import create_info
+from mne.io import RawArray, Raw
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.io.constants import FIFF
@@ -50,7 +49,7 @@ rng = np.random.RandomState(42)
 
 
 def _get_data(preload=False):
-    raw = io.Raw(raw_fname, preload=preload, add_eeg_ref=False, proj=False)
+    raw = Raw(raw_fname, preload=preload, add_eeg_ref=False, proj=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                        ecg=True, eog=True, include=['STI 014'],
@@ -587,7 +586,7 @@ def test_epochs_proj():
     assert_true(all(p['active'] is True for p in evoked.info['projs']))
     data = epochs.get_data()
 
-    raw_proj = io.Raw(raw_fname, proj=True)
+    raw_proj = Raw(raw_fname, proj=True)
     epochs_no_proj = Epochs(raw_proj, events[:4], event_id, tmin, tmax,
                             picks=this_picks, baseline=(None, 0), proj=False)
 

@@ -76,13 +76,13 @@ class Info(dict):
         Event list, usually extracted from the stim channels.
         See: :ref:`faq` for details.
     hpi_results : list of dict
-        Head position indicator (HPI) digitization points.
-        See: :ref:`faq` for details.
+        Head position indicator (HPI) digitization points and fit information
+        (e.g., the resulting transform). See: :ref:`faq` for details.
     meas_date : list of int
         The first element of this list is a POSIX timestamp (milliseconds since
         1970-01-01 00:00:00) denoting the date and time at which the
-        measurement was taken.
-        TODO: what are the other fields?
+        measurement was taken. The second element is the number of
+        microseconds.
     nchan : int
         Number of channels.
     projs : list of dict
@@ -94,7 +94,7 @@ class Info(dict):
     acq_pars : str | None
         MEG system acquition parameters.
     acq_stim : str | None
-        TODO: What is this?
+        MEG system stimulus parameters.
     buffer_size_sec : float | None
         Buffer size (in seconds) when reading the raw data in chunks.
     ctf_head_t : dict | None
@@ -123,10 +123,11 @@ class Info(dict):
     highpass : float | None
         Highpass corner frequency in Hertz. Zero indicates a DC recording.
     hpi_meas : list of dict | None
-        HPI measurements.
-        TODO: What is this exactly?
-    hpi_subsystem: | None
-        TODO: What is this?
+        HPI measurements that were taken at the start of the recording
+        (e.g. coil frequencies).
+    hpi_subsystem : dict | None
+        Information about the HPI subsystem that was used (e.g., event
+        channel used for cHPI measurements).
     line_freq : float | None
         Frequency of the power line in Hertz.
     lowpass : float | None

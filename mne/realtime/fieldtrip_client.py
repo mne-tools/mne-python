@@ -9,9 +9,9 @@ import threading
 import warnings
 import numpy as np
 
-from ..io.constants import FIFF
-from ..io.meas_info import _empty_info
+from ..io import _empty_info
 from ..io.pick import pick_info
+from ..io.constants import FIFF
 from ..epochs import EpochsArray
 from ..utils import logger
 from ..externals.FieldTrip import Client as FtClient
