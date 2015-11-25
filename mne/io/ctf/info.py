@@ -13,10 +13,12 @@ import numpy as np
 from ...utils import logger
 from ...transforms import (apply_trans, _coord_frame_name, invert_transform,
                            combine_transforms)
+
 from ..meas_info import _empty_info
 from ..write import get_new_file_id
 from ..ctf_comp import _add_kind, _calibrate_comp
 from ..constants import FIFF
+
 from .constants import CTF
 
 
