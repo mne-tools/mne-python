@@ -6,7 +6,7 @@ import inspect
 import textwrap
 import re
 import pydoc
-from warnings import warn
+from warnings import warn, catch_warnings
 # Try Python 2 first, otherwise load from Python 3
 try:
     from StringIO import StringIO
@@ -435,7 +435,8 @@ class FunctionDoc(NumpyDocString):
             func, func_name = self.get_func()
             try:
                 # try to read signature
-                argspec = inspect.getargspec(func)
+                with catch_warnings(record=True):
+                    argspec = inspect.getargspec(func)
                 argspec = inspect.formatargspec(*argspec)
                 argspec = argspec.replace('*', '\*')
                 signature = '%s%s' % (func_name, argspec)

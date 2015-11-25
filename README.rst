@@ -13,7 +13,7 @@
 .. _Coveralls: https://coveralls.io/r/mne-tools/mne-python?branch=master
 
 .. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
-.. _Zenodo: http://dx.doi.org/10.5281/zenodo.17856
+.. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
 
 `mne-python <http://martinos.org/mne/mne-python.html>`_
 =======================================================

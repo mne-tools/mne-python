@@ -107,7 +107,7 @@ evoked.data = csp.patterns_.T
 evoked.times = np.arange(evoked.data.shape[0])
 
 layout = read_layout('EEG1005')
-evoked.plot_topomap(times=[0, 1, 2, 61, 62, 63], ch_type='eeg', layout=layout,
+evoked.plot_topomap(times=[0, 1, 2, 3, 4, 5], ch_type='eeg', layout=layout,
                     scale_time=1, time_format='%i', scale=1,
                     unit='Patterns (AU)', size=1.5)
 

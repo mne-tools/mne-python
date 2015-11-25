@@ -113,11 +113,11 @@ For people within the MGH/MIT/HMS Martinos Center mne is available on the networ
 
 In a terminal do::
 
-    setenv PATH /usr/pubsw/packages/python/epd/bin:${PATH}
+    setenv PATH /usr/pubsw/packages/python/anaconda/bin:${PATH}
 
 If you use Bash replace the previous instruction with::
 
-    export PATH=/usr/pubsw/packages/python/epd/bin:${PATH}
+    export PATH=/usr/pubsw/packages/python/anaconda/bin:${PATH}
 
 Then start the python interpreter with:
 
@@ -127,4 +127,8 @@ Then type::
 
     >>> import mne
 
-If you get a new prompt with no error messages, you should be good to go.
+If you get a new prompt with no error messages, you should be good to go. 
+
+We encourage all Martinos center Python users to subscribe to the Martinos Python mailing list:
+
+https://mail.nmr.mgh.harvard.edu/mailman/listinfo/martinos-python

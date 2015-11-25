@@ -2,6 +2,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
+import sys
 import os
 import os.path as op
 import glob
@@ -9,6 +10,7 @@ import warnings
 import shutil
 
 from nose.tools import assert_true, assert_equal, assert_raises
+from nose.plugins.skip import SkipTest
 
 from mne import Epochs, read_events, pick_types, read_evokeds
 from mne.io import Raw
@@ -71,6 +73,8 @@ def test_render_report():
     epochs.average().save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
+    if sys.version.startswith('3.5'):  # XXX Some strange MPL/3.5 error...
+        raise SkipTest('Python 3.5 and mpl have unresolved issues')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, on_error='raise')
