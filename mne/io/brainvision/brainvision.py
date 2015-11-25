@@ -17,7 +17,7 @@ import numpy as np
 from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..base import _BaseRaw, _check_update_montage
+from ..base import _BaseRaw, _check_update_montage, _mult_cal_one
 
 from ...externals.six import StringIO
 from ...externals.six.moves import configparser
@@ -86,7 +86,7 @@ class RawBrainVision(_BaseRaw):
         """Read a chunk of raw data"""
         # read data
         n_data_ch = len(self.ch_names) - 1
-        n_times = stop - start + 1
+        n_times = stop - start
         pointer = start * n_data_ch * _fmt_byte_dict[self.orig_format]
         with open(self._filenames[fi], 'rb') as f:
             f.seek(pointer)
@@ -100,9 +100,8 @@ class RawBrainVision(_BaseRaw):
         data_ = np.empty((n_data_ch + 1, n_times), dtype=np.float64)
         data_[:-1] = data_buffer  # cast to float64
         del data_buffer
-        data_[-1] = _synthesize_stim_channel(self._events, start, stop + 1)
-        data_ *= self._cals[:, np.newaxis]
-        data[:] = np.dot(mult, data_) if mult is not None else data_[idx]
+        data_[-1] = _synthesize_stim_channel(self._events, start, stop)
+        _mult_cal_one(data, data_, idx, cals, mult)
 
     def get_brainvision_events(self):
         """Retrieve the events associated with the Brain Vision Raw object

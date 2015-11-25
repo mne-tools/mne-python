@@ -218,7 +218,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     Subclasses must provide the following methods:
 
-        * _read_segment_file(self, data, idx, i, start, stop, cals, mult)
+        * _read_segment_file(self, data, idx, fi, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
 
     The `_BaseRaw._raw_extras` list can contain whatever data is necessary for
@@ -352,24 +352,18 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                                      cumul_lens[:-1]))
 
         # set up cals and mult (cals, compensation, and projector)
-        cals = self._cals.ravel()[np.newaxis, :]
-        if self.comp is None and projector is None:
-            mult = None
+        cals_mult = self._cals.ravel()[np.newaxis, :]
+        if self.comp is not None:
+            if projector is not None:
+                mult = self.comp * cals_mult
+                mult = np.dot(projector[idx], mult)
+            else:
+                mult = self.comp[idx] * cals_mult
+        elif projector is not None:
+            mult = projector[idx] * cals_mult
         else:
-            mult = list()
-            for ri in range(len(self._first_samps)):
-                if self.comp is not None:
-                    if projector is not None:
-                        mul = self.comp * cals
-                        mul = np.dot(projector[idx], mul)
-                    else:
-                        mul = self.comp[idx] * cals
-                elif projector is not None:
-                    mul = projector[idx] * cals
-                else:
-                    mul = np.diag(self._cals.ravel())[idx]
-                mult.append(mul)
-        cals = cals.T[idx]
+            mult = None
+        cals = cals_mult.T[idx]
 
         # read from necessary files
         offset = 0
@@ -378,13 +372,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # first iteration (only) could start in the middle somewhere
             if offset == 0:
                 start_file += start - cumul_lens[fi]
-            stop_file = np.min([stop - 1 - cumul_lens[fi] +
-                                self._first_samps[fi], self._last_samps[fi]])
-            if start_file < self._first_samps[fi] or \
-                    stop_file > self._last_samps[fi] or \
-                    stop_file < start_file or start_file > stop_file:
+            stop_file = np.min([stop - cumul_lens[fi] + self._first_samps[fi],
+                                self._last_samps[fi] + 1])
+            if start_file < self._first_samps[fi] or stop_file < start_file:
                 raise ValueError('Bad array indexing, could be a bug')
-            n_read = stop_file - start_file + 1
+            n_read = stop_file - start_file
             this_sl = slice(offset, offset + n_read)
             self._read_segment_file(data[:, this_sl], idx, fi,
                                     int(start_file), int(stop_file),
@@ -1827,11 +1819,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
 
-def _mult_cal_one(data_view, one, idx, fi, cals, mult):
+def _mult_cal_one(data_view, one, idx, cals, mult):
     """Take a chunk of raw data, multiply by mult or cals, and store"""
     one = one.astype(data_view.dtype)
+    assert data_view.shape[1] == one.shape[1]
     if mult is not None:
-        data_view[:] = np.dot(mult[fi], one)
+        data_view[:] = np.dot(mult, one)
     else:  # cals is not None
         if isinstance(idx, slice):
             data_view[:] = one[idx]
@@ -1851,7 +1844,7 @@ def _blk_read_lims(start, stop, buf_len):
     start : int
         Starting index.
     stop : int
-        Ending index (inclusive).
+        Ending index (exclusive).
     buf_len : int
         Buffer size in samples.
 
@@ -1917,11 +1910,11 @@ def _blk_read_lims(start, stop, buf_len):
     assert all(isinstance(x, int) for x in (start, stop, buf_len))
     block_start_idx = (start // buf_len)
     block_start = block_start_idx * buf_len
-    block_stop = ((stop // buf_len) + 1) * buf_len
+    block_stop = (((stop - 1) // buf_len) + 1) * buf_len
     read_size = block_stop - block_start
     n_blk = read_size // buf_len + (read_size % buf_len != 0)
     start_offset = start - block_start
-    end_offset = block_stop - stop - 1
+    end_offset = block_stop - stop
     d_lims = np.empty((n_blk, 2), int)
     r_lims = np.empty((n_blk, 2), int)
     for bi in range(n_blk):
@@ -1934,7 +1927,7 @@ def _blk_read_lims(start, stop, buf_len):
             d_sidx = bi * buf_len - start_offset
             r_sidx = 0
         if bi == n_blk - 1:
-            d_eidx = stop - start + 1
+            d_eidx = stop - start
             r_eidx = buf_len - end_offset
         else:
             d_eidx = (bi + 1) * buf_len - start_offset

@@ -214,7 +214,7 @@ class RawEDF(_BaseRaw):
                         raise NotImplementedError('EDF+ with overlapping '
                                                   'events not supported.')
                     stim[n_start:n_stop] = evid
-                data[stim_channel_idx, :] = stim[start:stop + 1]
+                data[stim_channel_idx, :] = stim[start:stop]
             else:
                 # Allows support for up to 17-bit trigger values (2 ** 17 - 1)
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),

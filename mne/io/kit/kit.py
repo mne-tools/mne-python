@@ -219,11 +219,6 @@ class RawKIT(_BaseRaw):
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
-        # cals are all unity, so can be ignored
-
-        # RawFIF and RawEDF think of "stop" differently, easiest to increment
-        # here and refactor later
-        stop += 1
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             data_offset = KIT.RAW_OFFSET
@@ -267,6 +262,7 @@ class RawKIT(_BaseRaw):
             trig_chs = trig_chs * trig_vals
             stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
             data_ = np.vstack((data_, stim_ch))
+        # cals are all unity, so can be ignored
         data[:] = np.dot(mult, data_) if mult is not None else data_[idx]
 
 

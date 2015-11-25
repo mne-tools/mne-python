@@ -8,7 +8,7 @@ import datetime
 import calendar
 
 from ...utils import logger
-from ..base import _BaseRaw, _check_update_montage
+from ..base import _BaseRaw, _check_update_montage, _mult_cal_one
 from ..meas_info import _empty_info
 from ..constants import FIFF
 
@@ -187,9 +187,8 @@ class RawNicolet(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
         nchan = self.info['nchan']
-        cal = np.array([ch['cal'] for ch in self.info['chs']])
         data_offset = self.info['nchan'] * start * 2
-        data_left = (stop - start + 1) * nchan
+        data_left = (stop - start) * nchan
         # Read up to 100 MB of data at a time.
         blk_size = min(data_left, (50000000 // nchan) * nchan)
 
@@ -199,9 +198,8 @@ class RawNicolet(_BaseRaw):
             for blk_start in np.arange(0, data_left, blk_size) // nchan:
                 blk_size = min(blk_size, data_left - blk_start * nchan)
                 block = np.fromfile(fid, '<i2', blk_size)
-                block = block.reshape(nchan, -1, order='F')[idx].astype(float)
+                block = block.reshape(nchan, -1, order='F')
                 blk_stop = blk_start + block.shape[1]
-                data[:, blk_start:blk_stop] = block * cal[idx][:, np.newaxis]
-        if mult is not None:
-            data = np.dot(mult, data)
+                data_view = data[:, blk_start:blk_stop]
+                _mult_cal_one(data_view, block, idx, cals, mult)
         return data

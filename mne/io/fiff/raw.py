@@ -344,6 +344,7 @@ class RawFIF(_BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file"""
+        stop -= 1
         offset = 0
         with _fiff_get_fid(self._filenames[fi]) as fid:
             for this in self._raw_extras[fi]:
@@ -383,7 +384,7 @@ class RawFIF(_BaseRaw):
                                            rlims=(first_pick, last_pick)).data
                             one.shape = (picksamp, self.info['nchan'])
                             _mult_cal_one(data[:, offset:(offset + picksamp)],
-                                          one.T, idx, fi, cals, mult)
+                                          one.T, idx, cals, mult)
                         offset += picksamp
 
                 #   Done?
