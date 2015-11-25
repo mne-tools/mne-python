@@ -5,10 +5,11 @@
 #
 # License: BSD (3-clause)
 
-import inspect
 import warnings
-import six
 import numpy as np
+
+from ..externals.six import iteritems
+from ..fixes import _get_args
 
 
 class BaseEstimator(object):
@@ -32,7 +33,7 @@ class BaseEstimator(object):
 
         # introspect the constructor arguments to find the model parameters
         # to represent
-        args, varargs, kw, default = inspect.getargspec(init)
+        args, varargs = _get_args(init, varargs=True)
         if varargs is not None:
             raise RuntimeError("scikit-learn estimators should always "
                                "specify their parameters in the signature"
@@ -97,7 +98,7 @@ class BaseEstimator(object):
             # Simple optimisation to gain speed (inspect is slow)
             return self
         valid_params = self.get_params(deep=True)
-        for key, value in six.iteritems(params):
+        for key, value in iteritems(params):
             split = key.split('__', 1)
             if len(split) > 1:
                 # nested objects case
@@ -146,7 +147,7 @@ def _pprint(params, offset=0, printer=repr):
     params_list = list()
     this_line_length = offset
     line_sep = ',\n' + (1 + offset // 2) * ' '
-    for i, (k, v) in enumerate(sorted(six.iteritems(params))):
+    for i, (k, v) in enumerate(sorted(iteritems(params))):
         if type(v) is float:
             # use str for representing floating point numbers
             # this way we get consistent representation across
@@ -453,6 +454,7 @@ class LinearModel(BaseEstimator):
 
         if times is None:
             tmin = 0
+            times = 'auto'
         else:
             tmin = times[0]
 
@@ -601,6 +603,7 @@ class LinearModel(BaseEstimator):
 
         if times is None:
             tmin = 0
+            times = 'auto'
         else:
             tmin = times[0]
 

@@ -159,7 +159,7 @@ def _plot_topo_onpick(event, show_func=None, colorbar=False):
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
     orig_ax = event.inaxes
-    if event.inaxes is None:
+    if event.inaxes is None or '_mne_ch_idx' not in vars(orig_ax):
         return
 
     import matplotlib.pyplot as plt
