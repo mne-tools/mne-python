@@ -20,7 +20,7 @@ def _test_raw_object(reader, test_preloading, **kwargs):
         Function to test.
     test_preloading : bool
         Whether not preloading is implemented for the reader. If True, both
-        cases are tested.
+        cases and memory mapping to file are tested.
     **kwargs :
         Arguments for the reader.
     """
