@@ -20,6 +20,8 @@ from ..evoked import Evoked, EvokedArray
 from ..utils import logger, _reject_data_segments, _get_fast_dot
 from ..io.pick import pick_types, pick_info
 from ..fixes import in1d
+from ..time_frequency import cwt_morlet, AverageTFR
+from ..parallel import parallel_func
 
 
 def linear_regression(inst, design_matrix, names=None):
@@ -142,7 +144,8 @@ def _fit_lm(data, design_matrix, names):
 
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
-                          decim=1, picks=None, solver='pinv'):
+                          decim=1, picks=None, solver='pinv', tfr=False,
+                          n_jobs=1):
     """Estimate regression-based evoked potentials/fields by linear modelling
 
     This models the full M/EEG time course, including correction for
@@ -217,6 +220,12 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         matrix X and the observation matrix Y, and returns the coefficient
         matrix b; or a string (for now, only 'pinv'), in which case the
         solver used is dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T.
+    tfr : bool | dict
+        Experimental. Computer regression in the time/frequency domain.
+        Warning: can be extremely computationally demanding, as the whole data
+        have to be transformed. If a dict, should contain parameters to
+        _cwt_morlet (e.g. freqs). By default, 1-30 Hz are calculated using
+        FFTs.
 
     Returns
     -------
@@ -250,7 +259,14 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     decim = int(decim)
     info["sfreq"] /= decim
     data, times = raw[:]
+    if picks is None:
+        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
+    info = pick_info(raw.info, picks, copy=True)
+    decim = int(decim)
+    info["sfreq"] /= decim
+    data, times = raw[:]
     data = data[picks, ::decim]
+
     times = times[::decim]
     events = events.copy()
     events[:, 0] -= raw.first_samp
@@ -318,20 +334,70 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         for t0, t1 in inds:
             has_val = np.setdiff1d(has_val, range(t0, t1))
 
-    # solve linear system
-    X, data = X.tocsr()[has_val], data[:, has_val]
-    coefs = solver(X, data)
+    if tfr is not False:  # TF domain
+        tfr_args = dict(sfreq=info["sfreq"],
+                        freqs=np.arange(1, 30, 1),
+                        n_cycles=np.arange(1, 30, 1) / 3.,
+                        use_fft=False)
+        if isinstance(tfr, dict):
+            tfr_args.update(tfr)
 
-    # construct Evoked objects to be returned from output
-    evokeds = dict()
-    cum = 0
-    for cond in conds:
-        tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
-        evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                    info=info, comment=cond,
-                                    tmin=tmin_ / float(info["sfreq"]),
-                                    nave=cond_length[cond],
-                                    kind='mean')  # note that nave and kind are
-        cum += tmax_ - tmin_                      # technically not correct
+        parallel, my_cwt, _ = parallel_func(cwt_morlet, n_jobs)
+        #logger.info("Computing time-frequency power on single epochs...")
+        data_ = data
+        data = np.empty((len(info["ch_names"]), len(tfr_args["freqs"]),
+                         data.shape[1]), dtype=np.float)
+        if n_jobs == 1:
+                x = cwt_morlet(data_, **tfr_args)
+                data[k] = (x * x.conj()).real
+        else:
+            # Precompute tf decompositions in parallel
+            tfrs = parallel(my_cwt(np.expand_dims(d, 0), **tfr_args)
+                            for d in data_)
+            for k, tfr in enumerate(tfrs):
+                data[k] = (tfr * tfr.conj()).real
+            del data_
 
-    return evokeds
+    X = X.tocsr()[has_val]
+
+    if tfr is False:
+        data = data[:, has_val]
+        # solve linear system
+        coefs = solver(X, data)
+
+        # construct Evoked objects to be returned from output
+        evokeds = dict()
+        cum = 0
+        for cond in conds:
+            tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
+            evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
+                                        info=info, comment=cond,
+                                        tmin=tmin_ / float(info["sfreq"]),
+                                        nave=cond_length[cond],
+                                        kind='mean')  # note that nave and kind are
+            cum += tmax_ - tmin_                      # technically not correct
+
+        return evokeds
+
+    else:  # TF domain
+        data = data.real[:, :, has_val]
+
+        # solve linear system
+        fast_dot = _get_fast_dot()
+        # messy wrt. the primary solver above
+        inv = linalg.pinv(X.T.dot(X).todense())
+        # should probably be pre-allocated instead
+        coefs = np.asarray([fast_dot(inv, X.T.dot(d_.T)).T for d_ in data])
+
+        # construct AverageTFR objects to be returned from output
+        tfrs = dict()
+        cum = 0
+        for cond in conds:
+            tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
+            tfrs[cond] = AverageTFR(info, coefs[:,:,cum:cum + tmax_ - tmin_],
+                                    np.linspace(tmin, tmax, tmax_ - tmin_),
+                                    tfr_args["freqs"], comment=cond,
+                                    nave=cond_length[cond])
+            cum += tmax_ - tmin_
+
+        return tfrs
