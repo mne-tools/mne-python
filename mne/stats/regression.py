@@ -340,7 +340,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
             tfr_args.update(tfr)
 
         parallel, my_cwt, _ = parallel_func(cwt_morlet, n_jobs)
-        #logger.info("Computing time-frequency power on single epochs...")
+        logger.info("Computing time-frequency power on raw data ...")
         data_ = data
         data = np.empty((len(info["ch_names"]), len(tfr_args["freqs"]),
                          data.shape[1]), dtype=np.float)
@@ -371,7 +371,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                                         info=info, comment=cond,
                                         tmin=tmin_ / float(info["sfreq"]),
                                         nave=cond_length[cond],
-                                        kind='mean')  # note that nave and kind are
+                                        kind='mean')  # nave & kind are
             cum += tmax_ - tmin_                      # technically not correct
 
         return evokeds
@@ -391,7 +391,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         cum = 0
         for cond in conds:
             tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
-            tfrs[cond] = AverageTFR(info, coefs[:,:,cum:cum + tmax_ - tmin_],
+            tfrs[cond] = AverageTFR(info, coefs[:, :, cum:cum + tmax_ - tmin_],
                                     np.linspace(tmin, tmax, tmax_ - tmin_),
                                     tfr_args["freqs"], comment=cond,
                                     nave=cond_length[cond])
