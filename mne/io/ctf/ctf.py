@@ -130,7 +130,7 @@ class RawCTF(_BaseRaw):
                 this_data.shape = (si['n_chan'], n_read)
                 this_data = this_data[:, r_lims[bi, 0]:r_lims[bi, 1]]
                 data_view = data[:, d_lims[bi, 0]:d_lims[bi, 1]]
-                _mult_cal_one(data_view, this_data, idx, fi, cals, mult)
+                _mult_cal_one(data_view, this_data, idx, cals, mult)
                 offset += n_read
 
 
