@@ -11,8 +11,9 @@ from os import path as op
 import numpy as np
 
 from ...utils import verbose, logger
-from ..base import _BaseRaw, _mult_cal_one, _blk_read_lims
 from ...externals.six import string_types
+
+from ..base import _BaseRaw, _mult_cal_one, _blk_read_lims
 
 from .res4 import _read_res4, _make_ctf_name
 from .hc import _read_hc

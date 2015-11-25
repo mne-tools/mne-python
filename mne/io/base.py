@@ -352,18 +352,18 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                                      cumul_lens[:-1]))
 
         # set up cals and mult (cals, compensation, and projector)
-        cals_mult = self._cals.ravel()[np.newaxis, :]
+        cals = self._cals.ravel()[np.newaxis, :]
         if self.comp is not None:
             if projector is not None:
-                mult = self.comp * cals_mult
+                mult = self.comp * cals
                 mult = np.dot(projector[idx], mult)
             else:
-                mult = self.comp[idx] * cals_mult
+                mult = self.comp[idx] * cals
         elif projector is not None:
-            mult = projector[idx] * cals_mult
+            mult = projector[idx] * cals
         else:
             mult = None
-        cals = cals_mult.T[idx]
+        cals = cals.T[idx]
 
         # read from necessary files
         offset = 0
@@ -1821,19 +1821,18 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
 def _mult_cal_one(data_view, one, idx, cals, mult):
     """Take a chunk of raw data, multiply by mult or cals, and store"""
-    one = one.astype(data_view.dtype)
+    one = np.asarray(one, dtype=data_view.dtype)
     assert data_view.shape[1] == one.shape[1]
     if mult is not None:
         data_view[:] = np.dot(mult, one)
-    else:  # cals is not None
+    else:
         if isinstance(idx, slice):
             data_view[:] = one[idx]
         else:
-            # faster to iterate than doing
-            # one = one[idx]
-            for ii, ix in enumerate(idx):
-                data_view[ii] = one[ix]
-        data_view *= cals
+            # faster than doing one = one[idx]
+            np.take(one, idx, axis=0, out=data_view)
+        if cals is not None:
+            data_view *= cals
 
 
 def _blk_read_lims(start, stop, buf_len):

@@ -21,7 +21,7 @@ from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans, Transform)
-from ..base import _BaseRaw
+from ..base import _BaseRaw, _mult_cal_one
 from ...epochs import _BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
@@ -263,7 +263,7 @@ class RawKIT(_BaseRaw):
             stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
             data_ = np.vstack((data_, stim_ch))
         # cals are all unity, so can be ignored
-        data[:] = np.dot(mult, data_) if mult is not None else data_[idx]
+        _mult_cal_one(data, data_, idx, None, mult)
 
 
 class EpochsKIT(_BaseEpochs):
