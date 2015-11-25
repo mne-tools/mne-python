@@ -142,14 +142,15 @@ def test_read_ctf():
         raw_c.save(out_fname, overwrite=True, buffer_size_sec=1.)
         raw_read = Raw(out_fname, add_eeg_ref=False)
 
+        # so let's check tricky cases based on sample boundaries
         rng = np.random.RandomState(0)
         pick_ch = rng.permutation(np.arange(len(raw.ch_names)))[:10]
-        # so let's check tricky cases based on sample boundaries
-        bnd = raw._raw_extras[0]['block_size']
+        bnd = int(round(raw.info['sfreq'] * raw.info['buffer_size_sec']))
+        assert_equal(bnd, raw._raw_extras[0]['block_size'])
         assert_equal(bnd, block_sizes[op.basename(fname)])
         slices = (slice(0, bnd), slice(bnd - 1, bnd), slice(3, bnd),
                   slice(3, 300), slice(None))
-        if op.basename(fname) not in single_trials:
+        if len(raw.times) >= 2 * bnd:  # at least two complete blocks
             slices = slices + (slice(bnd, 2 * bnd), slice(bnd, bnd + 1),
                                slice(0, bnd + 100))
         for sl_time in slices:
