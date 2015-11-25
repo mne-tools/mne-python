@@ -30,12 +30,20 @@ def _test_raw_object(reader, test_preloading, **kwargs):
     tempdir = _TempDir()
     raws = list()
     raws.append(reader(**kwargs))
+    picks = [1, 3, 5]
+    bnd = 100
     if test_preloading:
         buffer_fname = op.join(tempdir, 'buffer')
         raws.append(reader(preload=buffer_fname, **kwargs))
         raws.append(reader(preload=True, **kwargs))
-        picks = [1, 3, 5]
-        assert_array_equal(raws[0][picks, 20:30][0], raws[-1][picks, 20:30][0])
+
+        slices = (slice(0, bnd), slice(bnd - 1, bnd), slice(3, bnd),
+                  slice(None))
+        for sl_time in slices:
+            for raw in raws[1:]:
+                assert_array_equal(raws[0][picks, sl_time][0],
+                                   raw[picks, sl_time][0])
+
     raw = raws[-1]  # use preloaded raw
     full_data = raw._data
 
