@@ -57,6 +57,13 @@ def test_data():
                               slope='+', stimthresh=1)
     assert_true('RawKIT' in repr(raw_py))
 
+    # Test stim channel
+    stim_pick = pick_types(raw_py.info, meg=False, ref_meg=False,
+                           stim=True, exclude='bads')
+    stim1, _ = raw_py[stim_pick]
+    stim2 = np.array(raw_py.read_stim_ch(), ndmin=2)
+    assert_array_equal(stim1, stim2)
+
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude='bads')
     raw_bin = op.join(data_dir, 'test_bin_raw.fif')
@@ -134,18 +141,6 @@ def test_ch_loc():
     # test when more than one marker file provided
     mrks = [mrk_path, mrk2_path, mrk3_path]
     read_raw_kit(sqd_path, mrks, elp_path, hsp_path, preload=False)
-
-
-def test_stim_ch():
-    """Test raw kit stim ch
-    """
-    raw = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                       slope='+', preload=True)
-    stim_pick = pick_types(raw.info, meg=False, ref_meg=False,
-                           stim=True, exclude='bads')
-    stim1, _ = raw[stim_pick]
-    stim2 = np.array(raw.read_stim_ch(), ndmin=2)
-    assert_array_equal(stim1, stim2)
 
 
 run_tests_if_main()

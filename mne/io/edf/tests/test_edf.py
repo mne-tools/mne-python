@@ -73,6 +73,8 @@ def test_bdf_data():
 
 def test_edf_data():
     """Test edf files"""
+    _test_raw_object(read_raw_edf, test_preloading=True, input_fname=edf_path,
+                     stim_channel=None)
     raw_py = read_raw_edf(edf_path, preload=True)
     edf_events = find_events(raw_py, output='step', shortest_event=0,
                              stim_channel='STI 014')
