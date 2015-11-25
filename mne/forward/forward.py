@@ -352,7 +352,10 @@ def _read_forward_meas_info(tree, fid):
     info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
 
     # Check if a custom reference has been applied
-    tag = find_tag(fid, parent_mri, FIFF.FIFF_CUSTOM_REF)
+    tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_CUSTOM_REF)
+    if tag is None:
+        tag = find_tag(fid, parent_mri, FIFF.FIFF_CUSTOM_REF)
+
     info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
     info._check_consistency()
     return info

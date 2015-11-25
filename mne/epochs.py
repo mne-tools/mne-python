@@ -2163,10 +2163,10 @@ def _read_one_epoch_file(f, tree, fname, preload):
                 fid.seek(pos, 0)
                 data_tag = read_tag_info(fid)
                 data_tag.pos = pos
-            elif kind == FIFF.FIFF_MNE_BASELINE_MIN:
+            elif kind in [FIFF.FIFF_MNE_BASELINE_MIN, FIFF.FIFF_BASELINE_MIN]:
                 tag = read_tag(fid, pos)
                 bmin = float(tag.data)
-            elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
+            elif kind in [FIFF.FIFF_MNE_BASELINE_MAX, FIFF.FIFF_BASELINE_MAX]:
                 tag = read_tag(fid, pos)
                 bmax = float(tag.data)
             elif kind == FIFF.FIFFB_MNE_EPOCHS_SELECTION:
