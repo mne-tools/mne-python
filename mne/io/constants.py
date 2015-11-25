@@ -55,8 +55,6 @@ FIFF.FIFFB_REF                = 118
 FIFF.FIFFB_SMSH_RAW_DATA      = 119
 FIFF.FIFFB_SMSH_ASPECT        = 120
 FIFF.FIFFB_HPI_SUBSYSTEM      = 121
-FIFF.FIFFB_EPOCHS             = 122   # Before version 0.11 we errantly used this
-FIFF.FIFFB_ICA                = 123   # Before version 0.11 we errantly used this
 
 FIFF.FIFFB_SPHERE             = 300   # Concentric sphere model related
 FIFF.FIFFB_BEM                = 310   # Boundary-element method
@@ -145,7 +143,7 @@ FIFF.FIFF_NAME           = 233          # Intended to be a short name.
 FIFF.FIFF_DESCRIPTION    = FIFF.FIFF_COMMENT # (Textual) Description of an object
 FIFF.FIFF_DIG_STRING     = 234          # String of digitized points
 FIFF.FIFF_LINE_FREQ      = 235    # Line frequency
-FIFF.FIFF_CUSTOM_REF     = 236    # Whether a custom reference was applied to the data (NB: overlaps with HPI const #) Used before v0.11
+
 #
 # HPI fitting program tags
 #
@@ -176,7 +174,6 @@ FIFF.FIFFV_EMG_CH     = 302
 FIFF.FIFFV_ECG_CH     = 402
 FIFF.FIFFV_MISC_CH    = 502
 FIFF.FIFFV_RESP_CH    = 602  # Respiration monitoring
-FIFF.FIFFV_MNE_SEEG_CH = 702  # Used in mne before v0.11. Overlaps with FIFF.FIFFV_QUAT_2
 FIFF.FIFFV_SEEG_CH    = 802  # stereotactic EEG
 FIFF.FIFFV_SYST_CH    = 900  # some system status information (on Triux systems only)
 FIFF.FIFFV_IAS_CH     = 910  # Internal Active Shielding data (maybe on Triux only)
@@ -215,8 +212,7 @@ FIFF.FIFF_DATA_BUFFER    = 300    # Buffer containing measurement data
 FIFF.FIFF_DATA_SKIP      = 301    # Data skip in buffers
 FIFF.FIFF_EPOCH          = 302    # Buffer containing one epoch and channel
 FIFF.FIFF_DATA_SKIP_SAMP = 303    # Data skip in samples
-FIFF.FIFF_BASELINE_MIN   = 304    # Time of baseline beginning. Used before v0.11. Changed to 3568
-FIFF.FIFF_BASELINE_MAX   = 305    # Time of baseline end. Used before v0.11. Changed to 3569
+
 #
 # Info on subject
 #

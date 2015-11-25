@@ -1892,7 +1892,7 @@ def read_ica(fname):
 
     ica_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ICA)
     if len(ica_data) == 0:
-        ica_data = dir_tree_find(tree, FIFF.FIFFB_ICA)  # Used before v 0.11
+        ica_data = dir_tree_find(tree, 123)  # Constant 123 Used before v 0.11
         if len(ica_data) == 0:
             fid.close()
             raise ValueError('Could not find ICA data')

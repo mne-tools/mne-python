@@ -75,7 +75,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
 
     # One or more evoked data sets
     start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-    start_block(fid, FIFF.FIFFB_EPOCHS)
+    start_block(fid, FIFF.FIFFB_MNE_EPOCHS)
 
     # write events out after getting data to ensure bad events are dropped
     data = epochs.get_data()
@@ -129,7 +129,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
         write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
         end_block(fid, FIFF.FIFFB_REF)
 
-    end_block(fid, FIFF.FIFFB_EPOCHS)
+    end_block(fid, FIFF.FIFFB_MNE_EPOCHS)
     end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
@@ -2132,9 +2132,11 @@ def _read_one_epoch_file(f, tree, fname, preload):
         if len(epochs_node) == 0:
             # before version 0.11 we errantly saved with this tag instead of
             # an MNE tag
-            epochs_node = dir_tree_find(tree, FIFF.FIFFB_EPOCHS)
+            epochs_node = dir_tree_find(tree, FIFF.FIFFB_MNE_EPOCHS)
             if len(epochs_node) == 0:
-                raise ValueError('Could not find epochs data')
+                epochs_node = dir_tree_find(tree, 122)  # 122 used before v0.11
+                if len(epochs_node) == 0:
+                    raise ValueError('Could not find epochs data')
 
         my_epochs = epochs_node[0]
 
@@ -2163,10 +2165,12 @@ def _read_one_epoch_file(f, tree, fname, preload):
                 fid.seek(pos, 0)
                 data_tag = read_tag_info(fid)
                 data_tag.pos = pos
-            elif kind in [FIFF.FIFF_MNE_BASELINE_MIN, FIFF.FIFF_BASELINE_MIN]:
+            elif kind in [FIFF.FIFF_MNE_BASELINE_MIN, 304]:
+                # Constant 304 was used before v0.11
                 tag = read_tag(fid, pos)
                 bmin = float(tag.data)
-            elif kind in [FIFF.FIFF_MNE_BASELINE_MAX, FIFF.FIFF_BASELINE_MAX]:
+            elif kind in [FIFF.FIFF_MNE_BASELINE_MAX, 305]:
+                # Constant 305 was used before v0.11
                 tag = read_tag(fid, pos)
                 bmax = float(tag.data)
             elif kind == FIFF.FIFFB_MNE_EPOCHS_SELECTION:

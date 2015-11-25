@@ -59,7 +59,7 @@ def channel_type(info, idx):
         return 'ias'
     elif kind == FIFF.FIFFV_SYST_CH:
         return 'syst'
-    elif kind in [FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_MNE_SEEG_CH]:
+    elif kind in [FIFF.FIFFV_SEEG_CH, 702]:  # 702 was used before v0.11
         return 'seeg'
     elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
                   FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
@@ -253,7 +253,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
             pick[k] = True
         elif kind == FIFF.FIFFV_SYST_CH and syst:
             pick[k] = True
-        elif kind in [FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_MNE_SEEG_CH] and seeg:
+        elif kind in [FIFF.FIFFV_SEEG_CH, 702] and seeg:
+            # Constant 702 was used before v0.11
             pick[k] = True
         elif kind == FIFF.FIFFV_IAS_CH and ias:
             pick[k] = True
