@@ -121,7 +121,7 @@ def test_continuous_regression_with_overlap_tfr():
     effect = hann(101)
     signal = np.convolve(signal, effect)[:len(signal)]
     raw = RawArray(signal[np.newaxis, :], mne.create_info(1, 100, 'eeg'))
-    epochs = mne.Epochs(raw, events, event_id, 0, 1, baseline=None, reject=None)
+    epochs = mne.Epochs(raw, events, {1: 1}, 0, 1, baseline=None, reject=None)
     tfr = dict(freqs=np.arange(5,10,1), n_cycles=3, use_fft=False)
     power = mne.time_frequency.tfr_morlet(epochs, itc=False, **tfr)
     assert_allclose(power.data.flatten(),
