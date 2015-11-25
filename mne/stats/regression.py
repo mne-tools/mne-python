@@ -146,14 +146,15 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
                           decim=1, picks=None, solver='pinv', tfr=False,
                           n_jobs=1):
-    """Estimate regression-based evoked potentials/fields by linear modelling
+    """Estimate regression-based evoked potentials/fields/oscillations
+    by linear modelling
 
     This models the full M/EEG time course, including correction for
     overlapping potentials and allowing for continuous/scalar predictors.
     Internally, this constructs a predictor matrix X of size
     n_samples * (n_conds * window length), solving the linear system
-    ``Y = bX`` and returning ``b`` as evoked-like time series split by
-    condition. See [1]_.
+    ``Y = bX`` and returning ``b`` as evoked-like time series/time-frequency
+    response split by condition. See [1]_.
 
     Parameters
     ----------
@@ -221,11 +222,14 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         matrix b; or a string (for now, only 'pinv'), in which case the
         solver used is dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T.
     tfr : bool | dict
-        Experimental. Computer regression in the time/frequency domain.
+        Experimental. Compute regression in the time/frequency domain.
         Warning: can be extremely computationally demanding, as the whole data
         have to be transformed. If a dict, should contain parameters to
         _cwt_morlet (e.g. freqs). By default, 1-30 Hz are calculated using
         FFTs.
+    n_jobs : int
+        Number of jobs for TF decomposition of raw data. If negative,
+        (max nunber) - n_jobs threads will be used.
 
     Returns
     -------
