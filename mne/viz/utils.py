@@ -51,9 +51,10 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
 
 def plt_show(show=True, **kwargs):
     """Helper to show a figure while suppressing warnings"""
+    import matplotlib
     import matplotlib.pyplot as plt
-    if show:
-        plt.show(warn=False, **kwargs)
+    if show and matplotlib.get_backend() != 'agg':
+        plt.show(**kwargs)
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
