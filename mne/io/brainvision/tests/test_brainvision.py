@@ -17,7 +17,7 @@ from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, find_events
 from mne.io.constants import FIFF
 from mne.io import Raw, read_raw_brainvision
-from mne.io.tests.test_raw import _test_raw_object, _test_raw_filter
+from mne.io.tests.test_raw import _test_raw_object
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -38,8 +38,6 @@ def test_brainvision_data_filters():
 
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
-    raw.info["lowpass"] = None
-    _test_raw_filter(raw, atol=1e-6)
 
 
 def test_brainvision_data():

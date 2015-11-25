@@ -22,8 +22,7 @@ from mne import pick_types
 from mne.externals.six import iterbytes
 from mne.utils import run_tests_if_main, requires_pandas
 from mne.io import read_raw_edf
-from mne.io.tests.test_raw import (_test_concat, _test_raw_object,
-                                   _test_raw_filter)
+from mne.io.tests.test_raw import _test_concat, _test_raw_object
 import mne.io.edf.edf as edfmodule
 from mne.event import find_events
 
@@ -70,15 +69,10 @@ def test_bdf_data():
     assert_true((raw_py.info['chs'][0]['loc']).any())
     assert_true((raw_py.info['chs'][25]['loc']).any())
     assert_true((raw_py.info['chs'][63]['loc']).any())
-    _test_raw_filter(raw_py)
 
 
 def test_edf_data():
     """Test edf files"""
-    raw_py = _test_raw_object(read_raw_edf, True, input_fname=edf_path,
-                              stim_channel=None)
-    _test_raw_filter(raw_py, atol=1e-5)
-
     raw_py = read_raw_edf(edf_path, preload=True)
     edf_events = find_events(raw_py, output='step', shortest_event=0,
                              stim_channel='STI 014')

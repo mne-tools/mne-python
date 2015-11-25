@@ -11,7 +11,7 @@ from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne import find_events, pick_types
 from mne.io import read_raw_egi
-from mne.io.tests.test_raw import _test_raw_object, _test_raw_filter
+from mne.io.tests.test_raw import _test_raw_object
 from mne.io.egi import _combine_triggers
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -35,8 +35,6 @@ def test_io_egi():
     include = ['TRSP', 'XXX1']
     raw = _test_raw_object(read_raw_egi, False, input_fname=egi_fname,
                            include=include)
-
-    _test_raw_filter(raw)
 
     assert_equal('eeg' in raw, True)
 
