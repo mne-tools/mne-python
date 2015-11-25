@@ -118,10 +118,19 @@ def _topo_closed(events, ax, lines, fill):
     ax.get_figure().canvas.draw()
 
 
+def _rgb(x, y, z):
+    """Helper to transform x, y, z values into RGB colors"""
+    for dim in (x, y, z):
+        dim -= dim.min()
+        dim /= dim.max()
+    return np.asarray([x, y, z]).T
+
+
 def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
-                 cmap=None, gfp=False, window_title=None):
+                 cmap=None, gfp=False, window_title=None,
+                 spatial_colors=False):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -209,6 +218,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w",
                                                alpha=0.75)]
     for ax, t in zip(axes, ch_types_used):
+        line_list = list()  # 'line_list' contains the lines for this axes
         ch_unit = units[t]
         this_scaling = scalings[t]
         if unit is False:
@@ -221,6 +231,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             D = this_scaling * evoked.data[idx, :]
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
+
                 text = ax.annotate('Loading...', xy=(0.01, 0.1),
                                    xycoords='axes fraction', fontsize=20,
                                    color='green')
@@ -237,14 +248,23 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
                 gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
                 if not gfp_only:
-                    lines.append(ax.plot(times, D.T, picker=3., zorder=0,
-                                         color='k'))
-                    for ii, line in zip(idx, lines[-1]):
-                        if ii in bad_ch_idx:
-                            line.set_color('r')
-                            line.set_zorder(1)
+                    if spatial_colors:
+                        chs = [evoked.info['chs'][i] for i in idx]
+                        locs3d = np.array([ch['loc'][:3] for ch in chs])
+                        x, y, z = locs3d.T
+                        colors = _rgb(x, y, z)
+                    else:
+                        colors = ['k'] * len(idx)
+                        for i in bad_ch_idx:
+                            if i in idx:
+                                colors[idx.index(i)] = 'r'
+                    for ch_idx in range(len(D)):
+                        line_list.append(ax.plot(times, D[ch_idx], picker=3.,
+                                                 zorder=0,
+                                                 color=colors[ch_idx])[0])
                 if gfp:  # 'only' or boolean True
-                    gfp_color = (0., 1., 0.)
+                    gfp_color = (0., 0., 0.) if spatial_colors else (0., 1.,
+                                                                     0.)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
                     this_ylim = ax.get_ylim()
                     if not gfp_only:
@@ -254,15 +274,21 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     this_gfp += y_offset
                     ax.fill_between(times, y_offset, this_gfp, color='none',
                                     facecolor=gfp_color, zorder=0, alpha=0.25)
-                    ax.plot(times, this_gfp, color=gfp_color, zorder=2)
+                    line_list.append(ax.plot(times, this_gfp, color=gfp_color,
+                                             zorder=2)[0])
                     ax.text(times[0] + 0.01 * (times[-1] - times[0]),
                             this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
                             'GFP', zorder=3, color=gfp_color,
                             path_effects=gfp_path_effects)
+                for ii, line in zip(idx, line_list):
+                    if ii in bad_ch_idx:
+                        line.set_zorder(1)
+                        if spatial_colors:
+                            line.set_linestyle("--")
                 ax.set_ylabel('data (%s)' % ch_unit)
                 # for old matplotlib, we actually need this to have a bounding
                 # box (!), so we have to put some valid text here, change
-                # alpha and  path effects later
+                # alpha and path effects later
                 texts.append(ax.text(0, 0, 'blank', zorder=2,
                                      verticalalignment='baseline',
                                      horizontalalignment='left',
@@ -293,6 +319,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             if (plot_type == 'butterfly') and (hline is not None):
                 for h in hline:
                     ax.axhline(h, color='r', linestyle='--', linewidth=2)
+        lines.append(line_list)
     if plot_type == 'butterfly':
         params = dict(axes=axes, texts=texts, lines=lines,
                       ch_names=evoked.ch_names, idxs=idxs, need_draw=False,
@@ -325,7 +352,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
-                window_title=None):
+                window_title=None, spatial_colors=False):
     """Plot evoked data
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -376,12 +403,17 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         channel traces will not be shown.
     window_title : str | None
         The title to put at the top of the figure.
+    spatial_colors : bool
+        Color code lines by mapping physical sensor coordinates into color
+        values. Spatially similar channels will have similar colors.
+        Bad channels will be dotted.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
-                        gfp=gfp, window_title=window_title)
+                        gfp=gfp, window_title=window_title,
+                        spatial_colors=spatial_colors)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
