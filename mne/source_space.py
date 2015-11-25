@@ -2106,7 +2106,7 @@ def _get_solids(tri_rrs, fros):
 
 
 @verbose
-def _ensure_src(src, verbose=None):
+def _ensure_src(src, kind=None, verbose=None):
     """Helper to ensure we have a source space"""
     if isinstance(src, string_types):
         if not op.isfile(src):
@@ -2115,6 +2115,13 @@ def _ensure_src(src, verbose=None):
         src = read_source_spaces(src, verbose=False)
     if not isinstance(src, SourceSpaces):
         raise ValueError('src must be a string or instance of SourceSpaces')
+    if kind is not None:
+        if kind == 'surf':
+            surf = [s for s in src if s['type'] == 'surf']
+            if len(surf) != 2 or len(src) != 2:
+                raise ValueError('Source space must contain exactly two '
+                                 'surfaces.')
+            src = surf
     return src
 
 
