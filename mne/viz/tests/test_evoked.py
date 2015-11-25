@@ -92,6 +92,7 @@ def test_plot_evoked():
         # plot with bad channels excluded
         evoked.plot(exclude='bads')
         evoked.plot(exclude=evoked.info['bads'])  # does the same thing
+
         # spatial colors test
         evoked.plot(spatial_colors=True)
 

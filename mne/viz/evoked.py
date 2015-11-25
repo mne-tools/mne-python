@@ -263,8 +263,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                                  zorder=0,
                                                  color=colors[ch_idx])[0])
                 if gfp:  # 'only' or boolean True
-                    gfp_color = (0., 0., 0.) if spatial_colors else (0., 1.,
-                                                                     0.)
+                    gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
                     this_ylim = ax.get_ylim()
                     if not gfp_only:
