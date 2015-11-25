@@ -669,8 +669,126 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         evoked : instance of Evoked
             The averaged epochs.
         """
-
         return self._compute_mean_or_stderr(picks, 'ave')
+
+    @verbose
+    def average_movement(self, pos, orig_sfreq=None, picks=None,
+                         weight_all=True, origin='auto', int_order=8,
+                         ext_order=3, verbose=None):
+        """Average data, weighted by head position using Maxwell filtering
+
+        Parameters
+        ----------
+        pos : tuple
+            Tuple of position information as ``(trans, rot, t)`` like that
+            returned by `get_chpi_positions`. The positions will be matched
+            based on the last given position before the onset of the epoch.
+        orig_sfreq : float | None
+            The original sample frequency of the data (that matches the
+            event sample numbers in ``epochs.events``). Can be ``None``
+            if data have not been decimated or resampled.
+        picks : array-like of int | None
+            If None only MEG, EEG and SEEG channels are kept
+            otherwise the channels indices in picks are kept.
+        weight_all : bool
+            If True, all channels are weighted by the SSS basis weights.
+            If False, only MEG channels are weighted, other channels
+            receive uniform weight per epoch.
+        origin : array-like, shape (3,) | str
+            Origin of internal and external multipolar moment space in head
+            coords and in meters. The default is ``'auto'``, which means
+            a head-digitization-based origin fit.
+        int_order : int
+            Order of internal component of spherical expansion.
+        ext_order : int
+            Order of external component of spherical expansion.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        evoked : instance of Evoked
+            The averaged epochs.
+
+        Notes
+        -----
+        This algorithm is described in [1]_, in section V.B
+        "Virtual signals and movement correction", equations 40-44.
+
+        References
+        ----------
+        .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
+               multichannel data: The signal space separation method,"
+               Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
+        """
+        from .preprocessing.maxwell import (_check_origin, _info_sss_basis,
+                                            _check_usable, _col_norm_pinv,
+                                            _get_n_moments, _get_mf_picks,
+                                            _reset_meg_bads)
+        orig_sfreq = self.info['sfreq'] if orig_sfreq is None else orig_sfreq
+        orig_sfreq = float(orig_sfreq)
+        trn, rot, t = pos
+        del pos
+        _check_usable(self)
+        n_in = _get_n_moments(int_order)
+        meg_picks, _, _, good_picks, coil_scale = \
+            _get_mf_picks(self.info, int_order, ext_order)
+        other_picks = np.setdiff1d(np.arange(len(self.ch_names)), meg_picks)
+        n_channels, n_times = len(self.ch_names), len(self.times)
+        data = np.zeros((n_channels, n_times))
+        S_ave = 0.
+        w_sum = 0.
+        origin = _check_origin(origin, self.info, 'head')
+        count = 0
+        for ei, epoch in enumerate(self):
+            event_time = self.events[self._current - 1, 0] / orig_sfreq
+            use_idx = np.where(t <= event_time)[0]
+            if len(use_idx) == 0:
+                raise RuntimeError('Event time %0.3f occurs before first '
+                                   'position time %0.3f' % (event_time, t[0]))
+            use_idx = use_idx[-1]
+            trans = np.row_stack([np.column_stack([rot[use_idx],
+                                                   trn[[use_idx]].T]),
+                                  [[0., 0., 0., 1.]]])
+            loc_str = ', '.join('%0.1f' % t for t in (trans[:3, 3] * 1000))
+            logger.info('Creating bases for epoch %s (device location: %s mm)'
+                        % (ei + 1, loc_str))
+            S = _info_sss_basis(self.info, trans, origin, int_order, ext_order,
+                                True)
+            weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
+            S *= weight
+            S_ave += S  # eq. 41
+            if weight_all:
+                epoch *= weight
+                data += epoch  # eq. 42
+            else:
+                data[other_picks] += epoch[other_picks]
+                epoch = epoch[meg_picks]
+                epoch *= weight
+                data[meg_picks] += epoch
+            w_sum += weight
+            count += 1
+        if count > 0:
+            S_ave /= w_sum
+            data[meg_picks] /= w_sum
+            data[other_picks] /= w_sum if weight_all else count
+            # invert
+            # XXX Eventually we could do cross-talk and fine-cal here
+            pS_ave_good = _col_norm_pinv(S_ave[good_picks])
+            pS_ave_good *= coil_scale[good_picks].T
+            # get recon matrix
+            S_recon = _info_sss_basis(self.info, None, origin,
+                                      int_order, ext_order, True)
+            S_recon /= coil_scale
+            # apply
+            data[meg_picks] = np.dot(np.dot(S_recon[:, :n_in],
+                                     pS_ave_good[:n_in]), data[good_picks])
+        else:
+            data.fill(np.nan)
+        info = deepcopy(self.info)
+        _reset_meg_bads(info)
+        return self._evoked_from_epoch_data(data, info, picks, count,
+                                            'average')
 
     def standard_error(self, picks=None):
         """Compute standard error over epochs
@@ -727,15 +845,19 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             _aspect_kind = FIFF.FIFFV_ASPECT_STD_ERR
             data /= np.sqrt(n_events)
-        kind = _aspect_rev.get(str(_aspect_kind), 'Unknown')
+        return self._evoked_from_epoch_data(data, self.info, picks, n_events,
+                                            _aspect_kind)
 
-        info = deepcopy(self.info)
+    def _evoked_from_epoch_data(self, data, info, picks, n_events,
+                                aspect_kind):
+        """Helper to create an evoked object from epoch data"""
+        info = deepcopy(info)
+        kind = _aspect_rev.get(str(aspect_kind), 'Unknown')
         evoked = EvokedArray(data, info, tmin=self.times[0],
                              comment=self.name, nave=n_events, kind=kind,
                              verbose=self.verbose)
         # XXX: above constructor doesn't recreate the times object precisely
         evoked.times = self.times.copy()
-        evoked._aspect_kind = _aspect_kind
 
         # pick channels
         if picks is None:

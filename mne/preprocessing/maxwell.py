@@ -54,14 +54,14 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     raw : instance of mne.io.Raw
         Data to be filtered
     origin : array-like, shape (3,) | str
-        Origin of internal and external multipolar moment space in head coords
-        and in meters. The default is ``'auto'``, which means
-        ``(0., 0., 0.)`` for ``coord_frame='meg'``, and a
-        head-digitization-based origin fit for ``coord_frame='head'``.
+        Origin of internal and external multipolar moment space in meters.
+        The default is ``'auto'``, which means ``(0., 0., 0.)`` for
+        ``coord_frame='meg'``, and a head-digitization-based origin fit
+        for ``coord_frame='head'``.
     int_order : int
-        Order of internal component of spherical expansion
+        Order of internal component of spherical expansion.
     ext_order : int
-        Order of external component of spherical expansion
+        Order of external component of spherical expansion.
     calibration : str | None
         Path to the ``'.dat'`` file with fine calibration coefficients.
         File can have 1D or 3D gradiometer imbalance correction.
@@ -176,11 +176,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # triage inputs ASAP to avoid late-thrown errors
 
     _check_raw(raw)
-    if raw.proj:
-        raise RuntimeError('Projectors cannot be applied to raw data.')
-    if len(raw.info.get('comps', [])) > 0:
-        raise RuntimeError('Maxwell filter cannot handle compensated '
-                           'channels.')
+    _check_usable(raw)
     st_correlation = float(st_correlation)
     if st_correlation <= 0. or st_correlation > 1.:
         raise ValueError('Need 0 < st_correlation <= 1., got %s'
@@ -221,20 +217,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     raw_sss = raw.copy().load_data(verbose=False)
     del raw
     info, times = raw_sss.info, raw_sss.times
+    meg_picks, mag_picks, grad_picks, good_picks, coil_scale = \
+        _get_mf_picks(info, int_order, ext_order)
 
-    # Check for T1/T2 mag types
-    mag_inds_T1T2 = _get_T1T2_mag_inds(info)
-    if len(mag_inds_T1T2) > 0:
-        logger.warning('%d T1/T2 magnetometer channel types found. If using '
-                       ' SSS, it is advised to replace coil types using '
-                       ' `fix_mag_coil_types`.' % len(mag_inds_T1T2))
-    meg_picks = pick_types(info, meg=True, exclude=[])
-    recons = [ch for ch in info['bads']
-              if info['ch_names'].index(ch) in meg_picks]
-    if len(recons) > 0:
-        logger.info('    Bad MEG channels being reconstructed: %s' % recons)
-    else:
-        logger.info('    No bad MEG channels')
     #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
     #
@@ -244,52 +229,20 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     else:
         sss_cal = dict()
 
-    # Get indices of channels to use in multipolar moment calculation
-    good_picks = pick_types(info, meg=True, exclude='bads')
-    n_bases = _get_n_moments([int_order, ext_order]).sum()
-    if n_bases > len(good_picks):
-        raise ValueError('Number of requested bases (%s) exceeds number of '
-                         'good sensors (%s)' % (str(n_bases), len(good_picks)))
-
     # Get indices of MEG channels
-    mag_picks = pick_types(info, meg='mag', exclude=[])
-    grad_picks = pick_types(info, meg='grad', exclude=[])
     grad_info = pick_info(info, grad_picks)
     if info['dev_head_t'] is None and coord_frame == 'head':
         raise RuntimeError('coord_frame cannot be "head" because '
                            'info["dev_head_t"] is None; if this is an '
                            'empty room recording, consider using '
                            'coord_frame="meg"')
-    meg_coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
-                                   head_frame=head_frame, verbose=False)[0]
 
-    # Magnetometers are scaled by 100 to improve numerical stability
-    coil_scale = np.ones((len(meg_picks), 1))
-    coil_scale[mag_picks] = 100.
+    # Determine/check the origin of the expansion
+    origin = _check_origin(origin, raw_sss.info, coord_frame)
 
-    # Compute multipolar moment bases
-    if isinstance(origin, string_types):
-        # XXX eventually we could add "auto" mode here
-        if origin != 'auto':
-            raise ValueError('origin must be a numerical array, or "auto", '
-                             'not %s' % (origin,))
-        if coord_frame == 'head':
-            R, origin = fit_sphere_to_headshape(raw_sss.info,
-                                                verbose=False)[:2]
-            origin /= 1000.
-            logger.info('    Automatic origin fit: head of radius %0.1f mm'
-                        % R)
-            del R
-        else:
-            origin = (0., 0., 0.)
-    origin = np.array(origin, float)
-    if origin.shape != (3,):
-        raise ValueError('origin must be a 3-element array')
-    origin_str = ', '.join(['%0.1f' % (o * 1000) for o in origin])
-    logger.info('    Using origin %s mm in the %s frame'
-                % (origin_str, coord_frame))
     # Compute in/out bases and create copies containing only good chs
-    S_decomp = _sss_basis(origin, meg_coils, int_order, ext_order)
+    S_decomp = _info_sss_basis(info, None, origin, int_order, ext_order,
+                               head_frame)
     # We always want to reconstruct with non-corrected defs
     n_in, n_out = _get_n_moments([int_order, ext_order])
     S_recon = S_decomp.copy()
@@ -346,16 +299,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Translate to destination frame
     #
     if destination is not None:
-        info_recon = deepcopy(info)
-        info_recon['dev_head_t']['trans'] = recon_trans
-        recon_coils = _prep_meg_channels(info_recon,
-                                         accurate=True, elekta_defs=True,
-                                         head_frame=head_frame,
-                                         verbose=False)[0]
-        S_recon = _sss_basis(origin, recon_coils, int_order, ext_order)
+        S_recon = _info_sss_basis(info, recon_trans, origin,
+                                  int_order, ext_order, head_frame)
         # warn if we have translated too far
         diff = 1000 * (info['dev_head_t']['trans'][:3, 3] -
-                       info_recon['dev_head_t']['trans'][:3, 3])
+                       recon_trans[:3, 3])
         dist = np.sqrt(np.sum(_sq(diff)))
         if dist > 25.:
             logger.warning('Head position change is over 25 mm (%s) = %0.1f mm'
@@ -444,6 +392,68 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      coord_frame, sss_ctc, sss_cal, max_st, reg_moments)
     logger.info('[done]')
     return raw_sss
+
+
+def _get_mf_picks(info, int_order, ext_order):
+    """Helper to pick types for Maxwell filtering"""
+    # Check for T1/T2 mag types
+    mag_inds_T1T2 = _get_T1T2_mag_inds(info)
+    if len(mag_inds_T1T2) > 0:
+        logger.warning('%d T1/T2 magnetometer channel types found. If using '
+                       ' SSS, it is advised to replace coil types using '
+                       ' `fix_mag_coil_types`.' % len(mag_inds_T1T2))
+    # Get indices of channels to use in multipolar moment calculation
+    meg_picks = pick_types(info, meg=True, exclude=[])
+    good_picks = pick_types(info, meg=True, exclude='bads')
+    n_bases = _get_n_moments([int_order, ext_order]).sum()
+    if n_bases > len(good_picks):
+        raise ValueError('Number of requested bases (%s) exceeds number of '
+                         'good sensors (%s)' % (str(n_bases), len(good_picks)))
+    recons = [ch for ch in info['bads']
+              if info['ch_names'].index(ch) in meg_picks]
+    if len(recons) > 0:
+        logger.info('    Bad MEG channels being reconstructed: %s' % recons)
+    else:
+        logger.info('    No bad MEG channels')
+    mag_picks = pick_types(info, meg='mag', exclude=[])
+    grad_picks = pick_types(info, meg='grad', exclude=[])
+    # Magnetometers are scaled by 100 to improve numerical stability
+    coil_scale = np.ones((len(meg_picks), 1))
+    coil_scale[mag_picks] = 100.
+    return meg_picks, mag_picks, grad_picks, good_picks, coil_scale
+
+
+def _check_usable(inst):
+    """Helper to ensure our data are clean"""
+    if inst.proj:
+        raise RuntimeError('Projectors cannot be applied to data.')
+    if len(inst.info.get('comps', [])) > 0:
+        raise RuntimeError('Maxwell filter cannot be done on compensated '
+                           'channels.')
+
+
+def _check_origin(origin, info, coord_frame):
+    """Helper to check the origin"""
+    if isinstance(origin, string_types):
+        # XXX eventually we could add "auto" mode here
+        if origin != 'auto':
+            raise ValueError('origin must be a numerical array, or "auto", '
+                             'not %s' % (origin,))
+        if coord_frame == 'head':
+            R, origin = fit_sphere_to_headshape(info, verbose=False)[:2]
+            origin /= 1000.
+            logger.info('    Automatic origin fit: head of radius %0.1f mm'
+                        % R)
+            del R
+        else:
+            origin = (0., 0., 0.)
+    origin = np.array(origin, float)
+    if origin.shape != (3,):
+        raise ValueError('origin must be a 3-element array')
+    origin_str = ', '.join(['%0.1f' % (o * 1000) for o in origin])
+    logger.info('    Using origin %s mm in the %s frame'
+                % (origin_str, coord_frame))
+    return origin
 
 
 def _col_norm_pinv(x):
@@ -1130,9 +1140,14 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
                       date=_date_now(), experimentor='')
     raw.info['proc_history'] = [proc_block] + raw.info.get('proc_history', [])
     # Reset 'bads' for any MEG channels since they've been reconstructed
-    meg_picks = pick_types(raw.info, meg=True, exclude=[])
-    raw.info['bads'] = [bad for bad in raw.info['bads']
-                        if raw.ch_names.index(bad) not in meg_picks]
+    _reset_meg_bads(raw.info)
+
+
+def _reset_meg_bads(info):
+    """Helper to reset MEG bads"""
+    meg_picks = pick_types(info, meg=True, exclude=[])
+    info['bads'] = [bad for bad in info['bads']
+                    if info['ch_names'].index(bad) not in meg_picks]
 
 
 check_disable = dict()  # not available on really old versions of SciPy
@@ -1350,12 +1365,10 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalances,
         temp_info = deepcopy(info)
         for ch in temp_info['chs']:
             ch['coil_type'] = pt_type
-        coils_add = _prep_meg_channels(
-            temp_info, accurate=True, elekta_defs=True, head_frame=head_frame,
-            verbose=False)[0]
+        S_add = _info_sss_basis(temp_info, None, origin,
+                                int_order, ext_order, head_frame)
         # Scale spaces by gradiometer imbalance
-        S_add = _sss_basis(origin, coils_add, int_order,
-                           ext_order) * imb[:, np.newaxis]
+        S_add *= imb[:, np.newaxis]
         S_tot += S_add
 
     # Return point-like mag bases
@@ -1493,3 +1506,14 @@ def _compute_sphere_activation_in(degrees):
                             (_sq(2. * degrees + 1.) *
                             (degrees + 1.)))
     return a_power, rho_i
+
+
+def _info_sss_basis(info, trans, origin, int_order, ext_order, head_frame):
+    """SSS basis using an info structure and dev<->head trans"""
+    if trans is not None:
+        info = info.copy()
+        info['dev_head_t'] = info['dev_head_t'].copy()
+        info['dev_head_t']['trans'] = trans
+    coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
+                               head_frame=head_frame, verbose=False)[0]
+    return _sss_basis(origin, coils, int_order, ext_order)
