@@ -1,10 +1,14 @@
-python-mne (0.10.1+dfsg-3.0) UNRELEASED; urgency=medium
+python-mne (0.10.1+dfsg-1) UNRELEASED; urgency=medium
 
-  * NMU
+  [ Jaakko Leppakangas ]
   * New upstream version
   * Removed depedency on mayavi2
 
- -- Jaakko Leppakangas <jaeilepp@student.jyu.fi>  Wed, 25 Nov 2015 04:05:27 -0500
+  [ Yaroslav Halchenko ]
+  * debian/patches
+    - dropped CPed from upstream changeset_9c7ef6d1*
+
+ -- Yaroslav Halchenko <debian@onerussian.com>  Wed, 25 Nov 2015 11:02:06 -0500
 
 python-mne (0.8.6+dfsg-2) unstable; urgency=medium
 
