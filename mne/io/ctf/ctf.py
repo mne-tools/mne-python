@@ -29,7 +29,7 @@ def read_raw_ctf(directory, preload=False, verbose=None):
     Parameters
     ----------
     directory : str
-        Path to the KIT data (ending in ``'.ds'``).
+        Path to the CTF data (ending in ``'.ds'``).
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -57,7 +57,7 @@ class RawCTF(_BaseRaw):
     Parameters
     ----------
     directory : str
-        Path to the KIT data (ending in ``'.ds'``).
+        Path to the CTF data (ending in ``'.ds'``).
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires

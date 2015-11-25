@@ -395,7 +395,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        data : ndarray, shape (len(idx), stop - start + 1)
+        data : ndarray, shape (len(idx), stop - start)
             The data array. Should be modified inplace.
         idx : ndarray | slice
             The requested channel indices.
