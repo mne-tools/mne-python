@@ -1860,16 +1860,13 @@ def _blk_read_lims(start, stop, buf_len):
     -----
     Consider this example::
 
-        >>> tmin, tmax = (2, 27)
-        >>> read_size = 30
-        >>> buf_len = 10
-        >>> sfreq = 1.
+        >>> start, stop, buf_len = 2, 27, 10
 
-                    +---------+---------+---------+
+                    +---------+---------+---------
     File structure: |  buf0   |   buf1  |   buf2  |
-                    +---------+---------+---------+
+                    +---------+---------+---------
     File time:      0        10        20        30
-                    +---------+---------+---------+
+                    +---------+---------+---------
     Requested time:   2                       27
 
                     |                             |
@@ -1884,8 +1881,8 @@ def _blk_read_lims(start, stop, buf_len):
     the first sample of the buffer. On all reads but the last,
     the data we read ends on the last sample of the buffer.
 
-    We call this_data the variable that stores the current buffer's data,
-    and data the variable that stores the total output.
+    We call ``this_data`` the variable that stores the current buffer's data,
+    and ``data`` the variable that stores the total output.
 
     On the first read, we need to do this::
 
@@ -1899,7 +1896,7 @@ def _blk_read_lims(start, stop, buf_len):
 
         >>> data[2*buf_len-2:3*buf_len-2-3] = this_data[0:buf_len-3]  # doctest: +SKIP
 
-    This function helps simplify this by allowing a loop over blocks, where
+    This function encapsulates this logic to allow a loop over blocks, where
     data is stored using the following limits::
 
         >>> data[d_lims[ii, 0]:d_lims[ii, 1]] = this_data[r_lims[ii, 0]:r_lims[ii, 1]]  # doctest: +SKIP
@@ -1909,7 +1906,8 @@ def _blk_read_lims(start, stop, buf_len):
     assert all(isinstance(x, int) for x in (start, stop, buf_len))
     block_start_idx = (start // buf_len)
     block_start = block_start_idx * buf_len
-    block_stop = (((stop - 1) // buf_len) + 1) * buf_len
+    last_used_samp = stop - 1
+    block_stop = last_used_samp - last_used_samp % buf_len + buf_len
     read_size = block_stop - block_start
     n_blk = read_size // buf_len + (read_size % buf_len != 0)
     start_offset = start - block_start
