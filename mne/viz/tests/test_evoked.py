@@ -89,12 +89,9 @@ def test_plot_evoked():
                     [line.get_xdata()[0], line.get_ydata()[0]], 'data')
         _fake_click(fig, ax,
                     [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
-        # plot with bad channels excluded
+        # plot with bad channels excluded & spatial_colors
         evoked.plot(exclude='bads')
-        evoked.plot(exclude=evoked.info['bads'])  # does the same thing
-
-        # spatial colors test
-        evoked.plot(spatial_colors=True)
+        evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True)
 
         # test selective updating of dict keys is working.
         evoked.plot(hline=[1], units=dict(mag='femto foo'))
@@ -110,8 +107,7 @@ def test_plot_evoked():
                       proj='interactive', axes='foo')
         plt.close('all')
 
-        # test GFP plot overlay
-        evoked.plot(gfp=True)
+        # test GFP only
         evoked.plot(gfp='only')
         assert_raises(ValueError, evoked.plot, gfp='foo')
 
