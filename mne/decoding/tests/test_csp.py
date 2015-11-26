@@ -8,8 +8,6 @@ import os.path as op
 from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal
-from sklearn.svm import SVC
-from sklearn.pipeline import Pipeline
 
 from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP
@@ -114,6 +112,8 @@ def test_regularized_csp():
 def test_csp_pipeline():
     """Test if CSP works in a pipeline
     """
+    from sklearn.svm import SVC
+    from sklearn.pipeline import Pipeline
     csp = CSP(reg=1)
     svc = SVC()
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])
