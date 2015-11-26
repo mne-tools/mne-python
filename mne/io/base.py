@@ -1819,14 +1819,26 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
 
-def _mult_cal_one(data_view, one, idx, cals, mult):
+def _triage_reads(mult, idx, n_ch):
+    """Determine which channels need to be read from a file"""
+    if mult is None:
+        read_chs = np.arange(n_ch)[idx]
+        idx = None  # indicate that indexing has already been done
+    else:
+        read_chs = np.arange(n_ch)
+    return idx, read_chs
+
+
+def _mult_cal_one(data_view, one, idx, cals, mult, pre_idx=False):
     """Take a chunk of raw data, multiply by mult or cals, and store"""
     one = np.asarray(one, dtype=data_view.dtype)
     assert data_view.shape[1] == one.shape[1]
     if mult is not None:
         data_view[:] = np.dot(mult, one)
     else:
-        if isinstance(idx, slice):
+        if idx is None:  # indexing has already been performed
+            data_view[:] = one[:]
+        elif isinstance(idx, slice):
             data_view[:] = one[idx]
         else:
             # faster than doing one = one[idx]
@@ -1835,7 +1847,7 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
             data_view *= cals
 
 
-def _blk_read_lims(start, stop, buf_len):
+def _block_read_lims(start, stop, buf_len):
     """Helper to deal with indexing in the middle of a data block
 
     Parameters

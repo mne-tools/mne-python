@@ -13,7 +13,7 @@ import numpy as np
 from ...utils import verbose, logger
 from ...externals.six import string_types
 
-from ..base import _BaseRaw, _mult_cal_one, _blk_read_lims
+from ..base import _BaseRaw, _mult_cal_one, _block_read_lims, _triage_reads
 
 from .res4 import _read_res4, _make_ctf_name
 from .hc import _read_hc
@@ -115,24 +115,28 @@ class RawCTF(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
         si = self._raw_extras[fi]
-        offset = 0
-        trial_start_idx, r_lims, d_lims = _blk_read_lims(start, stop,
-                                                         int(si['block_size']))
+        idx, read_chs = _triage_reads(mult, idx, si['n_chan'])
+        block_start_idx, r_lims, d_lims = _block_read_lims(
+            start, stop, si['block_size'])
         with open(self._filenames[fi], 'rb') as fid:
             for bi in range(len(r_lims)):
-                samp_offset = (bi + trial_start_idx) * si['res4_nsamp']
-                n_read = min(si['n_samp'] - samp_offset, si['block_size'])
-                # read the chunk of data
-                pos = CTF.HEADER_SIZE
-                pos += samp_offset * si['n_chan'] * 4
-                fid.seek(pos, 0)
-                this_data = np.fromstring(
-                    fid.read(si['n_chan'] * n_read * 4), '>i4')
-                this_data.shape = (si['n_chan'], n_read)
-                this_data = this_data[:, r_lims[bi, 0]:r_lims[bi, 1]]
+                n_read = r_lims[bi, 1] - r_lims[bi, 0]
+                block_offset = (CTF.HEADER_SIZE +
+                                (bi + block_start_idx) * si['block_size'] *
+                                si['n_chan'] * 4)
+                this_data = np.empty((len(read_chs), n_read), data.dtype)
+                for ii, ci in enumerate(read_chs):
+                    # read the proper chunk of data:
+                    #     move to the start of the block,
+                    #     move to the start of the channel within the block,
+                    #     move to the first used sample of data in the channel
+                    pos = (block_offset +
+                           (ci * si['block_size'] +
+                            r_lims[bi, 0]) * 4)
+                    fid.seek(pos, 0)
+                    this_data[ii] = np.fromfile(fid, '>i4', n_read)
                 data_view = data[:, d_lims[bi, 0]:d_lims[bi, 1]]
                 _mult_cal_one(data_view, this_data, idx, cals, mult)
-                offset += n_read
 
 
 def _get_sample_info(fname, res4):
@@ -175,20 +179,18 @@ def _get_sample_info(fname, res4):
                                        % (t + 1))
                 end = np.where(this_data == 0)[0]
                 if len(end) > 0:
-                    n_samp = offset + end[0]
+                    n_samp = t * res4['nsamp'] + end[0]
                     break
     if n_samp < res4['nsamp']:
         n_trial = 1
-        logger.info('    %d x %d = %d samples from %d chs'
-                    % (n_trial, n_samp, n_samp, res4['nchan']))
+        n_omit = 0
     else:
         n_trial = n_samp // res4['nsamp']
         n_omit = n_samp % res4['nsamp']
         n_samp = n_trial * res4['nsamp']
-        logger.info('    %d x %d = %d samples from %d chs'
-                    % (n_trial, res4['nsamp'], n_samp, res4['nchan']))
-        if n_omit != 0:
-            logger.info('    %d samples omitted at the end' % n_omit)
-    return dict(n_samp=n_samp, n_samp_tot=n_samp_tot, block_size=res4['nsamp'],
-                n_trial=n_trial, res4_nsamp=res4['nsamp'],
-                n_chan=res4['nchan'])
+    logger.info('    %d x %d = %d samples from %d chs'
+                % (n_trial, res4['nsamp'], n_samp, res4['nchan']))
+    if n_omit != 0:
+        logger.info('    %d samples omitted at the end' % n_omit)
+    return dict(n_samp=n_samp, n_samp_tot=n_samp_tot, n_trial=n_trial,
+                block_size=int(res4['nsamp']), n_chan=res4['nchan'])

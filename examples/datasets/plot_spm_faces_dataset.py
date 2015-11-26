@@ -35,9 +35,9 @@ subjects_dir = data_path + '/subjects'
 ###############################################################################
 # Load and filter data, set up epochs
 
-raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
+raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
 
-raw = io.Raw(raw_fname % 1, preload=True)  # Take first run
+raw = io.read_raw_ctf(raw_fname % 1, preload=True)  # Take first run
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 30, method='iir')

@@ -288,7 +288,7 @@ class _TempDir(str):
     object (an alternative could be using the atexit module instead).
     """
     def __new__(self):
-        new = str.__new__(self, tempfile.mkdtemp())
+        new = str.__new__(self, tempfile.mkdtemp(prefix='mne_TempDir_'))
         return new
 
     def __init__(self):

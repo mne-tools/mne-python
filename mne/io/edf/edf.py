@@ -16,7 +16,7 @@ import warnings
 import numpy as np
 
 from ...utils import verbose, logger
-from ..base import _BaseRaw, _check_update_montage, _blk_read_lims
+from ..base import _BaseRaw, _check_update_montage, _block_read_lims
 from ..meas_info import _empty_info
 from ..pick import pick_types
 from ..constants import FIFF
@@ -130,7 +130,8 @@ class RawEDF(_BaseRaw):
         if tal_channel is not None:
             offsets[tal_channel] = 0
 
-        block_start_idx, r_lims, d_lims = _blk_read_lims(start, stop, buf_len)
+        block_start_idx, r_lims, d_lims = _block_read_lims(
+            start, stop, buf_len)
         read_size = len(r_lims) * buf_len
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
