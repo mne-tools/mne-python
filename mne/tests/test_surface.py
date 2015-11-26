@@ -13,7 +13,7 @@ from mne import read_surface, write_surface, decimate_surface
 from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
-from mne.utils import _TempDir, requires_tvtk, run_tests_if_main, slow_test
+from mne.utils import _TempDir, requires_mayavi, run_tests_if_main, slow_test
 from mne.io import read_info
 from mne.transforms import _get_trans
 
@@ -146,7 +146,7 @@ def test_read_curv():
     assert_true(np.logical_or(bin_curv == 0, bin_curv == 1).all())
 
 
-@requires_tvtk
+@requires_mayavi
 def test_decimate_surface():
     """Test triangular surface decimation
     """
