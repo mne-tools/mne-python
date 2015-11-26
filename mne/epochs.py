@@ -2118,7 +2118,7 @@ def _read_one_epoch_file(f, tree, fname, preload):
 
     with f as fid:
         #   Read the measurement info
-        info, meas = read_meas_info(fid, tree)
+        info, meas = read_meas_info(fid, tree, clean_bads=True)
         info['filename'] = fname
 
         events, mappings = _read_events_fif(fid, tree)

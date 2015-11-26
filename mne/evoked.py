@@ -107,7 +107,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 raise ValueError(r"'proj' must be 'True' or 'False'")
 
             #   Read the measurement info
-            info, meas = read_meas_info(fid, tree)
+            info, meas = read_meas_info(fid, tree, clean_bads=True)
             info['filename'] = fname
 
             #   Locate the data of interest
