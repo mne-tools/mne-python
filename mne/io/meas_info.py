@@ -18,7 +18,7 @@ from .open import fiff_open
 from .tree import dir_tree_find
 from .tag import read_tag, find_tag
 from .proj import _read_proj, _write_proj, _uniquify_projs
-from .ctf import read_ctf_comp, write_ctf_comp
+from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
@@ -1025,9 +1025,6 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     #   Projectors
     _write_proj(fid, info['projs'])
 
-    #   CTF compensation info
-    write_ctf_comp(fid, info['comps'])
-
     #   Bad channels
     if len(info['bads']) > 0:
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
@@ -1103,6 +1100,9 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
                               coil['event_bits'])
                 end_block(fid, FIFF.FIFFB_HPI_COIL)
         end_block(fid, FIFF.FIFFB_HPI_SUBSYSTEM)
+
+    #   CTF compensation info
+    write_ctf_comp(fid, info['comps'])
 
     end_block(fid, FIFF.FIFFB_MEAS_INFO)
 

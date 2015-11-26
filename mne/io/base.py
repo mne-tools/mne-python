@@ -218,8 +218,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     Subclasses must provide the following methods:
 
-        * _read_segment_file(self, data, idx, offset, fi, start, stop,
-                             cals, mult)
+        * _read_segment_file(self, data, idx, fi, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
 
     The `_BaseRaw._raw_extras` list can contain whatever data is necessary for
@@ -354,22 +353,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # set up cals and mult (cals, compensation, and projector)
         cals = self._cals.ravel()[np.newaxis, :]
-        if self.comp is None and projector is None:
-            mult = None
+        if self.comp is not None:
+            if projector is not None:
+                mult = self.comp * cals
+                mult = np.dot(projector[idx], mult)
+            else:
+                mult = self.comp[idx] * cals
+        elif projector is not None:
+            mult = projector[idx] * cals
         else:
-            mult = list()
-            for ri in range(len(self._first_samps)):
-                if self.comp is not None:
-                    if projector is not None:
-                        mul = self.comp * cals
-                        mul = np.dot(projector[idx], mul)
-                    else:
-                        mul = self.comp[idx] * cals
-                elif projector is not None:
-                    mul = projector[idx] * cals
-                else:
-                    mul = np.diag(self._cals.ravel())[idx]
-                mult.append(mul)
+            mult = None
         cals = cals.T[idx]
 
         # read from necessary files
@@ -379,23 +372,22 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # first iteration (only) could start in the middle somewhere
             if offset == 0:
                 start_file += start - cumul_lens[fi]
-            stop_file = np.min([stop - 1 - cumul_lens[fi] +
-                                self._first_samps[fi], self._last_samps[fi]])
-            if start_file < self._first_samps[fi] or \
-                    stop_file > self._last_samps[fi] or \
-                    stop_file < start_file or start_file > stop_file:
+            stop_file = np.min([stop - cumul_lens[fi] + self._first_samps[fi],
+                                self._last_samps[fi] + 1])
+            if start_file < self._first_samps[fi] or stop_file < start_file:
                 raise ValueError('Bad array indexing, could be a bug')
-
-            self._read_segment_file(data, idx, offset, fi,
-                                    start_file, stop_file, cals, mult)
-            offset += stop_file - start_file + 1
+            n_read = stop_file - start_file
+            this_sl = slice(offset, offset + n_read)
+            self._read_segment_file(data[:, this_sl], idx, fi,
+                                    int(start_file), int(stop_file),
+                                    cals, mult)
+            offset += n_read
 
         logger.info('[done]')
         times = np.arange(start, stop) / self.info['sfreq']
         return data, times
 
-    def _read_segment_file(self, data, idx, offset, fi, start, stop,
-                           cals, mult):
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file
 
         Only needs to be implemented for readers that support
@@ -403,15 +395,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        data : ndarray, shape (len(idx), n_samp)
+        data : ndarray, shape (len(idx), stop - start)
             The data array. Should be modified inplace.
         idx : ndarray | slice
             The requested channel indices.
-        offset : int
-            Offset. Data should be stored in something like::
-
-                data[:, offset:offset + (start - stop + 1)] = r[idx]
-
         fi : int
             The file index that must be read from.
         start : int
@@ -1832,7 +1819,134 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
 
+def _triage_reads(mult, idx, n_ch):
+    """Determine which channels need to be read from a file"""
+    if mult is None:
+        read_chs = np.arange(n_ch)[idx]
+        # indicate that indexing has already been done for _mult_cal_one
+        idx = slice(None)
+    else:
+        read_chs = np.arange(n_ch)
+    return idx, read_chs
+
+
+def _mult_cal_one(data_view, one, idx, cals, mult, pre_idx=False):
+    """Take a chunk of raw data, multiply by mult or cals, and store"""
+    one = np.asarray(one, dtype=data_view.dtype)
+    assert data_view.shape[1] == one.shape[1]
+    if mult is not None:
+        data_view[:] = np.dot(mult, one)
+    else:
+        if isinstance(idx, slice):
+            data_view[:] = one[idx]
+        else:
+            # faster than doing one = one[idx]
+            np.take(one, idx, axis=0, out=data_view)
+        if cals is not None:
+            data_view *= cals
+
+
+def _block_read_lims(start, stop, buf_len):
+    """Helper to deal with indexing in the middle of a data block
+
+    Parameters
+    ----------
+    start : int
+        Starting index.
+    stop : int
+        Ending index (exclusive).
+    buf_len : int
+        Buffer size in samples.
+
+    Returns
+    -------
+    block_start_idx : int
+        The first block to start reading from.
+    r_lims : list
+        The read limits.
+    d_lims : list
+        The write limits.
+
+    Notes
+    -----
+    Consider this example::
+
+        >>> start, stop, buf_len = 2, 27, 10
+
+                    +---------+---------+---------
+    File structure: |  buf0   |   buf1  |   buf2  |
+                    +---------+---------+---------
+    File time:      0        10        20        30
+                    +---------+---------+---------
+    Requested time:   2                       27
+
+                    |                             |
+                blockstart                    blockstop
+                      |                        |
+                    start                    stop
+
+    We need 27 - 2 = 25 samples (per channel) to store our data, and
+    we need to read from 3 buffers (30 samples) to get all of our data.
+
+    On all reads but the first, the data we read starts at
+    the first sample of the buffer. On all reads but the last,
+    the data we read ends on the last sample of the buffer.
+
+    We call ``this_data`` the variable that stores the current buffer's data,
+    and ``data`` the variable that stores the total output.
+
+    On the first read, we need to do this::
+
+        >>> data[0:buf_len-2] = this_data[2:buf_len]  # doctest: +SKIP
+
+    On the second read, we need to do::
+
+        >>> data[1*buf_len-2:2*buf_len-2] = this_data[0:buf_len]  # doctest: +SKIP
+
+    On the final read, we need to do::
+
+        >>> data[2*buf_len-2:3*buf_len-2-3] = this_data[0:buf_len-3]  # doctest: +SKIP
+
+    This function encapsulates this logic to allow a loop over blocks, where
+    data is stored using the following limits::
+
+        >>> data[d_lims[ii, 0]:d_lims[ii, 1]] = this_data[r_lims[ii, 0]:r_lims[ii, 1]]  # doctest: +SKIP
+
+    """  # noqa
+    # this is used to deal with indexing in the middle of a sampling period
+    assert all(isinstance(x, int) for x in (start, stop, buf_len))
+    block_start_idx = (start // buf_len)
+    block_start = block_start_idx * buf_len
+    last_used_samp = stop - 1
+    block_stop = last_used_samp - last_used_samp % buf_len + buf_len
+    read_size = block_stop - block_start
+    n_blk = read_size // buf_len + (read_size % buf_len != 0)
+    start_offset = start - block_start
+    end_offset = block_stop - stop
+    d_lims = np.empty((n_blk, 2), int)
+    r_lims = np.empty((n_blk, 2), int)
+    for bi in range(n_blk):
+        # Triage start (sidx) and end (eidx) indices for
+        # data (d) and read (r)
+        if bi == 0:
+            d_sidx = 0
+            r_sidx = start_offset
+        else:
+            d_sidx = bi * buf_len - start_offset
+            r_sidx = 0
+        if bi == n_blk - 1:
+            d_eidx = stop - start
+            r_eidx = buf_len - end_offset
+        else:
+            d_eidx = (bi + 1) * buf_len - start_offset
+            r_eidx = buf_len
+        d_lims[bi] = [d_sidx, d_eidx]
+        r_lims[bi] = [r_sidx, r_eidx]
+    return block_start_idx, r_lims, d_lims
+
+
 def _allocate_data(data, data_buffer, data_shape, dtype):
+    """Helper to data in memory or in memmap for preloading"""
     if data is None:
         # if not already done, allocate array with right type
         if isinstance(data_buffer, string_types):
@@ -1936,8 +2050,6 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         use_fname = fname
     logger.info('Writing %s' % use_fname)
 
-    meas_id = info['meas_id']
-
     fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
                                    reset_range)
 
@@ -1950,8 +2062,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         start_block(fid, FIFF.FIFFB_REF)
         write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
         write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
-        if meas_id is not None:
-            write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+        if info['meas_id'] is not None:
+            write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
         write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
         end_block(fid, FIFF.FIFFB_REF)
 
@@ -2001,8 +2113,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
             write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
-            if meas_id is not None:
-                write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+            if info['meas_id'] is not None:
+                write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
             end_block(fid, FIFF.FIFFB_REF)
             break

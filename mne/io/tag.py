@@ -403,8 +403,6 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 tag.data = dict()
                 tag.data['version'] = int(np.fromstring(fid.read(4),
                                                         dtype=">i4"))
-                tag.data['version'] = int(np.fromstring(fid.read(4),
-                                                        dtype=">i4"))
                 tag.data['machid'] = np.fromstring(fid.read(8), dtype=">i4")
                 tag.data['secs'] = int(np.fromstring(fid.read(4), dtype=">i4"))
                 tag.data['usecs'] = int(np.fromstring(fid.read(4),

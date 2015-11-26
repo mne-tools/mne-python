@@ -22,6 +22,14 @@ class BunchConst(Bunch):
         super(BunchConst, self).__setattr__(attr, val)
 
 FIFF = BunchConst()
+
+#
+# FIFF version number in use
+#
+FIFF.FIFFC_MAJOR_VERSION = 1
+FIFF.FIFFC_MINOR_VERSION = 3
+FIFF.FIFFC_VERSION = FIFF.FIFFC_MAJOR_VERSION << 16 | FIFF.FIFFC_MINOR_VERSION
+
 #
 # Blocks
 #

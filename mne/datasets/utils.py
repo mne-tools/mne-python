@@ -162,7 +162,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     archive_names = dict(
         sample='MNE-sample-data-processed.tar.gz',
-        spm='MNE-spm-face.tar.bz2',
+        spm='MNE-spm-face.tar.gz',
         somato='MNE-somato-data.tar.gz',
         testing='mne-testing-data-master.tar.gz',
         fake='foo.tgz',
@@ -189,7 +189,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     )
     hashes = dict(
         sample='ccf5cbc41a3727ed02821330a07abb13',
-        spm='3e9e83c642136e5b720e2ecc5dcc3244',
+        spm='f61041e3f3f2ba0def8a2ca71592cc41',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
         brainstorm=None,
         testing=None,

@@ -30,11 +30,12 @@ Changelog
 
     - Plot spatially color coded lines in :func:`mne.Evoked.plot` by `Jona Sassenhagen`_ and `Jaakko Leppakangas`_
 
+    - Add reader for CTF data in :func:`mne.io.read_raw_ctf` by `Eric Larson`_
+
 BUG
 ~~~
 
-    - Fix bug that prevented homo bem surfaces to be displayed in HTML reports by
-    `Denis Engemann`_
+    - Fix bug that prevented homogeneous bem surfaces to be displayed in HTML reports by `Denis Engemann`_
 
 API
 ~~~
