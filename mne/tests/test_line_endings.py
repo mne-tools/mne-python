@@ -34,8 +34,12 @@ def _assert_line_endings(dir_):
                 continue
             filename = op.join(dirpath, fname)
             relfilename = op.relpath(filename, dir_)
-            with open(filename, 'rb') as fid:
-                text = fid.read().decode('utf-8')
+            try:
+                with open(filename, 'rb') as fid:
+                    text = fid.read().decode('utf-8')
+            except UnicodeDecodeError:
+                print(filename)
+                raise
             crcount = text.count('\r')
             if crcount:
                 report.append('In %s found %i/%i CR/LF' %
