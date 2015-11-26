@@ -1,4 +1,4 @@
-python-mne (0.10.1+dfsg-1) UNRELEASED; urgency=medium
+python-mne (0.10.1+dfsg-1) unstable; urgency=medium
 
   [ Jaakko Leppakangas ]
   * New upstream version
@@ -7,8 +7,10 @@ python-mne (0.10.1+dfsg-1) UNRELEASED; urgency=medium
   [ Yaroslav Halchenko ]
   * debian/patches
     - dropped CPed from upstream changeset_9c7ef6d1*
+  * debian/control
+    - added python-vtk | mayavi2 to the build-depends
 
- -- Yaroslav Halchenko <debian@onerussian.com>  Wed, 25 Nov 2015 11:02:06 -0500
+ -- Yaroslav Halchenko <debian@onerussian.com>  Fri, 27 Nov 2015 10:44:11 -0500
 
 python-mne (0.8.6+dfsg-2) unstable; urgency=medium
 
