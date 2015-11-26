@@ -28,20 +28,19 @@ The data set is available at PhysioNet [3]
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mne import Epochs, pick_types
-from mne.io import concatenate_raws
-from mne.io.edf import read_raw_edf
+from mne import Epochs, pick_types, find_events
+from mne.channels import read_layout
+from mne.io import concatenate_raws, read_raw_edf
 from mne.datasets import eegbci
-from mne.event import find_events
 from mne.decoding import CSP
-from mne.layouts import read_layout
 
-###############################################################################
-## Set parameters and read data
+print(__doc__)
+
+# #############################################################################
+# # Set parameters and read data
 
 # avoid classification of evoked responses by using epochs that start 1s after
 # cue onset.
@@ -51,11 +50,11 @@ subject = 1
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
 raw_fnames = eegbci.load_data(subject, runs)
-raw_files = [read_raw_edf(f, tal_channel=-1, preload=True) for f in raw_fnames]
+raw_files = [read_raw_edf(f, preload=True) for f in raw_fnames]
 raw = concatenate_raws(raw_files)
 
-# strip channel names
-raw.info['ch_names'] = [chn.strip('.') for chn in raw.info['ch_names']]
+# strip channel names of "." characters
+raw.rename_channels(lambda x: x.strip('.'))
 
 # Apply band-pass filter
 raw.filter(7., 30., method='iir')
@@ -75,8 +74,8 @@ labels = epochs.events[:, -1] - 2
 ###############################################################################
 # Classification with linear discrimant analysis
 
-from sklearn.lda import LDA
-from sklearn.cross_validation import ShuffleSplit
+from sklearn.lda import LDA  # noqa
+from sklearn.cross_validation import ShuffleSplit  # noqa
 
 # Assemble a classifier
 svc = LDA()
@@ -89,8 +88,8 @@ epochs_data = epochs.get_data()
 epochs_data_train = epochs_train.get_data()
 
 # Use scikit-learn Pipeline with cross_val_score function
-from sklearn.pipeline import Pipeline
-from sklearn.cross_validation import cross_val_score
+from sklearn.pipeline import Pipeline  # noqa
+from sklearn.cross_validation import cross_val_score  # noqa
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=1)
 
@@ -108,7 +107,7 @@ evoked.data = csp.patterns_.T
 evoked.times = np.arange(evoked.data.shape[0])
 
 layout = read_layout('EEG1005')
-evoked.plot_topomap(times=[0, 1, 2, 61, 62, 63], ch_type='eeg', layout=layout,
+evoked.plot_topomap(times=[0, 1, 2, 3, 4, 5], ch_type='eeg', layout=layout,
                     scale_time=1, time_format='%i', scale=1,
                     unit='Patterns (AU)', size=1.5)
 

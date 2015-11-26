@@ -18,7 +18,7 @@ def is_equal(first, second, verbose=None):
         all_equal = False
     if isinstance(first, dict):
         for key in first.keys():
-            if (not key in second):
+            if (key not in second):
                 logger.info("Missing key %s in %s" % (key, second))
                 all_equal = False
             else:

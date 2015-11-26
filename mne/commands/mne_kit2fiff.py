@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Authors: Teon Brooks  <teon@nyu.edu>
+# Authors: Teon Brooks  <teon.brooks@gmail.com>
 
 """ Import KIT / NYU data to fif file.
 
@@ -57,7 +57,7 @@ def run():
     out_fname = options.out_fname
 
     if isinstance(stim, str):
-        stim = stim.split(':')
+        stim = map(int, stim.split(':'))
 
     raw = read_raw_kit(input_fname=input_fname, mrk=mrk_fname, elp=elp_fname,
                        hsp=hsp_fname, stim=stim, slope=slope,

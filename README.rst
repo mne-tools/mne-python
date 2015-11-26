@@ -1,19 +1,21 @@
 .. -*- mode: rst -*-
 
 
-|Travis|_ |Coveralls|_ |Zenodo|_
+|Travis|_ |Appveyor|_ |Coveralls|_ |Zenodo|_
 
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python
 
+.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/reccwk3filrasumg/branch/master?svg=true
+.. _Appveyor: https://ci.appveyor.com/project/Eric89GXL/mne-python/branch/master
+
 .. |Coveralls| image:: https://coveralls.io/repos/mne-tools/mne-python/badge.png?branch=master
 .. _Coveralls: https://coveralls.io/r/mne-tools/mne-python?branch=master
 
-.. |Zenodo| image:: https://zenodo.org/badge/doi/10.5281/zenodo.11556.png
-.. _Zenodo: http://dx.doi.org/10.5281/zenodo.11556
+.. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
+.. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
 
-
-`mne-python <http://martinos.org/mne/mne-python.html>`_
+`mne-python <http://mne-tools.github.io/>`_
 =======================================================
 
 This package is designed for sensor- and source-space analysis of M-EEG
@@ -29,10 +31,10 @@ This page only contains bare-bones instructions for installing mne-python.
 
 If you're familiar with MNE and you're looking for information on using
 mne-python specifically, jump right to the `mne-python homepage
-<http://martinos.org/mne/mne-python.html>`_. This website includes a
-`tutorial <http://martinos.org/mne/python_tutorial.html>`_,
-helpful `examples <http://martinos.org/mne/auto_examples/index.html>`_, and
-a handy `function reference <http://martinos.org/mne/python_reference.html>`_,
+<http://mne-tools.github.io/stable/python_reference.html>`_. This website includes
+`tutorials <http://mne-tools.github.io/stable/tutorials.html>`_,
+helpful `examples <http://mne-tools.github.io/stable/auto_examples/index.html>`_, and
+a handy `function reference <http://mne-tools.github.io/stable/python_reference.html>`_,
 among other things.
 
 If you're unfamiliar with MNE, you can visit the
@@ -46,7 +48,7 @@ To get the latest code using git, simply type::
     git clone git://github.com/mne-tools/mne-python.git
 
 If you don't have git installed, you can download a zip or tarball
-of the latest code: http://github.com/mne-tools/mne-python/archives/master
+of the latest code: https://github.com/mne-tools/mne-python/archives/master
 
 Install mne-python
 ^^^^^^^^^^^^^^^^^^
@@ -79,7 +81,7 @@ Dependencies
 The required dependencies to build the software are python >= 2.6,
 NumPy >= 1.6, SciPy >= 0.7.2 and matplotlib >= 0.98.4.
 
-Some isolated functions require pandas >= 0.7.3 and nitime (multitaper analysis).
+Some isolated functions require pandas >= 0.7.3.
 
 To run the tests you will also need nose >= 0.10.
 and the MNE sample dataset (will be downloaded automatically

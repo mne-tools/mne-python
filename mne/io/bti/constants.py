@@ -2,9 +2,9 @@
 #
 # License: BSD (3-clause)
 
-from ..constants import Bunch
+from ..constants import BunchConst
 
-BTI = Bunch()
+BTI = BunchConst()
 
 BTI.ELEC_STATE_NOT_COLLECTED           = 0
 BTI.ELEC_STATE_COLLECTED               = 1
@@ -97,11 +97,3 @@ BTI.UB_B_E_TABLE                       = 'B_E_TABLE'
 BTI.UB_B_WEIGHTS_USED                  = 'B_weights_used'
 BTI.UB_B_TRIG_MASK                     = 'B_trig_mask'
 BTI.UB_B_WEIGHT_TABLE                  = 'BWT_'
-#
-## transforms
-#
-BTI.T_ROT_VV = ((0, -1, 0, 0), (1, 0, 0, 0), (0, 0, 1, 0), (1, 1, 1, 1))
-BTI.T_IDENT = ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (1, 1, 1, 1))
-BTI.T_ROT_IX = slice(0, 3), slice(0, 3)
-BTI.T_TRANS_IX = slice(0, 3), slice(3, 4)
-BTI.T_SCA_IX = slice(3, 4), slice(0, 4)

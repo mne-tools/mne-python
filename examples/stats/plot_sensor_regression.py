@@ -1,7 +1,7 @@
 """
-====================================================================
+=====================================
 Sensor space least squares regression
-====================================================================
+=====================================
 
 Predict single trial activity from a continuous variable.
 A single-trial regression is performed in each sensor and timepoint
@@ -21,13 +21,13 @@ revealed by linear regression analysis of ERP data. Neuroimage.)
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 
 import mne
 from mne.datasets import sample
 from mne.stats.regression import linear_regression
+
+print(__doc__)
 
 data_path = sample.data_path()
 
@@ -65,15 +65,12 @@ lm = linear_regression(epochs, design_matrix, names)
 
 
 def plot_topomap(x, unit):
-    x.plot_topomap(ch_type='mag', scale=1, size=1.5, vmax=np.max, unit=unit,
-                   times=np.linspace(0.1, 0.2, 5))
+    x.plot_topomap(ch_type='mag', scale=1, size=1.5, vmax=np.max,
+                   unit=unit, times=np.linspace(0.1, 0.2, 5))
 
 trial_count = lm['trial-count']
 
 plot_topomap(trial_count.beta, unit='z (beta)')
-
 plot_topomap(trial_count.t_val, unit='t')
-
 plot_topomap(trial_count.mlog10_p_val, unit='-log10 p')
-
 plot_topomap(trial_count.stderr, unit='z (error)')

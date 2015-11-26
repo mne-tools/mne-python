@@ -14,16 +14,17 @@ Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
 (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
 Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
-print(__doc__)
 
 from mne import read_evokeds
 from mne.datasets.megsim import load_data
+
+print(__doc__)
 
 condition = 'visual'  # or 'auditory' or 'somatosensory'
 
 # Load experimental RAW files for the visual condition
 epochs_fnames = load_data(condition=condition, data_format='single-trial',
-                          data_type='simulation')
+                          data_type='simulation', verbose=True)
 
 # Take only 10 trials from the same simulation setup.
 epochs_fnames = [f for f in epochs_fnames if 'sim6_trial_' in f][:10]

@@ -1,21 +1,16 @@
 """Coordinate Point Extractor for KIT system"""
 
-# Author: Teon Brooks <teon@nyu.edu>
+# Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
-from datetime import datetime
-from ...externals.six.moves import cPickle as pickle
-import os
-from os import SEEK_CUR
+from os import SEEK_CUR, path as op
 import re
 from struct import unpack
-
 import numpy as np
-
-from ... import __version__
 from .constants import KIT
-from ...externals.six import b
+from ..meas_info import _read_dig_points
+from ...externals.six.moves import cPickle as pickle
 
 
 def read_mrk(fname):
@@ -25,14 +20,14 @@ def read_mrk(fname):
     ----------
     fname : str
         Absolute path to Marker file.
-        File formats allowed: *.sqd, *.mrk, *.txt, *.pickled
+        File formats allowed: \*.sqd, \*.mrk, \*.txt, \*.pickled.
 
     Returns
     -------
     mrk_points : numpy.array, shape = (n_points, 3)
         Marker points in MEG space [m].
     """
-    ext = os.path.splitext(fname)[-1]
+    ext = op.splitext(fname)[-1]
     if ext in ('.sqd', '.mrk'):
         with open(fname, 'rb', buffering=0) as fid:
             fid.seek(KIT.MRK_INFO)
@@ -48,7 +43,7 @@ def read_mrk(fname):
                 pts.append(np.fromfile(fid, dtype='d', count=3))
                 mrk_points = np.array(pts)
     elif ext == '.txt':
-        mrk_points = np.loadtxt(fname)
+        mrk_points = _read_dig_points(fname)
     elif ext == '.pickled':
         with open(fname, 'rb') as fid:
             food = pickle.load(fid)
@@ -69,81 +64,6 @@ def read_mrk(fname):
                "%s" % (fname, mrk_points.shape))
         raise ValueError(err)
     return mrk_points
-
-
-def write_mrk(fname, points):
-    """Save KIT marker coordinates
-
-    Parameters
-    ----------
-    fname : str
-        Path to the file to write. The kind of file to write is determined
-        based on the extension: '.txt' for tab separated text file, '.pickled'
-        for pickled file.
-    points : array_like, shape = (5, 3)
-        The marker point coordinates.
-    """
-    mrk = np.asarray(points)
-    _, ext = os.path.splitext(fname)
-    if mrk.shape != (5, 3):
-        err = ("KIT marker points array needs to have shape (5, 3), got "
-               "%s." % str(mrk.shape))
-        raise ValueError(err)
-
-    if ext == '.pickled':
-        with open(fname, 'wb') as fid:
-            pickle.dump({'mrk': mrk}, fid, pickle.HIGHEST_PROTOCOL)
-    elif ext == '.txt':
-        np.savetxt(fname, mrk, fmt='%.18e', delimiter='\t', newline='\n')
-    else:
-        err = "Unrecognized extension: %r. Need '.txt' or '.pickled'." % ext
-        raise ValueError(err)
-
-
-def read_hsp(fname):
-    """Read a Polhemus ascii head shape file
-
-    Parameters
-    ----------
-    fname : str
-        Path to head shape file acquired from Polhemus system and saved in
-        ascii format.
-
-    Returns
-    -------
-    hsp_points : numpy.array, shape = (n_points, 3)
-        Headshape points in Polhemus head space.
-        File formats allowed: *.txt, *.pickled
-    """
-    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    with open(fname) as fid:
-        hsp_points = pattern.findall(fid.read())
-    hsp_points = np.array(hsp_points, dtype=float)
-    return hsp_points
-
-
-def write_hsp(fname, pts):
-    """Write a headshape hsp file
-
-    Parameters
-    ----------
-    fname : str
-        Target file.
-    pts : array, shape = (n_pts, 3)
-        Points comprising the headshape.
-    """
-    pts = np.asarray(pts)
-    if (pts.ndim != 2) or (pts.shape[1] != 3):
-        err = "pts must be of shape (n_pts, 3), not %r" % str(pts.shape)
-        raise ValueError(err)
-
-    with open(fname, 'wb') as fid:
-        version = __version__
-        now = datetime.now().strftime("%I:%M%p on %B %d, %Y")
-        fid.write(b("% Ascii 3D points file created by mne-python version "
-                    "{version} at {now}\n".format(version=version, now=now)))
-        fid.write(b("% {N} 3D points, x y z per line\n".format(N=len(pts))))
-        np.savetxt(fid, pts, '%8.2f', ' ')
 
 
 def read_sns(fname):

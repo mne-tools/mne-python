@@ -6,18 +6,16 @@ import warnings
 from shutil import copyfile
 from scipy import sparse
 from nose.tools import assert_true, assert_raises
-from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_allclose, assert_equal)
+from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne.datasets import testing
-from mne import (read_bem_surfaces, write_bem_surface, read_surface,
-                 write_surface, decimate_surface)
+from mne import read_surface, write_surface, decimate_surface
 from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
-from mne.utils import _TempDir, requires_tvtk, run_tests_if_main
+from mne.utils import _TempDir, requires_mayavi, run_tests_if_main, slow_test
 from mne.io import read_info
-from mne.transforms import _get_mri_head_t_from_trans_file
+from mne.transforms import _get_trans
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -25,6 +23,7 @@ fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-1280-1280-1280-bem-sol.fif')
 
 warnings.simplefilter('always')
+rng = np.random.RandomState(0)
 
 
 def test_helmet():
@@ -39,7 +38,7 @@ def test_helmet():
     fname_ctf_raw = op.join(base_dir, 'tests', 'data', 'test_ctf_raw.fif')
     fname_trans = op.join(base_dir, 'tests', 'data',
                           'sample-audvis-raw-trans.txt')
-    trans = _get_mri_head_t_from_trans_file(fname_trans)
+    trans = _get_trans(fname_trans)[0]
     for fname in [fname_raw, fname_kit_raw, fname_bti_raw, fname_ctf_raw]:
         helmet = get_meg_helmet_surf(read_info(fname), trans)
         assert_equal(len(helmet['rr']), 304)  # they all have 304 verts
@@ -58,8 +57,8 @@ def test_head():
 def test_huge_cross():
     """Test cross product with lots of elements
     """
-    x = np.random.rand(100000, 3)
-    y = np.random.rand(1, 3)
+    x = rng.rand(100000, 3)
+    y = rng.rand(1, 3)
     z = np.cross(x, y)
     zz = fast_cross_3d(x, y)
     assert_array_equal(z, zz)
@@ -67,9 +66,9 @@ def test_huge_cross():
 
 def test_compute_nearest():
     """Test nearest neighbor searches"""
-    x = np.random.randn(500, 3)
+    x = rng.randn(500, 3)
     x /= np.sqrt(np.sum(x ** 2, axis=1))[:, None]
-    nn_true = np.random.permutation(np.arange(500, dtype=np.int))[:20]
+    nn_true = rng.permutation(np.arange(500, dtype=np.int))[:20]
     y = x[nn_true]
 
     nn1 = _compute_nearest(x, y, use_balltree=False)
@@ -87,6 +86,7 @@ def test_compute_nearest():
         assert_array_equal(nn1, nn2)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_make_morph_maps():
     """Test reading and creating morph maps
@@ -114,23 +114,6 @@ def test_make_morph_maps():
     mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
     for mm in mmap:
         assert_true((mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0)
-
-
-@testing.requires_testing_data
-def test_io_bem_surfaces():
-    """Test reading of bem surfaces
-    """
-    tempdir = _TempDir()
-    surf = read_bem_surfaces(fname, add_geom=True)
-    surf = read_bem_surfaces(fname, add_geom=False)
-    print("Number of surfaces : %d" % len(surf))
-
-    write_bem_surface(op.join(tempdir, 'bem_surf.fif'), surf[0])
-    surf_read = read_bem_surfaces(op.join(tempdir, 'bem_surf.fif'),
-                                  add_geom=False)
-
-    for key in surf[0].keys():
-        assert_array_almost_equal(surf[0][key], surf_read[0][key])
 
 
 @testing.requires_testing_data
@@ -163,7 +146,7 @@ def test_read_curv():
     assert_true(np.logical_or(bin_curv == 0, bin_curv == 1).all())
 
 
-@requires_tvtk
+@requires_mayavi
 def test_decimate_surface():
     """Test triangular surface decimation
     """

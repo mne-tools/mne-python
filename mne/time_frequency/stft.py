@@ -30,12 +30,12 @@ def stft(x, wsize, tstep=None, verbose=None):
         STFT coefficients for positive frequencies with
         n_step = ceil(T / tstep)
 
-    Usage
-    -----
+    Examples
+    --------
     X = stft(x, wsize)
     X = stft(x, wsize, tstep)
 
-    See also
+    See Also
     --------
     istft
     stftfreq
@@ -120,12 +120,12 @@ def istft(X, tstep=None, Tx=None):
     x : 1d array of length Tx
         vector containing the inverse STFT signal
 
-    Usage
-    -----
+    Examples
+    --------
     x = istft(X)
     x = istft(X, tstep)
 
-    See also
+    See Also
     --------
     stft
     """
@@ -201,7 +201,7 @@ def stftfreq(wsize, sfreq=None):
         The positive frequencies returned by stft
 
 
-    See also
+    See Also
     --------
     stft
     istft
@@ -230,7 +230,7 @@ def stft_norm2(X):
     norms2 : array
         The squared L2 norm of every row of X.
     """
-    X2 = np.abs(X) ** 2
+    X2 = (X * X.conj()).real
     # compute all L2 coefs and remove first and last frequency once.
     norms2 = (2. * X2.sum(axis=2).sum(axis=1) - np.sum(X2[:, 0, :], axis=1) -
               np.sum(X2[:, -1, :], axis=1))

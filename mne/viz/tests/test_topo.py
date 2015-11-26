@@ -12,19 +12,20 @@ from collections import namedtuple
 import numpy as np
 from numpy.testing import assert_raises
 
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs
 from mne import pick_channels_evoked
-from mne.layouts import read_layout
+from mne.channels import read_layout
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
 
-from mne.viz import plot_topo, plot_topo_image_epochs, _get_presser
+from mne.viz import (plot_topo_image_epochs, _get_presser,
+                     mne_analyze_colormap, plot_evoked_topo)
+from mne.viz.topo import _plot_update_evoked_topo
 
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -46,7 +47,7 @@ def _get_events():
 
 
 def _get_picks(raw):
-    return [0, 1, 2, 6, 7, 8, 12, 13, 14]  # take a only few channels
+    return [0, 1, 2, 6, 7, 8, 340, 341, 342]  # take a only few channels
 
 
 def _get_epochs():
@@ -72,37 +73,53 @@ def _get_epochs_delayed_ssp():
 def test_plot_topo():
     """Test plotting of ERP topography
     """
+    import matplotlib.pyplot as plt
     # Show topography
     evoked = _get_epochs().average()
-    plot_topo(evoked, layout)
+    plot_evoked_topo(evoked)  # should auto-find layout
     warnings.simplefilter('always', UserWarning)
-    picked_evoked = pick_channels_evoked(evoked, evoked.ch_names[:3])
+    picked_evoked = evoked.pick_channels(evoked.ch_names[:3], copy=True)
+    picked_evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
+    picked_evoked_eeg.pick_channels(picked_evoked_eeg.ch_names[:3])
 
     # test scaling
     with warnings.catch_warnings(record=True):
         for ylim in [dict(mag=[-600, 600]), None]:
-            plot_topo([picked_evoked] * 2, layout, ylim=ylim)
+            plot_evoked_topo([picked_evoked] * 2, layout, ylim=ylim)
 
         for evo in [evoked, [evoked, picked_evoked]]:
-            assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'])
+            assert_raises(ValueError, plot_evoked_topo, evo, layout,
+                          color=['y', 'b'])
 
         evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
         ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
         picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
                                                          ch_names)
-        fig = plot_topo(picked_evoked_delayed_ssp, layout, proj='interactive')
+        fig = plot_evoked_topo(picked_evoked_delayed_ssp, layout,
+                               proj='interactive')
         func = _get_presser(fig)
         event = namedtuple('Event', 'inaxes')
         func(event(inaxes=fig.axes[0]))
+        params = dict(evokeds=[picked_evoked_delayed_ssp],
+                      times=picked_evoked_delayed_ssp.times,
+                      fig=fig, projs=picked_evoked_delayed_ssp.info['projs'])
+        bools = [True] * len(params['projs'])
+        _plot_update_evoked_topo(params, bools)
+    # should auto-generate layout
+    plot_evoked_topo(picked_evoked_eeg.copy(),
+                     fig_background=np.zeros((4, 3, 3)), proj=True)
+    plt.close('all')
 
 
 def test_plot_topo_image_epochs():
     """Test plotting of epochs image topography
     """
+    import matplotlib.pyplot as plt
     title = 'ERF images - MNE sample data'
     epochs = _get_epochs()
-    plot_topo_image_epochs(epochs, layout, sigma=0.5, vmin=-200, vmax=200,
-                           colorbar=True, title=title)
+    cmap = mne_analyze_colormap(format='matplotlib')
+    plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
+                           colorbar=True, title=title, cmap=cmap)
     plt.close('all')
 
 
@@ -112,11 +129,11 @@ def test_plot_tfr_topo():
     epochs = _get_epochs()
     n_freqs = 3
     nave = 1
-    data = np.random.randn(len(epochs.ch_names), n_freqs, len(epochs.times))
+    data = np.random.RandomState(0).randn(len(epochs.ch_names),
+                                          n_freqs, len(epochs.times))
     tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
     tfr.plot_topo(baseline=(None, 0), mode='ratio', title='Average power',
-                  vmin=0., vmax=14.)
-    tfr.plot([4], baseline=(None, 0), mode='ratio')
-
+                  vmin=0., vmax=14., show=False)
+    tfr.plot([4], baseline=(None, 0), mode='ratio', show=False, title='foo')
 
 run_tests_if_main()

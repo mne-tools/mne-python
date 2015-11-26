@@ -8,12 +8,9 @@ during a fixed time window of interest. Here computation
 is performed on MNE sample dataset between 40 and 60 ms.
 
 """
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import numpy as np
 
@@ -21,6 +18,8 @@ import mne
 from mne import io
 from mne.stats import permutation_t_test
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -69,7 +68,7 @@ evoked = mne.EvokedArray(-np.log10(p_values)[:, np.newaxis],
 stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
 mask = p_values[:, np.newaxis] <= 0.05
 
-evoked.plot_topomap(ch_type='grad', times=[0], scale=1, time_format=None,
-                    cmap='Reds', vmin=0., vmax=np.max,
-                    unit='-log10(p)', format='-%0.1f', mask=mask,
+evoked.plot_topomap(ch_type='grad', times=[0], scale=1,
+                    time_format=None, cmap='Reds', vmin=0., vmax=np.max,
+                    unit='-log10(p)', cbar_fmt='-%0.1f', mask=mask,
                     size=3, show_names=lambda x: x[4:] + ' ' * 20)

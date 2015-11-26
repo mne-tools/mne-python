@@ -13,29 +13,31 @@ import warnings
 import numpy as np
 from numpy.testing import assert_raises
 
-from mne import io, read_events, read_cov, read_source_spaces
-from mne import SourceEstimate
+from mne import (io, read_events, read_cov, read_source_spaces, read_evokeds,
+                 read_dipole, SourceEstimate)
 from mne.datasets import testing
-
-from mne.viz import plot_cov, plot_bem, plot_events
-from mne.viz import plot_source_spectrogram
-from mne.utils import requires_nibabel, run_tests_if_main
-
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
+from mne.minimum_norm import read_inverse_operator
+from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
+                     plot_snr_estimate)
+from mne.utils import requires_nibabel, run_tests_if_main, slow_test
 
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-subjects_dir = op.join(testing.data_path(download=False), 'subjects')
-
+data_path = testing.data_path(download=False)
+subjects_dir = op.join(data_path, 'subjects')
+inv_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
+evoked_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
+dip_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc_set1.dip')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
+event_fname = op.join(base_dir, 'test-eve.fif')
 
 
 def _get_raw():
@@ -43,7 +45,7 @@ def _get_raw():
 
 
 def _get_events():
-    return read_events(event_name)
+    return read_events(event_fname)
 
 
 def test_plot_cov():
@@ -51,8 +53,7 @@ def test_plot_cov():
     """
     raw = _get_raw()
     cov = read_cov(cov_fname)
-    fig1, fig2 = plot_cov(cov, raw.info, proj=True, exclude=raw.ch_names[6:])
-    plt.close('all')
+    fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
 
 
 @testing.requires_testing_data
@@ -113,5 +114,22 @@ def test_plot_source_spectrogram():
     assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
                   [[1, 2], [3, 4]], tmax=7)
 
+
+@slow_test
+@testing.requires_testing_data
+def test_plot_snr():
+    """Test plotting SNR estimate
+    """
+    inv = read_inverse_operator(inv_fname)
+    evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
+    plot_snr_estimate(evoked, inv)
+
+
+@testing.requires_testing_data
+def test_plot_dipole_amplitudes():
+    """Test plotting dipole amplitudes
+    """
+    dipoles = read_dipole(dip_fname)
+    dipoles.plot_amplitudes(show=False)
 
 run_tests_if_main()

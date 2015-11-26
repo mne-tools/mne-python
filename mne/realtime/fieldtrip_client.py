@@ -9,8 +9,9 @@ import threading
 import warnings
 import numpy as np
 
+from ..io import _empty_info
+from ..io.pick import pick_info
 from ..io.constants import FIFF
-from ..io.meas_info import Info
 from ..epochs import EpochsArray
 from ..utils import logger
 from ..externals.FieldTrip import Client as FtClient
@@ -138,7 +139,7 @@ class FieldTripClient(object):
             warnings.warn('Info dictionary not provided. Trying to guess it '
                           'from FieldTrip Header object')
 
-            info = Info()  # create info dictionary
+            info = _empty_info()  # create info dictionary
 
             # modify info attributes according to the FieldTrip Header object
             info['nchan'] = self.ft_header.nChannels
@@ -168,6 +169,8 @@ class FieldTripClient(object):
                     this_info['kind'] = FIFF.FIFFV_MCG_CH
                 elif ch.startswith('EOG'):
                     this_info['kind'] = FIFF.FIFFV_EOG_CH
+                elif ch.startswith('EMG'):
+                    this_info['kind'] = FIFF.FIFFV_EMG_CH
                 elif ch.startswith('STI'):
                     this_info['kind'] = FIFF.FIFFV_STIM_CH
                 elif ch.startswith('ECG'):
@@ -180,9 +183,7 @@ class FieldTripClient(object):
                 this_info['cal'] = 1.0
 
                 this_info['ch_name'] = ch
-                this_info['coil_trans'] = None
                 this_info['loc'] = None
-                this_info['eeg_loc'] = None
 
                 if ch.startswith('EEG'):
                     this_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -193,8 +194,8 @@ class FieldTripClient(object):
 
                 if ch.startswith('MEG') and ch.endswith('1'):
                     this_info['unit'] = FIFF.FIFF_UNIT_T
-                elif ch.startswith('MEG') and (ch.endswith('2')
-                                               or ch.endswith('3')):
+                elif ch.startswith('MEG') and (ch.endswith('2') or
+                                               ch.endswith('3')):
                     this_info['unit'] = FIFF.FIFF_UNIT_T_M
                 else:
                     this_info['unit'] = FIFF.FIFF_UNIT_V
@@ -204,6 +205,16 @@ class FieldTripClient(object):
                 info['chs'].append(this_info)
 
         else:
+
+            # XXX: the data in real-time mode and offline mode
+            # does not match unless this is done
+            self.info['projs'] = list()
+
+            # FieldTrip buffer already does the calibration
+            for this_info in self.info['chs']:
+                this_info['range'] = 1.0
+                this_info['cal'] = 1.0
+                this_info['unit_mul'] = 0
 
             info = copy.deepcopy(self.info)
 
@@ -234,6 +245,10 @@ class FieldTripClient(object):
         -------
         epoch : instance of Epochs
             The samples fetched as an Epochs object.
+
+        See Also
+        --------
+        Epochs.iter_evoked
         """
         ft_header = self.ft_client.getHeader()
         last_samp = ft_header.nSamples - 1
@@ -243,16 +258,12 @@ class FieldTripClient(object):
 
         # get the data
         data = self.ft_client.getData([start, stop]).transpose()
-        data = np.expand_dims(data, axis=0)
 
         # create epoch from data
-        epoch = EpochsArray(data, info=self.info,
-                            events=events, tmin=0)
-
-        # pick channels
+        info = self.info
         if picks is not None:
-            ch_names = [self.info['ch_names'][k] for k in picks]
-            epoch = epoch.pick_channels(ch_names=ch_names, copy=True)
+            info = pick_info(info, picks, copy=True)
+        epoch = EpochsArray(data[picks][np.newaxis], info, events)
 
         return epoch
 
@@ -269,7 +280,13 @@ class FieldTripClient(object):
             self._recv_callbacks.append(callback)
 
     def unregister_receive_callback(self, callback):
-        """Unregister a raw buffer receive callback."""
+        """Unregister a raw buffer receive callback
+
+        Parameters
+        ----------
+        callback : callable
+            The callback to unregister.
+        """
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)
 
@@ -319,7 +336,7 @@ class FieldTripClient(object):
 
         iter_times = zip(range(self.tmin_samp, self.tmax_samp,
                                self.buffer_size),
-                         range(self.tmin_samp + self.buffer_size,
+                         range(self.tmin_samp + self.buffer_size - 1,
                                self.tmax_samp, self.buffer_size))
 
         for ii, (start, stop) in enumerate(iter_times):

@@ -10,9 +10,9 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import stats, sparse, ndimage
 import warnings
 import logging
+from scipy import sparse
 
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
@@ -185,8 +185,8 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
             order = np.argsort(row)
             row = row[order]
             col = col[order]
-            lims = [0] + (np.where(np.diff(row) > 0)[0]
-                          + 1).tolist() + [len(row)]
+            lims = [0] + (np.where(np.diff(row) > 0)[0] +
+                          1).tolist() + [len(row)]
 
         for start, end in zip(lims[:-1], lims[1:]):
             keepers[row[start]] = np.sort(col[start:end])
@@ -229,14 +229,14 @@ def _get_components(x_in, connectivity, return_list=True):
     connectivity = sparse.coo_matrix((data, (row, col)), shape=shape)
     _, components = cs_graph_components(connectivity)
     if return_list:
-        labels = np.unique(components)
-        clusters = list()
-        for l in labels:
-            c = np.where(components == l)[0]
-            if np.any(x_in[c]):
-                clusters.append(c)
-        # logger.info("-- number of components : %d"
-        #             % np.unique(components).size)
+        start = np.min(components)
+        stop = np.max(components)
+        comp_list = [list() for i in range(start, stop + 1, 1)]
+        mask = np.zeros(len(comp_list), dtype=bool)
+        for ii, comp in enumerate(components):
+            comp_list[comp].append(ii)
+            mask[comp] += x_in[ii]
+        clusters = [np.array(k) for k, m in zip(comp_list, mask) if m]
         return clusters
     else:
         return components
@@ -293,6 +293,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     sums: array
         Sum of x values in clusters.
     """
+    from scipy import ndimage
     if tail not in [-1, 0, 1]:
         raise ValueError('invalid tail parameter')
 
@@ -302,7 +303,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         if not isinstance(threshold, dict):
             raise TypeError('threshold must be a number, or a dict for '
                             'threshold-free cluster enhancement')
-        if not all([key in threshold for key in ['start', 'step']]):
+        if not all(key in threshold for key in ['start', 'step']):
             raise KeyError('threshold, if dict, must have at least '
                            '"start" and "step"')
         tfce = True
@@ -365,7 +366,8 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         for x_in in x_ins:
             if np.any(x_in):
                 out = _find_clusters_1dir_parts(x, x_in, connectivity,
-                                                max_step, partitions, t_power)
+                                                max_step, partitions, t_power,
+                                                ndimage)
                 clusters += out[0]
                 sums = np.concatenate((sums, out[1]))
         if tfce is True:
@@ -405,26 +407,27 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
 
 
 def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
-                              t_power):
+                              t_power, ndimage):
     """Deal with partitions, and pass the work to _find_clusters_1dir
     """
     if partitions is None:
         clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_step,
-                                             t_power)
+                                             t_power, ndimage)
     else:
         # cluster each partition separately
         clusters = list()
         sums = list()
         for p in range(np.max(partitions) + 1):
             x_i = np.logical_and(x_in, partitions == p)
-            out = _find_clusters_1dir(x, x_i, connectivity, max_step, t_power)
+            out = _find_clusters_1dir(x, x_i, connectivity, max_step, t_power,
+                                      ndimage)
             clusters += out[0]
             sums.append(out[1])
         sums = np.concatenate(sums)
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
+def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
     """Actually call the clustering algorithm"""
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
@@ -628,11 +631,15 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
             signs = signs[:, np.newaxis]
 
         if buffer_size is None:
-            X *= signs
-            # Recompute statistic on randomized data
-            T_obs_surr = stat_fun(X)
-            # Set X back to previous state (trade memory eff. for CPU use)
-            X *= signs
+            # be careful about non-writable memmap (GH#1507)
+            if X.flags.writeable:
+                X *= signs
+                # Recompute statistic on randomized data
+                T_obs_surr = stat_fun(X)
+                # Set X back to previous state (trade memory eff. for CPU use)
+                X *= signs
+            else:
+                T_obs_surr = stat_fun(X * signs)
         else:
             # only sign-flip a small data buffer, so we need less memory
             T_obs_surr = np.empty(n_vars, dtype=X.dtype)
@@ -1001,11 +1008,12 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+    from scipy import stats
+    ppf = stats.f.ppf
     if threshold is None:
         p_thresh = 0.05 / (1 + (tail == 0))
         n_samples_per_group = [len(x) for x in X]
-        threshold = stats.distributions.f.ppf(1. - p_thresh,
-                                              *n_samples_per_group)
+        threshold = ppf(1. - p_thresh, *n_samples_per_group)
         if np.sign(tail) < 0:
             threshold = -threshold
 
@@ -1135,10 +1143,12 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+    from scipy import stats
+    ppf = stats.t.ppf
     if threshold is None:
         p_thresh = 0.05 / (1 + (tail == 0))
         n_samples = len(X)
-        threshold = -stats.distributions.t.ppf(p_thresh, n_samples - 1)
+        threshold = -ppf(p_thresh, n_samples - 1)
         if np.sign(tail) < 0:
             threshold = -threshold
 
@@ -1487,7 +1497,7 @@ def _reshape_clusters(clusters, sample_shape):
 
 
 def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
-                           subject='fsaverage', vertno=None):
+                           subject='fsaverage', vertices=None):
     """ Assemble summary SourceEstimate from spatiotemporal cluster results
 
     This helps visualizing results from spatio-temporal-clustering
@@ -1505,7 +1515,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
         The time of the first sample.
     subject : str
         The name of the subject.
-    vertno : list of arrays | None
+    vertices : list of arrays | None
         The vertex numbers associated with the source space locations. Defaults
         to None. If None, equals ```[np.arange(10242), np.arange(10242)]```.
 
@@ -1513,8 +1523,8 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
     -------
     out : instance of SourceEstimate
     """
-    if vertno is None:
-        vertno = [np.arange(10242), np.arange(10242)]
+    if vertices is None:
+        vertices = [np.arange(10242), np.arange(10242)]
 
     T_obs, clusters, clu_pvals, _ = clu
     n_times, n_vertices = T_obs.shape
@@ -1537,7 +1547,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
             # visualization
         data_summary[:, 0] = np.sum(data_summary, axis=1)
 
-        return SourceEstimate(data_summary, vertno, tmin=tmin, tstep=tstep,
+        return SourceEstimate(data_summary, vertices, tmin=tmin, tstep=tstep,
                               subject=subject)
     else:
         raise RuntimeError('No significant clusters available. Please adjust '

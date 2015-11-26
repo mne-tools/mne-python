@@ -21,7 +21,7 @@ def combine_kit_markers():
     return gui
 
 
-def coregistration(tabbed=False, split=True, scene_width=0o1, raw=None,
+def coregistration(tabbed=False, split=True, scene_width=0o1, inst=None,
                    subject=None, subjects_dir=None):
     """Coregister an MRI with a subject's head shape
 
@@ -35,8 +35,9 @@ def coregistration(tabbed=False, split=True, scene_width=0o1, raw=None,
         unnecessary for wx backend).
     scene_width : int
         Specify a minimum width for the 3d scene (in pixels).
-    raw : None | str(path)
-        Path to a raw file containing the digitizer data.
+    inst : None | str
+        Path to an instance file containing the digitizer data. Compatible for
+        Raw, Epochs, and Evoked files.
     subject : None | str
         Name of the mri subject.
     subjects_dir : None | path
@@ -55,7 +56,7 @@ def coregistration(tabbed=False, split=True, scene_width=0o1, raw=None,
     _check_mayavi_version()
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width)
-    gui = CoregFrame(raw, subject, subjects_dir)
+    gui = CoregFrame(inst, subject, subjects_dir)
     gui.configure_traits(view=view)
     return gui
 

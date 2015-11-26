@@ -9,13 +9,13 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 
 from mne.datasets import testing
-from mne.io import Raw
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
                  convert_forward_solution)
 from mne import SourceEstimate, pick_types_forward, read_evokeds
 from mne.label import read_label
-from mne.utils import requires_mne, run_subprocess, _TempDir, run_tests_if_main
+from mne.utils import (requires_mne, run_subprocess, _TempDir,
+                       run_tests_if_main, slow_test)
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
                          Forward)
 
@@ -90,6 +90,7 @@ def test_convert_forward():
     gc.collect()
 
 
+@slow_test
 @testing.requires_testing_data
 def test_io_forward():
     """Test IO for forward solutions
@@ -163,7 +164,8 @@ def test_apply_forward():
     # Evoked
     with warnings.catch_warnings(record=True) as w:
         evoked = read_evokeds(fname_evoked, condition=0)
-        evoked = apply_forward(fwd, stc, evoked, start=start, stop=stop)
+        evoked.pick_types(meg=True)
+        evoked = apply_forward(fwd, stc, evoked.info, start=start, stop=stop)
         assert_equal(len(w), 2)
         data = evoked.data
         times = evoked.times
@@ -175,15 +177,17 @@ def test_apply_forward():
         assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
 
         # Raw
-        raw = Raw(fname_raw)
-        raw_proj = apply_forward_raw(fwd, stc, raw, start=start, stop=stop)
+        raw_proj = apply_forward_raw(fwd, stc, evoked.info, start=start,
+                                     stop=stop)
         data, times = raw_proj[:, :]
 
         # do some tests
         assert_array_almost_equal(raw_proj.info['sfreq'], sfreq)
         assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
-        assert_array_almost_equal(times[0], t_start)
-        assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
+        atol = 1. / sfreq
+        assert_allclose(raw_proj.first_samp / sfreq, t_start, atol=atol)
+        assert_allclose(raw_proj.last_samp / sfreq,
+                        t_start + (n_times - 1) / sfreq, atol=atol)
 
 
 @testing.requires_testing_data
@@ -246,8 +250,8 @@ def test_restrict_forward_to_label():
     src_sel_lh = np.searchsorted(fwd['src'][0]['vertno'], src_sel_lh)
 
     src_sel_rh = np.intersect1d(fwd['src'][1]['vertno'], label_rh.vertices)
-    src_sel_rh = (np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh)
-                  + len(fwd['src'][0]['vertno']))
+    src_sel_rh = (np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh) +
+                  len(fwd['src'][0]['vertno']))
 
     assert_equal(fwd_out['sol']['ncol'], len(src_sel_lh) + len(src_sel_rh))
     assert_equal(fwd_out['src'][0]['nuse'], len(src_sel_lh))
@@ -269,8 +273,8 @@ def test_restrict_forward_to_label():
     src_sel_lh = np.searchsorted(fwd['src'][0]['vertno'], src_sel_lh)
 
     src_sel_rh = np.intersect1d(fwd['src'][1]['vertno'], label_rh.vertices)
-    src_sel_rh = (np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh)
-                  + len(fwd['src'][0]['vertno']))
+    src_sel_rh = (np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh) +
+                  len(fwd['src'][0]['vertno']))
 
     assert_equal(fwd_out['sol']['ncol'],
                  3 * (len(src_sel_lh) + len(src_sel_rh)))

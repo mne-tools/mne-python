@@ -1,34 +1,24 @@
 from glob import glob
 import os
 
-from nose.tools import assert_raises, assert_true, assert_equal
+from nose.tools import assert_raises, assert_true
 import numpy as np
-from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_array_less)
+from numpy.testing import assert_array_almost_equal, assert_array_less
 
 import mne
 from mne.transforms import apply_trans, rotation, translation, scaling
 from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _point_cloud_error, _decimate_points,
                        create_default_subject, scale_mri,
-                       _is_mri_subject, scale_labels, scale_source_space,
-                       read_elp)
-from mne.io.kit.tests import data_dir as kit_data_dir
+                       _is_mri_subject, scale_labels, scale_source_space)
 from mne.utils import (requires_mne, requires_freesurfer, _TempDir,
-                       run_tests_if_main)
+                       run_tests_if_main, requires_version)
 from functools import reduce
-
-
-def test_read_elp():
-    """Test reading an ELP file"""
-    path = os.path.join(kit_data_dir, 'test_elp.txt')
-    points = read_elp(path)
-    assert_equal(points.shape, (8, 3))
-    assert_array_equal(points[0], [1.3930, 13.1613, -4.6967])
 
 
 @requires_mne
 @requires_freesurfer
+@requires_version('scipy', '0.11')
 def test_scale_mri():
     """Test creating fsaverage and scaling it"""
     # create fsaverage
@@ -80,9 +70,10 @@ def test_scale_mri():
     os.remove(src_path)
     scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
 
+
 def test_fit_matched_points():
     """Test fit_matched_points: fitting two matching sets of points"""
-    tgt_pts = np.random.uniform(size=(6, 3))
+    tgt_pts = np.random.RandomState(42).uniform(size=(6, 3))
 
     # rotation only
     trans = rotation(2, 6, 3)

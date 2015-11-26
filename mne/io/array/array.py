@@ -1,4 +1,3 @@
-
 """Tools for creating Raw objects from numpy arrays"""
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
@@ -7,11 +6,8 @@
 
 import numpy as np
 
-from ..constants import FIFF
-from ..meas_info import Info
 from ..base import _BaseRaw
 from ...utils import verbose, logger
-from ...externals.six import string_types
 
 
 class RawArray(_BaseRaw):
@@ -22,8 +18,14 @@ class RawArray(_BaseRaw):
     data : array, shape (n_channels, n_times)
         The channels' time series.
     info : instance of Info
-        Info dictionary. Consider using ``create_info`` to populate
+        Info dictionary. Consider using `create_info` to populate
         this structure.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    EpochsArray, EvokedArray, create_info
     """
     @verbose
     def __init__(self, data, info, verbose=None):
@@ -40,24 +42,7 @@ class RawArray(_BaseRaw):
         if len(data) != len(info['ch_names']):
             raise ValueError('len(data) does not match len(info["ch_names"])')
         assert len(info['ch_names']) == info['nchan']
-
-        cals = np.zeros(info['nchan'])
-        for k in range(info['nchan']):
-            cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
-
-        self.verbose = verbose
-        self.cals = cals
-        self.rawdir = None
-        self.proj = None
-        self.comp = None
-        self._filenames = list()
-        self.preload = True
-        self.info = info
-        self._data = data
-        self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-        self._times = np.arange(self.first_samp,
-                                self.last_samp + 1) / info['sfreq']
-        self._projectors = list()
+        super(RawArray, self).__init__(info, data, verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     self.first_samp, self.last_samp,
                     float(self.first_samp) / info['sfreq'],

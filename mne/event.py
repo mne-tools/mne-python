@@ -3,7 +3,8 @@
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon@nyu.edu>
+#          Teon Brooks <teon.brooks@gmail.com>
+#          Clement Moutard <clement.moutard@polytechnique.org>
 #
 # License: BSD (3-clause)
 
@@ -19,11 +20,13 @@ from .io.write import write_int, start_block, start_file, end_block, end_file
 from .io.pick import pick_channels
 
 
-def pick_events(events, include=None, exclude=None):
+def pick_events(events, include=None, exclude=None, step=False):
     """Select some events
 
     Parameters
     ----------
+    events : ndarray
+        Array as returned by mne.find_events.
     include : int | list | None
         A event id to include or a list of them.
         If None all events are included.
@@ -31,6 +34,11 @@ def pick_events(events, include=None, exclude=None):
         A event id to exclude or a list of them.
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.
+    step : bool
+        If True (default is False), events have a step format according
+        to the argument output='step' in the function find_events().
+        In this case, the two last columns are considered in inclusion/
+        exclusion criteria.
 
     Returns
     -------
@@ -43,6 +51,8 @@ def pick_events(events, include=None, exclude=None):
         mask = np.zeros(len(events), dtype=np.bool)
         for e in include:
             mask = np.logical_or(mask, events[:, 2] == e)
+            if step:
+                mask = np.logical_or(mask, events[:, 1] == e)
         events = events[mask]
     elif exclude is not None:
         if not isinstance(exclude, list):
@@ -50,6 +60,8 @@ def pick_events(events, include=None, exclude=None):
         mask = np.ones(len(events), dtype=np.bool)
         for e in exclude:
             mask = np.logical_and(mask, events[:, 2] != e)
+            if step:
+                mask = np.logical_and(mask, events[:, 1] != e)
         events = events[mask]
     else:
         events = np.copy(events)
@@ -107,7 +119,7 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
 
     new_events = []
     lag = []
-    for event in events.copy().astype('f8'):
+    for event in events.copy().astype(int):
         if event[2] == reference_id:
             lower = event[0] + imin
             upper = event[0] + imax
@@ -120,13 +132,14 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
             elif fill_na is not None:
                 event[2] = fill_na
                 new_events += [event]
-                lag += [fill_na]
+                lag.append(np.nan)
 
     new_events = np.array(new_events)
 
-    lag = np.abs(lag, dtype='f8')
+    with np.errstate(invalid='ignore'):  # casting nans
+        lag = np.abs(lag, dtype='f8')
     if lag.any():
-        lag[lag != fill_na] *= tsample
+        lag *= tsample
     else:
         lag = np.array([])
 
@@ -203,6 +216,10 @@ def read_events(filename, include=None, exclude=None, mask=0):
     events: array, shape (n_events, 3)
         The list of events
 
+    See Also
+    --------
+    find_events, write_events
+
     Notes
     -----
     This function will discard the offset line (i.e., first line with zero
@@ -264,6 +281,10 @@ def write_events(filename, event_list):
 
     event_list : array, shape (n_events, 3)
         The list of events
+
+    See Also
+    --------
+    read_events
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt'))
@@ -280,7 +301,8 @@ def write_events(filename, event_list):
         end_file(fid)
     else:
         f = open(filename, 'w')
-        [f.write('%6d %6d %3d\n' % tuple(e)) for e in event_list]
+        for e in event_list:
+            f.write('%6d %6d %3d\n' % tuple(e))
         f.close()
 
 
@@ -337,10 +359,12 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
     ----------
     raw : Raw object
         The raw data.
-    pad_start, pad_stop : None | int
+    pad_start: None | int
         Values to assume outside of the stim channel (e.g., if pad_start=0 and
         the stim channel starts with value 5, an event of [0, 0, 5] will be
         inserted at the beginning). With None, no steps will be inserted.
+    pad_stop : None | int
+        Values to assume outside of the stim channel, see ``pad_start``.
     merge : int
         Merge steps occurring in neighboring samples. The integer value
         indicates over how many samples events should be merged, and the sign
@@ -367,7 +391,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
     """
 
     # pull stim channel from config if necessary
-    stim_channel = _get_stim_channel(stim_channel)
+    stim_channel = _get_stim_channel(stim_channel, raw.info)
 
     picks = pick_channels(raw.info['ch_names'], include=stim_channel)
     if len(picks) == 0:
@@ -464,8 +488,9 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         Name of the stim channel or all the stim channels
         affected by the trigger. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
-        etc. are read. If these are not found, it will default to
-        'STI 014'.
+        etc. are read. If these are not found, it will fall back to
+        'STI 014' if present, then fall back to the first channel of type
+        'stim', if present.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     output : 'onset' | 'offset' | 'step'
@@ -502,20 +527,20 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     Consider data with a stim channel that looks like: [0, 32, 32, 33, 32, 0]
 
     By default, find_events returns all samples at which the value of the
-    stim channel increases:
+    stim channel increases::
 
         >>> print(find_events(raw)) # doctest: +SKIP
         [[ 1  0 32]
          [ 3 32 33]]
 
     If consecutive is False, find_events only returns the samples at which
-    the stim channel changes from zero to a non-zero value:
+    the stim channel changes from zero to a non-zero value::
 
         >>> print(find_events(raw, consecutive=False)) # doctest: +SKIP
         [[ 1  0 32]]
 
     If consecutive is True, find_events returns samples at which the
-    event changes, regardless of whether it first returns to zero:
+    event changes, regardless of whether it first returns to zero::
 
         >>> print(find_events(raw, consecutive=True)) # doctest: +SKIP
         [[ 1  0 32]
@@ -523,7 +548,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
          [ 4 33 32]]
 
     If output is 'offset', find_events returns the last sample of each event
-    instead of the first one:
+    instead of the first one::
 
         >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
         ...                   output='offset'))
@@ -532,7 +557,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
          [ 4  0 32]]
 
     If output is 'step', find_events returns the samples at which an event
-    starts or ends:
+    starts or ends::
 
         >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
         ...                   output='step'))
@@ -543,7 +568,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
 
     To ignore spurious events, it is also possible to specify a minimum
     event duration. Assuming our events channel has a sample rate of
-    1000 Hz:
+    1000 Hz::
 
         >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
         ...                   min_duration=0.002))
@@ -551,9 +576,9 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
 
     For the digital mask, it will take the binary representation of the
     digital mask, e.g. 5 -> '00000101', and will block the values
-    where mask is one.
+    where mask is one, e.g.::
 
-    e.g.      7 '0000111' <- trigger value
+              7 '0000111' <- trigger value
              37 '0100101' <- mask
          ----------------
               2 '0000010'
@@ -565,7 +590,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     min_samples = min_duration * raw.info['sfreq']
 
     # pull stim channel from config if necessary
-    stim_channel = _get_stim_channel(stim_channel)
+    stim_channel = _get_stim_channel(stim_channel, raw.info)
 
     pick = pick_channels(raw.info['ch_names'], include=stim_channel)
     if len(pick) == 0:

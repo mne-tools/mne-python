@@ -42,10 +42,9 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
 
     Parameters
     ----------
-    data : array, shape=(n_epochs, n_signals, n_times)
-           or list/generator of array, shape =(n_signals, n_times)
-           or list/generator of SourceEstimate
-           or Epochs
+    data : array-like, shape=(n_epochs, n_signals, n_times)
+        Can also be a list/generator of array, shape =(n_signals, n_times);
+        list/generator of SourceEstimate; or Epochs.
         The data from which to compute connectivity. Note that it is also
         possible to combine multiple signals by providing a list of tuples,
         e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],
@@ -115,9 +114,9 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     """
     logger.info('Estimating phase slope index (PSI)')
     # estimate the coherency
-    cohy, freqs_, times, n_epochs, n_tapers = spectral_connectivity(data,
-        method='cohy', indices=indices, sfreq=sfreq, mode=mode, fmin=fmin,
-        fmax=fmax, fskip=0, faverage=False, tmin=tmin, tmax=tmax,
+    cohy, freqs_, times, n_epochs, n_tapers = spectral_connectivity(
+        data, method='cohy', indices=indices, sfreq=sfreq, mode=mode,
+        fmin=fmin, fmax=fmax, fskip=0, faverage=False, tmin=tmin, tmax=tmax,
         mt_bandwidth=mt_bandwidth, mt_adaptive=mt_adaptive,
         mt_low_bias=mt_low_bias, cwt_frequencies=cwt_frequencies,
         cwt_n_cycles=cwt_n_cycles, block_size=block_size, n_jobs=n_jobs,

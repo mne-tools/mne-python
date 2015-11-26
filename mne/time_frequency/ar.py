@@ -6,10 +6,14 @@
 import numpy as np
 from scipy.linalg import toeplitz
 
+from ..io.pick import pick_types
+from ..utils import verbose
+
 
 # XXX : Back ported from statsmodels
 
-def yule_walker(X, order=1, method="unbiased", df=None, inv=False, demean=True):
+def yule_walker(X, order=1, method="unbiased", df=None, inv=False,
+                demean=True):
     """
     Estimate AR(p) parameters from a sequence X using Yule-Walker equation.
 
@@ -31,8 +35,9 @@ def yule_walker(X, order=1, method="unbiased", df=None, inv=False, demean=True):
        denominator is n=X.shape[0], if "unbiased" the denominator is n-k.
        The default is unbiased.
     df : integer, optional
-       Specifies the degrees of freedom. If `df` is supplied, then it is assumed
-       the X has `df` degrees of freedom rather than `n`.  Default is None.
+       Specifies the degrees of freedom. If `df` is supplied, then it is
+       assumed the X has `df` degrees of freedom rather than `n`.  Default is
+       None.
     inv : bool
         If inv is True the inverse of R is also returned.  Default is False.
     demean : bool
@@ -46,32 +51,34 @@ def yule_walker(X, order=1, method="unbiased", df=None, inv=False, demean=True):
         TODO
 
     """
-#TODO: define R better, look back at notes and technical notes on YW.
-#First link here is useful
-#http://www-stat.wharton.upenn.edu/~steele/Courses/956/ResourceDetails/YuleWalkerAndMore.htm
+    # TODO: define R better, look back at notes and technical notes on YW.
+    # First link here is useful
+    # http://www-stat.wharton.upenn.edu/~steele/Courses/956/ResourceDetails/YuleWalkerAndMore.htm  # noqa
     method = str(method).lower()
     if method not in ["unbiased", "mle"]:
         raise ValueError("ACF estimation method must be 'unbiased' or 'MLE'")
-    X = np.array(X)
+    X = np.array(X, float)
     if demean:
         X -= X.mean()                  # automatically demean's X
     n = df or X.shape[0]
 
     if method == "unbiased":        # this is df_resid ie., n - p
-        denom = lambda k: n - k
+        def denom(k):
+            return n - k
     else:
-        denom = lambda k: n
+        def denom(k):
+            return n
     if X.ndim > 1 and X.shape[1] != 1:
         raise ValueError("expecting a vector to estimate AR parameters")
-    r = np.zeros(order+1, np.float64)
-    r[0] = (X**2).sum() / denom(0)
-    for k in range(1,order+1):
-        r[k] = (X[0:-k]*X[k:]).sum() / denom(k)
+    r = np.zeros(order + 1, np.float64)
+    r[0] = (X ** 2).sum() / denom(0)
+    for k in range(1, order + 1):
+        r[k] = (X[0:-k] * X[k:]).sum() / denom(k)
     R = toeplitz(r[:-1])
 
     rho = np.linalg.solve(R, r[1:])
-    sigmasq = r[0] - (r[1:]*rho).sum()
-    if inv == True:
+    sigmasq = r[0] - (r[1:] * rho).sum()
+    if inv:
         return rho, np.sqrt(sigmasq), np.linalg.inv(R)
     else:
         return rho, np.sqrt(sigmasq)
@@ -115,38 +122,44 @@ def ar_raw(raw, order, picks, tmin=None, tmax=None):
     return coefs
 
 
-def iir_filter_raw(raw, order, picks, tmin=None, tmax=None):
+@verbose
+def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
+                      verbose=None):
     """Fits an AR model to raw data and creates the corresponding IIR filter
 
     The computed filter is the average filter for all the picked channels.
-    The returned filter coefficents are the denominator of the filter
-    (the numerator is 1). The frequency response is given by
+    The frequency response is given by:
 
-        jw   1
-     H(e) = --------------------------------
-                        -jw             -jnw
-            a[0] + a[1]e    + ... + a[n]e
+    .. math::
+
+        H(e^{jw}) = \\frac{1}{a[0] + a[1]e^{-jw} + ...
+                                  + a[n]e^{-jnw}}
 
     Parameters
     ----------
     raw : Raw object
-        an instance of Raw
+        an instance of Raw.
     order : int
-        order of the FIR filter
-    picks : array-like of int
-        indices of selected channels
+        order of the FIR filter.
+    picks : array-like of int | None
+        indices of selected channels. If None, MEG and EEG channels are used.
     tmin : float
         The beginning of time interval in seconds.
     tmax : float
         The end of time interval in seconds.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    a : array
-        filter coefficients
+    b : ndarray
+        Numerator filter coefficients.
+    a : ndarray
+        Denominator filter coefficients
     """
-    picks = picks[:5]
+    if picks is None:
+        picks = pick_types(raw.info, meg=True, eeg=True)
     coefs = ar_raw(raw, order=order, picks=picks, tmin=tmin, tmax=tmax)
     mean_coefs = np.mean(coefs, axis=0)  # mean model across channels
-    a = np.r_[1, -mean_coefs]  # filter coefficients
-    return a
+    a = np.concatenate(([1.], -mean_coefs))  # filter coefficients
+    return np.array([1.]), a

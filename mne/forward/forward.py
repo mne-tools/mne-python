@@ -19,24 +19,26 @@ from os import path as op
 import tempfile
 
 from ..fixes import sparse_block_diag
+from ..io import RawArray, Info
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tree import dir_tree_find
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
-from ..io.meas_info import read_bad_channels, Info
+from ..io.meas_info import read_bad_channels
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_ch_info, write_name_list,
                         write_string, start_file, end_file, write_id)
 from ..io.base import _BaseRaw
-from ..evoked import Evoked, write_evokeds
+from ..evoked import Evoked, write_evokeds, EvokedArray
 from ..epochs import Epochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi,
                             _write_source_spaces_to_fid)
+from ..source_estimate import VolSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c,
@@ -346,6 +348,16 @@ def _read_forward_meas_info(tree, fid):
         raise ValueError('MEG/head coordinate transformation not found')
 
     info['bads'] = read_bad_channels(fid, parent_meg)
+    # clean up our bad list, old versions could have non-existent bads
+    info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
+
+    # Check if a custom reference has been applied
+    tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_CUSTOM_REF)
+    if tag is None:
+        tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
+
+    info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
+    info._check_consistency()
     return info
 
 
@@ -417,6 +429,10 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     -------
     fwd : instance of Forward
         The forward solution.
+
+    See Also
+    --------
+    write_forward_solution, make_forward_solution
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
@@ -435,7 +451,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             raise ValueError('No parent MRI information in %s' % fname)
         parent_mri = parent_mri[0]
 
-        src = _read_source_spaces_from_tree(fid, tree, add_geom=False)
+        src = _read_source_spaces_from_tree(fid, tree, patch_stats=False)
         for s in src:
             s['id'] = find_source_space_hemi(s)
 
@@ -485,8 +501,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or
                 mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
             mri_head_t = invert_transform(mri_head_t)
-            if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI
-                    or mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
+            if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or
+                    mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
                 fid.close()
                 raise ValueError('MRI/head coordinate transformation not '
                                  'found')
@@ -512,8 +528,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     #   if necessary
 
     # Make sure forward solution is in either the MRI or HEAD coordinate frame
-    if (fwd['coord_frame'] != FIFF.FIFFV_COORD_MRI and
-            fwd['coord_frame'] != FIFF.FIFFV_COORD_HEAD):
+    if fwd['coord_frame'] not in (FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_COORD_HEAD):
         raise ValueError('Only forward solutions computed in MRI or head '
                          'coordinates are acceptable')
 
@@ -598,8 +613,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             fix_rot = _block_diag(fwd['source_nn'].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
-            fwd['sol']['data'] = (fwd['_orig_sol']
-                                  * fix_rot).astype('float32')
+            fwd['sol']['data'] = (fwd['_orig_sol'] *
+                                  fix_rot).astype('float32')
             fwd['sol']['ncol'] = fwd['nsource']
             fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
 
@@ -683,6 +698,10 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         If True, overwrite destination file (if it exists).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    read_forward_solution
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
@@ -849,6 +868,7 @@ def write_forward_meas_info(fid, info):
     info : instance of mne.io.meas_info.Info
         The measurement info.
     """
+    info._check_consistency()
     #
     # Information from the MEG file
     #
@@ -1009,15 +1029,21 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
 def _stc_src_sel(src, stc):
     """ Select the vertex indices of a source space using a source estimate
     """
-    src_sel_lh = np.intersect1d(src[0]['vertno'], stc.vertno[0])
-    src_sel_lh = np.searchsorted(src[0]['vertno'], src_sel_lh)
-
-    src_sel_rh = np.intersect1d(src[1]['vertno'], stc.vertno[1])
-    src_sel_rh = (np.searchsorted(src[1]['vertno'], src_sel_rh)
-                  + len(src[0]['vertno']))
-
-    src_sel = np.r_[src_sel_lh, src_sel_rh]
-
+    if isinstance(stc, VolSourceEstimate):
+        vertices = [stc.vertices]
+    else:
+        vertices = stc.vertices
+    if not len(src) == len(vertices):
+        raise RuntimeError('Mismatch between number of source spaces (%s) and '
+                           'STC vertices (%s)' % (len(src), len(vertices)))
+    src_sels = []
+    offset = 0
+    for s, v in zip(src, vertices):
+        src_sel = np.intersect1d(s['vertno'], v)
+        src_sel = np.searchsorted(s['vertno'], src_sel)
+        src_sels.append(src_sel + offset)
+        offset += len(s['vertno'])
+    src_sel = np.concatenate(src_sels)
     return src_sel
 
 
@@ -1067,7 +1093,10 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
                       'currents are used.' % (1e9 * max_cur))
 
     src_sel = _stc_src_sel(fwd['src'], stc)
-    n_src = sum([len(v) for v in stc.vertno])
+    if isinstance(stc, VolSourceEstimate):
+        n_src = len(stc.vertices)
+    else:
+        n_src = sum([len(v) for v in stc.vertices])
     if len(src_sel) != n_src:
         raise RuntimeError('Only %i of %i SourceEstimate vertices found in '
                            'fwd' % (len(src_sel), n_src))
@@ -1084,7 +1113,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
+def apply_forward(fwd, stc, info, start=None, stop=None,
                   verbose=None):
     """
     Project source space currents to sensor space using a forward operator.
@@ -1101,12 +1130,12 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
 
     Parameters
     ----------
-    forward : dict
+    fwd : dict
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    evoked_template : Evoked object
-        Evoked object used as template to generate the output argument.
+    info : instance of mne.io.meas_info.Info
+        Measurement info to generate the evoked.
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
@@ -1123,35 +1152,30 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
-
     # make sure evoked_template contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
-        if ch_name not in evoked_template.ch_names:
+        if ch_name not in info['ch_names']:
             raise ValueError('Channel %s of forward operator not present in '
                              'evoked_template.' % ch_name)
 
     # project the source estimate to the sensor space
     data, times = _apply_forward(fwd, stc, start, stop)
 
-    # store sensor data in an Evoked object using the template
-    evoked = deepcopy(evoked_template)
-
-    evoked.nave = 1
-    evoked.data = data
-    evoked.times = times
-
+    # fill the measurement info
     sfreq = float(1.0 / stc.tstep)
+    info_out = _fill_measurement_info(info, fwd, sfreq)
+
+    evoked = EvokedArray(data, info_out, times[0], nave=1)
+
+    evoked.times = times
     evoked.first = int(np.round(evoked.times[0] * sfreq))
     evoked.last = evoked.first + evoked.data.shape[1] - 1
-
-    # fill the measurement info
-    evoked.info = _fill_measurement_info(evoked.info, fwd, sfreq)
 
     return evoked
 
 
 @verbose
-def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
+def apply_forward_raw(fwd, stc, info, start=None, stop=None,
                       verbose=None):
     """Project source space currents to sensor space using a forward operator
 
@@ -1159,19 +1183,19 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     pick_channels_forward or pick_types_forward to restrict the solution to a
     subset of channels.
 
-    The function returns a Raw object, which is constructed from raw_template.
-    The raw_template should be from the same MEG system on which the original
-    data was acquired. An exception will be raised if the forward operator
-    contains channels that are not present in the template.
+    The function returns a Raw object, which is constructed using provided
+    info. The info object should be from the same MEG system on which the
+    original data was acquired. An exception will be raised if the forward
+    operator contains channels that are not present in the info.
 
     Parameters
     ----------
-    forward : dict
+    fwd : dict
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    raw_template : Raw object
-        Raw object used as template to generate the output argument.
+    info : Instance of mne.io.meas_info.Info
+        The measurement info.
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
@@ -1188,32 +1212,26 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     --------
     apply_forward: Compute sensor space data and return an Evoked object.
     """
-
-    # make sure raw_template contains all channels in fwd
+    # make sure info contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
-        if ch_name not in raw_template.ch_names:
+        if ch_name not in info['ch_names']:
             raise ValueError('Channel %s of forward operator not present in '
-                             'raw_template.' % ch_name)
+                             'info.' % ch_name)
 
     # project the source estimate to the sensor space
     data, times = _apply_forward(fwd, stc, start, stop)
 
-    # store sensor data in Raw object using the template
-    raw = raw_template.copy()
+    sfreq = 1.0 / stc.tstep
+    info = _fill_measurement_info(info, fwd, sfreq)
+    info['projs'] = []
+    # store sensor data in Raw object using the info
+    raw = RawArray(data, info)
     raw.preload = True
-    raw._data = data
-    raw._times = times
 
-    sfreq = float(1.0 / stc.tstep)
-    raw.first_samp = int(np.round(raw._times[0] * sfreq))
-    raw.last_samp = raw.first_samp + raw._data.shape[1] - 1
-
-    # fill the measurement info
-    raw.info = _fill_measurement_info(raw.info, fwd, sfreq)
-
-    raw.info['projs'] = []
+    raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
+    raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
     raw._projector = None
-
+    raw._update_times()
     return raw
 
 
@@ -1231,6 +1249,10 @@ def restrict_forward_to_stc(fwd, stc):
     -------
     fwd_out : dict
         Restricted forward operator.
+
+    See Also
+    --------
+    restrict_forward_to_label
     """
 
     fwd_out = deepcopy(fwd)
@@ -1249,12 +1271,12 @@ def restrict_forward_to_stc(fwd, stc):
     fwd_out['sol']['ncol'] = len(idx)
 
     for i in range(2):
-        fwd_out['src'][i]['vertno'] = stc.vertno[i]
-        fwd_out['src'][i]['nuse'] = len(stc.vertno[i])
+        fwd_out['src'][i]['vertno'] = stc.vertices[i]
+        fwd_out['src'][i]['nuse'] = len(stc.vertices[i])
         fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
         fwd_out['src'][i]['inuse'].fill(0)
-        fwd_out['src'][i]['inuse'][stc.vertno[i]] = 1
-        fwd_out['src'][i]['use_tris'] = np.array([])
+        fwd_out['src'][i]['inuse'][stc.vertices[i]] = 1
+        fwd_out['src'][i]['use_tris'] = np.array([], int)
         fwd_out['src'][i]['nuse_tri'] = np.array([0])
 
     return fwd_out
@@ -1274,6 +1296,10 @@ def restrict_forward_to_label(fwd, labels):
     -------
     fwd_out : dict
         Restricted forward operator.
+
+    See Also
+    --------
+    restrict_forward_to_stc
     """
 
     if not isinstance(labels, list):
@@ -1287,11 +1313,11 @@ def restrict_forward_to_label(fwd, labels):
     fwd_out['sol']['ncol'] = 0
 
     for i in range(2):
-        fwd_out['src'][i]['vertno'] = np.array([])
+        fwd_out['src'][i]['vertno'] = np.array([], int)
         fwd_out['src'][i]['nuse'] = 0
         fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
         fwd_out['src'][i]['inuse'].fill(0)
-        fwd_out['src'][i]['use_tris'] = np.array([])
+        fwd_out['src'][i]['use_tris'] = np.array([], int)
         fwd_out['src'][i]['nuse_tri'] = np.array([0])
 
     for label in labels:
@@ -1302,8 +1328,8 @@ def restrict_forward_to_label(fwd, labels):
         else:
             i = 1
             src_sel = np.intersect1d(fwd['src'][1]['vertno'], label.vertices)
-            src_sel = (np.searchsorted(fwd['src'][1]['vertno'], src_sel)
-                       + len(fwd['src'][0]['vertno']))
+            src_sel = (np.searchsorted(fwd['src'][1]['vertno'], src_sel) +
+                       len(fwd['src'][0]['vertno']))
 
         fwd_out['source_rr'] = np.vstack([fwd_out['source_rr'],
                                           fwd['source_rr'][src_sel]])
@@ -1364,13 +1390,12 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     bem : str | None
         Name of the BEM to use (e.g., "sample-5120-5120-5120"). If None
         (Default), the MNE default will be used.
-    trans : str | None
-        File name of the trans file. If None, mri must not be None.
-    mri : dict | str | None
-        Either a transformation (usually made using mne_analyze) or an
-        info dict (usually opened using read_trans()), or a filename.
-        If dict, the trans will be saved in a temporary directory. If
-        None, trans must not be None.
+    mri : str | None
+        The name of the trans file in FIF format.
+        If None, trans must not be None.
+    trans : dict | str | None
+        File name of the trans file in text format.
+        If None, mri must not be None.
     eeg : bool
         If True (Default), include EEG computations.
     meg : bool
@@ -1391,6 +1416,10 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         Override the SUBJECTS_DIR environment variable.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    forward.make_forward_solution
 
     Returns
     -------
@@ -1590,16 +1619,16 @@ def average_forward_solutions(fwds, weights=None):
         check_keys = ['info', 'sol_grad', 'nchan', 'src', 'source_nn', 'sol',
                       'source_rr', 'source_ori', 'surf_ori', 'coord_frame',
                       'mri_head_t', 'nsource']
-        if not all([key in fwd for key in check_keys]):
+        if not all(key in fwd for key in check_keys):
             raise KeyError('forward solution dict does not have all standard '
                            'entries, cannot compute average.')
 
     # check forward solution compatibility
-    if any([fwd['sol'][k] != fwds[0]['sol'][k]
-            for fwd in fwds[1:] for k in ['nrow', 'ncol']]):
+    if any(fwd['sol'][k] != fwds[0]['sol'][k]
+           for fwd in fwds[1:] for k in ['nrow', 'ncol']):
         raise ValueError('Forward solutions have incompatible dimensions')
-    if any([fwd[k] != fwds[0][k] for fwd in fwds[1:]
-            for k in ['source_ori', 'surf_ori', 'coord_frame']]):
+    if any(fwd[k] != fwds[0][k] for fwd in fwds[1:]
+           for k in ['source_ori', 'surf_ori', 'coord_frame']):
         raise ValueError('Forward solutions have incompatible orientations')
 
     # actually average them (solutions and gradients)

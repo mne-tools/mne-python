@@ -14,7 +14,7 @@ from .parallel import parallel_func
 from .cov import _check_n_samples
 from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
-from .source_estimate import SourceEstimate
+from .source_estimate import SourceEstimate, VolSourceEstimate
 from .io.proj import make_projector, make_eeg_average_ref_proj
 
 
@@ -31,6 +31,10 @@ def read_proj(fname):
     -------
     projs : list
         The list of projection vectors.
+
+    See Also
+    --------
+    write_proj
     """
     check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
 
@@ -51,6 +55,10 @@ def write_proj(fname, projs):
 
     projs : list
         The list of projection vectors.
+
+    See Also
+    --------
+    read_proj
     """
     check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
 
@@ -63,7 +71,8 @@ def write_proj(fname, projs):
 def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
     mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
     grad_ind = pick_types(info, meg='grad', ref_meg=False, exclude='bads')
-    eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False, exclude='bads')
+    eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                         exclude='bads')
 
     if (n_grad > 0) and len(grad_ind) == 0:
         logger.info("No gradiometers found. Forcing n_grad to 0")
@@ -104,7 +113,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
 
 @verbose
 def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
-                        verbose=None):
+                        desc_prefix=None, verbose=None):
     """Compute SSP (spatial space projection) vectors on Epochs
 
     Parameters
@@ -119,6 +128,9 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         Number of vectors for EEG channels
     n_jobs : int
         Number of jobs to use to compute covariance
+    desc_prefix : str | None
+        The description prefix to use. If None, one will be created based on
+        the event_id, tmin, and tmax.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -126,6 +138,10 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     -------
     projs: list
         List of projection vectors
+
+    See Also
+    --------
+    compute_proj_raw, compute_proj_evoked
     """
     # compute data covariance
     data = _compute_cov_epochs(epochs, n_jobs)
@@ -136,7 +152,8 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         event_id = str(list(event_id.values())[0])
     else:
         event_id = 'Multiple-events'
-    desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
+    if desc_prefix is None:
+        desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
     return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix)
 
 
@@ -175,6 +192,10 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
     -------
     projs : list
         List of projection vectors
+
+    See Also
+    --------
+    compute_proj_raw, compute_proj_epochs
     """
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
     desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
@@ -189,27 +210,27 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     Parameters
     ----------
     raw : instance of Raw
-        A raw object to use the data from
+        A raw object to use the data from.
     start : float
-        Time (in sec) to start computing SSP
+        Time (in sec) to start computing SSP.
     stop : float
-        Time (in sec) to stop computing SSP
-        None will go to the end of the file
+        Time (in sec) to stop computing SSP.
+        None will go to the end of the file.
     duration : float
         Duration (in sec) to chunk data into for SSP
         If duration is None, data will not be chunked.
     n_grad : int
-        Number of vectors for gradiometers
+        Number of vectors for gradiometers.
     n_mag : int
-        Number of vectors for magnetometers
+        Number of vectors for magnetometers.
     n_eeg : int
-        Number of vectors for EEG channels
-    reject : dict
-        Epoch rejection configuration (see Epochs)
-    flat : dict
-        Epoch flat configuration (see Epochs)
+        Number of vectors for EEG channels.
+    reject : dict | None
+        Epoch rejection configuration (see Epochs).
+    flat : dict | None
+        Epoch flat configuration (see Epochs).
     n_jobs : int
-        Number of jobs to use to compute covariance
+        Number of jobs to use to compute covariance.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -217,6 +238,10 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     -------
     projs: list
         List of projection vectors
+
+    See Also
+    --------
+    compute_proj_epochs, compute_proj_evoked
     """
     if duration is not None:
         events = make_fixed_length_events(raw, 999, start, stop, duration)
@@ -273,17 +298,17 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
-    Return
-    ------
-    stc : SourceEstimate
-        The sensitivity map as a SourceEstimate instance for
-        visualization.
+    Returns
+    -------
+    stc : SourceEstimate | VolSourceEstimate
+        The sensitivity map as a SourceEstimate or VolSourceEstimate instance
+        for visualization.
     """
     # check strings
-    if not ch_type in ['eeg', 'grad', 'mag']:
+    if ch_type not in ['eeg', 'grad', 'mag']:
         raise ValueError("ch_type should be 'eeg', 'mag' or 'grad (got %s)"
                          % ch_type)
-    if not mode in ['free', 'fixed', 'ratio', 'radiality', 'angle',
+    if mode not in ['free', 'fixed', 'ratio', 'radiality', 'angle',
                     'remaining', 'dampening']:
         raise ValueError('Unknown mode type (got %s)' % mode)
 
@@ -359,9 +384,13 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     if mode in ['fixed', 'free']:
         sensitivity_map /= np.max(sensitivity_map)
 
-    vertices = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
     subject = _subject_from_forward(fwd)
-    stc = SourceEstimate(sensitivity_map[:, np.newaxis],
-                         vertices=vertices, tmin=0, tstep=1,
-                         subject=subject)
+    if fwd['src'][0]['type'] == 'vol':  # volume source space
+        vertices = fwd['src'][0]['vertno']
+        SEClass = VolSourceEstimate
+    else:
+        vertices = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
+        SEClass = SourceEstimate
+    stc = SEClass(sensitivity_map[:, np.newaxis], vertices=vertices, tmin=0,
+                  tstep=1, subject=subject)
     return stc

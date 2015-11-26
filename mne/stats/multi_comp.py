@@ -83,7 +83,7 @@ def bonferroni_correction(pval, alpha=0.05):
 
     Parameters
     ----------
-    pvals : array_like
+    pval : array_like
         set of p-values of the individual tests.
     alpha : float
         error rate
@@ -98,5 +98,5 @@ def bonferroni_correction(pval, alpha=0.05):
     """
     pval = np.asarray(pval)
     pval_corrected = pval * float(pval.size)
-    reject = pval < alpha
+    reject = pval_corrected < alpha
     return reject, pval_corrected

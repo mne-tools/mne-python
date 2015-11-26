@@ -108,8 +108,8 @@ def test_source_psd():
     assert_true(stc.times[0] >= fmin * 1e-3)
     assert_true(stc.times[-1] <= fmax * 1e-3)
     # Time max at line frequency (60 Hz in US)
-    assert_true(59e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))]
-                <= 61e-3)
+    assert_true(59e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <=
+                61e-3)
 
 
 @testing.requires_testing_data

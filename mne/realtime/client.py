@@ -7,7 +7,6 @@ from __future__ import print_function
 
 import socket
 import time
-import struct
 from ..externals.six.moves import StringIO
 import threading
 
@@ -43,7 +42,7 @@ def _recv_tag_raw(sock):
     if len(s) != 16:
         raise RuntimeError('Not enough bytes received, something is wrong. '
                            'Make sure the mne_rt_server is running.')
-    tag = Tag(*struct.unpack(">iiii", s))
+    tag = Tag(*np.fromstring(s, '>i4'))
     n_received = 0
     rec_buff = [s]
     while n_received < tag.size:
@@ -150,10 +149,10 @@ class RtClient(object):
 
         buf, chunk, begin = [], '', time.time()
         while True:
-            #if we got some data, then break after wait sec
+            # if we got some data, then break after wait sec
             if buf and time.time() - begin > self._timeout:
                 break
-            #if we got no data at all, wait a little longer
+            # if we got no data at all, wait a little longer
             elif time.time() - begin > self._timeout * 2:
                 break
             try:
@@ -258,7 +257,7 @@ class RtClient(object):
         else:
             raise RuntimeError('wrong tag received')
 
-        return  client_id
+        return client_id
 
     def start_measurement(self):
         """Start the measurement"""
@@ -287,7 +286,7 @@ class RtClient(object):
                                                  args=(self, nchan))
             self._recv_thread.start()
 
-    def stop_receive_thread(self, nchan, stop_measurement=False):
+    def stop_receive_thread(self, stop_measurement=False):
         """Stop the receive thread
 
         Parameters
@@ -316,6 +315,11 @@ class RtClient(object):
 
     def unregister_receive_callback(self, callback):
         """Unregister a raw buffer receive callback
+
+        Parameters
+        ----------
+        callback : function
+            The callback to unregister.
         """
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)

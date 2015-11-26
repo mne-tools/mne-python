@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal)
@@ -11,7 +12,7 @@ from mne.stats.cluster_level import (permutation_cluster_test,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, slow_test, _TempDir, catch_logging
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -42,6 +43,40 @@ def _get_conditions():
     return condition1_1d, condition2_1d, condition1_2d, condition2_2d
 
 
+def test_cache_dir():
+    """Test use of cache dir
+    """
+    tempdir = _TempDir()
+    orig_dir = os.getenv('MNE_CACHE_DIR', None)
+    orig_size = os.getenv('MNE_MEMMAP_MIN_SIZE', None)
+    rng = np.random.RandomState(0)
+    X = rng.randn(9, 2, 10)
+    try:
+        os.environ['MNE_MEMMAP_MIN_SIZE'] = '1K'
+        os.environ['MNE_CACHE_DIR'] = tempdir
+        # Fix error for #1507: in-place when memmapping
+        with catch_logging() as log_file:
+            permutation_cluster_1samp_test(
+                X, buffer_size=None, n_jobs=2, n_permutations=1,
+                seed=0, stat_fun=ttest_1samp_no_p, verbose=False)
+            # ensure that non-independence yields warning
+            stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
+            assert_true('independently' not in log_file.getvalue())
+            permutation_cluster_1samp_test(
+                X, buffer_size=10, n_jobs=2, n_permutations=1,
+                seed=0, stat_fun=stat_fun, verbose=False)
+            assert_true('independently' in log_file.getvalue())
+    finally:
+        if orig_dir is not None:
+            os.environ['MNE_CACHE_DIR'] = orig_dir
+        else:
+            del os.environ['MNE_CACHE_DIR']
+        if orig_size is not None:
+            os.environ['MNE_MEMMAP_MIN_SIZE'] = orig_size
+        else:
+            del os.environ['MNE_MEMMAP_MIN_SIZE']
+
+
 def test_permutation_step_down_p():
     """Test cluster level permutations with step_down_p
     """
@@ -49,7 +84,7 @@ def test_permutation_step_down_p():
         try:
             from sklearn.feature_extraction.image import grid_to_graph
         except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa, analysis:ignore
+            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa
     except ImportError:
         return
     rng = np.random.RandomState(0)
@@ -101,6 +136,7 @@ def test_cluster_permutation_test():
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
 
+@slow_test
 def test_cluster_permutation_t_test():
     """Test cluster level permutations T-test
     """
@@ -206,7 +242,7 @@ def test_cluster_permutation_with_connectivity():
 
         # Make sure that we got the old ones back
         data_1 = set([np.sum(out[0][b[:n_pts]]) for b in out[1]])
-        data_2 = set([np.sum(out_connectivity_2[0][a[:n_pts]]) for a in
+        data_2 = set([np.sum(out_connectivity_2[0][a]) for a in
                      out_connectivity_2[1][:]])
         assert_true(len(data_1.intersection(data_2)) == len(data_1))
 
@@ -293,6 +329,7 @@ def test_cluster_permutation_with_connectivity():
         assert_true(np.min(out_connectivity_6[2]) < 0.05)
 
 
+@slow_test
 def test_permutation_connectivity_equiv():
     """Test cluster level permutations with and without connectivity
     """
@@ -370,8 +407,9 @@ def test_permutation_connectivity_equiv():
                 assert_array_equal(stat_map, this_stat_map)
 
 
+@slow_test
 def spatio_temporal_cluster_test_connectivity():
-    """Test cluster level permutations with and without connectivity
+    """Test spatio-temporal cluster permutations
     """
     try:
         try:

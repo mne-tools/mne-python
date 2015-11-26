@@ -24,7 +24,7 @@ from ..surface import read_surface
 from ..io.proj import make_projector
 from ..utils import logger, verbose, get_subjects_dir
 from ..io.pick import pick_types
-from .utils import tight_layout, COLORS, _prepare_trellis
+from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
 
 
 @verbose
@@ -45,11 +45,11 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         Show colorbar or not.
     proj : bool
         Apply projections or not.
-    show : bool
-        Call pyplot.show() as the end or not.
     show_svd : bool
-        Plot also singular values of the noise covariance for each sensor type.
-        We show square roots ie. standard deviations.
+        Plot also singular values of the noise covariance for each sensor
+        type. We show square roots ie. standard deviations.
+    show : bool
+        Show figure if True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -124,9 +124,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             plt.title(name)
             tight_layout(fig=fig_svd)
 
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig_cov, fig_svd
 
 
@@ -176,13 +174,13 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     freq_bounds = sorted(set(np.ravel(freq_bins)))
     freq_ticks = copy.deepcopy(freq_bounds)
 
-    # Rejecting time points that will not be plotted
+    # Reject time points that will not be plotted and gather results
+    source_power = []
     for stc in stcs:
-        # Using 1e-10 to improve numerical stability
-        stc.crop(tmin - 1e-10, tmax - stc.tstep + 1e-10)
-
-    # Gathering results for each time window
-    source_power = np.array([stc.data for stc in stcs])
+        stc = stc.copy()  # copy since crop modifies inplace
+        stc.crop(tmin, tmax - stc.tstep)
+        source_power.append(stc.data)
+    source_power = np.array(source_power)
 
     # Finding the source with maximum source power
     if source_index is None:
@@ -236,9 +234,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
         plt.barh(lower_bound, time_bounds[-1] - time_bounds[0], upper_bound -
                  lower_bound, time_bounds[0], color='#666666')
 
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
@@ -254,11 +250,11 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         The filenames for the BEM surfaces in the format
         ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
     orientation : str
-        'coronal' or 'transverse' or 'sagittal'
+        'coronal' or 'axial' or 'sagittal'
     slices : list of int
         Slice indices.
     show : bool
-        Call pyplot.show() at the end.
+        Show figure if True.
 
     Returns
     -------
@@ -330,11 +326,9 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
                               surf['tris'], surf['rr'][:, 0],
                               levels=[sl], colors='yellow', linewidths=2.0)
 
-    if show:
-        plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
-                            hspace=0.)
-        plt.show()
-
+    plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
+                        hspace=0.)
+    plt_show(show)
     return fig
 
 
@@ -350,11 +344,11 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
     orientation : str
-        'coronal' or 'transverse' or 'sagittal'.
+        'coronal' or 'axial' or 'sagittal'.
     slices : list of int
         Slice indices.
     show : bool
-        Call pyplot.show() at the end.
+        Show figure if True.
 
     Returns
     -------
@@ -377,14 +371,14 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     surf_fnames = []
     for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
         surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
-        if len(surf_name) > 0:
+        if len(surf_fname) > 0:
             surf_fname = surf_fname[0]
             logger.info("Using surface: %s" % surf_fname)
-        else:
-            raise IOError('No surface found for %s.' % surf_name)
-        if not op.isfile(surf_fname):
-            raise IOError('Surface file "%s" does not exist' % surf_fname)
-        surf_fnames.append(surf_fname)
+            surf_fnames.append(surf_fname)
+
+    if len(surf_fnames) == 0:
+        raise IOError('No surface files found. Surface files must end with '
+                      'inner_skull.surf, outer_skull.surf or outer_skin.surf')
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surf_fnames, orientation=orientation,
@@ -420,12 +414,16 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     equal_spacing : bool
         Use equal spacing between events in y-axis.
     show : bool
-        Call pyplot.show() at the end.
+        Show figure if True.
 
     Returns
     -------
     fig : matplotlib.figure.Figure
         The figure object containing the plot.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     if sfreq is None:
@@ -490,7 +488,9 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         ev_mask = events[:, 2] == ev
         kwargs = {}
         if event_id is not None:
-            kwargs['label'] = event_id_rev[ev]
+            event_label = '{0} ({1})'.format(event_id_rev[ev],
+                                             np.sum(ev_mask))
+            kwargs['label'] = event_label
         if ev in color:
             kwargs['color'] = color[ev]
         if equal_spacing:
@@ -512,13 +512,14 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
     ax.grid('on')
 
+    fig = fig if fig is not None else plt.gcf()
     if event_id is not None:
-        ax.legend()
-
-    if show:
-        plt.show()
-
-    return fig if fig is not None else plt.gcf()
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.canvas.draw()
+    plt_show(show)
+    return fig
 
 
 def _get_presser(fig):
@@ -531,3 +532,41 @@ def _get_presser(fig):
             break
     assert func is not None
     return func
+
+
+def plot_dipole_amplitudes(dipoles, colors=None, show=True):
+    """Plot the amplitude traces of a set of dipoles
+
+    Parameters
+    ----------
+    dipoles : list of instance of Dipoles
+        The dipoles whose amplitudes should be shown.
+    colors: list of colors | None
+        Color to plot with each dipole. If None default colors are used.
+    show : bool
+        Show figure if True.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure object containing the plot.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    import matplotlib.pyplot as plt
+    if colors is None:
+        colors = cycle(COLORS)
+    fig, ax = plt.subplots(1, 1)
+    xlim = [np.inf, -np.inf]
+    for dip, color in zip(dipoles, colors):
+        ax.plot(dip.times, dip.amplitude, color=color, linewidth=1.5)
+        xlim[0] = min(xlim[0], dip.times[0])
+        xlim[1] = max(xlim[1], dip.times[-1])
+    ax.set_xlim(xlim)
+    ax.set_xlabel('Time (sec)')
+    ax.set_ylabel('Amplitude (nAm)')
+    if show:
+        fig.show(warn=False)
+    return fig

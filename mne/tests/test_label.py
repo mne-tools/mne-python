@@ -12,14 +12,14 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 
 from mne.datasets import testing
-from mne import (label_time_courses, read_label, stc_to_label,
-                 read_source_estimate, read_source_spaces, grow_labels,
-                 read_labels_from_annot, write_labels_to_annot, split_label)
+from mne import (read_label, stc_to_label, read_source_estimate,
+                 read_source_spaces, grow_labels, read_labels_from_annot,
+                 write_labels_to_annot, split_label, spatial_tris_connectivity,
+                 read_surface)
 from mne.label import Label, _blend_colors
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main)
+                       run_tests_if_main, slow_test)
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
-from mne import spatial_tris_connectivity, read_surface
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
@@ -111,7 +111,7 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
     labels = []
     cnt = 0
     for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
-            zip(['lh', 'rh'], stc.vertno, tris, rr)):
+            zip(['lh', 'rh'], stc.vertices, tris, rr)):
         this_data = stc.data[cnt:cnt + len(this_vertno)]
         e = mesh_edges(this_tris)
         e.data[e.data == 2] = 1
@@ -149,8 +149,13 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
     return labels
 
 
-def assert_labels_equal(l0, l1, decimal=5):
-    for attr in ['comment', 'hemi', 'subject', 'color']:
+def assert_labels_equal(l0, l1, decimal=5, comment=True, color=True):
+    if comment:
+        assert_equal(l0.comment, l1.comment)
+    if color:
+        assert_equal(l0.color, l1.color)
+
+    for attr in ['hemi', 'subject']:
         attr0 = getattr(l0, attr)
         attr1 = getattr(l1, attr)
         msg = "label.%s: %r != %r" % (attr, attr0, attr1)
@@ -175,7 +180,7 @@ def test_label_subject():
 def test_label_addition():
     """Test label addition
     """
-    pos = np.random.rand(10, 3)
+    pos = np.random.RandomState(0).rand(10, 3)
     values = np.arange(10.) / 10
     idx0 = list(range(7))
     idx1 = list(range(7, 10))  # non-overlapping
@@ -186,11 +191,23 @@ def test_label_addition():
 
     assert_equal(len(l0), len(idx0))
 
+    l_good = l0.copy()
+    l_good.subject = 'sample'
+    l_bad = l1.copy()
+    l_bad.subject = 'foo'
+    assert_raises(ValueError, l_good.__add__, l_bad)
+    assert_raises(TypeError, l_good.__add__, 'foo')
+    assert_raises(ValueError, l_good.__sub__, l_bad)
+    assert_raises(TypeError, l_good.__sub__, 'foo')
+
     # adding non-overlapping labels
     l01 = l0 + l1
     assert_equal(len(l01), len(l0) + len(l1))
     assert_array_equal(l01.values[:len(l0)], l0.values)
     assert_equal(l01.color, l0.color)
+    # subtraction
+    assert_labels_equal(l01 - l0, l1, comment=False, color=False)
+    assert_labels_equal(l01 - l1, l0, comment=False, color=False)
 
     # adding overlappig labels
     l = l0 + l2
@@ -209,10 +226,26 @@ def test_label_addition():
     assert_equal(bhl.hemi, 'both')
     assert_equal(len(bhl), len(l0) + len(l2))
     assert_equal(bhl.color, l.color)
+    assert_true('BiHemiLabel' in repr(bhl))
+    # subtraction
+    assert_labels_equal(bhl - l0, l2)
+    assert_labels_equal(bhl - l2, l0)
 
     bhl2 = l1 + bhl
     assert_labels_equal(bhl2.lh, l01)
     assert_equal(bhl2.color, _blend_colors(l1.color, bhl.color))
+    assert_array_equal((l2 + bhl).rh.vertices, bhl.rh.vertices)  # rh label
+    assert_array_equal((bhl + bhl).lh.vertices, bhl.lh.vertices)
+    assert_raises(TypeError, bhl.__add__, 5)
+
+    # subtraction
+    bhl_ = bhl2 - l1
+    assert_labels_equal(bhl_.lh, bhl.lh, comment=False, color=False)
+    assert_labels_equal(bhl_.rh, bhl.rh)
+    assert_labels_equal(bhl2 - l2, l0 + l1)
+    assert_labels_equal(bhl2 - l1 - l0, l2)
+    bhl_ = bhl2 - bhl2
+    assert_array_equal(bhl_.vertices, [])
 
 
 @testing.requires_testing_data
@@ -249,9 +282,12 @@ def test_label_in_src():
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
-    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
-    assert_true(len(times) == values.shape[1])
-    assert_true(len(vertices) == values.shape[0])
+    stc = read_source_estimate(stc_fname)
+    label = read_label(real_label_fname)
+    stc_label = stc.in_label(label)
+
+    assert_true(len(stc_label.times) == stc_label.data.shape[1])
+    assert_true(len(stc_label.vertices[0]) == stc_label.data.shape[0])
 
 
 @testing.requires_testing_data
@@ -308,6 +344,8 @@ def test_annot_io():
     shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
 
     # read original labels
+    assert_raises(IOError, read_labels_from_annot, subject, 'PALS_B12_Lobesey',
+                  subjects_dir=tempdir)
     labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
                                     subjects_dir=tempdir)
 
@@ -362,9 +400,7 @@ def test_read_labels_from_annot():
     for label in labels_rh:
         assert_true(label.name.endswith('-rh'))
         assert_true(label.hemi == 'rh')
-        # XXX doesn't work on py26 for some reason
-        if sys.version_info[:2] > (2, 6):
-            assert_is_not(label.color, None)
+        assert_is_not(label.color, None)
 
     # combine the lh, rh, labels and sort them
     labels_lhrh = list()
@@ -417,9 +453,39 @@ def test_write_labels_to_annot():
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
-    # write left and right hemi labels:
-    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
+    # create temporary subjects-dir skeleton
+    surf_dir = op.join(subjects_dir, 'sample', 'surf')
+    temp_surf_dir = op.join(tempdir, 'sample', 'surf')
+    os.makedirs(temp_surf_dir)
+    shutil.copy(op.join(surf_dir, 'lh.white'), temp_surf_dir)
+    shutil.copy(op.join(surf_dir, 'rh.white'), temp_surf_dir)
+    os.makedirs(op.join(tempdir, 'sample', 'label'))
 
+    # test automatic filenames
+    dst = op.join(tempdir, 'sample', 'label', '%s.%s.annot')
+    write_labels_to_annot(labels, 'sample', 'test1', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test1')))
+    assert_true(op.exists(dst % ('rh', 'test1')))
+    # lh only
+    for label in labels:
+        if label.hemi == 'lh':
+            break
+    write_labels_to_annot([label], 'sample', 'test2', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test2')))
+    assert_true(op.exists(dst % ('rh', 'test2')))
+    # rh only
+    for label in labels:
+        if label.hemi == 'rh':
+            break
+    write_labels_to_annot([label], 'sample', 'test3', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test3')))
+    assert_true(op.exists(dst % ('rh', 'test3')))
+    # label alone
+    assert_raises(TypeError, write_labels_to_annot, labels[0], 'sample',
+                  'test4', subjects_dir=tempdir)
+
+    # write left and right hemi labels with filenames:
+    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
     for fname in fnames:
         write_labels_to_annot(labels, annot_fname=fname)
 
@@ -492,6 +558,12 @@ def test_write_labels_to_annot():
     assert_equal(label1.name, "unknown-lh")
     assert_true(np.all(in1d(label0.vertices, label1.vertices)))
 
+    # unnamed labels
+    labels4 = labels[:]
+    labels4[0].name = None
+    assert_raises(ValueError, write_labels_to_annot, labels4,
+                  annot_fname=fnames[0])
+
 
 @testing.requires_testing_data
 def test_split_label():
@@ -533,6 +605,7 @@ def test_split_label():
     assert_equal(antmost.name, "lingual_div40-lh")
 
 
+@slow_test
 @testing.requires_testing_data
 @requires_sklearn
 def test_stc_to_label():
@@ -564,11 +637,11 @@ def test_stc_to_label():
     assert_equal(len(labels_rh), 1)
 
     # test getting tris
-    tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertno[0])
+    tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertices[0])
     assert_raises(ValueError, spatial_tris_connectivity, tris,
                   remap_vertices=False)
     connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
-    assert_true(connectivity.shape[0] == len(stc.vertno[0]))
+    assert_true(connectivity.shape[0] == len(stc.vertices[0]))
 
     # "src" as a subject name
     assert_raises(TypeError, stc_to_label, stc, src=1, smooth=False,
@@ -595,6 +668,7 @@ def test_stc_to_label():
         assert_labels_equal(l1, l2, decimal=4)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_morph():
     """Test inter-subject label morphing
@@ -609,7 +683,7 @@ def test_morph():
         # this should throw an error because the label has all zero values
         assert_raises(ValueError, label.morph, 'sample', 'fsaverage')
         label.values.fill(1)
-        label.morph(None, 'fsaverage', 5, grade, subjects_dir, 2,
+        label.morph(None, 'fsaverage', 5, grade, subjects_dir, 1,
                     copy=False)
         label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2,
                     copy=False)
@@ -619,9 +693,15 @@ def test_morph():
     assert_array_equal(vals[0], vals[1])
     # make sure label smoothing can run
     assert_equal(label.subject, 'sample')
-    label.morph(label.subject, 'fsaverage', 5,
-                [np.arange(10242), np.arange(10242)], subjects_dir, 2,
-                copy=False)
+    verts = [np.arange(10242), np.arange(10242)]
+    for hemi in ['lh', 'rh']:
+        label.hemi = hemi
+        label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
+    assert_raises(TypeError, label.morph, None, 1, 5, verts,
+                  subjects_dir, 2)
+    assert_raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
+                  subjects_dir, 2)
+    label.smooth(subjects_dir=subjects_dir)  # make sure this runs
 
 
 @testing.requires_testing_data
@@ -664,28 +744,6 @@ def test_grow_labels():
     l0 = l01 + l02
     l1 = l11 + l12
     assert_array_equal(l1.vertices, l0.vertices)
-
-
-@testing.requires_testing_data
-def test_label_time_course():
-    """Test extracting label data from SourceEstimate"""
-    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
-    stc = read_source_estimate(stc_fname)
-    label_lh = read_label(real_label_fname)
-    stc_lh = stc.in_label(label_lh)
-    assert_array_almost_equal(stc_lh.data, values)
-    assert_array_almost_equal(stc_lh.times, times)
-    assert_array_almost_equal(stc_lh.vertno[0], vertices)
-
-    label_rh = read_label(real_label_rh_fname)
-    stc_rh = stc.in_label(label_rh)
-    label_bh = label_rh + label_lh
-    label_bh_2 = label_lh + label_rh
-    label_bh_3 = label_bh + label_bh_2
-    assert_true(repr(label_bh))  # test __repr__
-    for check in (label_bh, label_bh_2, label_bh_3):
-        stc_bh = stc.in_label(check)
-        assert_array_equal(stc_bh.data, np.vstack((stc_lh.data, stc_rh.data)))
 
 
 run_tests_if_main()

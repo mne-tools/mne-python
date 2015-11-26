@@ -63,7 +63,7 @@ def _run(subjects_dir, subject, force, overwrite, verbose=None):
     this_env['SUBJECTS_DIR'] = subjects_dir
     this_env['SUBJECT'] = subject
 
-    if not 'SUBJECTS_DIR' in this_env:
+    if 'SUBJECTS_DIR' not in this_env:
         raise RuntimeError('The environment variable SUBJECTS_DIR should '
                            'be set')
 
@@ -72,10 +72,10 @@ def _run(subjects_dir, subject, force, overwrite, verbose=None):
                            'the environment variable SUBJECTS_DIR or '
                            'the command line option --subjects-dir')
 
-    if not 'MNE_ROOT' in this_env:
+    if 'MNE_ROOT' not in this_env:
         raise RuntimeError('MNE_ROOT environment variable is not set')
 
-    if not 'FREESURFER_HOME' in this_env:
+    if 'FREESURFER_HOME' not in this_env:
         raise RuntimeError('The FreeSurfer environment needs to be set up '
                            'for this script')
     force = '--force' if force else '--check'
