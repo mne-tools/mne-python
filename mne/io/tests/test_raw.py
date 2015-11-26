@@ -1,7 +1,8 @@
 # Generic tests that all raw classes should run
 from os import path as op
-from numpy.testing import (assert_allclose, assert_array_almost_equal,
-                           assert_array_equal)
+import numpy as np
+from numpy.testing import assert_allclose, assert_array_almost_equal
+
 from nose.tools import assert_equal
 
 from mne.datasets import testing
@@ -9,7 +10,7 @@ from mne.io import Raw
 from mne.utils import _TempDir
 
 
-def _test_raw_object(reader, test_preloading, **kwargs):
+def _test_raw_object(reader, test_preloading, test_blocks=False, **kwargs):
     """Test reading, writing and slicing of raw classes.
 
     Parameters
@@ -30,19 +31,30 @@ def _test_raw_object(reader, test_preloading, **kwargs):
     tempdir = _TempDir()
     raws = list()
     raws.append(reader(**kwargs))
-    picks = [1, 3, 5]
-    bnd = 100
+    rng = np.random.RandomState(0)
+    picks = rng.permutation(np.arange(len(raws[0].ch_names)))[:10]
+    picks.sort()
     if test_preloading:
         buffer_fname = op.join(tempdir, 'buffer')
         raws.append(reader(preload=buffer_fname, **kwargs))
         raws.append(reader(preload=True, **kwargs))
 
+        if test_blocks:
+            bnd = int(round(raws[0].info['buffer_size_sec'] *
+                            raws[0].info['sfreq']))
+        else:
+            bnd = raws[0].n_times // 2
         slices = (slice(0, bnd), slice(bnd - 1, bnd), slice(3, bnd),
-                  slice(None))
+                  slice(3, 300), slice(None))
+        if raws[0].n_times >= 2 * bnd:  # at least two complete blocks
+            slices = slices + (slice(bnd, 2 * bnd), slice(bnd, bnd + 1),
+                               slice(0, bnd + 100))
         for sl_time in slices:
             for raw in raws[1:]:
-                assert_array_equal(raws[0][picks, sl_time][0],
-                                   raw[picks, sl_time][0])
+                data1, times1 = raws[0][picks, sl_time]
+                data2, times2 = raw[picks, sl_time]
+                assert_allclose(data1, data2)
+                assert_allclose(times1, times2)
 
     raw = raws[-1]  # use preloaded raw
     full_data = raw._data
