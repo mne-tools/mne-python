@@ -152,7 +152,7 @@ class RawFIF(_BaseRaw):
         with ff as fid:
             #   Read the measurement info
 
-            info, meas = read_meas_info(fid, tree)
+            info, meas = read_meas_info(fid, tree, clean_bads=True)
 
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
