@@ -134,36 +134,33 @@ class RawEDF(_BaseRaw):
         read_size = len(r_lims) * buf_len
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
-            fid.seek(data_offset +
-                     block_start_idx * buf_len * n_chan * data_size)
+            start_offset = (data_offset +
+                            block_start_idx * buf_len * n_chan * data_size)
+            ch_offsets = np.cumsum(np.concatenate([[0], n_samps])) * data_size
             this_data = np.empty((len(sel), buf_len))
             for bi in range(len(r_lims)):
+                block_offset = bi * ch_offsets[-1]
                 d_sidx, d_eidx = d_lims[bi]
                 r_sidx, r_eidx = r_lims[bi]
                 n_buf_samp = r_eidx - r_sidx
-                count = 0
-                for j, samp in enumerate(n_samps):
+                for ii, ci in enumerate(sel):
+                    n_samp = n_samps[ci]
                     # bdf data: 24bit data
-                    if j not in sel:
-                        fid.seek(samp * data_size, 1)
-                        continue
-                    if samp == buf_len:
+                    fid.seek(start_offset + block_offset + ch_offsets[ci], 0)
+                    if n_samp == buf_len:
                         # use faster version with skips built in
-                        if r_sidx > 0:
-                            fid.seek(r_sidx * data_size, 1)
+                        fid.seek(r_sidx * data_size, 1)
                         ch_data = _read_ch(fid, subtype, n_buf_samp, data_size)
-                        if r_eidx < buf_len:
-                            fid.seek((buf_len - r_eidx) * data_size, 1)
                     else:
                         # read in all the data and triage appropriately
-                        ch_data = _read_ch(fid, subtype, samp, data_size)
-                        if j == tal_channel:
+                        ch_data = _read_ch(fid, subtype, n_samp, data_size)
+                        if ci == tal_channel:
                             # don't resample tal_channel,
                             # pad with zeros instead.
-                            n_missing = int(buf_len - samp)
+                            n_missing = int(buf_len - n_samp)
                             ch_data = np.hstack([ch_data, [0] * n_missing])
                             ch_data = ch_data[r_sidx:r_eidx]
-                        elif j == stim_channel:
+                        elif ci == stim_channel:
                             if annot and annotmap or \
                                     tal_channel is not None:
                                 # don't bother with resampling the stim ch
@@ -172,17 +169,16 @@ class RawEDF(_BaseRaw):
                             else:
                                 warnings.warn('Interpolating stim channel.'
                                               ' Events may jitter.')
-                                oldrange = np.linspace(0, 1, samp + 1, True)
+                                oldrange = np.linspace(0, 1, n_samp + 1, True)
                                 newrange = np.linspace(0, 1, buf_len, False)
                                 newrange = newrange[r_sidx:r_eidx]
                                 ch_data = interp1d(
                                     oldrange, np.append(ch_data, 0),
                                     kind='zero')(newrange)
                         else:
-                            ch_data = resample(ch_data, buf_len, samp,
+                            ch_data = resample(ch_data, buf_len, n_samp,
                                                npad=0)[r_sidx:r_eidx]
-                    this_data[count, :n_buf_samp] = ch_data
-                    count += 1
+                    this_data[ii, :n_buf_samp] = ch_data
                 data[:, d_sidx:d_eidx] = this_data[:, :n_buf_samp]
         data *= gains.T[sel]
         data += offsets[sel]
