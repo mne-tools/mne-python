@@ -76,8 +76,8 @@ class RawBrainVision(_BaseRaw):
             n_samples = f.tell()
         dtype_bytes = _fmt_byte_dict[fmt]
         self.preload = False  # so the event-setting works
-        self.set_brainvision_events(events)
         last_samps = [(n_samples // (dtype_bytes * (info['nchan'] - 1))) - 1]
+        self._create_event_ch(events, last_samps[0] + 1)
         super(RawBrainVision, self).__init__(
             info, last_samps=last_samps, filenames=[info['filename']],
             orig_format=fmt, preload=preload, verbose=verbose)
@@ -100,7 +100,7 @@ class RawBrainVision(_BaseRaw):
         data_ = np.empty((n_data_ch + 1, n_times), dtype=np.float64)
         data_[:-1] = data_buffer  # cast to float64
         del data_buffer
-        data_[-1] = _synthesize_stim_channel(self._events, start, stop)
+        data_[-1] = self._event_ch[start:stop]
         _mult_cal_one(data, data_, idx, cals, mult)
 
     def get_brainvision_events(self):
@@ -123,15 +123,20 @@ class RawBrainVision(_BaseRaw):
             Events, each row consisting of an (onset, duration, trigger)
             sequence.
         """
+        self._create_event_ch(events)
+
+    def _create_event_ch(self, events, n_samp=None):
+        """Create the event channel"""
+        if n_samp is None:
+            n_samp = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
         if events.ndim != 2 or events.shape[1] != 3:
             raise ValueError("[n_events x 3] shaped array required")
         # update events
+        self._event_ch = _synthesize_stim_channel(events, n_samp)
         self._events = events
         if self.preload:
-            start = self.first_samp
-            stop = self.last_samp + 1
-            self._data[-1] = _synthesize_stim_channel(events, start, stop)
+            self._data[-1] = self._event_ch
 
 
 def _read_vmrk_events(fname, response_trig_shift=0):
@@ -194,7 +199,7 @@ def _read_vmrk_events(fname, response_trig_shift=0):
     return events
 
 
-def _synthesize_stim_channel(events, start, stop):
+def _synthesize_stim_channel(events, n_samp):
     """Synthesize a stim channel from events read from a vmrk file
 
     Parameters
@@ -202,10 +207,8 @@ def _synthesize_stim_channel(events, start, stop):
     events : array, shape (n_events, 3)
         Each row representing an event as (onset, duration, trigger) sequence
         (the format returned by _read_vmrk_events).
-    start : int
-        First sample to return.
-    stop : int
-        Last sample to return.
+    n_samp : int
+        The number of samples.
 
     Returns
     -------
@@ -214,23 +217,10 @@ def _synthesize_stim_channel(events, start, stop):
     """
     # select events overlapping buffer
     onset = events[:, 0]
-    offset = onset + events[:, 1]
-    idx = np.logical_and(onset < stop, offset > start)
-    if idx.sum() > 0:  # fix for old numpy
-        events = events[idx]
-
-    # make onset relative to buffer
-    events[:, 0] -= start
-
-    # fix onsets before buffer start
-    idx = events[:, 0] < 0
-    events[idx, 0] = 0
-
     # create output buffer
-    stim_channel = np.zeros(stop - start)
+    stim_channel = np.zeros(n_samp, int)
     for onset, duration, trigger in events:
         stim_channel[onset:onset + duration] = trigger
-
     return stim_channel
 
 
