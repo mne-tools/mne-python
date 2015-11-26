@@ -1,4 +1,5 @@
-# Adapted from vispy
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#         Adapted from vispy
 #
 # License: BSD (3-clause)
 
@@ -8,8 +9,7 @@ from nose.plugins.skip import SkipTest
 from os import path as op
 import sys
 
-import mne
-from mne.utils import run_tests_if_main, _TempDir
+from mne.utils import run_tests_if_main, _TempDir, _get_root_dir
 
 
 skip_files = (
@@ -17,13 +17,6 @@ skip_files = (
     'FreeSurferColorLUT.txt',
     'test_edf_stim_channel.txt',
     'FieldTrip.py',
-    # binaries
-    'test_hs_linux',
-    'test_config_solaris',
-    'test_config_linux',
-    'test_hs_solaris',
-    'test_pdf_linux',
-    'test_pdf_solaris',
 )
 
 
@@ -32,18 +25,21 @@ def _assert_line_endings(dir_):
     if sys.platform == 'win32':
         raise SkipTest('Skipping line endings check on Windows')
     report = list()
+    good_exts = ('.py', '.dat', '.sel', '.lout', '.css', '.js', '.lay', '.txt',
+                 '.elc', '.csd', '.sfp', '.json', '.hpts', '.vmrk', '.vhdr',
+                 '.head', '.eve', '.ave', '.cov', '.sh', '.label')
     for dirpath, dirnames, filenames in os.walk(dir_):
         for fname in filenames:
-            if op.splitext(fname)[1] in ('.pyc', '.pyo', '.gz', '.mat',
-                                         '.gif', '.fif', '.stc', '.data',
-                                         '.eeg', '.edf', '.w', '.sqd',
-                                         '.bdf', '.raw') or \
-                    fname in skip_files:
+            if op.splitext(fname)[1] not in good_exts or fname in skip_files:
                 continue
             filename = op.join(dirpath, fname)
             relfilename = op.relpath(filename, dir_)
-            with open(filename, 'rb') as fid:
-                text = fid.read().decode('utf-8')
+            try:
+                with open(filename, 'rb') as fid:
+                    text = fid.read().decode('utf-8')
+            except:
+                print(fname)
+                raise
             crcount = text.count('\r')
             if crcount:
                 report.append('In %s found %i/%i CR/LF' %
@@ -57,10 +53,13 @@ def test_line_endings():
     """Test line endings of mne-python
     """
     tempdir = _TempDir()
+    with open(op.join(tempdir, 'foo'), 'wb') as fid:
+        fid.write('bad\r\ngood\n'.encode('ascii'))
+    _assert_line_endings(tempdir)
     with open(op.join(tempdir, 'foo.py'), 'wb') as fid:
-        fid.write('bad\r\ngood\n')
+        fid.write('bad\r\ngood\n'.encode('ascii'))
     assert_raises(AssertionError, _assert_line_endings, tempdir)
     # now check mne
-    _assert_line_endings(mne.__path__[0])
+    _assert_line_endings(_get_root_dir())
 
 run_tests_if_main()
