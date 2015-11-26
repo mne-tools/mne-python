@@ -1985,3 +1985,13 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     # change comment field
     grand_average.comment = "Grand average (n = %d)" % grand_average.nave
     return grand_average
+
+
+def _get_root_dir():
+    """Helper to get as close to the repo root as possible"""
+    root_dir = op.abspath(op.dirname(__file__))
+    up_dir = op.join(root_dir, '..')
+    if op.isfile(op.join(up_dir, 'setup.py')) and all(
+            op.isdir(op.join(up_dir, x)) for x in ('mne', 'examples', 'doc')):
+        root_dir = op.abspath(up_dir)
+    return root_dir
