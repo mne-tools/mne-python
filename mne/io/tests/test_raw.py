@@ -33,7 +33,6 @@ def _test_raw_object(reader, test_preloading, test_blocks=False, **kwargs):
     raws.append(reader(**kwargs))
     rng = np.random.RandomState(0)
     picks = rng.permutation(np.arange(len(raws[0].ch_names)))[:10]
-    picks.sort()
     if test_preloading:
         buffer_fname = op.join(tempdir, 'buffer')
         raws.append(reader(preload=buffer_fname, **kwargs))
