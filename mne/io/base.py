@@ -1823,7 +1823,8 @@ def _triage_reads(mult, idx, n_ch):
     """Determine which channels need to be read from a file"""
     if mult is None:
         read_chs = np.arange(n_ch)[idx]
-        idx = None  # indicate that indexing has already been done
+        # indicate that indexing has already been done for _mult_cal_one
+        idx = slice(None)
     else:
         read_chs = np.arange(n_ch)
     return idx, read_chs
@@ -1836,9 +1837,7 @@ def _mult_cal_one(data_view, one, idx, cals, mult, pre_idx=False):
     if mult is not None:
         data_view[:] = np.dot(mult, one)
     else:
-        if idx is None:  # indexing has already been performed
-            data_view[:] = one[:]
-        elif isinstance(idx, slice):
+        if isinstance(idx, slice):
             data_view[:] = one[idx]
         else:
             # faster than doing one = one[idx]
