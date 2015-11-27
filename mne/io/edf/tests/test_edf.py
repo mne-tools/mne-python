@@ -20,7 +20,7 @@ import numpy as np
 
 from mne import pick_types
 from mne.externals.six import iterbytes
-from mne.utils import run_tests_if_main, requires_pandas
+from mne.utils import _TempDir, run_tests_if_main, requires_pandas
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_concat, _test_raw_object
 import mne.io.edf.edf as edfmodule
@@ -76,6 +76,10 @@ def test_edf_data():
     _test_raw_object(read_raw_edf, test_preloading=True, input_fname=edf_path,
                      stim_channel=None)
     raw_py = read_raw_edf(edf_path, preload=True)
+    # Test saving and loading when annotations were parsed.
+    tempdir = _TempDir()
+    raw1_file = op.join(tempdir, 'test-raw.fif')
+    raw_py.save(raw1_file, overwrite=True, buffer_size_sec=1)
     edf_events = find_events(raw_py, output='step', shortest_event=0,
                              stim_channel='STI 014')
 
