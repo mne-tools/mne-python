@@ -76,6 +76,14 @@ def test_reject():
                   picks=picks, preload=False, reject='foo')
     assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax,
                   picks=picks_meg, preload=False, reject=dict(eeg=1.))
+    with warnings.catch_warnings(record=True) as w:
+        Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
+               preload=False, reject=dict(eeg=1.),
+               allow_missing_reject_keys=True)
+    assert_equal(len(w), 0)
+    for val in (None, -1):  # protect against older MNE-C types
+        assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax,
+                      picks=picks_meg, preload=False, reject=dict(grad=val))
     assert_raises(KeyError, Epochs, raw, events, event_id, tmin, tmax,
                   picks=picks, preload=False, reject=dict(foo=1.))
 
