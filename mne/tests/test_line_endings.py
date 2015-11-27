@@ -27,7 +27,7 @@ def _assert_line_endings(dir_):
     report = list()
     good_exts = ('.py', '.dat', '.sel', '.lout', '.css', '.js', '.lay', '.txt',
                  '.elc', '.csd', '.sfp', '.json', '.hpts', '.vmrk', '.vhdr',
-                 '.head', '.eve', '.ave', '.cov', '.sh', '.label')
+                 '.head', '.eve', '.ave', '.cov', '.label')
     for dirpath, dirnames, filenames in os.walk(dir_):
         for fname in filenames:
             if op.splitext(fname)[1] not in good_exts or fname in skip_files:
@@ -38,12 +38,12 @@ def _assert_line_endings(dir_):
                 with open(filename, 'rb') as fid:
                     text = fid.read().decode('utf-8')
             except UnicodeDecodeError:
-                print(filename)
-                raise
-            crcount = text.count('\r')
-            if crcount:
-                report.append('In %s found %i/%i CR/LF' %
-                              (relfilename, crcount, text.count('\n')))
+                report.append('In %s found non-decodable bytes' % relfilename)
+            else:
+                crcount = text.count('\r')
+                if crcount:
+                    report.append('In %s found %i/%i CR/LF' %
+                                  (relfilename, crcount, text.count('\n')))
     if len(report) > 0:
         raise AssertionError('Found %s files with incorrect endings:\n%s'
                              % (len(report), '\n'.join(report)))
@@ -56,7 +56,10 @@ def test_line_endings():
     with open(op.join(tempdir, 'foo'), 'wb') as fid:
         fid.write('bad\r\ngood\n'.encode('ascii'))
     _assert_line_endings(tempdir)
-    with open(op.join(tempdir, 'foo.py'), 'wb') as fid:
+    with open(op.join(tempdir, 'bad.py'), 'wb') as fid:
+        fid.write(b'\x97')
+    assert_raises(AssertionError, _assert_line_endings, tempdir)
+    with open(op.join(tempdir, 'bad.py'), 'wb') as fid:
         fid.write('bad\r\ngood\n'.encode('ascii'))
     assert_raises(AssertionError, _assert_line_endings, tempdir)
     # now check mne
