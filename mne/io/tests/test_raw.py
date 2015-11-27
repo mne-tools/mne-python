@@ -64,6 +64,8 @@ def _test_raw_object(reader, test_preloading, test_blocks=False, **kwargs):
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')
     for obj in raws:
+        obj.save(out_fname, overwrite=True, buffer_size_sec=1)
+        Raw(out_fname)
         obj.save(out_fname, tmax=obj.times[-1], overwrite=True)
         raw3 = Raw(out_fname)
         assert_equal(sorted(raw.info.keys()), sorted(raw3.info.keys()))
