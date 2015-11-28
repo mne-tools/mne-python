@@ -149,11 +149,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
                  add_eeg_ref=True, proj=True, on_missing='error',
                  preload_at_end=False, selection=None, drop_log=None,
-                 allow_missing_reject_keys=False, verbose=None):
+                 verbose=None):
 
         self.verbose = verbose
         self.name = name
-        self.allow_missing_reject_keys = allow_missing_reject_keys
 
         if on_missing not in ['error', 'warning', 'ignore']:
             raise ValueError('on_missing must be one of: error, '
@@ -457,14 +456,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                % (kind, bads))
 
         for key in idx.keys():
-            for rf in (reject, flat):
-                if key in rf:
-                    if len(idx[key]) == 0:
-                        if not self.allow_missing_reject_keys:
-                            raise ValueError(
-                                "No %s channel found. Cannot reject based on "
-                                "%s." % (key.upper(), key.upper()))
-                        del rf[key]
+            if len(idx[key]) == 0 and (key in reject or key in flat):
+                # This is where we could eventually add e.g.
+                # self.allow_missing_reject_keys check to allow users to
+                # provide keys that don't exist in data
+                raise ValueError("No %s channel found. Cannot reject based on "
+                                 "%s." % (key.upper(), key.upper()))
 
         # now check to see if our rejection and flat are getting more
         # restrictive
@@ -1713,9 +1710,6 @@ class Epochs(_BaseEpochs):
         warn, if 'ignore' it will proceed silently. Note.
         If none of the event ids are found in the data, an error will be
         automatically generated irrespective of this parameter.
-    allow_missing_reject_keys : bool
-        If True, reject keys for non-existent channel types (e.g.,
-        ``reject=dict(eeg=100e-6)`` for an MEG-only recording) are allowed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -1790,8 +1784,7 @@ class Epochs(_BaseEpochs):
                  picks=None, name='Unknown', preload=False, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=True,
-                 on_missing='error', allow_missing_reject_keys=False,
-                 verbose=None):
+                 on_missing='error', verbose=None):
         if not isinstance(raw, _BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
@@ -1806,9 +1799,7 @@ class Epochs(_BaseEpochs):
             raw=raw, picks=picks, name=name, reject=reject, flat=flat,
             decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
             detrend=detrend, add_eeg_ref=add_eeg_ref, proj=proj,
-            on_missing=on_missing, preload_at_end=preload,
-            allow_missing_reject_keys=allow_missing_reject_keys,
-            verbose=verbose)
+            on_missing=on_missing, preload_at_end=preload, verbose=verbose)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
