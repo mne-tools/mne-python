@@ -1404,6 +1404,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     should be, as usual, in the subject's mri directory.
     """
     env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
+    curdir = os.getcwd()
     # Step 1a : Data conversion to mgz format
     if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
         os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'))
@@ -1493,6 +1494,9 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         if op.exists('flash5_reg.mgz'):
             os.remove('flash5_reg.mgz')
 
+    # Go back to initial directory
+    os.chdir(curdir)
+
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
@@ -1530,6 +1534,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     """
     from .viz.misc import plot_bem
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
+
+    curdir = os.getcwd()
 
     logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
                 'the following parameters:\n'
@@ -1638,3 +1644,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     if show:
         plot_bem(subject=subject, subjects_dir=subjects_dir,
                  orientation='coronal', slices=None, show=True)
+
+    # Go back to initial directory
+    os.chdir(curdir)
