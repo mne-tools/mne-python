@@ -444,49 +444,57 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _reject_setup(self, reject, flat):
         """Sets self._reject_time and self._channel_type_idx"""
         idx = channel_indices_by_type(self.info)
+        reject = deepcopy(reject) if reject is not None else dict()
+        flat = deepcopy(flat) if flat is not None else dict()
         for rej, kind in zip((reject, flat), ('reject', 'flat')):
-            if not isinstance(rej, (type(None), dict)):
+            if not isinstance(rej, dict):
                 raise TypeError('reject and flat must be dict or None, not %s'
                                 % type(rej))
-            if isinstance(rej, dict):
-                bads = set(rej.keys()) - set(idx.keys())
-                if len(bads) > 0:
-                    raise KeyError('Unknown channel types found in %s: %s'
-                                   % (kind, bads))
+            bads = set(rej.keys()) - set(idx.keys())
+            if len(bads) > 0:
+                raise KeyError('Unknown channel types found in %s: %s'
+                               % (kind, bads))
 
         for key in idx.keys():
-            if (reject is not None and key in reject) \
-                    or (flat is not None and key in flat):
-                if len(idx[key]) == 0:
-                    raise ValueError("No %s channel found. Cannot reject based"
-                                     " on %s." % (key.upper(), key.upper()))
-            # now check to see if our rejection and flat are getting more
-            # restrictive
-            old_reject = self.reject if self.reject is not None else dict()
-            new_reject = reject if reject is not None else dict()
-            old_flat = self.flat if self.flat is not None else dict()
-            new_flat = flat if flat is not None else dict()
-            bad_msg = ('{kind}["{key}"] == {new} {op} {old} (old value), new '
-                       '{kind} values must be at least as stringent as '
-                       'previous ones')
-            for key in set(new_reject.keys()).union(old_reject.keys()):
-                old = old_reject.get(key, np.inf)
-                new = new_reject.get(key, np.inf)
-                if new > old:
-                    raise ValueError(bad_msg.format(kind='reject', key=key,
-                                                    new=new, old=old, op='>'))
-            for key in set(new_flat.keys()).union(old_flat.keys()):
-                old = old_flat.get(key, -np.inf)
-                new = new_flat.get(key, -np.inf)
-                if new < old:
-                    raise ValueError(bad_msg.format(kind='flat', key=key,
-                                                    new=new, old=old, op='<'))
+            if len(idx[key]) == 0 and (key in reject or key in flat):
+                # This is where we could eventually add e.g.
+                # self.allow_missing_reject_keys check to allow users to
+                # provide keys that don't exist in data
+                raise ValueError("No %s channel found. Cannot reject based on "
+                                 "%s." % (key.upper(), key.upper()))
+
+        # check for invalid values
+        for rej, kind in zip((reject, flat), ('Rejection', 'Flat')):
+            for key, val in rej.items():
+                if val is None or val < 0:
+                    raise ValueError('%s value must be a number >= 0, not "%s"'
+                                     % (kind, val))
+
+        # now check to see if our rejection and flat are getting more
+        # restrictive
+        old_reject = self.reject if self.reject is not None else dict()
+        old_flat = self.flat if self.flat is not None else dict()
+        bad_msg = ('{kind}["{key}"] == {new} {op} {old} (old value), new '
+                   '{kind} values must be at least as stringent as '
+                   'previous ones')
+        for key in set(reject.keys()).union(old_reject.keys()):
+            old = old_reject.get(key, np.inf)
+            new = reject.get(key, np.inf)
+            if new > old:
+                raise ValueError(bad_msg.format(kind='reject', key=key,
+                                                new=new, old=old, op='>'))
+        for key in set(flat.keys()).union(old_flat.keys()):
+            old = old_flat.get(key, -np.inf)
+            new = flat.get(key, -np.inf)
+            if new < old:
+                raise ValueError(bad_msg.format(kind='flat', key=key,
+                                                new=new, old=old, op='<'))
 
         # after validation, set parameters
         self._bad_dropped = False
         self._channel_type_idx = idx
-        self.reject = reject
-        self.flat = flat
+        self.reject = reject if len(reject) > 0 else None
+        self.flat = flat if len(flat) > 0 else None
 
         if (self.reject_tmin is None) and (self.reject_tmax is None):
             self._reject_time = None
@@ -501,7 +509,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 idxs = np.nonzero(self.times <= self.reject_tmax)[0]
                 reject_imax = idxs[-1]
-
             self._reject_time = slice(reject_imin, reject_imax)
 
     @verbose
@@ -1790,14 +1797,12 @@ class Epochs(_BaseEpochs):
         proj = proj or raw.proj
 
         # call _BaseEpochs constructor
-        super(Epochs, self).__init__(info, None, events, event_id, tmin, tmax,
-                                     baseline=baseline, raw=raw, picks=picks,
-                                     name=name, reject=reject, flat=flat,
-                                     decim=decim, reject_tmin=reject_tmin,
-                                     reject_tmax=reject_tmax, detrend=detrend,
-                                     add_eeg_ref=add_eeg_ref, proj=proj,
-                                     on_missing=on_missing,
-                                     preload_at_end=preload, verbose=verbose)
+        super(Epochs, self).__init__(
+            info, None, events, event_id, tmin, tmax, baseline=baseline,
+            raw=raw, picks=picks, name=name, reject=reject, flat=flat,
+            decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
+            detrend=detrend, add_eeg_ref=add_eeg_ref, proj=proj,
+            on_missing=on_missing, preload_at_end=preload, verbose=verbose)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
