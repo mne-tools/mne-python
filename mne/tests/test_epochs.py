@@ -77,8 +77,10 @@ def test_reject():
     assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax,
                   picks=picks_meg, preload=False, reject=dict(eeg=1.))
     for val in (None, -1):  # protect against older MNE-C types
-        assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax,
-                      picks=picks_meg, preload=False, reject=dict(grad=val))
+        for kwarg in ('reject', 'flat'):
+            assert_raises(ValueError, Epochs, raw, events, event_id,
+                          tmin, tmax, picks=picks_meg, preload=False,
+                          **{kwarg: dict(grad=val)})
     assert_raises(KeyError, Epochs, raw, events, event_id, tmin, tmax,
                   picks=picks, preload=False, reject=dict(foo=1.))
 

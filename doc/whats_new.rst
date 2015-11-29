@@ -37,7 +37,7 @@ BUG
 
     - Fix bug that prevented homogeneous bem surfaces to be displayed in HTML reports by `Denis Engemann`_
 
-    - Added safeguards against ``None`` and negative values in reject parameters in :class:`mne.Epochs` by `Eric Larson`_
+    - Added safeguards against ``None`` and negative values in reject and flat parameters in :class:`mne.Epochs` by `Eric Larson`_
 
 API
 ~~~

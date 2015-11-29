@@ -463,13 +463,16 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 raise ValueError("No %s channel found. Cannot reject based on "
                                  "%s." % (key.upper(), key.upper()))
 
+        # check for invalid values
+        for rej, kind in zip((reject, flat), ('Rejection', 'Flat')):
+            for key, val in rej.items():
+                if val is None or val < 0:
+                    raise ValueError('%s value must be a number >= 0, not "%s"'
+                                     % (kind, val))
+
         # now check to see if our rejection and flat are getting more
         # restrictive
         old_reject = self.reject if self.reject is not None else dict()
-        for key, val in reject.items():
-            if val is None or val < 0:
-                raise ValueError('Rejection value must be a number >= 0, '
-                                 'not "%s"' % val)
         old_flat = self.flat if self.flat is not None else dict()
         bad_msg = ('{kind}["{key}"] == {new} {op} {old} (old value), new '
                    '{kind} values must be at least as stringent as '
