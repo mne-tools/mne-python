@@ -4,6 +4,7 @@
 
 import os.path as op
 import warnings
+import math
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -48,6 +49,9 @@ def test_io_egi():
     data2, times2 = raw2[:10, :]
     assert_array_almost_equal(data1, data2, 9)
     assert_array_almost_equal(times1, times2)
+
+    assert_true(not math.isnan(raw2.info['highpass']))
+    assert_true(not math.isnan(raw2.info['lowpass']))
 
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
     assert_equal(len(eeg_chan), 256)
