@@ -967,6 +967,21 @@ def test_resample():
     epochs_resampled = epochs.resample(sfreq_normal * 2, npad=0, copy=False)
     assert_true(epochs_resampled is epochs)
 
+    # test proper setting of times (#2645)
+    n_trial, n_chan, n_time, sfreq = 1, 1, 10, 1000
+    data = np.zeros((n_trial, n_chan, n_time))
+    events = np.zeros((n_trial, 3), int)
+    info = create_info(n_chan, sfreq, 'eeg')
+    epochs1 = EpochsArray(data, deepcopy(info), events)
+    epochs2 = EpochsArray(data, deepcopy(info), events)
+    epochs = concatenate_epochs([epochs1, epochs2])
+    epochs1.resample(epochs1.info['sfreq'] // 2)
+    epochs2.resample(epochs2.info['sfreq'] // 2)
+    epochs = concatenate_epochs([epochs1, epochs2])
+    for e in epochs1, epochs2, epochs:
+        assert_equal(e.times[0], epochs.tmin)
+        assert_equal(e.times[-1], epochs.tmax)
+
 
 def test_detrend():
     """Test detrending of epochs
@@ -1636,12 +1651,12 @@ def test_add_channels_epochs():
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.tmin += 0.4
+    epochs_meg2.times += 0.4
     assert_raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.tmin += 0.5
+    epochs_meg2.times += 0.5
     assert_raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
