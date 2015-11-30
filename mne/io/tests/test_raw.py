@@ -1,9 +1,10 @@
 # Generic tests that all raw classes should run
 from os import path as op
+import math
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_almost_equal
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_true
 
 from mne import concatenate_raws
 from mne.datasets import testing
@@ -72,6 +73,9 @@ def _test_raw_object(reader, test_preloading, test_blocks=False, **kwargs):
         assert_equal(sorted(raw.info.keys()), sorted(raw3.info.keys()))
         assert_array_almost_equal(raw3.load_data()._data[0:20],
                                   full_data[0:20])
+
+        assert_true(not math.isnan(raw3.info['highpass']))
+        assert_true(not math.isnan(raw3.info['lowpass']))
 
     # Make sure concatenation works
     first_samp = raw.first_samp
