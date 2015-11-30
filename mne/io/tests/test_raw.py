@@ -77,6 +77,8 @@ def _test_raw_object(reader, test_preloading, test_blocks=False, **kwargs):
 
         assert_true(not math.isnan(raw3.info['highpass']))
         assert_true(not math.isnan(raw3.info['lowpass']))
+        assert_true(not math.isnan(obj.info['highpass']))
+        assert_true(not math.isnan(obj.info['lowpass']))
 
     # Make sure concatenation works
     first_samp = raw.first_samp

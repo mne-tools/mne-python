@@ -130,6 +130,10 @@ def _get_nicolet_info(fname, eog, ecg, emg, misc):
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
                      'coil_type': coil_type, 'kind': kind, 'loc': np.zeros(12)}
         info['chs'].append(chan_info)
+
+    info['highpass'] = 0.
+    info['lowpass'] = info['sfreq'] / 2.0
+
     return info, header_info
 
 

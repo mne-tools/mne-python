@@ -288,6 +288,8 @@ class RawEGI(_BaseRaw):
         info['bads'] = []
         info['comps'] = []
         info['custom_ref_applied'] = False
+        info['highpass'] = 0.
+        info['lowpass'] = info['sfreq'] / 2.0
         for ii, ch_name in enumerate(ch_names):
             ch_info = {'cal': cal,
                        'logno': ii + 1,
