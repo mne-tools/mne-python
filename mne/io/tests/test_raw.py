@@ -5,6 +5,7 @@ from numpy.testing import assert_allclose, assert_array_almost_equal
 
 from nose.tools import assert_equal
 
+from mne import concatenate_raws
 from mne.datasets import testing
 from mne.io import Raw
 from mne.utils import _TempDir
@@ -71,6 +72,14 @@ def _test_raw_object(reader, test_preloading, test_blocks=False, **kwargs):
         assert_equal(sorted(raw.info.keys()), sorted(raw3.info.keys()))
         assert_array_almost_equal(raw3.load_data()._data[0:20],
                                   full_data[0:20])
+
+    # Make sure concatenation works
+    first_samp = raw.first_samp
+    last_samp = raw.last_samp
+    concat_raw = concatenate_raws([raw.copy(), raws[0].load_data()])
+    assert_equal(concat_raw.n_times, 2 * raw.n_times)
+    assert_equal(concat_raw.first_samp, first_samp)
+    assert_equal(concat_raw.last_samp - last_samp - first_samp, last_samp + 1)
 
     return raw
 
