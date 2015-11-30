@@ -862,7 +862,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
 
     info['nchan'] = nchan
     info['sfreq'] = sfreq
-    info['highpass'] = highpass if highpass is not None else 0
+    info['highpass'] = highpass if highpass is not None else 0.
     info['lowpass'] = lowpass if lowpass is not None else info['sfreq'] / 2.0
     info['line_freq'] = line_freq
 
@@ -1044,8 +1044,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
     write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
-    write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
-    write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
+    if info['lowpass'] is not None:
+        write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
+    if info['highpass'] is not None:
+        write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
     if info.get('line_freq') is not None:
         write_float(fid, FIFF.FIFF_LINE_FREQ, info['line_freq'])
     if data_type is not None:
