@@ -666,10 +666,8 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
         Order of the internal multipolar moment space
     ext_order : int
         Order of the external multipolar moment space
-    scale : float
+    mag_scale : float
         Scale factor for magnetometers.
-    method : str
-        Basis calculation method. Used only for testing.
 
     Returns
     -------
