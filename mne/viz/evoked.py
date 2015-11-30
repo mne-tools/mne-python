@@ -452,7 +452,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     spatial_colors : bool
         Color code lines by mapping physical sensor coordinates into color
         values. Spatially similar channels will have similar colors.
-        Bad channels will be dotted.
+        Bad channels will be dotted. A legend is displayed in the plot's
+        bottom left, with sensor positions showing the corresponding color.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
