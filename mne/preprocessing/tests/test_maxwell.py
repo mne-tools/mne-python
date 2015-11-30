@@ -195,8 +195,14 @@ def test_multipolar_bases():
         # Now test our optimized version
         S_tot = _sss_basis_basic(origin, coils, int_order, ext_order)
         S_tot_fast = _sss_basis(origin, coils, int_order, ext_order)
-        # there are some sign differences in here...
-        assert_allclose(np.abs(S_tot), np.abs(S_tot_fast), atol=1e-16)
+        # there are some sign differences for columns (order/degrees)
+        # in here, likely due to Condon-Shortley. Here we use a
+        # Magnetometer channel to figure out the flips because the
+        # gradiometer channels have effectively zero values for first three
+        # external components (i.e., S_tot[grad_picks, 80:83])
+        flips = (np.sign(S_tot_fast[2]) != np.sign(S_tot[2]))
+        flips = 1 - 2 * flips
+        assert_allclose(S_tot, S_tot_fast * flips, atol=1e-16)
 
 
 @testing.requires_testing_data

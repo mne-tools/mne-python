@@ -696,7 +696,7 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
     S_in = S_tot[:, :n_in]
     S_out = S_tot[:, n_in:]
 
-    # Set all magnetometers (with 'coil_class' == 1.0) to be scaled by 100
+    # Scale all magnetometers (with `coil_class` == 1.0) by `mag_scale`
     coil_scale = np.ones(n_coils)
     coil_scale[np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
                          for coil in coils])] = mag_scale
