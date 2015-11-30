@@ -22,7 +22,8 @@ from ..utils import logger
 from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
-from .topomap import _prepare_topo_plot, plot_topomap
+from .topomap import _prepare_topo_plot, plot_topomap, _check_outlines
+from ..channels import find_layout
 
 
 def _butterfly_onpick(event, params):
@@ -124,6 +125,50 @@ def _rgb(x, y, z):
         dim -= dim.min()
         dim /= dim.max()
     return np.asarray([x, y, z]).T
+
+
+def _plot_legend(pos=None, colors=None, axis=False, outlines='head'):
+    """Helper function to plot color/channel legends for butterfly plots
+    with spatial colors"""
+    from mpl_toolkits.axes_grid.inset_locator import inset_axes
+    ax = inset_axes(axis, width=0.5, height=0.5, loc=3)
+
+    pos, outlines = _check_outlines(pos, outlines, None)
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+
+#    ax = axis if axis else plt.gca()
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_frame_on(False)
+    if any([not pos_y.any(), not pos_x.any()]):
+        raise RuntimeError('No position information found, cannot compute '
+                           'geometries for topomap.')
+    mask_ = np.c_[outlines['mask_pos']]
+
+    if outlines is None:
+        _is_default_outlines = False
+    elif isinstance(outlines, dict):
+        _is_default_outlines = any(k.startswith('head') for k in outlines)
+
+    # plot outline
+    if _is_default_outlines:
+        from matplotlib import patches
+        # remove nose offset and tweak
+        patch_ = patches.Circle((0.5, 0.4687), radius=.46,
+                                clip_on=True,
+                                transform=ax.transAxes)
+
+    for x, y, c in zip(pos_x, pos_y, colors):
+        ax.add_artist(patches.Circle(xy=(x, y), radius=0.03, color=c))
+
+    if isinstance(outlines, dict):
+        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                          ['patch', 'autoshrink']])
+        for k, (x, y) in outlines_.items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=1)
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
@@ -253,6 +298,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
                         colors = _rgb(x, y, z)
+                        pos = find_layout(evoked.info).pos[:, :2][idx]
+                        _plot_legend(pos=pos, colors=colors, axis=ax)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
