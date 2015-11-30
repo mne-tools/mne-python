@@ -87,7 +87,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     # First and last sample
-    first = int(epochs.tmin * info['sfreq'])
+    first = int(round(epochs.tmin * info['sfreq']))  # round just to be safe
     last = first + len(epochs.times) - 1
     write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
     write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
