@@ -1344,11 +1344,11 @@ def _prepare_env(subject, subjects_dir, requires_freesurfer, requires_mne):
     """Helper to prepare an env object for subprocess calls"""
     env = os.environ.copy()
     if requires_freesurfer and not os.environ.get('FREESURFER_HOME'):
-        raise RuntimeError('FREESURFER_HOME environment variable not set. '
-                           'freesurfer is not setup.')
+        raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
+                           'environment variable is not set.')
     if requires_mne and not os.environ.get('MNE_ROOT'):
-        raise RuntimeError('MNE_ROOT environment variable not set. '
-                           'mne is not setup.')
+        raise RuntimeError('I cannot find the MNE command line tools. The '
+                           'MNE_ROOT environment variable is not set.')
 
     if not isinstance(subject, string_types):
         raise TypeError('The subject argument must be set')
