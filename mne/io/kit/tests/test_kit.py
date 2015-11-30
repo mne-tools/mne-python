@@ -17,7 +17,7 @@ from mne.utils import run_tests_if_main
 from mne.io import Raw
 from mne.io import read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
-from mne.io.tests.test_raw import _test_concat, _test_raw_object
+from mne.io.tests.test_raw import _test_raw_object
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
@@ -30,12 +30,6 @@ mrk2_path = op.join(data_dir, 'test_mrk_pre.sqd')
 mrk3_path = op.join(data_dir, 'test_mrk_post.sqd')
 elp_path = op.join(data_dir, 'test_elp.txt')
 hsp_path = op.join(data_dir, 'test_hsp.txt')
-
-
-def test_concat():
-    """Test EDF concatenation
-    """
-    _test_concat(read_raw_kit, sqd_path)
 
 
 def test_data():

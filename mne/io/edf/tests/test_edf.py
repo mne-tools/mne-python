@@ -22,7 +22,7 @@ from mne import pick_types
 from mne.externals.six import iterbytes
 from mne.utils import _TempDir, run_tests_if_main, requires_pandas
 from mne.io import read_raw_edf, Raw
-from mne.io.tests.test_raw import _test_concat, _test_raw_object
+from mne.io.tests.test_raw import _test_raw_object
 import mne.io.edf.edf as edfmodule
 from mne.event import find_events
 
@@ -43,11 +43,6 @@ edf_txt_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.txt')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
-
-
-def test_concat():
-    """Test EDF concatenation"""
-    _test_concat(read_raw_edf, bdf_path)
 
 
 def test_bdf_data():
