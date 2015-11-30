@@ -913,15 +913,9 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     .. versionadded:: 0.10
     """
     from .surface import read_surface
-    env = os.environ.copy()
-
-    if not os.environ.get('FREESURFER_HOME'):
-        raise RuntimeError('FREESURFER_HOME environment variable not set')
-
-    env['SUBJECT'] = subject
-
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    env['SUBJECTS_DIR'] = subjects_dir
+    env, mri_dir = _prepare_env(subject, subjects_dir,
+                                requires_freesurfer=True,
+                                requires_mne=True)[:2]
 
     subject_dir = op.join(subjects_dir, subject)
     mri_dir = op.join(subject_dir, 'mri')
@@ -1346,11 +1340,21 @@ def write_bem_solution(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def _prepare_env(subject, subjects_dir):
+def _prepare_env(subject, subjects_dir, requires_freesurfer, requires_mne):
     """Helper to prepare an env object for subprocess calls"""
     env = os.environ.copy()
+    if requires_freesurfer and not os.environ.get('FREESURFER_HOME'):
+        raise RuntimeError('FREESURFER_HOME environment variable not set. '
+                           'freesurfer is not setup.')
+    if requires_mne and not os.environ.get('MNE_ROOT'):
+        raise RuntimeError('MNE_ROOT environment variable not set. '
+                           'mne is not setup.')
+
     if not isinstance(subject, string_types):
         raise TypeError('The subject argument must be set')
+
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
     env['SUBJECT'] = subject
     env['SUBJECTS_DIR'] = subjects_dir
     mri_dir = op.join(subjects_dir, subject, 'mri')
@@ -1403,7 +1407,9 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
     """
-    env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
+    env, mri_dir = _prepare_env(subject, subjects_dir,
+                                requires_freesurfer=True,
+                                requires_mne=False)[:2]
     curdir = os.getcwd()
     # Step 1a : Data conversion to mgz format
     if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
@@ -1533,7 +1539,9 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     convert_flash_mris
     """
     from .viz.misc import plot_bem
-    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
+                                         requires_freesurfer=True,
+                                         requires_mne=True)
 
     curdir = os.getcwd()
 
