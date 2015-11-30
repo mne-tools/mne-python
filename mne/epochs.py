@@ -87,7 +87,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     # First and last sample
-    first = int(epochs.times[0] * info['sfreq'])
+    first = int(epochs.tmin * info['sfreq'])
     last = first + len(epochs.times) - 1
     write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
     write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
@@ -254,8 +254,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if tmin > tmax:
             raise ValueError('tmin has to be less than or equal to tmax')
 
-        self.tmin = tmin
-        self.tmax = tmax
         self.baseline = baseline
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
@@ -286,11 +284,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # Handle times
         sfreq = float(self.info['sfreq'])
-        start_idx = int(round(self.tmin * sfreq))
+        start_idx = int(round(tmin * sfreq))
         self._raw_times = np.arange(start_idx,
-                                    int(round(self.tmax * sfreq)) + 1) / sfreq
+                                    int(round(tmax * sfreq)) + 1) / sfreq
+        self.times = self._raw_times.copy()
         self._decim = 1
-        # this method sets the self.times property
         self.decimate(decim)
 
         # setup epoch rejection
@@ -1285,6 +1283,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         return epoch if not return_event_id else epoch, self.event_id
 
+    @property
+    def tmin(self):
+        return self.times[0]
+
+    @property
+    def tmax(self):
+        return self.times[-1]
+
     def __repr__(self):
         """ Build string representation
         """
@@ -1395,11 +1401,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             tmax = self.tmax
 
         tmask = _time_mask(self.times, tmin, tmax)
-        tidx = np.where(tmask)[0]
-
         this_epochs = self if not copy else self.copy()
-        this_epochs.tmin = this_epochs.times[tidx[0]]
-        this_epochs.tmax = this_epochs.times[tidx[-1]]
         this_epochs.times = this_epochs.times[tmask]
         this_epochs._raw_times = this_epochs._raw_times[tmask]
         this_epochs._data = this_epochs._data[:, :, tmask]
@@ -1450,7 +1452,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         inst.info['sfreq'] = sfreq
         inst.times = (np.arange(inst._data.shape[2], dtype=np.float) /
                       sfreq + inst.times[0])
-
         return inst
 
     def copy(self):
@@ -2437,31 +2438,14 @@ def bootstrap(epochs, random_state=None):
 
 def _check_merge_epochs(epochs_list):
     """Aux function"""
-    event_ids = set(tuple(epochs.event_id.items()) for epochs in epochs_list)
-    if len(event_ids) == 1:
-        event_id = dict(event_ids.pop())
-    else:
+    if len(set(tuple(epochs.event_id.items()) for epochs in epochs_list)) != 1:
         raise NotImplementedError("Epochs with unequal values for event_id")
-
-    tmins = set(epochs.tmin for epochs in epochs_list)
-    if len(tmins) == 1:
-        tmin = tmins.pop()
-    else:
+    if len(set(epochs.tmin for epochs in epochs_list)) != 1:
         raise NotImplementedError("Epochs with unequal values for tmin")
-
-    tmaxs = set(epochs.tmax for epochs in epochs_list)
-    if len(tmaxs) == 1:
-        tmax = tmaxs.pop()
-    else:
+    if len(set(epochs.tmax for epochs in epochs_list)) != 1:
         raise NotImplementedError("Epochs with unequal values for tmax")
-
-    baselines = set(epochs.baseline for epochs in epochs_list)
-    if len(baselines) == 1:
-        baseline = baselines.pop()
-    else:
+    if len(set(epochs.baseline for epochs in epochs_list)) != 1:
         raise NotImplementedError("Epochs with unequal values for baseline")
-
-    return event_id, tmin, tmax, baseline
 
 
 @verbose
@@ -2492,8 +2476,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
 
     info = _merge_info([epochs.info for epochs in epochs_list])
     data = [epochs.get_data() for epochs in epochs_list]
-    event_id, tmin, tmax, baseline = _check_merge_epochs(epochs_list)
-
+    _check_merge_epochs(epochs_list)
     for d in data:
         if len(d) != len(data[0]):
             raise ValueError('all epochs must be of the same length')
@@ -2517,10 +2500,6 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
 
     epochs = epochs_list[0].copy()
     epochs.info = info
-    epochs.event_id = event_id
-    epochs.tmin = tmin
-    epochs.tmax = tmax
-    epochs.baseline = baseline
     epochs.picks = None
     epochs.name = name
     epochs.verbose = verbose
