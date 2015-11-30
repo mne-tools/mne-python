@@ -73,6 +73,7 @@ def _test_raw_object(reader, test_preloading, test_blocks=False, **kwargs):
         assert_equal(sorted(raw.info.keys()), sorted(raw3.info.keys()))
         assert_array_almost_equal(raw3.load_data()._data[0:20],
                                   full_data[0:20])
+        assert_array_almost_equal(raw.times, raw3.times)
 
         assert_true(not math.isnan(raw3.info['highpass']))
         assert_true(not math.isnan(raw3.info['lowpass']))

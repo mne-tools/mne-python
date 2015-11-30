@@ -43,8 +43,8 @@ def test_data():
     assert_raises(ValueError, read_raw_kit, sqd_path, None, None, None,
                   list(range(167, 159, -1)), '*', 1, True)
     # check functionality
-    _ = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_path,
-                     hsp_path)
+    raw_mrk = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_path,
+                           hsp_path)
     raw_py = _test_raw_object(read_raw_kit, test_preloading=True,
                               input_fname=sqd_path, mrk=mrk_path, elp=elp_path,
                               hsp=hsp_path, stim=list(range(167, 159, -1)),
@@ -52,11 +52,14 @@ def test_data():
     assert_true('RawKIT' in repr(raw_py))
 
     # Test stim channel
-    stim_pick = pick_types(raw_py.info, meg=False, ref_meg=False,
-                           stim=True, exclude='bads')
-    stim1, _ = raw_py[stim_pick]
-    stim2 = np.array(raw_py.read_stim_ch(), ndmin=2)
-    assert_array_equal(stim1, stim2)
+    raw_stim = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
+                            preload=False)
+    for raw in [raw_py, raw_stim, raw_mrk]:
+        stim_pick = pick_types(raw.info, meg=False, ref_meg=False,
+                               stim=True, exclude='bads')
+        stim1, _ = raw[stim_pick]
+        stim2 = np.array(raw.read_stim_ch(), ndmin=2)
+        assert_array_equal(stim1, stim2)
 
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude='bads')
