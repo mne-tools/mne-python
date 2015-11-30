@@ -278,7 +278,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             assert decim == 1
             if data.ndim != 3 or data.shape[2] != \
-                    round((tmax - tmin) * self.info['sfreq']) + 1:
+                    int((tmax - tmin) * self.info['sfreq']) + 1:
                 raise RuntimeError('bad data shape')
             self.preload = True
             self._data = data
@@ -1900,7 +1900,7 @@ class EpochsArray(_BaseEpochs):
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
-        tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
+        tmax = float(data.shape[2] - 1) / info['sfreq'] + tmin
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
         super(EpochsArray, self).__init__(info, data, events, event_id, tmin,
