@@ -22,7 +22,8 @@ from ..utils import logger
 from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
-from .topomap import _prepare_topo_plot, plot_topomap
+from .topomap import _prepare_topo_plot, plot_topomap, _check_outlines
+from ..channels import find_layout
 
 
 def _butterfly_onpick(event, params):
@@ -124,6 +125,36 @@ def _rgb(x, y, z):
         dim -= dim.min()
         dim /= dim.max()
     return np.asarray([x, y, z]).T
+
+
+def _plot_legend(pos=None, colors=None, axis=None, outlines='head'):
+    """Helper function to plot color/channel legends for butterfly plots
+    with spatial colors"""
+    from matplotlib import patches
+    from mpl_toolkits.axes_grid.inset_locator import inset_axes
+    ax = inset_axes(axis, width=0.5, height=0.5, loc=3)
+
+    pos, outlines = _check_outlines(pos, outlines, None)
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_frame_on(False)
+    if any([not pos_y.any(), not pos_x.any()]):
+        raise RuntimeError('No position information found, cannot compute '
+                           'geometries for topomap.')
+
+    for x, y, c in zip(pos_x, pos_y, colors):
+        ax.add_artist(patches.Circle(xy=(x, y), radius=0.03, color=c))
+
+    if isinstance(outlines, dict):
+        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                          ['patch', 'autoshrink']])
+        for k, (x, y) in outlines_.items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=1)
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
@@ -253,6 +284,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
                         colors = _rgb(x, y, z)
+                        pos = find_layout(evoked.info, ch_type=t).pos[:, :2]
+                        _plot_legend(pos=pos, colors=colors, axis=ax)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
@@ -405,7 +438,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     spatial_colors : bool
         Color code lines by mapping physical sensor coordinates into color
         values. Spatially similar channels will have similar colors.
-        Bad channels will be dotted.
+        Bad channels will be dotted. A legend is displayed in the plot's
+        bottom left, with sensor positions showing the corresponding color.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
