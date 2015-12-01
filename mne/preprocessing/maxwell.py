@@ -13,7 +13,7 @@ from math import factorial
 from os import path as op
 
 from .. import __version__
-from ..bem import fit_sphere_to_headshape
+from ..bem import _check_origin
 from ..transforms import _str_to_frame, _get_trans
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
@@ -238,7 +238,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                            'coord_frame="meg"')
 
     # Determine/check the origin of the expansion
-    origin = _check_origin(origin, raw_sss.info, coord_frame)
+    origin = _check_origin(origin, raw_sss.info, coord_frame, disp=True)
 
     # Compute in/out bases and create copies containing only good chs
     S_decomp = _info_sss_basis(info, None, origin, int_order, ext_order,
@@ -430,30 +430,6 @@ def _check_usable(inst):
     if len(inst.info.get('comps', [])) > 0:
         raise RuntimeError('Maxwell filter cannot be done on compensated '
                            'channels.')
-
-
-def _check_origin(origin, info, coord_frame):
-    """Helper to check the origin"""
-    if isinstance(origin, string_types):
-        # XXX eventually we could add "auto" mode here
-        if origin != 'auto':
-            raise ValueError('origin must be a numerical array, or "auto", '
-                             'not %s' % (origin,))
-        if coord_frame == 'head':
-            R, origin = fit_sphere_to_headshape(info, verbose=False)[:2]
-            origin /= 1000.
-            logger.info('    Automatic origin fit: head of radius %0.1f mm'
-                        % R)
-            del R
-        else:
-            origin = (0., 0., 0.)
-    origin = np.array(origin, float)
-    if origin.shape != (3,):
-        raise ValueError('origin must be a 3-element array')
-    origin_str = ', '.join(['%0.1f' % (o * 1000) for o in origin])
-    logger.info('    Using origin %s mm in the %s frame'
-                % (origin_str, coord_frame))
-    return origin
 
 
 def _col_norm_pinv(x):

@@ -31,6 +31,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin
+from .bem import _check_origin
 from .evoked import EvokedArray, _aspect_rev
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -2666,11 +2667,11 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     # 1. Implement minimum-norm version
     # 2. Use median position during interval
     # 3. Validate on data
-    from .preprocessing.maxwell import (_check_origin, _info_sss_basis,
+    from .preprocessing.maxwell import (_info_sss_basis,
                                         _check_usable, _col_norm_pinv,
                                         _get_n_moments, _get_mf_picks,
                                         _reset_meg_bads)
-    # from .forward import _map_meg_channels
+    from .forward import _map_meg_channels
     if not isinstance(epochs, _BaseEpochs):
         raise TypeError('epochs must be an instance of Epochs, not %s'
                         % (type(epochs),))
@@ -2682,16 +2683,27 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     trn, rot, t = pos
     del pos
     _check_usable(epochs)
-    n_in = _get_n_moments(int_order)
+    origin = _check_origin(origin, epochs.info, 'head')
+
+    logger.info('Aligning and averaging up to %s epochs using %s method'
+                % (len(epochs.events), method))
     meg_picks, _, _, good_picks, coil_scale = \
         _get_mf_picks(epochs.info, int_order, ext_order)
     n_channels, n_times = len(epochs.ch_names), len(epochs.times)
     other_picks = np.setdiff1d(np.arange(n_channels), meg_picks)
     data = np.zeros((n_channels, n_times))
-    S_ave = 0.
-    w_sum = 0.
-    origin = _check_origin(origin, epochs.info, 'head')
     count = 0
+    # keep only MEG w/bad channels marked in "info_from"
+    info_from = pick_info(epochs.info, good_picks, copy=True)
+    # remove MEG bads in "to" info
+    info_to = deepcopy(epochs.info)
+    _reset_meg_bads(info_to)
+    # set up variables
+    w_sum = 0.
+    n_in = _get_n_moments(int_order)
+    S_ave = 0.
+    last_trans = None
+    info_to_meg = pick_info(info_to, meg_picks, copy=True)
     for ei, epoch in enumerate(epochs):
         event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
         use_idx = np.where(t <= event_time)[0]
@@ -2702,42 +2714,58 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         trans = np.row_stack([np.column_stack([rot[use_idx],
                                                trn[[use_idx]].T]),
                               [[0., 0., 0., 1.]]])
-        loc_str = ', '.join('%0.1f' % t for t in (trans[:3, 3] * 1000))
-        logger.info('Creating bases for epoch %s (device location: %s mm)'
-                    % (ei + 1, loc_str))
-        S = _info_sss_basis(epochs.info, trans, origin, int_order, ext_order,
-                            True)
-        weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
-        S *= weight
-        S_ave += S  # eq. 41
-        if weight_all:
-            epoch *= weight
-            data += epoch  # eq. 42
+        loc_str = ', '.join('%0.1f' % tr for tr in (trans[:3, 3] * 1000))
+        if last_trans is None or not np.allclose(last_trans, trans):
+            logger.info('    Processing epoch %s (device location: %s mm)'
+                        % (ei + 1, loc_str))
+            reuse = False
+            last_trans = trans
         else:
-            data[other_picks] += epoch[other_picks]
-            epoch = epoch[meg_picks]
-            epoch *= weight
-            data[meg_picks] += epoch
+            logger.info('    Processing epoch %s (device location: same)'
+                        % (ei + 1,))
+            reuse = True
+        epoch = epoch.copy()  # because we operate inplace
+        if method == 'maxwell':
+            if not reuse:
+                S = _info_sss_basis(info_from, trans, origin,
+                                    int_order, ext_order, True)
+                weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
+                S *= weight
+            S_ave += S  # eq. 41
+            epoch[slice(None) if weight_all else meg_picks] *= weight
+        else:
+            if not reuse:
+                info_from['dev_head_t']['trans'] = trans
+                # get mapping
+                S = _map_meg_channels(info_from, info_to_meg,
+                                      'accurate', origin)
+            # apply mapping
+            epoch[meg_picks] = np.dot(S, epoch[good_picks])
+            weight = 1.
+        data += epoch  # eq. 42
         w_sum += weight
         count += 1
-    if count > 0:
-        S_ave /= w_sum
+    del info_from
+    if count == 0:
+        data.fill(np.nan)
+    else:
         data[meg_picks] /= w_sum
         data[other_picks] /= w_sum if weight_all else count
-        # invert
-        # XXX Eventually we could do cross-talk and fine-cal here
-        pS_ave_good = _col_norm_pinv(S_ave[good_picks])
-        pS_ave_good *= coil_scale[good_picks].T
-        # get recon matrix
-        S_recon = _info_sss_basis(epochs.info, None, origin,
-                                  int_order, ext_order, True)
-        S_recon /= coil_scale
-        # apply
-        data[meg_picks] = np.dot(np.dot(S_recon[:, :n_in],
-                                 pS_ave_good[:n_in]), data[good_picks])
-    else:
-        data.fill(np.nan)
-    info = deepcopy(epochs.info)
-    _reset_meg_bads(info)
-    return epochs._evoked_from_epoch_data(data, info, picks, count,
-                                          'average')
+        if method == 'maxwell':
+            # invert
+            # XXX Eventually we could do cross-talk and fine-cal here
+            S_ave /= w_sum
+            pS_ave_good = _col_norm_pinv(S_ave)
+            pS_ave_good *= coil_scale[good_picks].T
+            # get recon matrix
+            S_recon = _info_sss_basis(epochs.info, None, origin,
+                                      int_order, ext_order, True)
+            S_recon /= coil_scale
+            # get mapping
+            mapping = np.dot(S_recon[:, :n_in], pS_ave_good[:n_in])
+            # apply mapping
+            data[meg_picks] = np.dot(mapping, data[good_picks])
+    evoked = epochs._evoked_from_epoch_data(
+        data, info_to, picks, count, 'average')
+    logger.info('Created Evoked dataset from %s epochs' % (count,))
+    return evoked
