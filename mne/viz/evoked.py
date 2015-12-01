@@ -284,7 +284,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
                         colors = _rgb(x, y, z)
-                        pos = find_layout(evoked.info).pos[:, :2][idx]
+                        pos = find_layout(evoked.info, ch_type=t).pos[:, :2][idx]
                         _plot_legend(pos=pos, colors=colors, axis=ax)
                     else:
                         colors = ['k'] * len(idx)
