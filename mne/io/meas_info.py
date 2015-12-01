@@ -1342,9 +1342,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         ch_types = [ch_types] * nchan
     if len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length')
-    info = _empty_info()
+    info = _empty_info(sfreq)
     info['meas_date'] = np.array([0, 0], np.int32)
-    info['sfreq'] = sfreq
     info['ch_names'] = ch_names
     info['nchan'] = nchan
     loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
@@ -1390,7 +1389,7 @@ RAW_INFO_FIELDS = (
 )
 
 
-def _empty_info():
+def _empty_info(sfreq):
     """Create an empty info dictionary"""
     from ..transforms import Transform
     _none_keys = (
@@ -1410,8 +1409,11 @@ def _empty_info():
     for k in _list_keys:
         info[k] = list()
     info['custom_ref_applied'] = False
-    info['nchan'] = info['sfreq'] = 0
+    info['nchan'] = 0
     info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
+    info['sfreq'] = sfreq
+    info['highpass'] = 0.
+    info['lowpass'] = sfreq / 2.0
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
     info._check_consistency()
     return info

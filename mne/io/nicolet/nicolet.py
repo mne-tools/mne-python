@@ -68,7 +68,6 @@ def read_raw_nicolet(input_fname, montage=None, eog=None, misc=None, ecg=None,
 
 def _get_nicolet_info(fname, eog, ecg, emg, misc):
     """Function for extracting info from Nicolet header files."""
-    info = _empty_info()
     fname = path.splitext(fname)[0]
     header = fname + '.head'
 
@@ -102,10 +101,11 @@ def _get_nicolet_info(fname, eog, ecg, emg, misc):
     sec, msec = time[2].split('.')
     date = datetime.datetime(int(date[0]), int(date[1]), int(date[2]),
                              int(time[0]), int(time[1]), int(sec), int(msec))
+    info = _empty_info(float(header_info['sample_freq']))
     info.update({'filename': fname, 'nchan': header_info['num_channels'],
                  'meas_date': calendar.timegm(date.utctimetuple()),
-                 'sfreq': header_info['sample_freq'], 'ch_names': ch_names,
-                 'description': None, 'buffer_size_sec': 10.})
+                 'ch_names': ch_names, 'description': None,
+                 'buffer_size_sec': 10.})
 
     cal = header_info['conversion_factor'] * 1e-6
     for idx, ch_name in enumerate(ch_names):

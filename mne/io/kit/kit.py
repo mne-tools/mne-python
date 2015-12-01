@@ -652,10 +652,10 @@ def get_kit_info(rawfile):
         sqd['acq_type'] = acq_type
 
         # Create raw.info dict for raw fif object with SQD data
-        info = _empty_info()
+        info = _empty_info(float(sqd['sfreq']))
         info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
-                    highpass=sqd['highpass'], sfreq=float(sqd['sfreq']),
-                    filename=rawfile, nchan=sqd['nchan'])
+                    highpass=sqd['highpass'], filename=rawfile,
+                    nchan=sqd['nchan'])
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')

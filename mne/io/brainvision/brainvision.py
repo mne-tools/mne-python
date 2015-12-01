@@ -263,7 +263,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
         Events from the corresponding vmrk file.
     """
     scale = float(scale)
-    info = _empty_info()
 
     ext = os.path.splitext(vhdr_fname)[-1]
     if ext != '.vhdr':
@@ -287,7 +286,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
 
     # get sampling info
     # Sampling interval is given in microsec
-    info['sfreq'] = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
+    sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
+    info = _empty_info(sfreq)
 
     # check binary format
     assert cfg.get('Common Infos', 'DataFormat') == 'BINARY'
@@ -348,10 +348,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
             highpass.append(line[5])
             lowpass.append(line[6])
         if len(highpass) == 0:
-            info['highpass'] = None
+            pass
         elif all(highpass):
             if highpass[0] == 'NaN':
-                info['highpass'] = None
+                pass
             elif highpass[0] == 'DC':
                 info['highpass'] = 0.
             else:
@@ -362,10 +362,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
                                   'filters. Highest filter setting will '
                                   'be stored.'))
         if len(lowpass) == 0:
-            info['lowpass'] = None
+            pass
         elif all(lowpass):
             if lowpass[0] == 'NaN':
-                info['lowpass'] = None
+                pass
             else:
                 info['lowpass'] = float(lowpass[0])
         else:
@@ -376,14 +376,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
         # Post process highpass and lowpass to take into account units
         header = settings[idx].split('  ')
         header = [h for h in header if len(h)]
-        if '[s]' in header[4] and info['highpass'] is not None \
-                and (info['highpass'] > 0):
+        if '[s]' in header[4] and (info['highpass'] > 0):
             info['highpass'] = 1. / info['highpass']
-        if '[s]' in header[5] and info['lowpass'] is not None:
+        if '[s]' in header[5]:
             info['lowpass'] = 1. / info['lowpass']
-    else:
-        info['highpass'] = None
-        info['lowpass'] = None
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)

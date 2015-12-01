@@ -893,7 +893,8 @@ def _read_bti_header_pdf(pdf_fname):
 def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     """ Read bti PDF header
     """
-    info = _read_bti_header_pdf(pdf_fname) if pdf_fname else dict()
+    info = _read_bti_header_pdf(pdf_fname) if pdf_fname else \
+        dict({'sample_period': 0.001})
 
     cfg = _read_config(config_fname)
     info['bti_transform'] = cfg['transforms']
@@ -1134,11 +1135,11 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     use_hpi = False  # hard coded, but marked as later option.
     logger.info('Creating Neuromag info structure ...')
-    info = _empty_info()
+    sfreq = 1e3 / bti_info['sample_period'] * 1e-3
+    info = _empty_info(sfreq)
     if pdf_fname is not None:
         date = bti_info['processes'][0]['timestamp']
         info['meas_date'] = [date, 0]
-        info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
     else:  # for some use case we just want a partial info with channel geom.
         info['meas_date'] = None
         info['sfreq'] = None
