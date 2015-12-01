@@ -486,16 +486,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
-    pos_x = pos[:, 0]
-    pos_y = pos[:, 1]
 
     ax = axis if axis else plt.gca()
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_frame_on(False)
-    if any([not pos_y.any(), not pos_x.any()]):
-        raise RuntimeError('No position information found, cannot compute '
-                           'geometries for topomap.')
+    pos_x, pos_y = _prepare_topomap(pos, ax)
     if outlines is None:
         xmin, xmax = pos_x.min(), pos_x.max()
         ymin, ymax = pos_y.min(), pos_y.max()
@@ -1613,3 +1606,17 @@ def _find_peaks(evoked, npeaks):
     if len(times) == 0:
         times = [evoked.times[gfp.argmax()]]
     return times
+
+
+def _prepare_topomap(pos, ax):
+    """Helper for preparing the topomap."""
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_frame_on(False)
+    if any([not pos_y.any(), not pos_x.any()]):
+        raise RuntimeError('No position information found, cannot compute '
+                           'geometries for topomap.')
+    return pos_x, pos_y
