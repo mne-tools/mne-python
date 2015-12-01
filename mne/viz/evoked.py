@@ -22,7 +22,8 @@ from ..utils import logger
 from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
-from .topomap import _prepare_topo_plot, plot_topomap, _check_outlines
+from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
+                      _prepare_topomap)
 from ..channels import find_layout
 
 
@@ -127,7 +128,7 @@ def _rgb(x, y, z):
     return np.asarray([x, y, z]).T
 
 
-def _plot_legend(pos=None, colors=None, axis=None, outlines='head'):
+def _plot_legend(pos, colors, axis, outlines='skirt'):
     """Helper function to plot color/channel legends for butterfly plots
     with spatial colors"""
     from matplotlib import patches
@@ -135,15 +136,7 @@ def _plot_legend(pos=None, colors=None, axis=None, outlines='head'):
     ax = inset_axes(axis, width=0.5, height=0.5, loc=3)
 
     pos, outlines = _check_outlines(pos, outlines, None)
-    pos_x = pos[:, 0]
-    pos_y = pos[:, 1]
-
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_frame_on(False)
-    if any([not pos_y.any(), not pos_x.any()]):
-        raise RuntimeError('No position information found, cannot compute '
-                           'geometries for topomap.')
+    pos_x, pos_y = _prepare_topomap(pos, ax)
 
     for x, y, c in zip(pos_x, pos_y, colors):
         ax.add_artist(patches.Circle(xy=(x, y), radius=0.03, color=c))
@@ -262,10 +255,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             D = this_scaling * evoked.data[idx, :]
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
-
-                text = ax.annotate('Loading...', xy=(0.01, 0.1),
+                offset = 0.5 if spatial_colors else 0
+                text = ax.annotate('Loading...', xy=(0.01, 0.1 + offset),
                                    xycoords='axes fraction', fontsize=20,
-                                   color='green')
+                                   color='green', zorder=2)
                 text.set_visible(False)
                 callback_onselect = partial(_butterfly_onselect,
                                             ch_types=ch_types_used,
@@ -285,7 +278,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         x, y, z = locs3d.T
                         colors = _rgb(x, y, z)
                         pos = find_layout(evoked.info, ch_type=t).pos[:, :2]
-                        _plot_legend(pos=pos, colors=colors, axis=ax)
+                        _plot_legend(pos, colors, ax)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
