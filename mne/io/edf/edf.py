@@ -419,9 +419,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         chs.append(chan_info)
     edf_info['stim_channel'] = stim_channel
 
-    #picks = pick_types(info, meg=False, eeg=True)
-    picks = [item for item, mask in zip(range(nchan), pick_mask) if mask]
     if any(pick_mask):
+        picks = [item for item, mask in zip(range(nchan), pick_mask) if mask]
         edf_info['max_samp'] = max_samp = n_samps[picks].max()
     else:
         edf_info['max_samp'] = max_samp = n_samps.max()
