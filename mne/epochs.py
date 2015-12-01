@@ -2604,8 +2604,7 @@ def concatenate_epochs(epochs_list):
 
 @verbose
 def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
-                      method='maxwell', weight_all=True,
-                      int_order=8, ext_order=3, verbose=None):
+                      weight_all=True, int_order=8, ext_order=3, verbose=None):
     """Average data, transforming using head positions
 
     Parameters
@@ -2625,20 +2624,14 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         Origin of internal and external multipolar moment space in head
         coords and in meters. The default is ``'auto'``, which means
         a head-digitization-based origin fit.
-    method : str
-        Either ``'maxwell'`` or ``'mne'``, the method for transforming
-        data to the original head position.
     weight_all : bool
         If True, all channels are weighted by the SSS basis weights.
         If False, only MEG channels are weighted, other channels
-        receive uniform weight per epoch. Only used when
-        ``method == 'maxwell'``.
+        receive uniform weight per epoch.
     int_order : int
-        Order of internal component of spherical expansion. Only used when
-        ``method == 'maxwell'``.
+        Order of internal component of spherical expansion.
     ext_order : int
-        Order of external component of spherical expansion. Only used when
-        ``method == 'maxwell'``.
+        Order of external component of spherical expansion.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2663,21 +2656,13 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
            of children in MEG: Quantification, effects on source
            estimation, and compensation. NeuroImage 40:541–550, 2008.
     """
-    # TODO:
-    # 1. Implement minimum-norm version
-    # 2. Use median position during interval
-    # 3. Validate on data
     from .preprocessing.maxwell import (_info_sss_basis,
                                         _check_usable, _col_norm_pinv,
                                         _get_n_moments, _get_mf_picks,
                                         _reset_meg_bads)
-    from .forward import _map_meg_channels
     if not isinstance(epochs, _BaseEpochs):
         raise TypeError('epochs must be an instance of Epochs, not %s'
                         % (type(epochs),))
-    if not isinstance(method, string_types) or \
-            method not in ('maxwell', 'mne'):
-        raise ValueError('method must be "maxwell" or "mne"')
     orig_sfreq = epochs.info['sfreq'] if orig_sfreq is None else orig_sfreq
     orig_sfreq = float(orig_sfreq)
     trn, rot, t = pos
@@ -2685,8 +2670,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     _check_usable(epochs)
     origin = _check_origin(origin, epochs.info, 'head')
 
-    logger.info('Aligning and averaging up to %s epochs using %s method'
-                % (len(epochs.events), method))
+    logger.info('Aligning and averaging up to %s epochs'
+                % (len(epochs.events)))
     meg_picks, _, _, good_picks, coil_scale = \
         _get_mf_picks(epochs.info, int_order, ext_order)
     n_channels, n_times = len(epochs.ch_names), len(epochs.times)
@@ -2703,7 +2688,6 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     n_in = _get_n_moments(int_order)
     S_ave = 0.
     last_trans = None
-    info_to_meg = pick_info(info_to, meg_picks, copy=True)
     for ei, epoch in enumerate(epochs):
         event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
         use_idx = np.where(t <= event_time)[0]
@@ -2725,23 +2709,13 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
                         % (ei + 1,))
             reuse = True
         epoch = epoch.copy()  # because we operate inplace
-        if method == 'maxwell':
-            if not reuse:
-                S = _info_sss_basis(info_from, trans, origin,
-                                    int_order, ext_order, True)
-                weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
-                S *= weight
-            S_ave += S  # eq. 41
-            epoch[slice(None) if weight_all else meg_picks] *= weight
-        else:
-            if not reuse:
-                info_from['dev_head_t']['trans'] = trans
-                # get mapping
-                S = _map_meg_channels(info_from, info_to_meg,
-                                      'accurate', origin)
-            # apply mapping
-            epoch[meg_picks] = np.dot(S, epoch[good_picks])
-            weight = 1.
+        if not reuse:
+            S = _info_sss_basis(info_from, trans, origin,
+                                int_order, ext_order, True)
+            weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
+            S *= weight
+        S_ave += S  # eq. 41
+        epoch[slice(None) if weight_all else meg_picks] *= weight
         data += epoch  # eq. 42
         w_sum += weight
         count += 1
@@ -2751,20 +2725,19 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     else:
         data[meg_picks] /= w_sum
         data[other_picks] /= w_sum if weight_all else count
-        if method == 'maxwell':
-            # invert
-            # XXX Eventually we could do cross-talk and fine-cal here
-            S_ave /= w_sum
-            pS_ave_good = _col_norm_pinv(S_ave)
-            pS_ave_good *= coil_scale[good_picks].T
-            # get recon matrix
-            S_recon = _info_sss_basis(epochs.info, None, origin,
-                                      int_order, ext_order, True)
-            S_recon /= coil_scale
-            # get mapping
-            mapping = np.dot(S_recon[:, :n_in], pS_ave_good[:n_in])
-            # apply mapping
-            data[meg_picks] = np.dot(mapping, data[good_picks])
+        # invert
+        # XXX Eventually we could do cross-talk and fine-cal here
+        S_ave /= w_sum
+        pS_ave_good = _col_norm_pinv(S_ave)
+        pS_ave_good *= coil_scale[good_picks].T
+        # get recon matrix
+        S_recon = _info_sss_basis(epochs.info, None, origin,
+                                  int_order, ext_order, True)
+        S_recon /= coil_scale
+        # get mapping
+        mapping = np.dot(S_recon[:, :n_in], pS_ave_good[:n_in])
+        # apply mapping
+        data[meg_picks] = np.dot(mapping, data[good_picks])
     evoked = epochs._evoked_from_epoch_data(
         data, info_to, picks, count, 'average')
     logger.info('Created Evoked dataset from %s epochs' % (count,))

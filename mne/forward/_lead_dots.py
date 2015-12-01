@@ -346,9 +346,9 @@ def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
     for ci1 in idx:
         ci2 = ci1 + 1
         res = _fast_sphere_dot_r0(
-                intrad, rmags[ci1], rmags[:ci2], rlens[ci1], rlens[:ci2],
-                cosmags[ci1], cosmags[:ci2], ws[ci1], ws[:ci2], volume, lut,
-                n_fact, ch_type)
+            intrad, rmags[ci1], rmags[:ci2], rlens[ci1], rlens[:ci2],
+            cosmags[ci1], cosmags[:ci2], ws[ci1], ws[:ci2], volume, lut,
+            n_fact, ch_type)
         products[ci1, :ci2] = res
         products[:ci2, ci1] = res
     return products
@@ -513,8 +513,8 @@ def _do_surface_dots_subset(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
         The integration products.
     """
     products = _fast_sphere_dot_r0(
-         intrad, rsurf, rmags, lsurf, rlens, this_nn, cosmags, None, ws,
-         volume, lut, n_fact, ch_type).T
+        intrad, rsurf, rmags, lsurf, rlens, this_nn, cosmags, None, ws,
+        volume, lut, n_fact, ch_type).T
     if rref is not None:
         raise NotImplementedError  # we don't ever use this, isn't tested
         # vres = _fast_sphere_dot_r0(

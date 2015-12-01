@@ -38,7 +38,7 @@ from mne.externals.six.moves import zip, cPickle as pickle
 from mne.datasets import testing
 from mne.tests.common import assert_meg_snr
 
-# matplotlib.use('Agg')  # for testing don't use X server
+matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -74,7 +74,7 @@ clean_warning_registry()  # really clean warning stack
 
 @slow_test
 @testing.requires_testing_data
-def test_aaaverage_movements():
+def test_average_movements():
     """Test movement averaging algorithm
     """
     # usable data
@@ -143,23 +143,11 @@ def test_aaaverage_movements():
     # these should be close to numerical precision
     assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-20)
 
-    # MNE-based
-    evoked_stat_mne = average_movements(epochs, pos=pos_stat, origin=origin,
-                                        method='mne', verbose=True)
-    evoked_std.plot()
-    evoked_stat_mne.plot()
-    assert_meg_snr(evoked_stat_mne, evoked_std, 0.1, 7)
-    evoked_move_mne = average_movements(epochs, pos=pos, origin=origin,
-                                        method='mne', verbose=True)
-    assert_meg_snr(evoked_move_mne, evoked_std, 0.2, 0.9)
-    assert_meg_snr(evoked_move_mne, evoked_move_non, 0.2, 0.8)
-
     # degenerate cases
     ts += 10.
     assert_raises(RuntimeError, average_movements, epochs, pos=pos)  # bad pos
     ts -= 10.
     assert_raises(TypeError, average_movements, 'foo', pos=pos)
-    assert_raises(ValueError, average_movements, epochs, pos=pos, method='foo')
     assert_raises(RuntimeError, average_movements, epochs_proj, pos=pos)  # prj
 
 
