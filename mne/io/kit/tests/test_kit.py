@@ -17,7 +17,7 @@ from mne.utils import run_tests_if_main
 from mne.io import Raw
 from mne.io import read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
-from mne.io.tests.test_raw import _test_raw_object
+from mne.io.tests.test_raw import _test_raw_reader
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
@@ -45,7 +45,7 @@ def test_data():
     # check functionality
     raw_mrk = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_path,
                            hsp_path)
-    raw_py = _test_raw_object(read_raw_kit, test_preloading=True,
+    raw_py = _test_raw_reader(read_raw_kit, test_preloading=True,
                               input_fname=sqd_path, mrk=mrk_path, elp=elp_path,
                               hsp=hsp_path, stim=list(range(167, 159, -1)),
                               slope='+', stimthresh=1)

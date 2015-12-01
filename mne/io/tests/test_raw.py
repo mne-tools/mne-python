@@ -12,7 +12,7 @@ from mne.io import Raw
 from mne.utils import _TempDir
 
 
-def _test_raw_object(reader, test_preloading, test_blocks=False, **kwargs):
+def _test_raw_reader(reader, test_preloading, test_blocks=False, **kwargs):
     """Test reading, writing and slicing of raw classes.
 
     Parameters
@@ -22,6 +22,9 @@ def _test_raw_object(reader, test_preloading, test_blocks=False, **kwargs):
     test_preloading : bool
         Whether not preloading is implemented for the reader. If True, both
         cases and memory mapping to file are tested.
+    test_blocks : bool
+        Whether the data is divided into blocks with ``buffer_size_sec``
+        in the ``meas_info``.
     **kwargs :
         Arguments for the reader.
 

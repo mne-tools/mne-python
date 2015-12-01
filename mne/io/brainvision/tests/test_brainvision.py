@@ -17,7 +17,7 @@ from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, find_events
 from mne.io.constants import FIFF
 from mne.io import Raw, read_raw_brainvision
-from mne.io.tests.test_raw import _test_raw_object
+from mne.io.tests.test_raw import _test_raw_reader
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -32,7 +32,7 @@ eog = ['HL', 'HR', 'Vb']
 def test_brainvision_data_filters():
     """Test reading raw Brain Vision files
     """
-    raw = _test_raw_object(read_raw_brainvision, test_preloading=True,
+    raw = _test_raw_reader(read_raw_brainvision, test_preloading=True,
                            vhdr_fname=vhdr_highpass_path, montage=montage,
                            eog=eog)
 
@@ -46,7 +46,7 @@ def test_brainvision_data():
     assert_raises(IOError, read_raw_brainvision, vmrk_path)
     assert_raises(ValueError, read_raw_brainvision, vhdr_path, montage,
                   preload=True, scale="foo")
-    raw_py = _test_raw_object(read_raw_brainvision, test_preloading=True,
+    raw_py = _test_raw_reader(read_raw_brainvision, test_preloading=True,
                               vhdr_fname=vhdr_path, montage=montage, eog=eog)
 
     assert_true('RawBrainVision' in repr(raw_py))
