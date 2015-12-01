@@ -106,15 +106,15 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
+def _map_meg_channels(info_from, info_to, mode='fast'):
     """Find mapping from one set of channels to another.
 
     Parameters
     ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    pick_from : array-like of int
-        The channels from which to interpolate.
+    info_from : mne.io.MeasInfo
+        The measurement data to interpolate from.
+    info_to : mne.io.MeasInfo
+        The measurement info to interpolate to.
     pick_to : array-like of int
         The channels to which to interpolate.
     mode : str
@@ -127,9 +127,6 @@ def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
     mapping : array
         A mapping matrix of shape len(pick_to) x len(pick_from).
     """
-    info_from = pick_info(inst.info, pick_from, copy=True)
-    info_to = pick_info(inst.info, pick_to, copy=True)
-
     # no need to apply trans because both from and to coils are in device
     # coordinates
     templates = _read_coil_defs()
@@ -203,7 +200,9 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
                          ' locations of the destination channels will be used'
                          ' for interpolation.')
 
-    mapping = _map_meg_channels(evoked, pick_from, pick_to, mode='fast')
+    info_from = pick_info(evoked.info, pick_from, copy=True)
+    info_to = pick_info(evoked.info, pick_to, copy=True)
+    mapping = _map_meg_channels(info_from, info_to, mode='fast')
 
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors

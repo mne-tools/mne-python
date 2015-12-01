@@ -22,7 +22,7 @@ Changelog
 
         - Internal component regularization
 
-    - Compensation for movements using Maxwell filtering on epoched data in :func:`mne.Epochs.average_movement` by `Eric Larson`_ and `Samu Taulu`_
+    - Compensation for movements using Maxwell filtering or minimum-norm mapping on epoched data in :func:`mne.epochs.average_movements` by `Eric Larson`_ and `Samu Taulu`_
 
     - Add reader for Nicolet files in :func:`mne.io.read_raw_nicolet` by `Jaakko Leppakangas`_
 

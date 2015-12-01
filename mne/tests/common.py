@@ -5,8 +5,8 @@
 import numpy as np
 from numpy.testing import assert_allclose
 
-from . import pick_types, Evoked
-from .io import _BaseRaw
+from .. import pick_types, Evoked
+from ..io import _BaseRaw
 
 
 def _get_data(x, ch_idx):

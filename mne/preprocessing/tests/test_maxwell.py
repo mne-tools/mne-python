@@ -22,7 +22,7 @@ from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
                                        _sh_real_to_complex, _sh_negate,
                                        _bases_complex_to_real, _sss_basis,
                                        _bases_real_to_complex, _sph_harm)
-from mne.testing import assert_meg_snr
+from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, catch_logging,
                        requires_version, object_diff)
 from mne.externals.six import PY3

@@ -23,7 +23,7 @@ from mne import (Epochs, read_events, pick_events, read_epochs,
                  get_chpi_positions)
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
-    EpochsArray, concatenate_epochs, _BaseEpochs)
+    EpochsArray, concatenate_epochs, _BaseEpochs, average_movements)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_version)
@@ -35,7 +35,7 @@ from mne.io.constants import FIFF
 from mne.externals.six import text_type
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.datasets import testing
-from mne.testing import assert_meg_snr
+from mne.tests.common import assert_meg_snr
 
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -73,7 +73,7 @@ clean_warning_registry()  # really clean warning stack
 
 @slow_test
 @testing.requires_testing_data
-def test_average_movement():
+def test_aaaverage_movements():
     """Test movement averaging algorithm
     """
     # usable data
@@ -91,14 +91,15 @@ def test_average_movement():
 
     # working
     origin = (0., 0., 0.04)
-    evoked_move_non = epochs.average_movement(pos=pos, weight_all=False,
-                                              origin=origin)
-    evoked_move_all = epochs.average_movement(pos=pos, weight_all=True,
-                                              origin=origin)
+    evoked_move_non = average_movements(epochs, pos=pos, weight_all=False,
+                                        origin=origin)
+    evoked_move_all = average_movements(epochs, pos=pos, weight_all=True,
+                                        origin=origin)
+    # evoked_move_mne = average_movements(epochs, pos=pos, weight_all=True,
+    #                                     origin=origin, method='mne')
     evoked_std = epochs.average()
-    assert_equal(evoked_move_non.nave, evoked_std.nave)
-    assert_equal(evoked_move_all.nave, evoked_std.nave)
     for ev in (evoked_move_non, evoked_move_all):
+        assert_equal(ev.nave, evoked_std.nave)
         assert_equal(len(ev.info['bads']), 0)
     meg_picks = pick_types(evoked_std.info, meg=True, exclude=())
     assert_meg_snr(evoked_move_non, evoked_std, 0., 0.1)  # substantial changes
@@ -119,10 +120,12 @@ def test_average_movement():
 
     # degenerate cases
     ts += 10.
-    assert_raises(RuntimeError, epochs.average_movement, pos=pos)  # bad pos
+    assert_raises(RuntimeError, average_movements, epochs, pos=pos)  # bad pos
     ts -= 10.
+    assert_raises(TypeError, average_movements, 'foo', pos=pos)
+    assert_raises(ValueError, average_movements, epochs, pos=pos, method='foo')
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks, proj=True)
-    assert_raises(RuntimeError, epochs.average_movement, pos=pos)  # proj on
+    assert_raises(RuntimeError, average_movements, epochs, pos=pos)  # proj on
 
 
 def test_reject():
