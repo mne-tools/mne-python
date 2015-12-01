@@ -141,7 +141,8 @@ def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
     coeffs = lut_fun(ctheta)
     betans = np.cumprod(np.tile(beta[:, np.newaxis], (1, n_fact.shape[0])),
                         axis=1)
-    s0 = np.dot(coeffs * betans, n_fact)  # == weighted sum across cols
+    coeffs *= betans
+    s0 = np.dot(coeffs, n_fact)  # == weighted sum across cols
     return s0
 
 
@@ -174,12 +175,13 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     #  * sums[:, 2]    n/((2n+1)(n+1)) beta^(n+1) P_n'
     #  * sums[:, 3]    n/((2n+1)(n+1)) beta^(n+1) P_n''
     coeffs = lut_fun(ctheta)
-    beta = (np.cumprod(np.tile(beta[:, np.newaxis], (1, n_fact.shape[0])),
-                       axis=1) * beta[:, np.newaxis])
+    bbeta = np.cumprod(np.tile(beta[np.newaxis], (n_fact.shape[0], 1)),
+                       axis=0)
+    bbeta *= beta
     # This is equivalent, but slower:
-    # sums = np.sum(beta[:, :, np.newaxis] * n_fact * coeffs, axis=1)
+    # sums = np.sum(bbeta[:, :, np.newaxis].T * n_fact * coeffs, axis=1)
     # sums = np.rollaxis(sums, 2)
-    sums = np.einsum('ij,jk,ijk->ki', beta, n_fact, coeffs)
+    sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, coeffs)
     return sums
 
 
