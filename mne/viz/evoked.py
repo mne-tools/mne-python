@@ -127,7 +127,7 @@ def _rgb(x, y, z):
     return np.asarray([x, y, z]).T
 
 
-def _plot_legend(pos=None, colors=None, axis=False, outlines='head'):
+def _plot_legend(pos=None, colors=None, axis=None, outlines='head'):
     """Helper function to plot color/channel legends for butterfly plots
     with spatial colors"""
     from mpl_toolkits.axes_grid.inset_locator import inset_axes
@@ -137,27 +137,12 @@ def _plot_legend(pos=None, colors=None, axis=False, outlines='head'):
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
 
-#    ax = axis if axis else plt.gca()
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_frame_on(False)
     if any([not pos_y.any(), not pos_x.any()]):
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
-    mask_ = np.c_[outlines['mask_pos']]
-
-    if outlines is None:
-        _is_default_outlines = False
-    elif isinstance(outlines, dict):
-        _is_default_outlines = any(k.startswith('head') for k in outlines)
-
-    # plot outline
-    if _is_default_outlines:
-        from matplotlib import patches
-        # remove nose offset and tweak
-        patch_ = patches.Circle((0.5, 0.4687), radius=.46,
-                                clip_on=True,
-                                transform=ax.transAxes)
 
     for x, y, c in zip(pos_x, pos_y, colors):
         ax.add_artist(patches.Circle(xy=(x, y), radius=0.03, color=c))
