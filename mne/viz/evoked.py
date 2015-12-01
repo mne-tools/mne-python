@@ -130,6 +130,7 @@ def _rgb(x, y, z):
 def _plot_legend(pos=None, colors=None, axis=None, outlines='head'):
     """Helper function to plot color/channel legends for butterfly plots
     with spatial colors"""
+    from matplotlib import patches
     from mpl_toolkits.axes_grid.inset_locator import inset_axes
     ax = inset_axes(axis, width=0.5, height=0.5, loc=3)
 
