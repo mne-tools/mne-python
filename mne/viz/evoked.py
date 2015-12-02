@@ -154,7 +154,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
-                 spatial_colors=False, legend=False):
+                 spatial_colors=False, legend=True):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
