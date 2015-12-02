@@ -1062,6 +1062,8 @@ class RawBTi(_BaseRaw):
                  ecg_ch='E31', eog_ch=('E63', 'E64'),
                  verbose=None):
 
+        if pdf_fname is None:
+            raise ValueError('pdf_fname must be a path, not None')
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname, config_fname=config_fname,
             head_shape_fname=head_shape_fname, rotation_x=rotation_x,
