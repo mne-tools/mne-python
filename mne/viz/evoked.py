@@ -169,6 +169,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
     from matplotlib.widgets import SpanSelector
+    info = evoked.info
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
@@ -182,9 +183,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     channel_types = ['eeg', 'grad', 'mag', 'seeg']
 
     if picks is None:
-        picks = list(range(evoked.info['nchan']))
+        picks = list(range(info['nchan']))
 
-    bad_ch_idx = [evoked.ch_names.index(ch) for ch in evoked.info['bads']
+    bad_ch_idx = [evoked.ch_names.index(ch) for ch in info['bads']
                   if ch in evoked.ch_names]
     if len(exclude) > 0:
         if isinstance(exclude, string_types) and exclude == 'bads':
@@ -199,7 +200,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         picks = list(set(picks).difference(exclude))
     picks = np.array(picks)
 
-    types = np.array([channel_type(evoked.info, idx) for idx in picks])
+    types = np.array([channel_type(info, idx) for idx in picks])
     n_channel_types = 0
     ch_types_used = []
     for t in channel_types:
@@ -273,13 +274,12 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
                 if not gfp_only:
                     if spatial_colors:
-                        chs = [evoked.info['chs'][i] for i in idx]
+                        chs = [info['chs'][i] for i in idx]
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
                         colors = _rgb(x, y, z)
                         if legend:
-                            pos = find_layout(evoked.info, ch_type=t).pos[:,
-                                                                          :2]
+                            pos = find_layout(info, ch_type=t).pos[:, :2]
                             _plot_legend(pos, colors, ax)
                     else:
                         colors = ['k'] * len(idx)
@@ -362,9 +362,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
-        params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
-                      axes=axes, types=types, units=units, scalings=scalings,
-                      unit=unit, ch_types_used=ch_types_used, picks=picks,
+        params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
+                      types=types, units=units, scalings=scalings, unit=unit,
+                      ch_types_used=ch_types_used, picks=picks,
                       plot_update_proj_callback=_plot_update_evoked,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
