@@ -154,7 +154,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
-                 spatial_colors=False):
+                 spatial_colors=False, legend=False):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -277,8 +277,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
                         colors = _rgb(x, y, z)
-                        pos = find_layout(evoked.info, ch_type=t).pos[:, :2]
-                        _plot_legend(pos, colors, ax)
+                        if legend:
+                            pos = find_layout(evoked.info, ch_type=t).pos[:,
+                                                                          :2]
+                            _plot_legend(pos, colors, ax)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
@@ -377,7 +379,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
-                window_title=None, spatial_colors=False):
+                window_title=None, spatial_colors=False, legend=True):
     """Plot evoked data
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -433,13 +435,17 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         values. Spatially similar channels will have similar colors.
         Bad channels will be dotted. A legend is displayed in the plot's
         bottom left, with sensor positions showing the corresponding color.
+    legend : bool
+        Whether to show legend when using ``spatial_colors``. If
+        ``spatial_colors=False``, this parameter has no effect. Defaults
+        to True.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors)
+                        spatial_colors=spatial_colors, legend=legend)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
