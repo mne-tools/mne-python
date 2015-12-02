@@ -154,7 +154,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
-                 spatial_colors=False, legend=True):
+                 spatial_colors=None):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -256,7 +256,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             D = this_scaling * evoked.data[idx, :]
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
-                offset = 0.5 if spatial_colors else 0
+                offset = 0.5 if spatial_colors in ['head', 'skirt'] else 0
                 text = ax.annotate('Loading...', xy=(0.01, 0.1 + offset),
                                    xycoords='axes fraction', fontsize=20,
                                    color='green', zorder=2)
@@ -273,14 +273,18 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
                 gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
                 if not gfp_only:
-                    if spatial_colors:
+                    if spatial_colors is not None:
                         chs = [info['chs'][i] for i in idx]
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
                         colors = _rgb(x, y, z)
-                        if legend:
+                        if spatial_colors in ['head', 'skirt']:
                             pos = find_layout(info, ch_type=t).pos[:, :2]
-                            _plot_legend(pos, colors, ax)
+                            _plot_legend(pos, colors, ax, spatial_colors)
+                        elif spatial_colors != 'noplot':
+                            logger.warning("spatial_colors should be one of "
+                                           "'head', 'skirt', 'noplot'. "
+                                           "Defaulting to 'noplot'.")
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
@@ -291,7 +295,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                                  zorder=0,
                                                  color=colors[ch_idx])[0])
                 if gfp:  # 'only' or boolean True
-                    gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
+                    gfp_color = (0., 1., 0.) if spatial_colors is None\
+                        else 3 * (0.,)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
                     this_ylim = ax.get_ylim()
                     if not gfp_only:
@@ -310,7 +315,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 for ii, line in zip(idx, line_list):
                     if ii in bad_ch_idx:
                         line.set_zorder(1)
-                        if spatial_colors:
+                        if spatial_colors is not None:
                             line.set_linestyle("--")
                 ax.set_ylabel('data (%s)' % ch_unit)
                 # for old matplotlib, we actually need this to have a bounding
@@ -379,7 +384,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
-                window_title=None, spatial_colors=False, legend=True):
+                window_title=None, spatial_colors=None):
     """Plot evoked data
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -430,22 +435,18 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         channel traces will not be shown.
     window_title : str | None
         The title to put at the top of the figure.
-    spatial_colors : bool
-        Color code lines by mapping physical sensor coordinates into color
-        values. Spatially similar channels will have similar colors.
-        Bad channels will be dotted. A legend is displayed in the plot's
-        bottom left, with sensor positions showing the corresponding color.
-    legend : bool
-        Whether to show legend when using ``spatial_colors``. If
-        ``spatial_colors=False``, this parameter has no effect. Defaults
-        to True.
+    spatial_colors : None | 'head' | 'skirt' | 'notopo'
+        If str, the lines are color coded by mapping physical sensor
+        coordinates into color values. Spatially similar channels will have
+        similar colors. Bad channels will be dotted. If None, the good
+        channels are plotted black and bad channels red. Defaults to None.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors, legend=legend)
+                        spatial_colors=spatial_colors)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
