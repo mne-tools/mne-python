@@ -128,18 +128,20 @@ def _rgb(x, y, z):
     return np.asarray([x, y, z]).T
 
 
-def _plot_legend(pos, colors, axis, outlines='skirt'):
+def _plot_legend(pos, colors, axis, bads, outlines='skirt'):
     """Helper function to plot color/channel legends for butterfly plots
     with spatial colors"""
-    from matplotlib import patches
     from mpl_toolkits.axes_grid.inset_locator import inset_axes
     ax = inset_axes(axis, width=0.5, height=0.5, loc=3)
 
     pos, outlines = _check_outlines(pos, outlines, None)
     pos_x, pos_y = _prepare_topomap(pos, ax)
 
-    for x, y, c in zip(pos_x, pos_y, colors):
-        ax.add_artist(patches.Circle(xy=(x, y), radius=0.03, color=c))
+    for idx, (x, y, c) in enumerate(zip(pos_x, pos_y, colors)):
+        if idx in bads:
+            ax.scatter(x, y, marker='x', color=c, s=20, zorder=0)
+        else:
+            ax.scatter(x, y, marker='o', color=c, s=3, zorder=1)
 
     if isinstance(outlines, dict):
         outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
@@ -154,7 +156,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
-                 spatial_colors=None):
+                 spatial_colors=False):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -256,7 +258,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             D = this_scaling * evoked.data[idx, :]
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
-                offset = 0.5 if spatial_colors in ['head', 'skirt'] else 0
+                offset = 0.5 if spatial_colors else 0
                 text = ax.annotate('Loading...', xy=(0.01, 0.1 + offset),
                                    xycoords='axes fraction', fontsize=20,
                                    color='green', zorder=2)
@@ -273,18 +275,16 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
                 gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
                 if not gfp_only:
-                    if spatial_colors is not None:
+                    if spatial_colors:
                         chs = [info['chs'][i] for i in idx]
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
                         colors = _rgb(x, y, z)
-                        if spatial_colors in ['head', 'skirt']:
-                            pos = find_layout(info, ch_type=t).pos[:, :2]
-                            _plot_legend(pos, colors, ax, spatial_colors)
-                        elif spatial_colors != 'noplot':
-                            logger.warning("spatial_colors should be one of "
-                                           "'head', 'skirt', 'noplot'. "
-                                           "Defaulting to 'noplot'.")
+                        layout = find_layout(info, ch_type=t, exclude=[])
+                        bads = [layout.names.index(bad) for bad in
+                                evoked.info['bads'] if bad in layout.names]
+                        pos = layout.pos[:, :2]
+                        _plot_legend(pos, colors, ax, bads=bads)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
@@ -295,8 +295,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                                  zorder=0,
                                                  color=colors[ch_idx])[0])
                 if gfp:  # 'only' or boolean True
-                    gfp_color = (0., 1., 0.) if spatial_colors is None\
-                        else 3 * (0.,)
+                    gfp_color = (0., 1., 0.) if spatial_colors else 3 * (0.,)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
                     this_ylim = ax.get_ylim()
                     if not gfp_only:
@@ -315,7 +314,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 for ii, line in zip(idx, line_list):
                     if ii in bad_ch_idx:
                         line.set_zorder(1)
-                        if spatial_colors is not None:
+                        if spatial_colors:
                             line.set_linestyle("--")
                 ax.set_ylabel('data (%s)' % ch_unit)
                 # for old matplotlib, we actually need this to have a bounding
@@ -384,7 +383,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
-                window_title=None, spatial_colors=None):
+                window_title=None, spatial_colors=False):
     """Plot evoked data
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -435,11 +434,11 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         channel traces will not be shown.
     window_title : str | None
         The title to put at the top of the figure.
-    spatial_colors : None | 'head' | 'skirt' | 'notopo'
-        If str, the lines are color coded by mapping physical sensor
+    spatial_colors : bool
+        If True, the lines are color coded by mapping physical sensor
         coordinates into color values. Spatially similar channels will have
-        similar colors. Bad channels will be dotted. If None, the good
-        channels are plotted black and bad channels red. Defaults to None.
+        similar colors. Bad channels will be dotted. If False, the good
+        channels are plotted black and bad channels red. Defaults to False.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,

@@ -353,7 +353,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
-             spatial_colors=None):
+             spatial_colors=False):
         """Plot evoked data as butterfly plots
 
         Left click to a line shows the channel name. Selecting an area by
@@ -402,11 +402,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             channel traces will not be shown.
         window_title : str | None
             The title to put at the top of the figure window.
-        spatial_colors : None | 'head' | 'skirt' | 'notopo'
-            If str, the lines are color coded by mapping physical sensor
+        spatial_colors : bool
+            If True, the lines are color coded by mapping physical sensor
             coordinates into color values. Spatially similar channels will have
-            similar colors. Bad channels will be dotted. If None, the good
-            channels are plotted black and bad channels red. Defaults to None.
+            similar colors. Bad channels will be dotted. If False, the good
+            channels are plotted black and bad channels red. Defaults to False.
         """
         return plot_evoked(self, picks=picks, exclude=exclude, unit=unit,
                            show=show, ylim=ylim, proj=proj, xlim=xlim,
