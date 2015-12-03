@@ -132,13 +132,15 @@ def _plot_legend(pos, colors, axis, bads, outlines='skirt'):
     """Helper function to plot color/channel legends for butterfly plots
     with spatial colors"""
     from mpl_toolkits.axes_grid.inset_locator import inset_axes
-    ax = inset_axes(axis, width="5%", height="30%", loc=3)
+    bbox = axis.get_window_extent()  # Determine the correct size.
+    ratio = bbox.width / bbox.height
+    ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=3)
 
     pos, outlines = _check_outlines(pos, outlines, None)
     pos_x, pos_y = _prepare_topomap(pos, ax)
-    ax.scatter(pos_x, pos_y, color=colors, s=20, marker='.', zorder=0)
+    ax.scatter(pos_x, pos_y, color=colors, s=25, marker='.', zorder=0)
     for idx in bads:
-        ax.scatter(pos_x[idx], pos_y[idx], s=2, marker='.', color='w',
+        ax.scatter(pos_x[idx], pos_y[idx], s=5, marker='.', color='w',
                    zorder=1)
 
     if isinstance(outlines, dict):
