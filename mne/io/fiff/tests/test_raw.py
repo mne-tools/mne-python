@@ -527,7 +527,6 @@ def test_io_complex():
     dtypes = [np.complex64, np.complex128]
 
     raw = _test_raw_reader(Raw, True, True, fnames=fif_fname)
-    raw = Raw(fif_fname, preload=True)
     picks = np.arange(5)
     start, stop = raw.time_as_index([0, 5])
 
