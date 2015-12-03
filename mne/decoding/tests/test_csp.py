@@ -80,6 +80,7 @@ def test_csp():
     csp_fail = CSP(cov_est="undefined")
     assert_raises(ValueError, csp_fail.fit, epochs_data, y)
 
+
 @requires_sklearn
 def test_regularized_csp():
     """Test Common Spatial Patterns algorithm using regularized covariance
