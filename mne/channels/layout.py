@@ -350,8 +350,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
         VectorView type layout. Use `meg` to force using the full layout
         in situations where the info does only contain one sensor type.
     exclude : list of string | str
-        List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in info['bads'].
+        List of channels to exclude. If empty do not exclude any.
+        If 'bads', exclude channels in info['bads'] (default).
 
     Returns
     -------
