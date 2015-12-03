@@ -356,19 +356,20 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     meg_surf : str
         Should be ``'helmet'`` or ``'head'`` to specify in which surface
         to compute the MEG field map. The default value is ``'helmet'``
-    n_jobs : int
-        The number of jobs to run in parallel.
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head
         coords and in meters. The default is ``'auto'``, which means
         a head-digitization-based origin fit.
 
-        .. versionadded: 0.11
+        .. versionadded:: 0.11
 
+    n_jobs : int
+        The number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
-        .. versionadded: 0.11
+        .. versionadded:: 0.11
+
 
     Returns
     -------
