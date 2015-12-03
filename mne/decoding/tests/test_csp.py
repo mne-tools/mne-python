@@ -73,8 +73,8 @@ def test_csp():
     # test covariance estimation methods (results should be roughly equal)
     csp_epochs = CSP(cov_est="epoch")
     csp_epochs.fit(epochs_data, y)
-    assert_array_almost_equal(csp.filters_, csp_epochs.filters_, 0)
-    assert_array_almost_equal(csp.patterns_, csp_epochs.patterns_, 0)
+    assert_array_almost_equal(csp.filters_, csp_epochs.filters_, -1)
+    assert_array_almost_equal(csp.patterns_, csp_epochs.patterns_, -1)
 
     # make sure error is raised for undefined estimation method
     csp_fail = CSP(cov_est="undefined")
