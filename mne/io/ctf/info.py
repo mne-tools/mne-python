@@ -363,23 +363,18 @@ _filt_map = {CTF.CTFV_FILTER_LOWPASS: 'lowpass',
 
 def _compose_meas_info(res4, coils, trans, eeg):
     """Create meas info from CTF data"""
-    info = _empty_info()
+    info = _empty_info(res4['sfreq'])
 
     # Collect all the necessary data from the structures read
     info['meas_id'] = get_new_file_id()
     info['meas_id']['usecs'] = 0
     info['meas_id']['secs'] = _convert_time(res4['data_date'],
                                             res4['data_time'])
-    for c_key, r_key in (('experimenter', 'nf_operator'), ('sfreq', 'sfreq')):
-        info[c_key] = res4[r_key]
+    info['experimenter'] = res4['nf_operator']
     info['subject_info'] = dict(his_id=res4['nf_subject_id'])
     for filt in res4['filters']:
         if filt['type'] in _filt_map:
             info[_filt_map[filt['type']]] = filt['freq']
-    if info['lowpass'] is None or info['lowpass'] < 0.:
-        info['lowpass'] = info['sfreq'] / 2.
-    if info['highpass'] is None or info['highpass'] < 0.:
-        info['highpass'] = 0.
     info['dig'], info['hpi_results'] = _pick_isotrak_and_hpi_coils(
         res4, coils, trans)
     if trans is not None:

@@ -261,10 +261,9 @@ class RawEGI(_BaseRaw):
             # No events
             self.event_id = None
             new_trigger = None
-        info = _empty_info()
+        info = _empty_info(egi_info['samp_rate'])
         info['hpi_subsystem'] = None
         info['events'], info['hpi_results'], info['hpi_meas'] = [], [], []
-        info['sfreq'] = float(egi_info['samp_rate'])
         info['filename'] = input_fname
         my_time = datetime.datetime(
             egi_info['year'],

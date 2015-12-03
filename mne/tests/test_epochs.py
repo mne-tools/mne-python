@@ -414,16 +414,13 @@ def test_read_write_epochs():
         # decim with lowpass
         warnings.simplefilter('always')
         epochs_dec = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                            baseline=(None, 0), decim=4)
+                            baseline=(None, 0), decim=2)
         assert_equal(len(w), 1)
 
         # decim without lowpass
-        lowpass = raw.info['lowpass']
-        raw.info['lowpass'] = None
-        epochs_dec = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                            baseline=(None, 0), decim=4)
+        epochs_dec.info['lowpass'] = None
+        epochs_dec.decimate(2)
         assert_equal(len(w), 2)
-        raw.info['lowpass'] = lowpass
 
     data_dec = epochs_dec.get_data()
     assert_allclose(data[:, :, epochs_dec._decim_slice], data_dec, rtol=1e-7,

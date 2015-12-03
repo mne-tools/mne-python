@@ -16,9 +16,10 @@ from mne.io import Raw, read_raw_bti
 from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_data, _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info)
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
-from mne import concatenate_raws, pick_types
+from mne import pick_types
 from mne.utils import run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
 from mne.externals import six
@@ -59,8 +60,9 @@ def test_read_pdf():
 
 def test_crop_append():
     """ Test crop and append raw """
-    raw = read_raw_bti(pdf_fnames[0], config_fnames[0], hs_fnames[0])
-    raw.load_data()  # currently does nothing
+    raw = _test_raw_reader(read_raw_bti, False, True, pdf_fname=pdf_fnames[0],
+                           config_fname=config_fnames[0],
+                           head_shape_fname=hs_fnames[0])
     y, t = raw[:]
     t0, t1 = 0.25 * t[-1], 0.75 * t[-1]
     mask = (t0 <= t) * (t <= t1)
@@ -71,8 +73,6 @@ def test_crop_append():
 
     raw2 = raw.copy()
     assert_raises(RuntimeError, raw.append, raw2, preload=False)
-    raw.append(raw2)
-    assert_allclose(np.tile(raw2[:, :][0], (1, 2)), raw[:, :][0])
 
 
 def test_transforms():
@@ -137,10 +137,6 @@ def test_raw():
                 for ent in ('to', 'from', 'trans'):
                     assert_allclose(ex.info[key][ent],
                                     ra.info[key][ent])
-
-        # Make sure concatenation works
-        raw_concat = concatenate_raws([ra.copy(), ra])
-        assert_equal(raw_concat.n_times, 2 * ra.n_times)
 
         ra.save(tmp_raw_fname)
         re = Raw(tmp_raw_fname)

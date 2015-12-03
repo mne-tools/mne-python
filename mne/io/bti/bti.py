@@ -1062,6 +1062,8 @@ class RawBTi(_BaseRaw):
                  ecg_ch='E31', eog_ch=('E63', 'E64'),
                  verbose=None):
 
+        if pdf_fname is None:
+            raise ValueError('pdf_fname must be a path, not None')
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname, config_fname=config_fname,
             head_shape_fname=head_shape_fname, rotation_x=rotation_x,
@@ -1134,11 +1136,14 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     use_hpi = False  # hard coded, but marked as later option.
     logger.info('Creating Neuromag info structure ...')
-    info = _empty_info()
+    if 'sample_period' in bti_info.keys():
+        sfreq = 1. / bti_info['sample_period']
+    else:
+        sfreq = None
+    info = _empty_info(sfreq)
     if pdf_fname is not None:
         date = bti_info['processes'][0]['timestamp']
         info['meas_date'] = [date, 0]
-        info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
     else:  # for some use case we just want a partial info with channel geom.
         info['meas_date'] = None
         info['sfreq'] = None
