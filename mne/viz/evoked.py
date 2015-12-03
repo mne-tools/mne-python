@@ -136,12 +136,10 @@ def _plot_legend(pos, colors, axis, bads, outlines='skirt'):
 
     pos, outlines = _check_outlines(pos, outlines, None)
     pos_x, pos_y = _prepare_topomap(pos, ax)
-
-    for idx, (x, y, c) in enumerate(zip(pos_x, pos_y, colors)):
-        if idx in bads:
-            ax.scatter(x, y, marker='x', color=c, s=20, zorder=0)
-        else:
-            ax.scatter(x, y, marker='o', color=c, s=3, zorder=1)
+    ax.scatter(pos_x, pos_y, color=colors, s=20, marker='.', zorder=0)
+    for idx in bads:
+        ax.scatter(pos_x[idx], pos_y[idx], s=2, marker='.', color='w',
+                   zorder=1)
 
     if isinstance(outlines, dict):
         outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
