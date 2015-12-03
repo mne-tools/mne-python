@@ -259,6 +259,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._first_samps = np.array(first_samps)
         info._check_consistency()  # make sure subclass did a good job
         self.info = info
+        if info.get('buffer_size_sec', None) is None:
+            raise RuntimeError('Reader error, notify mne-python developers')
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
