@@ -135,7 +135,7 @@ class RawEDF(_BaseRaw):
             # extract data
             start_offset = (data_offset +
                             block_start_idx * buf_len * n_chan * data_size)
-            ch_offsets = np.cumsum(np.concatenate([[0], n_samps])) * data_size
+            ch_offsets = np.cumsum(np.concatenate([[0], n_samps * data_size]))
             this_data = np.empty((len(sel), buf_len))
             for bi in range(len(r_lims)):
                 block_offset = bi * ch_offsets[-1]
@@ -437,7 +437,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         pass
     elif all(highpass):
         if highpass[0] == 'NaN':
-            pass
+            pass  # Placeholder for future use. Highpass set in _empty_info.
         elif highpass[0] == 'DC':
             info['highpass'] = 0.
         else:
@@ -451,7 +451,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         pass
     elif all(lowpass):
         if lowpass[0] == 'NaN':
-            pass
+            pass  # Placeholder for future use. Lowpass set in _empty_info.
         else:
             info['lowpass'] = float(lowpass[0])
     else:

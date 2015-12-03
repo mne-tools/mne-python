@@ -26,7 +26,8 @@ def _test_raw_reader(reader, test_preloading, test_blocks=False, **kwargs):
         Whether the data is divided into blocks with ``buffer_size_sec``
         in the ``meas_info``.
     **kwargs :
-        Arguments for the reader.
+        Arguments for the reader. Note: Do not use preload as kwarg.
+        Use ``test_preloading`` instead.
 
     Returns
     -------
@@ -63,8 +64,8 @@ def _test_raw_reader(reader, test_preloading, test_blocks=False, **kwargs):
     raw = raws[-1]  # use preloaded raw
     full_data = raw._data
 
-    print(raw)  # to test repr
-    print(raw.info)  # to test Info reprs
+    assert_true(raw.__class__.__name__, repr(raw))  # to test repr
+    assert_true(raw.info.__class__.__name__, repr(raw.info))
 
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')
@@ -89,7 +90,7 @@ def _test_raw_reader(reader, test_preloading, test_blocks=False, **kwargs):
     concat_raw = concatenate_raws([raw.copy(), raws[0].load_data()])
     assert_equal(concat_raw.n_times, 2 * raw.n_times)
     assert_equal(concat_raw.first_samp, first_samp)
-    assert_equal(concat_raw.last_samp - last_samp - first_samp, last_samp + 1)
+    assert_equal(concat_raw.last_samp - last_samp + first_samp, last_samp + 1)
 
     return raw
 

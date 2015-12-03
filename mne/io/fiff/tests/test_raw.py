@@ -18,7 +18,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.io import Raw, RawArray, concatenate_raws, read_raw_fif
-from mne.io.tests.test_raw import _test_concat
+from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
@@ -526,6 +526,7 @@ def test_io_complex():
     tempdir = _TempDir()
     dtypes = [np.complex64, np.complex128]
 
+    raw = _test_raw_reader(Raw, True, True, fnames=fif_fname)
     raw = Raw(fif_fname, preload=True)
     picks = np.arange(5)
     start, stop = raw.time_as_index([0, 5])

@@ -351,7 +351,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
             pass
         elif all(highpass):
             if highpass[0] == 'NaN':
-                pass
+                pass  # Placeholder for future use. Highpass set in _empty_info
             elif highpass[0] == 'DC':
                 info['highpass'] = 0.
             else:
@@ -365,7 +365,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
             pass
         elif all(lowpass):
             if lowpass[0] == 'NaN':
-                pass
+                pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
                 info['lowpass'] = float(lowpass[0])
         else:

@@ -1137,7 +1137,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     use_hpi = False  # hard coded, but marked as later option.
     logger.info('Creating Neuromag info structure ...')
     if 'sample_period' in bti_info.keys():
-        sfreq = 1e3 / bti_info['sample_period'] * 1e-3
+        sfreq = 1. / bti_info['sample_period']
     else:
         sfreq = None
     info = _empty_info(sfreq)

@@ -101,7 +101,7 @@ def _get_nicolet_info(fname, eog, ecg, emg, misc):
     sec, msec = time[2].split('.')
     date = datetime.datetime(int(date[0]), int(date[1]), int(date[2]),
                              int(time[0]), int(time[1]), int(sec), int(msec))
-    info = _empty_info(float(header_info['sample_freq']))
+    info = _empty_info(header_info['sample_freq'])
     info.update({'filename': fname, 'nchan': header_info['num_channels'],
                  'meas_date': calendar.timegm(date.utctimetuple()),
                  'ch_names': ch_names, 'description': None,
