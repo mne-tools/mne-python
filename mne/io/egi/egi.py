@@ -87,21 +87,18 @@ def _read_events(fid, info):
 
 def _combine_triggers(data, remapping=None):
     """Combine binary triggers"""
-    new_trigger = np.zeros(data[0].shape)
-    first = np.nonzero(data[0])[0]
-    for d in data[1:]:
-        if np.intersect1d(d.nonzero()[0], first).any():
-            return
-
+    new_trigger = np.zeros(data.shape[1])
+    if data.astype(bool).sum(axis=0).max() > 1:  # ensure no overlaps
+        logger.info('    Found multiple events at the same time '
+                    'sample. Cannot create trigger channel.')
+        return
     if remapping is None:
         remapping = np.arange(data) + 1
-
     for d, event_id in zip(data, remapping):
         idx = d.nonzero()
         if np.any(idx):
             new_trigger[idx] += event_id
-
-    return new_trigger[None]
+    return new_trigger
 
 
 @verbose
@@ -242,9 +239,6 @@ class RawEGI(_BaseRaw):
                                    if i not in include_]))
             self._new_trigger = _combine_triggers(egi_events[include_],
                                                   remapping=event_ids)
-            if self._new_trigger is None:
-                logger.info('    Found multiple events at the same time '
-                            'sample. Could not create trigger channel.')
             self.event_id = dict(zip([e for e in event_codes if e in
                                       include_names], event_ids))
         else:
@@ -255,56 +249,36 @@ class RawEGI(_BaseRaw):
         info['buffer_size_sec'] = 1.  # reasonable default
         info['filename'] = input_fname
         my_time = datetime.datetime(
-            egi_info['year'],
-            egi_info['month'],
-            egi_info['day'],
-            egi_info['hour'],
-            egi_info['minute'],
-            egi_info['second']
-        )
+            egi_info['year'], egi_info['month'], egi_info['day'],
+            egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
         info['meas_date'] = np.array([my_timestamp], dtype=np.float32)
-        info['projs'] = []
         ch_names = ['EEG %03d' % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
         if self._new_trigger is not None:
             ch_names.append('STI 014')  # our new_trigger
         info['nchan'] = nchan = len(ch_names)
-        info['chs'] = []
         info['ch_names'] = ch_names
-        info['bads'] = []
-        info['comps'] = []
-        info['custom_ref_applied'] = False
         for ii, ch_name in enumerate(ch_names):
-            this_cal = cal if ch_name != 'STI 014' else 1.
-            ch_info = {'cal': this_cal,
-                       'logno': ii + 1,
-                       'scanno': ii + 1,
-                       'range': 1.0,
-                       'unit_mul': 0,
-                       'ch_name': ch_name,
-                       'unit': FIFF.FIFF_UNIT_V,
-                       'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                       'coil_type': FIFF.FIFFV_COIL_EEG,
-                       'kind': FIFF.FIFFV_EEG_CH,
-                       'loc': np.array([0, 0, 0, 1] * 3, dtype='f4')}
+            ch_info = {
+                'cal': cal, 'logno': ii + 1, 'scanno': ii + 1, 'range': 1.0,
+                'unit_mul': 0, 'ch_name': ch_name, 'unit': FIFF.FIFF_UNIT_V,
+                'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'coil_type': FIFF.FIFFV_COIL_EEG, 'kind': FIFF.FIFFV_EEG_CH,
+                'loc': np.array([0, 0, 0, 1] * 3, dtype='f4')}
             if ch_name in eog or ii in eog or ii - nchan in eog:
-                ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-                ch_info['kind'] = FIFF.FIFFV_EOG_CH
+                ch_info.update(coil_type=FIFF.FIFFV_COIL_NONE,
+                               kind=FIFF.FIFFV_EOG_CH)
             if ch_name in misc or ii in misc or ii - nchan in misc:
-                ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-                ch_info['kind'] = FIFF.FIFFV_MISC_CH
-
+                ch_info.update(coil_type=FIFF.FIFFV_COIL_NONE,
+                               kind=FIFF.FIFFV_MISC_CH)
             if len(ch_name) == 4 or ch_name.startswith('STI'):
-                u = {'unit_mul': 0,
-                     'cal': 1,
+                ch_info.update(
+                    {'unit_mul': 0, 'cal': 1, 'kind': FIFF.FIFFV_STIM_CH,
                      'coil_type': FIFF.FIFFV_COIL_NONE,
-                     'unit': FIFF.FIFF_UNIT_NONE,
-                     'kind': FIFF.FIFFV_STIM_CH}
-                ch_info.update(u)
+                     'unit': FIFF.FIFF_UNIT_NONE})
             info['chs'].append(ch_info)
-
         _check_update_montage(info, montage)
         orig_format = {'>f2': 'single', '>f4': 'double',
                        '>i2': 'int'}[egi_info['dtype']]
@@ -328,5 +302,5 @@ class RawEGI(_BaseRaw):
             one[:n_chan_read] = one_.T
         # reads events as well
         if self._new_trigger is not None:
-            one[-1] = self._new_trigger[:, start:stop]
+            one[-1] = self._new_trigger[start:stop]
         _mult_cal_one(data, one, idx, cals, mult)

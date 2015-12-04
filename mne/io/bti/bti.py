@@ -895,8 +895,7 @@ def _read_bti_header_pdf(pdf_fname):
 def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     """ Read bti PDF header
     """
-    info = _read_bti_header_pdf(pdf_fname) if pdf_fname else dict()
-
+    info = _read_bti_header_pdf(pdf_fname)
     cfg = _read_config(config_fname)
     info['bti_transform'] = cfg['transforms']
 
@@ -928,13 +927,10 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
             ch['loc'] = _coil_trans_to_loc(ch_cfg['dev']['transform'])
         else:
             ch['loc'] = None
-        if pdf_fname:
-            if info['data_format'] <= 2:  # see DTYPES, implies integer
-                ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
-            else:  # float
-                ch['cal'] = ch['scale'] * ch['gain']
-        else:
-            ch['scale'] = 1.0
+        if info['data_format'] <= 2:  # see DTYPES, implies integer
+            ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
+        else:  # float
+            ch['cal'] = ch['scale'] * ch['gain']
 
     if sort_by_ch_name:
         by_index = [(i, d['index']) for i, d in enumerate(chans)]
@@ -1026,8 +1022,6 @@ class RawBTi(_BaseRaw):
                           'False in v0.12. Please explicitly set preload.',
                           DeprecationWarning)
             preload = True
-        if pdf_fname is None:
-            raise ValueError('pdf_fname must be a path, not None')
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname, config_fname=config_fname,
             head_shape_fname=head_shape_fname, rotation_x=rotation_x,
@@ -1068,10 +1062,11 @@ class RawBTi(_BaseRaw):
 def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                   translation, convert, ecg_ch, eog_ch, rename_channels=True,
                   sort_by_ch_name=True):
-
-    if pdf_fname is not None and not isinstance(pdf_fname, six.BytesIO):
-        if not op.isabs(pdf_fname):
-            pdf_fname = op.abspath(pdf_fname)
+    """Helper to read BTI info"""
+    if pdf_fname is None:
+        raise ValueError('pdf_fname must be a path, not None')
+    if not isinstance(pdf_fname, six.BytesIO):
+        pdf_fname = op.abspath(pdf_fname)
 
     if not isinstance(config_fname, six.BytesIO):
         if not op.isabs(config_fname):
@@ -1118,18 +1113,12 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         sfreq = None
     info = _empty_info(sfreq)
     info['buffer_size_sec'] = 1.  # reasonable default for writing
-    if pdf_fname is not None:
-        date = bti_info['processes'][0]['timestamp']
-        info['meas_date'] = [date, 0]
-    else:  # for some use case we just want a partial info with channel geom.
-        info['meas_date'] = None
-        info['sfreq'] = None
-        bti_info['processes'] = list()
+    date = bti_info['processes'][0]['timestamp']
+    info['meas_date'] = [date, 0]
     info['nchan'] = len(bti_info['chs'])
 
     # browse processing info for filter specs.
-    # find better default
-    hp, lp = (0.0, info['sfreq'] * 0.4) if pdf_fname else (None, None)
+    hp, lp = info['highpass'], info['lowpass']
     for proc in bti_info['processes']:
         if 'filt' in proc['process_type']:
             for step in proc['processing_steps']:
@@ -1142,8 +1131,6 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     info['highpass'] = hp
     info['lowpass'] = lp
-    info['acq_pars'] = info['acq_stim'] = info['hpi_subsystem'] = None
-    info['events'], info['hpi_results'], info['hpi_meas'] = [], [], []
     chs = []
 
     bti_ch_names = [ch['name'] for ch in bti_info['chs']]

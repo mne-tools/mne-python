@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          simplified BSD-3 license
 
@@ -6,23 +7,30 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne import find_events, pick_types
 from mne.io import read_raw_egi
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.egi import _combine_triggers
+from mne.utils import run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(op.realpath(__file__)), 'data')
 egi_fname = op.join(base_dir, 'test_egi.raw')
+egi_txt_fname = op.join(base_dir, 'test_egi.txt')
 
 
 def test_io_egi():
     """Test importing EGI simple binary files"""
     # test default
+    with open(egi_txt_fname) as fid:
+        data = np.loadtxt(fid)
+    t = data[0]
+    data = data[1:]
+    data *= 1e-6  # μV
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw = read_raw_egi(egi_fname, include=None)
@@ -32,10 +40,13 @@ def test_io_egi():
         assert_true(w[1].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
         assert_true(msg in '%s' % w[1].message)
+    data_read, t_read = raw[:256]
+    assert_allclose(t_read, t)
+    assert_allclose(data_read, data, atol=1e-10)
 
     include = ['TRSP', 'XXX1']
     with warnings.catch_warnings(record=True):  # preload=None
-        raw = _test_raw_reader(read_raw_egi, True, False,
+        raw = _test_raw_reader(read_raw_egi, True, True,
                                input_fname=egi_fname, include=include)
 
     assert_equal('eeg' in raw, True)
@@ -66,3 +77,5 @@ def test_io_egi():
     for ii, k in enumerate(include, 1):
         assert_true(k in raw.event_id)
         assert_true(raw.event_id[k] == ii)
+
+run_tests_if_main()

@@ -55,7 +55,7 @@ def test_crop_append():
     """ Test crop and append raw """
     with warnings.catch_warnings(record=True):  # preload warning
         warnings.simplefilter('always')
-        raw = _test_raw_reader(read_raw_bti, True, test_blocks=False,
+        raw = _test_raw_reader(read_raw_bti, True, True,
                                pdf_fname=pdf_fnames[0],
                                config_fname=config_fnames[0],
                                head_shape_fname=hs_fnames[0])
@@ -169,14 +169,12 @@ def test_no_conversion():
 
     get_info = partial(
         _get_bti_info,
-        pdf_fname=None,  # test skipping no pdf
         rotation_x=0.0, translation=(0.0, 0.02, 0.11), convert=False,
         ecg_ch='E31', eog_ch=('E63', 'E64'),
         rename_channels=False, sort_by_ch_name=False)
 
     for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
-        raw_info, _ = get_info(
-            config_fname=config, head_shape_fname=hs, convert=False)
+        raw_info, _ = get_info(pdf, config, hs, convert=False)
         raw_info_con = read_raw_bti(
             pdf_fname=pdf, config_fname=config, head_shape_fname=hs,
             convert=True, preload=False).info

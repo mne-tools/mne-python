@@ -1412,12 +1412,8 @@ def _empty_info(sfreq):
     info['nchan'] = 0
     info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
     info['highpass'] = 0.
-    if sfreq is None:
-        info['sfreq'] = sfreq
-        info['lowpass'] = None
-    else:
-        info['sfreq'] = float(sfreq)
-        info['lowpass'] = sfreq / 2.0
+    info['sfreq'] = float(sfreq)
+    info['lowpass'] = info['sfreq'] / 2.
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
     info._check_consistency()
     return info
