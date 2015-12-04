@@ -292,6 +292,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def __repr__(self):
         s = "comment : '%s'" % self.comment
+        s += ', kind : %s' % self.kind
         s += ", time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", n_epochs : %d" % self.nave
         s += ", n_channels x n_times : %s x %s" % self.data.shape
