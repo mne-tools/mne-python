@@ -10,6 +10,8 @@ import os
 import os.path as op
 import shutil
 import glob
+import warnings
+
 import numpy as np
 from scipy import linalg
 
@@ -820,6 +822,11 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
         Head center in head coordinates (mm).
     origin_device: ndarray, shape (3,)
         Head center in device coordinates (mm).
+
+    Notes
+    -----
+    This function excludes any points that are low and frontal
+    (``z < 0 and y > 0``) to improve the fit.
     """
     # get head digization points of the specified kind
     hsp = [p['r'] for p in info['dig'] if p['kind'] in dig_kinds]
@@ -843,6 +850,12 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     origin_device *= 1e3
 
     logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm' % radius)
+    # 99th percentile on Wikipedia for Giabella to back of head is 21.7cm,
+    # i.e. 108mm "radius", so let's go with 110mm
+    # en.wikipedia.org/wiki/Human_head#/media/File:HeadAnthropometry.JPG
+    if radius > 110.:
+        warnings.warn('Estimated head size (%s mm) exceeded 99th percentile'
+                      % (radius,))
     logger.info('Origin head coordinates:'.ljust(30) +
                 '%0.1f %0.1f %0.1f mm' % tuple(origin_head))
     logger.info('Origin device coordinates:'.ljust(30) +

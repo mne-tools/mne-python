@@ -3,6 +3,9 @@
 # License: BSD 3 clause
 
 import os.path as op
+from copy import deepcopy
+import warnings
+
 import numpy as np
 from nose.tools import assert_raises, assert_true
 from numpy.testing import assert_equal, assert_allclose
@@ -171,6 +174,7 @@ def test_fit_sphere_to_headshape():
     """Test fitting a sphere to digitization points"""
     # Create points of various kinds
     rad = 90.  # mm
+    big_rad = 120.
     center = np.array([0.5, -10., 40.])  # mm
     dev_trans = np.array([0., -0.005, -10.])
     dev_center = center - dev_trans
@@ -244,7 +248,8 @@ def test_fit_sphere_to_headshape():
 
     # Test with all points
     dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA,
-                 FIFF.FIFFV_POINT_EXTRA)
+                 FIFF.FIFFV_POINT_EEG)
+    kwargs = dict(rtol=1e-3, atol=1.)  # in mm
     r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds)
     assert_allclose(r, rad, **kwargs)
     assert_allclose(oh, center, **kwargs)
@@ -258,7 +263,19 @@ def test_fit_sphere_to_headshape():
     assert_allclose(oh, center, **kwargs)
     assert_allclose(od, center, **kwargs)
 
-    dig = [dict(coord_frame=FIFF.FIFFV_COORD_DEVICE, )]
+    # Test big size
+    dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA)
+    info_big = deepcopy(info)
+    for d in info_big['dig']:
+        d['r'] -= center / 1000.
+        d['r'] *= big_rad / rad
+        d['r'] += center / 1000.
+    with warnings.catch_warnings(record=True) as w:
+        r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds)
+    assert_equal(len(w), 1)
+    assert_true(str(w[0].message).startswith('Estimated head size'))
+    assert_allclose(oh, center, atol=1e-3)
+    assert_allclose(r, big_rad, atol=1e-3)
 
 
 run_tests_if_main()
