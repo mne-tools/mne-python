@@ -24,17 +24,19 @@ def test_io_egi():
     """Test importing EGI simple binary files"""
     # test default
     with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always', category=RuntimeWarning)
+        warnings.simplefilter('always')
         raw = read_raw_egi(egi_fname, include=None)
         assert_true('RawEGI' in repr(raw))
-        assert_equal(len(w), 1)
-        assert_true(w[0].category == RuntimeWarning)
+        assert_equal(len(w), 2)
+        assert_true(w[0].category == DeprecationWarning)
+        assert_true(w[1].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
-        assert_true(msg in '%s' % w[0].message)
+        assert_true(msg in '%s' % w[1].message)
 
     include = ['TRSP', 'XXX1']
-    raw = _test_raw_reader(read_raw_egi, False, True, input_fname=egi_fname,
-                           include=include)
+    with warnings.catch_warnings(record=True):  # preload=None
+        raw = _test_raw_reader(read_raw_egi, True, False,
+                               input_fname=egi_fname, include=include)
 
     assert_equal('eeg' in raw, True)
 
@@ -52,14 +54,15 @@ def test_io_egi():
     triggers = np.array([[0, 1, 1, 0], [0, 0, 1, 0]])
 
     # test trigger functionality
-    assert_raises(RuntimeError, _combine_triggers, triggers, None)
     triggers = np.array([[0, 1, 0, 0], [0, 0, 1, 0]])
     events_ids = [12, 24]
     new_trigger = _combine_triggers(triggers, events_ids)
     assert_array_equal(np.unique(new_trigger), np.unique([0, 12, 24]))
 
-    assert_raises(ValueError, read_raw_egi, egi_fname, include=['Foo'])
-    assert_raises(ValueError, read_raw_egi, egi_fname, exclude=['Bar'])
+    assert_raises(ValueError, read_raw_egi, egi_fname, include=['Foo'],
+                  preload=False)
+    assert_raises(ValueError, read_raw_egi, egi_fname, exclude=['Bar'],
+                  preload=False)
     for ii, k in enumerate(include, 1):
         assert_true(k in raw.event_id)
         assert_true(raw.event_id[k] == ii)
