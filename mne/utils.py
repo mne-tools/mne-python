@@ -1395,7 +1395,7 @@ def _chunk_write(chunk, local_file, progress):
 
 @verbose
 def _fetch_file(url, file_name, print_destination=True, resume=True,
-                hash_=None, verbose=None):
+                hash_=None, timeout=10., verbose=None):
     """Load requested file, downloading it if needed or requested
 
     Parameters
@@ -1412,6 +1412,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     hash_ : str | None
         The hash of the file to check. If None, no checking is
         performed.
+    timeout : float
+        The URL open timeout.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
@@ -1427,7 +1429,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     verbose_bool = (logger.level <= 20)  # 20 is info
     try:
         # Checking file size and displaying it alongside the download url
-        u = urllib.request.urlopen(url, timeout=10.)
+        u = urllib.request.urlopen(url, timeout=timeout)
         try:
             file_size = int(u.headers.get('Content-Length', '1').strip())
         finally:
