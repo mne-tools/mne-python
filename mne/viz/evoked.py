@@ -134,7 +134,7 @@ def _plot_legend(pos, colors, axis, bads, outlines='skirt'):
     from mpl_toolkits.axes_grid.inset_locator import inset_axes
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
-    ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=3)
+    ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=2)
 
     pos, outlines = _check_outlines(pos, outlines, None)
     pos_x, pos_y = _prepare_topomap(pos, ax)
@@ -187,14 +187,14 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     if picks is None:
         picks = list(range(info['nchan']))
 
-    bad_ch_idx = [evoked.ch_names.index(ch) for ch in info['bads']
-                  if ch in evoked.ch_names]
+    bad_ch_idx = [info['ch_names'].index(ch) for ch in info['bads']
+                  if ch in info['ch_names']]
     if len(exclude) > 0:
         if isinstance(exclude, string_types) and exclude == 'bads':
             exclude = bad_ch_idx
         elif (isinstance(exclude, list) and
               all(isinstance(ch, string_types) for ch in exclude)):
-            exclude = [evoked.ch_names.index(ch) for ch in exclude]
+            exclude = [info['ch_names'].index(ch) for ch in exclude]
         else:
             raise ValueError('exclude has to be a list of channel names or '
                              '"bads"')
@@ -282,7 +282,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         colors = _rgb(x, y, z)
                         layout = find_layout(info, ch_type=t, exclude=[])
                         bads = [layout.names.index(bad) for bad in
-                                evoked.info['bads'] if bad in layout.names]
+                                info['bads'] if bad in layout.names]
                         pos = layout.pos[:, :2]
                         _plot_legend(pos, colors, ax, bads=bads)
                     else:
@@ -295,7 +295,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                                  zorder=0,
                                                  color=colors[ch_idx])[0])
                 if gfp:  # 'only' or boolean True
-                    gfp_color = (0., 1., 0.) if spatial_colors else 3 * (0.,)
+                    gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
                     this_ylim = ax.get_ylim()
                     if not gfp_only:
@@ -353,7 +353,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         lines.append(line_list)
     if plot_type == 'butterfly':
         params = dict(axes=axes, texts=texts, lines=lines,
-                      ch_names=evoked.ch_names, idxs=idxs, need_draw=False,
+                      ch_names=info['ch_names'], idxs=idxs, need_draw=False,
                       path_effects=path_effects, selectors=selectors)
         fig.canvas.mpl_connect('pick_event',
                                partial(_butterfly_onpick, params=params))
