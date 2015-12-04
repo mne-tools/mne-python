@@ -385,6 +385,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale):
     path = os.path.dirname(vhdr_fname)
     info['filename'] = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
     info['meas_date'] = int(time.time())
+    info['buffer_size_sec'] = 1.  # reasonable default
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
