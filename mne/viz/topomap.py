@@ -1586,3 +1586,66 @@ def _prepare_topomap(pos, ax):
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
     return pos_x, pos_y
+
+
+def ini(ax, data, pos):
+
+    pos, outlines = _check_outlines(pos, 'head', None)
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+    xmin, xmax = pos_x.min(), pos_x.max()
+    ymin, ymax = pos_y.min(), pos_y.max()
+
+    res=64
+    xi = np.linspace(xmin, xmax, res)
+    yi = np.linspace(ymin, ymax, res)
+    Xi, Yi = np.meshgrid(xi, yi)
+
+    vmin, vmax = _setup_vmin_vmax(data, vmin=None, vmax=None)
+
+
+    data_ = data[:, 0]
+    #im, _ = plot_topomap(data_, pos, vmin=None, vmax=None)
+
+    Zi = _griddata(pos_x, pos_y, data_, Xi, Yi)
+    mask, pos = _make_image_mask(outlines, pos, res)
+    im = ax.imshow(Zi, cmap='RdBu_r', vmin=vmin, vmax=vmax, origin='lower',
+                   aspect='equal', extent=(xmin, xmax, ymin, ymax),
+                   interpolation='bilinear', animated=True)
+    from matplotlib import patches
+    patch_ = patches.Ellipse((0, 0),
+                             2 * outlines['clip_radius'][0],
+                             2 * outlines['clip_radius'][1],
+                             clip_on=True,
+                             transform=ax.transData)
+
+    im.set_clip_path(patch_)
+    #idx = np.where(mask)[0]
+    #ax.plot(pos_x[idx], pos_y[idx])
+    # ax.set_clip_path(patch_)
+
+    return im,
+def animat(i, evoked, picks, data, ax, pos):
+    
+    pos, outlines = _check_outlines(pos, 'head', None)
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+    xmin, xmax = pos_x.min(), pos_x.max()
+    ymin, ymax = pos_y.min(), pos_y.max()
+    res=64
+    image_mask, pos = _make_image_mask(outlines, pos, res)
+
+    xi = np.linspace(xmin, xmax, res)
+    yi = np.linspace(ymin, ymax, res)
+    Xi, Yi = np.meshgrid(xi, yi)
+
+    vmin, vmax = _setup_vmin_vmax(data, vmin=None, vmax=None)
+    time_idx = int(len(evoked.times) / 5. * i)
+    data_ = data[:, time_idx]
+    im, _ = plot_topomap(data_, pos, vmin=None, vmax=None)
+    """Zi = _griddata(pos_x, pos_y, data_, Xi, Yi)
+    im = ax.imshow(Zi, cmap='RdBu_r', vmin=vmin, vmax=vmax, origin='lower',
+                   aspect='equal', extent=(xmin, xmax, ymin, ymax),
+                   interpolation='bilinear')
+    """
+    return im,
