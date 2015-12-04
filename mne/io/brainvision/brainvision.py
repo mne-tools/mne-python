@@ -54,6 +54,11 @@ class RawBrainVision(_BaseRaw):
         events (stimulus triggers will be unaffected). If None, response
         triggers will be ignored. Default is 0 for backwards compatibility, but
         typically another value or None will be necessary.
+    event_id : dict | None
+        The id of the event to consider. If dict, the keys will be mapped to
+        trigger values on the stimulus channel. Keys are case-sensitive.
+        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If empty dict
+        (default), only stimulus events are added to the stimulus channel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -64,12 +69,14 @@ class RawBrainVision(_BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
-                 scale=1., preload=False, response_trig_shift=0, verbose=None):
+                 scale=1., preload=False, response_trig_shift=0,
+                 event_id={}, verbose=None):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        info, fmt, self._order, events, montage = _get_vhdr_info(
-            vhdr_fname, eog, misc, response_trig_shift, scale, montage)
+        info, fmt, self._order, mrk_fname, montage = _get_vhdr_info(
+            vhdr_fname, eog, misc, scale, montage)
+        events = _read_vmrk_events(mrk_fname, event_id, response_trig_shift)
         _check_update_montage(info, montage)
         with open(info['filename'], 'rb') as f:
             f.seek(0, os.SEEK_END)
@@ -139,13 +146,18 @@ class RawBrainVision(_BaseRaw):
             self._data[-1] = self._event_ch
 
 
-def _read_vmrk_events(fname, response_trig_shift=0):
+def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     """Read events from a vmrk file
 
     Parameters
     ----------
     fname : str
         vmrk file to be read.
+    event_id : dict | None
+        The id of the event to consider. If dict, the keys will be mapped to
+        trigger values on the stimulus channel. Example:
+        {'SyncStatus': 1; 'Pulse Artifact': 3}. If empty dict (default),
+        only stimulus events are added to the stimulus channel.
     response_trig_shift : int | None
         Integer to shift response triggers by. None ignores response triggers.
 
@@ -182,20 +194,22 @@ def _read_vmrk_events(fname, response_trig_shift=0):
     events = []
     for info in items:
         mtype, mdesc, onset, duration = info.split(',')[:4]
+        onset = int(onset)
+        duration = int(duration)
         try:
             trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
-            if mdesc[0].lower() == 's' or response_trig_shift is not None:
-                if mdesc[0].lower() == 'r':
-                    trigger += response_trig_shift
-                onset = int(onset)
-                duration = int(duration)
-                if mtype == 'Pulse Artifact':
-                    trigger = 999
-                elif mtype == 'Bad Interval':
-                    trigger = 998
-                events.append((onset, duration, trigger))
         except IndexError:
+            trigger = None
             pass
+        if mtype.lower().startswith('response'):
+            if response_trig_shift is not None:
+                trigger += response_trig_shift
+            else:
+                trigger = None
+        if mdesc in event_id:
+            trigger = event_id[mdesc]
+        if trigger:
+            events.append((onset, duration, trigger))
 
     events = np.array(events).reshape(-1, 3)
     return events
@@ -240,7 +254,7 @@ _fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
 _unit_dict = {'V': 1., u'µV': 1e-6}
 
 
-def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale, montage):
+def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     """Extracts all the information from the header file.
 
     Parameters
@@ -253,8 +267,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale, montage):
     misc : list of str
         Names of channels that should be designated MISC channels. Names
         should correspond to the electrodes in the vhdr file.
-    response_trig_shift : int | None
-        Integer to shift response triggers by. None ignores response triggers.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1.. For microvolts, the scale factor would be 1e-6. This is
@@ -451,16 +463,15 @@ def _get_vhdr_info(vhdr_fname, eog, misc, response_trig_shift, scale, montage):
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     # for stim channel
-    marker_id = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
-    events = _read_vmrk_events(marker_id, response_trig_shift)
+    mrk_fname = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
     info._check_consistency()
-    return info, fmt, order, events, montage
+    return info, fmt, order, mrk_fname, montage
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
-                         scale=1., preload=False,
-                         response_trig_shift=0, verbose=None):
+                         scale=1., preload=False, response_trig_shift=0,
+                         event_id={}, verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -491,6 +502,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         events (stimulus triggers will be unaffected). If None, response
         triggers will be ignored. Default is 0 for backwards compatibility, but
         typically another value or None will be necessary.
+    event_id : dict | None
+        The id of the event to consider. If dict, the keys will be mapped to
+        trigger values on the stimulus channel. Keys are case-sensitive.
+        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If empty dict
+        (default), only stimulus events are added to the stimulus channel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -505,6 +521,6 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     """
     raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                          misc=misc, scale=scale,
-                         preload=preload, verbose=verbose,
+                         preload=preload, verbose=verbose, event_id=event_id,
                          response_trig_shift=response_trig_shift)
     return raw

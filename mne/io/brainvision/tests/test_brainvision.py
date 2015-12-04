@@ -128,6 +128,23 @@ def test_events():
                                 [4946, 1, 255],
                                 [6620, 1, 254],
                                 [6630, 1, 255]])
+    # check that events are read properly when event_id is specified for
+    # auxiliary events
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
+                               response_trig_shift=None,
+                               event_id={'Sync On': 5})
+    events = raw.get_brainvision_events()
+    assert_array_equal(events, [[487, 1, 253],
+                                [497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6620, 1, 254],
+                                [6630, 1, 255],
+                                [7630, 1, 5]])
 
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, response_trig_shift=0.1)
