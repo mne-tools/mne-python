@@ -258,8 +258,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             D = this_scaling * evoked.data[idx, :]
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
-                offset = 0.5 if spatial_colors else 0
-                text = ax.annotate('Loading...', xy=(0.01, 0.1 + offset),
+                text = ax.annotate('Loading...', xy=(0.01, 0.1),
                                    xycoords='axes fraction', fontsize=20,
                                    color='green', zorder=2)
                 text.set_visible(False)
