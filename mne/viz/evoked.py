@@ -135,7 +135,6 @@ def _plot_legend(pos, colors, axis, bads, outlines='skirt'):
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=2)
-
     pos, outlines = _check_outlines(pos, outlines, None)
     pos_x, pos_y = _prepare_topomap(pos, ax)
     ax.scatter(pos_x, pos_y, color=colors, s=25, marker='.', zorder=0)
@@ -282,7 +281,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         layout = find_layout(info, ch_type=t, exclude=[])
                         names = np.intersect1d(layout.names, info['ch_names'])
                         name_idx = [layout.names.index(name) for name in names]
-                        bads = [layout.names.index(bad) for bad in
+                        bads = [np.where(names == bad)[0][0] for bad in
                                 info['bads'] if bad in layout.names]
                         pos = layout.pos[name_idx, :2]
                         _plot_legend(pos, colors, ax, bads=bads)
