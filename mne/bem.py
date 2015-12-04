@@ -822,6 +822,11 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
         Head center in head coordinates (mm).
     origin_device: ndarray, shape (3,)
         Head center in device coordinates (mm).
+
+    Notes
+    -----
+    This function excludes any points that are low and frontal
+    (``z < 0 and y > 0``) to improve the fit.
     """
     # get head digization points of the specified kind
     hsp = [p['r'] for p in info['dig'] if p['kind'] in dig_kinds]
