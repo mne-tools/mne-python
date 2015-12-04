@@ -1,6 +1,7 @@
-# Authors: OpenBCI
+# Authors: Rodrigo Ceballos <rceballos98@gmail.com>
+#          OpenBCI contributors <contact@openbci.com>
 #          Teon Brooks <teon.brooks@gmail.com>
-#          Romain Trachel
+#          Romain Trachel <trachelr@gmail.com>
 
 """
 Core OpenBCI object for handling connections and samples from the board.

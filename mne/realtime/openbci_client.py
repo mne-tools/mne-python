@@ -1,6 +1,5 @@
-# Authors: Romain Trachel
+# Authors: Romain Trachel <trachelr@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
-#
 # License: BSD (3-clause)
 
 import re
