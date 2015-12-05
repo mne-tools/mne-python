@@ -1599,12 +1599,20 @@ def _prepare_topomap(pos, ax):
 
 
 def ini(ax, data, pos):
-
+    import matplotlib.pyplot as plt
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_frame_on(False)
     pos, outlines = _check_outlines(pos, 'head', None)
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
-    xmin, xmax = pos_x.min(), pos_x.max()
-    ymin, ymax = pos_y.min(), pos_y.max()
+    xlim = np.inf, -np.inf,
+    ylim = np.inf, -np.inf,
+    mask_ = np.c_[outlines['mask_pos']]
+    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
+                  np.max(np.r_[xlim[1], mask_[:, 0]]))
+    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
+                  np.max(np.r_[ylim[1], mask_[:, 1]]))
 
     res=64
     xi = np.linspace(xmin, xmax, res)
@@ -1612,7 +1620,7 @@ def ini(ax, data, pos):
     Xi, Yi = np.meshgrid(xi, yi)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin=None, vmax=None)
-
+    image_mask, pos = _make_image_mask(outlines, pos, res)
 
     data_ = data[:, 0]
     #im, _ = plot_topomap(data_, pos, vmin=None, vmax=None)
@@ -1623,25 +1631,65 @@ def ini(ax, data, pos):
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation='bilinear', animated=True)
     from matplotlib import patches
-    patch_ = patches.Ellipse((0, 0),
-                             2 * outlines['clip_radius'][0],
-                             2 * outlines['clip_radius'][1],
-                             clip_on=True,
-                             transform=ax.transData)
 
+
+
+    patch_ = patches.Ellipse((0, 0),
+                                    2 * outlines['clip_radius'][0],
+                                    2 * outlines['clip_radius'][1],
+                                    clip_on=True,
+                                    transform=ax.transData)
     im.set_clip_path(patch_)
+        # ax.set_clip_path(patch_)
+
+    idx = np.where(mask)[0]
+    mask_params = _handle_default('mask_params', None)
+    ax.plot(pos_x[idx], pos_y[idx], **mask_params)
+    idx = np.where(~mask)[0]
+
+    idx = np.where(mask)[0]
+    ax.plot(pos_x[idx], pos_y[idx], **mask_params)
+
+    if isinstance(outlines, dict):
+        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                          ['patch', 'autoshrink']])
+        for k, (x, y) in outlines_.items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+    contours = 6
+    cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
+                      linewidths=0.1)
+    for col in cont.collections:
+        col.set_clip_path(patch_)
+    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                      ['patch', 'autoshrink']])
+    for k, (x, y) in outlines_.items():
+        if 'mask' in k:
+            continue
+        ax.plot(x, y, color='k', linewidth=0.1, clip_on=False)
+    plt.subplots_adjust(top=.95)
     #idx = np.where(mask)[0]
     #ax.plot(pos_x[idx], pos_y[idx])
     # ax.set_clip_path(patch_)
-
+    #im, _ = plot_topomap(data_, pos, vmin=None, vmax=None)
     return im,
-def animat(i, evoked, picks, data, ax, pos):
 
+
+def animat(i, evoked, picks, data, ax, pos):
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_frame_on(False)
     pos, outlines = _check_outlines(pos, 'head', None)
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
-    xmin, xmax = pos_x.min(), pos_x.max()
-    ymin, ymax = pos_y.min(), pos_y.max()
+    xlim = np.inf, -np.inf,
+    ylim = np.inf, -np.inf,
+    mask_ = np.c_[outlines['mask_pos']]
+    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
+                  np.max(np.r_[xlim[1], mask_[:, 0]]))
+    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
+                  np.max(np.r_[ylim[1], mask_[:, 1]]))
     res=64
     image_mask, pos = _make_image_mask(outlines, pos, res)
 
@@ -1652,10 +1700,10 @@ def animat(i, evoked, picks, data, ax, pos):
     vmin, vmax = _setup_vmin_vmax(data, vmin=None, vmax=None)
     time_idx = int(len(evoked.times) / 5. * i)
     data_ = data[:, time_idx]
-    im, _ = plot_topomap(data_, pos, vmin=None, vmax=None)
-    """Zi = _griddata(pos_x, pos_y, data_, Xi, Yi)
+    #im, _ = plot_topomap(data_, pos, vmin=None, vmax=None)
+    Zi = _griddata(pos_x, pos_y, data_, Xi, Yi)
     im = ax.imshow(Zi, cmap='RdBu_r', vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation='bilinear')
-    """
+
     return im,
