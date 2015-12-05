@@ -279,10 +279,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         x, y, z = locs3d.T
                         colors = _rgb(x, y, z)
                         layout = find_layout(info, ch_type=t, exclude=[])
-                        names = np.intersect1d(layout.names, info['ch_names'])
+                        # drop channels that are not in the data
+                        names = np.intersect1d(layout.names,
+                                               np.array(info['ch_names'])[idx])
                         name_idx = [layout.names.index(name) for name in names]
+                        # find indices for bads
                         bads = [np.where(names == bad)[0][0] for bad in
-                                info['bads'] if bad in layout.names]
+                                info['bads'] if bad in names]
                         pos = layout.pos[name_idx, :2]
                         _plot_legend(pos, colors, ax, bads=bads)
                     else:
