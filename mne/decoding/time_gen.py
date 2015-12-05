@@ -361,7 +361,8 @@ def _predict_slices(X, estimators, cv, slices, predict_mode):
                                       predict_mode))
     return out
 
-@profile
+
+#@profile
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     """Aux function of GeneralizationAcrossTime
 
@@ -389,7 +390,6 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     """
     n_epochs = len(X)
     # Loop across testing slices
-    y_pred = [list() for _ in range(len(slices))]
 
     if predict_mode == 'cross-validation':
         # Check that training cv and predicting cv match
@@ -407,37 +407,68 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
             start += l
 
     if all(len(s) == 1 for s in slices):
-        slices = [slice(s[0], s[0]+1, 1) for s in slices]
+        slices = [slice(s[0], s[0] + 1, 1) for s in slices]
+
+    y_pred = list()
+
+    # check whether the GAT is based on window length = 1-time-sample
+    # Note that we have to check i) that slices' step = 1 and ii) that slices
+    # are consecutive.
+    is_single_time_sample = True
+    expected_start = np.arange(len(slices))
+    expected_stop = expected_start + 1
+    if any(not isinstance(sl, slice) for sl in slices):
+        is_single_time_sample = False
+    elif not np.array_equal([sl.start for sl in slices], expected_start):
+        is_single_time_sample = False
+    elif not np.array_equal([sl.stop for sl in slices], expected_stop):
+        is_single_time_sample = False
+    elif slices[-1].stop != X.shape[-1]:
+        is_single_time_sample = False
+    if is_single_time_sample:
+        # in simple mode, we don't need to iterate over time slices
+        slices = [slice(expected_start[0], expected_stop[-1], 1)]
 
     # XXX EHN: This loop should be parallelized in a similar way to fit()
     for t, indices in enumerate(slices):
-        # Flatten features in case of multiple time samples
-        Xtrain = X[:, :, indices].reshape(n_epochs, -1)
-        if predict_mode == 'cross-validation':
-            X_t = Xtrain[all_test]
-        for k, (train, test) in enumerate(cv):
-            # Single trial predictions
-            if predict_mode == 'cross-validation':
+        # Flatten features in case of multiple time samples given to the
+        # estimators
+        if not is_single_time_sample:
+            X_pred = X[:, :, indices].reshape(n_epochs, -1)
+        else:
+            X_pred = X
+        # import pdb; pdb.set_trace()
+
+        if predict_mode == 'mean-prediction':
+            y_pred.append(_predict(X_pred, estimators,
+                          is_single_time_sample=is_single_time_sample))
+        elif predict_mode == 'cross-validation':
+            X_t = X_pred[all_test]
+            for k, (train, test) in enumerate(cv):
+                # Single trial predictions
                 # If predict within cross validation, only predict with
                 # corresponding classifier, else predict with each fold's
                 # classifier and average prediction.
 
+                this_Xt = X_t[test_slices[k]]
+                # in simple case, we are predicting each time sample as if it
+                # was a different epoch
+
+                y_pred_ = _predict(this_Xt, estimators[k:k + 1],
+                                   is_single_time_sample=is_single_time_sample)
                 # XXX I didn't manage to initialize correctly this array, as
                 # its size depends on the the type of predictor and the
                 # number of class.
                 if k == 0:
-                    y_pred_ = _predict(X_t[test_slices[k], :],
-                                       estimators[k:k + 1])
-                    y_pred[t] = np.empty((n_epochs, y_pred_.shape[1]))
-                    y_pred[t][test, :] = y_pred_
-                else:
-                    y_pred[t][test, :] = _predict(X_t[test_slices[k], :],
-                                                  estimators[k:k + 1])
-            elif predict_mode == 'mean-prediction':
-                y_pred[t] = _predict(Xtrain, estimators)
-            else:
-                raise ValueError('`predict_mode` must be a str, '
-                                 '"mean-prediction" or "cross-validation"')
+                    y_pred.append(np.empty((n_epochs,) + y_pred_.shape[1:]))
+                y_pred[-1][test, ...] = y_pred_
+        else:
+            raise ValueError('`predict_mode` must be a str, '
+                             '"mean-prediction" or "cross-validation"')
+
+    if is_single_time_sample:
+        y_pred = [yp for yp in y_pred[0].transpose([1, 0, 2])]
+
     return y_pred
 
 
@@ -633,8 +664,8 @@ def _sliding_window(times, window_params, sfreq):
 
     return window_params
 
-@profile
-def _predict(X, estimators):
+#@profile
+def _predict(X, estimators, is_single_time_sample):
     """Aux function of GeneralizationAcrossTime
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -655,8 +686,18 @@ def _predict(X, estimators):
     from scipy import stats
     from sklearn.base import is_classifier
     # Initialize results:
-    n_epochs = X.shape[0]
+
+    orig_shape = X.shape
+    n_epochs = orig_shape[0]
+    n_times = orig_shape[-1]
+
     n_clf = len(estimators)
+
+    # in simple case, we are predicting each time sample as if it
+    # was a different epoch
+    if is_single_time_sample:  # treat times as trials for optimization
+        X = np.hstack(X).T
+    n_epochs_tmp = len(X)
 
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
@@ -668,7 +709,7 @@ def _predict(X, estimators):
         # initialize predict_results array
         if fold == 0:
             predict_size = _y_pred.shape[1]
-            y_pred = np.ones((n_epochs, predict_size, n_clf))
+            y_pred = np.ones((n_epochs_tmp, predict_size, n_clf))
         y_pred[:, :, fold] = _y_pred
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
@@ -680,7 +721,11 @@ def _predict(X, estimators):
             y_pred = np.mean(y_pred, axis=2)
 
     # Format shape
-    y_pred = y_pred.reshape((n_epochs, predict_size))
+    y_pred = y_pred.reshape((n_epochs_tmp, predict_size))
+    if is_single_time_sample:
+        y_pred = np.reshape(y_pred,
+                            [n_epochs, n_times, y_pred.shape[-1]])
+
     return y_pred
 
 

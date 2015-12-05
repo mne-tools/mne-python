@@ -99,7 +99,6 @@ def test_generalization_across_time():
     assert_equal("<DecodingTime | start: -0.200 (s), stop: 0.499 (s), step: "
                  "0.050 (s), length: 0.050 (s), n_time_windows: 15 x 15>",
                  "%s" % gat.test_times_)
-
     # the y-check
     gat.predict_mode = 'mean-prediction'
     epochs2.events[:, 2] += 10
@@ -130,6 +129,7 @@ def test_generalization_across_time():
     assert_true(gat is gat2)  # return self
     assert_true(hasattr(gat2, 'cv_'))
     assert_true(gat2.cv_ != gat.cv)
+
     scores = gat.score(epochs)
     assert_true(isinstance(scores, list))  # type check
     assert_equal(len(scores[0]), len(scores))  # shape check
