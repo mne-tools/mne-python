@@ -87,6 +87,7 @@ if __name__ == "__main__":
                     'mne.io.fiff', 'mne.io.fiff.tests',
                     'mne.io.kit', 'mne.io.kit.tests',
                     'mne.io.nicolet', 'mne.io.nicolet.tests',
+                    'mne.io.eeglab', 'mne.io.eeglab',
                     'mne.forward', 'mne.forward.tests',
                     'mne.viz', 'mne.viz.tests',
                     'mne.gui', 'mne.gui.tests',
