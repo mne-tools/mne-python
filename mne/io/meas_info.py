@@ -1354,7 +1354,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
-        chan_info = dict(loc=loc, unit_mul=0, range=1., cal=1.,
+        chan_info = dict(loc=loc.copy(), unit_mul=0, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
