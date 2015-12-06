@@ -237,7 +237,9 @@ def test_generalization_across_time():
         gat.fit(epochs)
 
     gat.predict(epochs)
-    assert_raises(ValueError, gat.predict, epochs[:10])
+    assert_raises(IndexError, gat.predict, epochs[:10])
+
+    # TODO JRK: test GAT with non-exhaustive CV (eg. train on 80%, test on 10%)
 
     # Check that still works with classifier that output y_pred with
     # shape = (n_trials, 1) instead of (n_trials,)
