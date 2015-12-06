@@ -388,22 +388,20 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
                 these predictions into a single estimate per sample.
         Default: 'cross-validation'
     """
-    n_epochs = len(X)
+    n_epochs, _, n_times = X.shape
     y_pred = list()
 
     # check whether the GAT is based on window length = 1-time-sample
     # Note that we have to check i) that slices' step = 1 and ii) that slices
     # are consecutive.
-    expected_start = np.arange(len(slices))
-    is_single_time_sample = not(
-        any(len(s) != 1 for s in slices) or
-        not np.array_equal([sl[0] for sl in slices], expected_start) or
-        slices[-1][0] != X.shape[0])
-
+    expected_start = np.arange(n_times)
+    is_single_time_sample = np.array_equal([ii for sl in slices for ii in sl],
+                                           expected_start)
     msg = 'vectoring predictions across testing times'
     if is_single_time_sample:
         # in simple mode, we don't need to iterate over time slices
         slices = [slice(expected_start[0], expected_start[-1] + 1, 1)]
+    else:
         msg = 'not ' + msg + ', using a time window with length > 1'
     logger.info(msg)
 
