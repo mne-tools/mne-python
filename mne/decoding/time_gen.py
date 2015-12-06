@@ -406,30 +406,21 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
             test_slices.append(slice(start, stop, 1))
             start += l
 
-    if all(len(s) == 1 for s in slices):
-        slices = [slice(s[0], s[0] + 1, 1) for s in slices]
-
     y_pred = list()
 
     # check whether the GAT is based on window length = 1-time-sample
     # Note that we have to check i) that slices' step = 1 and ii) that slices
     # are consecutive.
-    is_single_time_sample = True
     expected_start = np.arange(len(slices))
-    expected_stop = expected_start + 1
-    if any(not isinstance(sl, slice) for sl in slices):
-        is_single_time_sample = False
-    elif not np.array_equal([sl.start for sl in slices], expected_start):
-        is_single_time_sample = False
-    elif not np.array_equal([sl.stop for sl in slices], expected_stop):
-        is_single_time_sample = False
-    elif slices[-1].stop != X.shape[-1]:
-        is_single_time_sample = False
+    is_single_time_sample = not(
+        any(len(s) != 1 for s in slices) or
+        not np.array_equal([sl[0] for sl in slices], expected_start) or
+        slices[-1][0] != X.shape[0])
 
-    msg = 'vectoring predictions across times'
+    msg = 'vectoring predictions across testing times'
     if is_single_time_sample:
         # in simple mode, we don't need to iterate over time slices
-        slices = [slice(expected_start[0], expected_stop[-1], 1)]
+        slices = [slice(expected_start[0], expected_start[-1] + 1, 1)]
         msg = 'not ' + msg + ', using a time window with length > 1'
     logger.info(msg)
 
