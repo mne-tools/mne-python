@@ -14,19 +14,18 @@ from ..io.meas_info import _empty_info
 from ..io.pick import pick_info
 from ..epochs import EpochsArray
 from ..utils import logger
-from ..externals.OpenBCI import OpenBCIBoard
-from yapsy.PluginManager import PluginManager
+from ..externals.OpenBCI import OpenBCIBoard, OpenBCISample
 
 
-def _buffer_recv_worker(obci_client):
+def _buffer_recv_worker(client):
     """Worker thread that constantly receives buffers."""
 
     try:
-        for raw_buffer in obci_client.iter_raw_buffers():
-            obci_client._push_raw_buffer(raw_buffer)
+        for obci_sample in client.iter_obci_sample():
+            client._push_obci_sample(obci_sample)
     except RuntimeError as err:
         # something is wrong, the server stopped (or something)
-        obci_client._recv_thread = None
+        client._recv_thread = None
         print('Buffer receive thread stopped: %s' % err)
 
 
@@ -53,7 +52,7 @@ class OpenBCIClient(object):
         Log verbosity see mne.verbose.
     """
     def __init__(self, info=None, port=5000, wait_max=30,
-                 tmin=None, tmax=np.inf, buffer_size=1000, verbose=None):
+                 tmin=None, tmax=np.inf, buffer_size=1000, verbose=True):
         self.verbose = verbose
 
         self.info = info
@@ -69,7 +68,7 @@ class OpenBCIClient(object):
 
     def __enter__(self):
         # instantiate Fieldtrip client and connect
-        self.obci_client = OpenBCIBoard(port=self.port)
+        self.client = OpenBCIBoard(port=self.port, log=self.verbose)
 
         # connect to FieldTrip buffer
         logger.info("OpenBCIClient: Waiting for server to start")
@@ -77,7 +76,7 @@ class OpenBCIClient(object):
         success = False
         while current_time < (start_time + self.wait_max):
             try:
-                self.obci_client.check_connection()
+                self.client.check_connection()
                 logger.info("OpenBCIClient: Connected")
                 success = True
                 break
@@ -88,14 +87,17 @@ class OpenBCIClient(object):
         if not success:
             raise RuntimeError('Could not connect to OpenBCI')
 
+        self.sfreq = self.client.getSampleRate()
+
         self.info = self._guess_measurement_info()
 
-        self.sfreq = self.obci_client.getSampleRate()
-
+        self.client.ser.write('b')
+        self.client.streaming = True
+        self.client.check_connection()
         return self
 
     def __exit__(self, type, value, traceback):
-        self.obci_client.disconnect()
+        self.client.disconnect()
 
     def _guess_measurement_info(self):
         """
@@ -108,18 +110,19 @@ class OpenBCIClient(object):
             warnings.warn('Info dictionary not provided. Trying to guess it '
                           'from OpenBCIBoard object')
 
-            info = _empty_info()  # create info dictionary
+            info = _empty_info(self.sfreq)  # create info dictionary
 
             # modify info attributes according to the OpenBCIBoard object
-            info['nchan'] = self.obci_client.getNbEEGChannels()
-            info['sfreq'] = self.obci_client.getSampleRate()
+            n_eeg = self.client.getNbEEGChannels()
+            n_aux = self.client.getNbAUXChannels()
+            info['nchan'] = n_eeg + n_aux
+            info['sfreq'] = self.client.getSampleRate()
 
             # NEED TO BE CHECKED
-            ch_names = ['Time']
-            self.ch_names += ['EEG%i' % i for i in range(1, info['nchan'])]
+            # ch_names = ['Time']
+            ch_names = ['EEG%i' % i for i in range(1, n_eeg + 1)]
             # adding auxiliary channels
-            n_aux = self.obci_client.getNbAUXChannels()
-            ch_names += ['Aux%i' % i for i in range(1, n_aux)]
+            ch_names += ['Aux%i' % i for i in range(1, n_aux + 1)]
             info['ch_names'] = ch_names
 
             info['comps'] = list()
@@ -206,7 +209,7 @@ class OpenBCIClient(object):
         """
         return self.info
 
-    def get_data_as_epoch(self, n_samples=1024, picks=None):
+    def get_data_as_epoch(self, n_samples=256, picks=None):
         """Returns last n_samples from current time.
 
         Parameters
@@ -226,13 +229,27 @@ class OpenBCIClient(object):
         --------
         Epochs.iter_evoked
         """
-        ft_header = self.ft_client.getHeader()
-        last_samp = ft_header.nSamples - 1
-        start = last_samp - n_samples + 1
-        stop = last_samp
-        events = np.expand_dims(np.array([start, 1, 1]), axis=0)
-        # get the data
-        data = self.ft_client.getData([start, stop]).transpose()
+        # create the data
+        data = np.zeros([self.info['nchan'], n_samples])
+        n_eeg = self.client.getNbEEGChannels()
+        for i in range(n_samples):
+            sample = self.client._read_serial_binary()
+            if self.client.daisy:
+                # odd sample: daisy sample, save for later
+                if ~sample.id % 2:
+                    self.client.last_odd_sample = sample
+                    # even sample: concatenate and send if last sample was
+                    # the fist part, otherwise drop the packet
+                elif sample.id - 1 == self.client.last_odd_sample.id:
+                    # the aux data will be the average between the two samples,
+                    # as the channel samples themselves have been averaged by the board
+                    avg_aux_data = list((np.array(sample.aux_data) + np.array(self.client.last_odd_sample.aux_data))/2)
+                    sample = OpenBCISample(sample.id, sample.channel_data + self.client.last_odd_sample.channel_data, avg_aux_data)
+
+            data[:n_eeg, i] = sample.channel_data
+            data[n_eeg:, i] = sample.aux_data
+
+        events = np.expand_dims(np.array([0, 1, 1]), axis=0)
         # create epoch from data
         info = self.info
         if picks is not None:
@@ -264,10 +281,10 @@ class OpenBCIClient(object):
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)
 
-    def _push_raw_buffer(self, raw_buffer):
+    def _push_obci_sample(self, obci_sample):
         """Push raw buffer to clients using callbacks."""
         for callback in self._recv_callbacks:
-            callback(raw_buffer)
+            callback(obci_sample)
 
     def start_receive_thread(self, nchan):
         """Start the receive thread.
@@ -299,26 +316,27 @@ class OpenBCIClient(object):
             self._recv_thread.stop()
             self._recv_thread = None
 
-    def iter_raw_buffers(self):
-        """Return an iterator over raw buffers
+    def iter_obci_sample(self):
+        """Return an iterator over OpenBCISample
 
         Returns
         -------
-        raw_buffer : generator
-            Generator for iteration over raw buffers.
+        sample : generator
+            Generator for iteration over OpenBCI samples.
         """
 
-        iter_times = zip(range(self.tmin_samp, self.tmax_samp,
-                               self.buffer_size),
-                         range(self.tmin_samp + self.buffer_size - 1,
-                               self.tmax_samp, self.buffer_size))
+        # get the samples
+        sample = self.client._read_serial_binary()
+        if self.client.daisy:
+            # odd sample: daisy sample, save for later
+            if ~sample.id % 2:
+                self.client.last_odd_sample = sample
+                # even sample: concatenate and send if last sample was
+                # the fist part, otherwise drop the packet
+            elif sample.id - 1 == self.client.last_odd_sample.id:
+                # the aux data will be the average between the two samples,
+                # as the channel samples themselves have been averaged by the board
+                avg_aux_data = list((np.array(sample.aux_data) + np.array(self.client.last_odd_sample.aux_data))/2)
+                sample = OpenBCISample(sample.id, sample.channel_data + self.client.last_odd_sample.channel_data, avg_aux_data)
 
-        for ii, (start, stop) in enumerate(iter_times):
-
-            # wait for correct number of samples to be available
-            self.ft_client.wait(stop, np.iinfo(np.uint32).max,
-                                np.iinfo(np.uint32).max)
-
-            # get the samples
-            raw_buffer = self.ft_client.getData([start, stop]).transpose()
-            yield raw_buffer
+        yield sample
