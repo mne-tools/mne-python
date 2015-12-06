@@ -396,7 +396,7 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
             raise ValueError(
                 'When `predict_mode = "cross-validation"`, the training '
                 'and predicting cv schemes must be identical.')
-        all_test = np.concatenate(zip(*cv)[-1])
+        all_test = np.concatenate(list(zip(*cv))[-1])
         test_slices = []
         start = 0
         for _, test in cv:
