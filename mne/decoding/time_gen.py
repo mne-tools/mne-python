@@ -424,11 +424,14 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
         is_single_time_sample = False
     elif slices[-1].stop != X.shape[-1]:
         is_single_time_sample = False
+
+    msg = 'vectoring predictions across times'
     if is_single_time_sample:
         # in simple mode, we don't need to iterate over time slices
         slices = [slice(expected_start[0], expected_stop[-1], 1)]
+        msg = 'not ' + msg + ', using a time window with length > 1'
+    logger.info(msg)
 
-    # XXX EHN: This loop should be parallelized in a similar way to fit()
     for t, indices in enumerate(slices):
         # Flatten features in case of multiple time samples given to the
         # estimators
