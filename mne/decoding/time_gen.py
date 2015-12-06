@@ -389,23 +389,6 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
         Default: 'cross-validation'
     """
     n_epochs = len(X)
-    # Loop across testing slices
-
-    if predict_mode == 'cross-validation':
-        # Check that training cv and predicting cv match
-        if (len(estimators) != len(cv)) or (cv.n != n_epochs):
-            raise ValueError(
-                'When `predict_mode = "cross-validation"`, the training '
-                'and predicting cv schemes must be identical.')
-        all_test = np.concatenate(list(zip(*cv))[-1])
-        test_slices = []
-        start = 0
-        for _, test in cv:
-            l = len(test)
-            stop = start + l
-            test_slices.append(slice(start, stop, 1))
-            start += l
-
     y_pred = list()
 
     # check whether the GAT is based on window length = 1-time-sample
@@ -437,6 +420,20 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
             y_pred.append(_predict(X_pred, estimators,
                           is_single_time_sample=is_single_time_sample))
         elif predict_mode == 'cross-validation':
+            # Check that training cv and predicting cv match
+            if (len(estimators) != len(cv)) or (cv.n != n_epochs):
+                raise ValueError(
+                    'When `predict_mode = "cross-validation"`, the training '
+                    'and predicting cv schemes must be identical.')
+            all_test = np.concatenate(list(zip(*cv))[-1])
+            test_slices = []
+            start = 0
+            for _, test in cv:
+                l = len(test)
+                stop = start + l
+                test_slices.append(slice(start, stop, 1))
+                start += l
+
             X_t = X_pred[all_test]
             for k, (train, test) in enumerate(cv):
                 # Single trial predictions
