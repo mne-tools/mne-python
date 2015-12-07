@@ -861,6 +861,7 @@ Functions to compute connectivity (adjacency) matrices for cluster-level statist
    spatial_dist_connectivity
    spatial_src_connectivity
    spatial_tris_connectivity
+   spatial_inter_hemi_connectivity
    spatio_temporal_src_connectivity
    spatio_temporal_tris_connectivity
    spatio_temporal_dist_connectivity
