@@ -563,3 +563,10 @@ def _cartesian_to_sphere(x, y, z):
     elev = np.arctan2(z, hypotxy)
     az = np.arctan2(y, x)
     return az, elev, r
+
+
+def _topo_to_sphere(theta, radius):
+    """Convert 2D topo coordinates to spherical."""
+    sph_phi = (0.5 - radius) * 180
+    sph_theta = -theta
+    return sph_phi, sph_theta

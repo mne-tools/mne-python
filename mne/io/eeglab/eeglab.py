@@ -4,77 +4,52 @@
 
 import os.path as op
 import numpy as np
-from scipy import io
 
 from ...utils import logger
-from ..meas_info import create_info
-from ..base import _BaseRaw, _mult_cal_one
+from ..meas_info import _empty_info
+from ..base import _BaseRaw, _mult_cal_one, _check_update_montage
 from ..constants import FIFF
 
 
-def _topo_to_sph(theta, radius):
-    """Convert 2D topo coordinates to spherical.
-    """
-    sph_phi = (0.5 - radius) * 180
-    sph_theta = -theta
-    return sph_phi, sph_theta
-
-
-def _sph_to_cart(azimuth, elevation, r):
-    """Convert spherical to cartesian coordinates.
-    """
-    x = r * np.cos(elevation) * np.cos(azimuth)
-    y = r * np.cos(elevation) * np.sin(azimuth)
-    z = r * np.sin(elevation)
-    return x, y, z
-
-
-def _get_info(eeg, eog, ch_fname):
+def _get_info(eeg, montage, eog):
     """Get measurement info.
     """
-    if not ch_fname.endswith('.locs'):
-        msg = """Currently, only the .locs file format is supported.
-              Please contact mne-python developers for more information"""
-        raise NotImplementedError(msg)
+    info = _empty_info(sfreq=eeg.srate)
+    info['nchan'] = eeg.nbchan
 
-    ch_names = np.loadtxt(ch_fname, dtype='S4', usecols=[3]).tolist()
-    info = create_info(sfreq=eeg.srate, ch_names=ch_names)
-
-    # load channel locations
-    dtype = {'names': ('angle', 'radius'), 'formats': ('f4', 'f4')}
-    angle, radius = np.loadtxt(ch_fname, dtype=dtype, usecols=[1, 2],
-                               unpack=True)
-    sph_phi, sph_theta = _topo_to_sph(angle, radius)
-    sph_radius = np.ones((eeg.nbchan, ))
-    x, y, z = _sph_to_cart(sph_theta / 180 * np.pi,
-                           sph_phi / 180 * np.pi, sph_radius)
     if eog is None:
-        eog = [idx for idx, ch in enumerate(ch_names) if ch.startswith('EOG')]
+        eog = [idx for idx, ch in enumerate(info['ch_names'])
+               if ch.startswith('EOG')]
 
-    for idx, ch in enumerate(info['chs']):
-        ch['loc'][:3] = np.array([x[idx], y[idx], z[idx]])
-        ch['unit'] = FIFF.FIFF_UNIT_V
-        ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD,
-        ch['coil_type'] = FIFF.FIFFV_COIL_EEG,
-        ch['kind'] = FIFF.FIFFV_EEG_CH
+    # add the ch_names and info['chs'][idx]['loc']
+    path = None
+    if isinstance(montage, str):
+        path = op.dirname(montage)
+    _check_update_montage(info, montage, path=path, update_ch_names=True)
 
-        if ch['ch_name'] in eog:
+    # update the info dict
+    cal = 1e-6
+    for idx, ch_name in enumerate(info['ch_names']):
+        info['chs'][idx]['cal'] = cal
+        if ch_name in eog:
             ch['coil_type'] = FIFF.FIFFV_COIL_NONE
             ch['kind'] = FIFF.FIFFV_EOG_CH
 
     return info
 
 
-def read_raw_set(fname, ch_fname, eog=None, preload=False, verbose=None):
+def read_raw_eeglab(fname, montage=None, eog=None, preload=False,
+                    verbose=None):
     """Read an EEGLAB .set file
 
     Parameters
     ----------
     fname : str
         Path to the .set file.
-    ch_fname : str
-        Path to the file containing channel locations. Currently,
-        only .loc extension is supported.
+    montage : str | None | instance of montage
+        Path or instance of montage containing electrode positions.
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. If None (default), the channel names beginning with
@@ -92,8 +67,16 @@ def read_raw_set(fname, ch_fname, eog=None, preload=False, verbose=None):
     -------
     raw : Instance of RawSet
         A Raw object containing EEGLAB .set data.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawSet(fname=fname, ch_fname=ch_fname, eog=eog, preload=preload,
+    return RawSet(fname=fname, montage=montage, eog=eog, preload=preload,
                   verbose=verbose)
 
 
@@ -104,9 +87,10 @@ class RawSet(_BaseRaw):
     ----------
     fname : str
         Path to the .set file.
-    ch_fname : str
-        Path to the file containing channel locations. Currently,
-        only .loc extension is supported.
+    montage : str | None | instance of montage
+        Path or instance of montage containing electrode positions.
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. If None (default), the channel names beginning with
@@ -124,10 +108,19 @@ class RawSet(_BaseRaw):
     -------
     raw : Instance of RawSet
         A Raw object containing EEGLAB .set data.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
-    def __init__(self, fname, ch_fname, eog=None, preload=False, verbose=None):
+    def __init__(self, fname, montage, eog=None, preload=False, verbose=None):
         """Read EEGLAB .set file.
         """
+        from scipy import io
         basedir = op.dirname(fname)
         eeg = io.loadmat(fname, struct_as_record=False, squeeze_me=True)['EEG']
 
@@ -135,29 +128,22 @@ class RawSet(_BaseRaw):
         data_fname = op.join(basedir, eeg.data)
         logger.info('Reading %s' % data_fname)
 
-        last_samps = [int(eeg.xmax * eeg.srate)]
+        last_samps = [eeg.pnts - 1]
 
-        # get info
-        if ch_fname is not None:
-            ch_fname = op.join(basedir, ch_fname)
-        info = _get_info(eeg, eog, ch_fname)
-
+        info = _get_info(eeg, montage, eog)
         super(RawSet, self).__init__(
             info, preload, filenames=[data_fname], last_samps=last_samps,
             orig_format='double', verbose=verbose)
-        logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
-                    % (self.first_samp, self.last_samp,
-                       float(self.first_samp) / self.info['sfreq'],
-                       float(self.last_samp) / self.info['sfreq']))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
-        scaling = 1e-6
+        n_bytes = 4
         nchan = self.info['nchan']
-        data_offset = self.info['nchan'] * start * 4
+        data_offset = self.info['nchan'] * start * n_bytes
         data_left = (stop - start) * nchan
         # Read up to 100 MB of data at a time.
-        blk_size = min(data_left, (50000000 // nchan) * nchan)
+        n_blocks = 100000000 // n_bytes
+        blk_size = min(data_left, (n_blocks // nchan) * nchan)
 
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             fid.seek(data_offset)
@@ -165,7 +151,7 @@ class RawSet(_BaseRaw):
             for blk_start in np.arange(0, data_left, blk_size) // nchan:
                 blk_size = min(blk_size, data_left - blk_start * nchan)
                 block = np.fromfile(fid,
-                                    dtype=np.float32, count=blk_size) * scaling
+                                    dtype=np.float32, count=blk_size)
                 block = block.reshape(nchan, -1, order='F')
                 blk_stop = blk_start + block.shape[1]
                 data_view = data[:, blk_start:blk_stop]

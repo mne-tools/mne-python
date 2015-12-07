@@ -18,9 +18,10 @@ import numpy as np
 from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (_sphere_to_cartesian, apply_trans,
-                          get_ras_to_neuromag_trans)
+                          get_ras_to_neuromag_trans, _topo_to_sphere)
 from ..io.meas_info import _make_dig_points, _read_dig_points
 from ..io.pick import pick_types
+from ..io.constants import FIFF
 from ..externals.six import string_types
 from ..externals.six.moves import map
 
@@ -129,7 +130,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     kind : str
         The name of the montage file (e.g. kind='easycap-M10' for
         'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd',
-        '.elp', '.hpts' or '.sfp' are supported.
+        '.elp', '.hpts', '.sfp' or '.locs' are supported.
     ch_names : list of str | None
         If not all electrodes defined in the montage are present in the EEG
         data, use this parameter to select subset of electrode positions to
@@ -164,7 +165,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
-        supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts')
+        supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts', '.locs')
         montages = [op.splitext(f) for f in os.listdir(path)]
         montages = [m for m in montages if m[1] in supported and kind == m[0]]
         if len(montages) != 1:
@@ -259,6 +260,20 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         data = np.loadtxt(fname, dtype=dtype)
         pos = np.vstack((data['x'], data['y'], data['z'])).T
         ch_names_ = data['name'].astype(np.str)
+    elif ext == '.locs':
+        ch_names_ = np.loadtxt(fname, dtype='S4', usecols=[3]).tolist()
+        dtype = {'names': ('angle', 'radius'), 'formats': ('f4', 'f4')}
+        angle, radius = np.loadtxt(fname, dtype=dtype, usecols=[1, 2],
+                                   unpack=True)
+
+        sph_phi, sph_theta = _topo_to_sphere(angle, radius)
+
+        azimuth = sph_theta / 180.0 * np.pi
+        elevation = sph_phi / 180.0 * np.pi
+        r = np.ones((len(ch_names_), ))
+
+        x, y, z = _sphere_to_cartesian(azimuth, elevation, r)
+        pos = np.c_[x, y, z]
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
@@ -499,8 +514,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                       trans)
 
 
-def _set_montage(info, montage):
-    """Apply montage to data
+def _set_montage(info, montage, update_ch_names=False):
+    """Apply montage to data.
 
     With a Montage, this function will replace the EEG channel names and
     locations with the values specified for the particular montage.
@@ -517,12 +532,25 @@ def _set_montage(info, montage):
         The measurement info to update.
     montage : instance of Montage | instance of DigMontage
         The montage to apply.
+    update_ch_names : bool
+        If True, overwrite the info channel names with the ones from montage.
 
     Notes
     -----
     This function will change the info variable in place.
     """
     if isinstance(montage, Montage):
+        if update_ch_names:
+            info['ch_names'] = montage.ch_names
+            info['chs'] = list()
+            for ii, ch_name in enumerate(montage.ch_names):
+                ch_info = {'cal': 1, 'logno': ii + 1, 'scanno': ii + 1,
+                           'range': 1.0, 'unit_mul': 0, 'ch_name': ch_name,
+                           'unit': FIFF.FIFF_UNIT_V, 'kind': FIFF.FIFFV_EEG_CH,
+                           'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                           'coil_type': FIFF.FIFFV_COIL_EEG}
+                info['chs'].append(ch_info)
+
         if not _contains_ch_type(info, 'eeg'):
             raise ValueError('No EEG channels found.')
 

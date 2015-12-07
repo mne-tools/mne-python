@@ -2329,7 +2329,7 @@ def concatenate_raws(raws, preload=None, events_list=None):
         return raws[0], events
 
 
-def _check_update_montage(info, montage):
+def _check_update_montage(info, montage, path=None, update_ch_names=False):
     """ Helper function for eeg readers to add montage"""
     if montage is not None:
         if not isinstance(montage, (str, Montage)):
@@ -2338,8 +2338,8 @@ def _check_update_montage(info, montage):
             raise TypeError(err)
         if montage is not None:
             if isinstance(montage, str):
-                montage = read_montage(montage)
-            _set_montage(info, montage)
+                montage = read_montage(montage, path=path)
+            _set_montage(info, montage, update_ch_names=update_ch_names)
 
             missing_positions = []
             exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
