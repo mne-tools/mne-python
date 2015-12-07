@@ -283,11 +283,16 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         names = np.intersect1d(layout.names,
                                                np.array(info['ch_names'])[idx])
                         name_idx = [layout.names.index(name) for name in names]
-                        # find indices for bads
-                        bads = [np.where(names == bad)[0][0] for bad in
-                                info['bads'] if bad in names]
-                        pos = layout.pos[name_idx, :2]
-                        _plot_legend(pos, colors, ax, bads=bads)
+                        if len(name_idx) < len(chs):
+                            logger.warning('Could not find layout for '
+                                           'all the channels. Legend for '
+                                           'spatial colors not drawn.')
+                        else:
+                            # find indices for bads
+                            bads = [np.where(names == bad)[0][0] for bad in
+                                    info['bads'] if bad in names]
+                            pos = layout.pos[name_idx, :2]
+                            _plot_legend(pos, colors, ax, bads=bads)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
