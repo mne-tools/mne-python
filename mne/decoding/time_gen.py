@@ -421,13 +421,12 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     expected_start = np.arange(n_times)
     is_single_time_sample = np.array_equal([ii for sl in slices for ii in sl],
                                            expected_start)
-    msg = 'vectoring predictions across testing times'
     if is_single_time_sample:
         # In simple mode, we avoid iterating over time slices.
         slices = [slice(expected_start[0], expected_start[-1] + 1, 1)]
     else:
-        msg = 'not ' + msg + ', using a time window with length > 1'
-    logger.info(msg)
+        logger.warning('not vectorizing predictions across testing times, '
+                       'using a time window with length > 1')
 
     # Iterate over testing times. If is_single_time_sample, then 1 iteration.
     y_pred = list()
