@@ -18,7 +18,7 @@ from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show)
-from ..utils import logger
+from ..utils import logger, _clean_names
 from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
@@ -280,8 +280,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         colors = _rgb(x, y, z)
                         layout = find_layout(info, ch_type=t, exclude=[])
                         # drop channels that are not in the data
-                        names = np.intersect1d(layout.names,
-                                               np.array(info['ch_names'])[idx])
+                        used_nm = np.array(_clean_names(info['ch_names']))[idx]
+                        names = np.intersect1d(layout.names, used_nm)
                         name_idx = [layout.names.index(name) for name in names]
                         if len(name_idx) < len(chs):
                             logger.warning('Could not find layout for '
