@@ -1623,7 +1623,7 @@ def _init_anim(ax, ax_line, params):
         params['Zis'].append(Zi)
     Zi = params['Zis'][0]
     text = ax.text(0.45, 0.9, '', transform=ax.transAxes)
-    text.set_text(str(times[0] * 1e3) + ' ms')
+    text.set_text('%.3f ms' % (times[0] * 1e3))
     params['text'] = text
     image_mask, pos = _make_image_mask(outlines, pos, res)
 
@@ -1671,7 +1671,7 @@ def _animate(i, ax, ax_line, params):
     ax.set_frame_on(False)
     times = params['times']
     time_idx = len(times) // params['frames'] * i
-    title = str(times[time_idx] * 1e3) + ' ms'
+    title = '%.3f ms' % (times[time_idx] * 1e3)
     vmin = params['vmin']
     vmax = params['vmax']
     outlines = params['outlines']
@@ -1710,6 +1710,34 @@ def _animate(i, ax, ax_line, params):
 
 def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
                       show=True):
+    """Make animation of evoked data as topomap timeseries.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked data.
+    ch_type : str
+        Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
+    frames : int
+        The number of frames to animate. Defaults to 5.
+    interval : int
+        The time interval before drawing a new frame as milliseconds.
+        Defaults to 100.
+    vmin : float | callable | None
+        The value specifying the lower bound of the color range.
+        If None np.min(data) is used. If callable, the output equals
+        vmin(data).
+    butterfly : bool
+        Whether to plot the data as butterfly plot under the topomap.
+        Defaults to False.
+    show : bool
+        Show figure if True.
+
+    Returns
+    -------
+    anim : instance of matplotlib FuncAnimation
+        Animation of the topomap.
+    """
     import matplotlib.pyplot as plt
     from matplotlib import animation
 
@@ -1724,8 +1752,8 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     times = evoked.times
 
     if butterfly is not None:
-        ax = plt.axes([0.2, 0.2, 0.7, 0.7], xlim=(-1, 1), ylim=(-1, 1))
-        ax_line = plt.axes([0.2, 0.05, 0.7, 0.1], xlim=(times[0], times[-1]))
+        ax = plt.axes([0.15, 0.2, 0.7, 0.7], xlim=(-1, 1), ylim=(-1, 1))
+        ax_line = plt.axes([0.2, 0.05, 0.6, 0.1], xlim=(times[0], times[-1]))
     else:
         ax = plt.axes([0.1, 0.1, 0.8, 0.8], xlim=(-1, 1), ylim=(-1, 1))
         ax_line = None
@@ -1740,4 +1768,8 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
 
     if show:
         plt.show()
+        if butterfly:
+            # Finally remove the vertical line.
+            line = params['line'].pop(0)
+            line.remove()
     return anim
