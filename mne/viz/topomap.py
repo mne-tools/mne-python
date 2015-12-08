@@ -1606,7 +1606,7 @@ def _init_anim(ax, params):
     contours = params['contours']
     times = params['times']
     vmin, vmax = _setup_vmin_vmax(data, None, None)
-    data = data[:, 0]
+
     pos, outlines = _check_outlines(params['pos'], 'head', None)
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
@@ -1622,12 +1622,16 @@ def _init_anim(ax, params):
     ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
                   np.max(np.r_[ylim[1], mask_[:, 1]]))
 
-    # interpolate data
     res = 64
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    Zi = _griddata(pos_x, pos_y, data, Xi, Yi)
+    params['Zis'] = list()
+    x = len(times) // params['frames']
+    for frame in range(params['frames']):
+        Zi = _griddata(pos_x, pos_y, data[:, frame * x], Xi, Yi)
+        params['Zis'].append(Zi)
+    Zi = params['Zis'][0]
     text = ax.text(0.45, 0.9, '', transform=ax.transAxes)
     text.set_text(str(times[0] * 1e3) + ' ms')
     params['text'] = text
@@ -1672,17 +1676,14 @@ def _animate(i, ax, params):
     times = params['times']
     time_idx = len(times) // params['frames'] * i
     title = str(times[time_idx] * 1e3) + ' ms'
-    data = params['data'][:, time_idx]
     vmin = params['vmin']
     vmax = params['vmax']
     outlines = params['outlines']
     Xi = params['Xi']
     Yi = params['Yi']
-    pos_x = params['pos_x']
-    pos_y = params['pos_y']
     text = params['text']
     text.set_text(title)
-    Zi = _griddata(pos_x, pos_y, data, Xi, Yi)
+    Zi = params['Zis'][i]
     extent = params['extent']
 
     im = ax.imshow(Zi, cmap='RdBu_r', vmin=vmin, vmax=vmax, origin='lower',
