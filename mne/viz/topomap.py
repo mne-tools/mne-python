@@ -1588,7 +1588,7 @@ def _prepare_topomap(pos, ax):
     return pos_x, pos_y
 
 
-def _init_anim(ax, params):
+def _init_anim(ax, ax_line, params):
     """Initialize animated topomap."""
     from matplotlib import patches
     data = params['data']
@@ -1654,10 +1654,16 @@ def _init_anim(ax, params):
             continue
         ax.plot(x, y, color='k', linewidth=1, clip_on=False)
     params['patch'] = patch_
+
+    if params['butterfly']:
+        for idx in range(len(data)):
+            ax_line.plot(times, data[idx], color='k')
+        params['line'] = ax_line.plot([times[0], times[0]], ax_line.get_ylim(),
+                                      color='r')
     return im, text, cont,
 
 
-def _animate(i, ax, params):
+def _animate(i, ax, ax_line, params):
     """Updates animated topomap."""
     ax.cla()  # Clear old contours.
     ax.set_xticks([])
@@ -1694,10 +1700,16 @@ def _animate(i, ax, params):
             continue
         ax.plot(x, y, color='k', linewidth=1, clip_on=False)
 
+    if params['butterfly']:
+        line = params['line'].pop(0)
+        line.remove()
+        params['line'] = ax_line.plot([times[i], times[i]], ax_line.get_ylim(),
+                                      color='r')
     return im, text, cont,
 
 
-def topomap_animation(evoked, ch_type, frames=5, interval=100):
+def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
+                      show=True):
     import matplotlib.pyplot as plt
     from matplotlib import animation
 
@@ -1711,14 +1723,21 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100):
     fig = plt.figure()
     times = evoked.times
 
-    ax = plt.axes([0.1, 0.1, 0.8, 0.8], xlim=(-1, 1), ylim=(-1, 1))
+    if butterfly is not None:
+        ax = plt.axes([0.2, 0.2, 0.7, 0.7], xlim=(-1, 1), ylim=(-1, 1))
+        ax_line = plt.axes([0.2, 0.05, 0.7, 0.1], xlim=(times[0], times[-1]))
+    else:
+        ax = plt.axes([0.1, 0.1, 0.8, 0.8], xlim=(-1, 1), ylim=(-1, 1))
+        ax_line = None
 
     params = {'data': data, 'pos': pos, 'times': times, 'cmap': 'RdBu_r',
-              'contours': 6, 'frames': frames}
-    init_func = partial(_init_anim, ax=ax, params=params)
+              'contours': 6, 'frames': frames, 'butterfly': butterfly}
+    init_func = partial(_init_anim, ax=ax, ax_line=ax_line, params=params)
 
-    animate_func = partial(_animate, ax=ax, params=params)
-    params['anim'] = animation.FuncAnimation(fig, animate_func,
-                                             init_func=init_func,
-                                             frames=frames, interval=interval)
-    plt.show()
+    animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
+    anim = animation.FuncAnimation(fig, animate_func, init_func=init_func,
+                                   frames=frames, interval=interval)
+
+    if show:
+        plt.show()
+    return anim
