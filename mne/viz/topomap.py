@@ -1627,8 +1627,8 @@ def _init_anim(ax, ax_line, params):
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
     params['Zis'] = list()
-    x = len(times) // params['frames']
-    for frame in range(params['frames']):
+    x = len(times) // len(params['frames'])
+    for frame in range(len(params['frames'])):
         Zi = _griddata(pos_x, pos_y, data[:, frame * x], Xi, Yi)
         params['Zis'].append(Zi)
     Zi = params['Zis'][0]
@@ -1680,7 +1680,7 @@ def _animate(i, ax, ax_line, params):
     ax.set_yticks([])
     ax.set_frame_on(False)
     times = params['times']
-    time_idx = len(times) // params['frames'] * i
+    time_idx = params['frames'][i]
     title = '%.3f ms' % (times[time_idx] * 1e3)
     vmin = params['vmin']
     vmax = params['vmax']
@@ -1713,8 +1713,8 @@ def _animate(i, ax, ax_line, params):
     if params['butterfly']:
         line = params['line'].pop(0)
         line.remove()
-        params['line'] = ax_line.plot([times[i], times[i]], ax_line.get_ylim(),
-                                      color='r')
+        params['line'] = ax_line.plot([times[time_idx], times[time_idx]],
+                                      ax_line.get_ylim(), color='r')
     return im, text, cont,
 
 
@@ -1728,8 +1728,9 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
         The evoked data.
     ch_type : str
         Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
-    frames : int
-        The number of frames to animate. Defaults to 5.
+    frames : int | list of ints
+        If int, the number of frames to animate. If list of ints, the indices
+        to plot in the animation. Defaults to 5.
     interval : int
         The time interval before drawing a new frame as milliseconds.
         Defaults to 100.
@@ -1767,14 +1768,15 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     else:
         ax = plt.axes([0.1, 0.1, 0.8, 0.8], xlim=(-1, 1), ylim=(-1, 1))
         ax_line = None
-
+    if isinstance(frames, int):
+        frames = np.arange(0, len(evoked.times), frames)
     params = {'data': data, 'pos': pos, 'times': times, 'cmap': 'RdBu_r',
               'contours': 6, 'frames': frames, 'butterfly': butterfly}
     init_func = partial(_init_anim, ax=ax, ax_line=ax_line, params=params)
 
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
     anim = animation.FuncAnimation(fig, animate_func, init_func=init_func,
-                                   frames=frames, interval=interval)
+                                   frames=len(frames), interval=interval)
 
     if show:
         plt.show()
