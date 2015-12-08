@@ -9,8 +9,9 @@ import numpy as np
 from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
-from .base import _BaseRaw, _BaseEpochs
+from .base import _BaseRaw
 from ..evoked import Evoked
+from ..epochs import _BaseEpochs
 from ..utils import logger
 
 
