@@ -11,6 +11,8 @@ from ..meas_info import _empty_info
 from ..base import _BaseRaw, _mult_cal_one, _check_update_montage
 from ..constants import FIFF
 from ...channels.montage import Montage
+from ...epochs import _BaseEpochs
+from ...externals.six import string_types
 
 
 def _get_info(eeg, montage, eog):
@@ -18,10 +20,6 @@ def _get_info(eeg, montage, eog):
     """
     info = _empty_info(sfreq=eeg.srate)
     info['nchan'] = eeg.nbchan
-
-    if eog is None:
-        eog = [idx for idx, ch in enumerate(info['ch_names'])
-               if ch.startswith('EOG')]
 
     # add the ch_names and info['chs'][idx]['loc']
     path = None
@@ -33,29 +31,31 @@ def _get_info(eeg, montage, eog):
             ch_names.append(chanloc.labels)
             pos.append([chanloc.X, chanloc.Y, chanloc.Z])
         montage = Montage(np.array(pos), ch_names, kind, selection)
-    elif isinstance(montage, str):
+    elif isinstance(montage, string_types):
         path = op.dirname(montage)
     _check_update_montage(info, montage, path=path,
                           update_ch_names=True)
 
     # update the info dict
     cal = 1e-6
-    for idx, ch_name in enumerate(info['ch_names']):
-        info['chs'][idx]['cal'] = cal
-        if ch_name in eog:
+    if eog is None:
+        eog = []
+    for ch in info['chs']:
+        ch['cal'] = cal
+        if ch['ch_name'].startswith('EOG') or ch['ch_name'] in eog:
             ch['coil_type'] = FIFF.FIFFV_COIL_NONE
             ch['kind'] = FIFF.FIFFV_EOG_CH
 
     return info
 
 
-def read_raw_eeglab(fname, montage=None, eog=None, preload=False,
+def read_raw_eeglab(input_fname, montage=None, eog=None, preload=False,
                     verbose=None):
     """Read an EEGLAB .set file
 
     Parameters
     ----------
-    fname : str
+    input_fname : str
         Path to the .set file.
     montage : str | None | instance of montage
         Path or instance of montage containing electrode positions.
@@ -89,8 +89,8 @@ def read_raw_eeglab(fname, montage=None, eog=None, preload=False,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawSet(fname=fname, montage=montage, eog=eog, preload=preload,
-                  verbose=verbose)
+    return RawSet(input_fname=input_fname, montage=montage, eog=eog,
+                  preload=preload, verbose=verbose)
 
 
 class RawSet(_BaseRaw):
@@ -98,7 +98,7 @@ class RawSet(_BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    input_fname : str
         Path to the .set file.
     montage : str | None | instance of montage
         Path or instance of montage containing electrode positions.
@@ -130,14 +130,14 @@ class RawSet(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    def __init__(self, fname, montage, eog=None, preload=False, verbose=None):
+    def __init__(self, input_fname, montage, eog=None, preload=False, verbose=None):
         """Read EEGLAB .set file.
         """
         from scipy import io
-        basedir = op.dirname(fname)
-        eeg = io.loadmat(fname, struct_as_record=False, squeeze_me=True)['EEG']
+        basedir = op.dirname(input_fname)
+        eeg = io.loadmat(input_fname, struct_as_record=False, squeeze_me=True)['EEG']
 
-        if not isinstance(eeg.data, basestring) and not preload:
+        if not isinstance(eeg.data, string_types) and not preload:
             warnings.warn('Data will be preloaded. preload=False is not '
                           'supported when the data is stored in the .set file')
         if eeg.trials != 1:
@@ -148,7 +148,7 @@ class RawSet(_BaseRaw):
         info = _get_info(eeg, montage, eog)
 
         # read the data
-        if isinstance(eeg.data, basestring):
+        if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
             logger.info('Reading %s' % data_fname)
 
@@ -159,7 +159,7 @@ class RawSet(_BaseRaw):
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
             data = data.astype(np.double)
             super(RawSet, self).__init__(
-                info, data, filenames=[fname], last_samps=last_samps,
+                info, data, filenames=[input_fname], last_samps=last_samps,
                 orig_format='double', verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
