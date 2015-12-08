@@ -31,12 +31,13 @@ def test_io_egi():
     t = data[0]
     data = data[1:]
     data *= 1e-6  # μV
+
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw = read_raw_egi(egi_fname, include=None)
         assert_true('RawEGI' in repr(raw))
         assert_equal(len(w), 2)
-        assert_true(w[0].category == DeprecationWarning)
+        assert_true(w[0].category == DeprecationWarning)  # preload=None
         assert_true(w[1].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
         assert_true(msg in '%s' % w[1].message)
@@ -46,8 +47,8 @@ def test_io_egi():
 
     include = ['TRSP', 'XXX1']
     with warnings.catch_warnings(record=True):  # preload=None
-        raw = _test_raw_reader(read_raw_egi, True, True,
-                               input_fname=egi_fname, include=include)
+        raw = _test_raw_reader(read_raw_egi, input_fname=egi_fname,
+                               include=include)
 
     assert_equal('eeg' in raw, True)
 

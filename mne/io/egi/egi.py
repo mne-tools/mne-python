@@ -65,10 +65,11 @@ def _read_header(fid):
         info['event_codes'] = np.array(info['event_codes'])
     else:
         raise NotImplementedError('Only continous files are supported')
-    info.update(dict(precision=precision, unsegmented=unsegmented))
-    info['dtype'], info['bytesize'] = \
-        {2: ('>i2', 2), 4: ('>f4', 4),
-         6: ('>f8', 8)}[info['precision']]
+    info['unsegmented'] = unsegmented
+    info['dtype'], info['orig_format'] = {2: ('>i2', 'short'),
+                                          4: ('>f4', 'float'),
+                                          6: ('>f8', 'double')}[precision]
+    info['dtype'] = np.dtype(info['dtype'])
     return info
 
 
@@ -79,7 +80,7 @@ def _read_events(fid, info):
     fid.seek(36 + info['n_events'] * 4, 0)  # skip header
     for si in range(info['n_samples']):
         # skip data channels
-        fid.seek(info['n_channels'] * info['bytesize'], 1)
+        fid.seek(info['n_channels'] * info['dtype'].itemsize, 1)
         # read event channels
         events[:, si] = np.fromfile(fid, info['dtype'], info['n_events'])
     return events
@@ -280,18 +281,17 @@ class RawEGI(_BaseRaw):
                      'unit': FIFF.FIFF_UNIT_NONE})
             info['chs'].append(ch_info)
         _check_update_montage(info, montage)
-        orig_format = {'>f2': 'single', '>f4': 'double',
-                       '>i2': 'int'}[egi_info['dtype']]
         super(RawEGI, self).__init__(
-            info, preload, orig_format=orig_format, filenames=[input_fname],
-            last_samps=[egi_info['n_samples'] - 1], raw_extras=[egi_info],
-            verbose=verbose)
+            info, preload, orig_format=egi_info['orig_format'],
+            filenames=[input_fname], last_samps=[egi_info['n_samples'] - 1],
+            raw_extras=[egi_info], verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file"""
         egi_info = self._raw_extras[fi]
         n_chan_read = egi_info['n_channels'] + egi_info['n_events']
-        data_start = 36 + egi_info['n_events'] * 4 + start * n_chan_read
+        data_start = (36 + egi_info['n_events'] * 4 +
+                      start * n_chan_read * egi_info['dtype'].itemsize)
         n_chan_out = n_chan_read + (1 if self._new_trigger is not None else 0)
         one = np.empty((n_chan_out, stop - start))
         with open(self._filenames[fi], 'rb') as fid:

@@ -47,7 +47,7 @@ misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 
 def test_bdf_data():
     """Test reading raw bdf files"""
-    raw_py = _test_raw_reader(read_raw_edf, True, input_fname=bdf_path,
+    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
                               montage=montage_path, eog=eog, misc=misc)
     assert_true('RawEDF' in repr(raw_py))
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
@@ -68,8 +68,7 @@ def test_bdf_data():
 
 def test_edf_data():
     """Test edf files"""
-    _test_raw_reader(read_raw_edf, test_preloading=True, input_fname=edf_path,
-                     stim_channel=None)
+    _test_raw_reader(read_raw_edf, input_fname=edf_path, stim_channel=None)
     raw_py = read_raw_edf(edf_path, preload=True)
     # Test saving and loading when annotations were parsed.
     tempdir = _TempDir()

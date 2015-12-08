@@ -52,8 +52,7 @@ def test_read_ctf():
     os.mkdir(op.join(temp_dir, 'randpos'))
     ctf_eeg_fname = op.join(temp_dir, 'randpos', ctf_fname_catch)
     shutil.copytree(op.join(ctf_dir, ctf_fname_catch), ctf_eeg_fname)
-    raw = _test_raw_reader(read_raw_ctf, test_preloading=True,
-                           test_blocks=True, directory=ctf_eeg_fname)
+    raw = _test_raw_reader(read_raw_ctf, directory=ctf_eeg_fname)
     picks = pick_types(raw.info, meg=False, eeg=True)
     pos = np.random.RandomState(42).randn(len(picks), 3)
     fake_eeg_fname = op.join(ctf_eeg_fname, 'catch-alp-good-f.eeg')

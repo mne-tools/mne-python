@@ -526,7 +526,7 @@ def test_io_complex():
     tempdir = _TempDir()
     dtypes = [np.complex64, np.complex128]
 
-    raw = _test_raw_reader(Raw, True, True, fnames=fif_fname)
+    raw = _test_raw_reader(Raw, fnames=fif_fname)
     picks = np.arange(5)
     start, stop = raw.time_as_index([0, 5])
 

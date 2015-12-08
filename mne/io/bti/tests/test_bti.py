@@ -55,10 +55,9 @@ def test_crop_append():
     """ Test crop and append raw """
     with warnings.catch_warnings(record=True):  # preload warning
         warnings.simplefilter('always')
-        raw = _test_raw_reader(read_raw_bti, True, True,
-                               pdf_fname=pdf_fnames[0],
-                               config_fname=config_fnames[0],
-                               head_shape_fname=hs_fnames[0])
+        raw = _test_raw_reader(
+            read_raw_bti, pdf_fname=pdf_fnames[0],
+            config_fname=config_fnames[0], head_shape_fname=hs_fnames[0])
     y, t = raw[:]
     t0, t1 = 0.25 * t[-1], 0.75 * t[-1]
     mask = (t0 <= t) * (t <= t1)
