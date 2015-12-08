@@ -873,3 +873,69 @@ def plot_snr_estimate(evoked, inv, show=True):
     plt.draw()
     plt_show(show)
     return fig
+
+
+from mne.viz.topomap import _find_peaks
+from mne.externals.six import string_types
+
+def joint_plot(evoked, title=None,
+               ts_args=dict(spatial_colors='skirt'),
+               topomap_args=dict(colorbar=True)):
+    f = plt.figure()
+
+    times = topomap_args.get("times", "peaks")
+    if isinstance(times, string_types):
+        if times == "peaks":
+            times = _find_peaks(evoked, topomap_args.get("peaks", 3))
+        elif times == "auto":
+            times = np.linspace(evoked.times[0], evoked.times[-1], 5)
+    elif np.isscalar(times):
+        times = [times]
+
+    def _connection_line(x, fig, sourceax, targetax):
+        from matplotlib.lines import Line2D
+        transFigure = fig.transFigure.inverted()
+        tf = fig.transFigure
+
+        (x_t, y_t) = transFigure.transform(targetax.transAxes.transform([0.5,0]))
+        (x_s, _) = transFigure.transform(sourceax.transData.transform([x,0]))
+        (_, y_s) = transFigure.transform(sourceax.transAxes.transform([0,1]))
+        return Line2D((x_t, x_s),(y_t, y_s), transform=tf,
+                      color='grey', linestyle='--',
+                      linewidth=1.5, alpha=0.66)
+
+    ts_ax = f.add_subplot(212)
+    tstimes = [t_ * 1e3 for t_ in times]
+    ts_args_pass = {k:v for k, v in ts_args.items()
+                          if k not in ["axes", "show", "colorbar"]}
+    evoked.plot(axes=ts_ax, show=False, **ts_args_pass);
+
+    t = len(times)+2
+    map_ax = [plt.subplot(5, t, x+2+t) for x in range(t-2)]
+    cbar_ax = plt.subplot(5, 3 * (t + 1), 6 * (t + 1))
+    
+    topomap_args_pass =  {k:v for k, v in topomap_args.items()
+                          if k not in ["times", "axes", "show", "colorbar"]}
+    evoked.plot_topomap(times=times, axes=map_ax, show=False,
+                        colorbar=False, **topomap_args_pass);
+
+    if topomap_args.get("colorbar", True):
+        from matplotlib import ticker
+        cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
+        tick_locator = ticker.MaxNLocator(nbins=5)
+        cbar.locator = tick_locator
+        cbar.update_ticks()
+
+    lines = [_connection_line(t_, f, ts_ax, map_ax_)
+             for t_, map_ax_ in zip(tstimes, map_ax)]
+    for line in lines:
+        f.lines.append(line)
+
+    for t_ in tstimes:
+        ts_ax.axvline(t_, color='grey', linestyle='--',
+                      linewidth=1.5, alpha=0.66)
+
+    f.suptitle(title)
+
+    return f
+    
