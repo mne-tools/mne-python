@@ -106,6 +106,10 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     raw_sss : instance of mne.io.Raw
         The raw data with Maxwell filtering applied
 
+    See Also
+    --------
+    mne.epochs.average_movements
+
     Notes
     -----
     .. versionadded:: 0.11
@@ -128,7 +132,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     The following features are not yet implemented:
 
-        * Movement compensation
+        * Raw movement compensation
         * Automatic bad channel detection
         * cHPI subtraction
 
@@ -138,6 +142,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         * Handling of 3D (in additon to 1D) fine calibration files
         * Processing of data from (un-compensated) non-Elekta systems
         * Automated processing of split (-1.fif) and concatenated files
+        * Epoch-based movement compensation as described in [1]_ through
+          :func:`mne.epochs.average_movements`.
 
     .. note:: Various Maxwell filtering algorithm components are covered by
               patents owned by Elekta Oy, Helsinki, Finland.

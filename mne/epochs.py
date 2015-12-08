@@ -2605,10 +2605,12 @@ def concatenate_epochs(epochs_list):
 @verbose
 def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
                       weight_all=True, int_order=8, ext_order=3, verbose=None):
-    """Average data, transforming using head positions
+    """Average data using Maxwell filtering, transforming using head positions
 
     Parameters
     ----------
+    epochs : instance of Epochs
+        The epochs to operate on.
     pos : tuple
         Tuple of position information as ``(trans, rot, t)`` like that
         returned by `get_chpi_positions`. The positions will be matched
@@ -2640,11 +2642,17 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     evoked : instance of Evoked
         The averaged epochs.
 
+    See Also
+    --------
+    mne.preprocessing.maxwell_filter
+
     Notes
     -----
     The Maxwell filtering version of this algorithm is described in [1]_,
     in section V.B "Virtual signals and movement correction", equations
     40-44. For additional validation, see [2]_.
+
+    .. versionadded:: 0.11
 
     References
     ----------
