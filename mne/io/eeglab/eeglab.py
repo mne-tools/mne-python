@@ -4,11 +4,13 @@
 
 import os.path as op
 import numpy as np
+import warnings
 
 from ...utils import logger
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _mult_cal_one, _check_update_montage
 from ..constants import FIFF
+from ...channels.montage import Montage
 
 
 def _get_info(eeg, montage, eog):
@@ -23,9 +25,18 @@ def _get_info(eeg, montage, eog):
 
     # add the ch_names and info['chs'][idx]['loc']
     path = None
-    if isinstance(montage, str):
+    if len(eeg.chanlocs) > 0:
+        ch_names, pos = [], []
+        kind = 'user_defined'
+        selection = np.arange(len(eeg.chanlocs))
+        for chanloc in eeg.chanlocs:
+            ch_names.append(chanloc.labels)
+            pos.append([chanloc.X, chanloc.Y, chanloc.Z])
+        montage = Montage(np.array(pos), ch_names, kind, selection)
+    elif isinstance(montage, str):
         path = op.dirname(montage)
-    _check_update_montage(info, montage, path=path, update_ch_names=True)
+    _check_update_montage(info, montage, path=path,
+                          update_ch_names=True)
 
     # update the info dict
     cal = 1e-6
@@ -59,7 +70,9 @@ def read_raw_eeglab(fname, montage=None, eog=None, preload=False,
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+        on the hard drive (slower, requires less memory). Note that
+        preload=False will be effective only if the data is stored in a
+        separate binary file.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -124,16 +137,30 @@ class RawSet(_BaseRaw):
         basedir = op.dirname(fname)
         eeg = io.loadmat(fname, struct_as_record=False, squeeze_me=True)['EEG']
 
-        # read the data
-        data_fname = op.join(basedir, eeg.data)
-        logger.info('Reading %s' % data_fname)
+        if not isinstance(eeg.data, basestring) and not preload:
+            warnings.warn('Data will be preloaded. preload=False is not '
+                          'supported when the data is stored in the .set file')
+        if eeg.trials != 1:
+            raise ValueError('The number of trials is %d. It must be 1 for raw'
+                             ' files' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-
         info = _get_info(eeg, montage, eog)
-        super(RawSet, self).__init__(
-            info, preload, filenames=[data_fname], last_samps=last_samps,
-            orig_format='double', verbose=verbose)
+
+        # read the data
+        if isinstance(eeg.data, basestring):
+            data_fname = op.join(basedir, eeg.data)
+            logger.info('Reading %s' % data_fname)
+
+            super(RawSet, self).__init__(
+                info, preload, filenames=[data_fname], last_samps=last_samps,
+                orig_format='double', verbose=verbose)
+        else:
+            data = eeg.data.reshape(eeg.nbchan, -1, order='F')
+            data = data.astype(np.double)
+            super(RawSet, self).__init__(
+                info, data, filenames=[fname], last_samps=last_samps,
+                orig_format='double', verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
