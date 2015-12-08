@@ -1598,14 +1598,22 @@ def _prepare_topomap(pos, ax):
     return pos_x, pos_y
 
 
-def ini(ax, data, pos):
-    import matplotlib.pyplot as plt
+def _init_anim(ax, params):
+    """Initialize animated topomap."""
+    from matplotlib import patches
+    data = params['data']
+    cmap = params['cmap']
+    contours = params['contours']
+    times = params['times']
+    vmin, vmax = _setup_vmin_vmax(data, None, None)
+    data = data[:, 0]
+    pos, outlines = _check_outlines(params['pos'], 'head', None)
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_frame_on(False)
-    pos, outlines = _check_outlines(pos, 'head', None)
-    pos_x = pos[:, 0]
-    pos_y = pos[:, 1]
     xlim = np.inf, -np.inf,
     ylim = np.inf, -np.inf,
     mask_ = np.c_[outlines['mask_pos']]
@@ -1614,96 +1622,112 @@ def ini(ax, data, pos):
     ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
                   np.max(np.r_[ylim[1], mask_[:, 1]]))
 
-    res=64
+    # interpolate data
+    res = 64
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-
-    vmin, vmax = _setup_vmin_vmax(data, vmin=None, vmax=None)
+    Zi = _griddata(pos_x, pos_y, data, Xi, Yi)
+    text = ax.text(0.45, 0.9, '', transform=ax.transAxes)
+    text.set_text(str(times[0] * 1e3) + ' ms')
+    params['text'] = text
     image_mask, pos = _make_image_mask(outlines, pos, res)
 
-    data_ = data[:, 0]
-    #im, _ = plot_topomap(data_, pos, vmin=None, vmax=None)
-
-    Zi = _griddata(pos_x, pos_y, data_, Xi, Yi)
-    mask, pos = _make_image_mask(outlines, pos, res)
-    im = ax.imshow(Zi, cmap='RdBu_r', vmin=vmin, vmax=vmax, origin='lower',
+    params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
+                   'outlines': outlines, 'extent': (xmin, xmax, ymin, ymax),
+                   'pos_x': pos_x, 'pos_y': pos_y})
+    # plot map and countour
+    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
-                   interpolation='bilinear', animated=True)
-    from matplotlib import patches
-
-
+                   interpolation='bilinear')
+    cont = ax.contour(Xi, Yi, Zi, contours, colors='k', linewidths=1)
 
     patch_ = patches.Ellipse((0, 0),
-                                    2 * outlines['clip_radius'][0],
-                                    2 * outlines['clip_radius'][1],
-                                    clip_on=True,
-                                    transform=ax.transData)
+                             2 * outlines['clip_radius'][0],
+                             2 * outlines['clip_radius'][1],
+                             clip_on=True,
+                             transform=ax.transData)
+
     im.set_clip_path(patch_)
-        # ax.set_clip_path(patch_)
 
-    idx = np.where(mask)[0]
-    mask_params = _handle_default('mask_params', None)
-    ax.plot(pos_x[idx], pos_y[idx], **mask_params)
-    idx = np.where(~mask)[0]
-
-    idx = np.where(mask)[0]
-    ax.plot(pos_x[idx], pos_y[idx], **mask_params)
-
-    if isinstance(outlines, dict):
-        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                          ['patch', 'autoshrink']])
-        for k, (x, y) in outlines_.items():
-            if 'mask' in k:
-                continue
-            ax.plot(x, y, color='k', linewidth=1, clip_on=False)
-    contours = 6
-    cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
-                      linewidths=0.1)
     for col in cont.collections:
         col.set_clip_path(patch_)
+
     outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
                       ['patch', 'autoshrink']])
     for k, (x, y) in outlines_.items():
         if 'mask' in k:
             continue
-        ax.plot(x, y, color='k', linewidth=0.1, clip_on=False)
-    plt.subplots_adjust(top=.95)
-    #idx = np.where(mask)[0]
-    #ax.plot(pos_x[idx], pos_y[idx])
-    # ax.set_clip_path(patch_)
-    #im, _ = plot_topomap(data_, pos, vmin=None, vmax=None)
-    return im,
+        ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+    params['patch'] = patch_
+    return im, text, cont,
 
 
-def animat(i, evoked, picks, data, ax, pos):
+def _animate(i, ax, params):
+    """Updates animated topomap."""
+    ax.cla()  # Clear old contours.
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_frame_on(False)
-    pos, outlines = _check_outlines(pos, 'head', None)
-    pos_x = pos[:, 0]
-    pos_y = pos[:, 1]
-    xlim = np.inf, -np.inf,
-    ylim = np.inf, -np.inf,
-    mask_ = np.c_[outlines['mask_pos']]
-    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
-                  np.max(np.r_[xlim[1], mask_[:, 0]]))
-    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
-                  np.max(np.r_[ylim[1], mask_[:, 1]]))
-    res=64
-    image_mask, pos = _make_image_mask(outlines, pos, res)
+    times = params['times']
+    time_idx = len(times) // params['frames'] * i
+    title = str(times[time_idx] * 1e3) + ' ms'
+    data = params['data'][:, time_idx]
+    vmin = params['vmin']
+    vmax = params['vmax']
+    outlines = params['outlines']
+    Xi = params['Xi']
+    Yi = params['Yi']
+    pos_x = params['pos_x']
+    pos_y = params['pos_y']
+    text = params['text']
+    text.set_text(title)
+    Zi = _griddata(pos_x, pos_y, data, Xi, Yi)
+    extent = params['extent']
 
-    xi = np.linspace(xmin, xmax, res)
-    yi = np.linspace(ymin, ymax, res)
-    Xi, Yi = np.meshgrid(xi, yi)
-
-    vmin, vmax = _setup_vmin_vmax(data, vmin=None, vmax=None)
-    time_idx = int(len(evoked.times) / 5. * i)
-    data_ = data[:, time_idx]
-    #im, _ = plot_topomap(data_, pos, vmin=None, vmax=None)
-    Zi = _griddata(pos_x, pos_y, data_, Xi, Yi)
     im = ax.imshow(Zi, cmap='RdBu_r', vmin=vmin, vmax=vmax, origin='lower',
-                   aspect='equal', extent=(xmin, xmax, ymin, ymax),
-                   interpolation='bilinear')
+                   aspect='equal', extent=extent, interpolation='bilinear')
+    ax.get_figure().suptitle(title)
+    cont = ax.contour(Xi, Yi, Zi, 6, colors='k', linewidths=1)
 
-    return im,
+    patch = params['patch']
+    im.set_clip_path(patch)
+
+    for col in cont.collections:
+        col.set_clip_path(patch)
+
+    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                      ['patch', 'autoshrink']])
+    for k, (x, y) in outlines_.items():
+        if 'mask' in k:
+            continue
+        ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+
+    return im, text, cont,
+
+
+def topomap_animation(evoked, ch_type, frames=5, interval=100):
+    import matplotlib.pyplot as plt
+    from matplotlib import animation
+
+    picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
+                                                             ch_type=ch_type,
+                                                             layout=None)
+    data = evoked.data[picks, :]
+    if merge_grads:
+        from mne.channels.layout import _merge_grad_data
+        data = _merge_grad_data(data)
+    fig = plt.figure()
+    times = evoked.times
+
+    ax = plt.axes([0.1, 0.1, 0.8, 0.8], xlim=(-1, 1), ylim=(-1, 1))
+
+    params = {'data': data, 'pos': pos, 'times': times, 'cmap': 'RdBu_r',
+              'contours': 6, 'frames': frames}
+    init_func = partial(_init_anim, ax=ax, params=params)
+
+    animate_func = partial(_animate, ax=ax, params=params)
+    params['anim'] = animation.FuncAnimation(fig, animate_func,
+                                             init_func=init_func,
+                                             frames=frames, interval=interval)
+    plt.show()
