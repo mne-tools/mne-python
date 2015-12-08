@@ -2003,7 +2003,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
         list. If 'mintime', timing differences between each event list will be
         minimized.
     """
-    if not all(isinstance(e, Epochs) for e in epochs_list):
+    if not all(isinstance(e, _BaseEpochs) for e in epochs_list):
         raise ValueError('All inputs must be Epochs instances')
 
     # make sure bad epochs are dropped
