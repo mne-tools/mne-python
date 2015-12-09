@@ -23,7 +23,7 @@ from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
-                      _prepare_topomap)
+                      _prepare_topomap, topomap_animation)
 from ..channels import find_layout
 
 
@@ -534,6 +534,42 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color, show=show)
+
+
+def animate_evoked(evoked, ch_type, frames=5, interval=100, butterfly=False,
+                   blit=True, show=True):
+    """Make animation of evoked data as topomap timeseries.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked data.
+    ch_type : str
+        Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
+    frames : int | list of ints
+        If int, the number of frames to animate. If list of ints, the indices
+        to plot in the animation. Defaults to 5.
+    interval : int
+        The time interval before drawing a new frame as milliseconds.
+        Defaults to 100.
+    butterfly : bool
+        Whether to plot the data as butterfly plot under the topomap.
+        Defaults to False.
+    blit : bool
+        Whether to use blit to optimize drawing. In general, it is recommended
+        to use blit in combination with ``show=True``. If you intend to save
+        the animation it is better to disable blit. Defaults to True.
+    show : bool
+        Show figure if True.
+
+    Returns
+    -------
+    anim : instance of matplotlib FuncAnimation
+        Animation of the topomap.
+    """
+    return topomap_animation(evoked, ch_type=ch_type, frames=frames,
+                             interval=interval, butterfly=butterfly, blit=blit,
+                             show=show)
 
 
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
