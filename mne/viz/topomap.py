@@ -1682,7 +1682,7 @@ def _animate(i, ax, ax_line, params):
     times = params['times']
     time_idx = params['frames'][i]
 
-    title = '%.1f ms' % (times[time_idx] * 1e3)
+    title = '%s ms' % (times[time_idx] * 1e3)
     if params['blit']:
         text = params['text']
     else:
@@ -1777,21 +1777,18 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     fig = plt.figure()
     times = evoked.times
     offset = 0. if blit else 0.4  # blit changes the sizes for some reason
+    ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
+                   1. - offset], xlim=(-1, 1), ylim=(-1, 1))
     if butterfly:
-        ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
-                       1. - offset], xlim=(-1, 1), ylim=(-1, 1))
         ax_line = plt.axes([0.2, 0.05, 0.6, 0.1], xlim=(times[0], times[-1]))
     else:
-        ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
-                       1. - offset], xlim=(-1, 1), ylim=(-1, 1))
         ax_line = None
     if isinstance(frames, int):
         frames = np.linspace(0, len(evoked.times) - 1, frames, dtype=int)
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
 
-    params = {'data': data, 'pos': pos, 'times': times,
-              'contours': 6, 'frames': frames, 'butterfly': butterfly,
-              'blit': blit}
+    params = {'data': data, 'pos': pos, 'times': times, 'contours': 6,
+              'frames': frames, 'butterfly': butterfly, 'blit': blit}
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
