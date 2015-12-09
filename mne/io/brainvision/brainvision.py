@@ -57,8 +57,8 @@ class RawBrainVision(_BaseRaw):
     event_id : dict | None
         The id of the event to consider. If dict, the keys will be mapped to
         trigger values on the stimulus channel. Keys are case-sensitive.
-        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If empty dict
-        (default), only stimulus events are added to the stimulus channel.
+        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None (default),
+        only stimulus events are added to the stimulus channel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -70,7 +70,7 @@ class RawBrainVision(_BaseRaw):
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
                  scale=1., preload=False, response_trig_shift=0,
-                 event_id={}, verbose=None):
+                 event_id=None, verbose=None):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
@@ -167,6 +167,8 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         An array containing the whole recording's events, each row representing
         an event as (onset, duration, trigger) sequence.
     """
+    if event_id is None:
+        event_id = {}
     # read vmrk file
     with open(fname, 'rb') as fid:
         txt = fid.read().decode('utf-8')
@@ -241,10 +243,12 @@ def _synthesize_stim_channel(events, n_samp):
 
 
 def _check_version(header):
-    end_tags = ['Version 1.0', 'Version 2.0']
-    if not any([header.endswith(end_tag) for end_tag in end_tags]):
-        raise ValueError("Currently only support %r. "
-                         "Contact MNE-Developers for support." % str(end_tags))
+    tags = ['Brain Vision Data Exchange Header File Version 1.0',
+            'Brain Vision Data Exchange Header File Version 2.0']
+    if not any([header.startswith(tag) for tag in tags]):
+        raise ValueError("Currently only support %r, not %r"
+                         "Contact MNE-Developers for support."
+                         % (str(tags), header))
 
 
 _orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
@@ -295,8 +299,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                       "not the '%s' file." % ext)
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
-        l = f.readline().decode('utf-8').strip()
-        _check_version(l)
+        header = f.readline().decode('utf-8').strip()
+        _check_version(header)
         settings = f.read().decode('utf-8')
 
     if settings.find('[Comment]') != -1:
@@ -471,7 +475,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=(),
                          scale=1., preload=False, response_trig_shift=0,
-                         event_id={}, verbose=None):
+                         event_id=None, verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -505,8 +509,8 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     event_id : dict | None
         The id of the event to consider. If dict, the keys will be mapped to
         trigger values on the stimulus channel. Keys are case-sensitive.
-        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If empty dict
-        (default), only stimulus events are added to the stimulus channel.
+        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None (default),
+        only stimulus events are added to the stimulus channel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
