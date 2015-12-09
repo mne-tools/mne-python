@@ -1,4 +1,3 @@
-
 .. _ch_convert:
 
 .. contents:: Contents
@@ -18,7 +17,7 @@ MEG                   CTF                         dir       :func:`mne.io.read_r
 MEG                   KIT                         sqd       :func:`mne.io.read_raw_kit` and :func:`mne.read_epochs_kit`
 EEG                   Brainvision                .vhdr      :func:`mne.io.read_raw_brainvision`
 EEG                   European data format       .edf       :func:`mne.io.read_raw_edf`
-EEG                   Biosemi data format        .bdf
+EEG                   Biosemi data format        .bdf       :func:`mne.io.read_raw_edf`
 EEG                   EGI simple binary          .egi       :func:`mne.io.read_raw_egi`
 Electrode locations   elc, txt, csd, sfp, htps   Misc       :func:`mne.channels.read_montage`   
 ===================   ========================   =========  ==============================================================
