@@ -19,10 +19,10 @@ from datetime import date
 
 try:
     import sphinx_gallery as sg
-    extension = 'sphinx_gallery.gen_gallery'
-except:
+    sg_extension = 'sphinx_gallery.gen_gallery'
+except ImportError:
     import sphinxgallery as sg
-    extension = 'sphinxgallery.gen_gallery'
+    sg_extension = 'sphinxgallery.gen_gallery'
 import sphinx_bootstrap_theme
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -46,7 +46,7 @@ extensions = ['sphinx.ext.autodoc',
               'numpy_ext.numpydoc',
             #   'sphinx.ext.intersphinx',
               # 'flow_diagram',
-              extension]
+              sg_extension]
 
 autosummary_generate = True
 
