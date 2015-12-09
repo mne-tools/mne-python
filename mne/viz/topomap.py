@@ -1598,14 +1598,16 @@ def _prepare_topomap(pos, ax):
     return pos_x, pos_y
 
 
-def _init_anim(ax, ax_line, params):
+def _init_anim(ax, ax_line, ax_cbar, params):
     """Initialize animated topomap."""
+    import matplotlib.pyplot as plt
     from matplotlib import patches
     data = params['data']
-    cmap = params['cmap']
+    norm = True if np.min(data) > 0 else False
+    cmap = 'Reds' if norm else 'RdBu_r'
     contours = params['contours']
     times = params['times']
-    vmin, vmax = _setup_vmin_vmax(data, None, None)
+    vmin, vmax = _setup_vmin_vmax(data, None, None, norm)
 
     pos, outlines = _check_outlines(params['pos'], 'head', None)
     pos_x = pos[:, 0]
@@ -1627,23 +1629,22 @@ def _init_anim(ax, ax_line, params):
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
     params['Zis'] = list()
-    x = len(times) // len(params['frames'])
-    for frame in range(len(params['frames'])):
-        Zi = _griddata(pos_x, pos_y, data[:, frame * x], Xi, Yi)
+
+    for frame in params['frames']:
+        Zi = _griddata(pos_x, pos_y, data[:, frame], Xi, Yi)
         params['Zis'].append(Zi)
     Zi = params['Zis'][0]
-    text = ax.text(0.45, 0.9, '', transform=ax.transAxes)
-    text.set_text('%.3f ms' % (times[0] * 1e3))
-    params['text'] = text
-    image_mask, pos = _make_image_mask(outlines, pos, res)
+
+    _, pos = _make_image_mask(outlines, pos, res)
 
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
                    'outlines': outlines, 'extent': (xmin, xmax, ymin, ymax),
-                   'pos_x': pos_x, 'pos_y': pos_y})
+                   'pos_x': pos_x, 'pos_y': pos_y, 'cmap': cmap})
     # plot map and countour
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation='bilinear')
+    plt.colorbar(im, cax=ax_cbar, cmap=cmap)
     cont = ax.contour(Xi, Yi, Zi, contours, colors='k', linewidths=1)
 
     patch_ = patches.Ellipse((0, 0),
@@ -1651,9 +1652,10 @@ def _init_anim(ax, ax_line, params):
                              2 * outlines['clip_radius'][1],
                              clip_on=True,
                              transform=ax.transData)
-
     im.set_clip_path(patch_)
-
+    text = ax.text(0.45, 0.95, '', transform=ax.transAxes, va='center')
+    params['text'] = text
+    items = [im, text]
     for col in cont.collections:
         col.set_clip_path(patch_)
 
@@ -1668,38 +1670,45 @@ def _init_anim(ax, ax_line, params):
     if params['butterfly']:
         for idx in range(len(data)):
             ax_line.plot(times, data[idx], color='k')
-        params['line'] = ax_line.plot([times[0], times[0]], ax_line.get_ylim(),
-                                      color='r')
-    return im, text, cont,
+        params['line'], = ax_line.plot([times[0], times[0]],
+                                       ax_line.get_ylim(), color='r')
+        items.append(params['line'])
+
+    return tuple(items) + tuple(cont.collections)
 
 
 def _animate(i, ax, ax_line, params):
     """Updates animated topomap."""
-    ax.cla()  # Clear old contours.
+    times = params['times']
+    time_idx = params['frames'][i]
+
+    title = '%.1f ms' % (times[time_idx] * 1e3)
+    if params['blit']:
+        text = params['text']
+    else:
+        ax.cla()  # Clear old contours.
+        text = ax.text(0.45, 1.15, '', transform=ax.transAxes, va='center')
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_frame_on(False)
-    times = params['times']
-    time_idx = params['frames'][i]
-    title = '%.3f ms' % (times[time_idx] * 1e3)
+    text.set_text(title)
+
     vmin = params['vmin']
     vmax = params['vmax']
     outlines = params['outlines']
     Xi = params['Xi']
     Yi = params['Yi']
-    text = params['text']
-    text.set_text(title)
+
     Zi = params['Zis'][i]
     extent = params['extent']
-
-    im = ax.imshow(Zi, cmap='RdBu_r', vmin=vmin, vmax=vmax, origin='lower',
+    cmap = params['cmap']
+    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=extent, interpolation='bilinear')
-    ax.get_figure().suptitle(title)
-    cont = ax.contour(Xi, Yi, Zi, 6, colors='k', linewidths=1)
 
+    cont = ax.contour(Xi, Yi, Zi, 6, colors='k', linewidths=1)
     patch = params['patch']
     im.set_clip_path(patch)
-
+    items = [im, text]
     for col in cont.collections:
         col.set_clip_path(patch)
 
@@ -1711,15 +1720,17 @@ def _animate(i, ax, ax_line, params):
         ax.plot(x, y, color='k', linewidth=1, clip_on=False)
 
     if params['butterfly']:
-        line = params['line'].pop(0)
+        line = params['line']
         line.remove()
-        params['line'] = ax_line.plot([times[time_idx], times[time_idx]],
-                                      ax_line.get_ylim(), color='r')
-    return im, text, cont,
+        params['line'], = ax_line.plot([times[time_idx], times[time_idx]],
+                                       ax_line.get_ylim(), color='r')
+        items.append(params['line'])
+
+    return tuple(items) + tuple(cont.collections)
 
 
 def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
-                      show=True):
+                      blit=True, show=True):
     """Make animation of evoked data as topomap timeseries.
 
     Parameters
@@ -1741,6 +1752,10 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     butterfly : bool
         Whether to plot the data as butterfly plot under the topomap.
         Defaults to False.
+    blit : bool
+        Whether to use blit to optimize drawing. In general, it is recommended
+        to use blit in combination with ``show=True``. If you intend to save
+        the animation it is better to disable blit. Defaults to True.
     show : bool
         Show figure if True.
 
@@ -1761,27 +1776,33 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
         data = _merge_grad_data(data)
     fig = plt.figure()
     times = evoked.times
-
-    if butterfly is not None:
-        ax = plt.axes([0.15, 0.2, 0.7, 0.7], xlim=(-1, 1), ylim=(-1, 1))
+    offset = 0. if blit else 0.4  # blit changes the sizes for some reason
+    if butterfly:
+        ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
+                       1. - offset], xlim=(-1, 1), ylim=(-1, 1))
         ax_line = plt.axes([0.2, 0.05, 0.6, 0.1], xlim=(times[0], times[-1]))
     else:
-        ax = plt.axes([0.1, 0.1, 0.8, 0.8], xlim=(-1, 1), ylim=(-1, 1))
+        ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
+                       1. - offset], xlim=(-1, 1), ylim=(-1, 1))
         ax_line = None
     if isinstance(frames, int):
         frames = np.arange(0, len(evoked.times), frames)
-    params = {'data': data, 'pos': pos, 'times': times, 'cmap': 'RdBu_r',
-              'contours': 6, 'frames': frames, 'butterfly': butterfly}
-    init_func = partial(_init_anim, ax=ax, ax_line=ax_line, params=params)
+    ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
 
+    params = {'data': data, 'pos': pos, 'times': times,
+              'contours': 6, 'frames': frames, 'butterfly': butterfly,
+              'blit': blit}
+    init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
+                        params=params)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
     anim = animation.FuncAnimation(fig, animate_func, init_func=init_func,
-                                   frames=len(frames), interval=interval)
+                                   frames=len(frames), interval=interval,
+                                   blit=blit)
 
     if show:
         plt.show()
         if butterfly:
             # Finally remove the vertical line.
-            line = params['line'].pop(0)
+            line = params['line']
             line.remove()
     return anim
