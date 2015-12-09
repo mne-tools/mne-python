@@ -146,6 +146,7 @@ Functions:
    read_dipole
    read_epochs
    read_epochs_kit
+   read_epochs_eeglab
    read_events
    read_evokeds
    read_forward_solution
