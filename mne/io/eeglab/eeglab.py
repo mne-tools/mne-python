@@ -21,6 +21,7 @@ def _get_info(eeg, montage, eog=None):
     """
     info = _empty_info(sfreq=eeg.srate)
     info['nchan'] = eeg.nbchan
+    info['buffer_size_sec'] = 1.  # reasonable default
 
     # add the ch_names and info['chs'][idx]['loc']
     path = None
@@ -79,7 +80,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=None, preload=False,
 
     Returns
     -------
-    raw : Instance of RawSet
+    raw : Instance of RawEEGLAB
         A Raw object containing EEGLAB .set data.
 
     Notes
@@ -90,13 +91,13 @@ def read_raw_eeglab(input_fname, montage=None, eog=None, preload=False,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawSet(input_fname=input_fname, montage=montage, eog=eog,
-                  preload=preload, verbose=verbose)
+    return RawEEGLAB(input_fname=input_fname, montage=montage, eog=eog,
+                     preload=preload, verbose=verbose)
 
 
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
                        verbose=None):
-    """Reader function for KIT epochs files
+    """Reader function for EEGLAB epochs files
 
     Parameters
     ----------
@@ -136,12 +137,12 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     --------
     mne.Epochs : Documentation of attribute and methods.
     """
-    epochs = EpochsSet(input_fname=input_fname, events=events,
-                       event_id=event_id, montage=montage, verbose=verbose)
+    epochs = EpochsEEGLAB(input_fname=input_fname, events=events,
+                          event_id=event_id, montage=montage, verbose=verbose)
     return epochs
 
 
-class RawSet(_BaseRaw):
+class RawEEGLAB(_BaseRaw):
     """Raw object from EEGLAB .set file.
 
     Parameters
@@ -167,7 +168,7 @@ class RawSet(_BaseRaw):
 
     Returns
     -------
-    raw : Instance of RawSet
+    raw : Instance of RawEEGLAB
         A Raw object containing EEGLAB .set data.
 
     Notes
@@ -187,29 +188,26 @@ class RawSet(_BaseRaw):
         basedir = op.dirname(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
                          squeeze_me=True)['EEG']
-
-        if not isinstance(eeg.data, string_types) and not preload:
-            warnings.warn('Data will be preloaded. preload=False is not '
-                          'supported when the data is stored in the .set file')
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
                             ' files' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
         info = _get_info(eeg, montage, eog)
-
         # read the data
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
             logger.info('Reading %s' % data_fname)
 
-            super(RawSet, self).__init__(
+            super(RawEEGLAB, self).__init__(
                 info, preload, filenames=[data_fname], last_samps=last_samps,
                 orig_format='double', verbose=verbose)
         else:
+            warnings.warn('Data will be preloaded. preload=False is not '
+                          'supported when the data is stored in the .set file')
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
             data = data.astype(np.double)
-            super(RawSet, self).__init__(
+            super(RawEEGLAB, self).__init__(
                 info, data, filenames=[input_fname], last_samps=last_samps,
                 orig_format='double', verbose=verbose)
 
@@ -237,8 +235,8 @@ class RawSet(_BaseRaw):
         return data
 
 
-class EpochsSet(_BaseEpochs):
-    """Epochs from EEGLAB .set file
+class EpochsEEGLAB(_BaseEpochs):
+    """Epochs fr   om EEGLAB .set file
 
     Parameters
     ----------
@@ -355,10 +353,8 @@ class EpochsSet(_BaseEpochs):
 
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
-        super(EpochsSet, self).__init__(info, data, events, event_id,
-                                        tmin, tmax, baseline,
-                                        reject=reject, flat=flat,
-                                        reject_tmin=reject_tmin,
-                                        reject_tmax=reject_tmax,
-                                        verbose=verbose)
+        super(EpochsEEGLAB, self).__init__(
+            info, data, events, event_id, tmin, tmax, baseline,
+            reject=reject, flat=flat, reject_tmin=reject_tmin,
+            reject_tmax=reject_tmax, verbose=verbose)
         logger.info('Ready.')

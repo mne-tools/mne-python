@@ -130,7 +130,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     kind : str
         The name of the montage file (e.g. kind='easycap-M10' for
         'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd',
-        '.elp', '.hpts', '.sfp' or '.locs' are supported.
+        '.elp', '.hpts', '.sfp' or '.loc' ('.locs' and '.eloc') are supported.
     ch_names : list of str | None
         If not all electrodes defined in the montage are present in the EEG
         data, use this parameter to select subset of electrode positions to
@@ -165,7 +165,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
-        supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts', '.locs')
+        supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts', '.loc',
+                     '.locs', '.eloc')
         montages = [op.splitext(f) for f in os.listdir(path)]
         montages = [m for m in montages if m[1] in supported and kind == m[0]]
         if len(montages) != 1:
@@ -260,7 +261,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         data = np.loadtxt(fname, dtype=dtype)
         pos = np.vstack((data['x'], data['y'], data['z'])).T
         ch_names_ = data['name'].astype(np.str)
-    elif ext == '.locs':
+    elif ext in ('.loc', '.locs', '.eloc'):
         ch_names_ = np.loadtxt(fname, dtype='S4', usecols=[3]).tolist()
         dtype = {'names': ('angle', 'radius'), 'formats': ('f4', 'f4')}
         angle, radius = np.loadtxt(fname, dtype=dtype, usecols=[1, 2],
@@ -544,7 +545,7 @@ def _set_montage(info, montage, update_ch_names=False):
             info['ch_names'] = montage.ch_names
             info['chs'] = list()
             for ii, ch_name in enumerate(montage.ch_names):
-                ch_info = {'cal': 1, 'logno': ii + 1, 'scanno': ii + 1,
+                ch_info = {'cal': 1., 'logno': ii + 1, 'scanno': ii + 1,
                            'range': 1.0, 'unit_mul': 0, 'ch_name': ch_name,
                            'unit': FIFF.FIFF_UNIT_V, 'kind': FIFF.FIFFV_EEG_CH,
                            'coord_frame': FIFF.FIFFV_COORD_HEAD,
