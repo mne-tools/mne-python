@@ -47,7 +47,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                  prior to running this algorithm.
 
     .. warning:: Not all features of Elekta MaxFilter™ are currently
-                 implemented (see Notes).
+                 implemented (see Notes). Maxwell filtering in mne-python
+                 is not designed for clinical use.
 
     Parameters
     ----------
@@ -132,6 +133,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     The following features are not yet implemented:
 
+        * **Not certified for clinical use**
         * Raw movement compensation
         * Automatic bad channel detection
         * cHPI subtraction

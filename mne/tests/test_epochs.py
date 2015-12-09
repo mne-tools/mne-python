@@ -107,11 +107,11 @@ def test_average_movements():
 
     # SSS-based
     evoked_move_non = average_movements(epochs, pos=pos, weight_all=False,
-                                        origin=origin)
+                                        origin=origin, regularize=None)
     evoked_move_all = average_movements(epochs, pos=pos, weight_all=True,
-                                        origin=origin)
+                                        origin=origin, regularize=None)
     evoked_stat_all = average_movements(epochs, pos=pos_stat, weight_all=True,
-                                        origin=origin)
+                                        origin=origin, regularize=None)
     evoked_std = epochs.average()
     for ev in (evoked_move_non, evoked_move_all, evoked_stat_all):
         assert_equal(ev.nave, evoked_std.nave)

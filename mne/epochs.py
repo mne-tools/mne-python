@@ -2755,6 +2755,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         if n_use_in != n_in:
             S_decomp = S_decomp.take(reg_moments, axis=1)
             S_recon = S_recon.take(reg_moments[:n_use_in], axis=1)
+        else:
+            S_recon = S_recon[:, :n_in]
         S_recon /= coil_scale
         # Invert
         pS_ave = _col_norm_pinv(S_decomp)[:n_use_in]
