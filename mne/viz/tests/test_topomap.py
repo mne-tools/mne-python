@@ -60,6 +60,10 @@ def test_plot_topomap():
     res = 16
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
+    # Test animation
+    evoked.animate(ch_type='mag', frames=2, butterfly=True)
+    plt.close('all')
+
     ev_bad = evoked.pick_types(meg=False, eeg=True, copy=True)
     ev_bad.pick_channels(ev_bad.ch_names[:2])
     ev_bad.plot_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, should plot EEG
