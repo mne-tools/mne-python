@@ -106,6 +106,19 @@ report them on the MNE mailing list or on github to get assistance.
 
 .. _inside_martinos:
 
+Installing Mayavi
+^^^^^^^^^^^^^^^^^
+
+In our experience, the easiest way to install `mayavi` is using Anaconda. Just do::
+
+    conda install mayavi
+
+Configuring PySurfer
+^^^^^^^^^^^^^^^^^^^^
+
+Some users may need to configure PySurfer before they can make full use of our visualization
+capabilities. Please refer to the `PySurfer installation page`_ for up to date information.
+
 Inside the Martinos Center
 --------------------------
 
@@ -132,3 +145,5 @@ If you get a new prompt with no error messages, you should be good to go.
 We encourage all Martinos center Python users to subscribe to the Martinos Python mailing list:
 
 https://mail.nmr.mgh.harvard.edu/mailman/listinfo/martinos-python
+
+.. _Pysurfer installation page: https://pysurfer.github.io/install.html
