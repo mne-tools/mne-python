@@ -6,7 +6,22 @@
    :depth: 2
 
 Here we describe the data reading and conversion utilities included
-with the MNE software.
+with the MNE software. The cheatsheet below summarizes the different
+file formats supported by MNE software.
+
+===================   ========================   =========  ==============================================================
+Datatype              File format                Extension  MNE-Python function
+===================   ========================   =========  ==============================================================
+MEG                   Elekta Neuromag            .fif       :func:`mne.io.read_raw_fif`
+MEG                   4-D Neuroimaging / BTI      dir       :func:`mne.io.read_raw_bti`
+MEG                   CTF                         dir       :func:`mne.io.read_raw_ctf`
+MEG                   KIT                         sqd       :func:`mne.io.read_raw_kit` and :func:`mne.read_epochs_kit`
+EEG                   Brainvision                .vhdr      :func:`mne.io.read_raw_brainvision`
+EEG                   European data format       .edf       :func:`mne.io.read_raw_edf`
+EEG                   Biosemi data format        .bdf
+EEG                   EGI simple binary          .egi       :func:`mne.io.read_raw_egi`
+Electrode locations   elc, txt, csd, sfp, htps   Misc       :func:`mne.channels.read_montage`   
+===================   ========================   =========  ==============================================================
 
 .. note::
     All IO functions in MNE-Python performing reading/conversion of MEG and
