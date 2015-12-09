@@ -854,8 +854,8 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     # i.e. 108mm "radius", so let's go with 110mm
     # en.wikipedia.org/wiki/Human_head#/media/File:HeadAnthropometry.JPG
     if radius > 110.:
-        warnings.warn('Estimated head size (%s mm) exceeded 99th percentile'
-                      % (radius,))
+        warnings.warn('Estimated head size (%0.1f mm) exceeded 99th '
+                      'percentile for adult head size' % (radius,))
     logger.info('Origin head coordinates:'.ljust(30) +
                 '%0.1f %0.1f %0.1f mm' % tuple(origin_head))
     logger.info('Origin device coordinates:'.ljust(30) +
