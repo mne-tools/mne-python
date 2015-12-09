@@ -1735,10 +1735,6 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     interval : int
         The time interval before drawing a new frame as milliseconds.
         Defaults to 100.
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None np.min(data) is used. If callable, the output equals
-        vmin(data).
     butterfly : bool
         Whether to plot the data as butterfly plot under the topomap.
         Defaults to False.
@@ -1774,7 +1770,7 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     else:
         ax_line = None
     if isinstance(frames, int):
-        frames = np.linspace(0, len(evoked.times) - 1, frames, dtype=int)
+        frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
 
     params = {'data': data, 'pos': pos, 'times': times, 'contours': 6,
