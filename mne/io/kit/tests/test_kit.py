@@ -45,7 +45,7 @@ def test_data():
     # check functionality
     raw_mrk = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_path,
                            hsp_path)
-    raw_py = _test_raw_reader(read_raw_kit, test_preloading=True,
+    raw_py = _test_raw_reader(read_raw_kit,
                               input_fname=sqd_path, mrk=mrk_path, elp=elp_path,
                               hsp=hsp_path, stim=list(range(167, 159, -1)),
                               slope='+', stimthresh=1)

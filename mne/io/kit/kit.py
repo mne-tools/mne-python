@@ -622,10 +622,9 @@ def get_kit_info(rawfile):
         sens_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
         fid.seek(sens_offset)
         sens = np.fromfile(fid, dtype='d', count=sqd['nchan'] * 2)
-        sensitivities = (np.reshape(sens, (sqd['nchan'], 2))
-                         [:KIT_SYS.N_SENS, 1])
+        sens.shape = (sqd['nchan'], 2)
         sqd['sensor_gain'] = np.ones(KIT_SYS.NCHAN)
-        sqd['sensor_gain'][:KIT_SYS.N_SENS] = sensitivities
+        sqd['sensor_gain'][:KIT_SYS.N_SENS] = sens[:KIT_SYS.N_SENS, 1]
 
         fid.seek(KIT_SYS.SAMPLE_INFO)
         acqcond_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
@@ -655,7 +654,7 @@ def get_kit_info(rawfile):
         info = _empty_info(float(sqd['sfreq']))
         info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
                     highpass=sqd['highpass'], filename=rawfile,
-                    nchan=sqd['nchan'])
+                    nchan=sqd['nchan'], buffer_size_sec=1.)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')

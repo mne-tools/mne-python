@@ -161,7 +161,7 @@ def test_make_forward_solution_kit():
     fwd = do_forward_solution('sample', fname_bti_raw, src=fname_src_small,
                               bem=fname_bem_meg, mri=trans_path,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
-    raw_py = read_raw_bti(bti_pdf, bti_config, bti_hs)
+    raw_py = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
     fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
                                    bem=fname_bem_meg, trans=trans_path)
     _compare_forwards(fwd, fwd_py, 248, n_src)

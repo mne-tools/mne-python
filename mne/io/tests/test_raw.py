@@ -12,7 +12,7 @@ from mne.io import Raw
 from mne.utils import _TempDir
 
 
-def _test_raw_reader(reader, test_preloading, test_blocks=False, **kwargs):
+def _test_raw_reader(reader, test_preloading=True, **kwargs):
     """Test reading, writing and slicing of raw classes.
 
     Parameters
@@ -22,9 +22,6 @@ def _test_raw_reader(reader, test_preloading, test_blocks=False, **kwargs):
     test_preloading : bool
         Whether not preloading is implemented for the reader. If True, both
         cases and memory mapping to file are tested.
-    test_blocks : bool
-        Whether the data is divided into blocks with ``buffer_size_sec``
-        in the ``meas_info``.
     **kwargs :
         Arguments for the reader. Note: Do not use preload as kwarg.
         Use ``test_preloading`` instead.
@@ -35,63 +32,54 @@ def _test_raw_reader(reader, test_preloading, test_blocks=False, **kwargs):
         A preloaded Raw object.
     """
     tempdir = _TempDir()
-    raws = list()
-    raws.append(reader(**kwargs))
     rng = np.random.RandomState(0)
-    picks = rng.permutation(np.arange(len(raws[0].ch_names)))[:10]
     if test_preloading:
+        raw = reader(preload=True, **kwargs)
+        # don't assume the first is preloaded
         buffer_fname = op.join(tempdir, 'buffer')
-        raws.append(reader(preload=buffer_fname, **kwargs))
-        raws.append(reader(preload=True, **kwargs))
-
-        if test_blocks:
-            bnd = int(round(raws[0].info['buffer_size_sec'] *
-                            raws[0].info['sfreq']))
-        else:
-            bnd = raws[0].n_times // 2
-        slices = (slice(0, bnd), slice(bnd - 1, bnd), slice(3, bnd),
-                  slice(3, 300), slice(None))
-        if raws[0].n_times >= 2 * bnd:  # at least two complete blocks
-            slices = slices + (slice(bnd, 2 * bnd), slice(bnd, bnd + 1),
-                               slice(0, bnd + 100))
+        picks = rng.permutation(np.arange(len(raw.ch_names)))[:10]
+        bnd = min(int(round(raw.info['buffer_size_sec'] *
+                            raw.info['sfreq'])), raw.n_times)
+        slices = [slice(0, bnd), slice(bnd - 1, bnd), slice(3, bnd),
+                  slice(3, 300), slice(None), slice(1, bnd)]
+        if raw.n_times >= 2 * bnd:  # at least two complete blocks
+            slices += [slice(bnd, 2 * bnd), slice(bnd, bnd + 1),
+                       slice(0, bnd + 100)]
+        other_raws = [reader(preload=buffer_fname, **kwargs),
+                      reader(preload=False, **kwargs)]
         for sl_time in slices:
-            for raw in raws[1:]:
-                data1, times1 = raws[0][picks, sl_time]
-                data2, times2 = raw[picks, sl_time]
+            for other_raw in other_raws:
+                data1, times1 = raw[picks, sl_time]
+                data2, times2 = other_raw[picks, sl_time]
                 assert_allclose(data1, data2)
                 assert_allclose(times1, times2)
+    else:
+        raw = reader(**kwargs)
 
-    raw = raws[-1]  # use preloaded raw
     full_data = raw._data
-
     assert_true(raw.__class__.__name__, repr(raw))  # to test repr
     assert_true(raw.info.__class__.__name__, repr(raw.info))
 
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')
-    for obj in raws:
-        obj.save(out_fname, overwrite=True, buffer_size_sec=1)
-        Raw(out_fname)
-        obj.save(out_fname, tmax=obj.times[-1], overwrite=True)
-        raw3 = Raw(out_fname)
-        assert_equal(sorted(raw.info.keys()), sorted(raw3.info.keys()))
-        assert_array_almost_equal(raw3.load_data()._data[0:20],
-                                  full_data[0:20])
-        assert_array_almost_equal(raw.times, raw3.times)
+    raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
+    raw3 = Raw(out_fname)
+    assert_equal(set(raw.info.keys()), set(raw3.info.keys()))
+    assert_array_almost_equal(raw3[0:20][0], full_data[0:20])
+    assert_array_almost_equal(raw.times, raw3.times)
 
-        assert_true(not math.isnan(raw3.info['highpass']))
-        assert_true(not math.isnan(raw3.info['lowpass']))
-        assert_true(not math.isnan(obj.info['highpass']))
-        assert_true(not math.isnan(obj.info['lowpass']))
+    assert_true(not math.isnan(raw3.info['highpass']))
+    assert_true(not math.isnan(raw3.info['lowpass']))
+    assert_true(not math.isnan(raw.info['highpass']))
+    assert_true(not math.isnan(raw.info['lowpass']))
 
     # Make sure concatenation works
     first_samp = raw.first_samp
     last_samp = raw.last_samp
-    concat_raw = concatenate_raws([raw.copy(), raws[0].load_data()])
+    concat_raw = concatenate_raws([raw.copy(), raw])
     assert_equal(concat_raw.n_times, 2 * raw.n_times)
     assert_equal(concat_raw.first_samp, first_samp)
     assert_equal(concat_raw.last_samp - last_samp + first_samp, last_samp + 1)
-
     return raw
 
 

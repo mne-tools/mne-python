@@ -54,7 +54,8 @@ def test_array_raw():
     assert_equal(info['chs'][0]['kind'], _kind_dict['misc'][0])
     # use real types
     info = create_info(ch_names, sfreq, types)
-    raw2 = _test_raw_reader(RawArray, False, True, data=data, info=info)
+    raw2 = _test_raw_reader(RawArray, test_preloading=False,
+                            data=data, info=info)
     data2, times2 = raw2[:, :]
     assert_allclose(data, data2)
     assert_allclose(times, times2)

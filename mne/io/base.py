@@ -259,6 +259,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._first_samps = np.array(first_samps)
         info._check_consistency()  # make sure subclass did a good job
         self.info = info
+        if info.get('buffer_size_sec', None) is None:
+            raise RuntimeError('Reader error, notify mne-python developers')
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
@@ -384,8 +386,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             offset += n_read
 
         logger.info('[done]')
-        times = np.arange(start, stop) / self.info['sfreq']
-        return data, times
+        return data
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file
@@ -440,7 +441,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _preload_data(self, preload):
         """This function actually preloads the data"""
         data_buffer = preload if isinstance(preload, string_types) else None
-        self._data = self._read_segment(data_buffer=data_buffer)[0]
+        self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info['nchan']
         self.preload = True
         self.close()
@@ -540,11 +541,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """getting raw data content with python slicing"""
         sel, start, stop = self._parse_get_set_params(item)
         if self.preload:
-            data, times = self._data[sel, start:stop], self.times[start:stop]
+            data = self._data[sel, start:stop]
         else:
-            data, times = self._read_segment(start=start, stop=stop, sel=sel,
-                                             projector=self._projector,
-                                             verbose=self.verbose)
+            data = self._read_segment(start=start, stop=stop, sel=sel,
+                                      projector=self._projector,
+                                      verbose=self.verbose)
+        times = self.times[start:stop]
         return data, times
 
     def __setitem__(self, item, value):
@@ -1714,7 +1716,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             nsamp = c_ns[-1]
 
             if not self.preload:
-                this_data = self._read_segment()[0]
+                this_data = self._read_segment()
             else:
                 this_data = self._data
 
