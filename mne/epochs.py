@@ -2604,7 +2604,8 @@ def concatenate_epochs(epochs_list):
 
 @verbose
 def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
-                      weight_all=True, int_order=8, ext_order=3, verbose=None):
+                      weight_all=True, int_order=8, ext_order=3,
+                      regularize='in', verbose=None):
     """Average data using Maxwell filtering, transforming using head positions
 
     Parameters
@@ -2634,6 +2635,10 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         Order of internal component of spherical expansion.
     ext_order : int
         Order of external component of spherical expansion.
+    regularize : str | None
+        Basis regularization type, must be "in" or None.
+        See :func:`mne.preprocessing.maxwell_filter` for details.
+        Regularization is chosen based only on the destination position.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2664,10 +2669,10 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
            of children in MEG: Quantification, effects on source
            estimation, and compensation. NeuroImage 40:541–550, 2008.
     """
-    from .preprocessing.maxwell import (_info_sss_basis,
+    from .preprocessing.maxwell import (_info_sss_basis, _check_regularize,
                                         _check_usable, _col_norm_pinv,
                                         _get_n_moments, _get_mf_picks,
-                                        _reset_meg_bads)
+                                        _reset_meg_bads, _regularize)
     if not isinstance(epochs, _BaseEpochs):
         raise TypeError('epochs must be an instance of Epochs, not %s'
                         % (type(epochs),))
@@ -2676,6 +2681,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     trn, rot, t = pos
     del pos
     _check_usable(epochs)
+    _check_regularize(regularize)
     origin = _check_origin(origin, epochs.info, 'head')
 
     logger.info('Aligning and averaging up to %s epochs'
@@ -2693,8 +2699,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     _reset_meg_bads(info_to)
     # set up variables
     w_sum = 0.
-    n_in = _get_n_moments(int_order)
-    S_ave = 0.
+    n_in, n_out = _get_n_moments([int_order, ext_order])
+    S_decomp = 0.  # this will end up being a weighted average
     last_trans = None
     for ei, epoch in enumerate(epochs):
         event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
@@ -2720,9 +2726,11 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         if not reuse:
             S = _info_sss_basis(info_from, trans, origin,
                                 int_order, ext_order, True)
+            # Get the weight from the un-regularized version
             weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
+            # XXX Eventually we could do cross-talk and fine-cal here
             S *= weight
-        S_ave += S  # eq. 41
+        S_decomp += S  # eq. 41
         epoch[slice(None) if weight_all else meg_picks] *= weight
         data += epoch  # eq. 42
         w_sum += weight
@@ -2733,18 +2741,27 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     else:
         data[meg_picks] /= w_sum
         data[other_picks] /= w_sum if weight_all else count
-        # invert
-        # XXX Eventually we could do cross-talk and fine-cal here
-        S_ave /= w_sum
-        pS_ave_good = _col_norm_pinv(S_ave)
-        pS_ave_good *= coil_scale[good_picks].T
-        # get recon matrix
+        # Finalize weighted average decomp matrix
+        S_decomp /= w_sum
+        # Get recon matrix (include external here so regularization can work)
         S_recon = _info_sss_basis(epochs.info, None, origin,
                                   int_order, ext_order, True)
+        # Determine regularization on basis of destination basis matrix,
+        # restricted to good channels (regularizing individual matrices
+        # within the loop above does not work!)
+        reg_moments, n_use_in = _regularize(
+            regularize, int_order, ext_order, coil_scale,
+            S_recon[good_picks], verbose=True)
+        if n_use_in != n_in:
+            S_decomp = S_decomp.take(reg_moments, axis=1)
+            S_recon = S_recon.take(reg_moments[:n_use_in], axis=1)
         S_recon /= coil_scale
-        # get mapping
-        mapping = np.dot(S_recon[:, :n_in], pS_ave_good[:n_in])
-        # apply mapping
+        # Invert
+        pS_ave = _col_norm_pinv(S_decomp)[:n_use_in]
+        pS_ave *= coil_scale[good_picks].T
+        # Get mapping matrix
+        mapping = np.dot(S_recon, pS_ave)
+        # Apply mapping
         data[meg_picks] = np.dot(mapping, data[good_picks])
     evoked = epochs._evoked_from_epoch_data(
         data, info_to, picks, count, 'average')

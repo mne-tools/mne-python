@@ -183,6 +183,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     _check_raw(raw)
     _check_usable(raw)
+    _check_regularize(regularize)
     st_correlation = float(st_correlation)
     if st_correlation <= 0. or st_correlation > 1.:
         raise ValueError('Need 0 < st_correlation <= 1., got %s'
@@ -191,9 +192,6 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         raise ValueError('coord_frame must be either "head" or "meg", not "%s"'
                          % coord_frame)
     head_frame = True if coord_frame == 'head' else False
-    if not (regularize is None or (isinstance(regularize, string_types) and
-                                   regularize in ('in',))):
-        raise ValueError('regularize must be None or "in"')
     if destination is not None:
         if not head_frame:
             raise RuntimeError('destination can only be set if using the '
@@ -207,6 +205,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                                  'str, or None')
             recon_trans = np.eye(4)
             recon_trans[:3, 3] = destination
+    else:
+        recon_trans = None
     if st_duration is not None:
         st_duration = float(st_duration)
         if not 0. < st_duration <= raw.times[-1]:
@@ -236,7 +236,6 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         sss_cal = dict()
 
     # Get indices of MEG channels
-    grad_info = pick_info(info, grad_picks)
     if info['dev_head_t'] is None and coord_frame == 'head':
         raise RuntimeError('coord_frame cannot be "head" because '
                            'info["dev_head_t"] is None; if this is an '
@@ -245,13 +244,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     # Determine/check the origin of the expansion
     origin = _check_origin(origin, raw_sss.info, coord_frame, disp=True)
-
-    # Compute in/out bases and create copies containing only good chs
-    S_decomp = _info_sss_basis(info, None, origin, int_order, ext_order,
-                               head_frame)
-    # We always want to reconstruct with non-corrected defs
     n_in, n_out = _get_n_moments([int_order, ext_order])
-    S_recon = S_decomp.copy()
 
     #
     # Cross-talk processing
@@ -272,41 +265,25 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
+    S_decomp = _info_sss_basis(info, None, origin, int_order, ext_order,
+                               head_frame)
     if calibration is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
+        grad_info = pick_info(info, grad_picks)
         S_fine = _sss_basis_point(origin, grad_info, int_order, ext_order,
                                   grad_imbalances, head_frame=head_frame)
         # Add point like magnetometer data to bases.
         S_decomp[grad_picks, :] += S_fine
         # Scale magnetometers by calibration coefficient
         S_decomp[mag_picks, :] /= mag_cals
+    S_decomp = S_decomp[good_picks]
 
     #
-    # Regularization
+    # Translate to destination frame (always use non-fine-cal bases)
     #
-    if regularize is not None:  # regularize='in'
-        logger.info('    Computing regularization')
-        in_removes, out_removes = _regularize_in(
-            int_order, ext_order, coil_scale, S_decomp[good_picks])
-        logger.info('        Using %s/%s inside and %s/%s outside harmonic '
-                    'components' % (n_in - len(in_removes), n_in,
-                                    n_out - len(out_removes), n_out))
-        reg_in_moments = np.setdiff1d(np.arange(n_in), in_removes)
-        n_use_in = len(reg_in_moments)
-        reg_out_moments = np.arange(n_in, n_in + n_out)
-        reg_moments = np.concatenate((reg_in_moments, reg_out_moments))
-        S_decomp = S_decomp.take(reg_moments, axis=1)
-    else:
-        reg_in_moments = slice(None, None, None)
-        n_use_in = n_in
-        reg_moments = slice(None, None, None)
-
-    #
-    # Translate to destination frame
-    #
-    if destination is not None:
-        S_recon = _info_sss_basis(info, recon_trans, origin,
-                                  int_order, ext_order, head_frame)
+    S_recon = _info_sss_basis(info, recon_trans, origin,
+                              int_order, 0, head_frame)
+    if recon_trans is not None:
         # warn if we have translated too far
         diff = 1000 * (info['dev_head_t']['trans'][:3, 3] -
                        recon_trans[:3, 3])
@@ -316,11 +293,20 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                            % (', '.join('%0.1f' % x for x in diff), dist))
 
     #
+    # Regularization
+    #
+    reg_moments, n_use_in = _regularize(
+        regularize, int_order, ext_order, coil_scale, S_decomp)
+    if n_use_in != n_in:
+        S_decomp = S_decomp.take(reg_moments, axis=1)
+        S_recon = S_recon.take(reg_moments[:n_use_in], axis=1)
+
+    #
     # Do the heavy lifting
     #
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
-    pS_decomp_good = _col_norm_pinv(S_decomp[good_picks])
+    pS_decomp_good = _col_norm_pinv(S_decomp.copy())
 
     # Build in our data scaling here
     pS_decomp_good *= coil_scale[good_picks].T
@@ -331,7 +317,6 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     del pS_decomp_good
 
     # Reconstruct data from internal space only (Eq. 38), first rescale S_recon
-    S_recon = S_recon[:, reg_moments]
     S_recon /= coil_scale
 
     # Reconstruct raw file object with spatiotemporal processed data
@@ -358,8 +343,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                         'raw object. The final %0.2f seconds were lumped '
                         'onto the previous window.' % len_last_buf)
 
-    S_decomp /= coil_scale
-    S_decomp = S_decomp[good_picks]
+    S_decomp /= coil_scale[good_picks]
     logger.info('    Processing data in chunks of %0.1f sec' % st_duration)
     # Loop through buffer windows of data
     for start, stop in zip(lims[:-1], lims[1:]):
@@ -368,7 +352,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         if cross_talk is not None:
             orig_data = ctc.dot(orig_data)
         mm_in = np.dot(pS_decomp_in, orig_data)
-        in_data = np.dot(S_recon[:, :n_use_in], mm_in)
+        in_data = np.dot(S_recon, mm_in)
 
         if st_correlation is not None:
             # Reconstruct data using original location from external
@@ -400,6 +384,28 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     return raw_sss
 
 
+@verbose  # XXX Remove
+def _regularize(regularize, int_order, ext_order, coil_scale, S_decomp,
+                verbose=None):
+    """Regularize a decomposition matrix"""
+    n_in, n_out = _get_n_moments([int_order, ext_order])
+    if regularize is not None:  # regularize='in'
+        logger.info('    Computing regularization')
+        in_removes, out_removes = _regularize_in(
+            int_order, ext_order, coil_scale, S_decomp)
+        logger.info('        Using %s/%s inside and %s/%s outside harmonic '
+                    'components' % (n_in - len(in_removes), n_in,
+                                    n_out - len(out_removes), n_out))
+        reg_in_moments = np.setdiff1d(np.arange(n_in), in_removes)
+        n_use_in = len(reg_in_moments)
+        reg_out_moments = np.arange(n_in, n_in + n_out)
+        reg_moments = np.concatenate((reg_in_moments, reg_out_moments))
+    else:
+        n_use_in = n_in
+        reg_moments = slice(None, None, None)
+    return reg_moments, n_use_in
+
+
 def _get_mf_picks(info, int_order, ext_order):
     """Helper to pick types for Maxwell filtering"""
     # Check for T1/T2 mag types
@@ -427,6 +433,13 @@ def _get_mf_picks(info, int_order, ext_order):
     coil_scale = np.ones((len(meg_picks), 1))
     coil_scale[mag_picks] = 100.
     return meg_picks, mag_picks, grad_picks, good_picks, coil_scale
+
+
+def _check_regularize(regularize):
+    """Helper to ensure regularize is valid"""
+    if not (regularize is None or (isinstance(regularize, string_types) and
+                                   regularize in ('in',))):
+        raise ValueError('regularize must be None or "in"')
 
 
 def _check_usable(inst):
