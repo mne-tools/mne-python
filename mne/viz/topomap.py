@@ -1786,7 +1786,7 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
                        1. - offset], xlim=(-1, 1), ylim=(-1, 1))
         ax_line = None
     if isinstance(frames, int):
-        frames = np.arange(0, len(evoked.times), frames)
+        frames = np.linspace(0, len(evoked.times) - 1, frames, dtype=int)
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
 
     params = {'data': data, 'pos': pos, 'times': times,
