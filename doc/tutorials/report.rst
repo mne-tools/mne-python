@@ -58,9 +58,8 @@ To generate the report in parallel::
 
 The report rendered on sample-data is shown below:
 
-
     .. image:: mne-report.png
-       : align: center
+       :align: center
 
 For help on all the available options, do::
 

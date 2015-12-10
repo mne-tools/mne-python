@@ -103,21 +103,31 @@ runtime accordingly.
 If you use another Python setup and you encounter some difficulties please
 report them on the MNE mailing list or on github to get assistance.
 
-
-.. _inside_martinos:
-
 Installing Mayavi
 ^^^^^^^^^^^^^^^^^
 
-In our experience, the easiest way to install `mayavi` is using Anaconda. Just do::
+Mayavi is only available for Python2.7. If you have Anaconda installed (recommended), the easiest way to install `mayavi` is to do::
 
     conda install mayavi
+
+On Ubuntu, it is also possible to install using::
+
+    easy_install "Mayavi[app]"
+
+If you use this method, be sure to install the dependencies first: `python-vtk` and `python-configobj`::
+
+    sudo apt-get install python-vtk python-configobj
+
+Make sure the `TraitsBackendQt`_ has been installed as well. For other methods of installation, please consult
+the `Mayavi documentation`_.
 
 Configuring PySurfer
 ^^^^^^^^^^^^^^^^^^^^
 
 Some users may need to configure PySurfer before they can make full use of our visualization
 capabilities. Please refer to the `PySurfer installation page`_ for up to date information.
+
+.. _inside_martinos:
 
 Inside the Martinos Center
 --------------------------
@@ -147,3 +157,7 @@ We encourage all Martinos center Python users to subscribe to the Martinos Pytho
 https://mail.nmr.mgh.harvard.edu/mailman/listinfo/martinos-python
 
 .. _Pysurfer installation page: https://pysurfer.github.io/install.html
+
+.. _TraitsBackendQt: http://pypi.python.org/pypi/TraitsBackendQt
+
+.. _Mayavi documentation: http://docs.enthought.com/mayavi/mayavi/installation.html

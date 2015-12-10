@@ -43,7 +43,6 @@ Dealing with artifacts and noise sources in data.
 .. toctree::
    :maxdepth: 1
 
-   preprocessing/overview
    preprocessing/ica
    preprocessing/ssp
 
@@ -87,7 +86,7 @@ Datasets
 To enable reproducibility of results, MNE-Python includes several dataset fetchers
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    datasets_index
 

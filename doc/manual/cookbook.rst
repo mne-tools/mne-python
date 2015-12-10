@@ -1,5 +1,9 @@
 .. _cookbook:
 
+========
+Cookbook
+========
+
 .. contents:: Contents
    :local:
    :depth: 2
