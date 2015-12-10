@@ -61,7 +61,7 @@ def test_plot_topomap():
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
     # Test animation
-    evoked.animate(ch_type='mag', frames=2, butterfly=True)
+    evoked.animate(ch_type='grad', frames=2, butterfly=True)
     plt.close('all')
 
     ev_bad = evoked.pick_types(meg=False, eeg=True, copy=True)
