@@ -81,16 +81,6 @@ Using parametric and non-parametric tests with M/EEG data.
 
    statistics
 
-Visualization
--------------
-
-Various tools and techniques for getting a handle on your data.
-
-.. toctree::
-   :maxdepth: 2
-
-   visualization
-
 Datasets
 --------
 
