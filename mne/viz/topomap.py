@@ -1672,11 +1672,14 @@ def _init_anim(ax, ax_line, ax_cbar, params):
                                        ax_line.get_ylim(), color='r')
         items.append(params['line'])
 
-    return tuple(items) + tuple(cont.collections)
+    params['items'] = tuple(items) + tuple(cont.collections)
+    return params['items']
 
 
 def _animate(i, ax, ax_line, params):
     """Updates animated topomap."""
+    if params['pause']:
+        return params['items']
     times = params['times']
     time_idx = params['frames'][i]
 
@@ -1716,7 +1719,13 @@ def _animate(i, ax, ax_line, params):
                                        ax_line.get_ylim(), color='r')
         items.append(params['line'])
 
+    params['items'] = tuple(items) + tuple(cont.collections)
     return tuple(items) + tuple(cont.collections)
+
+
+def _pause_anim(event, params):
+    """Function for pausing and continuing the animation on mouse click"""
+    params['pause'] ^= True
 
 
 def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
@@ -1776,10 +1785,13 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
 
     params = {'data': data, 'pos': pos, 'times': times, 'contours': 6,
-              'frames': frames, 'butterfly': butterfly, 'blit': blit}
+              'frames': frames, 'butterfly': butterfly, 'blit': blit,
+              'pause': False}
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
+    pause_func = partial(_pause_anim, params=params)
+    fig.canvas.mpl_connect('button_press_event', pause_func)
     anim = animation.FuncAnimation(fig, animate_func, init_func=init_func,
                                    frames=len(frames), interval=interval,
                                    blit=blit)
