@@ -280,7 +280,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     myinclude += include
 
     if len(myinclude) == 0:
-        sel = []
+        sel = np.array([], int)
     else:
         sel = pick_channels(info['ch_names'], myinclude, exclude)
 
