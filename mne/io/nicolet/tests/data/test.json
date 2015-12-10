@@ -1,0 +1,453 @@
+{ 
+    "_id" : ObjectId("1"), 
+    "recordKey" : "123", 
+    "admission_id" : "12", 
+    "patient_id" : "1", 
+    "startTime" : 1.225926E15, 
+    "endTime" : 1.22592616E15, 
+    "preRecordComment" : "", 
+    "postRecordComment" : "", 
+    "channels" : {
+        "O2" : {
+            "label" : "O2", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "P3" : {
+            "label" : "P3", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "F4" : {
+            "label" : "F4", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "ECG1" : {
+            "label" : "ECG1", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FT10" : {
+            "label" : "FT10", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "O1" : {
+            "label" : "O1", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FP1" : {
+            "label" : "FP1", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "F3" : {
+            "label" : "F3", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "PZ" : {
+            "label" : "PZ", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FZ" : {
+            "label" : "FZ", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "F7" : {
+            "label" : "F7", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T5" : {
+            "label" : "T5", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "C4" : {
+            "label" : "C4", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FPz" : {
+            "label" : "FPz", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FT9" : {
+            "label" : "FT9", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FP2" : {
+            "label" : "FP2", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T9" : {
+            "label" : "T9", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T4" : {
+            "label" : "T4", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "C3" : {
+            "label" : "C3", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "F8" : {
+            "label" : "F8", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T6" : {
+            "label" : "T6", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "TP10" : {
+            "label" : "TP10", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "CZ" : {
+            "label" : "CZ", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "P4" : {
+            "label" : "P4", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "TP9" : {
+            "label" : "TP9", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "ECG2" : {
+            "label" : "ECG2", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T10" : {
+            "label" : "T10", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "OZ" : {
+            "label" : "OZ", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T3" : {
+            "label" : "T3", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }
+    }, 
+    "annotations" : [
+
+    ]
+}
+{ 
+    "_id" : ObjectId("2"), 
+    "recordKey" : "223", 
+    "admission_id" : "22", 
+    "patient_id" : "2", 
+    "startTime" : 1.2260124E15, 
+    "endTime" : 1.226012689E15, 
+    "preRecordComment" : "", 
+    "postRecordComment" : "", 
+    "channels" : {
+        "O2" : {
+            "label" : "O2", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "P3" : {
+            "label" : "P3", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "F4" : {
+            "label" : "F4", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "ECG1" : {
+            "label" : "ECG1", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FT10" : {
+            "label" : "FT10", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "O1" : {
+            "label" : "O1", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FP1" : {
+            "label" : "FP1", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "F3" : {
+            "label" : "F3", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "PZ" : {
+            "label" : "PZ", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FZ" : {
+            "label" : "FZ", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "F7" : {
+            "label" : "F7", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T5" : {
+            "label" : "T5", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "C4" : {
+            "label" : "C4", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FPz" : {
+            "label" : "FPz", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FT9" : {
+            "label" : "FT9", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "FP2" : {
+            "label" : "FP2", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T9" : {
+            "label" : "T9", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T4" : {
+            "label" : "T4", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "C3" : {
+            "label" : "C3", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "F8" : {
+            "label" : "F8", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T6" : {
+            "label" : "T6", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "TP10" : {
+            "label" : "TP10", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "CZ" : {
+            "label" : "CZ", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "P4" : {
+            "label" : "P4", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "TP9" : {
+            "label" : "TP9", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "ECG2" : {
+            "label" : "ECG2", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T10" : {
+            "label" : "T10", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "OZ" : {
+            "label" : "OZ", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }, 
+        "T3" : {
+            "label" : "T3", 
+            "channelType" : "EEG", 
+            "channelUnit" : "mV", 
+            "amplitude" : 0.0, 
+            "samplingRate" : 400.0
+        }
+    }, 
+    "annotations" : [
+        {
+            "id" : "1", 
+            "label" : "1", 
+            "category" : "clinical annotations", 
+            "startTime" : 1.2260124E15, 
+            "endTime" : 1.22601241E15, 
+            "typeStr" : "spike", 
+            "desc" : "clinical annotations"
+        }, 
+        {
+            "id" : "2", 
+            "label" : "2", 
+            "category" : "clinical annotations", 
+            "startTime" : 1.2260125E15, 
+            "endTime" : 1.22601251E15, 
+            "typeStr" : "seizure complex partial", 
+            "desc" : "seizure pattern"
+        }
+    ]
+}
