@@ -1747,6 +1747,8 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
 
     Returns
     -------
+    fig : instance of matplotlib figure
+        The figure.
     anim : instance of matplotlib FuncAnimation
         Animation of the topomap.
     """
@@ -1788,4 +1790,4 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
             # Finally remove the vertical line.
             line = params['line']
             line.remove()
-    return anim
+    return fig, anim
