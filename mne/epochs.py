@@ -2605,7 +2605,7 @@ def concatenate_epochs(epochs_list):
 @verbose
 def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
                       weight_all=True, int_order=8, ext_order=3,
-                      regularize='in', verbose=None):
+                      regularize='in', return_mapping=False, verbose=None):
     """Average data using Maxwell filtering, transforming using head positions
 
     Parameters
@@ -2639,6 +2639,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         Basis regularization type, must be "in" or None.
         See :func:`mne.preprocessing.maxwell_filter` for details.
         Regularization is chosen based only on the destination position.
+    return_mapping : bool
+        If True, return the mapping matrix.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2736,6 +2738,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         w_sum += weight
         count += 1
     del info_from
+    mapping = None
     if count == 0:
         data.fill(np.nan)
     else:
@@ -2751,7 +2754,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         # within the loop above does not work!)
         reg_moments, n_use_in = _regularize(
             regularize, int_order, ext_order, coil_scale,
-            S_recon[good_picks], verbose=True)
+            S_recon[good_picks])
         if n_use_in != n_in:
             S_decomp = S_decomp.take(reg_moments, axis=1)
             S_recon = S_recon.take(reg_moments[:n_use_in], axis=1)
@@ -2768,4 +2771,4 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     evoked = epochs._evoked_from_epoch_data(
         data, info_to, picks, count, 'average')
     logger.info('Created Evoked dataset from %s epochs' % (count,))
-    return evoked
+    return (evoked, mapping) if return_mapping else evoked

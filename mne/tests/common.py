@@ -40,9 +40,9 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., msg=None):
     snr = snrs.min()
     bad_count = (snrs < min_tol).sum()
     msg = ' (%s)' % msg if msg != '' else msg
-    assert_true(bad_count == 0, 'SNR (worst %0.1f) < %0.1f for %s/%s '
+    assert_true(bad_count == 0, 'SNR (worst %0.2f) < %0.2f for %s/%s '
                 'channels%s' % (snr, min_tol, bad_count, len(picks), msg))
     # median tol
     snr = np.median(snrs)
-    assert_true(snr >= med_tol, 'SNR median %0.1f < %0.1f%s'
+    assert_true(snr >= med_tol, 'SNR median %0.2f < %0.2f%s'
                 % (snr, med_tol, msg))
