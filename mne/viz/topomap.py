@@ -793,9 +793,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             cbar.ax.tick_params(labelsize=12)
             cbar.set_ticks((vmin_, vmax_))
             cbar.ax.set_title('AU', fontsize=10)
-        ax.set_yticks([])
-        ax.set_xticks([])
-        ax.set_frame_on(False)
+        _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
@@ -962,9 +960,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         fig = axes.figure
         ax = axes
 
-    ax.set_yticks([])
-    ax.set_xticks([])
-    ax.set_frame_on(False)
+    _hide_frame(ax)
 
     if title is not None:
         ax.set_title(title)
@@ -1274,9 +1270,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    ax.set_yticks([])
-    ax.set_xticks([])
-    ax.set_frame_on(False)
+    _hide_frame(ax)
     vmin = np.min(data) if vmin is None else vmin
     vmax = np.max(data) if vmax is None else vmax
 
@@ -1578,24 +1572,28 @@ def _prepare_topomap(pos, ax):
     """Helper for preparing the topomap."""
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
-
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_frame_on(False)
+    _hide_frame(ax)
     if any([not pos_y.any(), not pos_x.any()]):
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
     return pos_x, pos_y
 
 
+def _hide_frame(ax):
+    """Helper to hide axis frame for topomaps."""
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_frame_on(False)
+
+
 def _init_anim(ax, ax_line, ax_cbar, params):
     """Initialize animated topomap."""
     import matplotlib.pyplot as plt
     from matplotlib import patches
+    logger.info('Initializing animation...')
     data = params['data']
     norm = True if np.min(data) > 0 else False
     cmap = 'Reds' if norm else 'RdBu_r'
-    contours = params['contours']
     times = params['times']
     vmin, vmax = _setup_vmin_vmax(data, None, None, norm)
 
@@ -1603,9 +1601,7 @@ def _init_anim(ax, ax_line, ax_cbar, params):
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
 
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_frame_on(False)
+    _hide_frame(ax)
     xlim = np.inf, -np.inf,
     ylim = np.inf, -np.inf,
     mask_ = np.c_[outlines['mask_pos']]
@@ -1624,18 +1620,20 @@ def _init_anim(ax, ax_line, ax_cbar, params):
         Zi = _griddata(pos_x, pos_y, data[:, frame], Xi, Yi)
         params['Zis'].append(Zi)
     Zi = params['Zis'][0]
-
+    zi_min = np.min(params['Zis'])
+    zi_max = np.max(params['Zis'])
+    cont_lims = np.linspace(zi_min, zi_max, 7, endpoint=False)[1:]
     _, pos = _make_image_mask(outlines, pos, res)
 
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
-                   'outlines': outlines, 'extent': (xmin, xmax, ymin, ymax),
-                   'pos_x': pos_x, 'pos_y': pos_y, 'cmap': cmap})
+                   'extent': (xmin, xmax, ymin, ymax), 'cmap': cmap,
+                   'cont_lims': cont_lims})
     # plot map and countour
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation='bilinear')
     plt.colorbar(im, cax=ax_cbar, cmap=cmap)
-    cont = ax.contour(Xi, Yi, Zi, contours, colors='k', linewidths=1)
+    cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
 
     patch_ = patches.Ellipse((0, 0),
                              2 * outlines['clip_radius'][0],
@@ -1678,36 +1676,28 @@ def _animate(i, ax, ax_line, params):
     else:
         ax.cla()  # Clear old contours.
         text = ax.text(0.45, 1.15, '', transform=ax.transAxes, va='center')
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_frame_on(False)
+    _hide_frame(ax)
     text.set_text(title)
 
     vmin = params['vmin']
     vmax = params['vmax']
-    outlines = params['outlines']
     Xi = params['Xi']
     Yi = params['Yi']
-
     Zi = params['Zis'][i]
     extent = params['extent']
     cmap = params['cmap']
+    patch = params['patch']
+
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=extent, interpolation='bilinear')
+    cont_lims = params['cont_lims']
+    # Compute the amount of contours for each frame.
+    cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
 
-    cont = ax.contour(Xi, Yi, Zi, 6, colors='k', linewidths=1)
-    patch = params['patch']
     im.set_clip_path(patch)
     items = [im, text]
     for col in cont.collections:
         col.set_clip_path(patch)
-
-    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                      ['patch', 'autoshrink']])
-    for k, (x, y) in outlines_.items():
-        if 'mask' in k:
-            continue
-        ax.plot(x, y, color='k', linewidth=1, clip_on=False)
 
     if params['butterfly']:
         line = params['line']
