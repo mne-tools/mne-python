@@ -12,7 +12,6 @@ from ...utils import logger
 from ..base import _BaseRaw, _check_update_montage, _mult_cal_one
 from ..meas_info import _empty_info
 from ..constants import FIFF
-from astropy.extern.bundled.six import iteritems
 
 
 def read_raw_nicolet(input_fname, montage=None, eog=None, misc=None, ecg=None,
@@ -248,7 +247,7 @@ def read_nicolet_annotations(fname, record_id):
 
     tstart = int(record['startTime']) / 1000000.  # time us -> s
     sfreq = list()
-    for name, channel in iteritems(record['channels']):
+    for name, channel in record['channels'].items():
         sfreq.append(channel['samplingRate'])
     sfreq = max(sfreq)
     annot = list()
