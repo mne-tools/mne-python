@@ -33,6 +33,7 @@ How to get your raw data loaded in MNE.
    :maxdepth: 1
 
    io
+   memory
 
 Preprocessing
 -------------
