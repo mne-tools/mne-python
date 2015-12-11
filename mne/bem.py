@@ -893,6 +893,30 @@ def _fit_sphere(points, disp='auto'):
     return radius, origin
 
 
+def _check_origin(origin, info, coord_frame='head', disp=False):
+    """Helper to check or auto-determine the origin"""
+    if isinstance(origin, string_types):
+        if origin != 'auto':
+            raise ValueError('origin must be a numerical array, or "auto", '
+                             'not %s' % (origin,))
+        if coord_frame == 'head':
+            R, origin = fit_sphere_to_headshape(info, verbose=False)[:2]
+            origin /= 1000.
+            logger.info('    Automatic origin fit: head of radius %0.1f mm'
+                        % R)
+            del R
+        else:
+            origin = (0., 0., 0.)
+    origin = np.array(origin, float)
+    if origin.shape != (3,):
+        raise ValueError('origin must be a 3-element array')
+    if disp:
+        origin_str = ', '.join(['%0.1f' % (o * 1000) for o in origin])
+        logger.info('    Using origin %s mm in the %s frame'
+                    % (origin_str, coord_frame))
+    return origin
+
+
 # ############################################################################
 # Create BEM surfaces
 

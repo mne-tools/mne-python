@@ -22,7 +22,7 @@ from .externals.six import string_types
 # Reading from text or FIF file
 
 @verbose
-def get_chpi_positions(raw, t_step=None, verbose=None):
+def get_chpi_positions(raw, t_step=None, return_quat=False, verbose=None):
     """Extract head positions
 
     Note that the raw instance must have CHPI channels recorded.
@@ -38,6 +38,11 @@ def get_chpi_positions(raw, t_step=None, verbose=None):
         1 second is used if processing a raw data. If processing a
         Maxfilter log file, this must be None because the log file
         itself will determine the sampling interval.
+    return_quat : bool
+        If True, also return the quaternions.
+
+        .. versionadded:: 0.11
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -49,6 +54,8 @@ def get_chpi_positions(raw, t_step=None, verbose=None):
         Rotations at each time point.
     t : ndarray, shape (N,)
         The time points.
+    quat : ndarray, shape (N, 3)
+        The quaternions. Only returned if ``return_quat`` is True.
 
     Notes
     -----
@@ -82,7 +89,10 @@ def get_chpi_positions(raw, t_step=None, verbose=None):
         if t_step is not None:
             raise ValueError('t_step must be None if processing a log')
         data = np.loadtxt(raw, skiprows=1)  # first line is header, skip it
-    return _quats_to_trans_rot_t(data)
+    out = _quats_to_trans_rot_t(data)
+    if return_quat:
+        out = out + (data[:, 1:4],)
+    return out
 
 
 def _quats_to_trans_rot_t(quats):
@@ -135,13 +145,42 @@ def _quat_to_rot(q):
     return rotation
 
 
+def _one_rot_to_quat(rot):
+    """Convert a rotation matrix to quaternions"""
+    # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/
+    #                 conversions/matrixToQuaternion/
+    t = 1. + rot[0] + rot[4] + rot[8]
+    if t > np.finfo(rot.dtype).eps:
+        s = np.sqrt(t) * 2.
+        qx = (rot[7] - rot[5]) / s
+        qy = (rot[2] - rot[6]) / s
+        qz = (rot[3] - rot[1]) / s
+        # qw = 0.25 * s
+    elif rot[0] > rot[4] and rot[0] > rot[8]:
+        s = np.sqrt(1. + rot[0] - rot[4] - rot[8]) * 2.
+        qx = 0.25 * s
+        qy = (rot[1] + rot[3]) / s
+        qz = (rot[2] + rot[6]) / s
+        # qw = (rot[7] - rot[5]) / s
+    elif rot[4] > rot[8]:
+        s = np.sqrt(1. - rot[0] + rot[4] - rot[8]) * 2
+        qx = (rot[1] + rot[3]) / s
+        qy = 0.25 * s
+        qz = (rot[5] + rot[7]) / s
+        # qw = (rot[2] - rot[6]) / s
+    else:
+        s = np.sqrt(1. - rot[0] - rot[4] + rot[8]) * 2.
+        qx = (rot[2] + rot[6]) / s
+        qy = (rot[5] + rot[7]) / s
+        qz = 0.25 * s
+        # qw = (rot[3] - rot[1]) / s
+    return qx, qy, qz
+
+
 def _rot_to_quat(rot):
-    """Here we derive qw from qx, qy, qz"""
-    qw_4 = np.sqrt(1 + rot[..., 0, 0] + rot[..., 1, 1] + rot[..., 2, 2]) * 2
-    qx = (rot[..., 2, 1] - rot[..., 1, 2]) / qw_4
-    qy = (rot[..., 0, 2] - rot[..., 2, 0]) / qw_4
-    qz = (rot[..., 1, 0] - rot[..., 0, 1]) / qw_4
-    return np.rollaxis(np.array((qx, qy, qz)), 0, rot.ndim - 1)
+    """Convert a set of rotations to quaternions"""
+    rot = rot.reshape(rot.shape[:-2] + (9,))
+    return np.apply_along_axis(_one_rot_to_quat, -1, rot)
 
 
 # ############################################################################

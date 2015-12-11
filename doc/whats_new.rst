@@ -22,6 +22,8 @@ Changelog
 
         - Internal component regularization
 
+    - Compensation for movements using Maxwell filtering on epoched data in :func:`mne.epochs.average_movements` by `Eric Larson`_ and `Samu Taulu`_
+
     - Add reader for Nicolet files in :func:`mne.io.read_raw_nicolet` by `Jaakko Leppakangas`_
 
     - Add FIFF persistence for ICA labels by `Denis Engemann`_

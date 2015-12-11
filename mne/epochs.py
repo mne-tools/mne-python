@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """Tools for working with epoched data"""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -29,6 +31,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin
+from .bem import _check_origin
 from .evoked import EvokedArray, _aspect_rev
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -669,7 +672,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         evoked : instance of Evoked
             The averaged epochs.
         """
-
         return self._compute_mean_or_stderr(picks, 'ave')
 
     def standard_error(self, picks=None):
@@ -727,15 +729,19 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             _aspect_kind = FIFF.FIFFV_ASPECT_STD_ERR
             data /= np.sqrt(n_events)
-        kind = _aspect_rev.get(str(_aspect_kind), 'Unknown')
+        return self._evoked_from_epoch_data(data, self.info, picks, n_events,
+                                            _aspect_kind)
 
-        info = deepcopy(self.info)
+    def _evoked_from_epoch_data(self, data, info, picks, n_events,
+                                aspect_kind):
+        """Helper to create an evoked object from epoch data"""
+        info = deepcopy(info)
+        kind = _aspect_rev.get(str(aspect_kind), 'Unknown')
         evoked = EvokedArray(data, info, tmin=self.times[0],
                              comment=self.name, nave=n_events, kind=kind,
                              verbose=self.verbose)
         # XXX: above constructor doesn't recreate the times object precisely
         evoked.times = self.times.copy()
-        evoked._aspect_kind = _aspect_kind
 
         # pick channels
         if picks is None:
@@ -2594,3 +2600,173 @@ def concatenate_epochs(epochs_list):
     .. versionadded:: 0.9.0
     """
     return _finish_concat(*_concatenate_epochs(epochs_list))
+
+
+@verbose
+def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
+                      weight_all=True, int_order=8, ext_order=3,
+                      return_mapping=False, verbose=None):
+    """Average data using Maxwell filtering, transforming using head positions
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs to operate on.
+    pos : tuple
+        Tuple of position information as ``(trans, rot, t)`` like that
+        returned by `get_chpi_positions`. The positions will be matched
+        based on the last given position before the onset of the epoch.
+    orig_sfreq : float | None
+        The original sample frequency of the data (that matches the
+        event sample numbers in ``epochs.events``). Can be ``None``
+        if data have not been decimated or resampled.
+    picks : array-like of int | None
+        If None only MEG, EEG and SEEG channels are kept
+        otherwise the channels indices in picks are kept.
+    origin : array-like, shape (3,) | str
+        Origin of internal and external multipolar moment space in head
+        coords and in meters. The default is ``'auto'``, which means
+        a head-digitization-based origin fit.
+    weight_all : bool
+        If True, all channels are weighted by the SSS basis weights.
+        If False, only MEG channels are weighted, other channels
+        receive uniform weight per epoch.
+    int_order : int
+        Order of internal component of spherical expansion.
+    ext_order : int
+        Order of external component of spherical expansion.
+    regularize : str | None
+        Basis regularization type, must be "in" or None.
+        See :func:`mne.preprocessing.maxwell_filter` for details.
+        Regularization is chosen based only on the destination position.
+    return_mapping : bool
+        If True, return the mapping matrix.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    evoked : instance of Evoked
+        The averaged epochs.
+
+    See Also
+    --------
+    mne.preprocessing.maxwell_filter
+
+    Notes
+    -----
+    The Maxwell filtering version of this algorithm is described in [1]_,
+    in section V.B "Virtual signals and movement correction", equations
+    40-44. For additional validation, see [2]_.
+
+    Regularization has not been added because in testing it appears to
+    decrease dipole localization accuracy relative to using all components.
+    Fine calibration and cross-talk cancellation, however, could be added
+    to this algorithm based on user demand.
+
+    .. versionadded:: 0.11
+
+    References
+    ----------
+    .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
+           multichannel data: The signal space separation method,"
+           Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
+
+    .. [2] Wehner DT, Hämäläinen MS, Mody M, Ahlfors SP. "Head movements
+           of children in MEG: Quantification, effects on source
+           estimation, and compensation. NeuroImage 40:541–550, 2008.
+    """
+    from .preprocessing.maxwell import (_info_sss_basis, _reset_meg_bads,
+                                        _check_usable, _col_norm_pinv,
+                                        _get_n_moments, _get_mf_picks)
+    if not isinstance(epochs, _BaseEpochs):
+        raise TypeError('epochs must be an instance of Epochs, not %s'
+                        % (type(epochs),))
+    orig_sfreq = epochs.info['sfreq'] if orig_sfreq is None else orig_sfreq
+    orig_sfreq = float(orig_sfreq)
+    trn, rot, t = pos
+    del pos
+    _check_usable(epochs)
+    origin = _check_origin(origin, epochs.info, 'head')
+
+    logger.info('Aligning and averaging up to %s epochs'
+                % (len(epochs.events)))
+    meg_picks, _, _, good_picks, coil_scale = \
+        _get_mf_picks(epochs.info, int_order, ext_order)
+    n_channels, n_times = len(epochs.ch_names), len(epochs.times)
+    other_picks = np.setdiff1d(np.arange(n_channels), meg_picks)
+    data = np.zeros((n_channels, n_times))
+    count = 0
+    # keep only MEG w/bad channels marked in "info_from"
+    info_from = pick_info(epochs.info, good_picks, copy=True)
+    # remove MEG bads in "to" info
+    info_to = deepcopy(epochs.info)
+    _reset_meg_bads(info_to)
+    # set up variables
+    w_sum = 0.
+    n_in, n_out = _get_n_moments([int_order, ext_order])
+    S_decomp = 0.  # this will end up being a weighted average
+    last_trans = None
+    for ei, epoch in enumerate(epochs):
+        event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
+        use_idx = np.where(t <= event_time)[0]
+        if len(use_idx) == 0:
+            raise RuntimeError('Event time %0.3f occurs before first '
+                               'position time %0.3f' % (event_time, t[0]))
+        use_idx = use_idx[-1]
+        trans = np.row_stack([np.column_stack([rot[use_idx],
+                                               trn[[use_idx]].T]),
+                              [[0., 0., 0., 1.]]])
+        loc_str = ', '.join('%0.1f' % tr for tr in (trans[:3, 3] * 1000))
+        if last_trans is None or not np.allclose(last_trans, trans):
+            logger.info('    Processing epoch %s (device location: %s mm)'
+                        % (ei + 1, loc_str))
+            reuse = False
+            last_trans = trans
+        else:
+            logger.info('    Processing epoch %s (device location: same)'
+                        % (ei + 1,))
+            reuse = True
+        epoch = epoch.copy()  # because we operate inplace
+        if not reuse:
+            S = _info_sss_basis(info_from, trans, origin,
+                                int_order, ext_order, True)
+            # Get the weight from the un-regularized version
+            weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
+            # XXX Eventually we could do cross-talk and fine-cal here
+            S *= weight
+        S_decomp += S  # eq. 41
+        epoch[slice(None) if weight_all else meg_picks] *= weight
+        data += epoch  # eq. 42
+        w_sum += weight
+        count += 1
+    del info_from
+    mapping = None
+    if count == 0:
+        data.fill(np.nan)
+    else:
+        data[meg_picks] /= w_sum
+        data[other_picks] /= w_sum if weight_all else count
+        # Finalize weighted average decomp matrix
+        S_decomp /= w_sum
+        # Get recon matrix
+        # (We would need to include external here for regularization to work)
+        S_recon = _info_sss_basis(epochs.info, None, origin,
+                                  int_order, 0, True)
+        # We could determine regularization on basis of destination basis
+        # matrix, restricted to good channels, as regularizing individual
+        # matrices within the loop above does not seem to work. But in
+        # testing this seemed to decrease localization quality in most cases,
+        # so we do not provide the option here.
+        S_recon /= coil_scale
+        # Invert
+        pS_ave = _col_norm_pinv(S_decomp)[:n_in]
+        pS_ave *= coil_scale[good_picks].T
+        # Get mapping matrix
+        mapping = np.dot(S_recon, pS_ave)
+        # Apply mapping
+        data[meg_picks] = np.dot(mapping, data[good_picks])
+    evoked = epochs._evoked_from_epoch_data(
+        data, info_to, picks, count, 'average')
+    logger.info('Created Evoked dataset from %s epochs' % (count,))
+    return (evoked, mapping) if return_mapping else evoked
