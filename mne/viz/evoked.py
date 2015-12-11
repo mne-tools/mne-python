@@ -564,6 +564,8 @@ def animate_evoked(evoked, ch_type, frames=5, interval=100, butterfly=False,
 
     Returns
     -------
+    fig : instance of matplotlib figure
+        The figure.
     anim : instance of matplotlib FuncAnimation
         Animation of the topomap.
     """
