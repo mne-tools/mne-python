@@ -35,7 +35,7 @@ Similarly, epochs can also be be read from disk on-demand. For example::
 When ``preload=False``, the epochs data is loaded from the disk on-demand. Note that ``preload=False`` for epochs will work even if the ``raw`` object
 has been loaded with ``preload=True``. Preloading is also supported for :func:`mne.read_epochs`.
 
-.. warning:: This comes with a caveat. When ``preload=False``, data rejection based on peak-to-peak thresholds is executed when the data is loaded from disk, *not* when the `raw` object is created.
+.. warning:: This comes with a caveat. When ``preload=False``, data rejection based on peak-to-peak thresholds is executed when the data is loaded from disk, *not* when the ``Epochs`` object is created.
 
 To explicitly reject artifacts with ``preload=False``, use the function :func:`mne.Epochs.drop_bad_epochs`.
 
