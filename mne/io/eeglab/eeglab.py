@@ -7,8 +7,9 @@ import numpy as np
 import warnings
 
 from ...utils import logger, verbose
+from ..utils import _read_segments_file
 from ..meas_info import _empty_info, create_info
-from ..base import _BaseRaw, _mult_cal_one, _check_update_montage
+from ..base import _BaseRaw, _check_update_montage
 from ..constants import FIFF
 from ...channels.montage import Montage
 from ...epochs import _BaseEpochs
@@ -232,25 +233,8 @@ class RawEEGLAB(_BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
-        n_bytes = 4
-        nchan = self.info['nchan']
-        data_offset = self.info['nchan'] * start * n_bytes
-        data_left = (stop - start) * nchan
-        # Read up to 100 MB of data at a time.
-        n_blocks = 100000000 // n_bytes
-        blk_size = min(data_left, (n_blocks // nchan) * nchan)
-
-        with open(self._filenames[fi], 'rb', buffering=0) as fid:
-            fid.seek(data_offset)
-            # extract data in chunks
-            for blk_start in np.arange(0, data_left, blk_size) // nchan:
-                blk_size = min(blk_size, data_left - blk_start * nchan)
-                block = np.fromfile(fid,
-                                    dtype=np.float32, count=blk_size)
-                block = block.reshape(nchan, -1, order='F')
-                blk_stop = blk_start + block.shape[1]
-                data_view = data[:, blk_start:blk_stop]
-                _mult_cal_one(data_view, block, idx, cals, mult)
+        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
+                            dtype=np.float32, n_bytes=4)
 
 
 class EpochsEEGLAB(_BaseEpochs):
