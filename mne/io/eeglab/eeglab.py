@@ -7,7 +7,7 @@ import numpy as np
 import warnings
 
 from ...utils import logger, verbose
-from ..meas_info import _empty_info
+from ..meas_info import _empty_info, create_info
 from ..base import _BaseRaw, _mult_cal_one, _check_update_montage
 from ..constants import FIFF
 from ...channels.montage import Montage
@@ -21,7 +21,6 @@ def _get_info(eeg, montage, eog=None):
     """
     info = _empty_info(sfreq=eeg.srate)
     info['nchan'] = eeg.nbchan
-    info['buffer_size_sec'] = 1.  # reasonable default
 
     # add the ch_names and info['chs'][idx]['loc']
     path = None
@@ -29,15 +28,29 @@ def _get_info(eeg, montage, eog=None):
         ch_names, pos = [], []
         kind = 'user_defined'
         selection = np.arange(len(eeg.chanlocs))
+        locs_available = True
         for chanloc in eeg.chanlocs:
             ch_names.append(chanloc.labels)
-            pos.append([chanloc.X, chanloc.Y, chanloc.Z])
-        montage = Montage(np.array(pos), ch_names, kind, selection)
+            loc_x = chanloc.X if len(chanloc.X) > 0 else 0.
+            loc_y = chanloc.Y if len(chanloc.Y) > 0 else 0.
+            loc_z = chanloc.Z if len(chanloc.Z) > 0 else 0.
+            locs = np.r_[loc_x, loc_y, loc_z]
+            if np.unique(locs).size == 1:
+                locs_available = False
+                break
+            pos.append(locs)
+        if locs_available:
+            montage = Montage(np.array(pos), ch_names, kind, selection)
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
-    _check_update_montage(info, montage, path=path,
-                          update_ch_names=True)
 
+    if montage is None:
+        info = create_info(ch_names, eeg.srate)
+    else:
+        _check_update_montage(info, montage, path=path,
+                              update_ch_names=True)
+
+    info['buffer_size_sec'] = 1.  # reasonable default
     # update the info dict
     cal = 1e-6
     if eog is None:
@@ -319,22 +332,28 @@ class EpochsEEGLAB(_BaseEpochs):
 
         if events is None and eeg.trials > 1:
             # first extract the events and construct an event_id dict
-            event_type, event_latencies, unique_ev = [], [], []
+            event_name, event_latencies, unique_ev = [], [], []
             for ep in eeg.epoch:
                 if not isinstance(ep.eventtype, string_types):
-                    raise ValueError('An epoch can have only one event'
-                                     ' in mne-python')
+                    event_type = '/'.join(ep.eventtype.tolist())
+                    event_name.append(event_type)
+                    # store latency of only first event
+                    event_latencies.append(ep.eventurevent[0])
+                    warnings.warn('An epoch has multiple events. '
+                                  'Their latencies will not be stored.')
                 else:
-                    event_type.append(ep.eventtype)
+                    event_type = ep.eventtype
+                    event_name.append(ep.eventtype)
                     event_latencies.append(ep.eventurevent)
-                    if ep.eventtype not in unique_ev:
-                        unique_ev.append(ep.eventtype)
+
+                if event_type not in unique_ev:
+                    unique_ev.append(event_type)
                 event_id = dict((ev, idx) for idx, ev in enumerate(unique_ev))
             # now fill up the event array
             events = np.zeros((eeg.trials, 3), dtype=int)
             for idx in range(eeg.trials):
                 events[idx, 0] = event_latencies[idx]
-                events[idx, 1:] = event_id[event_type[idx]]
+                events[idx, 1:] = event_id[event_name[idx]]
         elif isinstance(events, string_types):
             events = read_events(events)
 
