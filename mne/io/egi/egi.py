@@ -303,19 +303,12 @@ class RawEGI(_BaseRaw):
         with open(self._filenames[fi], 'rb') as fid:
             fid.seek(data_start, 0)  # skip header
             for blk_start in np.arange(0, data_left, blk_size) // n_chan_read:
-                #final_shape = (stop - start, n_chan_read)
-                #one_ = np.fromfile(fid, egi_info['dtype'], np.prod(final_shape))
                 blk_size = min(blk_size, data_left - blk_start * n_chan_read)
                 one_ = np.fromfile(fid, egi_info['dtype'], blk_size)
                 one_ = one_.reshape(n_chan_read, -1, order='F')
                 blk_stop = blk_start + one_.shape[1]
                 data_view = data[:, blk_start:blk_stop]
-                #one_.shape = final_shape
                 one[:n_chan_read] = one_
+                if self._new_trigger is not None:
+                    one[-1] = self._new_trigger[blk_start:blk_stop]
                 _mult_cal_one(data_view, one, idx, cals, mult)
-            # reads events as well
-        if self._new_trigger is not None:
-            data_view[-1] = self._new_trigger[blk_start:blk_stop]
-                
-        #if self._new_trigger is not None:
-        #    one[-1] = self._new_trigger[start:stop]
