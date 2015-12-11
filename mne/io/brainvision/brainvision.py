@@ -177,7 +177,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     start_tag = 'Brain Vision Data Exchange Marker File'
     if not header.startswith(start_tag):
         raise ValueError("vmrk file should start with %r" % start_tag)
-    _check_version(header)
+    _check_mrk_version(header)
     if (response_trig_shift is not None and
             not isinstance(response_trig_shift, int)):
         raise TypeError("response_trig_shift must be an integer or None")
@@ -242,9 +242,18 @@ def _synthesize_stim_channel(events, n_samp):
     return stim_channel
 
 
-def _check_version(header):
+def _check_hdr_version(header):
     tags = ['Brain Vision Data Exchange Header File Version 1.0',
             'Brain Vision Data Exchange Header File Version 2.0']
+    if not any([header.startswith(tag) for tag in tags]):
+        raise ValueError("Currently only support %r, not %r"
+                         "Contact MNE-Developers for support."
+                         % (str(tags), header))
+
+
+def _check_mrk_version(header):
+    tags = ['Brain Vision Data Exchange Marker File, Version 1.0',
+            'Brain Vision Data Exchange Marker File, Version 2.0']
     if not any([header.startswith(tag) for tag in tags]):
         raise ValueError("Currently only support %r, not %r"
                          "Contact MNE-Developers for support."
@@ -300,7 +309,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
         header = f.readline().decode('utf-8').strip()
-        _check_version(header)
+        _check_hdr_version(header)
         settings = f.read().decode('utf-8')
 
     if settings.find('[Comment]') != -1:

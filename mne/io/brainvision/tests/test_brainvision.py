@@ -23,6 +23,8 @@ FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
 vmrk_path = op.join(data_dir, 'test.vmrk')
+vhdr_v2_path = op.join(data_dir, 'testv2.vhdr')
+vmrk_v2_path = op.join(data_dir, 'testv2.vmrk')
 vhdr_highpass_path = op.join(data_dir, 'test_highpass.vhdr')
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
@@ -75,6 +77,10 @@ def test_brainvision_data():
             assert_equal(ch['kind'], FIFF.FIFFV_EEG_CH)
         else:
             raise RuntimeError("Unknown Channel: %s" % ch['ch_name'])
+
+    # test loading v2
+    read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True,
+                         response_trig_shift=1000)
 
 
 def test_events():
