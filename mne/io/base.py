@@ -2332,12 +2332,12 @@ def concatenate_raws(raws, preload=None, events_list=None):
 def _check_update_montage(info, montage, path=None, update_ch_names=False):
     """ Helper function for eeg readers to add montage"""
     if montage is not None:
-        if not isinstance(montage, (str, Montage)):
+        if not isinstance(montage, (string_types, Montage)):
             err = ("Montage must be str, None, or instance of Montage. "
                    "%s was provided" % type(montage))
             raise TypeError(err)
         if montage is not None:
-            if isinstance(montage, str):
+            if isinstance(montage, string_types):
                 montage = read_montage(montage, path=path)
             _set_montage(info, montage, update_ch_names=update_ch_names)
 
