@@ -58,7 +58,8 @@ def read_raw_eeglab(input_fname, montage=None, eog=None, preload=False,
     Parameters
     ----------
     input_fname : str
-        Path to the .set file.
+        Path to the .set file. If the data is stored in a separate .fdt file,
+        it is expected to be in the same folder as the .set file.
     montage : str | None | instance of montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
@@ -102,11 +103,12 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     Parameters
     ----------
     input_fname : str
-        Path to the .set file.
+        Path to the .set file. If the data is stored in a separate .fdt file,
+        it is expected to be in the same folder as the .set file.
     events : str | array, shape (n_events, 3) | None
         Path to events file. If array, it is the events typically returned
         by the read_events function. If some events don't match the events
-        of interest as specified by event_id,they will be marked as 'IGNORED'
+        of interest as specified by event_id, they will be marked as 'IGNORED'
         in the drop log. If None, it is constructed from the EEGLAB (.set) file
         with each unique event encoded with a different integer.
     event_id : int | list of int | dict | None
@@ -148,7 +150,8 @@ class RawEEGLAB(_BaseRaw):
     Parameters
     ----------
     input_fname : str
-        Path to the .set file.
+        Path to the .set file. If the data is stored in a separate .fdt file,
+        it is expected to be in the same folder as the .set file.
     montage : str | None | instance of montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
@@ -190,7 +193,8 @@ class RawEEGLAB(_BaseRaw):
                          squeeze_me=True)['EEG']
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
-                            ' files' % eeg.trials)
+                            ' files. Please use `mne.io.read_epochs_eeglab` if'
+                            'the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
         info = _get_info(eeg, montage, eog)
@@ -203,8 +207,10 @@ class RawEEGLAB(_BaseRaw):
                 info, preload, filenames=[data_fname], last_samps=last_samps,
                 orig_format='double', verbose=verbose)
         else:
-            warnings.warn('Data will be preloaded. preload=False is not '
-                          'supported when the data is stored in the .set file')
+            if not preload:
+                warnings.warn('Data will be preloaded. preload=False is not '
+                              'supported when the data is stored in the .set '
+                              'file')
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
             data = data.astype(np.double)
             super(RawEEGLAB, self).__init__(
@@ -232,7 +238,6 @@ class RawEEGLAB(_BaseRaw):
                 blk_stop = blk_start + block.shape[1]
                 data_view = data[:, blk_start:blk_stop]
                 _mult_cal_one(data_view, block, idx, cals, mult)
-        return data
 
 
 class EpochsEEGLAB(_BaseEpochs):
@@ -241,11 +246,12 @@ class EpochsEEGLAB(_BaseEpochs):
     Parameters
     ----------
     input_fname : str
-        Path to the .set file.
+        Path to the .set file. If the data is stored in a separate .fdt file,
+        it is expected to be in the same folder as the .set file.
     events : str | array, shape (n_events, 3) | None
         Path to events file. If array, it is the events typically returned
         by the read_events function. If some events don't match the events
-        of interest as specified by event_id,they will be marked as 'IGNORED'
+        of interest as specified by event_id, they will be marked as 'IGNORED'
         in the drop log. If None, it is constructed from the EEGLAB (.set) file
         with each unique event encoded with a different integer.
     event_id : int | list of int | dict | None
@@ -288,6 +294,10 @@ class EpochsEEGLAB(_BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
+    montage : str | None | instance of montage
+        Path or instance of montage containing electrode positions.
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -344,9 +354,10 @@ class EpochsEEGLAB(_BaseEpochs):
         if isinstance(eeg.data, string_types):
             basedir = op.dirname(input_fname)
             data_fname = op.join(basedir, eeg.data)
-            data_fid = open(data_fname)
-            data = np.fromfile(data_fid, dtype=np.float32)
-            data = data.reshape((eeg.trials, eeg.nbchan, eeg.pnts), order="F")
+            with open(data_fname, 'rb') as data_fid:
+                data = np.fromfile(data_fid, dtype=np.float32)
+                data = data.reshape((eeg.trials, eeg.nbchan, eeg.pnts),
+                                    order="F")
         else:
             data = eeg.data
             data = data.transpose((2, 0, 1))

@@ -295,7 +295,7 @@ The EGI raw files are simple binary files with a header and can be exported
 from using the EGI Netstation acquisition software.
 
 
-EEGLAB mat files (.mat)
+EEGLAB set files (.set)
 =======================
 
 EEGLAB .set files can be read in using :func:`mne.io.read_raw_eeglab`

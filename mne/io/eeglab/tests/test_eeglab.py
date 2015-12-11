@@ -14,5 +14,4 @@ montage = op.join(base_dir, 'eeglab_chan32.locs')
 
 def test_io_set():
     """Test importing EEGLAB .set files"""
-    _test_raw_reader(read_raw_eeglab, True, input_fname=fname,
-                     montage=montage)
+    _test_raw_reader(read_raw_eeglab, input_fname=fname, montage=montage)
