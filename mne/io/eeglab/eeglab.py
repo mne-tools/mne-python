@@ -221,10 +221,10 @@ class RawEEGLAB(_BaseRaw):
                 info, preload, filenames=[data_fname], last_samps=last_samps,
                 orig_format='double', verbose=verbose)
         else:
-            if not preload:
-                warnings.warn('Data will be preloaded. preload=False is not '
-                              'supported when the data is stored in the .set '
-                              'file')
+            if preload is False or isinstance(preload, string_types):
+                warnings.warn('Data will be preloaded. preload=False or a'
+                              ' string preload is not supported when the data'
+                              ' is stored in the .set file')
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
             data = data.astype(np.double)
             super(RawEEGLAB, self).__init__(
