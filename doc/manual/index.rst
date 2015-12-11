@@ -30,9 +30,10 @@ Reading your data
 How to get your raw data loaded in MNE.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    io
+   memory
 
 Preprocessing
 -------------
@@ -42,9 +43,6 @@ Dealing with artifacts and noise sources in data.
 .. toctree::
    :maxdepth: 1
 
-   preprocessing/overview
-   preprocessing/bads
-   preprocessing/filter
    preprocessing/ica
    preprocessing/ssp
 
@@ -82,25 +80,15 @@ Using parametric and non-parametric tests with M/EEG data.
 
    statistics
 
-Visualization
--------------
+Datasets
+--------
 
-Various tools and techniques for getting a handle on your data.
+To enable reproducibility of results, MNE-Python includes several dataset fetchers
 
 .. toctree::
    :maxdepth: 2
 
-   visualization
-
-Datasets
---------
-
-Some of the datasets made available to MNE users.
-
-.. toctree::
-   :maxdepth: 1
-
-   datasets
+   datasets_index
 
 C tools
 -------
