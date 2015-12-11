@@ -65,7 +65,7 @@ initialized on startup, you can do:
 
 You can test if MNE CUDA support is working by running the associated test:
 
-    nosetests mne/tests/test_filter.py
+    $ nosetests mne/tests/test_filter.py
 
 If all tests pass with none skipped, then mne-python CUDA support works.
 
@@ -84,7 +84,7 @@ pylab
 For the setups listed above we would strongly recommend to use the Qt
 matplotlib backend for fast and correct rendering::
 
-    ipython --pylab qt
+    $ ipython --pylab qt
 
 On Linux, for example, QT is the only matplotlib backend for which 3D rendering
 will work correctly. On Mac OS X for other backends certain matplotlib
@@ -108,15 +108,15 @@ Installing Mayavi
 
 Mayavi is only available for Python2.7. If you have Anaconda installed (recommended), the easiest way to install `mayavi` is to do::
 
-    conda install mayavi
+    $ conda install mayavi
 
 On Ubuntu, it is also possible to install using::
 
-    easy_install "Mayavi[app]"
+    $ easy_install "Mayavi[app]"
 
 If you use this method, be sure to install the dependencies first: `python-vtk` and `python-configobj`::
 
-    sudo apt-get install python-vtk python-configobj
+    $ sudo apt-get install python-vtk python-configobj
 
 Make sure the `TraitsBackendQt`_ has been installed as well. For other methods of installation, please consult
 the `Mayavi documentation`_.
@@ -136,15 +136,15 @@ For people within the MGH/MIT/HMS Martinos Center mne is available on the networ
 
 In a terminal do::
 
-    setenv PATH /usr/pubsw/packages/python/anaconda/bin:${PATH}
+    $ setenv PATH /usr/pubsw/packages/python/anaconda/bin:${PATH}
 
 If you use Bash replace the previous instruction with::
 
-    export PATH=/usr/pubsw/packages/python/anaconda/bin:${PATH}
+    $ export PATH=/usr/pubsw/packages/python/anaconda/bin:${PATH}
 
 Then start the python interpreter with:
 
-    ipython
+    $ ipython
 
 Then type::
 
