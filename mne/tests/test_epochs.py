@@ -46,8 +46,6 @@ data_path = testing.data_path(download=False)
 fname_raw_move = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 fname_raw_movecomp_sss = op.join(
     data_path, 'SSS', 'test_move_anon_movecomp_raw_sss.fif')
-fname_raw_movecomp_reg_sss = op.join(
-    data_path, 'SSS', 'test_move_anon_movecomp_regIn_raw_sss.fif')
 fname_raw_move_pos = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -109,15 +107,11 @@ def test_average_movements():
 
     # SSS-based
     evoked_move_non = average_movements(epochs, pos=pos, weight_all=False,
-                                        origin=origin, regularize=None)
-    evoked_move_reg_non = average_movements(epochs, pos=pos, weight_all=False,
-                                            origin=origin)
+                                        origin=origin)
     evoked_move_all = average_movements(epochs, pos=pos, weight_all=True,
-                                        origin=origin, regularize=None)
+                                        origin=origin)
     evoked_stat_all = average_movements(epochs, pos=pos_stat, weight_all=True,
-                                        origin=origin, regularize=None)
-    evoked_stat_reg_all = average_movements(epochs, pos=pos_stat,
-                                            weight_all=True, origin=origin)
+                                        origin=origin)
     evoked_std = epochs.average()
     for ev in (evoked_move_non, evoked_move_all, evoked_stat_all):
         assert_equal(ev.nave, evoked_std.nave)
@@ -131,25 +125,21 @@ def test_average_movements():
     assert_allclose(evoked_move_non.data[meg_picks],
                     evoked_move_all.data[meg_picks])
     # compare to averaged movecomp version (should be fairly similar)
-    evokeds_sss = list()
-    for fname in (fname_raw_movecomp_sss, fname_raw_movecomp_reg_sss):
-        raw_sss = Raw(fname)
-        raw_sss.crop(*crop, copy=False).load_data()
-        raw_sss.filter(None, 20, method='iir')
-        picks_sss = pick_types(raw_sss.info, meg=True, eeg=True, stim=True,
-                               ecg=True, eog=True, exclude=())
-        assert_array_equal(picks, picks_sss)
-        epochs_sss = Epochs(raw_sss, events, event_id, tmin, tmax,
-                            picks=picks_sss, proj=False)
-        evokeds_sss.append(epochs_sss.average())
-        assert_equal(evoked_std.nave, evokeds_sss[-1].nave)
+    raw_sss = Raw(fname_raw_movecomp_sss)
+    raw_sss.crop(*crop, copy=False).load_data()
+    raw_sss.filter(None, 20, method='iir')
+    picks_sss = pick_types(raw_sss.info, meg=True, eeg=True, stim=True,
+                           ecg=True, eog=True, exclude=())
+    assert_array_equal(picks, picks_sss)
+    epochs_sss = Epochs(raw_sss, events, event_id, tmin, tmax,
+                        picks=picks_sss, proj=False)
+    evoked_sss = epochs_sss.average()
+    assert_equal(evoked_std.nave, evoked_sss.nave)
     # this should break the non-MEG channels
     assert_raises(AssertionError, assert_meg_snr,
-                  evokeds_sss[0], evoked_move_all, 0., 0.)
-    assert_meg_snr(evokeds_sss[0], evoked_move_non, 0.02, 2.6)
-    assert_meg_snr(evokeds_sss[1], evoked_move_reg_non, 0.009, 1.0)
-    assert_meg_snr(evokeds_sss[0], evoked_stat_all, 0.05, 3.2)
-    assert_meg_snr(evokeds_sss[1], evoked_stat_reg_all, 0.05, 1.0)
+                  evoked_sss, evoked_move_all, 0., 0.)
+    assert_meg_snr(evoked_sss, evoked_move_non, 0.02, 2.6)
+    assert_meg_snr(evoked_sss, evoked_stat_all, 0.05, 3.2)
     # these should be close to numerical precision
     assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-20)
 

@@ -2605,7 +2605,7 @@ def concatenate_epochs(epochs_list):
 @verbose
 def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
                       weight_all=True, int_order=8, ext_order=3,
-                      regularize='in', return_mapping=False, verbose=None):
+                      return_mapping=False, verbose=None):
     """Average data using Maxwell filtering, transforming using head positions
 
     Parameters
@@ -2659,6 +2659,11 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     in section V.B "Virtual signals and movement correction", equations
     40-44. For additional validation, see [2]_.
 
+    Regularization has not been added because in testing it appears to
+    decrease dipole localization accuracy relative to using all components.
+    Fine calibration and cross-talk cancellation, however, could be added
+    to this algorithm based on user demand.
+
     .. versionadded:: 0.11
 
     References
@@ -2671,10 +2676,9 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
            of children in MEG: Quantification, effects on source
            estimation, and compensation. NeuroImage 40:541–550, 2008.
     """
-    from .preprocessing.maxwell import (_info_sss_basis, _check_regularize,
+    from .preprocessing.maxwell import (_info_sss_basis, _reset_meg_bads,
                                         _check_usable, _col_norm_pinv,
-                                        _get_n_moments, _get_mf_picks,
-                                        _reset_meg_bads, _regularize)
+                                        _get_n_moments, _get_mf_picks)
     if not isinstance(epochs, _BaseEpochs):
         raise TypeError('epochs must be an instance of Epochs, not %s'
                         % (type(epochs),))
@@ -2683,7 +2687,6 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     trn, rot, t = pos
     del pos
     _check_usable(epochs)
-    _check_regularize(regularize)
     origin = _check_origin(origin, epochs.info, 'head')
 
     logger.info('Aligning and averaging up to %s epochs'
@@ -2746,23 +2749,18 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         data[other_picks] /= w_sum if weight_all else count
         # Finalize weighted average decomp matrix
         S_decomp /= w_sum
-        # Get recon matrix (include external here so regularization can work)
+        # Get recon matrix
+        # (We would need to include external here for regularization to work)
         S_recon = _info_sss_basis(epochs.info, None, origin,
-                                  int_order, ext_order, True)
-        # Determine regularization on basis of destination basis matrix,
-        # restricted to good channels (regularizing individual matrices
-        # within the loop above does not work!)
-        reg_moments, n_use_in = _regularize(
-            regularize, int_order, ext_order, coil_scale,
-            S_recon[good_picks])
-        if n_use_in != n_in:
-            S_decomp = S_decomp.take(reg_moments, axis=1)
-            S_recon = S_recon.take(reg_moments[:n_use_in], axis=1)
-        else:
-            S_recon = S_recon[:, :n_in]
+                                  int_order, 0, True)
+        # We could determine regularization on basis of destination basis
+        # matrix, restricted to good channels, as regularizing individual
+        # matrices within the loop above does not seem to work. But in
+        # testing this seemed to decrease localization quality in most cases,
+        # so we do not provide the option here.
         S_recon /= coil_scale
         # Invert
-        pS_ave = _col_norm_pinv(S_decomp)[:n_use_in]
+        pS_ave = _col_norm_pinv(S_decomp)[:n_in]
         pS_ave *= coil_scale[good_picks].T
         # Get mapping matrix
         mapping = np.dot(S_recon, pS_ave)
