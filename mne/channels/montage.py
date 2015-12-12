@@ -51,8 +51,8 @@ class Montage(object):
         self.selection = selection
 
     def __repr__(self):
-        s = '<Montage | %s - %d Channels: %s ...>'
-        s %= self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])
+        s = ('<Montage | %s - %d channels: %s ...>'
+             % (self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])))
         return s
 
     def plot(self, scale_factor=1.5, show_names=False):
@@ -152,6 +152,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     Notes
     -----
     Built-in montages are not scaled or transformed by default.
+
+    Montages can contain fiducial points in addition to electrode
+    locations, e.g. ``biosemi-64`` contains 67 total channels.
 
     .. versionadded:: 0.9.0
     """
