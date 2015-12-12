@@ -48,7 +48,7 @@ BUG
 API
 ~~~
 
-    - `mne.io.read_raw_brainvision` now has `event_id` argument to assign non-standard trigger events to a trigger value by `Teon Brooks`_
+    - :func:`mne.io.read_raw_brainvision` now has ``event_id`` argument to assign non-standard trigger events to a trigger value by `Teon Brooks`_
 
 
 .. _changes_0_10:
