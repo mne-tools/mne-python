@@ -785,7 +785,10 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list,
                              verbose):
     """docstring for _compute_covariance_auto."""
-    from sklearn.grid_search import GridSearchCV
+    try:
+        from sklearn.model_selection import GridSearchCV
+    except: # XXX support sklearn < 0.18
+        from sklearn.grid_search import GridSearchCV
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
                                     EmpiricalCovariance)
 
@@ -911,7 +914,11 @@ def _gaussian_loglik_scorer(est, X, y=None):
 
 def _cross_val(data, est, cv, n_jobs):
     """Helper to compute cross validation."""
-    from sklearn.cross_validation import cross_val_score
+    try:
+        from sklearn.model_selection import cross_val_score
+    except ImportError:
+        # XXX support sklearn < 0.18
+        from sklearn.cross_validation import cross_val_score
     return np.mean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs,
                                    scoring=_gaussian_loglik_scorer))
 
