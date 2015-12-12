@@ -34,6 +34,8 @@ Changelog
 
     - Add reader for CTF data in :func:`mne.io.read_raw_ctf` by `Eric Larson`_
 
+    - Add support for Brainvision v2 by `Teon Brooks`_
+
 BUG
 ~~~
 
@@ -46,7 +48,7 @@ BUG
 API
 ~~~
 
-    - None
+    - `mne.io.read_raw_brainvision` now has `event_id` argument to assign non-standard trigger events to a trigger value by `Teon Brooks`_
 
 
 .. _changes_0_10:
