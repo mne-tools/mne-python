@@ -39,6 +39,8 @@ BUG
 
     - Added safeguards against ``None`` and negative values in reject and flat parameters in :class:`mne.Epochs` by `Eric Larson`_
 
+    - Fix train and test time window-length in :class:`mne.decoding.GeneralizationAcrossTime` by `Jean-Remi King`_
+
 API
 ~~~
 

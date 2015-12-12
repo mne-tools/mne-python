@@ -542,7 +542,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
     return estimators
 
 
-def _sliding_window(times, window_params, freq):
+def _sliding_window(times, window_params, sfreq):
     """Aux function of GeneralizationAcrossTime
 
     Define the slices on which to train each classifier.
@@ -574,9 +574,9 @@ def _sliding_window(times, window_params, freq):
         if 'stop' not in window_params:
             window_params['stop'] = times[-1]
         if 'step' not in window_params:
-            window_params['step'] = 1. / freq
+            window_params['step'] = 1. / sfreq
         if 'length' not in window_params:
-            window_params['length'] = 1. / freq
+            window_params['length'] = 1. / sfreq
 
         if (window_params['start'] < times[0] or
                 window_params['start'] > times[-1]):
@@ -588,9 +588,9 @@ def _sliding_window(times, window_params, freq):
             raise ValueError(
                 '`stop` (%.2f s) outside time range [%.2f, %.2f].' % (
                     window_params['stop'], times[0], times[-1]))
-        if window_params['step'] < 1. / freq:
+        if window_params['step'] < 1. / sfreq:
             raise ValueError('`step` must be >= 1 / sampling_frequency')
-        if window_params['length'] < 1. / freq:
+        if window_params['length'] < 1. / sfreq:
             raise ValueError('`length` must be >= 1 / sampling_frequency')
         if window_params['length'] > np.ptp(times):
             raise ValueError('`length` must be <= time range')
@@ -602,8 +602,8 @@ def _sliding_window(times, window_params, freq):
 
         start = find_time_idx(window_params['start'])
         stop = find_time_idx(window_params['stop'])
-        step = int(round(window_params['step'] * freq))
-        length = int(round(window_params['length'] * freq))
+        step = int(round(window_params['step'] * sfreq))
+        length = int(round(window_params['length'] * sfreq))
 
         # For each training slice, give time samples to be included
         time_pick = [range(start, start + length)]
