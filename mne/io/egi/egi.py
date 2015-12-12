@@ -295,7 +295,6 @@ class RawEGI(_BaseRaw):
         data_start = (36 + egi_info['n_events'] * 4 +
                       start * n_chan_read * egi_info['dtype'].itemsize)
         n_chan_out = n_chan_read + (1 if self._new_trigger is not None else 0)
-        one = np.empty((n_chan_out, stop - start))
         # Read up to 100 MB of data at a time.
         data_left = (stop - start) * n_chan_read
         blk_size = min(data_left, (100000000 // n_bytes // n_chan_read)
@@ -307,6 +306,7 @@ class RawEGI(_BaseRaw):
                 one_ = np.fromfile(fid, egi_info['dtype'], blk_size)
                 one_ = one_.reshape(n_chan_read, -1, order='F')
                 blk_stop = blk_start + one_.shape[1]
+                one = np.empty((n_chan_out, blk_stop - blk_start))
                 data_view = data[:, blk_start:blk_stop]
                 one[:n_chan_read] = one_
                 if self._new_trigger is not None:
