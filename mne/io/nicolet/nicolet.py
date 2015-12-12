@@ -242,7 +242,7 @@ def read_nicolet_annotations(fname, record_id):
     if record is None:
         raise RuntimeError('Could not find record with id %s' % record_id)
 
-    tstart = int(record['startTime']) / 1000000.  # time us -> s
+    tstart = int(record['startTime'])
     sfreq = list()
     for name, channel in record['channels'].items():
         sfreq.append(channel['samplingRate'])
@@ -251,7 +251,7 @@ def read_nicolet_annotations(fname, record_id):
     for annotation in record['annotations']:
         item = list()
         item.append(annotation['typeStr'])
-        item.append((int(annotation['startTime']) / 1000000. - tstart) * sfreq)
-        item.append((int(annotation['endTime']) / 1000000. - tstart) * sfreq)
+        item.append((int(annotation['startTime']) - tstart) * sfreq / 1000000.)
+        item.append((int(annotation['endTime']) - tstart) * sfreq / 1000000.)
         annot.append(item)
     return annot
