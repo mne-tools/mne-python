@@ -17,6 +17,14 @@ from ...event import read_events
 from ...externals.six import string_types
 
 
+def _to_loc(ll):
+    # XXX : check
+    if isinstance(ll, float) or len(ll) > 0:
+        return ll
+    else:
+        return 0.
+
+
 def _get_info(eeg, montage, eog=None):
     """Get measurement info.
     """
@@ -32,9 +40,9 @@ def _get_info(eeg, montage, eog=None):
         locs_available = True
         for chanloc in eeg.chanlocs:
             ch_names.append(chanloc.labels)
-            loc_x = chanloc.X if len(chanloc.X) > 0 else 0.
-            loc_y = chanloc.Y if len(chanloc.Y) > 0 else 0.
-            loc_z = chanloc.Z if len(chanloc.Z) > 0 else 0.
+            loc_x = _to_loc(chanloc.X)
+            loc_y = _to_loc(chanloc.Y)
+            loc_z = _to_loc(chanloc.Z)
             locs = np.r_[loc_x, loc_y, loc_z]
             if np.unique(locs).size == 1:
                 locs_available = False
@@ -208,7 +216,7 @@ class RawEEGLAB(_BaseRaw):
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
                             ' files. Please use `mne.io.read_epochs_eeglab` if'
-                            'the .set file contains epochs.' % eeg.trials)
+                            ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
         info = _get_info(eeg, montage, eog)
