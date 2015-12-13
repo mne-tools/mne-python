@@ -19,7 +19,7 @@ from ...externals.six import string_types
 
 def _to_loc(ll):
     # XXX : check
-    if isinstance(ll, float) or len(ll) > 0:
+    if isinstance(ll, (int, float)) or len(ll) > 0:
         return ll
     else:
         return 0.
@@ -325,27 +325,40 @@ class EpochsEEGLAB(_BaseEpochs):
         if events is None and eeg.trials > 1:
             # first extract the events and construct an event_id dict
             event_name, event_latencies, unique_ev = [], [], []
+            ev_idx = 0
             for ep in eeg.epoch:
                 if not isinstance(ep.eventtype, string_types):
                     event_type = '/'.join(ep.eventtype.tolist())
                     event_name.append(event_type)
                     # store latency of only first event
-                    event_latencies.append(ep.eventurevent[0])
+                    event_latencies.append(eeg.event[ev_idx].latency)
+                    ev_idx += len(ep.eventtype)
                     warnings.warn('An epoch has multiple events. '
-                                  'Their latencies will not be stored.')
+                                  'Only the latency of first event will be '
+                                  'retained.')
                 else:
                     event_type = ep.eventtype
                     event_name.append(ep.eventtype)
-                    event_latencies.append(ep.eventurevent)
+                    event_latencies.append(eeg.event[ev_idx].latency)
+                    ev_idx += 1
 
                 if event_type not in unique_ev:
                     unique_ev.append(event_type)
-                event_id = dict((ev, idx) for idx, ev in enumerate(unique_ev))
+
+                # invent event dict but use id > 0 so you know its a trigger
+                event_id = dict((ev, idx + 1) for idx, ev
+                                in enumerate(unique_ev))
             # now fill up the event array
             events = np.zeros((eeg.trials, 3), dtype=int)
-            for idx in range(eeg.trials):
+            for idx in range(0, eeg.trials):
+                if idx == 0:
+                    prev_stim = 0
+                elif (idx > 0 and
+                        event_latencies[idx] - event_latencies[idx - 1] == 1):
+                    prev_stim = event_id[event_name[idx - 1]]
                 events[idx, 0] = event_latencies[idx]
-                events[idx, 1:] = event_id[event_name[idx]]
+                events[idx, 1] = prev_stim
+                events[idx, 2] = event_id[event_name[idx]]
         elif isinstance(events, string_types):
             events = read_events(events)
 
