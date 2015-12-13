@@ -16,7 +16,8 @@ import warnings
 import numpy as np
 
 from ...utils import verbose, logger
-from ..base import _BaseRaw, _check_update_montage, _blk_read_lims
+from ..utils import _blk_read_lims
+from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...filter import resample

@@ -17,7 +17,8 @@ import numpy as np
 from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..base import _BaseRaw, _check_update_montage, _mult_cal_one
+from ..base import _BaseRaw, _check_update_montage
+from ..utils import _mult_cal_one
 
 from ...externals.six import StringIO
 from ...externals.six.moves import configparser

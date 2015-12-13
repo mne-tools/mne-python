@@ -9,7 +9,8 @@ import warnings
 
 import numpy as np
 
-from ..base import _BaseRaw, _check_update_montage, _mult_cal_one
+from ..base import _BaseRaw, _check_update_montage
+from ..utils import _mult_cal_one
 from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...utils import verbose, logger
