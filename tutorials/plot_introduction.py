@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _intro_tutorial:
 
@@ -16,40 +17,44 @@ What you can do with MNE Python
 -------------------------------
 
    - **Raw data visualization** to visualize recordings, can also use
-   *mne_browse_raw* for extended functionality (see :ref:`ch_browse`)
+     *mne_browse_raw* for extended functionality (see :ref:`ch_browse`)
    - **Epoching**: Define epochs, baseline correction, handle conditions etc.
    - **Averaging** to get Evoked data
    - **Compute SSP pojectors** to remove ECG and EOG artifacts
    - **Compute ICA** to remove artifacts or select latent sources.
+   - **Maxwell filtering** to remove environmental noise.
    - **Boundary Element Modeling**: single and three-layer BEM model
      creation and solution computation.
    - **Forward modeling**: BEM computation and mesh creation
-   (see :ref:`ch_forward`)
+     (see :ref:`ch_forward`)
    - **Linear inverse solvers** (dSPM, sLORETA, MNE, LCMV, DICS)
    - **Sparse inverse solvers** (L1/L2 mixed norm MxNE, Gamma Map,
-   Time-Frequency MxNE)
+     Time-Frequency MxNE)
    - **Connectivity estimation** in sensor and source space
    - **Visualization of sensor and source space data**
    - **Time-frequency** analysis with Morlet wavelets (induced power,
-   intertrial coherence, phase lock value) also in the source space
+     intertrial coherence, phase lock value) also in the source space
    - **Spectrum estimation** using multi-taper method
    - **Mixed Source Models** combining cortical and subcortical structures
    - **Dipole Fitting**
    - **Decoding** multivariate pattern analyis of M/EEG topographies
    - **Compute contrasts** between conditions, between sensors, across
-   subjects etc.
+     subjects etc.
    - **Non-parametric statistics** in time, space and frequency
-   (including cluster-level)
+     (including cluster-level)
    - **Scripting** (batch and parallel computing)
 
 What you're not supposed to do with MNE Python
 ----------------------------------------------
 
-    - **Brain and head surface segmentation** for use with BEM models -- use Freesurfer.
+    - **Brain and head surface segmentation** for use with BEM
+      models -- use Freesurfer.
+    - **Raw movement compensation** -- use Elekta Maxfilter™
 
 
-.. note:: Package based on the FIF file format from Neuromag. It can read and
-          convert CTF, BTI/4D, KIT and various EEG formats to FIF.
+.. note:: This package is based on the FIF file format from Neuromag. It
+          can read and convert CTF, BTI/4D, KIT and various EEG formats to
+          FIF.
 
 
 Installation of the required materials

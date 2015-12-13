@@ -78,13 +78,13 @@ Canopy and the Anaconda distributions ship with tested MKL-compiled
 numpy / scipy versions. Depending on the use case and your system
 this may speed up operations by a factor greater than 10.
 
-pylab
-^^^^^
+matplotlib
+^^^^^^^^^^
 
 For the setups listed above we would strongly recommend to use the Qt
 matplotlib backend for fast and correct rendering::
 
-    $ ipython --pylab qt
+    $ ipython --matplotlib=qt
 
 On Linux, for example, QT is the only matplotlib backend for which 3D rendering
 will work correctly. On Mac OS X for other backends certain matplotlib

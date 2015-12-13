@@ -276,7 +276,7 @@ Anaconda is free for academic purposes.
 
 To test that everything works properly, open up IPython::
 
-    $ ipython --pylab qt
+    $ ipython --matplotlib=qt
 
 Now that you have a working Python environment you can install MNE-Python.
 
