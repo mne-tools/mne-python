@@ -322,6 +322,11 @@ class EpochsEEGLAB(_BaseEpochs):
         eeg = io.loadmat(input_fname, struct_as_record=False,
                          squeeze_me=True)['EEG']
 
+        if not ((events is None and event_id is None) or
+                (events is not None and event_id is not None)):
+            raise ValueError('Both `events` and `event_id` must be '
+                             'None or not None')
+
         if events is None and eeg.trials > 1:
             # first extract the events and construct an event_id dict
             event_name, event_latencies, unique_ev = [], [], []
@@ -365,9 +370,6 @@ class EpochsEEGLAB(_BaseEpochs):
         logger.info('Extracting parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
         info = _get_info(eeg, montage)
-
-        if event_id is None:  # convert to int to make typing-checks happy
-            event_id = dict((ev, idx) for idx, ev in enumerate(unique_ev))
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
