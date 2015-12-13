@@ -129,20 +129,25 @@ def _blk_read_lims(start, stop, buf_len):
 def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
                         dtype='<i2', n_bytes=2):
     """Read a chunk of raw data"""
-    nchan = raw.info['nchan']
-    data_offset = raw.info['nchan'] * start * n_bytes
-    data_left = (stop - start) * nchan
-    # Read up to 100 MB of data at a time.
-    blk_size = min(data_left, ((100000000 // n_bytes) // nchan) * nchan)
+    n_channels = raw.info['nchan']
 
+    # data_offset and data_left count data samples (channels x time points),
+    # not bytes.
+    data_offset = n_channels * start * n_bytes
+    data_left = (stop - start) * n_channels
+
+    # Read up to 100 MB of data at a time, block_size is in data samples
+    block_size = ((100e6 // n_bytes) // n_channels) * n_channels
+    block_size = min(data_left, block_size)
     with open(raw._filenames[fi], 'rb', buffering=0) as fid:
         fid.seek(data_offset)
         # extract data in chunks
-        for blk_start in np.arange(0, data_left, blk_size) // nchan:
-            blk_size = min(blk_size, data_left - blk_start * nchan)
-            block = np.fromfile(fid, dtype, blk_size)
-            block = block.reshape(nchan, -1, order='F')
-            blk_stop = blk_start + block.shape[1]
-            data_view = data[:, blk_start:blk_stop]
+        for sample_start in np.arange(0, data_left, block_size) // n_channels:
+
+            count = min(block_size, data_left - sample_start * n_channels)
+            block = np.fromfile(fid, dtype, count)
+            block = block.reshape(n_channels, -1, order='F')
+            n_samples = block.shape[1]
+            sample_stop = sample_start + n_samples
+            data_view = data[:, sample_start:sample_stop]
             _mult_cal_one(data_view, block, idx, cals, mult)
-    return data
