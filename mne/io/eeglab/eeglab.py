@@ -17,6 +17,21 @@ from ...event import read_events
 from ...externals.six import string_types
 
 
+def _check_mat_struct(fname):
+    """Check if the mat struct contains 'EEG'.
+    """
+    from scipy import io
+    mat = io.whosmat(fname, struct_as_record=False,
+                     squeeze_me=True)
+    if 'ALLEEG' in mat[0]:
+        msg = ('Loading an ALLEEG array is not supported. Please contact'
+               'mne-python developers for more information.')
+        raise NotImplementedError(msg)
+    elif 'EEG' not in mat[0]:
+        msg = ('Unknown array in the .set file.')
+        raise ValueError(msg)
+
+
 def _to_loc(ll):
     # XXX : check
     if isinstance(ll, (int, float)) or len(ll) > 0:
@@ -211,6 +226,7 @@ class RawEEGLAB(_BaseRaw):
         """
         from scipy import io
         basedir = op.dirname(input_fname)
+        _check_mat_struct(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
                          squeeze_me=True)['EEG']
         if eeg.trials != 1:
@@ -319,6 +335,7 @@ class EpochsEEGLAB(_BaseEpochs):
                  baseline=None,  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, montage=None, verbose=None):
         from scipy import io
+        _check_mat_struct(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
                          squeeze_me=True)['EEG']
 

@@ -6,6 +6,7 @@ import os.path as op
 
 import warnings
 from nose.tools import assert_raises, assert_equal
+from numpy.testing import assert_array_equal
 
 from mne import write_events
 from mne.io import read_raw_eeglab, read_epochs_eeglab
@@ -15,7 +16,9 @@ from mne.utils import _TempDir, run_tests_if_main
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 raw_fname = op.join(base_dir, 'test_raw.set')
+raw_fname_onefile = op.join(base_dir, 'test_raw_onefile.set')
 epochs_fname = op.join(base_dir, 'test_epochs.set')
+epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile.set')
 montage = op.join(base_dir, 'test_chans.locs')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -25,11 +28,16 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 def test_io_set():
     """Test importing EEGLAB .set files"""
     _test_raw_reader(read_raw_eeglab, input_fname=raw_fname, montage=montage)
+    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
+                     montage=montage)
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         epochs = read_epochs_eeglab(epochs_fname)
     assert_equal(len(w), 3)
+
+    epochs2 = read_epochs_eeglab(epochs_fname_onefile)
+    assert_array_equal(epochs.get_data(), epochs2.get_data())
 
     temp_dir = _TempDir()
     out_fname = op.join(temp_dir, 'test-eve.fif')
