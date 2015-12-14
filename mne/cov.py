@@ -424,7 +424,7 @@ def compute_raw_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     info = pick_info(raw.info, picks)
     idx_by_type = channel_indices_by_type(info)
 
-    # Read data in chuncks
+    # Read data in chunks
     for first in range(start, stop, step):
         last = first + step
         if last >= stop:
