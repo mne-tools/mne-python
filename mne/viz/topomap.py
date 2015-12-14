@@ -1671,7 +1671,7 @@ def _animate(i, ax, ax_line, params):
     times = params['times']
     time_idx = params['frames'][i]
 
-    title = '%s ms' % (times[time_idx] * 1e3)
+    title = '%d ms' % (times[time_idx] * 1e3)
     if params['blit']:
         text = params['text']
     else:
@@ -1788,8 +1788,8 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
 
     if show:
         plt.show()
-        if butterfly:
+        if 'line' in params:
             # Finally remove the vertical line.
-            line = params['line']
-            line.remove()
+            params['line'].remove()
+    fig.set_size_inches(8, 8, forward=True)
     return fig, anim
