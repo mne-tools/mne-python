@@ -8,9 +8,9 @@ Here we describe the data reading and conversion utilities included
 with the MNE software. The cheatsheet below summarizes the different
 file formats supported by MNE software.
 
-===================   ========================   =========  ==============================================================
+===================   ========================   =========  =================================================================
 Datatype              File format                Extension  MNE-Python function
-===================   ========================   =========  ==============================================================
+===================   ========================   =========  =================================================================
 MEG                   Elekta Neuromag            .fif       :func:`mne.io.read_raw_fif`
 MEG                   4-D Neuroimaging / BTI      dir       :func:`mne.io.read_raw_bti`
 MEG                   CTF                         dir       :func:`mne.io.read_raw_ctf`
@@ -19,8 +19,10 @@ EEG                   Brainvision                .vhdr      :func:`mne.io.read_r
 EEG                   European data format       .edf       :func:`mne.io.read_raw_edf`
 EEG                   Biosemi data format        .bdf       :func:`mne.io.read_raw_edf`
 EEG                   EGI simple binary          .egi       :func:`mne.io.read_raw_egi`
-Electrode locations   elc, txt, csd, sfp, htps   Misc       :func:`mne.channels.read_montage`   
-===================   ========================   =========  ==============================================================
+EEG                   EEGLAB                     .set       :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab`
+Electrode locations   elc, txt, csd, sfp, htps   Misc       :func:`mne.channels.read_montage`
+Electrode locations   EEGLAB loc, locs, eloc     Misc       :func:`mne.channels.read_montage`
+===================   ========================   =========  =================================================================
 
 .. note::
     All IO functions in MNE-Python performing reading/conversion of MEG and
@@ -299,7 +301,7 @@ EEGLAB set files (.set)
 =======================
 
 EEGLAB .set files can be read in using :func:`mne.io.read_raw_eeglab`
-and :func:`mne.io.read_epochs_eeglab`.
+and :func:`mne.read_epochs_eeglab`.
 
 Importing EEG data saved in the Tufts University format
 =======================================================

@@ -31,6 +31,7 @@ from .io.base import concatenate_raws
 from .chpi import get_chpi_positions
 from .io.meas_info import create_info
 from .io.kit import read_epochs_kit
+from .io.eeglab import read_epochs_eeglab
 from .bem import (make_sphere_model, make_bem_model, make_bem_solution,
                   read_bem_surfaces, write_bem_surfaces,
                   read_bem_solution, write_bem_solution)

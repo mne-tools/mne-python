@@ -6,10 +6,10 @@ import os.path as op
 
 import warnings
 from nose.tools import assert_raises, assert_equal
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_allclose
 
-from mne import write_events
-from mne.io import read_raw_eeglab, read_epochs_eeglab
+from mne import write_events, read_epochs_eeglab
+from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.utils import _TempDir, run_tests_if_main
@@ -37,7 +37,8 @@ def test_io_set():
     assert_equal(len(w), 3)
 
     epochs2 = read_epochs_eeglab(epochs_fname_onefile)
-    assert_array_equal(epochs.get_data(), epochs2.get_data())
+    assert_allclose(epochs.get_data(), epochs2.get_data(), rtol=1e-5,
+                    atol=1e-5)
 
     temp_dir = _TempDir()
     out_fname = op.join(temp_dir, 'test-eve.fif')
