@@ -58,7 +58,7 @@ def _get_info(eeg, montage, eog=None):
             loc_x = _to_loc(chanloc.X)
             loc_y = _to_loc(chanloc.Y)
             loc_z = _to_loc(chanloc.Z)
-            locs = np.r_[loc_x, loc_y, loc_z]
+            locs = np.r_[-loc_y, loc_x, loc_z]
             if np.unique(locs).size == 1:
                 locs_available = False
                 break

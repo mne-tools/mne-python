@@ -274,7 +274,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         r = np.ones((len(ch_names_), ))
 
         x, y, z = _sphere_to_cartesian(azimuth, elevation, r)
-        pos = np.c_[x, y, z]
+        pos = np.c_[-y, x, z]
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
