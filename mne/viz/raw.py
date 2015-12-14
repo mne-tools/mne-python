@@ -81,7 +81,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None):
+             highpass=None, lowpass=None, filtorder=4, clipping=None,
+             segments=None):
     """Plot raw data
 
     Parameters
@@ -228,6 +229,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     else:
         event_times = event_nums = None
 
+    if segments is None:
+        segments = list()
+    else:
+        segments = np.array(segments)
+
     # reorganize the data in plotting order
     inds = list()
     types = list()
@@ -290,7 +296,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
-                  n_times=n_times, event_times=event_times,
+                  n_times=n_times, event_times=event_times, segments=segments,
                   event_nums=event_nums, clipping=clipping, fig_proj=None)
 
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
@@ -299,6 +305,27 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # plot event_line first so it's in the back
     event_lines = [params['ax'].plot([np.nan], color=event_color[ev_num])[0]
                    for ev_num in sorted(event_color.keys())]
+
+    # segments need to be drawn only once
+    if len(params['segments']) > 0:
+        ylim = params['ax'].get_ylim()
+        sfreq = float(raw.info['sfreq'])
+        starts = segments[:, 0] / sfreq
+        ends = segments[:, 1] / sfreq
+        start_mask = np.logical_and(starts >= raw.times[0],
+                                    starts <= raw.times[-1])
+        end_mask = np.logical_and(ends >= raw.times[0],
+                                  ends <= raw.times[-1])
+        for segment in segments[start_mask]:
+            end = min(segment[1] / sfreq, raw.times[-1])
+            params['ax'].fill_betweenx(ylim, segment[0] / sfreq, end,
+                                       alpha=0.3)
+        for segment in segments[end_mask]:
+            if segment[0] / sfreq > raw.times[0]:
+                continue  # Already drawn
+            params['ax'].fill_betweenx(ylim, raw.times[0],
+                                       segment[1] / sfreq, alpha=0.3)
+
     params['plot_fun'] = partial(_plot_raw_traces, params=params, inds=inds,
                                  color=color, bad_color=bad_color,
                                  event_lines=event_lines,
@@ -668,6 +695,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
             else:
                 line.set_xdata([])
                 line.set_ydata([])
+
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
                           params['times'][0] + params['duration'], False)
