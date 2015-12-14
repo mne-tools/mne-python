@@ -220,13 +220,16 @@ class RawKIT(_BaseRaw):
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
+        # Read up to 100 MB of data at a time.
+        nchan = self._raw_extras[fi]['nchan']
+        data_left = (stop - start) * nchan
+        blk_size = min(data_left, (100000000 // KIT.INT // nchan) * nchan)
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             data_offset = KIT.RAW_OFFSET
             fid.seek(data_offset)
             # data offset info
             data_offset = unpack('i', fid.read(KIT.INT))[0]
-            nchan = self._raw_extras[fi]['nchan']
             buffer_size = stop - start
             count = buffer_size * nchan
             pointer = start * nchan * KIT.SHORT
