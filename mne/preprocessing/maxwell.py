@@ -226,7 +226,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     del raw
     info, times = raw_sss.info, raw_sss.times
     meg_picks, mag_picks, grad_picks, good_picks, coil_scale = \
-        _get_mf_picks(info, int_order, ext_order)
+        _get_mf_picks(info, int_order, ext_order, mag_scale=100.)
 
     #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
@@ -268,7 +268,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
     S_decomp = _info_sss_basis(info, None, origin, int_order, ext_order,
-                               head_frame)
+                               head_frame, coil_scale)
     if calibration is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
         grad_info = pick_info(info, grad_picks)
@@ -284,7 +284,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Translate to destination frame (always use non-fine-cal bases)
     #
     S_recon = _info_sss_basis(info, recon_trans, origin,
-                              int_order, 0, head_frame)
+                              int_order, 0, head_frame, coil_scale)
     if recon_trans is not None:
         # warn if we have translated too far
         diff = 1000 * (info['dev_head_t']['trans'][:3, 3] -
@@ -297,8 +297,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     #
     # Regularization
     #
-    reg_moments, n_use_in = _regularize(
-        regularize, int_order, ext_order, coil_scale, S_decomp)
+    reg_moments, n_use_in = _regularize(regularize, int_order, ext_order,
+                                        S_decomp)
     if n_use_in != n_in:
         S_decomp = S_decomp.take(reg_moments, axis=1)
         S_recon = S_recon.take(reg_moments[:n_use_in], axis=1)
@@ -387,14 +387,13 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
 
 @verbose  # XXX Remove
-def _regularize(regularize, int_order, ext_order, coil_scale, S_decomp,
-                verbose=None):
+def _regularize(regularize, int_order, ext_order, S_decomp, verbose=None):
     """Regularize a decomposition matrix"""
     n_in, n_out = _get_n_moments([int_order, ext_order])
     if regularize is not None:  # regularize='in'
         logger.info('    Computing regularization')
         in_removes, out_removes = _regularize_in(
-            int_order, ext_order, coil_scale, S_decomp)
+            int_order, ext_order, S_decomp)
         logger.info('        Using %s/%s inside and %s/%s outside harmonic '
                     'components' % (n_in - len(in_removes), n_in,
                                     n_out - len(out_removes), n_out))
@@ -408,7 +407,7 @@ def _regularize(regularize, int_order, ext_order, coil_scale, S_decomp,
     return reg_moments, n_use_in
 
 
-def _get_mf_picks(info, int_order, ext_order):
+def _get_mf_picks(info, int_order, ext_order, mag_scale=100.):
     """Helper to pick types for Maxwell filtering"""
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info)
@@ -554,6 +553,14 @@ def _concatenate_sph_coils(coils):
 _mu_0 = 4e-7 * np.pi  # magnetic permeability
 
 
+def _get_coil_scale(coils, mag_scale=100.):
+    """Helper to get the coil_scale for Maxwell filtering"""
+    coil_scale = np.ones((len(coils), 1))
+    coil_scale[np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
+                         for coil in coils])] = mag_scale
+    return coil_scale
+
+
 def _sss_basis_basic(origin, coils, int_order, ext_order, mag_scale=100.,
                      method='standard'):
     """Compute SSS basis using non-optimized (but more readable) algorithms"""
@@ -581,11 +588,7 @@ def _sss_basis_basic(origin, coils, int_order, ext_order, mag_scale=100.,
     S_tot = np.empty((len(coils), n_in + n_out), out_type)
     S_in = S_tot[:, :n_in]
     S_out = S_tot[:, n_in:]
-
-    # Set all magnetometers (with 'coil_class' == 1.0) to be scaled by 100
-    coil_scale = np.ones((len(coils)))
-    coil_scale[np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
-                         for coil in coils])] = mag_scale
+    coil_scale = _get_coil_scale(coils)
 
     # Compute internal/external basis vectors (exclude degree 0; L/RHS Eq. 5)
     for degree in range(1, max(int_order, ext_order) + 1):
@@ -649,7 +652,7 @@ def _sss_basis_basic(origin, coils, int_order, ext_order, mag_scale=100.,
                             -_sh_negate(v, order)
 
     # Scale magnetometers
-    S_tot *= coil_scale[:, np.newaxis]
+    S_tot *= coil_scale
     if method != 'standard':
         # Eventually we could probably refactor this for 2x mem (and maybe CPU)
         # savings by changing how spc/S_tot is assigned above (real only)
@@ -657,7 +660,17 @@ def _sss_basis_basic(origin, coils, int_order, ext_order, mag_scale=100.,
     return S_tot
 
 
-def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
+def _prep_bases(coils, int_order, ext_order):
+    """Helper to prepare for basis computation"""
+    # Get position, normal, weights, and number of integration pts.
+    rmags, cosmags, wcoils, bins = _concatenate_coils(coils)
+    cosmags *= wcoils[:, np.newaxis]
+    n_in, n_out = _get_n_moments([int_order, ext_order])
+    S_tot = np.empty((len(coils), n_in + n_out), np.float64)
+    return rmags, cosmags, bins, len(coils), S_tot, n_in
+
+
+def _sss_basis(origin, coils, int_order, ext_order):
     """Compute SSS basis for given conditions.
 
     Parameters
@@ -673,8 +686,6 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
         Order of the internal multipolar moment space
     ext_order : int
         Order of the external multipolar moment space
-    mag_scale : float
-        Scale factor for magnetometers.
 
     Returns
     -------
@@ -683,30 +694,15 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
 
     Notes
     -----
-    Incorporates magnetometer scaling factor. Does not normalize spaces.
+    Does not incorporate magnetometer scaling factor or normalize spaces.
 
     Adapted from code provided by Jukka Nenonen.
     """
-    # Get position, normal, weights, and number of integration pts.
-    rmags, cosmags, wcoils, bins = _concatenate_coils(coils)
-    rmags -= origin
-    # Convert points to spherical coordinates
-    rad, az, pol = _cart_to_sph(rmags).T
-    cosmags *= wcoils[:, np.newaxis]
-    del wcoils
-    out_type = np.float64
-    n_coils = len(coils)
-
-    # Set up output matrices
-    n_in, n_out = _get_n_moments([int_order, ext_order])
-    S_tot = np.empty((len(coils), n_in + n_out), out_type)
+    rmags, cosmags, bins, n_coils, S_tot, n_in = _prep_bases(
+        coils, int_order, ext_order)
+    rmags = rmags - origin
     S_in = S_tot[:, :n_in]
     S_out = S_tot[:, n_in:]
-
-    # Scale all magnetometers (with `coil_class` == 1.0) by `mag_scale`
-    coil_scale = np.ones(n_coils)
-    coil_scale[np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
-                         for coil in coils])] = mag_scale
 
     # do the heavy lifting
     max_order = max(int_order, ext_order)
@@ -809,9 +805,6 @@ def _sss_basis(origin, coils, int_order, ext_order, mag_scale=100.):
                 S_out[:, idx] = _integrate_points(
                     cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
                     cosmags, bins, n_coils)
-
-    # Scale magnetometers
-    S_tot *= coil_scale[:, np.newaxis]
     return S_tot
 
 
@@ -1358,12 +1351,15 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalances,
 
     # Loop over all coordinate directions desired and create point mags
     S_tot = 0.
+    # These are magnetometers, so use a uniform coil_scale of 100.
+    this_coil_scale = np.array([100.])
     for imb, pt_type in zip(imbalances, pt_types):
         temp_info = deepcopy(info)
         for ch in temp_info['chs']:
             ch['coil_type'] = pt_type
         S_add = _info_sss_basis(temp_info, None, origin,
-                                int_order, ext_order, head_frame)
+                                int_order, ext_order, head_frame,
+                                coil_scale=this_coil_scale)
         # Scale spaces by gradiometer imbalance
         S_add *= imb[:, np.newaxis]
         S_tot += S_add
@@ -1372,7 +1368,7 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalances,
     return S_tot
 
 
-def _regularize_in(int_order, ext_order, coil_scale, S_decomp):
+def _regularize_in(int_order, ext_order, S_decomp):
     """Regularize basis set using idealized SNR measure"""
     n_in, n_out = _get_n_moments([int_order, ext_order])
 
@@ -1505,7 +1501,8 @@ def _compute_sphere_activation_in(degrees):
     return a_power, rho_i
 
 
-def _info_sss_basis(info, trans, origin, int_order, ext_order, head_frame):
+def _info_sss_basis(info, trans, origin, int_order, ext_order, head_frame,
+                    coil_scale=100.):
     """SSS basis using an info structure and dev<->head trans"""
     if trans is not None:
         info = info.copy()
@@ -1513,4 +1510,9 @@ def _info_sss_basis(info, trans, origin, int_order, ext_order, head_frame):
         info['dev_head_t']['trans'] = trans
     coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
                                head_frame=head_frame, verbose=False)[0]
-    return _sss_basis(origin, coils, int_order, ext_order)
+    if not isinstance(coil_scale, np.ndarray):
+        # Scale all magnetometers (with `coil_class` == 1.0) by `mag_scale`
+        coil_scale = _get_coil_scale(coils, coil_scale)
+    S_tot = _sss_basis(origin, coils, int_order, ext_order)
+    S_tot *= coil_scale
+    return S_tot

@@ -21,7 +21,8 @@ from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
                                        _sss_basis_basic, _sh_complex_to_real,
                                        _sh_real_to_complex, _sh_negate,
                                        _bases_complex_to_real, _sss_basis,
-                                       _bases_real_to_complex, _sph_harm)
+                                       _bases_real_to_complex, _sph_harm,
+                                       _get_coil_scale)
 from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, catch_logging,
                        requires_version, object_diff)
@@ -172,6 +173,7 @@ def test_multipolar_bases():
         # Now test our optimized version
         S_tot = _sss_basis_basic(origin, coils, int_order, ext_order)
         S_tot_fast = _sss_basis(origin, coils, int_order, ext_order)
+        S_tot_fast *= _get_coil_scale(coils)
         # there are some sign differences for columns (order/degrees)
         # in here, likely due to Condon-Shortley. Here we use a
         # Magnetometer channel to figure out the flips because the
