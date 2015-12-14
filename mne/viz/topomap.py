@@ -1624,7 +1624,6 @@ def _init_anim(ax, ax_line, ax_cbar, params):
     zi_max = np.max(params['Zis'])
     cont_lims = np.linspace(zi_min, zi_max, 7, endpoint=False)[1:]
     _, pos = _make_image_mask(outlines, pos, res)
-
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
                    'extent': (xmin, xmax, ymin, ymax), 'cmap': cmap,
                    'cont_lims': cont_lims})
@@ -1661,7 +1660,6 @@ def _init_anim(ax, ax_line, ax_cbar, params):
         params['line'], = ax_line.plot([times[0], times[0]],
                                        ax_line.get_ylim(), color='r')
         items.append(params['line'])
-
     params['items'] = tuple(items) + tuple(cont.collections)
     return params['items']
 
@@ -1740,7 +1738,8 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     blit : bool
         Whether to use blit to optimize drawing. In general, it is recommended
         to use blit in combination with ``show=True``. If you intend to save
-        the animation it is better to disable blit. Defaults to True.
+        the animation it is better to disable blit. For MacOSX blit is always
+        disabled. Defaults to True.
     show : bool
         Show figure if True.
 
@@ -1754,6 +1753,7 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     import matplotlib.pyplot as plt
     from matplotlib import animation
 
+    blit = False if plt.get_backend() == 'MacOSX' else True
     picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
                                                              ch_type=ch_type,
                                                              layout=None)
