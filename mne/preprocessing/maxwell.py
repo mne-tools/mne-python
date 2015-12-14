@@ -724,6 +724,8 @@ def _sss_basis_basic(origin, coils, int_order, ext_order, mag_scale=100.,
 
 def _prep_bases(coils, int_order, ext_order):
     """Helper to prepare for basis computation"""
+    if isinstance(coils, tuple):  # done already
+        return coils
     # Get position, normal, weights, and number of integration pts.
     rmags, cosmags, wcoils, bins = _concatenate_coils(coils)
     cosmags *= wcoils[:, np.newaxis]

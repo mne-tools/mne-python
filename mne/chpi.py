@@ -210,23 +210,28 @@ def _get_hpi_info(info):
     return hpi_freqs, hpi_rrs, hpi_pick, hpi_on, pos_order
 
 
-def _magnetic_dipole_objective(x, B, B2, w, coils):
+def _magnetic_dipole_objective(x, B, B2, coils, scale, method):
     """Project data onto right eigenvectors of whitened forward"""
-    fwd = np.dot(_magnetic_dipole_field_vec(x[np.newaxis, :], coils), w.T)
+    if method == 'forward':
+        fwd = _magnetic_dipole_field_vec(x[np.newaxis, :], coils)
+    else:
+        from .preprocessing.maxwell import _sss_basis
+        fwd = _sss_basis(x, coils, 1, 0).T
+    fwd = np.dot(fwd, scale.T)
     one = np.dot(linalg.svd(fwd, full_matrices=False)[2], B)
     one *= one
     Bm2 = one.sum()
     return B2 - Bm2
 
 
-def _fit_magnetic_dipole(B_orig, w, coils, x0):
+def _fit_magnetic_dipole(B_orig, x0, coils, scale, method):
     """Fit a single bit of data (x0 = pos)"""
     from scipy.optimize import fmin_cobyla
-    B = np.dot(w, B_orig)
+    B = np.dot(scale, B_orig)
     B2 = np.dot(B, B)
     objective = partial(_magnetic_dipole_objective, B=B, B2=B2,
-                        w=w, coils=coils)
-    x = fmin_cobyla(objective, x0, (), rhobeg=1e-2, rhoend=1e-4, disp=False)
+                        coils=coils, scale=scale, method=method)
+    x = fmin_cobyla(objective, x0, (), rhobeg=1e-2, rhoend=1e-5, disp=False)
     return x, 1. - objective(x) / B2
 
 
@@ -268,9 +273,10 @@ def _angle_between_quats(x, y):
     return 2 * np.arccos(z0)
 
 
-def _setup_chpi_fits(info, t_window, t_step_min):
+def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
     """Helper to set up cHPI fits"""
     from scipy.spatial.distance import cdist
+    from .preprocessing.maxwell import _prep_bases
     if not (check_version('numpy', '1.7') and check_version('scipy', '0.11')):
         raise RuntimeError('numpy>=1.7 and scipy>=0.11 required')
     hpi_freqs, coil_head_rrs, hpi_pick, hpi_on, order = _get_hpi_info(info)
@@ -300,16 +306,19 @@ def _setup_chpi_fits(info, t_window, t_step_min):
     picks_good = pick_types(info, meg=True, eeg=False)
     picks = np.concatenate([picks_good, [hpi_pick]])
     megchs = [ch for ci, ch in enumerate(info['chs']) if ci in picks_good]
-    coils_dev = _concatenate_coils(_create_meg_coils(megchs, 'normal'))
-
-    cov = make_ad_hoc_cov(info, verbose=False)
-    whitener = _get_whitener_data(info, cov, picks_good, verbose=False)
+    coils = _create_meg_coils(megchs, 'normal')
+    if method == 'forward':
+        coils = _concatenate_coils(coils)
+    else:  # == 'multipole'
+        coils = _prep_bases(coils, 1, 0)
+    scale = make_ad_hoc_cov(info, verbose=False)
+    scale = _get_whitener_data(info, scale, picks_good, verbose=False)
     orig_dev_head_quat = np.concatenate([_rot_to_quat(dev_head_t[:3, :3]),
                                          dev_head_t[:3, 3]])
     dists = cdist(coil_head_rrs, coil_head_rrs)
-    hpi = dict(dists=dists, whitener=whitener, picks=picks, model=model,
+    hpi = dict(dists=dists, scale=scale, picks=picks, model=model,
                inv_model=inv_model, coil_head_rrs=coil_head_rrs,
-               coils_dev=coils_dev, on=hpi_on, n_window=n_window,
+               coils=coils, on=hpi_on, n_window=n_window, method=method,
                n_freqs=n_freqs)
     last = dict(quat=orig_dev_head_quat, coil_head_rrs=coil_head_rrs,
                 coil_dev_rrs=apply_trans(head_dev_t, coil_head_rrs),
@@ -362,7 +371,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     get_chpi_positions
     """
     from scipy.spatial.distance import cdist
-    hpi, last = _setup_chpi_fits(raw.info, t_window, t_step_min)
+    hpi, last = _setup_chpi_fits(raw.info, t_window, t_step_min,
+                                 method='forward')
     fit_starts = np.round(np.arange(0, raw.times[-1], t_step_min) *
                           raw.info['sfreq']).astype(int)
     fit_starts = fit_starts[fit_starts < raw.n_times - hpi['n_window']]
@@ -407,7 +417,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         #
         logger.info('HPI amplitude correlation %s: %s (%s chnls > 0.95)'
                     % (fit_time, g_sin, (g_chan > 0.95).sum()))
-        outs = [_fit_magnetic_dipole(f, hpi['whitener'], hpi['coils_dev'], pos)
+        outs = [_fit_magnetic_dipole(f, pos, hpi['coils'], hpi['scale'],
+                                     hpi['method'])
                 for f, pos in zip(sin_fit, last['coil_dev_rrs'])]
         this_coil_dev_rrs = np.array([o[0] for o in outs])
         g_coils = [o[1] for o in outs]
@@ -442,7 +453,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                                      hpi['coil_head_rrs'][use_mask],
                                      last['quat'])
         if g < gof_limit:
-            logger.info('    Bad coil fit for %s! (t=%7.3f)' % fit_time)
+            logger.info('    Bad coil fit for %s! (g=%7.3f)' % (fit_time, g))
             continue
         this_dev_head_t = np.concatenate(
             (_quat_to_rot(this_quat[:3]),
