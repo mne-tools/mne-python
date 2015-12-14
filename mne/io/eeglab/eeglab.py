@@ -10,7 +10,6 @@ from ...utils import logger, verbose
 from ..utils import _read_segments_file
 from ..meas_info import _empty_info, create_info
 from ..base import _BaseRaw, _check_update_montage
-from ..constants import FIFF
 from ...channels.montage import Montage
 from ...epochs import _BaseEpochs
 from ...event import read_events
@@ -40,7 +39,7 @@ def _to_loc(ll):
         return 0.
 
 
-def _get_info(eeg, montage, eog=None):
+def _get_info(eeg, montage):
     """Get measurement info.
     """
     info = _empty_info(sfreq=eeg.srate)
@@ -77,19 +76,13 @@ def _get_info(eeg, montage, eog=None):
     info['buffer_size_sec'] = 1.  # reasonable default
     # update the info dict
     cal = 1e-6
-    if eog is None:
-        eog = []
     for ch in info['chs']:
         ch['cal'] = cal
-        if ch['ch_name'].startswith('EOG') or ch['ch_name'] in eog:
-            ch['coil_type'] = FIFF.FIFFV_COIL_NONE
-            ch['kind'] = FIFF.FIFFV_EOG_CH
 
     return info
 
 
-def read_raw_eeglab(input_fname, montage=None, eog=None, preload=False,
-                    verbose=None):
+def read_raw_eeglab(input_fname, montage=None, preload=False, verbose=None):
     """Read an EEGLAB .set file
 
     Parameters
@@ -101,10 +94,6 @@ def read_raw_eeglab(input_fname, montage=None, eog=None, preload=False,
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
-    eog : list or tuple
-        Names of channels or list of indices that should be designated
-        EOG channels. If None (default), the channel names beginning with
-        ``EOG`` are used.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -129,8 +118,8 @@ def read_raw_eeglab(input_fname, montage=None, eog=None, preload=False,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawEEGLAB(input_fname=input_fname, montage=montage, eog=eog,
-                     preload=preload, verbose=verbose)
+    return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
+                     verbose=verbose)
 
 
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
@@ -193,10 +182,6 @@ class RawEEGLAB(_BaseRaw):
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
-    eog : list or tuple
-        Names of channels or list of indices that should be designated
-        EOG channels. If None (default), the channel names beginning with
-        ``EOG`` are used.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -220,8 +205,7 @@ class RawEEGLAB(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, montage, eog=None, preload=False,
-                 verbose=None):
+    def __init__(self, input_fname, montage, preload=False, verbose=None):
         """Read EEGLAB .set file.
         """
         from scipy import io
@@ -235,7 +219,7 @@ class RawEEGLAB(_BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        info = _get_info(eeg, montage, eog)
+        info = _get_info(eeg, montage)
         # read the data
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
@@ -262,7 +246,7 @@ class RawEEGLAB(_BaseRaw):
 
 
 class EpochsEEGLAB(_BaseEpochs):
-    """Epochs fr   om EEGLAB .set file
+    """Epochs from EEGLAB .set file
 
     Parameters
     ----------
