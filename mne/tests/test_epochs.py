@@ -517,7 +517,7 @@ def test_read_write_epochs():
 
     evoked_dec = epochs_dec.average()
     assert_allclose(evoked.data[:, epochs_dec._decim_slice],
-                    evoked_dec.data, rtol=1e-12)
+                    evoked_dec.data, rtol=1e-12, atol=1e-17)
 
     n = evoked.data.shape[1]
     n_dec = evoked_dec.data.shape[1]
