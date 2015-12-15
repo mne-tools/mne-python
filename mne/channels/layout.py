@@ -635,7 +635,7 @@ def _auto_topomap_coords(info, picks):
     if np.min(dist) < 1e-10:
         problematic_electrodes = [
             info['ch_names'][elec_i]
-            for elec_i in np.unique(squareform(dist < 1e-10).nonzero()[0])
+            for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]
         ]
 
         raise ValueError('The following electrodes have overlapping positions:'
