@@ -216,9 +216,11 @@ def _magnetic_dipole_objective(x, B, B2, coils, scale, method):
         fwd = _magnetic_dipole_field_vec(x[np.newaxis, :], coils)
     else:
         from .preprocessing.maxwell import _sss_basis
+        # Eventually we can try incorporating external bases here, which
+        # is why the :3 is on the SVD below
         fwd = _sss_basis(x, coils, 1, 0).T
     fwd = np.dot(fwd, scale.T)
-    one = np.dot(linalg.svd(fwd, full_matrices=False)[2], B)
+    one = np.dot(linalg.svd(fwd, full_matrices=False)[2][:3], B)
     one *= one
     Bm2 = one.sum()
     return B2 - Bm2
