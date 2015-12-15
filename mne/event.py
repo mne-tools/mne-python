@@ -729,7 +729,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
     return events
 
 
-def concatenate_events(events, first_samps, last_samps):
+def concatenate_events(events, first_samps, last_samps, adjust_offset=False):
     """Concatenate event lists in a manner compatible with
     concatenate_raws
 
@@ -742,12 +742,14 @@ def concatenate_events(events, first_samps, last_samps):
     events : list of arrays
         List of event arrays, typically each extracted from a
         corresponding raw file that is being concatenated.
-
     first_samps : list or array of int
         First sample numbers of the raw files concatenated.
-
     last_samps : list or array of int
         Last sample numbers of the raw files concatenated.
+    adjust_offset : bool
+        If True, also adjust the second column by the same amount as the
+        first column (i.e., if the second column is being used as event
+        offset instead of previous stim channel value).
 
     Returns
     -------
@@ -764,12 +766,13 @@ def concatenate_events(events, first_samps, last_samps):
     last_samps = np.array(last_samps)
     n_samps = np.cumsum(last_samps - first_samps + 1)
     events_out = events[0]
+    adjust_idx = slice(0, 2) if adjust_offset else 0
     for e, f, n in zip(events[1:], first_samps[1:], n_samps[:-1]):
         # remove any skip since it doesn't exist in concatenated files
         e2 = e.copy()
-        e2[:, 0] -= f
+        e2[:, adjust_idx] -= f
         # add offset due to previous files, plus original file offset
-        e2[:, 0] += n + first_samps[0]
+        e2[:, adjust_idx] += n + first_samps[0]
         events_out = np.concatenate((events_out, e2), axis=0)
 
     return events_out

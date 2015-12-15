@@ -18,6 +18,7 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
+from ..fixes import partial
 from ..utils import logger, verbose
 from ..externals.six import string_types
 
@@ -96,8 +97,11 @@ class ProjMixin(object):
                                  'already been applied')
             self.info['projs'] = projs
         else:
-            self.info['projs'].extend(projs)
-
+            # let's make sure we don't duplicate projectors
+            for proj in projs:
+                if not any(_proj_equal(proj, p, approx=True)
+                           for p in self.info['projs']):
+                    self.info['projs'].append(proj)
         return self
 
     def apply_proj(self):
@@ -240,9 +244,12 @@ class ProjMixin(object):
         return fig
 
 
-def _proj_equal(a, b):
+def _proj_equal(a, b, approx=False):
     """ Test if two projectors are equal """
-
+    if approx:
+        comp = partial(np.allclose, atol=0, rtol=1e-6)
+    else:
+        comp = np.array_equal
     equal = (a['active'] == b['active'] and
              a['kind'] == b['kind'] and
              a['desc'] == b['desc'] and
@@ -250,7 +257,7 @@ def _proj_equal(a, b):
              a['data']['row_names'] == b['data']['row_names'] and
              a['data']['ncol'] == b['data']['ncol'] and
              a['data']['nrow'] == b['data']['nrow'] and
-             np.all(a['data']['data'] == b['data']['data']))
+             comp(a['data']['data'], b['data']['data']))
     return equal
 
 

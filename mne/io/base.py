@@ -285,6 +285,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # most classes only store real data, they won't need anything special
         return self._dtype_
 
+    @property
+    def first_samps(self):
+        return tuple(self._first_samps)
+
+    @property
+    def last_samps(self):
+        return tuple(self._last_samps)
+
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
                       projector=None, verbose=None):
         """Read a chunk of raw data

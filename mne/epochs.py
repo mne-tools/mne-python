@@ -1506,7 +1506,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts)
 
-    def equalize_event_counts(self, event_ids, method='mintime', copy=True):
+    @verbose
+    def equalize_event_counts(self, event_ids, method='mintime', copy=True,
+                              verbose=None):
         """Equalize the number of trials in each condition
 
         It tries to make the remaining epochs occurring as close as possible in
@@ -1539,6 +1541,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         copy : bool
             If True, a copy of epochs will be returned. Otherwise, the
             function will operate in-place.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to raw.verbose.
 
         Returns
         -------
@@ -1622,6 +1627,33 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         epochs.drop_epochs(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices
+
+    @verbose
+    def drop_bad_segments(self, bad_segments, orig_sfreq, verbose=None):
+        """Drop epochs that fall within bad segment windows
+
+        Parameters
+        ----------
+        bad_segments : ndarray, shape (n_bad_segments, 3)
+            The bad segments to drop. The first column is the onset
+            (in samples) of the bad window, and the last column is the
+            offset of the bad window.
+        orig_sfreq : float
+            The sample rate of the raw data. If epochs have not been
+            decimated, this is the same as ``epochs.info['sfreq']``.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to raw.verbose.
+        """
+        bad_starts = bad_segments[:, 0]
+        bad_ends = bad_segments[:, 1]
+        sfreq = float(orig_sfreq)
+        epoch_starts = self.events[:, 0] + sfreq * self.tmin
+        epoch_ends = self.events[:, 0] + sfreq * self.tmax
+        drops = [np.logical_and(ep_st <= bad_ends, ep_ed >= bad_starts).any()
+                 for ep_st, ep_ed in zip(epoch_starts, epoch_ends)]
+        drops = np.where(drops)[0]
+        self.drop_epochs(drops, 'BAD_SEGMENT')
 
 
 class Epochs(_BaseEpochs):
@@ -1981,7 +2013,8 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     return epochs
 
 
-def equalize_epoch_counts(epochs_list, method='mintime'):
+@verbose
+def equalize_epoch_counts(epochs_list, method='mintime', verbose=None):
     """Equalize the number of trials in multiple Epoch instances
 
     It tries to make the remaining epochs occurring as close as possible in
@@ -2008,6 +2041,9 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
         If 'truncate', events will be truncated from the end of each event
         list. If 'mintime', timing differences between each event list will be
         minimized.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
     """
     if not all(isinstance(e, _BaseEpochs) for e in epochs_list):
         raise ValueError('All inputs must be Epochs instances')
