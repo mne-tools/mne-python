@@ -2707,6 +2707,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     n_in, n_out = _get_n_moments([int_order, ext_order])
     S_decomp = 0.  # this will end up being a weighted average
     last_trans = None
+    decomp_coil_scale = coil_scale[good_picks]
     for ei, epoch in enumerate(epochs):
         event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
         use_idx = np.where(t <= event_time)[0]
@@ -2730,7 +2731,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         epoch = epoch.copy()  # because we operate inplace
         if not reuse:
             S = _info_sss_basis(info_from, trans, origin,
-                                int_order, ext_order, True)
+                                int_order, ext_order, True,
+                                coil_scale=decomp_coil_scale)
             # Get the weight from the un-regularized version
             weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
             # XXX Eventually we could do cross-talk and fine-cal here
