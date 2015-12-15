@@ -638,9 +638,9 @@ def _auto_topomap_coords(info, picks):
             for elec_i in np.unique(squareform(dist < 1e-10).nonzero()[0])
         ]
 
-        raise ValueError('The following electrodes have the same position:\n' +
-                         '    ' + str(problematic_electrodes) + '\nThis causes'
-                         ' problems during visualization.')
+        raise ValueError('The following electrodes have overlapping positions:'
+                         '\n    ' + str(problematic_electrodes) + '\nThis '
+                         'causes problems during visualization.')
 
     x, y, z = locs3d.T
     az, el, r = _cartesian_to_sphere(x, y, z)
