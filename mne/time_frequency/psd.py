@@ -113,15 +113,19 @@ def _check_nfft(n, n_fft, n_overlap):
 
 
 @verbose
-def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
-                       tmax=None, n_fft=256, n_overlap=0, proj=False,
-                       n_jobs=1, verbose=None):
+def compute_epochs_psd(epochs, picks=None, Fs=None, fmin=0, fmax=np.inf,
+                       tmin=None, tmax=None, n_fft=256, n_overlap=0,
+                       proj=False, method='welch',  mt_bandwidth=None,
+                       mt_adaptive=False, mt_low_bias=True,
+                       mt_normalization='length', n_jobs=1, verbose=None):
     """Compute power spectral density with average periodograms.
 
     Parameters
     ----------
-    epochs : instance of Epochs
-        The epochs.
+    epochs : instance of Epochs, array with epochs shape
+        The epochs. If not an Epochs object, it must be a numpy array
+        with shape (n_epochs, n_channels, n_times). Sampling frequency must
+        also be supplied.
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
@@ -143,6 +147,8 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
         to be <= n_fft.
     proj : bool
         Apply SSP projection vectors.
+    method : 'welch' | 'multitaper'
+        The method to use in calculating the PSD.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -156,44 +162,68 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
         The frequencies.
     """
     from scipy.signal import welch
-    n_fft = int(n_fft)
-    Fs = epochs.info['sfreq']
-    if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
-    n_fft, n_overlap = _check_nfft(len(epochs.times), n_fft, n_overlap)
+    from .multitaper import multitaper_psd
+    from ..epochs import _BaseEpochs
+    if isinstance(epochs, _BaseEpochs):
+        Fs = epochs.info['sfreq']
+        if picks is None:
+            picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
+                               exclude='bads')
 
-    if tmin is not None or tmax is not None:
-        time_mask = _time_mask(epochs.times, tmin, tmax)
-    else:
-        time_mask = slice(None)
-
-    data = epochs.get_data()[:, picks][..., time_mask]
-    if proj:
-        proj, _ = make_projector_info(epochs.info)
-        if picks is not None:
-            data = np.dot(proj[picks][:, picks], data)
+        if tmin is not None or tmax is not None:
+            time_mask = _time_mask(epochs.times, tmin, tmax)
         else:
-            data = np.dot(proj, data)
+            time_mask = slice(None)
 
-    logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
+        data = epochs.get_data()[:, picks][..., time_mask]
+        if proj:
+            proj, _ = make_projector_info(epochs.info)
+            if picks is not None:
+                data = np.dot(proj[picks][:, picks], data)
+            else:
+                data = np.dot(proj, data)
+    elif Fs is None:
+        raise ValueError('Must give sampling frequency (Fs) if array provided')
+    else:
+        data = np.atleast_3d(epochs)
 
-    freqs = np.arange(n_fft // 2 + 1, dtype=float) * (Fs / n_fft)
-    freq_mask = (freqs >= fmin) & (freqs <= fmax)
-    freqs = freqs[freq_mask]
-    psds = np.empty(data.shape[:-1] + (freqs.size,))
+    n_epochs, n_channels, n_times = data.shape
+    if method == 'welch':
+        n_fft, n_overlap = _check_nfft(n_times, n_fft, n_overlap)
+        n_fft = int(n_fft)
+        logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
 
-    parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
-                                                verbose=verbose)
+        freqs = np.arange(n_fft // 2 + 1, dtype=float) * (Fs / n_fft)
+        freq_mask = (freqs >= fmin) & (freqs <= fmax)
+        freqs = freqs[freq_mask]
+        psds = np.empty(data.shape[:-1] + (freqs.size,))
 
-    for idx, fepochs in zip(np.array_split(np.arange(len(data)), n_jobs),
-                            parallel(my_pwelch(epoch, noverlap=n_overlap,
-                                               nfft=n_fft, fs=Fs,
-                                               freq_mask=freq_mask,
-                                               welch_fun=welch)
-                                     for epoch in np.array_split(data,
-                                                                 n_jobs))):
-        for i_epoch, f_epoch in zip(idx, fepochs):
-            psds[i_epoch, :, :] = f_epoch
+        parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
+                                                    verbose=verbose)
+
+        for idx, fepochs in zip(np.array_split(np.arange(len(data)), n_jobs),
+                                parallel(my_pwelch(epoch, noverlap=n_overlap,
+                                                   nfft=n_fft, fs=Fs,
+                                                   freq_mask=freq_mask,
+                                                   welch_fun=welch)
+                                         for epoch in np.array_split(data,
+                                                                     n_jobs))):
+            for i_epoch, f_epoch in zip(idx, fepochs):
+                psds[i_epoch, :, :] = f_epoch
+    elif method == 'multitaper':
+        data = data.reshape(n_epochs * n_channels, n_times)
+
+        psds, freqs = multitaper_psd(x=data, sfreq=Fs, fmin=fmin, fmax=fmax,
+                                     bandwidth=mt_bandwidth,
+                                     adaptive=mt_adaptive,
+                                     low_bias=mt_low_bias,
+                                     n_jobs=n_jobs,
+                                     normalization=mt_normalization,
+                                     verbose=verbose)
+
+        n_freqs = psds.shape[1]
+        psds = psds.reshape(n_epochs, n_channels, n_freqs)
+    else:
+        raise ValueError("Unsupported PSD method: {0}".format(method))
 
     return psds, freqs

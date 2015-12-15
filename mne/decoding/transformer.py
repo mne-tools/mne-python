@@ -11,7 +11,7 @@ from .mixin import TransformerMixin
 from .. import pick_types
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
-from ..time_frequency import multitaper_psd
+from ..time_frequency import compute_epochs_psd
 from ..externals import six
 from ..utils import _check_type_picks
 
@@ -248,6 +248,12 @@ class EpochsVectorizer(TransformerMixin):
 class PSDEstimator(TransformerMixin):
     """Compute power spectrum density (PSD) using a multi-taper method
 
+    This structures data so that it can be easily incorporated into
+    scikit-learn pipelines. It relies heavily on the multitaper_psd
+    function found in the time_frequency module. Running the transform
+    method will create attributes for the estimated psd as well as the
+    frequencies used, on top of return these values.
+
     Parameters
     ----------
     sfreq : float
@@ -272,6 +278,10 @@ class PSDEstimator(TransformerMixin):
         the signal (as in nitime).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    multitaper_psd, compute_epochs_psd, compute_raw_psd
     """
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
                  adaptive=False, low_bias=True, n_jobs=1,
@@ -286,7 +296,7 @@ class PSDEstimator(TransformerMixin):
         self.verbose = verbose
         self.normalization = normalization
 
-    def fit(self, epochs_data, y):
+    def fit(self, epochs_data, y=None):
         """Compute power spectrum density (PSD) using a multi-taper method
 
         Parameters
@@ -328,22 +338,16 @@ class PSDEstimator(TransformerMixin):
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
+        psd, freqs = compute_epochs_psd(epochs_data, Fs=self.sfreq,
+                                        fmin=self.fmin, fmax=self.fmax,
+                                        mt_bandwidth=self.bandwidth,
+                                        mt_adaptive=self.adaptive,
+                                        mt_low_bias=self.low_bias,
+                                        mt_normalization=self.normalization,
+                                        n_jobs=self.n_jobs,
+                                        verbose=self.verbose)
 
-        epochs_data = np.atleast_3d(epochs_data)
-
-        n_epochs, n_channels, n_times = epochs_data.shape
-        X = epochs_data.reshape(n_epochs * n_channels, n_times)
-
-        psd, _ = multitaper_psd(x=X, sfreq=self.sfreq, fmin=self.fmin,
-                                fmax=self.fmax, bandwidth=self.bandwidth,
-                                adaptive=self.adaptive, low_bias=self.low_bias,
-                                n_jobs=self.n_jobs,
-                                normalization=self.normalization,
-                                verbose=self.verbose)
-
-        _, n_freqs = psd.shape
-        psd = psd.reshape(n_epochs, n_channels, n_freqs)
-
+        self.freqs_ = freqs
         return psd
 
 
