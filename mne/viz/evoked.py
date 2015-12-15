@@ -913,7 +913,7 @@ def joint_plot(evoked, title='', picks=None, exclude=None, show=True,
     topomap_args : dict
         A dict of `kwargs` that are forwarded to evoked.plot_topomap
         to style the topoplots. `axes` and `show` are ignored. If
-        `times` is not in this dict, peaks are automatically detected.
+        `times` is not in this dict, automatic peak detection is used.
 
     Returns
     -------
