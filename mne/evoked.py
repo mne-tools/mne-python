@@ -780,7 +780,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            exclude=exclude, show=show, ts_args=ts_args,
                            topomap_args=topomap_args)
 
-    def animate(self, ch_type, times=None, frame_rate=10, butterfly=False,
+    def animate(self, ch_type, times=None, frame_rate=None, butterfly=False,
                 blit=True):
         """Make animation of evoked data as topomap timeseries.
 
@@ -791,8 +791,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         times : array of floats | None
             The time points to plot. If None, 10 evenly spaced samples are
             calculated over the evoked time series. Defaults to None.
-        frame_rate : int
-            Frame rate for the animation in Hz. Defaults to 10.
+        frame_rate : int | None
+            Frame rate for the animation in Hz. If None,
+            frame rate = sfreq / 10. Defaults to None.
         butterfly : bool
             Whether to plot the data as butterfly plot under the topomap.
             Defaults to False.

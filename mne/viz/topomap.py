@@ -1717,7 +1717,7 @@ def _pause_anim(event, params):
     params['pause'] ^= True
 
 
-def topomap_animation(evoked, ch_type, times=None, frame_rate=10,
+def topomap_animation(evoked, ch_type, times=None, frame_rate=None,
                       butterfly=False, blit=True):
     """Make animation of evoked data as topomap timeseries.
 
@@ -1730,8 +1730,9 @@ def topomap_animation(evoked, ch_type, times=None, frame_rate=10,
     times : array of floats | None
         The time points to plot. If None, 10 evenly spaced samples are
         calculated over the evoked time series. Defaults to None.
-    frame_rate : int
-        Frame rate for the animation in Hz. Defaults to 10.
+    frame_rate : int | None
+        Frame rate for the animation in Hz. If None, frame rate = sfreq / 10.
+        Defaults to None.
     butterfly : bool
         Whether to plot the data as butterfly plot under the topomap.
         Defaults to False.
@@ -1789,11 +1790,13 @@ def topomap_animation(evoked, ch_type, times=None, frame_rate=10,
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
     pause_func = partial(_pause_anim, params=params)
     fig.canvas.mpl_connect('button_press_event', pause_func)
-    interval = 1000 / frame_rate
+    if frame_rate is None:
+        frame_rate = evoked.info['sfreq'] / 10.
+    interval = 1000 / frame_rate  # interval is in ms
     anim = animation.FuncAnimation(fig, animate_func, init_func=init_func,
                                    frames=len(frames), interval=interval,
                                    blit=blit)
-    fig.mne_animation = anim
+    fig.mne_animation = anim  # to make sure anim is not garbage collected
     plt.show()
     if 'line' in params:
         # Finally remove the vertical line so it does not appear in saved fig.
