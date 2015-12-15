@@ -16,7 +16,7 @@ from mne import compute_raw_covariance, pick_types
 from mne.forward import _prep_meg_channels
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
-from mne.io import Raw, proc_history, read_info
+from mne.io import Raw, proc_history, read_info, read_raw_bti, read_raw_kit
 from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
                                        _sss_basis_basic, _sh_complex_to_real,
                                        _sh_real_to_complex, _sh_negate,
@@ -85,6 +85,54 @@ bads = ['MEG0912', 'MEG1722', 'MEG2213', 'MEG0132', 'MEG1312', 'MEG0432',
         'MEG1713', 'MEG0422', 'MEG0932', 'MEG1622', 'MEG1343', 'MEG0943',
         'MEG0643', 'MEG0143', 'MEG2142', 'MEG0813', 'MEG2143', 'MEG1323',
         'MEG0522', 'MEG1123', 'MEG0423', 'MEG2122', 'MEG2532', 'MEG0812']
+
+
+def _assert_n_free(raw_sss, lower, upper=None):
+    """Helper to check the DOF"""
+    upper = lower if upper is None else upper
+    n_free = raw_sss.info['proc_history'][0]['max_info']['sss_info']['nfree']
+    assert_true(lower <= n_free <= upper,
+                'nfree fail: %s <= %s <= %s' % (lower, n_free, upper))
+
+
+@slow_test
+def test_other_systems():
+    """Test Maxwell filtering on KIT, BTI, and CTF files
+    """
+    io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
+
+    # KIT
+    kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
+    sqd_path = op.join(kit_dir, 'test.sqd')
+    mrk_path = op.join(kit_dir, 'test_mrk.sqd')
+    elp_path = op.join(kit_dir, 'test_elp.txt')
+    hsp_path = op.join(kit_dir, 'test_hsp.txt')
+    raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+    assert_raises(RuntimeError, maxwell_filter, raw_kit)
+    raw_sss = maxwell_filter(raw_kit, ignore_ref=True)
+    _assert_n_free(raw_sss, 25, 35)  # reg is brutal for KIT!
+    raw_sss = maxwell_filter(raw_kit, ignore_ref=True, regularize=None)
+    _assert_n_free(raw_sss, 80)
+
+    # BTi
+    bti_dir = op.join(io_dir, 'bti', 'tests', 'data')
+    bti_pdf = op.join(bti_dir, 'test_pdf_linux')
+    bti_config = op.join(bti_dir, 'test_config_linux')
+    bti_hs = op.join(bti_dir, 'test_hs_linux')
+    raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs)
+    raw_sss = maxwell_filter(raw_bti)
+    _assert_n_free(raw_sss, 70)
+    raw_sss = maxwell_filter(raw_bti, ignore_ref=True)
+    _assert_n_free(raw_sss, 70)
+
+    # CTF
+    fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+    raw_ctf = Raw(fname_ctf_raw, compensation=2)
+    assert_raises(RuntimeError, maxwell_filter, raw_ctf)
+    raw_ctf = Raw(fname_ctf_raw)
+    assert_raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
+    raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))
+    _assert_n_free(raw_sss, 68)
 
 
 def test_spherical_harmonics():
@@ -235,8 +283,9 @@ def test_basic():
 
     # Degenerate cases
     raw_bad = raw.copy()
-    raw_bad.info['comps'] = [0]
+    raw_bad.comp = True
     assert_raises(RuntimeError, maxwell_filter, raw_bad)
+    del raw_bad
     assert_raises(ValueError, maxwell_filter, raw, coord_frame='foo')
     assert_raises(ValueError, maxwell_filter, raw, origin='foo')
     assert_raises(ValueError, maxwell_filter, raw, origin=[0] * 4)

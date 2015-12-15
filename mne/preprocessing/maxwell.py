@@ -38,7 +38,7 @@ from ..channels.channels import _get_T1T2_mag_inds
 def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,
                    st_correlation=0.98, coord_frame='head', destination=None,
-                   regularize='in', verbose=None):
+                   regularize='in', ignore_ref=False, verbose=None):
     """Apply Maxwell filter to data using multipole moments
 
     .. warning:: Automatic bad channel detection is not currently implemented.
@@ -99,6 +99,10 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         Basis regularization type, must be "in" or None.
         "in" is the same algorithm as the "-regularize in" option in
         MaxFilter™.
+    ignore_ref : bool
+        If True, do not include reference channels in compensation. This
+        option should be True for KIT files, since Maxwell filtering
+        with reference channels is not currently supported.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -142,10 +146,20 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
         * Double floating point precision
         * Handling of 3D (in additon to 1D) fine calibration files
-        * Processing of data from (un-compensated) non-Elekta systems
+        * **Experimental** processing of data from (un-compensated)
+          non-Elekta systems
         * Automated processing of split (-1.fif) and concatenated files
         * Epoch-based movement compensation as described in [1]_ through
-          :func:`mne.epochs.average_movements`.
+          :func:`mne.epochs.average_movements`
+
+    Use of Maxwell filtering routines with non-Elekta systems is currently
+    **experimental**. Worse results for non-Elekta systems are expected due
+    to (at least):
+
+        * Missing fine-calibration and cross-talk cancellation data for
+          other systems.
+        * Processing with reference sensors has not been vetted.
+        * Regularization of components may not work well for all systems.
 
     .. note:: Various Maxwell filtering algorithm components are covered by
               patents owned by Elekta Oy, Helsinki, Finland.
@@ -226,7 +240,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     del raw
     info, times = raw_sss.info, raw_sss.times
     meg_picks, mag_picks, grad_picks, good_picks, coil_scale = \
-        _get_mf_picks(info, int_order, ext_order, mag_scale=100.)
+        _get_mf_picks(info, int_order, ext_order, ignore_ref, mag_scale=100.)
 
     #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
@@ -268,12 +282,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
     S_decomp = _info_sss_basis(info, None, origin, int_order, ext_order,
-                               head_frame, coil_scale)
+                               head_frame, ignore_ref, coil_scale)
     if calibration is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
         grad_info = pick_info(info, grad_picks)
         S_fine = _sss_basis_point(origin, grad_info, int_order, ext_order,
-                                  grad_imbalances, head_frame=head_frame)
+                                  grad_imbalances, ignore_ref, head_frame)
         # Add point like magnetometer data to bases.
         S_decomp[grad_picks, :] += S_fine
         # Scale magnetometers by calibration coefficient
@@ -283,8 +297,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     #
     # Translate to destination frame (always use non-fine-cal bases)
     #
-    S_recon = _info_sss_basis(info, recon_trans, origin,
-                              int_order, 0, head_frame, coil_scale)
+    S_recon = _info_sss_basis(info, recon_trans, origin, int_order, 0,
+                              head_frame, ignore_ref, coil_scale)
     if recon_trans is not None:
         # warn if we have translated too far
         diff = 1000 * (info['dev_head_t']['trans'][:3, 3] -
@@ -407,7 +421,8 @@ def _regularize(regularize, int_order, ext_order, S_decomp, verbose=None):
     return reg_moments, n_use_in
 
 
-def _get_mf_picks(info, int_order, ext_order, mag_scale=100.):
+def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
+                  mag_scale=100.):
     """Helper to pick types for Maxwell filtering"""
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info)
@@ -416,20 +431,25 @@ def _get_mf_picks(info, int_order, ext_order, mag_scale=100.):
                        ' SSS, it is advised to replace coil types using '
                        ' `fix_mag_coil_types`.' % len(mag_inds_T1T2))
     # Get indices of channels to use in multipolar moment calculation
-    meg_picks = pick_types(info, meg=True, exclude=[])
-    good_picks = pick_types(info, meg=True, exclude='bads')
+    ref = not ignore_ref
+    meg_picks = pick_types(info, meg=True, ref_meg=ref, exclude=[])
+    meg_info = pick_info(info, meg_picks)
+    del info
+    good_picks = pick_types(meg_info, meg=True, ref_meg=ref, exclude='bads')
     n_bases = _get_n_moments([int_order, ext_order]).sum()
     if n_bases > len(good_picks):
         raise ValueError('Number of requested bases (%s) exceeds number of '
                          'good sensors (%s)' % (str(n_bases), len(good_picks)))
-    recons = [ch for ch in info['bads']
-              if info['ch_names'].index(ch) in meg_picks]
+    recons = [ch for ch in meg_info['bads']]
     if len(recons) > 0:
         logger.info('    Bad MEG channels being reconstructed: %s' % recons)
     else:
         logger.info('    No bad MEG channels')
-    mag_picks = pick_types(info, meg='mag', exclude=[])
-    grad_picks = pick_types(info, meg='grad', exclude=[])
+    ref_meg = 'mag' if not ignore_ref else False
+    mag_picks = pick_types(meg_info, meg='mag', ref_meg=ref_meg, exclude=[])
+    ref_meg = 'grad' if not ignore_ref else False
+    grad_picks = pick_types(meg_info, meg='grad', ref_meg=ref_meg, exclude=[])
+    assert len(mag_picks) + len(grad_picks) == len(meg_info['ch_names'])
     # Magnetometers are scaled by 100 to improve numerical stability
     coil_scale = np.ones((len(meg_picks), 1))
     coil_scale[mag_picks] = 100.
@@ -447,9 +467,14 @@ def _check_usable(inst):
     """Helper to ensure our data are clean"""
     if inst.proj:
         raise RuntimeError('Projectors cannot be applied to data.')
-    if len(inst.info.get('comps', [])) > 0:
-        raise RuntimeError('Maxwell filter cannot be done on compensated '
-                           'channels.')
+    if hasattr(inst, 'comp'):
+        if inst.comp is not None:
+            raise RuntimeError('Maxwell filter cannot be done on compensated '
+                               'channels.')
+    else:
+        if len(inst.info['comps']) > 0:  # more conservative check
+            raise RuntimeError('Maxwell filter cannot be done on data that '
+                               'might have been compensated.')
 
 
 def _col_norm_pinv(x):
@@ -1333,7 +1358,7 @@ def _update_sensor_geometry(info, fine_cal):
 
 
 def _sss_basis_point(origin, info, int_order, ext_order, imbalances,
-                     head_frame=True):
+                     ignore_ref=False, head_frame=True):
     """Compute multipolar moments for point-like magnetometers (in fine cal)"""
 
     # Construct 'coils' with r, weights, normal vecs, # integration pts, and
@@ -1359,7 +1384,7 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalances,
             ch['coil_type'] = pt_type
         S_add = _info_sss_basis(temp_info, None, origin,
                                 int_order, ext_order, head_frame,
-                                coil_scale=this_coil_scale)
+                                ignore_ref, this_coil_scale)
         # Scale spaces by gradiometer imbalance
         S_add *= imb[:, np.newaxis]
         S_tot += S_add
@@ -1502,14 +1527,26 @@ def _compute_sphere_activation_in(degrees):
 
 
 def _info_sss_basis(info, trans, origin, int_order, ext_order, head_frame,
-                    coil_scale=100.):
+                    ignore_ref=False, coil_scale=100.):
     """SSS basis using an info structure and dev<->head trans"""
     if trans is not None:
         info = info.copy()
         info['dev_head_t'] = info['dev_head_t'].copy()
         info['dev_head_t']['trans'] = trans
-    coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
-                               head_frame=head_frame, verbose=False)[0]
+    coils, comp_coils = _prep_meg_channels(
+        info, accurate=True, elekta_defs=True, head_frame=head_frame,
+        ignore_ref=ignore_ref, verbose=False)[:2]
+    if len(comp_coils) > 0:
+        meg_picks = pick_types(info, meg=True, ref_meg=False, exclude=[])
+        ref_picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
+        inserts = np.searchsorted(meg_picks, ref_picks)
+        # len(inserts) == len(comp_coils)
+        for idx, comp_coil in zip(inserts[::-1], comp_coils[::-1]):
+            coils.insert(idx, comp_coil)
+        # Now we have:
+        # [c['chname'] for c in coils] ==
+        # [info['ch_names'][ii]
+        #  for ii in pick_types(info, meg=True, ref_meg=True)]
     if not isinstance(coil_scale, np.ndarray):
         # Scale all magnetometers (with `coil_class` == 1.0) by `mag_scale`
         coil_scale = _get_coil_scale(coils, coil_scale)

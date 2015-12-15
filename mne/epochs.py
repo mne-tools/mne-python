@@ -2605,7 +2605,7 @@ def concatenate_epochs(epochs_list):
 @verbose
 def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
                       weight_all=True, int_order=8, ext_order=3,
-                      return_mapping=False, verbose=None):
+                      ignore_ref=False, return_mapping=False, verbose=None):
     """Average data using Maxwell filtering, transforming using head positions
 
     Parameters
@@ -2639,6 +2639,10 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         Basis regularization type, must be "in" or None.
         See :func:`mne.preprocessing.maxwell_filter` for details.
         Regularization is chosen based only on the destination position.
+    ignore_ref : bool
+        If True, do not include reference channels in compensation. This
+        option should be True for KIT files, since Maxwell filtering
+        with reference channels is not currently supported.
     return_mapping : bool
         If True, return the mapping matrix.
     verbose : bool, str, int, or None
@@ -2692,7 +2696,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     logger.info('Aligning and averaging up to %s epochs'
                 % (len(epochs.events)))
     meg_picks, _, _, good_picks, coil_scale = \
-        _get_mf_picks(epochs.info, int_order, ext_order)
+        _get_mf_picks(epochs.info, int_order, ext_order, ignore_ref)
     n_channels, n_times = len(epochs.ch_names), len(epochs.times)
     other_picks = np.setdiff1d(np.arange(n_channels), meg_picks)
     data = np.zeros((n_channels, n_times))

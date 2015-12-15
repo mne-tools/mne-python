@@ -149,6 +149,8 @@ def test_average_movements():
     ts -= 10.
     assert_raises(TypeError, average_movements, 'foo', pos=pos)
     assert_raises(RuntimeError, average_movements, epochs_proj, pos=pos)  # prj
+    epochs.info['comps'].append([0])
+    assert_raises(RuntimeError, average_movements, epochs, pos=pos)
 
 
 def test_reject():
