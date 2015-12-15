@@ -1640,7 +1640,8 @@ def _init_anim(ax, ax_line, ax_cbar, params):
                              clip_on=True,
                              transform=ax.transData)
     im.set_clip_path(patch_)
-    text = ax.text(0.45, 0.95, '', transform=ax.transAxes, va='center')
+    text = ax.text(0.55, 0.95, '', transform=ax.transAxes, va='center',
+                   ha='right')
     params['text'] = text
     items = [im, text]
     for col in cont.collections:
@@ -1671,12 +1672,12 @@ def _animate(i, ax, ax_line, params):
     times = params['times']
     time_idx = params['frames'][i]
 
-    title = '%d ms' % (times[time_idx] * 1e3)
+    title = '%6.0f ms' % (times[time_idx] * 1e3)
     if params['blit']:
         text = params['text']
     else:
         ax.cla()  # Clear old contours.
-        text = ax.text(0.45, 1.15, '', transform=ax.transAxes, va='center')
+        text = ax.text(0.45, 1.15, '', transform=ax.transAxes)
     _hide_frame(ax)
     text.set_text(title)
 
@@ -1716,8 +1717,8 @@ def _pause_anim(event, params):
     params['pause'] ^= True
 
 
-def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
-                      blit=True, show=True):
+def topomap_animation(evoked, ch_type, times=None, frame_rate=10,
+                      butterfly=False, blit=True):
     """Make animation of evoked data as topomap timeseries.
 
     Parameters
@@ -1726,12 +1727,11 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
         The evoked data.
     ch_type : str
         Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
-    frames : int | list of ints
-        If int, the number of frames to animate. If list of ints, the indices
-        to plot in the animation. Defaults to 5.
-    interval : int
-        The time interval before drawing a new frame as milliseconds.
-        Defaults to 100.
+    times : array of floats | None
+        The time points to plot. If None, 10 evenly spaced samples are
+        calculated over the evoked time series. Defaults to None.
+    frame_rate : int
+        Frame rate for the animation in Hz. Defaults to 10.
     butterfly : bool
         Whether to plot the data as butterfly plot under the topomap.
         Defaults to False.
@@ -1740,8 +1740,6 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
         to use blit in combination with ``show=True``. If you intend to save
         the animation it is better to disable blit. For MacOSX blit is always
         disabled. Defaults to True.
-    show : bool
-        Show figure if True.
 
     Returns
     -------
@@ -1752,6 +1750,14 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     """
     import matplotlib.pyplot as plt
     from matplotlib import animation
+    if times is None:
+        times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+    times = np.array(times)
+
+    if times.ndim != 1:
+        raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
+
+    frames = [np.where(evoked.times >= t)[0][0] for t in times]
 
     blit = False if plt.get_backend() == 'MacOSX' else True
     picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
@@ -1767,14 +1773,15 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
                    1. - offset], xlim=(-1, 1), ylim=(-1, 1))
     if butterfly:
-        ax_line = plt.axes([0.2, 0.05, 0.6, 0.1], xlim=(times[0], times[-1]))
+        ax_line = plt.axes([0.2, 0.05, 0.6, 0.1], xlim=(evoked.times[0],
+                                                        evoked.times[-1]))
     else:
         ax_line = None
     if isinstance(frames, int):
         frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
 
-    params = {'data': data, 'pos': pos, 'times': times, 'contours': 6,
+    params = {'data': data, 'pos': pos, 'times': evoked.times,
               'frames': frames, 'butterfly': butterfly, 'blit': blit,
               'pause': False}
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
@@ -1782,14 +1789,14 @@ def topomap_animation(evoked, ch_type, frames=5, interval=100, butterfly=False,
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
     pause_func = partial(_pause_anim, params=params)
     fig.canvas.mpl_connect('button_press_event', pause_func)
+    interval = 1000 / frame_rate
     anim = animation.FuncAnimation(fig, animate_func, init_func=init_func,
                                    frames=len(frames), interval=interval,
                                    blit=blit)
 
-    if show:
-        plt.show()
-        if 'line' in params:
-            # Finally remove the vertical line.
-            params['line'].remove()
-    fig.set_size_inches(8, 8, forward=True)
+    plt.show()
+    if 'line' in params:
+        # Finally remove the vertical line so it does not appear in saved fig.
+        params['line'].remove()
+    fig.set_size_inches(8, 8, forward=True)  # work around for mpl bug
     return fig, anim
