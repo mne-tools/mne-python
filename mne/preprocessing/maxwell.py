@@ -38,7 +38,8 @@ from ..channels.channels import _get_T1T2_mag_inds
 def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,
                    st_correlation=0.98, coord_frame='head', destination=None,
-                   regularize='in', ignore_ref=False, verbose=None):
+                   regularize='in', ignore_ref=False, bad_condition='error',
+                   verbose=None):
     """Apply Maxwell filter to data using multipole moments
 
     .. warning:: Automatic bad channel detection is not currently implemented.
@@ -103,6 +104,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since Maxwell filtering
         with reference channels is not currently supported.
+    bad_condition : str
+        How to deal with ill-conditioned SSS matrices. Can be "error"
+        (default), "warning", or "ignore".
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -232,6 +236,10 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         st_correlation = float(st_correlation)
         if not 0. < st_correlation <= 1:
             raise ValueError('st_correlation must be between 0. and 1.')
+    if not isinstance(bad_condition, string_types) or \
+            bad_condition not in ['error', 'warning', 'ignore']:
+        raise ValueError('bad_condition must be "error", "warning", or '
+                         '"ignore", not %s' % bad_condition)
 
     # Now we can actually get moving
 
@@ -322,7 +330,15 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     #
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
-    pS_decomp_good = _col_norm_pinv(S_decomp.copy())
+    pS_decomp_good, sing = _col_norm_pinv(S_decomp.copy())
+    cond = sing[0] / sing[-1]
+    logger.debug('    Decomposition matrix condition: %0.1f' % cond)
+    if bad_condition != 'ignore' and cond >= 1000.:
+        msg = 'Matrix is badly conditioned: %0.0f >= 1000' % cond
+        if bad_condition == 'error':
+            raise RuntimeError(msg)
+        else:  # condition == 'warning':
+            logger.warning(msg)
 
     # Build in our data scaling here
     pS_decomp_good *= coil_scale[good_picks].T
@@ -400,24 +416,28 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     return raw_sss
 
 
-@verbose  # XXX Remove
 def _regularize(regularize, int_order, ext_order, S_decomp, verbose=None):
     """Regularize a decomposition matrix"""
+    # ALWAYS regularize the out components according to norm, since
+    # gradiometer-only setups (e.g., KIT) can have zero first-order
+    # components
     n_in, n_out = _get_n_moments([int_order, ext_order])
     if regularize is not None:  # regularize='in'
         logger.info('    Computing regularization')
         in_removes, out_removes = _regularize_in(
             int_order, ext_order, S_decomp)
-        logger.info('        Using %s/%s inside and %s/%s outside harmonic '
-                    'components' % (n_in - len(in_removes), n_in,
-                                    n_out - len(out_removes), n_out))
-        reg_in_moments = np.setdiff1d(np.arange(n_in), in_removes)
-        n_use_in = len(reg_in_moments)
-        reg_out_moments = np.arange(n_in, n_in + n_out)
-        reg_moments = np.concatenate((reg_in_moments, reg_out_moments))
     else:
-        n_use_in = n_in
-        reg_moments = slice(None, None, None)
+        in_removes = []
+        out_removes = _regularize_out(int_order, ext_order, S_decomp)
+    reg_in_moments = np.setdiff1d(np.arange(n_in), in_removes)
+    reg_out_moments = np.setdiff1d(np.arange(n_in, n_in + n_out),
+                                   out_removes)
+    n_use_in = len(reg_in_moments)
+    n_use_out = len(reg_out_moments)
+    if regularize is not None or n_use_out != n_out:
+        logger.info('        Using %s/%s inside and %s/%s outside harmonic '
+                    'components' % (n_use_in, n_in, n_use_out, n_out))
+    reg_moments = np.concatenate((reg_in_moments, reg_out_moments))
     return reg_moments, n_use_in
 
 
@@ -487,7 +507,7 @@ def _col_norm_pinv(x):
     u, s, v = linalg.svd(x, full_matrices=False, overwrite_a=True,
                          **check_disable)
     v /= norm
-    return np.dot(v.T * 1. / s, u.T)
+    return np.dot(v.T * 1. / s, u.T), s
 
 
 def _sq(x):
@@ -1393,6 +1413,14 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalances,
     return S_tot
 
 
+def _regularize_out(int_order, ext_order, S_decomp):
+    """Helper to regularize out components based on norm"""
+    n_in, n_out = _get_n_moments([int_order, ext_order])
+    norms = np.sum(S_decomp[:, n_in:] * S_decomp[:, n_in:], axis=0)
+    out_removes = np.where(norms < np.median(norms[3:]) * 1e-20)[0] + n_in
+    return list(out_removes)
+
+
 def _regularize_in(int_order, ext_order, S_decomp):
     """Regularize basis set using idealized SNR measure"""
     n_in, n_out = _get_n_moments([int_order, ext_order])
@@ -1406,7 +1434,9 @@ def _regularize_in(int_order, ext_order, S_decomp):
 
     I_tots = np.empty(n_in)
     in_keepers = list(range(n_in))
-    out_keepers = list(range(n_in, n_in + n_out))
+    out_removes = _regularize_out(int_order, ext_order, S_decomp)
+    out_keepers = list(np.setdiff1d(np.arange(n_in, n_in + n_out),
+                                    out_removes))
     remove_order = []
     S_decomp = S_decomp.copy()
     use_norm = np.sqrt(np.sum(S_decomp * S_decomp, axis=0))
@@ -1479,7 +1509,7 @@ def _regularize_in(int_order, ext_order, S_decomp):
                 '(%0.1f%% of peak %0.1f)'
                 % (I_tots[lim_idx], 100 * I_tots[lim_idx] / max_info,
                    max_info))
-    return in_removes, list()
+    return in_removes, out_removes
 
 
 def _compute_sphere_activation_in(degrees):

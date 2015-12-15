@@ -4,7 +4,6 @@
 
 import os.path as op
 from copy import deepcopy
-import warnings
 
 import numpy as np
 from nose.tools import assert_raises, assert_true
@@ -17,7 +16,7 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, _TempDir, slow_test
+from mne.utils import run_tests_if_main, _TempDir, slow_test, catch_logging
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
                      _check_surface_size, _bem_find_surface)
@@ -270,12 +269,31 @@ def test_fit_sphere_to_headshape():
         d['r'] -= center / 1000.
         d['r'] *= big_rad / rad
         d['r'] += center / 1000.
-    with warnings.catch_warnings(record=True) as w:
-        r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds)
-    assert_equal(len(w), 1)
-    assert_true(str(w[0].message).startswith('Estimated head size'))
+    with catch_logging() as log_file:
+        r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds,
+                                            verbose='warning')
+    log_file = log_file.getvalue().strip()
+    assert_equal(len(log_file.split('\n')), 1)
+    assert_true(log_file.startswith('Estimated head size'))
     assert_allclose(oh, center, atol=1e-3)
     assert_allclose(r, big_rad, atol=1e-3)
+    del info_big
+
+    # Test offcenter
+    dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA)
+    info_shift = deepcopy(info)
+    shift_center = np.array([0., -30, 0.])
+    for d in info_shift['dig']:
+        d['r'] -= center / 1000.
+        d['r'] += shift_center / 1000.
+    with catch_logging() as log_file:
+        r, oh, od = fit_sphere_to_headshape(info_shift, dig_kinds=dig_kinds,
+                                            verbose='warning')
+    log_file = log_file.getvalue().strip()
+    assert_equal(len(log_file.split('\n')), 1)
+    assert_true('from head frame origin' in log_file)
+    assert_allclose(oh, shift_center, atol=1e-3)
+    assert_allclose(r, rad, atol=1e-3)
 
 
 run_tests_if_main()

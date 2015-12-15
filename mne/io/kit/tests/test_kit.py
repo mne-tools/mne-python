@@ -13,9 +13,9 @@ from nose.tools import assert_raises, assert_true
 import scipy.io
 
 from mne import pick_types, Epochs, find_events, read_events
+from mne.tests.common import assert_dig_allclose
 from mne.utils import run_tests_if_main
-from mne.io import Raw
-from mne.io import read_raw_kit, read_epochs_kit
+from mne.io import Raw, read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
 from mne.io.tests.test_raw import _test_raw_reader
 
@@ -138,6 +138,6 @@ def test_ch_loc():
     # test when more than one marker file provided
     mrks = [mrk_path, mrk2_path, mrk3_path]
     read_raw_kit(sqd_path, mrks, elp_path, hsp_path, preload=False)
-
+    assert_dig_allclose(raw_py.info, raw_bin.info)
 
 run_tests_if_main()

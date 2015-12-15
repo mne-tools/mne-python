@@ -96,9 +96,10 @@ def _assert_n_free(raw_sss, lower, upper=None):
 
 
 @slow_test
-def test_other_systems():
+def test_aaother_systems():
     """Test Maxwell filtering on KIT, BTI, and CTF files
     """
+    # XXX remove "aa" from start once debugging is done...
     io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 
     # KIT
@@ -109,17 +110,42 @@ def test_other_systems():
     hsp_path = op.join(kit_dir, 'test_hsp.txt')
     raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
     assert_raises(RuntimeError, maxwell_filter, raw_kit)
-    raw_sss = maxwell_filter(raw_kit, ignore_ref=True)
-    _assert_n_free(raw_sss, 25, 35)  # reg is brutal for KIT!
-    raw_sss = maxwell_filter(raw_kit, ignore_ref=True, regularize=None)
+    raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
+                             ignore_ref=True)
+    _assert_n_free(raw_sss, 65)
+    # XXX this KIT origin fit is terrible! Need to fix it before release :(
+    with catch_logging() as log_file:
+        assert_raises(RuntimeError, maxwell_filter, raw_kit,
+                      ignore_ref=True, regularize=None)  # bad condition
+        raw_sss = maxwell_filter(raw_kit, origin='auto',
+                                 ignore_ref=True, bad_condition='warning')
+    log_file = log_file.getvalue()
+    assert_true('badly conditioned' in log_file)
+    assert_true('more than 20 mm from' in log_file)
+    _assert_n_free(raw_sss, 28)  # bad origin == brutal reg
+    # Let's set the origin
+    with catch_logging() as log_file:
+        raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
+                                 ignore_ref=True, bad_condition='warning',
+                                 regularize=None)
+    log_file = log_file.getvalue()
+    assert_true('badly conditioned' in log_file)
     _assert_n_free(raw_sss, 80)
+    # Now with reg
+    with catch_logging() as log_file:
+        raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
+                                 ignore_ref=True)
+    log_file = log_file.getvalue()
+    assert_true('badly conditioned' not in log_file)
+    _assert_n_free(raw_sss, 65)
 
     # BTi
     bti_dir = op.join(io_dir, 'bti', 'tests', 'data')
     bti_pdf = op.join(bti_dir, 'test_pdf_linux')
     bti_config = op.join(bti_dir, 'test_config_linux')
     bti_hs = op.join(bti_dir, 'test_hs_linux')
-    raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs)
+    raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False,
+                           verbose='error')
     raw_sss = maxwell_filter(raw_bti)
     _assert_n_free(raw_sss, 70)
     raw_sss = maxwell_filter(raw_bti, ignore_ref=True)
@@ -252,7 +278,8 @@ def test_basic():
     assert_equal(_get_n_moments([int_order, ext_order]).sum(), nbases)
 
     # Test SSS computation at the standard head origin
-    raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None)
+    raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None,
+                             bad_condition='ignore')
     assert_meg_snr(raw_sss, Raw(sss_std_fname), 200., 1000.)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert_equal(len(py_cal), 0)
@@ -263,13 +290,15 @@ def test_basic():
     assert_raises(RuntimeError, maxwell_filter, raw_sss)
 
     # Test SSS computation at non-standard head origin
-    raw_sss = maxwell_filter(raw, origin=[0., 0.02, 0.02], regularize=None)
+    raw_sss = maxwell_filter(raw, origin=[0., 0.02, 0.02], regularize=None,
+                             bad_condition='ignore')
     assert_meg_snr(raw_sss, Raw(sss_nonstd_fname), 250., 700.)
 
     # Test SSS computation at device origin
     sss_erm_std = Raw(sss_erm_std_fname)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg',
-                             origin=mf_meg_origin, regularize=None)
+                             origin=mf_meg_origin, regularize=None,
+                             bad_condition='ignore')
     assert_meg_snr(raw_sss, sss_erm_std, 100., 900.)
     for key in ('job', 'frame'):
         vals = [x.info['proc_history'][0]['max_info']['sss_info'][key]
@@ -312,7 +341,8 @@ def test_maxwell_filter_additional():
     raw.load_data()
     raw.pick_types(meg=True, eeg=False)
     int_order = 8
-    raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None)
+    raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None,
+                             bad_condition='ignore')
 
     # Test io on processed data
     tempdir = _TempDir()
@@ -344,7 +374,8 @@ def test_bads_reconstruction():
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
     raw.info['bads'] = bads
-    raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None)
+    raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None,
+                             bad_condition='ignore')
     assert_meg_snr(raw_sss, Raw(sss_bad_recon_fname), 300.)
 
 
@@ -379,10 +410,12 @@ def test_spatiotemporal_maxwell():
         if st_duration == 10.:
             raw_tsss = maxwell_filter(raw.crop(0, st_duration),
                                       origin=mf_head_origin,
-                                      st_duration=st_duration, regularize=None)
+                                      st_duration=st_duration, regularize=None,
+                                      bad_condition='ignore')
         else:
             raw_tsss = maxwell_filter(raw, st_duration=st_duration,
-                                      origin=mf_head_origin, regularize=None)
+                                      origin=mf_head_origin, regularize=None,
+                                      bad_condition='ignore')
         assert_meg_snr(raw_tsss, tsss_bench, tol)
         py_st = raw_tsss.info['proc_history'][0]['max_info']['max_st']
         assert_true(len(py_st) > 0)
@@ -405,7 +438,8 @@ def test_maxwell_filter_fine_calibration():
 
     # Test 1D SSS fine calibration
     raw_sss = maxwell_filter(raw, calibration=fine_cal_fname,
-                             origin=mf_head_origin, regularize=None)
+                             origin=mf_head_origin, regularize=None,
+                             bad_condition='ignore')
     assert_meg_snr(raw_sss, sss_fine_cal, 70, 500)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert_true(py_cal is not None)
@@ -420,7 +454,8 @@ def test_maxwell_filter_fine_calibration():
     # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
     # very low SNR as proc differs, eventually we should add a better test
     raw_sss_3D = maxwell_filter(raw, calibration=fine_cal_fname_3d,
-                                origin=mf_head_origin, regularize=None)
+                                origin=mf_head_origin, regularize=None,
+                                bad_condition='ignore')
     assert_meg_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.)
 
 
@@ -428,7 +463,6 @@ def test_maxwell_filter_fine_calibration():
 @testing.requires_testing_data
 def test_maxwell_filter_regularization():
     """Test Maxwell filter regularization"""
-
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     min_tols = (100., 2.6, 1.0)
     med_tols = (1000., 21.4, 3.7)
@@ -472,7 +506,8 @@ def test_cross_talk():
     raw.info['bads'] = bads
     sss_ctc = Raw(sss_ctc_fname)
     raw_sss = maxwell_filter(raw, cross_talk=ctc_fname,
-                             origin=mf_head_origin, regularize=None)
+                             origin=mf_head_origin, regularize=None,
+                             bad_condition='ignore')
     assert_meg_snr(raw_sss, sss_ctc, 275.)
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
     assert_true(len(py_ctc) > 0)
@@ -490,18 +525,21 @@ def test_head_translation():
         raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
     # First try with an unchanged destination
     raw_sss = maxwell_filter(raw, destination=raw_fname,
-                             origin=mf_head_origin, regularize=None)
+                             origin=mf_head_origin, regularize=None,
+                             bad_condition='ignore')
     assert_meg_snr(raw_sss, Raw(sss_std_fname).crop(0., 1., False), 200.)
     # Now with default
     with catch_logging() as log:
         raw_sss = maxwell_filter(raw, destination=mf_head_origin,
-                                 origin=mf_head_origin, regularize=None)
+                                 origin=mf_head_origin, regularize=None,
+                                 bad_condition='ignore')
     assert_true('over 25 mm' in log.getvalue())
     assert_meg_snr(raw_sss, Raw(sss_trans_default_fname), 125.)
     # Now to sample's head pos
     with catch_logging() as log:
         raw_sss = maxwell_filter(raw, destination=sample_fname,
-                                 origin=mf_head_origin, regularize=None)
+                                 origin=mf_head_origin, regularize=None,
+                                 bad_condition='ignore')
     assert_true('= 25.6 mm' in log.getvalue())
     assert_meg_snr(raw_sss, Raw(sss_trans_sample_fname), 350.)
     # Degenerate cases

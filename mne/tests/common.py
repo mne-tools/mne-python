@@ -3,10 +3,11 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_equal
 
 from .. import pick_types, Evoked
 from ..io import _BaseRaw
+from ..bem import fit_sphere_to_headshape
 
 
 def _get_data(x, ch_idx):
@@ -46,3 +47,17 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., msg=None):
     snr = np.median(snrs)
     assert_true(snr >= med_tol, 'SNR median %0.2f < %0.2f%s'
                 % (snr, med_tol, msg))
+
+
+def assert_dig_allclose(info_py, info_bin):
+    # test dig positions
+    dig_py = info_py['dig']
+    dig_bin = info_bin['dig']
+    assert_equal(len(dig_py), len(dig_bin))
+    for d_py, d_bin in zip(dig_py, dig_bin):
+        raise RuntimeError
+    R_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(info_bin)
+    R_py, o_head_py, o_dev_py = fit_sphere_to_headshape(info_py)
+    assert_allclose(R_py, R_bin)
+    assert_allclose(o_dev_py, o_dev_bin)
+    assert_allclose(o_head_py, o_head_bin)
