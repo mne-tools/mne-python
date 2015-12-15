@@ -114,15 +114,15 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, n_epochs, desc_prefix,
             logger.info("Adding projection: %s" % this_desc)
             proj = Projection(active=False, data=proj_data,
                               desc=this_desc, kind=1)
+            proj.explained_variance_ = var
             projs.append(proj)
-            exp_var[this_desc] = var
 
-    return projs, exp_var
+    return projs
 
 
 @verbose
 def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
-                        desc_prefix=None, explained_variance, verbose=None):
+                        desc_prefix=None, verbose=None):
     """Compute SSP (spatial space projection) vectors on Epochs
 
     Parameters
@@ -140,9 +140,6 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
         the event_id, tmin, and tmax.
-    explained_variance : bool
-        If True, this will return the percentage of explained variance in each
-        of the selected principal components.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -150,9 +147,6 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     -------
     projs: list
         List of projection vectors
-    explained_variance: dict (optional)
-        A dict of principal components and the percentages of explained
-        variance. This is only returned if explained_variance is True.
 
     See Also
     --------
@@ -169,12 +163,8 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         event_id = 'Multiple-events'
     if desc_prefix is None:
         desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
-    if not explained_variance:
-        return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, n_epochs,
-                             desc_prefix)[0]
-    else:
-        return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, n_epochs,
-                             desc_prefix)
+    return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, n_epochs,
+                         desc_prefix)
 
 
 def _compute_cov_epochs(epochs, n_jobs):
@@ -206,9 +196,6 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2,
         Number of vectors for magnetometers
     n_eeg : int
         Number of vectors for EEG channels
-    explained_variance : bool
-        If True, this will return the percentage of explained variance in each
-        of the selected principal components.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -216,9 +203,6 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2,
     -------
     projs : list
         List of projection vectors
-    explained_variance: dict (optional)
-        A dict of principal components and the percentages of explained
-        variance. This is only returned if explained_variance is True.
 
     See Also
     --------
@@ -227,12 +211,8 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2,
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
     n_epochs = 1
     desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
-    if not explained_variance:
-        return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, n_epochs,
-                             desc_prefix)[0]
-    else:
-        return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, n_epochs,
-                             desc_prefix)
+    return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, n_epochs,
+                         desc_prefix)
 
 
 @verbose
@@ -265,9 +245,6 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         Epoch flat configuration (see Epochs).
     n_jobs : int
         Number of jobs to use to compute covariance.
-    explained_variance : bool
-        If True, this will return the percentage of explained variance in each
-        of the selected principal components.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -275,9 +252,6 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     -------
     projs: list
         List of projection vectors
-    explained_variance: dict (optional)
-        A dict of principal components and the percentages of explained
-        variance. This is only returned if explained_variance is True.
 
     See Also
     --------
@@ -310,8 +284,6 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
     projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, n_epochs,
                           desc_prefix)
-    if not explained_variance:
-        projs = projs[0]
     return projs
 
 
