@@ -77,7 +77,7 @@ def _pick_bad_channels(event, params):
     _plot_update_raw_proj(params, None)
 
 
-def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
+def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
@@ -96,7 +96,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     start : float
         Initial time to show (can be changed dynamically once plotted).
     n_channels : int
-        Number of channels to plot at once.
+        Number of channels to plot at once. Defaults to 20.
     bgcolor : color object
         Color of the background.
     color : dict | color object | None
