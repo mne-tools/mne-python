@@ -157,7 +157,7 @@ def _triage_meg_pick(ch, meg):
 def _check_meg_type(meg, allow_auto=False):
     """Helper to ensure a valid meg type"""
     if isinstance(meg, string_types):
-        allowed_types = ['grad', 'mag']
+        allowed_types = ['grad', 'mag', 'planar1', 'planar2']
         allowed_types += ['auto'] if allow_auto else []
         if meg not in allowed_types:
             raise ValueError('meg value must be one of %s or bool, not %s'
@@ -191,7 +191,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include EMG channels.
     ref_meg: bool | str
         If True include CTF / 4D reference channels. If 'auto', the reference
-        channels are only included if compensations are present.
+        channels are only included if compensations are present. Can also be
+        the string options from `meg`.
     misc : bool
         If True include miscellaneous analog channels.
     resp : bool
