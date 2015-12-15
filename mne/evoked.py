@@ -780,20 +780,19 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            exclude=exclude, show=show, ts_args=ts_args,
                            topomap_args=topomap_args)
 
-    def animate(self, ch_type, frames=5, interval=100, butterfly=False,
-                blit=True, show=True):
+    def animate(self, ch_type, times=None, frame_rate=10, butterfly=False,
+                blit=True):
         """Make animation of evoked data as topomap timeseries.
 
         Parameters
         ----------
         ch_type : str
             Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
-        frames : int | list of ints
-            If int, the number of frames to animate. If list of ints, the
-            indices to plot in the animation. Defaults to 5.
-        interval : int
-            The time interval before drawing a new frame as milliseconds.
-            Defaults to 100.
+        times : array of floats | None
+            The time points to plot. If None, 10 evenly spaced samples are
+            calculated over the evoked time series. Defaults to None.
+        frame_rate : int
+            Frame rate for the animation in Hz. Defaults to 10.
         butterfly : bool
             Whether to plot the data as butterfly plot under the topomap.
             Defaults to False.
@@ -802,8 +801,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             recommended to use blit in combination with ``show=True``. If you
             intend to save the animation it is better to disable blit.
             Defaults to True.
-        show : bool
-            Show figure if True.
 
         Returns
         -------
@@ -812,9 +809,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         anim : instance of matplotlib FuncAnimation
             Animation of the topomap.
         """
-        return animate_evoked(self, ch_type=ch_type, frames=frames,
-                              interval=interval, butterfly=butterfly,
-                              blit=blit, show=show)
+        return animate_evoked(self, ch_type=ch_type, times=times,
+                              frame_rate=frame_rate, butterfly=butterfly,
+                              blit=blit)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields in mag/grad
