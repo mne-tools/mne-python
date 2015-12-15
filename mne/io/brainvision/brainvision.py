@@ -195,7 +195,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     for info in items:
         mtype, mdesc, onset, duration = info.split(',')[:4]
         onset = int(onset)
-        duration = (int(duration) if duration.isdigit() else 0)
+        duration = (int(duration) if duration.isdigit() else 1)
         try:
             trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
         except IndexError:
