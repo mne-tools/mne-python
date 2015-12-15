@@ -540,7 +540,7 @@ def _set_montage(info, montage):
             not_found_names = [info['ch_names'][ch] for ch in not_found]
             warnings.warn('The following EEG sensors did not have a position '
                           'specified in the selected montage: ' +
-                          str(not_found_names) +'. Their position has been '
+                          str(not_found_names) + '. Their position has been '
                           'left untouched.')
 
     elif isinstance(montage, DigMontage):

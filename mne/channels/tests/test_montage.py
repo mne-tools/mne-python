@@ -146,6 +146,7 @@ def test_montage():
         _set_montage(info, montage)
         assert_true(len(w) == 1)
 
+
 def test_read_dig_montage():
     """Test read_dig_montage"""
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
