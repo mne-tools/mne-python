@@ -1803,7 +1803,7 @@ def topomap_animation(evoked, ch_type, times=None, frame_rate=10,
     anim = animation.FuncAnimation(fig, animate_func, init_func=init_func,
                                    frames=len(frames), interval=interval,
                                    blit=blit)
-
+    fig.mne_animation = anim
     plt.show()
     if 'line' in params:
         # Finally remove the vertical line so it does not appear in saved fig.
