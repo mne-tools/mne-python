@@ -44,14 +44,14 @@ def test_gamma_map():
     assert_array_almost_equal(stc.times, evoked.times, 5)
     biggest = np.argsort(np.sum(stc.data ** 2, axis=1))[-5:]
     biggest = np.concatenate(stc.vertices)[biggest]
-    assert_true(96397 in biggest, biggest)
+    assert_true(96397 in biggest, str(biggest))
 
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
                     xyz_same_gamma=False, update_mode=1, verbose=False)
     assert_array_almost_equal(stc.times, evoked.times, 5)
     biggest = np.argsort(np.sum(stc.data ** 2, axis=1))[-5:]
     biggest = np.concatenate(stc.vertices)[biggest]
-    assert_true(82010 in biggest, biggest)
+    assert_true(82010 in biggest, str(biggest))
 
     # force fixed orientation
     stc, res = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
@@ -60,7 +60,7 @@ def test_gamma_map():
     assert_array_almost_equal(stc.times, evoked.times, 5)
     biggest = np.argsort(np.sum(stc.data ** 2, axis=1))[-5:]
     biggest = np.concatenate(stc.vertices)[biggest]
-    assert_true(83398 in biggest, biggest)
+    assert_true(83398 in biggest, str(biggest))
     assert_array_almost_equal(evoked.times, res.times)
 
 
