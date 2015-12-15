@@ -3,8 +3,9 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import warnings
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_true
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_almost_equal,
@@ -138,6 +139,12 @@ def test_montage():
     assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, evoked.info['ch_names'])
 
+    # Warning should be raised when some EEG are not specified in the montage
+    with warnings.catch_warnings(record=True) as w:
+        info = create_info(montage.ch_names + ['foo', 'bar'], 1e3,
+                           ['eeg'] * (len(montage.ch_names) + 2))
+        _set_montage(info, montage)
+        assert_true(len(w) == 1)
 
 def test_read_dig_montage():
     """Test read_dig_montage"""
