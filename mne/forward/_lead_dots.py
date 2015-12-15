@@ -11,7 +11,7 @@ import numpy as np
 from numpy.polynomial import legendre
 
 from ..parallel import parallel_func
-from ..utils import logger, _get_extra_data_path
+from ..utils import logger, verbose, _get_extra_data_path
 
 
 ##############################################################################
@@ -48,8 +48,9 @@ def _get_legen_der(xx, n_coeff=100):
     return coeffs
 
 
+@verbose
 def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
-                     n_interp=20000, force_calc=False):
+                     n_interp=20000, force_calc=False, verbose=None):
     """Return a (generated) LUT of Legendre (derivative) polynomial coeffs"""
     if n_interp % 2 != 0:
         raise RuntimeError('n_interp must be even')
@@ -140,7 +141,8 @@ def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
     coeffs = lut_fun(ctheta)
     betans = np.cumprod(np.tile(beta[:, np.newaxis], (1, n_fact.shape[0])),
                         axis=1)
-    s0 = np.dot(coeffs * betans, n_fact)  # == weighted sum across cols
+    coeffs *= betans
+    s0 = np.dot(coeffs, n_fact)  # == weighted sum across cols
     return s0
 
 
@@ -173,20 +175,25 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     #  * sums[:, 2]    n/((2n+1)(n+1)) beta^(n+1) P_n'
     #  * sums[:, 3]    n/((2n+1)(n+1)) beta^(n+1) P_n''
     coeffs = lut_fun(ctheta)
-    beta = (np.cumprod(np.tile(beta[:, np.newaxis], (1, n_fact.shape[0])),
-                       axis=1) * beta[:, np.newaxis])
+    bbeta = np.cumprod(np.tile(beta[np.newaxis], (n_fact.shape[0], 1)),
+                       axis=0)
+    bbeta *= beta
     # This is equivalent, but slower:
-    # sums = np.sum(beta[:, :, np.newaxis] * n_fact * coeffs, axis=1)
+    # sums = np.sum(bbeta[:, :, np.newaxis].T * n_fact * coeffs, axis=1)
     # sums = np.rollaxis(sums, 2)
-    sums = np.einsum('ij,jk,ijk->ki', beta, n_fact, coeffs)
+    sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, coeffs)
     return sums
 
 
 ###############################################################################
 # SPHERE DOTS
 
-def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
-                        w1, w2, volume_integral, lut, n_fact, ch_type):
+_meg_const = 4e-14 * np.pi  # This is \mu_0^2/4\pi
+_eeg_const = 1.0 / (4.0 * np.pi)
+
+
+def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
+                        w1, w2s, volume_integral, lut, n_fact, ch_type):
     """Lead field dot product computation for M/EEG in the sphere model.
 
     Parameters
@@ -196,19 +203,19 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
         beta = (r * r) / (lr1 * lr2).
     rr1 : array, shape (n_points x 3)
         Normalized position vectors of integrations points in first sensor.
-    rr2 : array, shape (n_points x 3)
+    rr2s : list
         Normalized position vector of integration points in second sensor.
     lr1 : array, shape (n_points x 1)
         Magnitude of position vector of integration points in first sensor.
-    lr2 : array, shape (n_points x 1)
+    lr2s : list
         Magnitude of position vector of integration points in second sensor.
     cosmags1 : array, shape (n_points x 1)
         Direction of integration points in first sensor.
-    cosmags2 : array, shape (n_points x 1)
+    cosmags2s : list
         Direction of integration points in second sensor.
-    w1 : array, shape (n_points x 1)
+    w1 : array, shape (n_points x 1) | None
         Weights of integration points in the first sensor.
-    w2 : array, shape (n_points x 1)
+    w2s : list
         Weights of integration points in the second sensor.
     volume_integral : bool
         If True, compute volume integral.
@@ -224,10 +231,20 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
     result : float
         The integration sum.
     """
-    ct = np.einsum('ik,jk->ij', rr1, rr2)  # outer product, sum over coords
+    if w1 is None:  # operating on surface, treat independently
+        out_shape = (len(rr2s), len(rr1_orig))
+    else:
+        out_shape = (len(rr2s),)
+    out = np.empty(out_shape)
+    rr2 = np.concatenate(rr2s)
+    lr2 = np.concatenate(lr2s)
+    cosmags2 = np.concatenate(cosmags2s)
+
+    # outer product, sum over coords
+    ct = np.einsum('ik,jk->ij', rr1_orig, rr2)
 
     # expand axes
-    rr1 = rr1[:, np.newaxis, :]  # (n_rr1, n_rr2, n_coord) e.g. 4x4x3
+    rr1 = rr1_orig[:, np.newaxis, :]  # (n_rr1, n_rr2, n_coord) e.g. 4x4x3
     rr2 = rr2[np.newaxis, :, :]
     lr1lr2 = lr1[:, np.newaxis] * lr2[np.newaxis, :]
 
@@ -259,25 +276,24 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
                   (n1c2 - ct * n1c1) * (n2c1 - ct * n2c2) * sums[3])
 
         # Give it a finishing touch!
-        const = 4e-14 * np.pi  # This is \mu_0^2/4\pi
-        result *= (const / lr1lr2)
+        result *= (_meg_const / lr1lr2)
         if volume_integral:
             result *= r
     else:  # 'eeg'
-        sums = _comp_sum_eeg(beta.flatten(), ct.flatten(), lut, n_fact)
-        sums.shape = beta.shape
-
+        result = _comp_sum_eeg(beta.flatten(), ct.flatten(), lut, n_fact)
+        result.shape = beta.shape
         # Give it a finishing touch!
-        eeg_const = 1.0 / (4.0 * np.pi)
-        result = eeg_const * sums / lr1lr2
-    # new we add them all up with weights
-    if w1 is None:  # operating on surface, treat independently
-        # result = np.sum(w2[np.newaxis, :] * result, axis=1)
-        result = np.dot(result, w2)
-    else:
-        # result = np.sum((w1[:, np.newaxis] * w2[np.newaxis, :]) * result)
-        result = np.einsum('i,j,ij', w1, w2, result)
-    return result
+        result *= _eeg_const
+        result /= lr1lr2
+        # now we add them all up with weights
+    offset = 0
+    result *= np.concatenate(w2s)
+    if w1 is not None:
+        result *= w1[:, np.newaxis]
+    for ii, w2 in enumerate(w2s):
+        out[ii] = np.sum(result[:, offset:offset + len(w2)])
+        offset += len(w2)
+    return out
 
 
 def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
@@ -330,14 +346,13 @@ def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
     # all possible combinations of two magnetometers
     products = np.zeros((len(rmags), len(rmags)))
     for ci1 in idx:
-        for ci2 in range(0, ci1 + 1):
-            res = _fast_sphere_dot_r0(intrad, rmags[ci1], rmags[ci2],
-                                      rlens[ci1], rlens[ci2],
-                                      cosmags[ci1], cosmags[ci2],
-                                      ws[ci1], ws[ci2], volume, lut,
-                                      n_fact, ch_type)
-            products[ci1, ci2] = res
-            products[ci2, ci1] = res
+        ci2 = ci1 + 1
+        res = _fast_sphere_dot_r0(
+            intrad, rmags[ci1], rmags[:ci2], rlens[ci1], rlens[:ci2],
+            cosmags[ci1], cosmags[:ci2], ws[ci1], ws[:ci2], volume, lut,
+            n_fact, ch_type)
+        products[ci1, :ci2] = res
+        products[:ci2, ci1] = res
     return products
 
 
@@ -390,12 +405,10 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
 
     products = np.zeros((len(rmags1), len(rmags2)))
     for ci1 in range(len(coils1)):
-        for ci2 in range(len(coils2)):
-            res = _fast_sphere_dot_r0(intrad, rmags1[ci1], rmags2[ci2],
-                                      rlens1[ci1], rlens2[ci2], cosmags1[ci1],
-                                      cosmags2[ci2], ws1[ci1], ws2[ci2],
-                                      volume, lut, n_fact, ch_type)
-            products[ci1, ci2] = res
+        res = _fast_sphere_dot_r0(
+            intrad, rmags1[ci1], rmags2, rlens1[ci1], rlens2, cosmags1[ci1],
+            cosmags2, ws1[ci1], ws2, volume, lut, n_fact, ch_type)
+        products[ci1, :] = res
     return products
 
 
@@ -501,21 +514,13 @@ def _do_surface_dots_subset(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
     products : array, shape (n_coils, n_coils)
         The integration products.
     """
-    products = np.zeros((len(rsurf), len(rmags)))
-    for ci in idx:
-        res = _fast_sphere_dot_r0(intrad, rsurf, rmags[ci],
-                                  lsurf, rlens[ci],
-                                  this_nn, cosmags[ci],
-                                  None, ws[ci], volume, lut,
-                                  n_fact, ch_type)
-        if rref is not None:
-            raise NotImplementedError  # we don't ever use this, isn't tested
-            # vres = _fast_sphere_dot_r0(intrad, rref, rmags[ci],
-            #                            refl, rlens[ci],
-            #                            this_nn, cosmags[ci],
-            #                            None, ws[ci], volume, lut,
-            #                            n_fact, ch_type)
-            # products[:, ci] = res - vres
-        else:
-            products[:, ci] = res
+    products = _fast_sphere_dot_r0(
+        intrad, rsurf, rmags, lsurf, rlens, this_nn, cosmags, None, ws,
+        volume, lut, n_fact, ch_type).T
+    if rref is not None:
+        raise NotImplementedError  # we don't ever use this, isn't tested
+        # vres = _fast_sphere_dot_r0(
+        #     intrad, rref, rmags, refl, rlens, this_nn, cosmags, None, ws,
+        #     volume, lut, n_fact, ch_type)
+        # products -= vres
     return products

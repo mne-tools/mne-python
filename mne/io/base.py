@@ -1292,7 +1292,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         start : float
             Initial time to show (can be changed dynamically once plotted).
         n_channels : int
-            Number of channels to plot at once.
+            Number of channels to plot at once. Defaults to 20.
         bgcolor : color object
             Color of the background.
         color : dict | color object | None

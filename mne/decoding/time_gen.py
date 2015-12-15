@@ -148,7 +148,8 @@ class _GeneralizationAcrossTime(object):
         # defined in __init__
         self.train_times_ = copy.deepcopy(self.train_times)
         if 'slices' not in self.train_times_:
-            self.train_times_ = _sliding_window(epochs.times, self.train_times)
+            self.train_times_ = _sliding_window(epochs.times, self.train_times,
+                                                epochs.info['sfreq'])
 
         # Parallel across training time
         # TODO: JRK: Chunking times points needs to be simplified
@@ -223,7 +224,8 @@ class _GeneralizationAcrossTime(object):
             slices_list = list()
             times_list = list()
             for t in range(0, len(self.train_times_['slices'])):
-                test_times_ = _sliding_window(epochs.times, test_times)
+                test_times_ = _sliding_window(epochs.times, test_times,
+                                              epochs.info['sfreq'])
                 times_list += [test_times_['times']]
                 slices_list += [test_times_['slices']]
             test_times = test_times_
@@ -540,7 +542,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
     return estimators
 
 
-def _sliding_window(times, window_params):
+def _sliding_window(times, window_params, sfreq):
     """Aux function of GeneralizationAcrossTime
 
     Define the slices on which to train each classifier.
@@ -561,9 +563,6 @@ def _sliding_window(times, window_params):
 
     window_params = _DecodingTime(window_params)
 
-    # Sampling frequency as int
-    freq = (times[-1] - times[0]) / len(times)
-
     # Default values
     if ('slices' in window_params and
             all(k in window_params for k in
@@ -575,9 +574,9 @@ def _sliding_window(times, window_params):
         if 'stop' not in window_params:
             window_params['stop'] = times[-1]
         if 'step' not in window_params:
-            window_params['step'] = freq
+            window_params['step'] = 1. / sfreq
         if 'length' not in window_params:
-            window_params['length'] = freq
+            window_params['length'] = 1. / sfreq
 
         if (window_params['start'] < times[0] or
                 window_params['start'] > times[-1]):
@@ -589,9 +588,9 @@ def _sliding_window(times, window_params):
             raise ValueError(
                 '`stop` (%.2f s) outside time range [%.2f, %.2f].' % (
                     window_params['stop'], times[0], times[-1]))
-        if window_params['step'] < freq:
+        if window_params['step'] < 1. / sfreq:
             raise ValueError('`step` must be >= 1 / sampling_frequency')
-        if window_params['length'] < freq:
+        if window_params['length'] < 1. / sfreq:
             raise ValueError('`length` must be >= 1 / sampling_frequency')
         if window_params['length'] > np.ptp(times):
             raise ValueError('`length` must be <= time range')
@@ -603,8 +602,8 @@ def _sliding_window(times, window_params):
 
         start = find_time_idx(window_params['start'])
         stop = find_time_idx(window_params['stop'])
-        step = int(round(window_params['step'] / freq))
-        length = int(round(window_params['length'] / freq))
+        step = int(round(window_params['step'] * sfreq))
+        length = int(round(window_params['length'] * sfreq))
 
         # For each training slice, give time samples to be included
         time_pick = [range(start, start + length)]

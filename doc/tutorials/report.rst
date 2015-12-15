@@ -56,6 +56,11 @@ To generate the report in parallel::
     mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
         --subject sample --subjects-dir MNE-sample-data/subjects --verbose --jobs 6
 
+The report rendered on sample-data is shown below:
+
+    .. image:: mne-report.png
+       :align: center
+
 For help on all the available options, do::
 
     mne report --help

@@ -21,7 +21,9 @@ from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
                                        _sss_basis_basic, _sh_complex_to_real,
                                        _sh_real_to_complex, _sh_negate,
                                        _bases_complex_to_real, _sss_basis,
-                                       _bases_real_to_complex, _sph_harm)
+                                       _bases_real_to_complex, _sph_harm,
+                                       _get_coil_scale)
+from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, catch_logging,
                        requires_version, object_diff)
 from mne.externals.six import PY3
@@ -83,31 +85,6 @@ bads = ['MEG0912', 'MEG1722', 'MEG2213', 'MEG0132', 'MEG1312', 'MEG0432',
         'MEG1713', 'MEG0422', 'MEG0932', 'MEG1622', 'MEG1343', 'MEG0943',
         'MEG0643', 'MEG0143', 'MEG2142', 'MEG0813', 'MEG2143', 'MEG1323',
         'MEG0522', 'MEG1123', 'MEG0423', 'MEG2122', 'MEG2532', 'MEG0812']
-
-
-def _assert_snr(actual, desired, min_tol, med_tol=500., msg=None):
-    """Helper to assert SNR of a certain level"""
-    picks = pick_types(desired.info, meg=True, exclude=[])
-    others = np.setdiff1d(np.arange(len(actual.ch_names)), picks)
-    if len(others) > 0:  # if non-MEG channels present
-        assert_allclose(actual[others][0], desired[others][0],
-                        err_msg='non-MEG channel mismatch')
-    actual_data = actual[picks][0]
-    desired_data = desired[picks][0]
-    bench_rms = np.sqrt(np.mean(desired_data * desired_data, axis=1))
-    error = actual_data - desired_data
-    error_rms = np.sqrt(np.mean(error * error, axis=1))
-    snrs = bench_rms / error_rms
-    # min tol
-    snr = snrs.min()
-    bad_count = (snrs < min_tol).sum()
-    msg = ' (%s)' % msg if msg != '' else msg
-    assert_true(bad_count == 0, 'SNR (worst %0.1f) < %0.1f for %s/%s '
-                'channels%s' % (snr, min_tol, bad_count, len(picks), msg))
-    # median tol
-    snr = np.median(snrs)
-    assert_true(snr >= med_tol, 'SNR median %0.1f < %0.1f%s'
-                % (snr, med_tol, msg))
 
 
 def test_spherical_harmonics():
@@ -179,6 +156,7 @@ def test_multipolar_bases():
         assert_allclose(S_tot, S_tot_mat_real, rtol=1e-4, atol=1e-8)
 
         # Now normalize our columns
+        S_tot /= np.sqrt(np.sum(S_tot * S_tot, axis=0))[np.newaxis]
         S_tot_complex /= np.sqrt(np.sum(
             (S_tot_complex * S_tot_complex.conj()).real, axis=0))[np.newaxis]
         # Check against a known benchmark
@@ -195,6 +173,7 @@ def test_multipolar_bases():
         # Now test our optimized version
         S_tot = _sss_basis_basic(origin, coils, int_order, ext_order)
         S_tot_fast = _sss_basis(origin, coils, int_order, ext_order)
+        S_tot_fast *= _get_coil_scale(coils)
         # there are some sign differences for columns (order/degrees)
         # in here, likely due to Condon-Shortley. Here we use a
         # Magnetometer channel to figure out the flips because the
@@ -226,7 +205,7 @@ def test_basic():
 
     # Test SSS computation at the standard head origin
     raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None)
-    _assert_snr(raw_sss, Raw(sss_std_fname), 200., 1000.)
+    assert_meg_snr(raw_sss, Raw(sss_std_fname), 200., 1000.)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert_equal(len(py_cal), 0)
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
@@ -237,13 +216,13 @@ def test_basic():
 
     # Test SSS computation at non-standard head origin
     raw_sss = maxwell_filter(raw, origin=[0., 0.02, 0.02], regularize=None)
-    _assert_snr(raw_sss, Raw(sss_nonstd_fname), 250., 700.)
+    assert_meg_snr(raw_sss, Raw(sss_nonstd_fname), 250., 700.)
 
     # Test SSS computation at device origin
     sss_erm_std = Raw(sss_erm_std_fname)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg',
                              origin=mf_meg_origin, regularize=None)
-    _assert_snr(raw_sss, sss_erm_std, 100., 900.)
+    assert_meg_snr(raw_sss, sss_erm_std, 100., 900.)
     for key in ('job', 'frame'):
         vals = [x.info['proc_history'][0]['max_info']['sss_info'][key]
                 for x in [raw_sss, sss_erm_std]]
@@ -317,7 +296,7 @@ def test_bads_reconstruction():
         raw = Raw(raw_fname, allow_maxshield=True).crop(0., 1., False)
     raw.info['bads'] = bads
     raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None)
-    _assert_snr(raw_sss, Raw(sss_bad_recon_fname), 300.)
+    assert_meg_snr(raw_sss, Raw(sss_bad_recon_fname), 300.)
 
 
 @requires_svd_convergence
@@ -355,7 +334,7 @@ def test_spatiotemporal_maxwell():
         else:
             raw_tsss = maxwell_filter(raw, st_duration=st_duration,
                                       origin=mf_head_origin, regularize=None)
-        _assert_snr(raw_tsss, tsss_bench, tol)
+        assert_meg_snr(raw_tsss, tsss_bench, tol)
         py_st = raw_tsss.info['proc_history'][0]['max_info']['max_st']
         assert_true(len(py_st) > 0)
         assert_equal(py_st['buflen'], st_duration)
@@ -378,7 +357,7 @@ def test_maxwell_filter_fine_calibration():
     # Test 1D SSS fine calibration
     raw_sss = maxwell_filter(raw, calibration=fine_cal_fname,
                              origin=mf_head_origin, regularize=None)
-    _assert_snr(raw_sss, sss_fine_cal, 70, 500)
+    assert_meg_snr(raw_sss, sss_fine_cal, 70, 500)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert_true(py_cal is not None)
     assert_true(len(py_cal) > 0)
@@ -393,7 +372,7 @@ def test_maxwell_filter_fine_calibration():
     # very low SNR as proc differs, eventually we should add a better test
     raw_sss_3D = maxwell_filter(raw, calibration=fine_cal_fname_3d,
                                 origin=mf_head_origin, regularize=None)
-    _assert_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.)
+    assert_meg_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.)
 
 
 @slow_test
@@ -418,7 +397,7 @@ def test_maxwell_filter_regularization():
         # Test "in" regularization
         raw_sss = maxwell_filter(raw, coord_frame=coord_frames[ii],
                                  origin=origins[ii])
-        _assert_snr(raw_sss, sss_reg_in, min_tols[ii], med_tols[ii], msg=rf)
+        assert_meg_snr(raw_sss, sss_reg_in, min_tols[ii], med_tols[ii], msg=rf)
 
         # check components match
         py_info = raw_sss.info['proc_history'][0]['max_info']['sss_info']
@@ -445,7 +424,7 @@ def test_cross_talk():
     sss_ctc = Raw(sss_ctc_fname)
     raw_sss = maxwell_filter(raw, cross_talk=ctc_fname,
                              origin=mf_head_origin, regularize=None)
-    _assert_snr(raw_sss, sss_ctc, 275.)
+    assert_meg_snr(raw_sss, sss_ctc, 275.)
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
     assert_true(len(py_ctc) > 0)
     assert_raises(ValueError, maxwell_filter, raw, cross_talk=raw)
@@ -463,19 +442,19 @@ def test_head_translation():
     # First try with an unchanged destination
     raw_sss = maxwell_filter(raw, destination=raw_fname,
                              origin=mf_head_origin, regularize=None)
-    _assert_snr(raw_sss, Raw(sss_std_fname).crop(0., 1., False), 200.)
+    assert_meg_snr(raw_sss, Raw(sss_std_fname).crop(0., 1., False), 200.)
     # Now with default
     with catch_logging() as log:
         raw_sss = maxwell_filter(raw, destination=mf_head_origin,
                                  origin=mf_head_origin, regularize=None)
     assert_true('over 25 mm' in log.getvalue())
-    _assert_snr(raw_sss, Raw(sss_trans_default_fname), 125.)
+    assert_meg_snr(raw_sss, Raw(sss_trans_default_fname), 125.)
     # Now to sample's head pos
     with catch_logging() as log:
         raw_sss = maxwell_filter(raw, destination=sample_fname,
                                  origin=mf_head_origin, regularize=None)
     assert_true('= 25.6 mm' in log.getvalue())
-    _assert_snr(raw_sss, Raw(sss_trans_sample_fname), 350.)
+    assert_meg_snr(raw_sss, Raw(sss_trans_sample_fname), 350.)
     # Degenerate cases
     assert_raises(RuntimeError, maxwell_filter, raw,
                   destination=mf_head_origin, coord_frame='meg')
@@ -605,6 +584,6 @@ def test_all():
                                 destination=destinations[ii],
                                 origin=origins[ii])
         sss_mf = Raw(sss_fnames[ii])
-        _assert_snr(sss_py, sss_mf, mins[ii], meds[ii], msg=rf)
+        assert_meg_snr(sss_py, sss_mf, mins[ii], meds[ii], msg=rf)
 
 run_tests_if_main()

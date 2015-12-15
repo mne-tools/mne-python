@@ -1,4 +1,6 @@
-Brain Vision Data Exchange Marker File, Version 1.0
+Brain Vision Data Exchange Marker File, Version 2.0
+; Data created from history path: test/Raw Data
+; The channel numbers are related to the channels in the exported file.
 
 [Common Infos]
 Codepage=UTF-8
@@ -21,4 +23,11 @@ Mk9=Stimulus,S255,4946,1,0
 Mk10=Response,R255,6000,1,0
 Mk11=Stimulus,S254,6620,1,0
 Mk12=Stimulus,S255,6630,1,0
-Mk13=SyncStatus,Sync On,7630,1,0
+
+[Marker User Infos]
+; Each entry: Prop<Number>=Mk<Marker number>,<Type>,<Name>,<Value>,<Value2>,...,<ValueN>
+; Property number must be unique. Types can be int, single, string, bool, byte, double, uint
+; or arrays of those, indicated int-array etc
+; Array types have more than one value, number of values determines size of array.
+; Fields are delimited by commas, commas in strings are written \1
+; Properties are assigned to markers using their marker number.

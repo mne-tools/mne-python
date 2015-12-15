@@ -22,6 +22,8 @@ Changelog
 
         - Internal component regularization
 
+    - Compensation for movements using Maxwell filtering on epoched data in :func:`mne.epochs.average_movements` by `Eric Larson`_ and `Samu Taulu`_
+
     - Add reader for Nicolet files in :func:`mne.io.read_raw_nicolet` by `Jaakko Leppakangas`_
 
     - Add FIFF persistence for ICA labels by `Denis Engemann`_
@@ -32,6 +34,8 @@ Changelog
 
     - Add reader for CTF data in :func:`mne.io.read_raw_ctf` by `Eric Larson`_
 
+    - Add support for Brainvision v2 by `Teon Brooks`_
+
 BUG
 ~~~
 
@@ -39,10 +43,12 @@ BUG
 
     - Added safeguards against ``None`` and negative values in reject and flat parameters in :class:`mne.Epochs` by `Eric Larson`_
 
+    - Fix train and test time window-length in :class:`mne.decoding.GeneralizationAcrossTime` by `Jean-Remi King`_
+
 API
 ~~~
 
-    - None
+    - :func:`mne.io.read_raw_brainvision` now has ``event_id`` argument to assign non-standard trigger events to a trigger value by `Teon Brooks`_
 
 
 .. _changes_0_10:

@@ -281,7 +281,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         layout = find_layout(info, ch_type=t, exclude=[])
                         # drop channels that are not in the data
                         used_nm = np.array(_clean_names(info['ch_names']))[idx]
-                        names = np.intersect1d(layout.names, used_nm)
+                        names = np.asarray([name for name in layout.names
+                                            if name in used_nm])
                         name_idx = [layout.names.index(name) for name in names]
                         if len(name_idx) < len(chs):
                             logger.warning('Could not find layout for '

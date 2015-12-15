@@ -94,10 +94,10 @@ def test_generalization_across_time():
 
     # check _DecodingTime class
     assert_equal("<DecodingTime | start: -0.200 (s), stop: 0.499 (s), step: "
-                 "0.047 (s), length: 0.047 (s), n_time_windows: 15>",
+                 "0.050 (s), length: 0.050 (s), n_time_windows: 15>",
                  "%s" % gat.train_times_)
     assert_equal("<DecodingTime | start: -0.200 (s), stop: 0.499 (s), step: "
-                 "0.047 (s), length: 0.047 (s), n_time_windows: 15 x 15>",
+                 "0.050 (s), length: 0.050 (s), n_time_windows: 15 x 15>",
                  "%s" % gat.test_times_)
 
     # the y-check

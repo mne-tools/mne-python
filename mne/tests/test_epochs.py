@@ -19,10 +19,12 @@ import matplotlib
 
 from mne import (Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
-                 write_evokeds, create_info)
+                 write_evokeds, create_info, make_fixed_length_events,
+                 get_chpi_positions)
+from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
-    EpochsArray, concatenate_epochs, _BaseEpochs)
+    EpochsArray, concatenate_epochs, _BaseEpochs, average_movements)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_version)
@@ -33,10 +35,18 @@ from mne.event import merge_events
 from mne.io.constants import FIFF
 from mne.externals.six import text_type
 from mne.externals.six.moves import zip, cPickle as pickle
+from mne.datasets import testing
+from mne.tests.common import assert_meg_snr
 
 matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
+data_path = testing.data_path(download=False)
+fname_raw_move = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
+fname_raw_movecomp_sss = op.join(
+    data_path, 'SSS', 'test_move_anon_movecomp_raw_sss.fif')
+fname_raw_move_pos = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -60,6 +70,85 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 clean_warning_registry()  # really clean warning stack
+
+
+@slow_test
+@testing.requires_testing_data
+def test_average_movements():
+    """Test movement averaging algorithm
+    """
+    # usable data
+    crop = 0., 10.
+    origin = (0., 0., 0.04)
+    with warnings.catch_warnings(record=True):  # MaxShield
+        raw = Raw(fname_raw_move, allow_maxshield=True)
+    raw.info['bads'] += ['MEG2443']  # mark some bad MEG channel
+    raw.crop(*crop, copy=False).load_data()
+    raw.filter(None, 20, method='iir')
+    events = make_fixed_length_events(raw, event_id)
+    picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
+                       ecg=True, eog=True, exclude=())
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks, proj=False,
+                    preload=True)
+    epochs_proj = Epochs(raw, events[:1], event_id, tmin, tmax, picks=picks,
+                         proj=True, preload=True)
+    raw_sss_stat = maxwell_filter(raw, origin=origin, regularize=None)
+    del raw
+    epochs_sss_stat = Epochs(raw_sss_stat, events, event_id, tmin, tmax,
+                             picks=picks, proj=False)
+    evoked_sss_stat = epochs_sss_stat.average()
+    del raw_sss_stat, epochs_sss_stat
+    pos = get_chpi_positions(fname_raw_move_pos)
+    ts = pos[2]
+    trans = epochs.info['dev_head_t']['trans']
+    pos_stat = (np.array([trans[:3, 3]]),
+                np.array([trans[:3, :3]]),
+                np.array([0.]))
+
+    # SSS-based
+    evoked_move_non = average_movements(epochs, pos=pos, weight_all=False,
+                                        origin=origin)
+    evoked_move_all = average_movements(epochs, pos=pos, weight_all=True,
+                                        origin=origin)
+    evoked_stat_all = average_movements(epochs, pos=pos_stat, weight_all=True,
+                                        origin=origin)
+    evoked_std = epochs.average()
+    for ev in (evoked_move_non, evoked_move_all, evoked_stat_all):
+        assert_equal(ev.nave, evoked_std.nave)
+        assert_equal(len(ev.info['bads']), 0)
+    # substantial changes to MEG data
+    for ev in (evoked_move_non, evoked_stat_all):
+        assert_meg_snr(ev, evoked_std, 0., 0.1)
+        assert_raises(AssertionError, assert_meg_snr,
+                      ev, evoked_std, 1., 1.)
+    meg_picks = pick_types(evoked_std.info, meg=True, exclude=())
+    assert_allclose(evoked_move_non.data[meg_picks],
+                    evoked_move_all.data[meg_picks])
+    # compare to averaged movecomp version (should be fairly similar)
+    raw_sss = Raw(fname_raw_movecomp_sss)
+    raw_sss.crop(*crop, copy=False).load_data()
+    raw_sss.filter(None, 20, method='iir')
+    picks_sss = pick_types(raw_sss.info, meg=True, eeg=True, stim=True,
+                           ecg=True, eog=True, exclude=())
+    assert_array_equal(picks, picks_sss)
+    epochs_sss = Epochs(raw_sss, events, event_id, tmin, tmax,
+                        picks=picks_sss, proj=False)
+    evoked_sss = epochs_sss.average()
+    assert_equal(evoked_std.nave, evoked_sss.nave)
+    # this should break the non-MEG channels
+    assert_raises(AssertionError, assert_meg_snr,
+                  evoked_sss, evoked_move_all, 0., 0.)
+    assert_meg_snr(evoked_sss, evoked_move_non, 0.02, 2.6)
+    assert_meg_snr(evoked_sss, evoked_stat_all, 0.05, 3.2)
+    # these should be close to numerical precision
+    assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-20)
+
+    # degenerate cases
+    ts += 10.
+    assert_raises(RuntimeError, average_movements, epochs, pos=pos)  # bad pos
+    ts -= 10.
+    assert_raises(TypeError, average_movements, 'foo', pos=pos)
+    assert_raises(RuntimeError, average_movements, epochs_proj, pos=pos)  # prj
 
 
 def test_reject():
@@ -428,7 +517,7 @@ def test_read_write_epochs():
 
     evoked_dec = epochs_dec.average()
     assert_allclose(evoked.data[:, epochs_dec._decim_slice],
-                    evoked_dec.data, rtol=1e-12)
+                    evoked_dec.data, rtol=1e-12, atol=1e-17)
 
     n = evoked.data.shape[1]
     n_dec = evoked_dec.data.shape[1]

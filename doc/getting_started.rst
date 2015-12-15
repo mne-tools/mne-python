@@ -276,7 +276,7 @@ Anaconda is free for academic purposes.
 
 To test that everything works properly, open up IPython::
 
-    ipython --pylab qt
+    $ ipython --matplotlib=qt
 
 Now that you have a working Python environment you can install MNE-Python.
 
@@ -286,12 +286,12 @@ mne-python installation
 Most users should start with the "stable" version of mne-python, which can
 be installed this way:
 
-    pip install mne --upgrade
+    $ pip install mne --upgrade
 
 For the newest features (and potentially more bugs), you can instead install
 the development version by:
 
-    pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+    $ pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
 
 If you plan to contribute to the project, please follow the git instructions: 
 :ref:`contributing`.

@@ -475,10 +475,11 @@ Events
    :toctree: generated/
    :template: function.rst
 
-   combine_event_ids
-   equalize_epoch_counts
    add_channels_epochs
+   average_movements
+   combine_event_ids
    concatenate_epochs
+   equalize_epoch_counts
 
 Sensor Space Data
 =================
