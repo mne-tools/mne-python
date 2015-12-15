@@ -23,7 +23,7 @@ from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
-                      _prepare_topomap)
+                      _prepare_topomap, _find_peaks)
 from ..channels import find_layout
 
 
@@ -875,14 +875,69 @@ def plot_snr_estimate(evoked, inv, show=True):
     return fig
 
 
-from mne.viz.topomap import _find_peaks
-from mne.externals.six import string_types
+def _connection_line(x, fig, sourceax, targetax):
+    """Helper function to connect time series and topolots"""
+    from matplotlib.lines import Line2D
+    transFigure = fig.transFigure.inverted()
+    tf = fig.transFigure
 
-def joint_plot(evoked, title=None,
-               ts_args=dict(spatial_colors='skirt'),
+    (xt, yt) = transFigure.transform(targetax.transAxes.transform([.5, 0]))
+    (xs, _) = transFigure.transform(sourceax.transData.transform([x, 0]))
+    (_, ys) = transFigure.transform(sourceax.transAxes.transform([0, 1]))
+    return Line2D((xt, xs), (yt, ys), transform=tf, color='grey',
+                  linestyle='--', linewidth=1.5, alpha=.66)
+
+
+def joint_plot(evoked, title='', picks=None, exclude=None, show=True,
+               ts_args=dict(spatial_colors=True),
                topomap_args=dict(colorbar=True)):
-    f = plt.figure()
+    """Plot evoked data as butterfly plots and add topomaps for selected
+    time points.
 
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked instance. Must contain only one channel type.
+    title : str
+        The title.
+    picks : array-like of int | None
+        The indices of channels to plot. If None show all.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
+    show : bool
+        Show figure if True.
+    ts_args : dict
+        A dict of `kwargs` that are forwarded to evoked.plot to
+        style the butterfly plot. `axes` and `show` are ignored.
+    topomap_args : dict
+        A dict of `kwargs` that are forwarded to evoked.plot_topomap
+        to style the topoplots. `axes` and `show` are ignored. If
+        `times` is not in this dict, peaks are automatically detected.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        The figure object containing the plot.
+
+    Notes
+    -----
+    .. versionadded:: 0.12.0
+    """
+    if picks is not None:
+        evoked = evoked.copy().pick_channels(picks)
+    if len([channel_type(evoked.info, idx) for idx in
+            range(evoked.info['nchan'])]) > 1:
+        raise ValueError("More than 1 sensor type cannot be plotted.")
+    if exclude is not None:
+        for t_dict in (ts_args, topomap_args):
+            t_dict.update(dict(exclude=exclude))
+
+    import matplotlib.pyplot as plt
+    f = plt.figure()
+    f.suptitle(title)
+
+    # set up time points to show topomaps for
     times = topomap_args.get("times", "peaks")
     if isinstance(times, string_types):
         if times == "peaks":
@@ -892,32 +947,22 @@ def joint_plot(evoked, title=None,
     elif np.isscalar(times):
         times = [times]
 
-    def _connection_line(x, fig, sourceax, targetax):
-        from matplotlib.lines import Line2D
-        transFigure = fig.transFigure.inverted()
-        tf = fig.transFigure
-
-        (x_t, y_t) = transFigure.transform(targetax.transAxes.transform([0.5,0]))
-        (x_s, _) = transFigure.transform(sourceax.transData.transform([x,0]))
-        (_, y_s) = transFigure.transform(sourceax.transAxes.transform([0,1]))
-        return Line2D((x_t, x_s),(y_t, y_s), transform=tf,
-                      color='grey', linestyle='--',
-                      linewidth=1.5, alpha=0.66)
-
+    # butterfly/time series plot
     ts_ax = f.add_subplot(212)
-    tstimes = [t_ * 1e3 for t_ in times]
-    ts_args_pass = {k:v for k, v in ts_args.items()
-                          if k not in ["axes", "show", "colorbar"]}
-    evoked.plot(axes=ts_ax, show=False, **ts_args_pass);
+    ts_args_pass = dict((k, v) for k, v in ts_args.items()
+                        if k not in ["axes", "show", "colorbar"])
+    evoked.plot(axes=ts_ax, show=False, **ts_args_pass)
 
+    # prepare axes for topomap
     t = len(times)+2
-    map_ax = [plt.subplot(5, t, x+2+t) for x in range(t-2)]
+    map_ax = [plt.subplot(5, t, x + 2 + t) for x in range(t - 2)]
     cbar_ax = plt.subplot(5, 3 * (t + 1), 6 * (t + 1))
-    
-    topomap_args_pass =  {k:v for k, v in topomap_args.items()
-                          if k not in ["times", "axes", "show", "colorbar"]}
+
+    # topomap
+    topomap_args_pass = dict((k, v) for k, v in topomap_args.items()
+                             if k not in ["times", "axes", "show", "colorbar"])
     evoked.plot_topomap(times=times, axes=map_ax, show=False,
-                        colorbar=False, **topomap_args_pass);
+                        colorbar=False, **topomap_args_pass)
 
     if topomap_args.get("colorbar", True):
         from matplotlib import ticker
@@ -926,16 +971,19 @@ def joint_plot(evoked, title=None,
         cbar.locator = tick_locator
         cbar.update_ticks()
 
-    lines = [_connection_line(t_, f, ts_ax, map_ax_)
-             for t_, map_ax_ in zip(tstimes, map_ax)]
+    # connection lines
+    # draw the connection lines between time series and topoplots
+    tstimes = [timepoint * 1e3 for timepoint in times]
+    lines = [_connection_line(timepoint, f, ts_ax, map_ax_)
+             for timepoint, map_ax_ in zip(tstimes, map_ax)]
     for line in lines:
         f.lines.append(line)
 
-    for t_ in tstimes:
-        ts_ax.axvline(t_, color='grey', linestyle='--',
+    # mark times in time series plot
+    for timepoint in tstimes:
+        ts_ax.axvline(timepont, color='grey', linestyle='--',
                       linewidth=1.5, alpha=0.66)
 
-    f.suptitle(title)
-
+    # cleanup and show it
+    plt_show(show)
     return f
-    
