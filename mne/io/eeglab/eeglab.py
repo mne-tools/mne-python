@@ -60,7 +60,6 @@ def _get_info(eeg, montage):
             locs = np.r_[-loc_y, loc_x, loc_z]
             if np.unique(locs).size == 1:
                 locs_available = False
-                break
             pos.append(locs)
         if locs_available:
             montage = Montage(np.array(pos), ch_names, kind, selection)
@@ -68,7 +67,7 @@ def _get_info(eeg, montage):
         path = op.dirname(montage)
 
     if montage is None:
-        info = create_info(ch_names, eeg.srate)
+        info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         _check_update_montage(info, montage, path=path,
                               update_ch_names=True)
@@ -236,8 +235,8 @@ class RawEEGLAB(_BaseRaw):
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
             data = data.astype(np.double)
             super(RawEEGLAB, self).__init__(
-                info, data, filenames=[input_fname], last_samps=last_samps,
-                orig_format='double', verbose=verbose)
+                info, data, last_samps=last_samps, orig_format='double',
+                verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
@@ -383,12 +382,11 @@ class EpochsEEGLAB(_BaseEpochs):
             data_fname = op.join(basedir, eeg.data)
             with open(data_fname, 'rb') as data_fid:
                 data = np.fromfile(data_fid, dtype=np.float32)
-                data = data.reshape((eeg.trials, eeg.nbchan, eeg.pnts),
+                data = data.reshape((eeg.nbchan, eeg.pnts, eeg.trials),
                                     order="F")
         else:
             data = eeg.data
-            data = data.transpose((2, 0, 1))
-
+        data = data.transpose((2, 0, 1))
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
         super(EpochsEEGLAB, self).__init__(

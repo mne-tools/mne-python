@@ -65,7 +65,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
     raw3 = Raw(out_fname)
     assert_equal(set(raw.info.keys()), set(raw3.info.keys()))
-    assert_array_almost_equal(raw3[0:20][0], full_data[0:20])
+    assert_allclose(raw3[0:20][0], full_data[0:20], rtol=1e-6, atol=1e-6)
     assert_array_almost_equal(raw.times, raw3.times)
 
     assert_true(not math.isnan(raw3.info['highpass']))

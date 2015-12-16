@@ -6,7 +6,7 @@ import os.path as op
 
 import warnings
 from nose.tools import assert_raises, assert_equal
-from numpy.testing import assert_allclose
+from numpy.testing import assert_array_equal
 
 from mne import write_events, read_epochs_eeglab
 from mne.io import read_raw_eeglab
@@ -28,17 +28,18 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 def test_io_set():
     """Test importing EEGLAB .set files"""
     _test_raw_reader(read_raw_eeglab, input_fname=raw_fname, montage=montage)
-    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
-                     montage=montage)
+    with warnings.catch_warnings(record=True) as w:
+        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
+                         montage=montage)
+    assert_equal(len(w), 2)  # preload=False or str throw warnings
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         epochs = read_epochs_eeglab(epochs_fname)
-    assert_equal(len(w), 3)
+        epochs2 = read_epochs_eeglab(epochs_fname_onefile)
+    assert_equal(len(w), 6)  # 3 warnings for each read_epochs_eeglab
 
-    epochs2 = read_epochs_eeglab(epochs_fname_onefile)
-    assert_allclose(epochs.get_data(), epochs2.get_data(), rtol=1e-5,
-                    atol=1e-5)
+    assert_array_equal(epochs.get_data(), epochs2.get_data())
 
     temp_dir = _TempDir()
     out_fname = op.join(temp_dir, 'test-eve.fif')
