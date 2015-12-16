@@ -113,7 +113,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     Returns
     -------
     raw_sss : instance of mne.io.Raw
-        The raw data with Maxwell filtering applied
+        The raw data with Maxwell filtering applied.
 
     See Also
     --------
@@ -123,19 +123,17 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     -----
     .. versionadded:: 0.11
 
-    Equation numbers refer to Taulu and Kajola, 2005 [1]_ unless otherwise
-    noted.
-
     Some of this code was adapted and relicensed (with BSD form) with
-    permission from Jussi Nurminen.
+    permission from Jussi Nurminen. These algorithms are based on work
+    from [1]_ and [2]_.
 
-    Compared to Elekta's MaxFilter™ software, our algorithm
-    currently provides the following features:
+    Compared to Elekta's MaxFilter™ software, our Maxwell filtering
+    algorithm currently provides the following features:
 
-        * Basic Maxwell filtering
-        * Cross-talk cancellation
-        * tSSS
         * Bad channel reconstruction
+        * Cross-talk cancellation
+        * Fine calibration correction
+        * tSSS
         * Coordinate frame translation
         * Regularization of internal components using information theory
 
@@ -150,11 +148,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
         * Double floating point precision
         * Handling of 3D (in additon to 1D) fine calibration files
-        * **Experimental** processing of data from (un-compensated)
-          non-Elekta systems
         * Automated processing of split (-1.fif) and concatenated files
         * Epoch-based movement compensation as described in [1]_ through
           :func:`mne.epochs.average_movements`
+        * **Experimental** processing of data from (un-compensated)
+          non-Elekta systems
 
     Use of Maxwell filtering routines with non-Elekta systems is currently
     **experimental**. Worse results for non-Elekta systems are expected due
