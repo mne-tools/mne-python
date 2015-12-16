@@ -127,14 +127,21 @@ def _fit_lm(data, design_matrix, names):
     sqrt_noise_var = np.sqrt(resid_sum_squares / df).reshape(data.shape[1:])
     design_invcov = linalg.inv(np.dot(design_matrix.T, design_matrix))
     unscaled_stderrs = np.sqrt(np.diag(design_invcov))
-
+    eps = np.finfo(np.float64).eps
     beta, stderr, t_val, p_val, mlog10_p_val = (dict() for _ in range(5))
     for x, unscaled_stderr, predictor in zip(betas, unscaled_stderrs, names):
         beta[predictor] = x.reshape(data.shape[1:])
         stderr[predictor] = sqrt_noise_var * unscaled_stderr
-        t_val[predictor] = beta[predictor] / stderr[predictor]
-        cdf = stats.t.cdf(np.abs(t_val[predictor]), df)
-        p_val[predictor] = (1. - cdf) * 2.
+        p_val[predictor] = np.empty_like(stderr[predictor])
+        t_val[predictor] = np.empty_like(stderr[predictor])
+
+        pred_valid = (stderr[predictor] > 0)
+        t_val[predictor][pred_valid] = (beta[predictor][pred_valid] /
+                                        stderr[predictor][pred_valid])
+        cdf = stats.t.cdf(np.abs(t_val[predictor][pred_valid]), df)
+        p_val[predictor][pred_valid] = np.clip((1. - cdf) * 2., eps, 1.)
+        t_val[predictor][~pred_valid] = np.inf
+        p_val[predictor][~pred_valid] = 1.
         mlog10_p_val[predictor] = -np.log10(p_val[predictor])
 
     return beta, stderr, t_val, p_val, mlog10_p_val
