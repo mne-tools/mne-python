@@ -165,8 +165,8 @@ def _get_sample_info(fname, res4):
                         'which samples are valid.')
             for t in range(n_trial):
                 # Skip to the correct trial
-                offset = CTF.HEADER_SIZE + (t * (res4['nsamp'] *
-                                                 res4['nchan']) +
+                samp_offset = t * res4['nsamp']
+                offset = CTF.HEADER_SIZE + (samp_offset * res4['nchan'] +
                                             (clock_ch * res4['nsamp'])) * 4
                 fid.seek(offset, 0)
                 this_data = np.fromstring(fid.read(4 * res4['nsamp']), '>i4')
@@ -175,7 +175,7 @@ def _get_sample_info(fname, res4):
                                        % (t + 1))
                 end = np.where(this_data == 0)[0]
                 if len(end) > 0:
-                    n_samp = offset + end[0]
+                    n_samp = samp_offset + end[0]
                     break
     if n_samp < res4['nsamp']:
         n_trial = 1
@@ -183,7 +183,7 @@ def _get_sample_info(fname, res4):
                     % (n_trial, n_samp, n_samp, res4['nchan']))
     else:
         n_trial = n_samp // res4['nsamp']
-        n_omit = n_samp % res4['nsamp']
+        n_omit = n_samp_tot - n_samp
         n_samp = n_trial * res4['nsamp']
         logger.info('    %d x %d = %d samples from %d chs'
                     % (n_trial, res4['nsamp'], n_samp, res4['nchan']))
