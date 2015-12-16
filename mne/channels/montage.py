@@ -11,6 +11,7 @@
 
 import os
 import os.path as op
+import warnings
 
 import numpy as np
 
@@ -19,6 +20,7 @@ from .channels import _contains_ch_type
 from ..transforms import (_sphere_to_cartesian, apply_trans,
                           get_ras_to_neuromag_trans)
 from ..io.meas_info import _make_dig_points, _read_dig_points
+from ..io.pick import pick_types
 from ..externals.six import string_types
 from ..externals.six.moves import map
 
@@ -490,7 +492,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
 
 def _set_montage(info, montage):
-    """Apply montage to data.
+    """Apply montage to data
 
     With a Montage, this function will replace the EEG channel names and
     locations with the values specified for the particular montage.
@@ -498,20 +500,25 @@ def _set_montage(info, montage):
     With a DigMontage, this function will replace the digitizer info with
     the values specified for the particular montage.
 
-    Note: This function will change the info variable in place.
+    Usually, a montage is expected to contain the positions of all EEG
+    electrodes and a warning is raised when this is not the case.
 
     Parameters
     ----------
     info : instance of Info
         The measurement info to update.
-    montage : instance of Montage
+    montage : instance of Montage | instance of DigMontage
         The montage to apply.
+
+    Notes
+    -----
+    This function will change the info variable in place.
     """
     if isinstance(montage, Montage):
         if not _contains_ch_type(info, 'eeg'):
             raise ValueError('No EEG channels found.')
 
-        sensors_found = False
+        sensors_found = []
         for pos, ch_name in zip(montage.pos, montage.ch_names):
             if ch_name not in info['ch_names']:
                 continue
@@ -519,12 +526,23 @@ def _set_montage(info, montage):
             ch_idx = info['ch_names'].index(ch_name)
             info['ch_names'][ch_idx] = ch_name
             info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
-            sensors_found = True
+            sensors_found.append(ch_idx)
 
-        if not sensors_found:
+        if len(sensors_found) == 0:
             raise ValueError('None of the sensors defined in the montage were '
                              'found in the info structure. Check the channel '
                              'names.')
+
+        eeg_sensors = pick_types(info, meg=False, ref_meg=False, eeg=True,
+                                 exclude=[])
+        not_found = np.setdiff1d(eeg_sensors, sensors_found)
+        if len(not_found) > 0:
+            not_found_names = [info['ch_names'][ch] for ch in not_found]
+            warnings.warn('The following EEG sensors did not have a position '
+                          'specified in the selected montage: ' +
+                          str(not_found_names) + '. Their position has been '
+                          'left untouched.')
+
     elif isinstance(montage, DigMontage):
         dig = _make_dig_points(nasion=montage.nasion, lpa=montage.lpa,
                                rpa=montage.rpa, hpi=montage.hpi,
