@@ -954,7 +954,7 @@ def joint_plot(evoked, title='', picks=None, exclude=None, show=True,
     evoked.plot(axes=ts_ax, show=False, **ts_args_pass)
 
     # prepare axes for topomap
-    t = len(times)+2
+    t = len(times) + 2
     map_ax = [plt.subplot(5, t, x + 2 + t) for x in range(t - 2)]
     cbar_ax = plt.subplot(5, 3 * (t + 1), 6 * (t + 1))
 
@@ -981,7 +981,7 @@ def joint_plot(evoked, title='', picks=None, exclude=None, show=True,
 
     # mark times in time series plot
     for timepoint in tstimes:
-        ts_ax.axvline(timepont, color='grey', linestyle='--',
+        ts_ax.axvline(timepoint, color='grey', linestyle='--',
                       linewidth=1.5, alpha=0.66)
 
     # cleanup and show it
