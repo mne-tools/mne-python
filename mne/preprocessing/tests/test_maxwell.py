@@ -110,15 +110,15 @@ def test_aaother_systems():
     hsp_path = op.join(kit_dir, 'test_hsp.txt')
     raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
     assert_raises(RuntimeError, maxwell_filter, raw_kit)
-    raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
-                             ignore_ref=True)
+    raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04), ignore_ref=True)
     _assert_n_free(raw_sss, 65)
     # XXX this KIT origin fit is terrible! Need to fix it before release :(
     with catch_logging() as log_file:
         assert_raises(RuntimeError, maxwell_filter, raw_kit,
                       ignore_ref=True, regularize=None)  # bad condition
         raw_sss = maxwell_filter(raw_kit, origin='auto',
-                                 ignore_ref=True, bad_condition='warning')
+                                 ignore_ref=True, bad_condition='warning',
+                                 verbose='warning')
     log_file = log_file.getvalue()
     assert_true('badly conditioned' in log_file)
     assert_true('more than 20 mm from' in log_file)
@@ -127,14 +127,14 @@ def test_aaother_systems():
     with catch_logging() as log_file:
         raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
                                  ignore_ref=True, bad_condition='warning',
-                                 regularize=None)
+                                 regularize=None, verbose='warning')
     log_file = log_file.getvalue()
     assert_true('badly conditioned' in log_file)
     _assert_n_free(raw_sss, 80)
     # Now with reg
     with catch_logging() as log_file:
         raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
-                                 ignore_ref=True)
+                                 ignore_ref=True, verbose=True)
     log_file = log_file.getvalue()
     assert_true('badly conditioned' not in log_file)
     _assert_n_free(raw_sss, 65)
@@ -144,21 +144,20 @@ def test_aaother_systems():
     bti_pdf = op.join(bti_dir, 'test_pdf_linux')
     bti_config = op.join(bti_dir, 'test_config_linux')
     bti_hs = op.join(bti_dir, 'test_hs_linux')
-    raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False,
-                           verbose='error')
+    raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
     raw_sss = maxwell_filter(raw_bti)
-    _assert_n_free(raw_sss, 70)
-    raw_sss = maxwell_filter(raw_bti, ignore_ref=True)
     _assert_n_free(raw_sss, 70)
 
     # CTF
     fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
     raw_ctf = Raw(fname_ctf_raw, compensation=2)
-    assert_raises(RuntimeError, maxwell_filter, raw_ctf)
+    assert_raises(RuntimeError, maxwell_filter, raw_ctf)  # compensated
     raw_ctf = Raw(fname_ctf_raw)
     assert_raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))
     _assert_n_free(raw_sss, 68)
+    raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04), ignore_ref=True)
+    _assert_n_free(raw_sss, 70)
 
 
 def test_spherical_harmonics():
@@ -532,14 +531,14 @@ def test_head_translation():
     with catch_logging() as log:
         raw_sss = maxwell_filter(raw, destination=mf_head_origin,
                                  origin=mf_head_origin, regularize=None,
-                                 bad_condition='ignore')
+                                 bad_condition='ignore', verbose='warning')
     assert_true('over 25 mm' in log.getvalue())
     assert_meg_snr(raw_sss, Raw(sss_trans_default_fname), 125.)
     # Now to sample's head pos
     with catch_logging() as log:
         raw_sss = maxwell_filter(raw, destination=sample_fname,
                                  origin=mf_head_origin, regularize=None,
-                                 bad_condition='ignore')
+                                 bad_condition='ignore', verbose='warning')
     assert_true('= 25.6 mm' in log.getvalue())
     assert_meg_snr(raw_sss, Raw(sss_trans_sample_fname), 350.)
     # Degenerate cases

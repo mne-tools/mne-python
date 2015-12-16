@@ -2695,7 +2695,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
 
     logger.info('Aligning and averaging up to %s epochs'
                 % (len(epochs.events)))
-    meg_picks, _, _, good_picks, coil_scale = \
+    meg_picks, _, _, good_picks, coil_scale, _ = \
         _get_mf_picks(epochs.info, int_order, ext_order, ignore_ref)
     n_channels, n_times = len(epochs.ch_names), len(epochs.times)
     other_picks = np.setdiff1d(np.arange(n_channels), meg_picks)
@@ -2766,8 +2766,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         # so we do not provide the option here.
         S_recon /= coil_scale
         # Invert
-        pS_ave = _col_norm_pinv(S_decomp)[:n_in]
-        pS_ave *= coil_scale[good_picks].T
+        pS_ave = _col_norm_pinv(S_decomp)[0][:n_in]
+        pS_ave *= decomp_coil_scale.T
         # Get mapping matrix
         mapping = np.dot(S_recon, pS_ave)
         # Apply mapping

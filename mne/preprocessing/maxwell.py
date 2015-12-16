@@ -164,6 +164,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
           other systems.
         * Processing with reference sensors has not been vetted.
         * Regularization of components may not work well for all systems.
+        * Coil integration has not been optimized using Abramowitz/Stegun
+          definitions.
 
     .. note:: Various Maxwell filtering algorithm components are covered by
               patents owned by Elekta Oy, Helsinki, Finland.
@@ -247,7 +249,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     raw_sss = raw.copy().load_data(verbose=False)
     del raw
     info, times = raw_sss.info, raw_sss.times
-    meg_picks, mag_picks, grad_picks, good_picks, coil_scale = \
+    meg_picks, mag_picks, grad_picks, good_picks, coil_scale, mag_or_fine = \
         _get_mf_picks(info, int_order, ext_order, ignore_ref, mag_scale=100.)
 
     #
@@ -300,6 +302,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         S_decomp[grad_picks, :] += S_fine
         # Scale magnetometers by calibration coefficient
         S_decomp[mag_picks, :] /= mag_cals
+        mag_or_fine.fill(True)
+        # We need to be careful about KIT gradiometers
     S_decomp = S_decomp[good_picks]
 
     #
@@ -320,7 +324,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Regularization
     #
     reg_moments, n_use_in = _regularize(regularize, int_order, ext_order,
-                                        S_decomp)
+                                        S_decomp, mag_or_fine)
     if n_use_in != n_in:
         S_decomp = S_decomp.take(reg_moments, axis=1)
         S_recon = S_recon.take(reg_moments[:n_use_in], axis=1)
@@ -416,7 +420,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     return raw_sss
 
 
-def _regularize(regularize, int_order, ext_order, S_decomp, verbose=None):
+def _regularize(regularize, int_order, ext_order, S_decomp, mag_or_fine):
     """Regularize a decomposition matrix"""
     # ALWAYS regularize the out components according to norm, since
     # gradiometer-only setups (e.g., KIT) can have zero first-order
@@ -425,10 +429,10 @@ def _regularize(regularize, int_order, ext_order, S_decomp, verbose=None):
     if regularize is not None:  # regularize='in'
         logger.info('    Computing regularization')
         in_removes, out_removes = _regularize_in(
-            int_order, ext_order, S_decomp)
+            int_order, ext_order, S_decomp, mag_or_fine)
     else:
         in_removes = []
-        out_removes = _regularize_out(int_order, ext_order, S_decomp)
+        out_removes = _regularize_out(int_order, ext_order, mag_or_fine)
     reg_in_moments = np.setdiff1d(np.arange(n_in), in_removes)
     reg_out_moments = np.setdiff1d(np.arange(n_in, n_in + n_out),
                                    out_removes)
@@ -465,15 +469,30 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
         logger.info('    Bad MEG channels being reconstructed: %s' % recons)
     else:
         logger.info('    No bad MEG channels')
-    ref_meg = 'mag' if not ignore_ref else False
+    ref_meg = False if ignore_ref else 'mag'
     mag_picks = pick_types(meg_info, meg='mag', ref_meg=ref_meg, exclude=[])
-    ref_meg = 'grad' if not ignore_ref else False
+    ref_meg = False if ignore_ref else 'grad'
     grad_picks = pick_types(meg_info, meg='grad', ref_meg=ref_meg, exclude=[])
     assert len(mag_picks) + len(grad_picks) == len(meg_info['ch_names'])
     # Magnetometers are scaled by 100 to improve numerical stability
     coil_scale = np.ones((len(meg_picks), 1))
     coil_scale[mag_picks] = 100.
-    return meg_picks, mag_picks, grad_picks, good_picks, coil_scale
+    # Determine which are magnetometers for external basis purposes
+    mag_or_fine = np.zeros(len(meg_picks), bool)
+    mag_or_fine[mag_picks] = True
+    # KIT gradiometers are marked as having units T, not T/M (argh)
+    # We need a separate variable for this because KIT grads should be
+    # treated mostly like magnetometers (e.g., scaled by 100) for reg
+    mag_or_fine[np.array([ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD
+                          for ch in meg_info['chs']], bool)] = False
+    msg = ('    Processing %s gradiometers and %s magnetometers'
+           % (len(grad_picks), len(mag_picks)))
+    n_kit = len(mag_picks) - mag_or_fine.sum()
+    if n_kit > 0:
+        msg += ' (of which %s are actually KIT gradiometers)' % n_kit
+    logger.info(msg)
+    return (meg_picks, mag_picks, grad_picks, good_picks, coil_scale,
+            mag_or_fine)
 
 
 def _check_regularize(regularize):
@@ -1413,15 +1432,14 @@ def _sss_basis_point(origin, info, int_order, ext_order, imbalances,
     return S_tot
 
 
-def _regularize_out(int_order, ext_order, S_decomp):
+def _regularize_out(int_order, ext_order, mag_or_fine):
     """Helper to regularize out components based on norm"""
-    n_in, n_out = _get_n_moments([int_order, ext_order])
-    norms = np.sum(S_decomp[:, n_in:] * S_decomp[:, n_in:], axis=0)
-    out_removes = np.where(norms < np.median(norms[3:]) * 1e-20)[0] + n_in
+    n_in = _get_n_moments(int_order)
+    out_removes = list(np.arange(0 if mag_or_fine.any() else 3) + n_in)
     return list(out_removes)
 
 
-def _regularize_in(int_order, ext_order, S_decomp):
+def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
     """Regularize basis set using idealized SNR measure"""
     n_in, n_out = _get_n_moments([int_order, ext_order])
 
@@ -1434,7 +1452,7 @@ def _regularize_in(int_order, ext_order, S_decomp):
 
     I_tots = np.empty(n_in)
     in_keepers = list(range(n_in))
-    out_removes = _regularize_out(int_order, ext_order, S_decomp)
+    out_removes = _regularize_out(int_order, ext_order, mag_or_fine)
     out_keepers = list(np.setdiff1d(np.arange(n_in, n_in + n_out),
                                     out_removes))
     remove_order = []

@@ -92,7 +92,8 @@ def test_average_movements():
                     preload=True)
     epochs_proj = Epochs(raw, events[:1], event_id, tmin, tmax, picks=picks,
                          proj=True, preload=True)
-    raw_sss_stat = maxwell_filter(raw, origin=origin, regularize=None)
+    raw_sss_stat = maxwell_filter(raw, origin=origin, regularize=None,
+                                  bad_condition='ignore')
     del raw
     epochs_sss_stat = Epochs(raw_sss_stat, events, event_id, tmin, tmax,
                              picks=picks, proj=False)

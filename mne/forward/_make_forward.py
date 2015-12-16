@@ -38,6 +38,9 @@ def _read_coil_defs(elekta_defs=False, verbose=None):
     elekta_defs : bool
         If true, prepend Elekta's coil definitions for numerical
         integration (from Abramowitz and Stegun section 25.4.62).
+        Note that this will likely cause duplicate coil definitions,
+        so the first matching coil should be selected for optimal
+        integration parameters.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
