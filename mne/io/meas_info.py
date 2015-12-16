@@ -302,8 +302,29 @@ def write_fiducials(fname, pts, coord_frame=0):
     end_file(fid)
 
 
+def _read_dig_fif(fid, meas_info):
+    """Helper to read digitizer data from a FIFF file"""
+    isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
+    dig = None
+    if len(isotrak) == 0:
+        logger.info('Isotrak not found')
+    elif len(isotrak) > 1:
+        warn('Multiple Isotrak found')
+    else:
+        isotrak = isotrak[0]
+        dig = []
+        for k in range(isotrak['nent']):
+            kind = isotrak['directory'][k].kind
+            pos = isotrak['directory'][k].pos
+            if kind == FIFF.FIFF_DIG_POINT:
+                tag = read_tag(fid, pos)
+                dig.append(tag.data)
+                dig[-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+    return dig
+
+
 def _read_dig_points(fname, comments='%'):
-    """Read digitizer data from file.
+    """Read digitizer data from a text file.
 
     This function can read space-delimited text files of digitizer data.
 
@@ -329,7 +350,7 @@ def _read_dig_points(fname, comments='%'):
 
 
 def _write_dig_points(fname, dig_points):
-    """Write points to file
+    """Write points to text file
 
     Parameters
     ----------
@@ -633,22 +654,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                         ctf_head_t = cand
 
     #   Locate the Polhemus data
-    isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
-    dig = None
-    if len(isotrak) == 0:
-        logger.info('Isotrak not found')
-    elif len(isotrak) > 1:
-        warn('Multiple Isotrak found')
-    else:
-        isotrak = isotrak[0]
-        dig = []
-        for k in range(isotrak['nent']):
-            kind = isotrak['directory'][k].kind
-            pos = isotrak['directory'][k].pos
-            if kind == FIFF.FIFF_DIG_POINT:
-                tag = read_tag(fid, pos)
-                dig.append(tag.data)
-                dig[-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+    dig = _read_dig_fif(fid, meas_info)
 
     #   Locate the acquisition information
     acqpars = dir_tree_find(meas_info, FIFF.FIFFB_DACQ_PARS)

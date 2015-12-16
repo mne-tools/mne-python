@@ -82,7 +82,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
     This function can be used to read electrode positions from a user specified
     file using the `kind` and `path` parameters. Alternatively, use only the
-    `kind` parameter to load one of the build-in montages:
+    `kind` parameter to load one of the built-in montages:
 
     ===================   =====================================================
     Kind                  description
