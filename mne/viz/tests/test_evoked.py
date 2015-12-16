@@ -15,7 +15,7 @@ from numpy.testing import assert_raises
 
 
 from mne import io, read_events, Epochs, pick_types, read_cov
-from mne.viz.evoked import _butterfly_onselect
+from mne.viz.evoked import _butterfly_onselect, jointplot
 from mne.viz.utils import _fake_click
 from mne.utils import slow_test, run_tests_if_main
 from mne.channels import read_layout
@@ -92,6 +92,11 @@ def test_plot_evoked():
         # plot with bad channels excluded & spatial_colors
         evoked.plot(exclude='bads')
         evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True)
+        
+        # test jointplot
+        jointplot(evoked)
+        jointplot(evoked, ts_args=dict(spatial_colors=True),
+                  topomap_args=dict(colorbar=True))
 
         # test selective updating of dict keys is working.
         evoked.plot(hline=[1], units=dict(mag='femto foo'))
