@@ -341,6 +341,12 @@ def _read_proj(fid, node, verbose=None):
         else:
             active = False
 
+        tag = find_tag(fid, item, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR)
+        if tag is not None:
+            explained_var = bool(tag.data)
+        else:
+            explained_var = None
+
         # handle the case when data is transposed for some reason
         if data.shape[0] == len(names) and data.shape[1] == nvec:
             data = data.T
@@ -352,7 +358,8 @@ def _read_proj(fid, node, verbose=None):
         #   Use exactly the same fields in data as in a named matrix
         one = Projection(kind=kind, active=active, desc=desc,
                          data=dict(nrow=nvec, ncol=nchan, row_names=None,
-                                   col_names=names, data=data))
+                                   col_names=names, data=data),
+                         explained_var=explained_var)
 
         projs.append(one)
 
@@ -401,6 +408,9 @@ def _write_proj(fid, projs):
         write_int(fid, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE, proj['active'])
         write_float_matrix(fid, FIFF.FIFF_PROJ_ITEM_VECTORS,
                            proj['data']['data'])
+        if proj['explained_var'] is not None:
+            write_float(fid, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR,
+                        proj['explained_var'])
         end_block(fid, FIFF.FIFFB_PROJ_ITEM)
 
     end_block(fid, FIFF.FIFFB_PROJ)

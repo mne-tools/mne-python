@@ -113,8 +113,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, n_epochs, desc_prefix,
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
             logger.info("Adding projection: %s" % this_desc)
             proj = Projection(active=False, data=proj_data,
-                              desc=this_desc, kind=1)
-            proj.explained_variance_ = var
+                              desc=this_desc, kind=1, explained_var=var)
             projs.append(proj)
 
     return projs
