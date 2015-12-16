@@ -163,5 +163,9 @@ def test_read_ctf():
         assert_allclose(raw[:][0], raw_c[:][0])
     assert_raises(TypeError, read_raw_ctf, 1)
     assert_raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')
+    # test ignoring of system clock
+    read_raw_ctf(op.join(ctf_dir, ctf_fname_continuous), 'ignore')
+    assert_raises(ValueError, read_raw_ctf,
+                  op.join(ctf_dir, ctf_fname_continuous), 'foo')
 
 run_tests_if_main()

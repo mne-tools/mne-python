@@ -23,13 +23,19 @@ from .info import _compose_meas_info
 from .constants import CTF
 
 
-def read_raw_ctf(directory, preload=False, verbose=None):
+def read_raw_ctf(directory, system_clock='truncate', preload=False,
+                 verbose=None):
     """Raw object from CTF directory
 
     Parameters
     ----------
     directory : str
         Path to the KIT data (ending in ``'.ds'``).
+    system_clock : str
+        How to treat the system clock. Use "truncate" (default) to truncate
+        the data file when the system clock drops to zero, and use "ignore"
+        to ignore the system clock (e.g., if head positions are measured
+        multiple times during a recording).
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -47,8 +53,12 @@ def read_raw_ctf(directory, preload=False, verbose=None):
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    .. versionadded:: 0.11
     """
-    return RawCTF(directory, preload, verbose)
+    return RawCTF(directory, system_clock, preload=preload, verbose=verbose)
 
 
 class RawCTF(_BaseRaw):
@@ -58,6 +68,11 @@ class RawCTF(_BaseRaw):
     ----------
     directory : str
         Path to the KIT data (ending in ``'.ds'``).
+    system_clock : str
+        How to treat the system clock. Use "truncate" (default) to truncate
+        the data file when the system clock drops to zero, and use "ignore"
+        to ignore the system clock (e.g., if head positions are measured
+        multiple times during a recording).
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -72,13 +87,19 @@ class RawCTF(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, directory, preload=False, verbose=None):
+    def __init__(self, directory, system_clock='truncate', preload=False,
+                 verbose=None):
         # adapted from mne_ctf2fiff.c
         if not isinstance(directory, string_types) or \
                 not directory.endswith('.ds'):
             raise TypeError('directory must be a directory ending with ".ds"')
         if not op.isdir(directory):
             raise ValueError('directory does not exist: "%s"' % directory)
+        known_types = ['ignore', 'truncate']
+        if not isinstance(system_clock, string_types) or \
+                system_clock not in known_types:
+            raise ValueError('system_clock must be one of %s, not %s'
+                             % (known_types, system_clock))
         logger.info('ds directory : %s' % directory)
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations
@@ -97,7 +118,7 @@ class RawCTF(_BaseRaw):
             if meg4_name is None:
                 break
             # check how much data is in the file
-            sample_info = _get_sample_info(meg4_name, res4)
+            sample_info = _get_sample_info(meg4_name, res4, system_clock)
             if sample_info['n_samp'] == 0:
                 break
             if len(fnames) == 0:
@@ -135,7 +156,7 @@ class RawCTF(_BaseRaw):
                 offset += n_read
 
 
-def _get_sample_info(fname, res4):
+def _get_sample_info(fname, res4, system_clock):
     """Helper to determine the number of valid samples"""
     logger.info('Finding samples for %s: ' % (fname,))
     if CTF.SYSTEM_CLOCK_CH in res4['ch_names']:
@@ -160,7 +181,9 @@ def _get_sample_info(fname, res4):
         if clock_ch is None:
             logger.info('    System clock channel is not available, assuming '
                         'all samples to be valid.')
-        else:
+        elif system_clock == 'ignore':
+            logger.info('    System clock channel is available, but ignored.')
+        else:  # use it
             logger.info('    System clock channel is available, checking '
                         'which samples are valid.')
             for t in range(n_trial):
