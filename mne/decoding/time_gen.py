@@ -265,10 +265,7 @@ class _GeneralizationAcrossTime(object):
         self.y_pred_ = [[test for chunk in train for test in chunk]
                         for train in map(list, zip(*y_pred))]
 
-        for k, v in vars(_warn_once).items():
-            if not k.startswith('_'):
-                del vars(_warn_once)[k]
-
+        _warn_once.clear()  # reset self-baked warning tracker
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
@@ -368,8 +365,7 @@ def _predict_slices(X, estimators, cv, slices, predict_mode):
     return out
 
 
-class _warn_once:
-    pass
+_warn_once = dict()
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):
@@ -432,10 +428,10 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     if is_single_time_sample:
         # In simple mode, we avoid iterating over time slices.
         slices = [slice(expected_start[0], expected_start[-1] + 1, 1)]
-    if getattr(_warn_once, 'vectorization', True):
+    elif _warn_once.get('vectorization', True):
         logger.warning('not vectorizing predictions across testing times, '
                        'using a time window with length > 1')
-        _warn_once.vectorization = False
+        _warn_once['vectorization'] = False
     # Iterate over testing times. If is_single_time_sample, then 1 iteration.
     y_pred = list()
     for t, indices in enumerate(slices):
