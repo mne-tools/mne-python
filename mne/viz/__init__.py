@@ -3,7 +3,7 @@
 
 from .topomap import (plot_evoked_topomap, plot_projs_topomap,
                       plot_ica_components, plot_tfr_topomap, plot_topomap,
-                      plot_epochs_psd_topomap)
+                      plot_epochs_psd_topomap, topomap_animation)
 from .topo import plot_topo_image_epochs, iter_topography
 from .utils import (tight_layout, mne_analyze_colormap, compare_fiff,
                     ClickableImage, add_background_image)
