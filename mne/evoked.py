@@ -780,14 +780,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            exclude=exclude, show=show, ts_args=ts_args,
                            topomap_args=topomap_args)
 
-    def animate(self, ch_type, times=None, frame_rate=None, butterfly=False,
-                blit=True):
+    def animate(self, ch_type='mag', times=None, frame_rate=None,
+                butterfly=False, blit=True):
         """Make animation of evoked data as topomap timeseries.
 
         Parameters
         ----------
         ch_type : str
             Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
+            Defaults to 'mag'.
         times : array of floats | None
             The time points to plot. If None, 10 evenly spaced samples are
             calculated over the evoked time series. Defaults to None.
