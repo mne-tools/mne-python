@@ -136,7 +136,7 @@ def test_plot_evoked():
         # test jointplot
         evoked.pick_types(eeg=True)
         joint_plot(evoked)
-        joint_plot(evoked, times=[0.], ts_args=dict(spatial_colors=True),
-                   topomap_args=dict(colorbar=True))
+        joint_plot(evoked, title='test', ts_args=dict(spatial_colors=True),
+                   topomap_args=dict(colorbar=True, times=[0.]))
 
 run_tests_if_main()
