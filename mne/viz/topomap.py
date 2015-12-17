@@ -1668,7 +1668,7 @@ def _init_anim(ax, ax_line, ax_cbar, params):
 def _animate(i, ax, ax_line, params):
     """Updates animated topomap."""
     if params['pause']:
-        return params['items']
+        i = params['i']
     times = params['times']
     time_idx = params['frames'][i]
 
@@ -1707,7 +1707,7 @@ def _animate(i, ax, ax_line, params):
         params['line'], = ax_line.plot([times[time_idx], times[time_idx]],
                                        ax_line.get_ylim(), color='r')
         items.append(params['line'])
-
+    params['i'] = i
     params['items'] = tuple(items) + tuple(cont.collections)
     return tuple(items) + tuple(cont.collections)
 
@@ -1717,9 +1717,21 @@ def _pause_anim(event, params):
     params['pause'] ^= True
 
 
-def topomap_animation(evoked, ch_type, times=None, frame_rate=None,
+def _key_press(event, params):
+    """Function for handling key presses for the animation."""
+    if event.key == 'left':
+        params['pause'] = True
+        params['i'] = max(params['i'] - 1, 0)
+    elif event.key == 'right':
+        params['pause'] = True
+        params['i'] = min(params['i'] + 1, len(params['frames']) - 1)
+
+
+def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
                       butterfly=False, blit=True):
-    """Make animation of evoked data as topomap timeseries.
+    """Make animation of evoked data as topomap timeseries. Animation can be
+    paused/resumed with left mouse button. Left and right arrow keys can be
+    used to move backward or forward in time.
 
     Parameters
     ----------
@@ -1727,6 +1739,7 @@ def topomap_animation(evoked, ch_type, times=None, frame_rate=None,
         The evoked data.
     ch_type : str
         Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
+        Defaults to 'mag'.
     times : array of floats | None
         The time points to plot. If None, 10 evenly spaced samples are
         calculated over the evoked time series. Defaults to None.
@@ -1782,7 +1795,7 @@ def topomap_animation(evoked, ch_type, times=None, frame_rate=None,
         frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
 
-    params = {'data': data, 'pos': pos, 'times': evoked.times,
+    params = {'data': data, 'pos': pos, 'times': evoked.times, 'i': 0,
               'frames': frames, 'butterfly': butterfly, 'blit': blit,
               'pause': False}
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
@@ -1790,6 +1803,8 @@ def topomap_animation(evoked, ch_type, times=None, frame_rate=None,
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
     pause_func = partial(_pause_anim, params=params)
     fig.canvas.mpl_connect('button_press_event', pause_func)
+    key_press_func = partial(_key_press, params=params)
+    fig.canvas.mpl_connect('key_press_event', key_press_func)
     if frame_rate is None:
         frame_rate = evoked.info['sfreq'] / 10.
     interval = 1000 / frame_rate  # interval is in ms
@@ -1801,5 +1816,7 @@ def topomap_animation(evoked, ch_type, times=None, frame_rate=None,
     if 'line' in params:
         # Finally remove the vertical line so it does not appear in saved fig.
         params['line'].remove()
+
     fig.set_size_inches(8, 8, forward=True)  # work around for mpl bug
+    tight_layout(fig=fig)
     return fig, anim
