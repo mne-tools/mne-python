@@ -1693,7 +1693,6 @@ def _animate(i, ax, ax_line, params):
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=extent, interpolation='bilinear')
     cont_lims = params['cont_lims']
-    # Compute the amount of contours for each frame.
     cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
 
     im.set_clip_path(patch)
@@ -1762,6 +1761,10 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         The figure.
     anim : instance of matplotlib FuncAnimation
         Animation of the topomap.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
     """
     import matplotlib.pyplot as plt
     from matplotlib import animation

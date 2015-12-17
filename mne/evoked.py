@@ -782,7 +782,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def animate(self, ch_type='mag', times=None, frame_rate=None,
                 butterfly=False, blit=True):
-        """Make animation of evoked data as topomap timeseries.
+        """Make animation of evoked data as topomap timeseries. Animation can
+        be paused/resumed with left mouse button. Left and right arrow keys can
+        be used to move backward or forward in time
 
         Parameters
         ----------
@@ -810,6 +812,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The figure.
         anim : instance of matplotlib FuncAnimation
             Animation of the topomap.
+
+        Notes
+        -----
+        .. versionadded:: 0.11.0
         """
         return animate_evoked(self, ch_type=ch_type, times=times,
                               frame_rate=frame_rate, butterfly=butterfly,
