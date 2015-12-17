@@ -73,7 +73,7 @@ Changelog
 
     - Add reader for EEGLAB data in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Mainak Jas`_
 
-    - Animation for evoked topomap by `Jaakko Leppakangas`_
+    - Animation for evoked topomap in :func:`mne.evoked.animate_evoked` by `Jaakko Leppakangas`_
 
 BUG
 ~~~
