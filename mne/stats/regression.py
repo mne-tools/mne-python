@@ -143,7 +143,7 @@ def _fit_lm(data, design_matrix, names):
         p_val[predictor][stderr_pos] = np.clip((1. - cdf) * 2., tiny, 1.)
         # degenerate cases
         mask = (~stderr_pos & beta_pos)
-        t_val[predictor][mask] = np.inf
+        t_val[predictor][mask] = np.inf * np.sign(beta[predictor][mask])
         p_val[predictor][mask] = tiny
         # could do NaN here, but hopefully this is safe enough
         mask = (~stderr_pos & ~beta_pos)
