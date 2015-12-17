@@ -93,11 +93,6 @@ def test_plot_evoked():
         evoked.plot(exclude='bads')
         evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True)
 
-        # test jointplot
-        joint_plot(evoked)
-        joint_plot(evoked, ts_args=dict(spatial_colors=True),
-                  topomap_args=dict(colorbar=True))
-
         # test selective updating of dict keys is working.
         evoked.plot(hline=[1], units=dict(mag='femto foo'))
         evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
@@ -137,5 +132,11 @@ def test_plot_evoked():
         evoked_sss.plot_white(cov)
         evoked_sss.plot_white(cov_fname)
         plt.close('all')
+
+        # test jointplot
+        evoked.pick_types(eeg=True)
+        joint_plot(evoked)
+        joint_plot(evoked, times=[0.], ts_args=dict(spatial_colors=True),
+                   topomap_args=dict(colorbar=True))
 
 run_tests_if_main()
