@@ -637,11 +637,13 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
         raise ValueError('Cannot create EEG average reference projector '
                          '(no EEG data found)')
     vec = np.ones((1, n_eeg)) / n_eeg
+    explained_var = None
     eeg_proj_data = dict(col_names=eeg_names, row_names=None,
                          data=vec, nrow=1, ncol=n_eeg)
     eeg_proj = Projection(active=activate, data=eeg_proj_data,
                           desc='Average EEG reference',
-                          kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF)
+                          kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF,
+                          explained_var=explained_var)
     return eeg_proj
 
 

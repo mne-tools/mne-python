@@ -102,11 +102,10 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, n_epochs, desc_prefix,
         U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False,
                                  overwrite_a=True)
         U = U[:, :n]
-        exp_var_ = Sexp2 / n_epochs
-        exp_var_ = exp_var_ / exp_var_.sum()
-        exp_var_ = exp_var_[:n]
-        exp_var = dict()
-        for k, temp in enumerate(zip(U.T, exp_var_)):
+        exp_var = Sexp2 / n_epochs
+        exp_var = exp_var / exp_var.sum()
+        exp_var = exp_var[:n]
+        for k, temp in enumerate(zip(U.T, exp_var)):
             u, var = temp
             proj_data = dict(col_names=names, row_names=None,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
