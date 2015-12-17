@@ -343,7 +343,7 @@ def _read_proj(fid, node, verbose=None):
 
         tag = find_tag(fid, item, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR)
         if tag is not None:
-            explained_var = bool(tag.data)
+            explained_var = tag.data
         else:
             explained_var = None
 
