@@ -68,8 +68,7 @@ def write_proj(fname, projs):
 
 
 @verbose
-def _compute_proj(data, info, n_grad, n_mag, n_eeg, n_epochs, desc_prefix,
-                  verbose=None):
+def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
     mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
     grad_ind = pick_types(info, meg='grad', ref_meg=False, exclude='bads')
     eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False,
@@ -102,8 +101,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, n_epochs, desc_prefix,
         U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False,
                                  overwrite_a=True)
         U = U[:, :n]
-        exp_var = Sexp2 / n_epochs
-        exp_var = exp_var / exp_var.sum()
+        exp_var = Sexp2 / Sexp2.sum()
         exp_var = exp_var[:n]
         for k, temp in enumerate(zip(U.T, exp_var)):
             u, var = temp
@@ -151,7 +149,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     compute_proj_raw, compute_proj_evoked
     """
     # compute data covariance
-    data, n_epochs = _compute_cov_epochs(epochs, n_jobs)
+    data = _compute_cov_epochs(epochs, n_jobs)
     event_id = epochs.event_id
     if event_id is None or len(list(event_id.keys())) == 0:
         event_id = '0'
@@ -161,8 +159,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         event_id = 'Multiple-events'
     if desc_prefix is None:
         desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
-    return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, n_epochs,
-                         desc_prefix)
+    return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix)
 
 
 def _compute_cov_epochs(epochs, n_jobs):
@@ -176,12 +173,11 @@ def _compute_cov_epochs(epochs, n_jobs):
     n_chan, n_samples = epochs.info['nchan'], len(epochs.times)
     _check_n_samples(n_samples * n_epochs, n_chan)
     data = sum(data)
-    return data, n_epochs
+    return data
 
 
 @verbose
-def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2,
-                        explained_variance=False, verbose=None):
+def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
     """Compute SSP (spatial space projection) vectors on Evoked
 
     Parameters
@@ -207,16 +203,13 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2,
     compute_proj_raw, compute_proj_epochs
     """
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
-    n_epochs = 1
     desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
-    return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, n_epochs,
-                         desc_prefix)
+    return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix)
 
 
 @verbose
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
-                     n_eeg=0, reject=None, flat=None, n_jobs=1,
-                     explained_variance=False, verbose=None):
+                     n_eeg=0, reject=None, flat=None, n_jobs=1, verbose=None):
     """Compute SSP (spatial space projection) vectors on Raw
 
     Parameters
@@ -262,7 +255,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
                                          eog=True, ecg=True, emg=True,
                                          exclude='bads'),
                         reject=reject, flat=flat)
-        data, n_epochs = _compute_cov_epochs(epochs, n_jobs)
+        data = _compute_cov_epochs(epochs, n_jobs)
         info = epochs.info
         if not stop:
             stop = raw.n_times / raw.info['sfreq']
@@ -280,8 +273,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         stop = stop / raw.info['sfreq']
 
     desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
-    projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, n_epochs,
-                          desc_prefix)
+    projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix)
     return projs
 
 
