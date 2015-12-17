@@ -1604,7 +1604,7 @@ def _init_anim(ax, ax_line, ax_cbar, params):
     data = params['data']
     norm = True if np.min(data) > 0 else False
     cmap = 'Reds' if norm else 'RdBu_r'
-    times = params['times']
+    all_times = params['all_times']
     vmin, vmax = _setup_vmin_vmax(data, None, None, norm)
 
     pos, outlines = _check_outlines(params['pos'], 'head', None)
@@ -1667,8 +1667,8 @@ def _init_anim(ax, ax_line, ax_cbar, params):
 
     if params['butterfly']:
         for idx in range(len(data)):
-            ax_line.plot(times, data[idx], color='k')
-        params['line'], = ax_line.plot([times[0], times[0]],
+            ax_line.plot(all_times, data[idx], color='k')
+        params['line'], = ax_line.plot([all_times[0], all_times[0]],
                                        ax_line.get_ylim(), color='r')
         items.append(params['line'])
     params['items'] = tuple(items) + tuple(cont.collections)
@@ -1679,10 +1679,10 @@ def _animate(i, ax, ax_line, params):
     """Updates animated topomap."""
     if params['pause']:
         i = params['i']
-    times = params['times']
+    all_times = params['all_times']
     time_idx = params['frames'][i]
 
-    title = '%6.0f ms' % (times[time_idx] * 1e3)
+    title = '%6.0f ms' % (params['times'][i] * 1e3)
     if params['blit']:
         text = params['text']
     else:
@@ -1714,7 +1714,8 @@ def _animate(i, ax, ax_line, params):
     if params['butterfly']:
         line = params['line']
         line.remove()
-        params['line'], = ax_line.plot([times[time_idx], times[time_idx]],
+        params['line'], = ax_line.plot([all_times[time_idx],
+                                        all_times[time_idx]],
                                        ax_line.get_ylim(), color='r')
         items.append(params['line'])
     params['i'] = i
@@ -1781,7 +1782,7 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     if times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
 
-    frames = [np.where(evoked.times >= t)[0][0] for t in times]
+    frames = [np.abs(evoked.times - time).argmin() for time in times]
 
     blit = False if plt.get_backend() == 'MacOSX' else True
     picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
@@ -1792,7 +1793,6 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         from mne.channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
     fig = plt.figure()
-    times = evoked.times
     offset = 0. if blit else 0.4  # blit changes the sizes for some reason
     ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
                    1. - offset], xlim=(-1, 1), ylim=(-1, 1))
@@ -1805,9 +1805,9 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
 
-    params = {'data': data, 'pos': pos, 'times': evoked.times, 'i': 0,
+    params = {'data': data, 'pos': pos, 'all_times': evoked.times, 'i': 0,
               'frames': frames, 'butterfly': butterfly, 'blit': blit,
-              'pause': False}
+              'pause': False, 'times': times}
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)

@@ -536,7 +536,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              font_color=font_color, show=show)
 
 
-def animate_evoked(evoked, ch_type, times=None, frame_rate=None,
+def animate_evoked(evoked, ch_type='mag', times=None, frame_rate=None,
                    butterfly=False, blit=True):
     """Make animation of evoked data as topomap timeseries.
 
@@ -546,6 +546,7 @@ def animate_evoked(evoked, ch_type, times=None, frame_rate=None,
         The evoked data.
     ch_type : str
         Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
+        Defaults to 'mag'.
     times : array of floats | None
         The time points to plot. If None, 10 evenly spaced samples are
         calculated over the evoked time series. Defaults to None.
