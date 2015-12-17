@@ -538,7 +538,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
 def animate_evoked(evoked, ch_type='mag', times=None, frame_rate=None,
                    butterfly=False, blit=True):
-    """Make animation of evoked data as topomap timeseries.
+    """Make animation of evoked data as topomap timeseries. Animation can be
+    paused/resumed with left mouse button. Left and right arrow keys can be
+    used to move backward or forward in time
 
     Parameters
     ----------
@@ -567,6 +569,10 @@ def animate_evoked(evoked, ch_type='mag', times=None, frame_rate=None,
         The figure.
     anim : instance of matplotlib FuncAnimation
         Animation of the topomap.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
     """
     return topomap_animation(evoked, ch_type=ch_type, times=times,
                              frame_rate=frame_rate, butterfly=butterfly,
