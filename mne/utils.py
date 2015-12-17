@@ -1416,7 +1416,6 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         download finishes.
     resume: bool, optional
         If true, try to resume partially downloaded files.
-        Only http/https supported.
     hash_ : str | None
         The hash of the file to check. If None, no checking is
         performed.
