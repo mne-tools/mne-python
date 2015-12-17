@@ -96,10 +96,9 @@ def _assert_n_free(raw_sss, lower, upper=None):
 
 
 @slow_test
-def test_aaother_systems():
+def test_other_systems():
     """Test Maxwell filtering on KIT, BTI, and CTF files
     """
-    # XXX remove "aa" from start once debugging is done...
     io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 
     # KIT
@@ -112,7 +111,8 @@ def test_aaother_systems():
     assert_raises(RuntimeError, maxwell_filter, raw_kit)
     raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04), ignore_ref=True)
     _assert_n_free(raw_sss, 65)
-    # XXX this KIT origin fit is terrible! Need to fix it before release :(
+    # XXX this KIT origin fit is terrible! Eventually we should get a
+    # corrected HSP file with proper coverage
     with catch_logging() as log_file:
         assert_raises(RuntimeError, maxwell_filter, raw_kit,
                       ignore_ref=True, regularize=None)  # bad condition

@@ -7,6 +7,7 @@ from numpy.testing import assert_allclose, assert_equal
 
 from .. import pick_types, Evoked
 from ..io import _BaseRaw
+from ..io.constants import FIFF
 from ..bem import fit_sphere_to_headshape
 
 
@@ -49,15 +50,25 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., msg=None):
                 % (snr, med_tol, msg))
 
 
+def _dig_sort_key(dig):
+    """Helper for sorting"""
+    return 10000 * dig['kind'] + dig['ident']
+
+
 def assert_dig_allclose(info_py, info_bin):
     # test dig positions
-    dig_py = info_py['dig']
-    dig_bin = info_bin['dig']
+    dig_py = sorted(info_py['dig'], key=_dig_sort_key)
+    dig_bin = sorted(info_bin['dig'], key=_dig_sort_key)
     assert_equal(len(dig_py), len(dig_bin))
-    for d_py, d_bin in zip(dig_py, dig_bin):
-        raise RuntimeError
-    R_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(info_bin)
-    R_py, o_head_py, o_dev_py = fit_sphere_to_headshape(info_py)
-    assert_allclose(R_py, R_bin)
-    assert_allclose(o_dev_py, o_dev_bin)
-    assert_allclose(o_head_py, o_head_bin)
+    for ii, (d_py, d_bin) in enumerate(zip(dig_py, dig_bin)):
+        for key in ('ident', 'kind', 'coord_frame'):
+            assert_equal(d_py[key], d_bin[key])
+        assert_allclose(d_py['r'], d_bin['r'], rtol=1e-5, atol=1e-5,
+                        err_msg='Failure on %s:\n%s\n%s'
+                        % (ii, d_py['r'], d_bin['r']))
+    if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py):
+        R_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(info_bin)
+        R_py, o_head_py, o_dev_py = fit_sphere_to_headshape(info_py)
+        assert_allclose(R_py, R_bin)
+        assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-3)  # mm
+        assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-3)  # mm

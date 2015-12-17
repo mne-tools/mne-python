@@ -138,6 +138,9 @@ def test_ch_loc():
     # test when more than one marker file provided
     mrks = [mrk_path, mrk2_path, mrk3_path]
     read_raw_kit(sqd_path, mrks, elp_path, hsp_path, preload=False)
+    # this dataset does not have the equivalent set of points :(
+    raw_bin.info['dig'] = raw_bin.info['dig'][:8]
+    raw_py.info['dig'] = raw_py.info['dig'][:8]
     assert_dig_allclose(raw_py.info, raw_bin.info)
 
 run_tests_if_main()

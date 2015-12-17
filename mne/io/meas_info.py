@@ -382,16 +382,6 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         List of digitizer points to be added to the info['dig'].
     """
     dig = []
-    if nasion is not None:
-        nasion = np.asarray(nasion)
-        if nasion.shape == (3,):
-            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('Nasion should have the shape (3,) instead of %s'
-                   % (nasion.shape,))
-            raise ValueError(msg)
     if lpa is not None:
         lpa = np.asarray(lpa)
         if lpa.shape == (3,):
@@ -401,6 +391,16 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         else:
             msg = ('LPA should have the shape (3,) instead of %s'
                    % (lpa.shape,))
+            raise ValueError(msg)
+    if nasion is not None:
+        nasion = np.asarray(nasion)
+        if nasion.shape == (3,):
+            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+                        'kind': FIFF.FIFFV_POINT_CARDINAL,
+                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+        else:
+            msg = ('Nasion should have the shape (3,) instead of %s'
+                   % (nasion.shape,))
             raise ValueError(msg)
     if rpa is not None:
         rpa = np.asarray(rpa)
@@ -416,7 +416,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         hpi = np.asarray(hpi)
         if hpi.shape[1] == 3:
             for idx, point in enumerate(hpi):
-                dig.append({'r': point, 'ident': idx,
+                dig.append({'r': point, 'ident': idx + 1,
                             'kind': FIFF.FIFFV_POINT_HPI,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
@@ -427,7 +427,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         dig_points = np.asarray(dig_points)
         if dig_points.shape[1] == 3:
             for idx, point in enumerate(dig_points):
-                dig.append({'r': point, 'ident': idx,
+                dig.append({'r': point, 'ident': idx + 1,
                             'kind': FIFF.FIFFV_POINT_EXTRA,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
