@@ -239,7 +239,7 @@ class _GeneralizationAcrossTime(object):
         # Prepare parallel predictions across time points
         # FIXME Note that this means that TimeDecoding.predict isn't parallel
         parallel, p_time_gen, n_jobs = parallel_func(_predict_slices, n_jobs)
-        n_test_slice = max([len(sl) for sl in self.train_times_['slices']])
+        n_test_slice = max(len(sl) for sl in self.train_times_['slices'])
         # Loop across estimators (i.e. training times)
         n_chunks = min(n_test_slice, n_jobs)
         splits = [np.array_split(slices, n_chunks)
@@ -264,6 +264,11 @@ class _GeneralizationAcrossTime(object):
         # np.concatenate as this would need new memory allocations
         self.y_pred_ = [[test for chunk in train for test in chunk]
                         for train in map(list, zip(*y_pred))]
+
+        for k, v in vars(_warn_once).items():
+            if not k.startswith('_'):
+                del vars(_warn_once)[k]
+
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
@@ -363,7 +368,10 @@ def _predict_slices(X, estimators, cv, slices, predict_mode):
     return out
 
 
-#@profile
+class _warn_once:
+    pass
+
+
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     """Aux function of GeneralizationAcrossTime
 
@@ -424,10 +432,10 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     if is_single_time_sample:
         # In simple mode, we avoid iterating over time slices.
         slices = [slice(expected_start[0], expected_start[-1] + 1, 1)]
-    else:
+    if getattr(_warn_once, 'vectorization', True):
         logger.warning('not vectorizing predictions across testing times, '
                        'using a time window with length > 1')
-
+        _warn_once.vectorization = False
     # Iterate over testing times. If is_single_time_sample, then 1 iteration.
     y_pred = list()
     for t, indices in enumerate(slices):
@@ -449,7 +457,7 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
                 X_pred_t = X_pred[test_epochs_slices[k]]
                 # If is_single_time_sample, we are predicting each time sample
                 # as if it was a different epoch (vectoring)
-                y_pred_ = _predict(X_pred_t, estimators[k:k+1],
+                y_pred_ = _predict(X_pred_t, estimators[k:k + 1],
                                    is_single_time_sample=is_single_time_sample)
                 # XXX I didn't manage to initialize correctly this array, as
                 # its size depends on the the type of predictor and the
@@ -661,7 +669,6 @@ def _sliding_window(times, window_params, sfreq):
     return window_params
 
 
-#@profile
 def _predict(X, estimators, is_single_time_sample):
     """Aux function of GeneralizationAcrossTime
 
