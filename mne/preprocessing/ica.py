@@ -1824,7 +1824,8 @@ def _write_ica(fid, ica):
         write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, ica.ch_names)
 
     # samples on fit
-    ica_misc = {'n_samples_': int(getattr(ica, 'n_samples_', None)),
+    n_samples = getattr(ica, 'n_samples_', None)
+    ica_misc = {'n_samples_': (int(n_samples) if n_samples is not None else None),
                 'labels_': getattr(ica, 'labels_', None)}
 
     write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
