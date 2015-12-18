@@ -13,8 +13,8 @@ from ..meas_info import _empty_info
 from ..constants import FIFF
 
 
-def read_raw_nicolet(input_fname, ch_type, montage=None, eog=[], ecg=[],
-                     emg=[], misc=[], preload=False, verbose=None):
+def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
+                     emg=(), misc=(), preload=False, verbose=None):
     """Read Nicolet data as raw object
 
     Note: This reader takes data files with the extension ``.data`` as an
@@ -35,18 +35,18 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=[], ecg=[],
     eog : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
-        ``EOG`` are used. Defaults to empty list.
+        ``EOG`` are used. Defaults to empty tuple.
     ecg : list or tuple | 'auto'
         Names of channels or list of indices that should be designated
         ECG channels. If 'auto', the channel names beginning with
-        ``ECG`` are used. Defaults to empty list.
+        ``ECG`` are used. Defaults to empty tuple.
     emg : list or tuple | 'auto'
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names beginning with
-        ``EMG`` are used. Defaults to empty list.
+        ``EMG`` are used. Defaults to empty tuple.
     misc : list or tuple
         Names of channels or list of indices that should be designated
-        MISC channels. Defaults to empty list.
+        MISC channels. Defaults to empty tuple.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -163,18 +163,18 @@ class RawNicolet(_BaseRaw):
     eog : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
-        ``EOG`` are used. Defaults to empty list.
+        ``EOG`` are used. Defaults to empty tuple.
     ecg : list or tuple | 'auto'
         Names of channels or list of indices that should be designated
         ECG channels. If 'auto', the channel names beginning with
-        ``ECG`` are used. Defaults to empty list.
+        ``ECG`` are used. Defaults to empty tuple.
     emg : list or tuple | 'auto'
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names beginning with
-        ``EMG`` are used. Defaults to empty list.
+        ``EMG`` are used. Defaults to empty tuple.
     misc : list or tuple
         Names of channels or list of indices that should be designated
-        MISC channels. Defaults to empty list.
+        MISC channels. Defaults to empty tuple.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -188,8 +188,8 @@ class RawNicolet(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    def __init__(self, input_fname, ch_type, montage=None, eog=[], ecg=[],
-                 emg=[], misc=[], preload=False, verbose=None):
+    def __init__(self, input_fname, ch_type, montage=None, eog=(), ecg=(),
+                 emg=(), misc=(), preload=False, verbose=None):
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg,
                                               emg, misc)
