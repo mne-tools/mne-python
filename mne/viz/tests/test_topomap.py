@@ -69,6 +69,7 @@ def test_plot_topomap():
     assert_raises(ValueError, ev_bad.plot_topomap, head_pos=dict(center=0))
     assert_raises(ValueError, ev_bad.plot_topomap, times=[-100])  # bad time
     assert_raises(ValueError, ev_bad.plot_topomap, times=[[0]])  # bad time
+    assert_raises(ValueError, ev_bad.plot_topomap, times=[[0]])  # bad time
 
     evoked.plot_topomap(0.1, layout=layout, scale=dict(mag=0.1))
     plt.close('all')
@@ -193,6 +194,9 @@ def test_plot_topomap():
     assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                   times, ch_type='eeg')
     plt.close('all')
+
+    # Error for missing names
+    assert_raises(ValueError, plot_topomap, data, pos, show_names=True)
 
     # Test error messages for invalid pos parameter
     n_channels = len(pos)
