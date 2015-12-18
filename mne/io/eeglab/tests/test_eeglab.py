@@ -33,9 +33,14 @@ def test_io_set():
 
     _test_raw_reader(read_raw_eeglab, input_fname=raw_fname, montage=montage)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
                          montage=montage)
-    assert_equal(len(w), 2)  # preload=False or str throw warnings
+        raw = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage)
+        raw2 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
+        assert_array_equal(raw[:][0], raw2[:][0])
+    # one warning per each preload=False or str with raw_fname_onefile
+    assert_equal(len(w), 3)
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -70,6 +75,7 @@ def test_io_set():
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(temp_dir, 'test_epochs.dat'))
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         assert_raises(NotImplementedError, read_epochs_eeglab,
                       bad_epochs_fname)
     assert_equal(len(w), 3)

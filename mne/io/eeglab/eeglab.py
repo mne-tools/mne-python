@@ -247,6 +247,8 @@ class RawEEGLAB(_BaseRaw):
                               ' is stored in the .set file')
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
             data = data.astype(np.double)
+            for idx, ch in enumerate(info['chs']):
+                data[idx] *= ch['cal']
             super(RawEEGLAB, self).__init__(
                 info, data, last_samps=last_samps, orig_format='double',
                 verbose=verbose)
