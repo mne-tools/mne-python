@@ -196,11 +196,11 @@ def test_plot_topomap():
     plt.close('all')
 
     # Error for missing names
+    data = np.ones(n_channels)
     assert_raises(ValueError, plot_topomap, data, pos, show_names=True)
 
     # Test error messages for invalid pos parameter
     n_channels = len(pos)
-    data = np.ones(n_channels)
     pos_1d = np.zeros(n_channels)
     pos_3d = np.zeros((n_channels, 2, 2))
     assert_raises(ValueError, plot_topomap, data, pos_1d)
