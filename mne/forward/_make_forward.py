@@ -30,16 +30,17 @@ _accuracy_dict = dict(normal=FIFF.FWD_COIL_ACCURACY_NORMAL,
 
 
 @verbose
-def _read_coil_defs(fname=None, elekta_defs=False, verbose=None):
+def _read_coil_defs(elekta_defs=False, verbose=None):
     """Read a coil definition file.
 
     Parameters
     ----------
-    fname : str
-        The name of the file from which coil definitions are read.
     elekta_defs : bool
-        If true, use Elekta's coil definitions for numerical integration
-        (from Abramowitz and Stegun section 25.4.62).
+        If true, prepend Elekta's coil definitions for numerical
+        integration (from Abramowitz and Stegun section 25.4.62).
+        Note that this will likely cause duplicate coil definitions,
+        so the first matching coil should be selected for optimal
+        integration parameters.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -53,58 +54,61 @@ def _read_coil_defs(fname=None, elekta_defs=False, verbose=None):
         cosmag contains the direction of the coils and rmag contains the
         position vector.
     """
-    if fname is None:
-        if not elekta_defs:
-            fname = op.join(op.split(__file__)[0], '..', 'data',
-                            'coil_def.dat')
-        else:
-            fname = op.join(op.split(__file__)[0], '..', 'data',
-                            'coil_def_Elekta.dat')
+    coil_dir = op.join(op.split(__file__)[0], '..', 'data')
+    coils = list()
+    if elekta_defs:
+        coils += _read_coil_def_file(op.join(coil_dir, 'coil_def_Elekta.dat'))
+    coils += _read_coil_def_file(op.join(coil_dir, 'coil_def.dat'))
+    return coils
+
+
+def _read_coil_def_file(fname):
+    """Helper to read a coil def file"""
     big_val = 0.5
+    coils = list()
     with open(fname, 'r') as fid:
         lines = fid.readlines()
-        res = dict(coils=list())
-        lines = lines[::-1]
-        while len(lines) > 0:
-            line = lines.pop()
-            if line[0] != '#':
-                vals = np.fromstring(line, sep=' ')
-                assert len(vals) in (6, 7)  # newer numpy can truncate comment
-                start = line.find('"')
-                end = len(line.strip()) - 1
-                assert line.strip()[end] == '"'
-                desc = line[start:end]
-                npts = int(vals[3])
-                coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
-                            accuracy=vals[2], size=vals[4], base=vals[5])
-                # get parameters of each component
-                rmag = list()
-                cosmag = list()
-                w = list()
-                for p in range(npts):
-                    # get next non-comment line
+    lines = lines[::-1]
+    while len(lines) > 0:
+        line = lines.pop()
+        if line[0] != '#':
+            vals = np.fromstring(line, sep=' ')
+            assert len(vals) in (6, 7)  # newer numpy can truncate comment
+            start = line.find('"')
+            end = len(line.strip()) - 1
+            assert line.strip()[end] == '"'
+            desc = line[start:end]
+            npts = int(vals[3])
+            coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
+                        accuracy=vals[2], size=vals[4], base=vals[5])
+            # get parameters of each component
+            rmag = list()
+            cosmag = list()
+            w = list()
+            for p in range(npts):
+                # get next non-comment line
+                line = lines.pop()
+                while(line[0] == '#'):
                     line = lines.pop()
-                    while(line[0] == '#'):
-                        line = lines.pop()
-                    vals = np.fromstring(line, sep=' ')
-                    assert len(vals) == 7
-                    # Read and verify data for each integration point
-                    w.append(vals[0])
-                    rmag.append(vals[[1, 2, 3]])
-                    cosmag.append(vals[[4, 5, 6]])
-                w = np.array(w)
-                rmag = np.array(rmag)
-                cosmag = np.array(cosmag)
-                size = np.sqrt(np.sum(cosmag ** 2, axis=1))
-                if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
-                    raise RuntimeError('Unreasonable integration point')
-                if np.any(size <= 0):
-                    raise RuntimeError('Unreasonable normal')
-                cosmag /= size[:, np.newaxis]
-                coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
-                res['coils'].append(coil)
-    logger.info('%d coil definitions read', len(res['coils']))
-    return res
+                vals = np.fromstring(line, sep=' ')
+                assert len(vals) == 7
+                # Read and verify data for each integration point
+                w.append(vals[0])
+                rmag.append(vals[[1, 2, 3]])
+                cosmag.append(vals[[4, 5, 6]])
+            w = np.array(w)
+            rmag = np.array(rmag)
+            cosmag = np.array(cosmag)
+            size = np.sqrt(np.sum(cosmag ** 2, axis=1))
+            if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
+                raise RuntimeError('Unreasonable integration point')
+            if np.any(size <= 0):
+                raise RuntimeError('Unreasonable normal')
+            cosmag /= size[:, np.newaxis]
+            coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
+            coils.append(coil)
+    logger.info('%d coil definitions read', len(coils))
+    return coils
 
 
 def _create_meg_coil(coilset, ch, acc, t):
@@ -117,7 +121,7 @@ def _create_meg_coil(coilset, ch, acc, t):
         raise RuntimeError('%s is not a MEG channel' % ch['ch_name'])
 
     # Simple linear search from the coil definitions
-    for coil in coilset['coils']:
+    for coil in coilset:
         if coil['coil_type'] == (ch['coil_type'] & 0xFFFF) and \
                 coil['accuracy'] == acc:
             break
@@ -278,10 +282,10 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
                         % (ncomp, info_extra))
             # We need to check to make sure these are NOT KIT refs
             if _has_kit_refs(info, picks):
-                err = ('Cannot create forward solution with KIT reference '
-                       'channels. Consider using "ignore_ref=True" in '
-                       'calculation')
-                raise NotImplementedError(err)
+                raise NotImplementedError(
+                    'Cannot create forward solution with KIT reference '
+                    'channels. Consider using "ignore_ref=True" in '
+                    'calculation')
     else:
         ncomp = 0
 

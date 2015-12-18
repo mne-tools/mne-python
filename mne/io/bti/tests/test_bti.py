@@ -18,6 +18,7 @@ from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info)
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.tests.common import assert_dig_allclose
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne import pick_types
@@ -105,9 +106,7 @@ def test_raw():
         assert_equal(ex.ch_names[:NCH], ra.ch_names[:NCH])
         assert_array_almost_equal(ex.info['dev_head_t']['trans'],
                                   ra.info['dev_head_t']['trans'], 7)
-        dig1, dig2 = [np.array([d['r'] for d in r_.info['dig']])
-                      for r_ in (ra, ex)]
-        assert_array_almost_equal(dig1, dig2, 18)
+        assert_dig_allclose(ex.info, ra.info)
         coil1, coil2 = [np.concatenate([d['loc'].flatten()
                         for d in r_.info['chs'][:NCH]])
                         for r_ in (ra, ex)]
