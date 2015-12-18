@@ -46,7 +46,9 @@ def test_io_set():
         warnings.simplefilter('always')
         epochs = read_epochs_eeglab(epochs_fname)
         epochs2 = read_epochs_eeglab(epochs_fname_onefile)
-    assert_equal(len(w), 6)  # 3 warnings for each read_epochs_eeglab
+    # 3 warnings for each read_epochs_eeglab because there are 3 epochs
+    # associated with multiple events
+    assert_equal(len(w), 6)
 
     assert_array_equal(epochs.get_data(), epochs2.get_data())
 

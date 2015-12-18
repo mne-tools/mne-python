@@ -6,7 +6,7 @@ import os.path as op
 import numpy as np
 import warnings
 
-from ...utils import logger, verbose
+from ...utils import logger, verbose, check_version
 from ..utils import _read_segments_file
 from ..meas_info import _empty_info, create_info
 from ..base import _BaseRaw, _check_update_montage
@@ -21,16 +21,19 @@ def _check_fname(fname):
     """
     fmt = str(op.splitext(fname)[-1])
     if fmt == '.dat':
-        msg = ('Old data format .dat detected. Please update your EEGLAB '
-               'version and resave the data in .fdt format')
-        raise NotImplementedError(msg)
+        raise NotImplementedError(
+            'Old data format .dat detected. Please update your EEGLAB '
+            'version and resave the data in .fdt format')
     elif fmt != '.fdt':
-        msg = ('Expected .fdt file format. Found %s format' % fmt)
+        raise IOError('Expected .fdt file format. Found %s format' % fmt)
 
 
 def _check_mat_struct(fname):
     """Check if the mat struct contains 'EEG'.
     """
+    if not check_version('scipy', '0.12'):
+        raise RuntimeError('scipy >= 0.12 must be installed for reading EEGLAB'
+                           ' files.')
     from scipy import io
     mat = io.whosmat(fname, struct_as_record=False,
                      squeeze_me=True)
@@ -44,7 +47,8 @@ def _check_mat_struct(fname):
 
 
 def _to_loc(ll):
-    # XXX : check
+    """Check if location exists.
+    """
     if isinstance(ll, (int, float)) or len(ll) > 0:
         return ll
     else:
@@ -245,6 +249,8 @@ class RawEEGLAB(_BaseRaw):
                 warnings.warn('Data will be preloaded. preload=False or a'
                               ' string preload is not supported when the data'
                               ' is stored in the .set file')
+            # can't be done in standard way with preload=True because of
+            # different reading path (.set file)
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
             data = data.astype(np.double)
             for idx, ch in enumerate(info['chs']):
