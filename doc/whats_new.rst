@@ -34,9 +34,9 @@ Changelog
 
     - Add reader for CTF data in :func:`mne.io.read_raw_ctf` by `Eric Larson`_
 
-    - Add support for Brainvision v2 by `Teon Brooks`_
+    - Add support for Brainvision v2 in :func:`mne.io.read_raw_brainvision` by `Teon Brooks`_
     
-    - Improve speed of generalization across time decoding up to a factor of seven by `Jean-Remi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
+    - Improve speed of generalization across time :class:`mne.decoding.GeneralizationAcrossTime` decoding up to a factor of seven by `Jean-Remi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
 
 BUG
 ~~~
