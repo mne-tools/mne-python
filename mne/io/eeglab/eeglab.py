@@ -16,6 +16,18 @@ from ...event import read_events
 from ...externals.six import string_types
 
 
+def _check_fname(fname):
+    """Check if the file extension is valid.
+    """
+    fmt = str(op.splitext(fname)[-1])
+    if fmt == '.dat':
+        msg = ('Old data format .dat detected. Please update your EEGLAB '
+               'version and resave the data in .fdt format')
+        raise NotImplementedError(msg)
+    elif fmt != '.fdt':
+        msg = ('Expected .fdt file format. Found %s format' % fmt)
+
+
 def _check_mat_struct(fname):
     """Check if the mat struct contains 'EEG'.
     """
@@ -222,6 +234,7 @@ class RawEEGLAB(_BaseRaw):
         # read the data
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
+            _check_fname(data_fname)
             logger.info('Reading %s' % data_fname)
 
             super(RawEEGLAB, self).__init__(
@@ -380,6 +393,7 @@ class EpochsEEGLAB(_BaseEpochs):
         if isinstance(eeg.data, string_types):
             basedir = op.dirname(input_fname)
             data_fname = op.join(basedir, eeg.data)
+            _check_fname(data_fname)
             with open(data_fname, 'rb') as data_fid:
                 data = np.fromfile(data_fid, dtype=np.float32)
                 data = data.reshape((eeg.nbchan, eeg.pnts, eeg.trials),

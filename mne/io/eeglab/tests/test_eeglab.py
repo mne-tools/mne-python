@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import shutil
 
 import warnings
 from nose.tools import assert_raises, assert_equal
@@ -28,6 +29,8 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 @testing.requires_testing_data
 def test_io_set():
     """Test importing EEGLAB .set files"""
+    from scipy import io
+
     _test_raw_reader(read_raw_eeglab, input_fname=raw_fname, montage=montage)
     with warnings.catch_warnings(record=True) as w:
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
@@ -53,5 +56,22 @@ def test_io_set():
                   None, event_id)
     assert_raises(ValueError, read_epochs_eeglab, epochs_fname,
                   epochs.events, None)
+
+    # test if .dat file raises an error
+    eeg = io.loadmat(epochs_fname, struct_as_record=False,
+                     squeeze_me=True)['EEG']
+    eeg.data = 'epochs_fname.dat'
+    bad_epochs_fname = op.join(temp_dir, 'test_epochs.set')
+    io.savemat(bad_epochs_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': eeg.nbchan, 'data': eeg.data,
+                'epoch': eeg.epoch, 'event': eeg.event,
+                'chanlocs': eeg.chanlocs}})
+    shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
+                    op.join(temp_dir, 'test_epochs.dat'))
+    with warnings.catch_warnings(record=True) as w:
+        assert_raises(NotImplementedError, read_epochs_eeglab,
+                      bad_epochs_fname)
+    assert_equal(len(w), 3)
 
 run_tests_if_main()
