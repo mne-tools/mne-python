@@ -12,7 +12,7 @@ from mne import write_events, read_epochs_eeglab
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, requires_version
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 raw_fname = op.join(base_dir, 'test_raw.set')
@@ -24,6 +24,7 @@ montage = op.join(base_dir, 'test_chans.locs')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
+@requires_version('scipy', '0.12')
 @testing.requires_testing_data
 def test_io_set():
     """Test importing EEGLAB .set files"""
