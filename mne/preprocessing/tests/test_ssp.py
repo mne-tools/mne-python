@@ -34,6 +34,17 @@ def test_compute_proj_ecg():
         # heart rate at least 0.5 Hz, but less than 3 Hz
         assert_true(events.shape[0] > 0.5 * dur_use and
                     events.shape[0] < 3 * dur_use)
+        ssp_ecg = [proj for proj in projs if proj['desc'].startswith('ECG')]
+        # check that the first principal component have a certain minimum
+        ssp_ecg = [proj for proj in ssp_ecg if 'PCA-01' in proj['desc']]
+        thresh_eeg, thresh_axial, thresh_planar = .9, .3, .1
+        for proj in ssp_ecg:
+            if 'planar' in proj['desc']:
+                assert_true(proj['explained_var'] > thresh_planar)
+            elif 'axial' in proj['desc']:
+                assert_true(proj['explained_var'] > thresh_axial)
+            elif 'eeg' in proj['desc']:
+                assert_true(proj['explained_var'] > thresh_eeg)
         # XXX: better tests
 
         # without setting a bad channel, this should throw a warning
@@ -62,6 +73,17 @@ def test_compute_proj_eog():
         assert_true(len(projs) == (7 + n_projs_init))
         assert_true(np.abs(events.shape[0] -
                     np.sum(np.less(eog_times, dur_use))) <= 1)
+        ssp_eog = [proj for proj in projs if proj['desc'].startswith('EOG')]
+        # check that the first principal component have a certain minimum
+        ssp_eog = [proj for proj in ssp_eog if 'PCA-01' in proj['desc']]
+        thresh_eeg, thresh_axial, thresh_planar = .9, .3, .1
+        for proj in ssp_eog:
+            if 'planar' in proj['desc']:
+                assert_true(proj['explained_var'] > thresh_planar)
+            elif 'axial' in proj['desc']:
+                assert_true(proj['explained_var'] > thresh_axial)
+            elif 'eeg' in proj['desc']:
+                assert_true(proj['explained_var'] > thresh_eeg)
         # XXX: better tests
 
         # This will throw a warning b/c simplefilter('always')
