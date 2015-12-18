@@ -123,7 +123,8 @@ def test_compute_proj_epochs():
             corr = np.corrcoef(p1_data, p2_data)[0, 1]
             assert_array_almost_equal(corr, 1.0, 5)
             if p2['explained_var']:
-                assert_true(p1['explained_var'] == p2['explained_var'])
+                assert_array_almost_equal(p1['explained_var'],
+                                          p2['explained_var'])
 
     # test that you can compute the projection matrix
     projs = activate_proj(projs)
