@@ -20,6 +20,8 @@ Changelog
 
     - Add :class:`mne.Annotations` for for annotating segments of raw data by `Jaakko Leppakangas`_
 
+    - Add reading of .fif file montages by `Eric Larson`_
+
 BUG
 ~~~
 

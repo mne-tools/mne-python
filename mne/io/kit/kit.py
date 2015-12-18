@@ -39,17 +39,17 @@ class RawKIT(_BaseRaw):
     ----------
     input_fname : str
         Path to the sqd file.
-    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
+    mrk : None | str | array_like, shape (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
         If list, all of the markers will be averaged together.
-    elp : None | str | array_like, shape = (8, 3)
+    elp : None | str | array_like, shape (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
         file containing these points.
-    hsp : None | str | array, shape = (n_points, 3)
+    hsp : None | str | array, shape (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
-        10`000 points are in the head shape, they are automatically decimated.
+        10,000 points are in the head shape, they are automatically decimated.
     stim : list of int | '<' | '>'
         Channel-value correspondence when converting KIT trigger channels to a
         Neuromag-style stim channel. For '<', the largest values are assigned
@@ -752,17 +752,17 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     ----------
     input_fname : str
         Path to the sqd file.
-    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
+    mrk : None | str | array_like, shape (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
         If list, all of the markers will be averaged together.
-    elp : None | str | array_like, shape = (8, 3)
+    elp : None | str | array_like, shape (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
         file containing these points.
-    hsp : None | str | array, shape = (n_points, 3)
+    hsp : None | str | array, shape (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
-        10`000 points are in the head shape, they are automatically decimated.
+        10,000 points are in the head shape, they are automatically decimated.
     stim : list of int | '<' | '>'
         Channel-value correspondence when converting KIT trigger channels to a
         Neuromag-style stim channel. For '<', the largest values are assigned
@@ -820,17 +820,17 @@ def read_epochs_kit(input_fname, events, event_id=None,
         in the list are used. If None, all events will be used with
         and a dict is created with string integer names corresponding
         to the event id integers.
-    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
+    mrk : None | str | array_like, shape (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
         If list, all of the markers will be averaged together.
-    elp : None | str | array_like, shape = (8, 3)
+    elp : None | str | array_like, shape (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
         file containing these points.
-    hsp : None | str | array, shape = (n_points, 3)
+    hsp : None | str | array, shape (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
-        10`000 points are in the head shape, they are automatically decimated.
+        10,000 points are in the head shape, they are automatically decimated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

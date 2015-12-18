@@ -383,7 +383,7 @@ def _write_dig_points(fname, dig_points):
 
 
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                     dig_points=None):
+                     dig_points=None, dig_ch_pos=None):
     """Constructs digitizer info for the info.
 
     Parameters
@@ -398,6 +398,8 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         Points designated as head position indicator points.
     dig_points : array-like | numpy.ndarray, shape (n_points, 3)
         Points designed as the headshape points.
+    dig_ch_pos : dict
+        Dict of EEG channel positions.
 
     Returns
     -------
@@ -457,7 +459,12 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
             msg = ('Points should have the shape (n_points, 3) instead of '
                    '%s' % (dig_points.shape,))
             raise ValueError(msg)
-
+    if dig_ch_pos is not None:
+        keys = sorted(dig_ch_pos.keys())
+        for key in keys:
+            dig.append({'r': dig_ch_pos[key], 'ident': int(key[-3:]),
+                        'kind': FIFF.FIFFV_POINT_EEG,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
     return dig
 
 

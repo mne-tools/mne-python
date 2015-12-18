@@ -89,6 +89,6 @@ def assert_dig_allclose(info_py, info_bin):
     if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py):
         R_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(info_bin)
         R_py, o_head_py, o_dev_py = fit_sphere_to_headshape(info_py)
-        assert_allclose(R_py, R_bin)
+        assert_allclose(R_py, R_bin, atol=1e-3)  # mm
         assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-3)  # mm
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-3)  # mm

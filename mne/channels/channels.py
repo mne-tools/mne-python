@@ -107,8 +107,8 @@ def equalize_channels(candidates, verbose=None):
     ----------
     candidates : list
         list Raw | Epochs | Evoked | AverageTFR
-    verbose : None | bool
-        whether to be verbose or not.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Notes
     -----
@@ -312,12 +312,16 @@ class SetChannelsMixin(object):
         """
         rename_channels(self.info, mapping)
 
-    def set_montage(self, montage):
+    @verbose
+    def set_montage(self, montage, verbose=None):
         """Set EEG sensor configuration
 
         Parameters
         ----------
         montage : instance of Montage or DigMontage
+            The montage to use.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
 
         Notes
         -----
