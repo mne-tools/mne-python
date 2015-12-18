@@ -103,8 +103,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
         U = U[:, :n]
         exp_var = Sexp2 / Sexp2.sum()
         exp_var = exp_var[:n]
-        for k, temp in enumerate(zip(U.T, exp_var)):
-            u, var = temp
+        for k, (u, var) in enumerate(zip(U.T, exp_var)):
             proj_data = dict(col_names=names, row_names=None,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
