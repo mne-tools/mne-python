@@ -38,6 +38,8 @@ Changelog
     
     - Improve speed of generalization across time :class:`mne.decoding.GeneralizationAcrossTime` decoding up to a factor of seven by `Jean-Remi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
 
+    - Add the explained variance for each principal component, `explained_var`, key to the :class:`mne.io.proj.Projection` by `Teon Brooks`_
+
 BUG
 ~~~
 
