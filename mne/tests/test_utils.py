@@ -382,7 +382,8 @@ def test_fetch_file():
     with ArgvSetter(disable_stderr=False):  # to capture stdout
         for url in urls:
             archive_name = op.join(tempdir, "download_test")
-            _fetch_file(url, archive_name, timeout=30., verbose=False)
+            _fetch_file(url, archive_name, timeout=30., verbose=False,
+                        resume=False)
             assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
                           op.join(tempdir, 'test'), verbose=False)
             resume_name = op.join(tempdir, "download_resume")
