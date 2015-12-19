@@ -38,9 +38,9 @@ def _check_mat_struct(fname):
     mat = io.whosmat(fname, struct_as_record=False,
                      squeeze_me=True)
     if 'ALLEEG' in mat[0]:
-        msg = ('Loading an ALLEEG array is not supported. Please contact'
-               'mne-python developers for more information.')
-        raise NotImplementedError(msg)
+        raise NotImplementedError(
+            'Loading an ALLEEG array is not supported. Please contact'
+            'mne-python developers for more information.')
     elif 'EEG' not in mat[0]:
         msg = ('Unknown array in the .set file.')
         raise ValueError(msg)
@@ -54,7 +54,6 @@ def _rescale_data(info, data):
             data[idx] *= ch['cal']
         elif len(data.shape) == 3:
             data[:, idx] *= ch['cal']
-    return data
 
 
 def _to_loc(ll):
@@ -75,7 +74,7 @@ def _get_info(eeg, montage):
     # add the ch_names and info['chs'][idx]['loc']
     path = None
     if len(eeg.chanlocs) > 0:
-        ch_names, pos = [], []
+        ch_names, pos = list(), list()
         kind = 'user_defined'
         selection = np.arange(len(eeg.chanlocs))
         locs_available = True
@@ -264,7 +263,7 @@ class RawEEGLAB(_BaseRaw):
             # different reading path (.set file)
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
             data = data.astype(np.double)
-            data = _rescale_data(info, data)
+            _rescale_data(info, data)
             super(RawEEGLAB, self).__init__(
                 info, data, last_samps=last_samps, orig_format='double',
                 verbose=verbose)
@@ -360,7 +359,7 @@ class EpochsEEGLAB(_BaseEpochs):
 
         if events is None and eeg.trials > 1:
             # first extract the events and construct an event_id dict
-            event_name, event_latencies, unique_ev = [], [], []
+            event_name, event_latencies, unique_ev = list(), list(), list()
             ev_idx = 0
             for ep in eeg.epoch:
                 if not isinstance(ep.eventtype, string_types):
@@ -419,7 +418,7 @@ class EpochsEEGLAB(_BaseEpochs):
         else:
             data = eeg.data
         data = data.transpose((2, 0, 1))
-        data = _rescale_data(info, data)
+        _rescale_data(info, data)
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
         super(EpochsEEGLAB, self).__init__(
