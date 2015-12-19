@@ -900,11 +900,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
                                seeg=seeg, ref_meg=False)
 
-        data = self.data if picks is None else self.data[picks]
+        data = self.data
+        ch_names = self.ch_names
+        if picks is not None:
+            data = data[picks]
+            ch_names = [ch_names[k] for k in picks]
         ch_idx, time_idx = _get_peak(data, self.times, tmin,
                                      tmax, mode)
 
-        return (self.ch_names[ch_idx],
+        return (ch_names[ch_idx],
                 time_idx if time_as_index else self.times[time_idx])
 
 

@@ -267,13 +267,14 @@ def test_get_peak():
     assert_raises(RuntimeError, evoked.get_peak, ch_type=None, mode='foo')
     assert_raises(ValueError, evoked.get_peak, ch_type='misc', mode='foo')
 
-    ch_idx, time_idx = evoked.get_peak(ch_type='mag')
-    assert_true(ch_idx in evoked.ch_names)
+    ch_name, time_idx = evoked.get_peak(ch_type='mag')
+    assert_true(ch_name in evoked.ch_names)
     assert_true(time_idx in evoked.times)
 
-    ch_idx, time_idx = evoked.get_peak(ch_type='mag',
-                                       time_as_index=True)
+    ch_name, time_idx = evoked.get_peak(ch_type='mag',
+                                        time_as_index=True)
     assert_true(time_idx < len(evoked.times))
+    assert_equal(ch_name, 'MEG 1421')
 
     data = np.array([[0., 1.,  2.],
                      [0., -3.,  0]])
