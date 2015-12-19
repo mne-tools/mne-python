@@ -7,7 +7,7 @@ import shutil
 
 import warnings
 from nose.tools import assert_raises, assert_equal
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mne import write_events, read_epochs_eeglab
 from mne.io import read_raw_eeglab
@@ -52,6 +52,12 @@ def test_io_set():
 
     assert_array_equal(epochs.get_data(), epochs2.get_data())
 
+    # test average reference
+    epochs.apply_proj()
+    assert_array_almost_equal(epochs.average().data.mean(axis=0),
+                              0, decimal=19)
+
+    # test different combinations of events and event_ids
     temp_dir = _TempDir()
     out_fname = op.join(temp_dir, 'test-eve.fif')
     write_events(out_fname, epochs.events)

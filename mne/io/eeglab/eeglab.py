@@ -6,10 +6,12 @@ import os.path as op
 import numpy as np
 import warnings
 
-from ...utils import logger, verbose, check_version
+from ..proj import make_eeg_average_ref_proj
 from ..utils import _read_segments_file
+from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import _BaseRaw, _check_update_montage
+from ...utils import logger, verbose, check_version
 from ...channels.montage import Montage
 from ...epochs import _BaseEpochs
 from ...event import read_events
@@ -65,7 +67,7 @@ def _to_loc(ll):
         return 0.
 
 
-def _get_info(eeg, montage):
+def _get_info(eeg, montage, eog=()):
     """Get measurement info.
     """
     info = _empty_info(sfreq=eeg.srate)
@@ -100,14 +102,22 @@ def _get_info(eeg, montage):
 
     info['buffer_size_sec'] = 1.  # reasonable default
     # update the info dict
+
+    if eog == 'auto':
+        eog = [ch for ch in ch_names if ch.startswith('EOG')]
+
     cal = 1e-6
     for ch in info['chs']:
         ch['cal'] = cal
+        if ch['ch_name'] in eog:
+            ch['coil_type'] = FIFF.FIFFV_COIL_NONE
+            ch['kind'] = FIFF.FIFFV_MISC_CH
 
     return info
 
 
-def read_raw_eeglab(input_fname, montage=None, preload=False, verbose=None):
+def read_raw_eeglab(input_fname, montage=None, preload=False, eog=(),
+                    verbose=None):
     """Read an EEGLAB .set file
 
     Parameters
@@ -127,6 +137,10 @@ def read_raw_eeglab(input_fname, montage=None, preload=False, verbose=None):
         on the hard drive (slower, requires less memory). Note that
         preload=False will be effective only if the data is stored in a
         separate binary file.
+    eog : list | tuple | 'auto'
+        Names of channels or list of indices that should be designated
+        EOG channels. If 'auto', the channel names beginning with
+        ``EOG`` are used. Defaults to empty tuple.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -148,7 +162,7 @@ def read_raw_eeglab(input_fname, montage=None, preload=False, verbose=None):
 
 
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
-                       verbose=None):
+                       eog=(), add_eeg_ref=True, verbose=None):
     """Reader function for EEGLAB epochs files
 
     Parameters
@@ -173,6 +187,12 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
+    eog : list | tuple | 'auto'
+        Names of channels or list of indices that should be designated
+        EOG channels. If 'auto', the channel names beginning with
+        ``EOG`` are used. Defaults to empty tuple.
+    add_eeg_ref : bool
+        If True, add average EEG reference projector.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -191,7 +211,8 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     mne.Epochs : Documentation of attribute and methods.
     """
     epochs = EpochsEEGLAB(input_fname=input_fname, events=events,
-                          event_id=event_id, montage=montage, verbose=verbose)
+                          event_id=event_id, montage=montage,
+                          add_eeg_ref=add_eeg_ref, verbose=verbose)
     return epochs
 
 
@@ -213,6 +234,10 @@ class RawEEGLAB(_BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
+    eog : list | tuple | 'auto'
+        Names of channels or list of indices that should be designated
+        EOG channels. If 'auto', the channel names beginning with
+        ``EOG`` are used. Defaults to empty tuple.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -230,7 +255,8 @@ class RawEEGLAB(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, montage, preload=False, verbose=None):
+    def __init__(self, input_fname, montage, preload=False, eog=(),
+                 verbose=None):
         """Read EEGLAB .set file.
         """
         from scipy import io
@@ -244,7 +270,7 @@ class RawEEGLAB(_BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        info = _get_info(eeg, montage)
+        info = _get_info(eeg, montage, eog=eog)
         # read the data
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
@@ -332,6 +358,12 @@ class EpochsEEGLAB(_BaseEpochs):
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
+    eog : list | tuple | 'auto'
+        Names of channels or list of indices that should be designated
+        EOG channels. If 'auto', the channel names beginning with
+        ``EOG`` are used. Defaults to empty tuple.
+    add_eeg_ref : bool
+        If True, add average EEG reference projector.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -346,7 +378,8 @@ class EpochsEEGLAB(_BaseEpochs):
     @verbose
     def __init__(self, input_fname, events=None, event_id=None, tmin=0,
                  baseline=None,  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, montage=None, verbose=None):
+                 reject_tmax=None, montage=None, eog=(), add_eeg_ref=True,
+                 verbose=None):
         from scipy import io
         _check_mat_struct(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
@@ -399,7 +432,7 @@ class EpochsEEGLAB(_BaseEpochs):
 
         logger.info('Extracting parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
-        info = _get_info(eeg, montage)
+        info = _get_info(eeg, montage, eog=eog)
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
@@ -417,12 +450,19 @@ class EpochsEEGLAB(_BaseEpochs):
                                     order="F")
         else:
             data = eeg.data
-        data = data.transpose((2, 0, 1))
+        data = data.transpose((2, 0, 1)).astype('double')
         _rescale_data(info, data)
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
+
         super(EpochsEEGLAB, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
-            reject_tmax=reject_tmax, verbose=verbose)
+            reject_tmax=reject_tmax, add_eeg_ref=False, verbose=verbose)
+
+        # XXX: hack because add_eeg_ref in _BaseEpochs needs to be fixed. Also
+        # affects read_epochs.
+        if add_eeg_ref:
+            self.add_proj(make_eeg_average_ref_proj(self.info))
+
         logger.info('Ready.')
