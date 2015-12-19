@@ -90,9 +90,9 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     ch_names = header_info['elec_names']
     if eog == 'auto':
         eog = [idx for idx, ch in enumerate(ch_names) if ch.startswith('EOG')]
-    if ecg is 'auto':
+    if ecg == 'auto':
         ecg = [idx for idx, ch in enumerate(ch_names) if ch.startswith('ECG')]
-    if emg is 'auto':
+    if emg == 'auto':
         emg = [idx for idx, ch in enumerate(ch_names) if ch.startswith('EMG')]
 
     date, time = header_info['start_ts'].split()
