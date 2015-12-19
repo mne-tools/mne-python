@@ -312,23 +312,22 @@ class DigMontage(object):
     Parameters
     ----------
     hsp : array, shape (n_points, 3)
-        The positions of the channels in 3d.
+        The positions of the headshape points in 3d.
+        These points are in the native digitizer space.
     hpi : array, shape (n_hpi, 3)
         The positions of the head-position indicator coils in 3d.
         These points are in the MEG device space.
     elp : array, shape (n_hpi, 3)
         The positions of the head-position indicator coils in 3d.
-        This is typically in the acquisition digitizer space.
+        This is typically in the native digitizer space.
     point_names : list, shape (n_elp)
         The names of the digitized points for hpi and elp.
     nasion : array, shape (1, 3)
-        The position of the nasion fidicual point in the RAS head space.
+        The position of the nasion fidicual point.
     lpa : array, shape (1, 3)
-        The position of the left periauricular fidicual point in
-        the RAS head space.
+        The position of the left periauricular fidicual point.
     rpa : array, shape (1, 3)
-        The position of the right periauricular fidicual point in
-        the RAS head space.
+        The position of the right periauricular fidicual point.
     dev_head_t : array, shape (4, 4)
         A Device-to-Head transformation matrix.
 
@@ -379,7 +378,7 @@ class DigMontage(object):
 
 def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                      unit='mm', transform=True, dev_head_t=False):
-    """Read montage from a file
+    """Read digitization data from a file and generate a DigMontage
 
     Parameters
     ----------
@@ -387,17 +386,19 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         If str, this corresponds to the filename of the headshape points.
         This is typically used with the Polhemus FastSCAN system.
         If numpy.array, this corresponds to an array of positions of the
-        channels in 3d.
+        headshape points in 3d. These points are in the native
+        digitizer space.
     hpi : None | str | array, shape (n_hpi, 3)
-        If str, this corresponds to the filename of hpi points. If numpy.array,
-        this corresponds to an array hpi points. These points are in
-        device space.
+        If str, this corresponds to the filename of Head Position Indicator
+        (HPI) points. If numpy.array, this corresponds to an array
+        of HPI points. These points are in device space.
     elp : None | str | array, shape (n_fids + n_hpi, 3)
-        If str, this corresponds to the filename of hpi points.
-        This is typically used with the Polhemus FastSCAN system.
-        If numpy.array, this corresponds to an array hpi points. These points
-        are in head space. Fiducials should be listed first, then the points
-        corresponding to the hpi.
+        If str, this corresponds to the filename of electrode position
+        points. This is typically used with the Polhemus FastSCAN system.
+        Fiducials should be listed first: nasion, left periauricular point,
+        right periauricular point, then the points corresponding to the HPI.
+        These points are in the native digitizer space.
+        If numpy.array, this corresponds to an array of fids + HPI points.
     point_names : None | list
         If list, this corresponds to a list of point names. This must be
         specified if elp is defined.
@@ -473,6 +474,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         nasion = elp[names_lower.index('nasion')]
         lpa = elp[names_lower.index('lpa')]
         rpa = elp[names_lower.index('rpa')]
+
+        # remove fiducials from elp
+        mask = np.ones(len(names_lower), dtype=bool)
+        for fid in ['nasion', 'lpa', 'rpa']:
+            mask[names_lower.index(fid)] = False
+        elp = elp[mask]
+
         neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
 
         fids = np.array([nasion, lpa, rpa])
@@ -483,7 +491,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         fids = [None] * 3
     if dev_head_t:
         from ..coreg import fit_matched_points
-        trans = fit_matched_points(tgt_pts=elp[3:], src_pts=hpi, out='trans')
+        trans = fit_matched_points(tgt_pts=elp, src_pts=hpi, out='trans')
     else:
         trans = np.identity(4)
 

@@ -163,16 +163,13 @@ def test_read_dig_montage():
                                transform=True, dev_head_t=True)
     # check coordinate transformation
     # nasion
-    assert_almost_equal(montage.elp[0, 0], 0)
     assert_almost_equal(montage.nasion[0], 0)
-    assert_almost_equal(montage.elp[0, 2], 0)
-    assert_almost_equal(montage.nasion[0], 0)
+    assert_almost_equal(montage.nasion[2], 0)
     # lpa and rpa
-    assert_allclose(montage.elp[1:3, 1:], 0, atol=1e-16)
     assert_allclose(montage.lpa[1:], 0, atol=1e-16)
     assert_allclose(montage.rpa[1:], 0, atol=1e-16)
     # device head transform
-    dev_head_t = fit_matched_points(tgt_pts=montage.elp[3:],
+    dev_head_t = fit_matched_points(tgt_pts=montage.elp,
                                     src_pts=montage.hpi, out='trans')
     assert_array_equal(montage.dev_head_t, dev_head_t)
 
