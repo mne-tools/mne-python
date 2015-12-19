@@ -46,6 +46,17 @@ def _check_mat_struct(fname):
         raise ValueError(msg)
 
 
+def _rescale_data(info, data):
+    """Put data to EEG scale.
+    """
+    for idx, ch in enumerate(info['chs']):
+        if len(data.shape) == 2:
+            data[idx] *= ch['cal']
+        elif len(data.shape) == 3:
+            data[:, idx] *= ch['cal']
+    return data
+
+
 def _to_loc(ll):
     """Check if location exists.
     """
@@ -253,8 +264,7 @@ class RawEEGLAB(_BaseRaw):
             # different reading path (.set file)
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
             data = data.astype(np.double)
-            for idx, ch in enumerate(info['chs']):
-                data[idx] *= ch['cal']
+            data = _rescale_data(info, data)
             super(RawEEGLAB, self).__init__(
                 info, data, last_samps=last_samps, orig_format='double',
                 verbose=verbose)
@@ -409,6 +419,7 @@ class EpochsEEGLAB(_BaseEpochs):
         else:
             data = eeg.data
         data = data.transpose((2, 0, 1))
+        data = _rescale_data(info, data)
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
         super(EpochsEEGLAB, self).__init__(
