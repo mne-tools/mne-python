@@ -403,6 +403,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         delete the prefix 'MEG ' from all channel names, pass the function
         lambda x: x.replace('MEG ', ''). If `mask` is not None, only
         significant sensors will be shown.
+        If `True`, a list of names must be provided (see `names` keyword).
     mask : ndarray of bool, shape (n_channels, n_times) | None
         The channels to be marked as significant at a given time point.
         Indices set to `True` will be considered. Defaults to None.
@@ -580,6 +581,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
             ax.plot(x, y, color='k', linewidth=linewidth, clip_on=False)
 
     if show_names:
+        if names is None:
+            raise ValueError("To show names, a list of names must be provided"
+                             " (see `names` keyword).")
         if show_names is True:
             def _show_names(x):
                 return x
