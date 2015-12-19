@@ -51,7 +51,7 @@ BUG
 
     - Added lower bound in :func:`mne.stats.linear_regression` on p-values ``p_val`` (and resulting ``mlog10_p_val``) using double floating point arithmetic limits by `Eric Larson`_
 
-    - Fix channel name pick in ``get_peak`` method of :class:`mne.Evoked` by `Alex Gramfort`_
+    - Fix channel name pick in :func:`mne.Evoked.get_peak` method by `Alex Gramfort`_
 
 API
 ~~~
