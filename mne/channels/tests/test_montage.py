@@ -164,7 +164,7 @@ def test_read_dig_montage():
     # check coordinate transformation
     # nasion
     assert_almost_equal(montage.nasion[0], 0)
-    assert_almost_equal(montage.nasion[0], 0)
+    assert_almost_equal(montage.nasion[2], 0)
     # lpa and rpa
     assert_allclose(montage.lpa[1:], 0, atol=1e-16)
     assert_allclose(montage.rpa[1:], 0, atol=1e-16)
