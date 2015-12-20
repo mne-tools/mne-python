@@ -493,6 +493,8 @@ When you are ready to ask for someone to review your code and consider a merge:
 
 #. For the code to be mergeable, please rebase w.r.t master branch.
 
+#. Once, you are ready, prefix ``MRG:`` to the title of the pull request to indicate that you are ready for the pull request to be merged.
+
 
 If you are uncertain about what would or would not be appropriate to contribute
 to mne-python, don't hesitate to either send a pull request, or open an issue
@@ -783,8 +785,20 @@ As an example, to pull the realtime pull request which has a url
 If you want to fetch a pull request to your own fork, replace
 ``upstream`` with ``origin``. That's it!
 
-Adding example to example gallery
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Skipping a build
+^^^^^^^^^^^^^^^^
+
+The builds when the pull request is in `WIP` state can be safely skipped. The important thing is to ensure that the builds pass when the PR is ready to be merged. To skip a Travis build, add ``[ci skip]`` to the commit message::
+
+  FIX: some changes [ci skip]
+
+This will help prevent clogging up Travis and Appveyor and also save the environment.
+
+Documentation
+-------------
+
+Adding an example to example gallery
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Add the example to the correct subfolder in the ``examples/`` directory and
 prefix the file with ``plot_``. To make sure that the example renders correctly,
@@ -793,7 +807,7 @@ run ``make html`` in the ``doc/`` folder
 Editing \*.rst files
 ^^^^^^^^^^^^^^^^^^^^
 
-These are reStructuredText files. Consult the Sphinx documentation to learn
+These are reStructuredText files. Consult the `Sphinx documentation`_ to learn
 more about editing them.
 
 .. _troubleshooting:
@@ -826,3 +840,5 @@ handler doing an exit()``, try backing up or removing .ICEauthority::
     mv ~/.ICEauthority ~/.ICEauthority.bak
 
 .. include:: links.inc
+
+.. _Sphinx documentation: http://sphinx-doc.org/rest.html
