@@ -15,7 +15,7 @@ import numpy as np
 from ..externals.six import string_types
 from ..io.pick import pick_types, _pick_data_channels
 from ..io.proj import setup_proj
-from ..utils import verbose, get_config
+from ..utils import verbose, get_config, logger
 from ..time_frequency import compute_raw_psd
 from .topo import _plot_topo, _plot_timeseries
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
@@ -235,10 +235,19 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-    for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
+    for t in ['eeg', 'seeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
               'misc', 'chpi', 'syst', 'ias', 'exci']:
         pick_kwargs[t] = True
         inds += [pick_types(raw.info, **pick_kwargs)]
+        if t == 'seeg' and len(inds[-1]) > 0:  # hack to
+            new_picks = [ind for ind in inds[-1] if
+                         not 'HPI' in raw.ch_names[ind]]
+            if len(new_picks) != len(inds[-1]):
+                inds[-1] = new_picks
+            else:
+                logger.warning('Conflicting FIFF constants detected. SEEG '
+                               'FIFF data saved before mne version 0.11 will '
+                               'not work with mne version 0.12!')
         types += [t] * len(inds[-1])
         pick_kwargs[t] = False
     inds = np.concatenate(inds).astype(int)
