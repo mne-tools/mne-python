@@ -710,7 +710,7 @@ def _check_ori(pick_ori):
 
 def _check_reference(inst):
     """Aux funcion"""
-    if _needs_eeg_average_ref_proj(inst):
+    if _needs_eeg_average_ref_proj(inst.info):
         raise ValueError('EEG average reference is mandatory for inverse '
                          'modeling.')
     if inst.info['custom_ref_applied']:
