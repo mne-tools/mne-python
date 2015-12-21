@@ -134,7 +134,7 @@ def test_plot_evoked():
         plt.close('all')
 
         # test jointplot
-        evoked.pick_types(eeg=True)
+        evoked.pick_types(eeg=True, meg=False)
         joint_plot(evoked)
         joint_plot(evoked, title='test', ts_args=dict(spatial_colors=True),
                    topomap_args=dict(colorbar=True, times=[0.]))
