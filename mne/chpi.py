@@ -356,12 +356,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
     Returns
     -------
-    translation : ndarray, shape (N, 3)
-        Translations at each time point.
-    rotation : ndarray, shape (N, 3, 3)
-        Rotations at each time point.
-    t : ndarray, shape (N,)
-        The time points.
+    quats : ndarray, shape (N, 7)
+        The ``[t, q1, q2, q3, x, y, z]`` for each fit.
 
     Notes
     -----
@@ -380,6 +376,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     fit_starts = fit_starts[fit_starts < raw.n_times - hpi['n_window']]
     fit_times = (fit_starts + (hpi['n_window'] + 1) // 2) / raw.info['sfreq']
     quats = []
+    logger.info('Fitting up to %s time points' % len(fit_starts))
     for start, fit_time in zip(fit_starts, fit_times):
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
@@ -417,8 +414,9 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         # 2. Fit magnetic dipole for each coil to obtain coil positions
         #    in device coordinates
         #
-        logger.info('HPI amplitude correlation %s: %s (%s chnls > 0.95)'
-                    % (fit_time, g_sin, (g_chan > 0.95).sum()))
+        logger.debug('    HPI amplitude correlation %0.3f: %0.3f '
+                     '(%s chnls > 0.950)' % (fit_time, g_sin,
+                                             (g_chan > 0.95).sum()))
         outs = [_fit_magnetic_dipole(f, pos, hpi['coils'], hpi['scale'],
                                      hpi['method'])
                 for f, pos in zip(sin_fit, last['coil_dev_rrs'])]
@@ -466,7 +464,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         vs = tuple(1000. * np.sqrt(np.sum((hpi['coil_head_rrs'] -
                                            est_coil_head_rrs) ** 2,
                                           axis=1)) / dt)
-        logger.info('Hpi fit OK, movements [mm/s] = ' +
+        logger.info('    Hpi fit OK, movements [mm/s] = ' +
                     ' / '.join(['%0.1f'] * hpi['n_freqs']) % vs)
         errs = [0] * hpi['n_freqs']  # XXX eventually calculate this
         e = 0.  # XXX eventually calculate this
@@ -503,6 +501,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         last['fit_time'] = fit_time
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs
+    logger.info('[done]')
     quats = np.array(quats)
     quats = np.zeros((0, 10)) if quats.size == 0 else quats
-    return _quats_to_trans_rot_t(quats)
+    return quats
