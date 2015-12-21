@@ -39,8 +39,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d, _get_args
-from .viz import (plot_epochs, _drop_log_stats,
-                  plot_epochs_psd, plot_epochs_psd_topomap)
+from .viz import plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, object_hash)
 from .externals.six import iteritems, string_types
@@ -1003,7 +1002,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._reject_setup(reject, flat)
         self._get_data(out=False)
 
-    def drop_log_stats(self, ignore=['IGNORED']):
+    def drop_log_stats(self, ignore=('IGNORED',)):
         """Compute the channel stats based on a drop_log from Epochs.
 
         Parameters
@@ -1023,7 +1022,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return _drop_log_stats(self.drop_log, ignore)
 
     def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
-                      color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
+                      color=(0.9, 0.9, 0.9), width=0.8, ignore=('IGNORED',),
                       show=True):
         """Show the channel stats based on a drop_log from Epochs
 
@@ -1622,6 +1621,27 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         epochs.drop_epochs(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices
+
+
+def _drop_log_stats(drop_log, ignore=('IGNORED',)):
+    """
+    Parameters
+    ----------
+    drop_log : list of lists
+        Epoch drop log from Epochs.drop_log.
+    ignore : list
+        The drop reasons to ignore.
+
+    Returns
+    -------
+    perc : float
+        Total percentage of epochs dropped.
+    """
+    if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
+        raise ValueError('drop_log must be a list of lists')
+    perc = 100 * np.mean([len(d) > 0 for d in drop_log
+                          if not any(r in ignore for r in d)])
+    return perc
 
 
 class Epochs(_BaseEpochs):
