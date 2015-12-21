@@ -242,7 +242,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         if t == 'seeg' and len(inds[-1]) > 0:
             # XXX hack to work around fiff mess
             new_picks = [ind for ind in inds[-1] if
-                         not 'HPI' in raw.ch_names[ind]]
+                         not raw.ch_names[ind].startswith('CHPI')]
             if len(new_picks) != len(inds[-1]):
                 inds[-1] = new_picks
             else:
