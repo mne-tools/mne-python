@@ -196,6 +196,8 @@ class Info(dict):
                                             for ch_type, count
                                             in ch_counts.items())
             strs.append('%s : %s%s' % (k, str(type(v))[7:-2], entr))
+            if k in ['sfreq', 'lowpass', 'highpass']:
+                strs[-1] += ' Hz'
         strs_non_empty = sorted(s for s in strs if '|' in s)
         strs_empty = sorted(s for s in strs if '|' not in s)
         st = '\n    '.join(strs_non_empty + strs_empty)
