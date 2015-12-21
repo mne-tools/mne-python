@@ -639,8 +639,21 @@ def test_noise_rejection():
     raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
                              cross_talk=ctc_fname, st_duration=1.,
                              coord_frame='meg', regularize='in')
-    # XXX we should improve this
-    _assert_shielding(raw_sss, erm_power, 54)  # 6.6)
+
+    # Our 3D cal has worse defaults for this ERM than the 1D file
+    _assert_shielding(raw_sss, erm_power, 54)
+    # Show it by rewriting the 3D as 1D and testing it
+    temp_dir = _TempDir()
+    temp_fname = op.join(temp_dir, 'test_cal.dat')
+    with open(fine_cal_fname_3d, 'rb') as fid:
+        with open(temp_fname, 'wb') as fid_out:
+            for line in fid:
+                fid_out.write(' '.join(line.strip().split(' ')[:14]) + '\n')
+    raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
+                             cross_talk=ctc_fname, st_duration=1.,
+                             coord_frame='meg', regularize='in')
+    # Our 3D cal has worse defaults for this ERM than the 1D file
+    _assert_shielding(raw_sss, erm_power, 44)
 
 
 @slow_test
