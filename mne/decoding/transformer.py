@@ -332,13 +332,14 @@ class PSDEstimator(TransformerMixin):
         Returns
         -------
         psd : array, shape (n_signals, len(freqs)) or (len(freqs),)
-            The computed PSD.
+            The computed PSD. This also creates the attribute `freqs_`, which
+            contains the frequencies in the PSD estimate.
         """
 
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
-        psd, freqs = compute_epochs_psd(epochs_data, Fs=self.sfreq,
+        psd, freqs = compute_epochs_psd(epochs_data, sfreq=self.sfreq,
                                         fmin=self.fmin, fmax=self.fmax,
                                         mt_bandwidth=self.bandwidth,
                                         mt_adaptive=self.adaptive,

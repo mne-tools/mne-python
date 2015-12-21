@@ -1,7 +1,7 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 
 from mne import io, pick_types, Epochs, read_events
 from mne.utils import requires_version, slow_test
@@ -64,7 +64,6 @@ def test_psd_epochs():
                        exclude=exclude)
 
     picks = picks[:2]
-
     n_fft = 512  # the FFT size (n_fft). Ideally a power of 2
 
     tmin, tmax, event_id = -0.5, 0.5, 1
@@ -92,21 +91,44 @@ def test_psd_epochs():
     picks = pick_types(epochs.info, meg='grad', eeg=False, eog=True,
                        stim=False, include=include, exclude='bads')
     psds, freqs = compute_epochs_psd(epochs[:1], fmin=2, fmax=300,
-                                     n_fft=n_fft, picks=picks)
+                                     n_fft=n_fft, picks=picks, method='welch')
 
     psds_t, freqs_t = compute_epochs_psd(epochs_full[:1], fmin=2, fmax=300,
-                                         tmin=tmin, tmax=tmax,
+                                         tmin=tmin, tmax=tmax, method='welch',
                                          n_fft=n_fft, picks=picks)
     # this one will fail if you add for example 0.1 to tmin
     assert_array_almost_equal(psds, psds_t, 27)
 
     psds_proj, _ = compute_epochs_psd(epochs[:1].apply_proj(), fmin=2,
-                                      fmax=300, n_fft=n_fft, picks=picks)
+                                      fmax=300, n_fft=n_fft, picks=picks,
+                                      method='welch')
 
     assert_array_almost_equal(psds, psds_proj)
     assert_true(psds.shape == (1, len(picks), len(freqs)))
     assert_true(np.sum(freqs < 0) == 0)
     assert_true(np.sum(psds < 0) == 0)
+
+    # Multitaper
+    psds_mt, freqs_mt = compute_epochs_psd(epochs_full[:1], fmin=2, fmax=300,
+                                           tmin=tmin, tmax=tmax,
+                                           method='multitaper', picks=picks)
+    psds_mt_proj, freqs_mt_proj = compute_epochs_psd(
+        epochs_full[:1].apply_proj(), fmin=2, fmax=300, tmin=tmin, tmax=tmax,
+        method='multitaper', picks=picks)
+
+    assert_array_almost_equal(psds_mt, psds_mt_proj)
+    assert_true(psds_mt.shape == (1, len(picks), len(freqs_mt)))
+    assert_true(np.sum(freqs_mt < 0) == 0)
+    assert_true(np.sum(psds_mt < 0) == 0)
+
+    # Passing arrays
+    sfreq = epochs.info['sfreq']
+    epochs_array = epochs.get_data()
+    psds_arr, freqs_arr = compute_epochs_psd(epochs_array[:1], fmin=2,
+                                             fmax=300, n_fft=n_fft,
+                                             sfreq=sfreq, picks=picks)
+    assert_raises(ValueError, compute_epochs_psd, epochs_array)
+    assert_raises(ValueError, compute_epochs_psd, epochs_array[0], sfreq=sfreq)
 
 
 @slow_test
