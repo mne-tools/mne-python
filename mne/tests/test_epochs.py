@@ -724,6 +724,24 @@ def test_epochs_proj():
     data_2 = epochs_read.get_data()  # Let's check the result
     assert_allclose(data, data_2, atol=1e-15, rtol=1e-3)
 
+    # adding EEG ref (GH #2727)
+    raw = Raw(raw_fname)
+    raw.add_proj([], remove_existing=True)
+    raw.info['bads'] = ['MEG 2443', 'EEG 053']
+    picks = pick_types(raw.info, meg=False, eeg=True, stim=True, eog=False,
+                       exclude='bads')
+    epochs = Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+                    baseline=(None, 0), preload=True, add_eeg_ref=False)
+    epochs.pick_channels(['EEG 001', 'EEG 002'])
+    assert_equal(len(epochs), 7)  # sufficient for testing
+    temp_fname = 'test.fif'
+    epochs.save(temp_fname)
+    epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=True)
+    assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
+    epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=False)
+    assert_raises(AssertionError, assert_allclose,
+                  epochs.get_data().mean(axis=1), 0., atol=1e-15)
+
 
 def test_evoked_arithmetic():
     """Test arithmetic of evoked data
@@ -1787,7 +1805,7 @@ def test_array_epochs():
     # saving
     temp_fname = op.join(tempdir, 'test-epo.fif')
     epochs.save(temp_fname)
-    epochs2 = read_epochs(temp_fname)
+    epochs2 = read_epochs(temp_fname, add_eeg_ref=False)
     data2 = epochs2.get_data()
     assert_allclose(data, data2)
     assert_allclose(epochs.times, epochs2.times)
@@ -1826,7 +1844,7 @@ def test_array_epochs():
     assert_allclose(epochs.times, [0.])
     assert_allclose(epochs.get_data(), data[:, :, :1])
     epochs.save(temp_fname)
-    epochs_read = read_epochs(temp_fname)
+    epochs_read = read_epochs(temp_fname, add_eeg_ref=False)
     assert_allclose(epochs_read.times, [0.])
     assert_allclose(epochs_read.get_data(), data[:, :, :1])
 

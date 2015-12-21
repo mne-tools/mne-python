@@ -316,7 +316,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if preload_at_end:
             assert self._data is None
             assert self.preload is False
-            self.load_data()
+            self.load_data()  # this will do the projection
+        elif proj is True and self._projector is not None and data is not None:
+            # let's make sure we project if data was provided and proj
+            # requested
+            # we could do this with np.einsum, but iteration should be
+            # more memory safe in most instances
+            for ii, epoch in enumerate(self._data):
+                self._data[ii] = np.dot(self._projector, epoch)
 
     def load_data(self):
         """Load the data if not already preloaded
@@ -1933,7 +1940,8 @@ class EpochsArray(_BaseEpochs):
         super(EpochsArray, self).__init__(info, data, events, event_id, tmin,
                                           tmax, baseline, reject=reject,
                                           flat=flat, reject_tmin=reject_tmin,
-                                          reject_tmax=reject_tmax, decim=1)
+                                          reject_tmax=reject_tmax, decim=1,
+                                          add_eeg_ref=False)
         if len(events) != in1d(self.events[:, 2],
                                list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
