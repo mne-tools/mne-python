@@ -2268,7 +2268,7 @@ def _read_one_epoch_file(f, tree, fname, preload):
 
 
 @verbose
-def read_epochs(fname, proj=True, add_eeg_ref=True, preload=True,
+def read_epochs(fname, proj=True, add_eeg_ref=False, preload=True,
                 verbose=None):
     """Read epochs from a fif file
 

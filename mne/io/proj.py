@@ -100,6 +100,13 @@ class ProjMixin(object):
 
         return self
 
+    def add_eeg_ref(self):
+        """Add an average EEG reference projector if one does not exist
+        """
+        if _needs_eeg_average_ref_proj(self.info):
+            eeg_proj = make_eeg_average_ref_proj(self.info, activate=True)
+            self.add_proj(eeg_proj)
+
     def apply_proj(self):
         """Apply the signal space projection (SSP) operators to the data.
 
@@ -152,7 +159,6 @@ class ProjMixin(object):
             logger.info('The projections don\'t apply to these data.'
                         ' Doing nothing.')
             return self
-
         self._projector, self.info = _projector, info
         if isinstance(self, _BaseRaw):
             if self.preload:
@@ -694,7 +700,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         The modified measurement info (Warning: info is modified inplace).
     """
     # Add EEG ref reference proj if necessary
-    if _needs_eeg_average_ref_proj(info) and add_eeg_ref:
+    if add_eeg_ref and _needs_eeg_average_ref_proj(info):
         eeg_proj = make_eeg_average_ref_proj(info, activate=activate)
         info['projs'].append(eeg_proj)
 

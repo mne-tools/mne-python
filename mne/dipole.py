@@ -10,7 +10,7 @@ import re
 
 from .cov import read_cov, _get_whitener_data
 from .io.pick import pick_types, channel_type
-from .io.proj import make_projector, _has_eeg_average_ref_proj
+from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform, Transform)
@@ -575,7 +575,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     evoked = evoked.copy()
 
     # Determine if a list of projectors has an average EEG ref
-    if "eeg" in evoked and not _has_eeg_average_ref_proj(evoked.info['projs']):
+    if _needs_eeg_average_ref_proj(evoked.info):
         raise ValueError('EEG average reference is mandatory for dipole '
                          'fitting.')
 

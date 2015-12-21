@@ -9,7 +9,7 @@ from ..io.constants import FIFF
 from ..io.pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
 
-from ..io.proj import _has_eeg_average_ref_proj, make_projector
+from ..io.proj import _needs_eeg_average_ref_proj, make_projector
 from ..transforms import transform_surface_to, read_trans, _find_trans
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
@@ -100,7 +100,7 @@ def _compute_mapping_matrix(fmd, info):
 
     # Optionally apply the average electrode reference to the final field map
     if fmd['kind'] == 'eeg':
-        if _has_eeg_average_ref_proj(projs):
+        if _needs_eeg_average_ref_proj(info):
             logger.info('    The map will have average electrode reference')
             mapping_mat -= np.mean(mapping_mat, axis=0)[np.newaxis, :]
     return mapping_mat

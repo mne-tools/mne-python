@@ -542,8 +542,11 @@ def test_read_write_epochs():
         epochs = Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
                         baseline=(None, 0), proj=proj, reject=reject,
                         add_eeg_ref=True)
+        assert_equal(epochs.proj, proj if proj != 'delayed' else False)
         data1 = epochs.get_data()
-        data2 = epochs.apply_proj().get_data()
+        epochs2 = epochs.copy().apply_proj()
+        assert_equal(epochs2.proj, True)
+        data2 = epochs2.get_data()
         assert_allclose(data1, data2, **tols)
         epochs.save(temp_fname)
         epochs_read = read_epochs(temp_fname, preload=False)
@@ -741,6 +744,11 @@ def test_epochs_proj():
     epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=False)
     assert_raises(AssertionError, assert_allclose,
                   epochs.get_data().mean(axis=1), 0., atol=1e-15)
+    epochs.add_eeg_ref()
+    assert_raises(AssertionError, assert_allclose,
+                  epochs.get_data().mean(axis=1), 0., atol=1e-15)
+    epochs.apply_proj()
+    assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
 
 
 def test_evoked_arithmetic():
@@ -1805,7 +1813,7 @@ def test_array_epochs():
     # saving
     temp_fname = op.join(tempdir, 'test-epo.fif')
     epochs.save(temp_fname)
-    epochs2 = read_epochs(temp_fname, add_eeg_ref=False)
+    epochs2 = read_epochs(temp_fname)
     data2 = epochs2.get_data()
     assert_allclose(data, data2)
     assert_allclose(epochs.times, epochs2.times)
@@ -1844,7 +1852,7 @@ def test_array_epochs():
     assert_allclose(epochs.times, [0.])
     assert_allclose(epochs.get_data(), data[:, :, :1])
     epochs.save(temp_fname)
-    epochs_read = read_epochs(temp_fname, add_eeg_ref=False)
+    epochs_read = read_epochs(temp_fname)
     assert_allclose(epochs_read.times, [0.])
     assert_allclose(epochs_read.get_data(), data[:, :, :1])
 
