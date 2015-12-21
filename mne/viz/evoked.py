@@ -892,15 +892,14 @@ def _connection_line(x, fig, sourceax, targetax):
 
 
 def joint_plot(evoked, title='', picks=None, exclude=None, show=True,
-               ts_args=dict(spatial_colors=True),
-               topomap_args=dict(colorbar=True)):
+               ts_args=dict(spatial_colors=True), topomap_args=dict()):
     """Plot evoked data as butterfly plots and add topomaps for selected
     time points.
 
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked instance. Must contain only one channel type.
+        The evoked instance.
     title : str
         The title.
     picks : array-like of int | None
@@ -928,10 +927,10 @@ def joint_plot(evoked, title='', picks=None, exclude=None, show=True,
     .. versionadded:: 0.12.0
     """
     if picks is not None:
-        evoked = evoked.copy().pick_channels(picks)
+      evoked = evoked.copy().pick_channels(picks)
     if len(set([channel_type(evoked.info, idx) for idx in
-                range(evoked.info['nchan'])]) > 1:
-        raise ValueError("More than 1 sensor type cannot be plotted.")
+                range(evoked.info['nchan'])])) > 1:
+      raise ValueError("More than 1 sensor type cannot be plotted.")
     if exclude is not None:
         for t_dict in (ts_args, topomap_args):
             t_dict.update(dict(exclude=exclude))
