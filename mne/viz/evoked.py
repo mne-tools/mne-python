@@ -926,8 +926,8 @@ def joint_plot(evoked, title='', picks=None, exclude=None, show=True,
     """
     if picks is not None:
         evoked = evoked.copy().pick_channels(picks)
-    if len([channel_type(evoked.info, idx) for idx in
-            range(evoked.info['nchan'])]) > 1:
+    if len({channel_type(evoked.info, idx) for idx in
+            range(evoked.info['nchan'])}) > 1:
         raise ValueError("More than 1 sensor type cannot be plotted.")
     if exclude is not None:
         for t_dict in (ts_args, topomap_args):
