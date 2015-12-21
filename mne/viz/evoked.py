@@ -155,10 +155,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
-                 spatial_colors=False):
+                 spatial_colors=False, set_tight_layout=True):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
-    Extra param is:
+    Extra params are:
 
     plot_type : str, value ('butterfly' | 'image')
         The type of graph to plot: 'butterfly' plots each channel as a line
@@ -166,6 +166,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         color depicts the amplitude of each channel at a given time point
         (x axis: time, y axis: channel). In 'image' mode, the plot is not
         interactive.
+    set_tight_layout : bool
+        If True, set layout to tight.
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
@@ -383,7 +385,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
     plt_show(show)
     fig.canvas.draw()  # for axes plots update axes.
-    tight_layout(fig=fig)
+    if set_tight_layout:
+        tight_layout(fig=fig)
 
     return fig
 
@@ -926,8 +929,8 @@ def joint_plot(evoked, title='', picks=None, exclude=None, show=True,
     """
     if picks is not None:
         evoked = evoked.copy().pick_channels(picks)
-    if len({channel_type(evoked.info, idx) for idx in
-            range(evoked.info['nchan'])}) > 1:
+    if len(set([channel_type(evoked.info, idx) for idx in
+                range(evoked.info['nchan'])]) > 1:
         raise ValueError("More than 1 sensor type cannot be plotted.")
     if exclude is not None:
         for t_dict in (ts_args, topomap_args):
@@ -951,7 +954,8 @@ def joint_plot(evoked, title='', picks=None, exclude=None, show=True,
     ts_ax = f.add_subplot(212)
     ts_args_pass = dict((k, v) for k, v in ts_args.items()
                         if k not in ["axes", "show", "colorbar"])
-    evoked.plot(axes=ts_ax, show=False, **ts_args_pass)
+    _plot_evoked(evoked, axes=ts_ax, show=False, set_tight_layout=False,
+                 **ts_args_pass)
 
     # prepare axes for topomap
     t = len(times) + 2
