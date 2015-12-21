@@ -38,7 +38,7 @@ Changelog
     
     - Improve speed of generalization across time :class:`mne.decoding.GeneralizationAcrossTime` decoding up to a factor of seven by `Jean-Remi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
 
-    - Add the explained variance for each principal component, `explained_var`, key to the :class:`mne.io.proj.Projection` by `Teon Brooks`_
+    - Add the explained variance for each principal component, ``explained_var``, key to the :class:`mne.io.Projection` by `Teon Brooks`_
 
 BUG
 ~~~
@@ -52,6 +52,8 @@ BUG
     - Added lower bound in :func:`mne.stats.linear_regression` on p-values ``p_val`` (and resulting ``mlog10_p_val``) using double floating point arithmetic limits by `Eric Larson`_
 
     - Fix channel name pick in :func:`mne.Evoked.get_peak` method by `Alex Gramfort`_
+
+    - Fix drop percentages to take into account ``ignore`` option in :func:`mne.viz.plot_drop_log` and :func:`mne.Epochs.plot_drop_log` by `Eric Larson`_.
 
 API
 ~~~

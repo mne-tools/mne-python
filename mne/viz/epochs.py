@@ -199,9 +199,9 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
         plt.text(0, 0, 'No drops')
         return fig
     n_used = 0
-    for d in drop_log:
+    for d in drop_log:  # "d" is the list of drop reasons for each epoch
         if len(d) == 0 or any(ch not in ignore for ch in d):
-            n_used += 1
+            n_used += 1  # number of epochs not ignored
     counts = 100 * np.array(list(scores.values()), dtype=float) / n_used
     n_plot = min(n_max_plot, len(ch_names))
     order = np.flipud(np.argsort(counts))
