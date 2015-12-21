@@ -239,7 +239,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
               'misc', 'chpi', 'syst', 'ias', 'exci']:
         pick_kwargs[t] = True
         inds += [pick_types(raw.info, **pick_kwargs)]
-        if t == 'seeg' and len(inds[-1]) > 0:  # hack to
+        if t == 'seeg' and len(inds[-1]) > 0:  # hack to work around fiff mess
             new_picks = [ind for ind in inds[-1] if
                          not 'HPI' in raw.ch_names[ind]]
             if len(new_picks) != len(inds[-1]):
