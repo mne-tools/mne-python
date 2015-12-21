@@ -548,12 +548,12 @@ def test_head_translation():
 
 
 # TODO: Eventually add simulation tests mirroring Taulu's original paper
-# that calculates the localization error and shielding factor:
+# that calculates the localization error:
 # http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=1495874
 
-def _assert_shielding(raw_sss, erm_power, shielding_factor):
+def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
     """Helper to assert a minimum shielding factor using empty-room power"""
-    picks = pick_types(raw_sss.info, meg=True)
+    picks = pick_types(raw_sss.info, meg=meg)
     sss_power = raw_sss[picks][0].ravel()
     sss_power = np.sqrt(np.sum(sss_power * sss_power))
     factor = erm_power / sss_power
@@ -568,73 +568,92 @@ def test_noise_rejection():
     """Test Maxwell filter shielding factor using empty room"""
     with warnings.catch_warnings(record=True):  # maxshield
         raw_erm = Raw(erm_fname, allow_maxshield=True, preload=True)
-    picks = pick_types(raw_erm.info, meg=True)
+    picks = pick_types(raw_erm.info, meg='mag')
     erm_power = raw_erm[picks][0].ravel()
     erm_power = np.sqrt(np.sum(erm_power * erm_power))
 
-    # Vanilla SSS
-    _assert_shielding(Raw(sss_erm_std_fname), erm_power, 1.5)
+    # Vanilla SSS (second value would be for meg=True instead of meg='mag')
+    _assert_shielding(Raw(sss_erm_std_fname), erm_power, 10)  # 1.5)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None)
-    _assert_shielding(raw_sss, erm_power, 1.5)
+    _assert_shielding(raw_sss, erm_power, 12)  # 1.5)
 
     # Fine cal
-    _assert_shielding(Raw(sss_erm_fine_cal_fname), erm_power, 2.0)
+    _assert_shielding(Raw(sss_erm_fine_cal_fname), erm_power, 12)  # 2.0)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin,
                              calibration=fine_cal_fname)
-    _assert_shielding(raw_sss, erm_power, 2.0)
+    _assert_shielding(raw_sss, erm_power, 12)  # 2.0)
 
     # Crosstalk
-    _assert_shielding(Raw(sss_erm_ctc_fname), erm_power, 2.1)
+    _assert_shielding(Raw(sss_erm_ctc_fname), erm_power, 12)  # 2.1)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin,
                              cross_talk=ctc_fname)
-    _assert_shielding(raw_sss, erm_power, 2.1)
+    _assert_shielding(raw_sss, erm_power, 12)  # 2.1)
 
     # Fine cal + Crosstalk
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              calibration=fine_cal_fname,
                              origin=mf_meg_origin,
                              cross_talk=ctc_fname)
-    _assert_shielding(raw_sss, erm_power, 2.2)
+    _assert_shielding(raw_sss, erm_power, 13)  # 2.2)
 
     # tSSS
-    _assert_shielding(Raw(sss_erm_st_fname), erm_power, 5.8)
+    _assert_shielding(Raw(sss_erm_st_fname), erm_power, 37)  # 5.8)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin, st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 5.8)
+    _assert_shielding(raw_sss, erm_power, 37)  # 5.8)
 
     # Crosstalk + tSSS
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              cross_talk=ctc_fname, origin=mf_meg_origin,
                              st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 5.91)
+    _assert_shielding(raw_sss, erm_power, 38)  # 5.91)
 
     # Fine cal + tSSS
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              calibration=fine_cal_fname,
                              origin=mf_meg_origin, st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 5.98)
+    _assert_shielding(raw_sss, erm_power, 38)  # 5.98)
 
     # Fine cal + Crosstalk + tSSS
-    _assert_shielding(Raw(sss_erm_st1FineCalCrossTalk_fname), erm_power, 6.07)
+    _assert_shielding(Raw(sss_erm_st1FineCalCrossTalk_fname),
+                      erm_power, 39)  # 6.07)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              calibration=fine_cal_fname, origin=mf_meg_origin,
                              cross_talk=ctc_fname, st_duration=1.)
-    _assert_shielding(raw_sss, erm_power, 6.05)
+    _assert_shielding(raw_sss, erm_power, 39)  # 6.05)
 
     # Fine cal + Crosstalk + tSSS + Reg-in
     _assert_shielding(Raw(sss_erm_st1FineCalCrossTalkRegIn_fname), erm_power,
-                      6.97)
+                      57)  # 6.97)
     raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
                              cross_talk=ctc_fname, st_duration=1.,
                              origin=mf_meg_origin,
                              coord_frame='meg', regularize='in')
-    _assert_shielding(raw_sss, erm_power, 6.64)
+    _assert_shielding(raw_sss, erm_power, 53)  # 6.64)
     raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
                              cross_talk=ctc_fname, st_duration=1.,
                              coord_frame='meg', regularize='in')
-    _assert_shielding(raw_sss, erm_power, 7.0)
+    _assert_shielding(raw_sss, erm_power, 58)  # 7.0)
+    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
+                             cross_talk=ctc_fname, st_duration=1.,
+                             coord_frame='meg', regularize='in')
+
+    # Our 3D cal has worse defaults for this ERM than the 1D file
+    _assert_shielding(raw_sss, erm_power, 54)
+    # Show it by rewriting the 3D as 1D and testing it
+    temp_dir = _TempDir()
+    temp_fname = op.join(temp_dir, 'test_cal.dat')
+    with open(fine_cal_fname_3d, 'r') as fid:
+        with open(temp_fname, 'w') as fid_out:
+            for line in fid:
+                fid_out.write(' '.join(line.strip().split(' ')[:14]) + '\n')
+    raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
+                             cross_talk=ctc_fname, st_duration=1.,
+                             coord_frame='meg', regularize='in')
+    # Our 3D cal has worse defaults for this ERM than the 1D file
+    _assert_shielding(raw_sss, erm_power, 44)
 
 
 @slow_test
