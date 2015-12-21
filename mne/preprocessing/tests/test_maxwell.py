@@ -645,8 +645,8 @@ def test_noise_rejection():
     # Show it by rewriting the 3D as 1D and testing it
     temp_dir = _TempDir()
     temp_fname = op.join(temp_dir, 'test_cal.dat')
-    with open(fine_cal_fname_3d, 'rb') as fid:
-        with open(temp_fname, 'wb') as fid_out:
+    with open(fine_cal_fname_3d, 'r') as fid:
+        with open(temp_fname, 'w') as fid_out:
             for line in fid:
                 fid_out.write(' '.join(line.strip().split(' ')[:14]) + '\n')
     raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
