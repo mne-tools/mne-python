@@ -712,7 +712,7 @@ def _check_reference(inst):
     """Aux funcion"""
     if _needs_eeg_average_ref_proj(inst.info):
         raise ValueError('EEG average reference is mandatory for inverse '
-                         'modeling.')
+                         'modeling, use add_eeg_ref method.')
     if inst.info['custom_ref_applied']:
         raise ValueError('Custom EEG reference is not allowed for inverse '
                          'modeling.')

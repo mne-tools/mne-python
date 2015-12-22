@@ -739,16 +739,19 @@ def test_epochs_proj():
     assert_equal(len(epochs), 7)  # sufficient for testing
     temp_fname = 'test.fif'
     epochs.save(temp_fname)
-    epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=True)
-    assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
-    epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=False)
-    assert_raises(AssertionError, assert_allclose,
-                  epochs.get_data().mean(axis=1), 0., atol=1e-15)
-    epochs.add_eeg_ref()
-    assert_raises(AssertionError, assert_allclose,
-                  epochs.get_data().mean(axis=1), 0., atol=1e-15)
-    epochs.apply_proj()
-    assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
+    for preload in (True, False):
+        epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=True,
+                             preload=preload)
+        assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
+        epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=False,
+                             preload=preload)
+        assert_raises(AssertionError, assert_allclose,
+                      epochs.get_data().mean(axis=1), 0., atol=1e-15)
+        epochs.add_eeg_average_proj()
+        assert_raises(AssertionError, assert_allclose,
+                      epochs.get_data().mean(axis=1), 0., atol=1e-15)
+        epochs.apply_proj()
+        assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
 
 
 def test_evoked_arithmetic():
