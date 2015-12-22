@@ -15,7 +15,7 @@ from numpy.testing import assert_raises
 
 
 from mne import io, read_events, Epochs, pick_types, read_cov
-from mne.viz.evoked import _butterfly_onselect
+from mne.viz.evoked import _butterfly_onselect, joint_plot
 from mne.viz.utils import _fake_click
 from mne.utils import slow_test, run_tests_if_main
 from mne.channels import read_layout
@@ -132,5 +132,11 @@ def test_plot_evoked():
         evoked_sss.plot_white(cov)
         evoked_sss.plot_white(cov_fname)
         plt.close('all')
+
+        # test jointplot
+        evoked.pick_types(eeg=False, meg='mag')
+        joint_plot(evoked)
+        joint_plot(evoked, title='test', ts_args=dict(spatial_colors=True),
+                   topomap_args=dict(colorbar=True, times=[0.]))
 
 run_tests_if_main()
