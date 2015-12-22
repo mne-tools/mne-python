@@ -40,7 +40,7 @@ Changelog
 
     - Add the explained variance for each principal component, ``explained_var``, key to the :class:`mne.io.Projection` by `Teon Brooks`_
 
-    - Added methods :func:`mne.Epochs.add_eeg_ref`, :func:`mne.io.Raw.add_eeg_ref`, and :func:`mne.Evoked.add_eeg_ref` to add an average EEG reference.
+    - Added methods :func:`mne.Epochs.add_eeg_average_proj`, :func:`mne.io.Raw.add_eeg_average_proj`, and :func:`mne.Evoked.add_eeg_average_proj` to add an average EEG reference.
 
 BUG
 ~~~
