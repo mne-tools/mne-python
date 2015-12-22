@@ -40,6 +40,8 @@ Changelog
 
     - Add the explained variance for each principal component, ``explained_var``, key to the :class:`mne.io.Projection` by `Teon Brooks`_
 
+    - Added methods :func:`mne.Epochs.add_eeg_average_proj`, :func:`mne.io.Raw.add_eeg_average_proj`, and :func:`mne.Evoked.add_eeg_average_proj` to add an average EEG reference.
+
 BUG
 ~~~
 
@@ -55,10 +57,16 @@ BUG
 
     - Fix drop percentages to take into account ``ignore`` option in :func:`mne.viz.plot_drop_log` and :func:`mne.Epochs.plot_drop_log` by `Eric Larson`_.
 
+    - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_ref` to properly add one.
+
 API
 ~~~
 
     - :func:`mne.io.read_raw_brainvision` now has ``event_id`` argument to assign non-standard trigger events to a trigger value by `Teon Brooks`_
+
+    - :func:`mne.read_epochs` now has ``add_eeg_ref=False`` by default, since average EEG reference can be added before writing or after reading using the method :func:`mne.Epochs.add_eeg_ref`.
+
+    - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_ref` to properly add one.
 
 
 .. _changes_0_10:

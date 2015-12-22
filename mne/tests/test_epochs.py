@@ -542,8 +542,11 @@ def test_read_write_epochs():
         epochs = Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
                         baseline=(None, 0), proj=proj, reject=reject,
                         add_eeg_ref=True)
+        assert_equal(epochs.proj, proj if proj != 'delayed' else False)
         data1 = epochs.get_data()
-        data2 = epochs.apply_proj().get_data()
+        epochs2 = epochs.copy().apply_proj()
+        assert_equal(epochs2.proj, True)
+        data2 = epochs2.get_data()
         assert_allclose(data1, data2, **tols)
         epochs.save(temp_fname)
         epochs_read = read_epochs(temp_fname, preload=False)
@@ -723,6 +726,32 @@ def test_epochs_proj():
     epochs_read.apply_proj()  # This used to bomb
     data_2 = epochs_read.get_data()  # Let's check the result
     assert_allclose(data, data_2, atol=1e-15, rtol=1e-3)
+
+    # adding EEG ref (GH #2727)
+    raw = Raw(raw_fname)
+    raw.add_proj([], remove_existing=True)
+    raw.info['bads'] = ['MEG 2443', 'EEG 053']
+    picks = pick_types(raw.info, meg=False, eeg=True, stim=True, eog=False,
+                       exclude='bads')
+    epochs = Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+                    baseline=(None, 0), preload=True, add_eeg_ref=False)
+    epochs.pick_channels(['EEG 001', 'EEG 002'])
+    assert_equal(len(epochs), 7)  # sufficient for testing
+    temp_fname = 'test.fif'
+    epochs.save(temp_fname)
+    for preload in (True, False):
+        epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=True,
+                             preload=preload)
+        assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
+        epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=False,
+                             preload=preload)
+        assert_raises(AssertionError, assert_allclose,
+                      epochs.get_data().mean(axis=1), 0., atol=1e-15)
+        epochs.add_eeg_average_proj()
+        assert_raises(AssertionError, assert_allclose,
+                      epochs.get_data().mean(axis=1), 0., atol=1e-15)
+        epochs.apply_proj()
+        assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
 
 
 def test_evoked_arithmetic():

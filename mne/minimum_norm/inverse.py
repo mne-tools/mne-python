@@ -16,7 +16,7 @@ from ..io.tag import find_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
 from ..io.proj import _read_proj, make_projector, _write_proj
-from ..io.proj import _has_eeg_average_ref_proj
+from ..io.proj import _needs_eeg_average_ref_proj
 from ..io.tree import dir_tree_find
 from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
@@ -710,9 +710,9 @@ def _check_ori(pick_ori):
 
 def _check_reference(inst):
     """Aux funcion"""
-    if "eeg" in inst and not _has_eeg_average_ref_proj(inst.info['projs']):
+    if _needs_eeg_average_ref_proj(inst.info):
         raise ValueError('EEG average reference is mandatory for inverse '
-                         'modeling.')
+                         'modeling, use add_eeg_ref method.')
     if inst.info['custom_ref_applied']:
         raise ValueError('Custom EEG reference is not allowed for inverse '
                          'modeling.')
