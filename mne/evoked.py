@@ -18,8 +18,8 @@ from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
-                  plot_evoked_image, plot_evoked_topo)
-from .viz.evoked import _plot_evoked_white
+                  plot_evoked_image, plot_evoked_topo, )
+from .viz.evoked import _plot_evoked_white, joint_plot
 from .externals.six import string_types
 
 from .io.constants import FIFF
@@ -726,6 +726,47 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
+
+    def plot_joint(evoked, title='', picks=None, exclude=list(), show=True,
+                   ts_args=dict(spatial_colors=True), topomap_args=dict()):
+        """Plot evoked data as butterfly plots and add topomaps for selected
+        time points.
+
+        Parameters
+        ----------
+        evoked : instance of Evoked
+            The evoked instance.
+        title : str
+            The title.
+        picks : array-like of int | None
+            The indices of channels to plot. If None show all.
+        exclude : list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the
+            bad channels are excluded.
+        show : bool
+            Show figure if True.
+        ts_args : dict
+            A dict of `kwargs` that are forwarded to evoked.plot to
+            style the butterfly plot. `axes` and `show` are ignored.
+        topomap_args : dict
+            A dict of `kwargs` that are forwarded to evoked.plot_topomap
+            to style the topoplots. `axes` and `show` are ignored. If
+            `times` is not in this dict, automatic peak detection is used.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure | list
+            The figure object containing the plot. If `evoked` has multiple
+            channel types, a list of figures, one for each channel type, is
+            returned.
+
+        Notes
+        -----
+        .. versionadded:: 0.12.0
+        """
+        return joint_plot(evoked, title=title, picks=picks, exclude=exclude,
+                          show=True, ts_args=ts_args,
+                          topomap_args=topomap_args)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields in mag/grad
