@@ -6,7 +6,6 @@ import os.path as op
 import numpy as np
 import warnings
 
-from ..proj import make_eeg_average_ref_proj
 from ..utils import _read_segments_file
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
@@ -458,11 +457,5 @@ class EpochsEEGLAB(_BaseEpochs):
         super(EpochsEEGLAB, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
-            reject_tmax=reject_tmax, add_eeg_ref=False, verbose=verbose)
-
-        # XXX: hack because add_eeg_ref in _BaseEpochs needs to be fixed. Also
-        # affects read_epochs.
-        if add_eeg_ref:
-            self.add_proj(make_eeg_average_ref_proj(self.info))
-
+            reject_tmax=reject_tmax, add_eeg_ref=add_eeg_ref, verbose=verbose)
         logger.info('Ready.')
