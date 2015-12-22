@@ -77,6 +77,11 @@ def test_plot_topo():
     # Show topography
     evoked = _get_epochs().average()
     plot_evoked_topo(evoked)  # should auto-find layout
+    # Test jointplot
+    evoked.plot_joint()
+    evoked.plot_joint(title='test', ts_args=dict(spatial_colors=True),
+                      topomap_args=dict(colorbar=True, times=[0.]))
+
     warnings.simplefilter('always', UserWarning)
     picked_evoked = evoked.pick_channels(evoked.ch_names[:3], copy=True)
     picked_evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
