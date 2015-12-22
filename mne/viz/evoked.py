@@ -358,7 +358,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
             if (plot_type == 'butterfly') and (hline is not None):
                 for h in hline:
-                    ax.axhline(h, color='r', linestyle='--', linewidth=2)
+                    c = ('r' if not spatial_colors else 'grey')
+                    ax.axhline(h, linestyle='--', linewidth=2, color=c)
         lines.append(line_list)
     if plot_type == 'butterfly':
         params = dict(axes=axes, texts=texts, lines=lines,
