@@ -14,8 +14,8 @@ from nose.tools import assert_true, assert_raises
 
 from mne import (read_source_spaces, pick_types, read_trans, read_cov,
                  make_sphere_model, create_info, setup_volume_source_space)
-from mne.chpi import (_calculate_chpi_positions, get_chpi_positions,
-                      _get_hpi_info)
+from mne.chpi import (calculate_chpi_positions, get_chpi_positions,
+                      _get_hpi_info, _quats_to_trans_rot_t)
 from mne.tests.test_chpi import _compare_positions
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
@@ -247,7 +247,8 @@ def test_simulate_raw_chpi():
             assert_allclose(psd_sim, psd_chpi, atol=1e-20)
 
     # test localization based on cHPI information
-    trans_sim, rot_sim, t_sim = _calculate_chpi_positions(raw_chpi)
+    quats_sim = calculate_chpi_positions(raw_chpi)
+    trans_sim, rot_sim, t_sim = _quats_to_trans_rot_t(quats_sim)
     trans, rot, t = get_chpi_positions(pos_fname)
     t -= raw.first_samp / raw.info['sfreq']
     _compare_positions((trans, rot, t), (trans_sim, rot_sim, t_sim),

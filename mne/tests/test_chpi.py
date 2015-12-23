@@ -11,7 +11,7 @@ import warnings
 from mne.io import read_info, Raw
 from mne.io.constants import FIFF
 from mne.chpi import (_rot_to_quat, _quat_to_rot, get_chpi_positions,
-                      _calculate_chpi_positions, _angle_between_quats,
+                      calculate_chpi_positions, _angle_between_quats,
                       _quats_to_trans_rot_t)
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, catch_logging,
                        requires_version)
@@ -155,26 +155,26 @@ def test_calculate_chpi_positions():
     with warnings.catch_warnings(record=True):
         raw = Raw(raw_fif_fname, allow_maxshield=True, preload=True)
     t -= raw.first_samp / raw.info['sfreq']
-    quats = _calculate_chpi_positions(raw)
+    quats = calculate_chpi_positions(raw)
     trans_est, rot_est, t_est = _quats_to_trans_rot_t(quats)
     _compare_positions((trans, rot, t), (trans_est, rot_est, t_est), 0.003)
 
     # degenerate conditions
     raw_no_chpi = Raw(test_fif_fname)
-    assert_raises(RuntimeError, _calculate_chpi_positions, raw_no_chpi)
+    assert_raises(RuntimeError, calculate_chpi_positions, raw_no_chpi)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['coord_frame'] = 999
             break
-    assert_raises(RuntimeError, _calculate_chpi_positions, raw_bad)
+    assert_raises(RuntimeError, calculate_chpi_positions, raw_bad)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['r'] = np.ones(3)
     raw_bad.crop(0, 1., copy=False)
     with catch_logging() as log_file:
-        _calculate_chpi_positions(raw_bad, verbose=True)
+        calculate_chpi_positions(raw_bad, verbose=True)
     # ignore HPI info header and [done] footer
     for line in log_file.getvalue().strip().split('\n')[3:-1]:
         assert_true('0/5 good' in line)
