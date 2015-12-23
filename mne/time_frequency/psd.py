@@ -7,17 +7,17 @@ import numpy as np
 from ..parallel import parallel_func
 from ..io.proj import make_projector_info
 from ..io.pick import pick_types
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, deprecated
 from scipy.signal import welch
 from .multitaper import multitaper_psd
 
 
 @verbose
+@deprecated('This will be deprecated in XXX, see psd_ functions.')
 def compute_raw_psd(raw, tmin=0., tmax=None, picks=None, fmin=0,
                     fmax=np.inf, n_fft=2048, n_overlap=0,
                     proj=False, n_jobs=1, verbose=None):
     """Compute power spectral density with average periodograms.
-
     Parameters
     ----------
     raw : instance of Raw
@@ -46,7 +46,6 @@ def compute_raw_psd(raw, tmin=0., tmax=None, picks=None, fmin=0,
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
     Returns
     -------
     psd : array of float
@@ -71,21 +70,20 @@ def compute_raw_psd(raw, tmin=0., tmax=None, picks=None, fmin=0,
             data = np.dot(proj, data)
 
     n_fft = int(n_fft)
-    sfreq = raw.info['sfreq']
+    Fs = raw.info['sfreq']
 
-    logger.info("Effective window size : %0.3f (s)" % (n_fft / float(sfreq)))
+    logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
 
     parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
                                                 verbose=verbose)
 
-    freqs = np.arange(n_fft // 2 + 1) * (sfreq / n_fft)
+    freqs = np.arange(n_fft // 2 + 1) * (Fs / n_fft)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
 
     psds = np.array(parallel(my_pwelch([channel],
-                                       noverlap=n_overlap, nfft=n_fft,
-                                       fs=sfreq, freq_mask=freq_mask,
-                                       welch_fun=welch)
+                                       noverlap=n_overlap, nfft=n_fft, fs=Fs,
+                                       freq_mask=freq_mask, welch_fun=welch)
                              for channel in data))[:, 0, :]
 
     return psds, freqs
@@ -115,21 +113,211 @@ def _check_nfft(n, n_fft, n_overlap):
     return n_fft, n_overlap
 
 
+def _check_psd_data(inst, tmin, tmax, picks, proj, sfreq):
+    """Helper to do checks on PSD data / pull arrays from inst"""
+    from ..epochs import _BaseEpochs
+    from ..io.base import _BaseRaw
+    if isinstance(inst, (_BaseEpochs, _BaseRaw)):
+        if tmin is not None or tmax is not None:
+            time_mask = _time_mask(inst.times, tmin, tmax)
+        else:
+            time_mask = slice(None)
+        if picks is None:
+            picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=False,
+                               exclude='bads')
+
+        sfreq = inst.info['sfreq']
+        if isinstance(inst, _BaseRaw):
+            data, times = inst[picks, time_mask]
+        elif isinstance(inst, _BaseEpochs):
+            data = inst.get_data()[:, picks, time_mask]
+
+        if proj:
+            proj, _ = make_projector_info(inst.info)
+            if picks is not None:
+                proj = proj[picks][:, picks]
+            data = np.dot(proj, data)
+    elif isinstance(inst, np.ndarray):
+        if sfreq is None:
+            raise ValueError('If a numpy array is given, must provide sfreq')
+        data = inst.copy()
+        if data.ndim == 1:
+            data = data[np.newaxis, :]
+    else:
+        raise ValueError('epochs must be an instance of Epochs, Raw, '
+                         'or ndarray. Got type {0}'.format(type(inst)))
+    return data, sfreq
+
+
 @verbose
-def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf,
-                       tmin=None, tmax=None, n_fft=256, n_overlap=0,
-                       proj=False, method='welch',  mt_bandwidth=None,
-                       mt_adaptive=False, mt_low_bias=True,
-                       mt_normalization='length', sfreq=None, n_jobs=1,
-                       verbose=None):
-    """Compute power spectral density with average periodograms.
+def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
+              n_overlap=0, picks=None, proj=False, sfreq=None, n_jobs=1,
+              verbose=None):
+    """Compute the PSD using Welch's method.
 
     Parameters
     ----------
-    epochs : instance of Epochs | array of shape(n_epochs, n_channels, n_times)
-        The epochs. If not an Epochs object, it must be a numpy array
-        with shape (n_epochs, n_channels, n_times). Sampling frequency must
-        also be supplied.
+    inst : instance of Epochs or Raw |
+           array of shape (n_epochs, n_channels, n_times)
+        The data. If not an instance of Epochs or Raw,
+        sfreq must also be supplied.
+    fmin : float
+        Min frequency of interest
+    fmax : float
+        Max frequency of interest
+    tmin : float | None
+        Min time of interest
+    tmax : float | None
+        Max time of interest
+    n_fft : int
+        The length of the tapers ie. the windows. The smaller
+        it is the smoother are the PSDs. The default value is 256.
+        If ``n_fft > len(epochs.times)``, it will be adjusted down to
+        ``len(epochs.times)``.
+    n_overlap : int
+        The number of points of overlap between blocks. Will be adjusted
+        to be <= n_fft.
+        bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz.
+    picks : array-like of int | None
+        The selection of channels to include in the computation.
+        If None, take all channels.
+    proj : bool
+        Apply SSP projection vectors. If inst is ndarray this is not used.
+    sfreq : float
+        The sampling frequency of the data. Required if inst is an array,
+        otherwise this is not used and sfreq is pulled from inst.
+    n_jobs : int
+        Number of CPUs to use in the computation.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    psds : ndarray, shape ([n_epochs], n_channels, n_freqs)
+        The power spectral densities. If Raw is provided,
+        then psds will be 2-D.
+    freqs : ndarray (n_freqs)
+        The frequencies.
+    """
+
+    # Prep data
+    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj, sfreq)
+    dshape = data.shape[:-1]
+    n_times = data.shape[-1]
+
+    # This will return the same object if len(dshape) == 1
+    data = data.reshape(np.product(dshape), n_times)
+
+    # Prep the PSD
+    n_fft, n_overlap = _check_nfft(n_times, n_fft, n_overlap)
+    win_size = n_fft / float(sfreq)
+    logger.info("Effective window size : %0.3f (s)" % win_size)
+    freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
+    freq_mask = (freqs >= fmin) & (freqs <= fmax)
+    freqs = freqs[freq_mask]
+    n_freqs = len(freqs)
+
+    # Parallelize across first N-1 dimensions
+    psds = np.empty(data.shape[:-1] + (freqs.size,))
+    parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
+                                                verbose=verbose)
+    data_splits = np.array_split(data, n_jobs)
+    f_psd = parallel(my_pwelch(d, noverlap=n_overlap, nfft=n_fft,
+                     fs=sfreq, freq_mask=freq_mask,
+                     welch_fun=welch)
+                     for d in data_splits)
+
+    # Combining/reshaping to original data shape
+    psds = np.concatenate(f_psd, axis=0)
+    psds = psds.reshape(np.hstack([dshape, n_freqs]))
+    return psds, freqs
+
+
+@verbose
+def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
+                   bandwidth=None, adaptive=False, low_bias=True,
+                   normalization='length', picks=None, proj=False,
+                   sfreq=None, n_jobs=1, verbose=None):
+    """Compute the PSD using multitapers.
+
+
+    Parameters
+    ----------
+    inst : instance of Epochs or Raw |
+           array of shape (n_epochs, n_channels, n_times)
+        The data. If not an instance of Epochs or Raw,
+        sfreq must also be supplied.
+    fmin : float
+        Min frequency of interest
+    fmax : float
+        Max frequency of interest
+    tmin : float | None
+        Min time of interest
+    tmax : float | None
+        Max time of interest
+    adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth.
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
+    picks : array-like of int | None
+        The selection of channels to include in the computation.
+        If None, take all channels.
+    proj : bool
+        Apply SSP projection vectors. If inst is ndarray this is not used.
+    sfreq : float
+        The sampling frequency of the data. Required if inst is an array,
+        otherwise this is not used and sfreq is pulled from inst.
+    n_jobs : int
+        Number of CPUs to use in the computation.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    psds : ndarray, shape ([n_epochs], n_channels, n_freqs)
+        The power spectral densities. If Raw is provided,
+        then psds will be 2-D.
+    freqs : ndarray (n_freqs)
+        The frequencies.
+    """
+
+    # Prep data
+    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj, sfreq)
+    dshape = data.shape[:-1]
+    n_times = data.shape[-1]
+
+    # This will return the same object if len(dshape) == 1
+    data = data.reshape(np.product(dshape), n_times)
+
+    # Stack data so it's treated separately
+    psds, freqs = multitaper_psd(x=data, sfreq=sfreq, fmin=fmin, fmax=fmax,
+                                 bandwidth=bandwidth, adaptive=adaptive,
+                                 low_bias=low_bias,
+                                 normalization=normalization, n_jobs=n_jobs,
+                                 verbose=verbose)
+
+    # Combining/reshaping to original data shape
+    psds = psds.reshape(np.hstack([dshape, len(freqs)]))
+    return psds, freqs
+
+
+@verbose
+@deprecated('This will be deprecated in XXX, see psd_ functions.')
+def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
+                       tmax=None, n_fft=256, n_overlap=0, proj=False,
+                       n_jobs=1, verbose=None):
+    """Compute power spectral density with average periodograms.
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs.
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
@@ -151,15 +339,10 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf,
         to be <= n_fft.
     proj : bool
         Apply SSP projection vectors.
-    method : 'welch' | 'multitaper'
-        The method to use in calculating the PSD.
-    sfreq : None | float
-        The sampling frequency of the signal if it is passed as an array.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
     Returns
     -------
     psds : ndarray (n_epochs, n_channels, n_freqs)
@@ -167,74 +350,45 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf,
     freqs : ndarray (n_freqs)
         The frequencies.
     """
-    from ..epochs import _BaseEpochs
-    if isinstance(epochs, _BaseEpochs):
-        if sfreq is not None:
-            raise ValueError('If Epochs object supplied, sfreq must be None')
-        sfreq = epochs.info['sfreq']
-        if picks is None:
-            picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                               exclude='bads')
+    from scipy.signal import welch
+    n_fft = int(n_fft)
+    Fs = epochs.info['sfreq']
+    if picks is None:
+        picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
+    n_fft, n_overlap = _check_nfft(len(epochs.times), n_fft, n_overlap)
 
-        if tmin is not None or tmax is not None:
-            time_mask = _time_mask(epochs.times, tmin, tmax)
+    if tmin is not None or tmax is not None:
+        time_mask = _time_mask(epochs.times, tmin, tmax)
+    else:
+        time_mask = slice(None)
+
+    data = epochs.get_data()[:, picks][..., time_mask]
+    if proj:
+        proj, _ = make_projector_info(epochs.info)
+        if picks is not None:
+            data = np.dot(proj[picks][:, picks], data)
         else:
-            time_mask = slice(None)
-
-        data = epochs.get_data()[:, picks][..., time_mask]
-        if proj:
-            proj, _ = make_projector_info(epochs.info)
-            if picks is not None:
-                proj = proj[picks][:, picks]
             data = np.dot(proj, data)
 
-    elif isinstance(epochs, np.ndarray):
-        if not isinstance(sfreq, (int, float)):
-            raise ValueError('Must give sampling frequency (sfreq)'
-                             ' if epochs is an array.')
-        if epochs.ndim != 3:
-            raise ValueError('epochs array must have 3 dimensions')
-        data = np.atleast_3d(epochs)
-    else:
-        raise ValueError('epochs must be an instance of Epochs or '
-                         'a numpy array. Got type {0}'.format(type(epochs)))
+    logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
 
-    n_epochs, n_channels, n_times = data.shape
-    if method == 'welch':
-        n_fft, n_overlap = _check_nfft(n_times, n_fft, n_overlap)
-        n_fft = int(n_fft)
-        win_size = n_fft / float(sfreq)
-        logger.info("Effective window size : %0.3f (s)" % win_size)
+    freqs = np.arange(n_fft // 2 + 1, dtype=float) * (Fs / n_fft)
+    freq_mask = (freqs >= fmin) & (freqs <= fmax)
+    freqs = freqs[freq_mask]
+    psds = np.empty(data.shape[:-1] + (freqs.size,))
 
-        freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
-        freq_mask = (freqs >= fmin) & (freqs <= fmax)
-        freqs = freqs[freq_mask]
-        psds = np.empty(data.shape[:-1] + (freqs.size,))
+    parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
+                                                verbose=verbose)
 
-        parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
-                                                    verbose=verbose)
-
-        data_splits = np.array_split(data, n_jobs)
-        f_epochs = parallel(my_pwelch(d, noverlap=n_overlap, nfft=n_fft,
-                                      fs=sfreq, freq_mask=freq_mask,
-                                      welch_fun=welch)
-                            for d in data_splits)
-        psds = np.concatenate(f_epochs, axis=0)
-
-    elif method == 'multitaper':
-        # Pass each epoch/channel pair separately
-        data = data.reshape(n_epochs * n_channels, n_times)
-        psds, freqs = multitaper_psd(x=data, sfreq=sfreq, fmin=fmin, fmax=fmax,
-                                     bandwidth=mt_bandwidth,
-                                     adaptive=mt_adaptive,
-                                     low_bias=mt_low_bias,
-                                     n_jobs=n_jobs,
-                                     normalization=mt_normalization,
-                                     verbose=verbose)
-
-        n_freqs = psds.shape[1]
-        psds = psds.reshape(n_epochs, n_channels, n_freqs)
-    else:
-        raise ValueError("Unsupported PSD method: {0}".format(method))
+    for idx, fepochs in zip(np.array_split(np.arange(len(data)), n_jobs),
+                            parallel(my_pwelch(epoch, noverlap=n_overlap,
+                                               nfft=n_fft, fs=Fs,
+                                               freq_mask=freq_mask,
+                                               welch_fun=welch)
+                                     for epoch in np.array_split(data,
+                                                                 n_jobs))):
+        for i_epoch, f_epoch in zip(idx, fepochs):
+            psds[i_epoch, :, :] = f_epoch
 
     return psds, freqs

@@ -1,11 +1,11 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne import io, pick_types, Epochs, read_events
 from mne.utils import requires_version, slow_test
-from mne.time_frequency import compute_raw_psd, compute_epochs_psd
+from mne.time_frequency import compute_raw_psd, compute_epochs_psd, psd_array
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -62,7 +62,6 @@ def test_psd_epochs():
     # picks MEG gradiometers
     picks = pick_types(raw.info, meg='mag', eeg=False, stim=False,
                        exclude=exclude)
-
     picks = picks[:2]
     n_fft = 512  # the FFT size (n_fft). Ideally a power of 2
 
@@ -91,16 +90,17 @@ def test_psd_epochs():
     picks = pick_types(epochs.info, meg='grad', eeg=False, eog=True,
                        stim=False, include=include, exclude='bads')
     psds, freqs = compute_epochs_psd(epochs[:1], fmin=2, fmax=300,
-                                     n_fft=n_fft, picks=picks, method='welch')
+                                     wel_n_fft=n_fft, picks=picks,
+                                     method='welch')
 
     psds_t, freqs_t = compute_epochs_psd(epochs_full[:1], fmin=2, fmax=300,
                                          tmin=tmin, tmax=tmax, method='welch',
-                                         n_fft=n_fft, picks=picks)
+                                         wel_n_fft=n_fft, picks=picks)
     # this one will fail if you add for example 0.1 to tmin
-    assert_array_almost_equal(psds, psds_t, 27)
+    assert_array_almost_equal(psds, psds_t, 20)
 
     psds_proj, _ = compute_epochs_psd(epochs[:1].apply_proj(), fmin=2,
-                                      fmax=300, n_fft=n_fft, picks=picks,
+                                      fmax=300, wel_n_fft=n_fft, picks=picks,
                                       method='welch')
 
     assert_array_almost_equal(psds, psds_proj)
@@ -108,27 +108,64 @@ def test_psd_epochs():
     assert_true(np.sum(freqs < 0) == 0)
     assert_true(np.sum(psds < 0) == 0)
 
-    # Multitaper
-    psds_mt, freqs_mt = compute_epochs_psd(epochs_full[:1], fmin=2, fmax=300,
-                                           tmin=tmin, tmax=tmax,
-                                           method='multitaper', picks=picks)
-    psds_mt_proj, freqs_mt_proj = compute_epochs_psd(
-        epochs_full[:1].apply_proj(), fmin=2, fmax=300, tmin=tmin, tmax=tmax,
-        method='multitaper', picks=picks)
 
-    assert_array_almost_equal(psds_mt, psds_mt_proj)
-    assert_true(psds_mt.shape == (1, len(picks), len(freqs_mt)))
-    assert_true(np.sum(freqs_mt < 0) == 0)
-    assert_true(np.sum(psds_mt < 0) == 0)
+# Test PSD Arras
+def test_psd_array():
+    """Test PSD Estimation for numpy arrays
+    """
+    # Load data
+    raw = io.Raw(raw_fname)
 
-    # Passing arrays
+    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+
+    # picks MEG gradiometers
+    picks = pick_types(raw.info, meg='mag', eeg=False, stim=False,
+                       exclude=exclude)
+    picks = picks[:2]
+    n_fft = 512  # the FFT size (n_fft). Ideally a power of 2
+
+    tmin, tmax, event_id = -0.5, 0.5, 1
+    include = []
+    raw.info['bads'] += ['MEG 2443']  # bads
+
+    # picks MEG gradiometers
+    picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=False, include=include, exclude='bads')
+
+    events = read_events(event_fname)
+
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0),
+                    reject=dict(grad=4000e-13, eog=150e-6), proj=False,
+                    preload=True)
+
+    data = epochs.get_data()
+    data_proj = epochs.apply_proj().get_data()
     sfreq = epochs.info['sfreq']
-    epochs_array = epochs.get_data()
-    psds_arr, freqs_arr = compute_epochs_psd(epochs_array[:1], fmin=2,
-                                             fmax=300, n_fft=n_fft,
-                                             sfreq=sfreq, picks=picks)
-    assert_raises(ValueError, compute_epochs_psd, epochs_array)
-    assert_raises(ValueError, compute_epochs_psd, epochs_array[0], sfreq=sfreq)
+
+    # Welch
+    psds, freqs = psd_array(data[:1], sfreq=sfreq, fmin=2, fmax=300,
+                            method='welch', wel_n_fft=n_fft)
+    psds_proj, freqs = psd_array(data_proj[:1], sfreq=sfreq, fmin=2, fmax=300,
+                                 method='welch', wel_n_fft=n_fft)
+    assert_raises(ValueError, psd_array, data[0, 0, :], sfreq=sfreq)
+    assert_array_almost_equal(psds, psds_proj)
+    assert_true(psds.shape == (1, len(picks), len(freqs)))
+    assert_true(np.sum(freqs < 0) == 0)
+    assert_true(np.sum(psds < 0) == 0)
+    assert_equal(data[:1].shape[:-1], psds.shape[:-1])
+
+    # Multitaper
+    psds, freqs = psd_array(data[:1], sfreq=sfreq, fmin=2, fmax=300,
+                            method='multitaper')
+    psds_proj, freqs = psd_array(data_proj[:1], sfreq=sfreq, fmin=2, fmax=300,
+                                 method='multitaper')
+    assert_raises(ValueError, psd_array, data[0, 0, :], sfreq=sfreq)
+    assert_array_almost_equal(psds, psds_proj)
+    assert_true(psds.shape == (1, len(picks), len(freqs)))
+    assert_true(np.sum(freqs < 0) == 0)
+    assert_true(np.sum(psds < 0) == 0)
+    assert_equal(data[:1].shape[:-1], psds.shape[:-1])
 
 
 @slow_test
