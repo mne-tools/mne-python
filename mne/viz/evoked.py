@@ -306,7 +306,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 if gfp:  # 'only' or boolean True
                     gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
-                    this_ylim = ax.get_ylim()
+                    this_ylim = ax.get_ylim() if (ylim is None or t not in
+                                                  ylim.keys()) else ylim[t]
                     if not gfp_only:
                         y_offset = this_ylim[0]
                     else:
