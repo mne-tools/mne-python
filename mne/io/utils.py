@@ -15,6 +15,7 @@ def _find_channels(ch_names, ch_type='EOG'):
     """Helper to find EOG channel.
     """
     substrings = (ch_type,)
+    substrings = [s.upper() for s in substrings]
     if ch_type == 'EOG':
         substrings = ('EOG', 'EYE')
     eog_idx = [idx for idx, ch in enumerate(ch_names) if
