@@ -1504,6 +1504,9 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
         I_tots[ii] = 0.5 * np.log2(snr + 1.).sum()
         remove_order.append(in_keepers[np.argmin(snr)])
         in_keepers.pop(in_keepers.index(remove_order[-1]))
+        # heuristic to quit if we're past the peak to save cycles
+        if ii > 10 and (I_tots[ii - 1:ii + 1] < 0.9 * I_tots.max()).all():
+            break
         # if plot and ii == 0:
         #     axs[0].semilogy(snr[plot_ord[in_keepers]], color='k')
     # if plot:

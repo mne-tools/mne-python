@@ -542,13 +542,28 @@ def verbose(function, *args, **kwargs):
     verbose_level = default_level if verbose_level is None else verbose_level
 
     if verbose_level is not None:
-        old_level = set_log_level(verbose_level, True)
         # set it back if we get an exception
-        try:
+        with use_log_level(verbose_level):
             return function(*args, **kwargs)
-        finally:
-            set_log_level(old_level)
     return function(*args, **kwargs)
+
+
+class use_log_level(object):
+    """Context handler for logging level
+
+    Parameters
+    ----------
+    level : int
+        The level to use.
+    """
+    def __init__(self, level):
+        self.level = level
+
+    def __enter__(self):
+        self.old_level = set_log_level(self.level, True)
+
+    def __exit__(self, *args):
+        set_log_level(self.old_level)
 
 
 @nottest

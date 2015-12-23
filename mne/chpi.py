@@ -13,7 +13,7 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils)
 from .cov import make_ad_hoc_cov, _get_whitener_data
 from .transforms import apply_trans, invert_transform
-from .utils import verbose, logger, check_version
+from .utils import verbose, logger, check_version, use_log_level
 from .fixes import partial
 from .externals.six import string_types
 
@@ -89,6 +89,7 @@ def get_chpi_positions(raw, t_step=None, return_quat=False, verbose=None):
         if t_step is not None:
             raise ValueError('t_step must be None if processing a log')
         data = np.loadtxt(raw, skiprows=1)  # first line is header, skip it
+        data.shape = (-1, 10)  # ensure it's the right size even if empty
     out = _quats_to_trans_rot_t(data)
     if return_quat:
         out = out + (data[:, 1:4],)
@@ -193,20 +194,35 @@ def _get_hpi_info(info):
         raise RuntimeError('Appropriate cHPI information not found in'
                            'raw.info["hpi_meas"], cannot process cHPI')
     hpi_result = info['hpi_results'][-1]
-    hpi_coils = info['hpi_meas'][-1]['hpi_coils']
-    hpi_num = np.array([h['number'] for h in hpi_coils])
-    pos_order = np.searchsorted(hpi_num, hpi_result['order'])
-    hpi_dig = [d for d in info['dig'] if d['kind'] == FIFF.FIFFV_POINT_HPI]
+    hpi_coils = sorted(info['hpi_meas'][-1]['hpi_coils'],
+                       key=lambda x: x['number'])  # ascending (info) order
+    hpi_dig = sorted([d for d in info['dig']
+                      if d['kind'] == FIFF.FIFFV_POINT_HPI],
+                     key=lambda x: x['ident'])  # ascending (dig) order
+    pos_order = hpi_result['order'] - 1  # zero-based indexing, dig->info
+    # hpi_result['dig_points'] are in FIFFV_COORD_UNKNOWN coords...?
+
     # this shouldn't happen, eventually we could add the transforms
     # necessary to put it in head coords
     if not all(d['coord_frame'] == FIFF.FIFFV_COORD_HEAD for d in hpi_dig):
         raise RuntimeError('cHPI coordinate frame incorrect')
+    # Give the user some info
+    logger.info('HPIFIT: %s coils digitized in order %s'
+                % (len(pos_order), ' '.join(str(o + 1) for o in pos_order)))
+    logger.debug('HPIFIT: %s coils accepted: %s'
+                 % (len(hpi_result['used']),
+                    ' '.join(str(h) for h in hpi_result['used'])))
     hpi_rrs = np.array([d['r'] for d in hpi_dig])[pos_order]
+    # errors = 1000 * np.sqrt((hpi_rrs - hpi_rrs_fit) ** 2).sum(axis=1)
+    # logger.debug('HPIFIT errors:  %s'
+    #              % ', '.join('%0.1f' % e for e in errors))
     hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
     # how cHPI active is indicated in the FIF file
     hpi_sub = info['hpi_subsystem']
     hpi_pick = pick_channels(info['ch_names'], [hpi_sub['event_channel']])[0]
     hpi_on = np.sum([coil['event_bits'][0] for coil in hpi_sub['hpi_coils']])
+    logger.info('Using %s HPI coils: %s Hz'
+                % (len(hpi_freqs), ' '.join(str(int(s)) for s in hpi_freqs)))
     return hpi_freqs, hpi_rrs, hpi_pick, hpi_on, pos_order
 
 
@@ -281,21 +297,17 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
     from .preprocessing.maxwell import _prep_bases
     if not (check_version('numpy', '1.7') and check_version('scipy', '0.11')):
         raise RuntimeError('numpy>=1.7 and scipy>=0.11 required')
-    hpi_freqs, coil_head_rrs, hpi_pick, hpi_on, order = _get_hpi_info(info)
+    hpi_freqs, coil_head_rrs, hpi_pick, hpi_on = _get_hpi_info(info)[:4]
     # initial transforms
     dev_head_t = info['dev_head_t']['trans']
     head_dev_t = invert_transform(info['dev_head_t'])['trans']
     # determine timing
     n_window = int(round(t_window * info['sfreq']))
     n_freqs = len(hpi_freqs)
-    logger.info('HPIFIT: %s coils digitized in order %s'
-                % (n_freqs, ' '.join(str(o + 1) for o in order)))
-    logger.info('Coordinate transformation:')
+    logger.debug('Coordinate transformation:')
     for d in (dev_head_t[0, :3], dev_head_t[1, :3], dev_head_t[2, :3],
               dev_head_t[:3, 3] * 1000.):
-        logger.info('{0:8.4f} {1:8.4f} {2:8.4f}'.format(*d))
-    logger.info('Using %s HPI coils: %s Hz'
-                % (n_freqs, ' '.join(str(int(s)) for s in hpi_freqs)))
+        logger.debug('{0:8.4f} {1:8.4f} {2:8.4f}'.format(*d))
     # Set up amplitude fits
     slope = np.arange(n_window).astype(np.float64)[:, np.newaxis]
     f_t = 2 * np.pi * hpi_freqs[np.newaxis, :] * (slope / info['sfreq'])
@@ -326,6 +338,11 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
                 coil_dev_rrs=apply_trans(head_dev_t, coil_head_rrs),
                 sin_fit=None, fit_time=-t_step_min)
     return hpi, last
+
+
+def _time_prefix(fit_time):
+    """Helper to format log messages"""
+    return ('    t=%0.3f:' % fit_time).ljust(17)
 
 
 @verbose
@@ -376,16 +393,18 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     fit_starts = fit_starts[fit_starts < raw.n_times - hpi['n_window']]
     fit_times = (fit_starts + (hpi['n_window'] + 1) // 2) / raw.info['sfreq']
     quats = []
-    logger.info('Fitting up to %s time points' % len(fit_starts))
+    logger.info('Fitting up to %s time points (%0.1f sec duration)'
+                % (len(fit_starts), raw.times[-1]))
     for start, fit_time in zip(fit_starts, fit_times):
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        meg_chpi_data = raw[hpi['picks'], start:start + hpi['n_window']][0]
+        with use_log_level(False):
+            meg_chpi_data = raw[hpi['picks'], start:start + hpi['n_window']][0]
         this_data = meg_chpi_data[:-1]
         chpi_data = meg_chpi_data[-1]
         if not (chpi_data == hpi['on']).all():
-            logger.info('HPI not turned on (t=%7.3f)' % fit_time)
+            logger.info(_time_prefix(fit_time) + 'HPI not turned on')
             continue
         X = np.dot(hpi['inv_model'], this_data.T)
         data_diff = np.dot(hpi['model'], X).T - this_data
@@ -404,7 +423,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
             corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
             # check to see if we need to continue
             if fit_time - last['fit_time'] <= t_step_max - 1e-7 and \
-                    corr > 0.98 and fit_time != fit_times[-1]:
+                    corr * corr > 0.98 and fit_time != fit_times[-1]:
                 continue  # don't need to re-fit data
         last['sin_fit'] = sin_fit.copy()  # save *before* inplace sign mult
         sin_fit *= signs
@@ -428,21 +447,22 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         good = False
         use_mask = np.ones(hpi['n_freqs'], bool)
         while not good:
-            d = (these_dists[use_mask][:, use_mask] <= dist_limit)
-            good = d.all()
+            d = these_dists[use_mask][:, use_mask]
+            d_bad = (d > dist_limit)
+            good = not d_bad.any()
             if not good:
                 if use_mask.sum() == 2:
                     use_mask[:] = False
                     break  # failure
                 # exclude next worst point
-                badness = these_dists[use_mask][:, use_mask].sum(axis=0)
+                badness = (d * d_bad).sum(axis=0)
                 exclude = np.where(use_mask)[0][np.argmax(badness)]
                 use_mask[exclude] = False
         good = use_mask.sum() >= 3
         if not good:
-            logger.warning('    %s/%s acceptable hpi fits found, cannot '
-                           'determine the transformation! (t=%7.3f)'
-                           % (use_mask.sum(), hpi['n_freqs'], fit_time))
+            logger.warning(_time_prefix(fit_time) + '%s/%s good HPI fits, '
+                           'cannot determine the transformation!'
+                           % (use_mask.sum(), hpi['n_freqs']))
             continue
 
         #
@@ -453,20 +473,27 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                                      hpi['coil_head_rrs'][use_mask],
                                      last['quat'])
         if g < gof_limit:
-            logger.info('    Bad coil fit for %s! (g=%7.3f)' % (fit_time, g))
+            logger.info(_time_prefix(fit_time) +
+                        'Bad coil fit! (g=%7.3f)' % (g,))
             continue
         this_dev_head_t = np.concatenate(
             (_quat_to_rot(this_quat[:3]),
              this_quat[3:][:, np.newaxis]), axis=1)
         this_dev_head_t = np.concatenate((this_dev_head_t, [[0, 0, 0, 1.]]))
-        est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
+        # velocities, in device coords, of HPI coils
         dt = fit_time - last['fit_time']
-        vs = tuple(1000. * np.sqrt(np.sum((hpi['coil_head_rrs'] -
-                                           est_coil_head_rrs) ** 2,
+        vs = tuple(1000. * np.sqrt(np.sum((last['coil_dev_rrs'] -
+                                           this_coil_dev_rrs) ** 2,
                                           axis=1)) / dt)
-        logger.info('    Hpi fit OK, movements [mm/s] = ' +
-                    ' / '.join(['%0.1f'] * hpi['n_freqs']) % vs)
-        errs = [0] * hpi['n_freqs']  # XXX eventually calculate this
+        logger.info(_time_prefix(fit_time) +
+                    ('%s/%s good HPI fits, movements [mm/s] = ' +
+                     ' / '.join(['%0.1f'] * hpi['n_freqs']))
+                    % ((use_mask.sum(), hpi['n_freqs']) + vs))
+        # resulting errors in head coil positions
+        est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
+        errs = 1000. * np.sqrt(np.sum((hpi['coil_head_rrs'] -
+                                       est_coil_head_rrs) ** 2,
+                                      axis=1))
         e = 0.  # XXX eventually calculate this
         d = 100 * np.sqrt(np.sum(last['quat'][3:] - this_quat[3:]) ** 2)  # cm
         r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
@@ -493,9 +520,9 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
             elif ii == 3:
                 vals = np.concatenate((vals, this_dev_head_t[:3, 3] * 1000.))
             logger.debug(log_str.format(*vals))
-        logger.info('#t = %0.3f, #e = %0.2f cm, #g = %0.3f, #v = %0.2f cm/s, '
-                    '#r = %0.2f rad/s, #d = %0.2f cm'
-                    % (fit_time, e, g, v, r, d))
+        logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
+                     '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
+                     % (fit_time, e, g, v, r, d))
         quats.append(np.concatenate(([fit_time], this_quat,
                                      [g], [1. - g], [v])))
         last['fit_time'] = fit_time
