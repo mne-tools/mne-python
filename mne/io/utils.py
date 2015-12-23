@@ -11,6 +11,17 @@
 import numpy as np
 
 
+def _find_channels(ch_names, ch_type='EOG'):
+    """Helper to find EOG channel.
+    """
+    substrings = (ch_type)
+    if ch_type == 'EOG':
+        substrings = ('EOG', 'EYE')
+    eog_idx = [idx for idx, ch in enumerate(ch_names) if
+               any(substring in ch for substring in substrings)]
+    return eog_idx
+
+
 def _mult_cal_one(data_view, one, idx, cals, mult):
     """Take a chunk of raw data, multiply by mult or cals, and store"""
     one = np.asarray(one, dtype=data_view.dtype)

@@ -8,7 +8,7 @@ import datetime
 import calendar
 
 from ...utils import logger
-from ..utils import _read_segments_file
+from ..utils import _read_segments_file, _find_channels
 from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
@@ -90,11 +90,11 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
 
     ch_names = header_info['elec_names']
     if eog == 'auto':
-        eog = [idx for idx, ch in enumerate(ch_names) if ch.startswith('EOG')]
+        eog = _find_channels(ch_names, 'EOG')
     if ecg == 'auto':
-        ecg = [idx for idx, ch in enumerate(ch_names) if ch.startswith('ECG')]
+        ecg = _find_channels(ch_names, 'ECG')
     if emg == 'auto':
-        emg = [idx for idx, ch in enumerate(ch_names) if ch.startswith('EMG')]
+        emg = _find_channels(ch_names, 'EMG')
 
     date, time = header_info['start_ts'].split()
     date = date.split('-')
