@@ -200,6 +200,7 @@ def test_set_bipolar_reference():
     assert_raises(ValueError, set_bipolar_reference, raw,
                   'EEG 001', 'EEG 002', ch_name='EEG 003')
 
+
 def _check_channel_names(inst, ref_names):
     if isinstance(ref_names, str):
         ref_names = [ref_names]
