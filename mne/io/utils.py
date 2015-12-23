@@ -14,11 +14,11 @@ import numpy as np
 def _find_channels(ch_names, ch_type='EOG'):
     """Helper to find EOG channel.
     """
-    substrings = (ch_type)
+    substrings = (ch_type,)
     if ch_type == 'EOG':
         substrings = ('EOG', 'EYE')
     eog_idx = [idx for idx, ch in enumerate(ch_names) if
-               any(substring in ch for substring in substrings)]
+               any(substring in ch.upper() for substring in substrings)]
     return eog_idx
 
 

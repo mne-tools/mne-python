@@ -130,8 +130,8 @@ def read_raw_eeglab(input_fname, montage=None, preload=False, eog=(),
         separate binary file.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated
-        EOG channels. If 'auto', the channel names beginning with
-        ``EOG`` are used. Defaults to empty tuple.
+        EOG channels. If 'auto', the channel names containing
+        ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -180,8 +180,8 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated
-        EOG channels. If 'auto', the channel names beginning with
-        ``EOG`` are used. Defaults to empty tuple.
+        EOG channels. If 'auto', the channel names containing
+        ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -224,8 +224,8 @@ class RawEEGLAB(_BaseRaw):
         on the hard drive (slower, requires less memory).
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated
-        EOG channels. If 'auto', the channel names beginning with
-        ``EOG`` are used. Defaults to empty tuple.
+        EOG channels. If 'auto', the channel names containing
+        ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -348,8 +348,8 @@ class EpochsEEGLAB(_BaseEpochs):
         :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated
-        EOG channels. If 'auto', the channel names beginning with
-        ``EOG`` are used. Defaults to empty tuple.
+        EOG channels. If 'auto', the channel names containing
+        ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
