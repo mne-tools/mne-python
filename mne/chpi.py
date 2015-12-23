@@ -115,7 +115,8 @@ def _quats_to_trans_rot_t(quats):
 
     See Also
     --------
-    _calculate_chpi_positions, get_chpi_positions
+    calculate_chpi_positions
+    get_chpi_positions
     """
     t = quats[:, 0].copy()
     rotation = _quat_to_rot(quats[:, 1:4])
@@ -346,9 +347,9 @@ def _time_prefix(fit_time):
 
 
 @verbose
-def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
-                              t_window=0.2, dist_limit=0.005, gof_limit=0.98,
-                              verbose=None):
+def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
+                             t_window=0.2, dist_limit=0.005, gof_limit=0.98,
+                             verbose=None):
     """Calculate head positions using cHPI coils
 
     Parameters
@@ -373,8 +374,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
     Returns
     -------
-    quats : ndarray, shape (N, 7)
-        The ``[t, q1, q2, q3, x, y, z]`` for each fit.
+    fits : ndarray, shape (N, 10)
+        The ``[t, q1, q2, q3, x, y, z, gof, err, v]`` for each fit.
 
     Notes
     -----
@@ -522,9 +523,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
             logger.debug(log_str.format(*vals))
         logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
                      '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
-                     % (fit_time, e, g, v, r, d))
-        quats.append(np.concatenate(([fit_time], this_quat,
-                                     [g], [1. - g], [v])))
+                     % (fit_time, 100 * e, g, v, r, d))
+        quats.append(np.concatenate(([fit_time], this_quat, [g], [e], [v])))
         last['fit_time'] = fit_time
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs
