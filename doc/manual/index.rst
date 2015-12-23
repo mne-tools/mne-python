@@ -41,7 +41,7 @@ Preprocessing
 Dealing with artifacts and noise sources in data.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    preprocessing/ica
    preprocessing/ssp
@@ -80,6 +80,14 @@ Using parametric and non-parametric tests with M/EEG data.
 
    statistics
 
+Decoding
+--------
+
+.. toctree::
+   :maxdepth: 3
+
+   decoding
+
 Datasets
 --------
 
@@ -89,6 +97,14 @@ To enable reproducibility of results, MNE-Python includes several dataset fetche
    :maxdepth: 2
 
    datasets_index
+
+Pitfalls
+--------
+
+.. toctree::
+   :maxdepth: 2
+
+   pitfalls
 
 C tools
 -------

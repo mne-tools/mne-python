@@ -1,3 +1,4 @@
+.. _memory:
 
 .. contents:: Contents
    :local:
