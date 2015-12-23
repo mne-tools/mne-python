@@ -131,6 +131,8 @@ where the noise term :math:`b_{n}^{j}(t)` is given by
 
 Thus, the projector vector :math:`P_{\perp}` will be given by :math:`P_{\perp}=\frac{1}{n}[1, 1, ..., 1]`
 
+.. Warning:: When applying SSP, the signal of interest can also be sometimes removed. Therefore, it's always a good idea to check how much the effect of interest is reduced by applying SSP. SSP might remove *both* the artifact and signal of interest.
+
 The API
 =======
 
@@ -149,9 +151,11 @@ purpose functions :func:`mne.compute_proj_epochs`,
 :func:`mne.compute_proj_evoked`, and :func:`mne.compute_proj_raw`.
 The general assumption these functions make is that the data passed contains
 raw, epochs or averages of the artifact. Typically this involves continues raw
-data of empty room recordings or averaged ECG or EOG artefacts.
+data of empty room recordings or averaged ECG or EOG artifacts.
 
-A second set of highlevel convenience functions is provided to compute projection vector for typical usecases. This includes :func:`mne.preprocessing.compute_proj_ecg` and :func:`mne.preprocessing.compute_proj_eog` for computing the ECG and EOG related artifact components, respectively. For computing the eeg reference signal, the function :func:`mne.proj.make_eeg_average_ref_proj` can be used. The underlying implementation can be found in :mod:`mne.preprocessing.ssp`.
+A second set of highlevel convenience functions is provided to compute projection vector for typical usecases. This includes :func:`mne.preprocessing.compute_proj_ecg` and :func:`mne.preprocessing.compute_proj_eog` for computing the ECG and EOG related artifact components, respectively. For computing the eeg reference signal, the function :func:`mne.preprocessing.ssp.make_eeg_average_ref_proj` can be used. The underlying implementation can be found in :mod:`mne.preprocessing.ssp`.
+
+.. _remove_projector:
 
 Adding/removing projectors
 --------------------------
@@ -177,6 +181,7 @@ To apply explicitly projs at any stage of the pipeline, use ``apply_proj``. For 
 The projectors might not be applied if data are not :ref:`preloaded <memory>`. In this case, it's the ``_projector`` attribute that indicates if a projector will be applied when the data is loaded in memory. If the data is already in memory, then the projectors applied to it are the ones marked as `active`. As soon as you've applied the projectors, it will stay active in the remaining pipeline.
 
 .. Warning:: Once a projection operator is applied, it cannot be reversed.
+.. Warning:: Projections present in the info are applied during inverse computation whether or not they are `active`. Therefore, if a certain projection should not be applied, remove it from the info as described in Section :ref:`remove_projector`
 
 Delayed projectors
 ------------------
