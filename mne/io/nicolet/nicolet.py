@@ -4,6 +4,7 @@
 
 import numpy as np
 from os import path
+import json
 import datetime
 import calendar
 
@@ -207,3 +208,53 @@ class RawNicolet(_BaseRaw):
                 data_view = data[:, blk_start:blk_stop]
                 _mult_cal_one(data_view, block, idx, cals, mult)
         return data
+
+
+def read_nicolet_annotations(fname, record_id):
+    """
+    Function for reading annotations from a json file of records.
+
+    Parameters
+    ----------
+    fname : str
+        Path to the record file.
+    record_id : str
+        The record id (or key) as a string.
+
+    Returns
+    -------
+    annot : list
+        List of segments.
+    """
+    data = list()
+    jsons = list()
+    with open(fname, 'r') as data_file:
+        for line in data_file:
+            if 'ObjectId' in line:  # skip ObjectId key
+                continue
+            data.append(line)
+            if line.startswith('}'):
+                jsons.append(json.loads(''.join(data)))
+                data = list()
+
+    record = None
+    for json_data in jsons:
+        if record_id == json_data['recordKey']:
+            record = json_data
+            break
+    if record is None:
+        raise RuntimeError('Could not find record with id %s' % record_id)
+
+    tstart = int(record['startTime']) / 1000000.  # time us -> s
+    sfreq = list()
+    for name, channel in record['channels'].items():
+        sfreq.append(channel['samplingRate'])
+    sfreq = max(sfreq)
+    annot = list()
+    for annotation in record['annotations']:
+        item = list()
+        item.append(annotation['typeStr'])
+        item.append((int(annotation['startTime']) / 1000000. - tstart) * sfreq)
+        item.append((int(annotation['endTime']) / 1000000. - tstart) * sfreq)
+        annot.append(item)
+    return annot
