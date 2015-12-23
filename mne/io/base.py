@@ -259,6 +259,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._first_samps = np.array(first_samps)
         info._check_consistency()  # make sure subclass did a good job
         self.info = info
+        if info.get('buffer_size_sec', None) is None:
+            raise RuntimeError('Reader error, notify mne-python developers')
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
@@ -384,8 +386,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             offset += n_read
 
         logger.info('[done]')
-        times = np.arange(start, stop) / self.info['sfreq']
-        return data, times
+        return data
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file
@@ -440,7 +441,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _preload_data(self, preload):
         """This function actually preloads the data"""
         data_buffer = preload if isinstance(preload, string_types) else None
-        self._data = self._read_segment(data_buffer=data_buffer)[0]
+        self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info['nchan']
         self.preload = True
         self.close()
@@ -540,11 +541,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """getting raw data content with python slicing"""
         sel, start, stop = self._parse_get_set_params(item)
         if self.preload:
-            data, times = self._data[sel, start:stop], self.times[start:stop]
+            data = self._data[sel, start:stop]
         else:
-            data, times = self._read_segment(start=start, stop=stop, sel=sel,
-                                             projector=self._projector,
-                                             verbose=self.verbose)
+            data = self._read_segment(start=start, stop=stop, sel=sel,
+                                      projector=self._projector,
+                                      verbose=self.verbose)
+        times = self.times[start:stop]
         return data, times
 
     def __setitem__(self, item, value):
@@ -1290,7 +1292,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         start : float
             Initial time to show (can be changed dynamically once plotted).
         n_channels : int
-            Number of channels to plot at once.
+            Number of channels to plot at once. Defaults to 20.
         bgcolor : color object
             Color of the background.
         color : dict | color object | None
@@ -1714,7 +1716,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             nsamp = c_ns[-1]
 
             if not self.preload:
-                this_data = self._read_segment()[0]
+                this_data = self._read_segment()
             else:
                 this_data = self._data
 
@@ -1817,121 +1819,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 buffer_size_sec = 10.0
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
-
-
-def _mult_cal_one(data_view, one, idx, cals, mult):
-    """Take a chunk of raw data, multiply by mult or cals, and store"""
-    one = np.asarray(one, dtype=data_view.dtype)
-    assert data_view.shape[1] == one.shape[1]
-    if mult is not None:
-        data_view[:] = np.dot(mult, one)
-    else:
-        if isinstance(idx, slice):
-            data_view[:] = one[idx]
-        else:
-            # faster than doing one = one[idx]
-            np.take(one, idx, axis=0, out=data_view)
-        if cals is not None:
-            data_view *= cals
-
-
-def _blk_read_lims(start, stop, buf_len):
-    """Helper to deal with indexing in the middle of a data block
-
-    Parameters
-    ----------
-    start : int
-        Starting index.
-    stop : int
-        Ending index (exclusive).
-    buf_len : int
-        Buffer size in samples.
-
-    Returns
-    -------
-    block_start_idx : int
-        The first block to start reading from.
-    r_lims : list
-        The read limits.
-    d_lims : list
-        The write limits.
-
-    Notes
-    -----
-    Consider this example::
-
-        >>> start, stop, buf_len = 2, 27, 10
-
-                    +---------+---------+---------
-    File structure: |  buf0   |   buf1  |   buf2  |
-                    +---------+---------+---------
-    File time:      0        10        20        30
-                    +---------+---------+---------
-    Requested time:   2                       27
-
-                    |                             |
-                blockstart                    blockstop
-                      |                        |
-                    start                    stop
-
-    We need 27 - 2 = 25 samples (per channel) to store our data, and
-    we need to read from 3 buffers (30 samples) to get all of our data.
-
-    On all reads but the first, the data we read starts at
-    the first sample of the buffer. On all reads but the last,
-    the data we read ends on the last sample of the buffer.
-
-    We call ``this_data`` the variable that stores the current buffer's data,
-    and ``data`` the variable that stores the total output.
-
-    On the first read, we need to do this::
-
-        >>> data[0:buf_len-2] = this_data[2:buf_len]  # doctest: +SKIP
-
-    On the second read, we need to do::
-
-        >>> data[1*buf_len-2:2*buf_len-2] = this_data[0:buf_len]  # doctest: +SKIP
-
-    On the final read, we need to do::
-
-        >>> data[2*buf_len-2:3*buf_len-2-3] = this_data[0:buf_len-3]  # doctest: +SKIP
-
-    This function encapsulates this logic to allow a loop over blocks, where
-    data is stored using the following limits::
-
-        >>> data[d_lims[ii, 0]:d_lims[ii, 1]] = this_data[r_lims[ii, 0]:r_lims[ii, 1]]  # doctest: +SKIP
-
-    """  # noqa
-    # this is used to deal with indexing in the middle of a sampling period
-    assert all(isinstance(x, int) for x in (start, stop, buf_len))
-    block_start_idx = (start // buf_len)
-    block_start = block_start_idx * buf_len
-    last_used_samp = stop - 1
-    block_stop = last_used_samp - last_used_samp % buf_len + buf_len
-    read_size = block_stop - block_start
-    n_blk = read_size // buf_len + (read_size % buf_len != 0)
-    start_offset = start - block_start
-    end_offset = block_stop - stop
-    d_lims = np.empty((n_blk, 2), int)
-    r_lims = np.empty((n_blk, 2), int)
-    for bi in range(n_blk):
-        # Triage start (sidx) and end (eidx) indices for
-        # data (d) and read (r)
-        if bi == 0:
-            d_sidx = 0
-            r_sidx = start_offset
-        else:
-            d_sidx = bi * buf_len - start_offset
-            r_sidx = 0
-        if bi == n_blk - 1:
-            d_eidx = stop - start
-            r_eidx = buf_len - end_offset
-        else:
-            d_eidx = (bi + 1) * buf_len - start_offset
-            r_eidx = buf_len
-        d_lims[bi] = [d_sidx, d_eidx]
-        r_lims[bi] = [r_sidx, r_eidx]
-    return block_start_idx, r_lims, d_lims
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
@@ -2327,17 +2214,17 @@ def concatenate_raws(raws, preload=None, events_list=None):
         return raws[0], events
 
 
-def _check_update_montage(info, montage):
+def _check_update_montage(info, montage, path=None, update_ch_names=False):
     """ Helper function for eeg readers to add montage"""
     if montage is not None:
-        if not isinstance(montage, (str, Montage)):
+        if not isinstance(montage, (string_types, Montage)):
             err = ("Montage must be str, None, or instance of Montage. "
                    "%s was provided" % type(montage))
             raise TypeError(err)
         if montage is not None:
-            if isinstance(montage, str):
-                montage = read_montage(montage)
-            _set_montage(info, montage)
+            if isinstance(montage, string_types):
+                montage = read_montage(montage, path=path)
+            _set_montage(info, montage, update_ch_names=update_ch_names)
 
             missing_positions = []
             exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,

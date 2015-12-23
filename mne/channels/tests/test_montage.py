@@ -3,8 +3,9 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import warnings
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_true
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_almost_equal,
@@ -138,6 +139,13 @@ def test_montage():
     assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, evoked.info['ch_names'])
 
+    # Warning should be raised when some EEG are not specified in the montage
+    with warnings.catch_warnings(record=True) as w:
+        info = create_info(montage.ch_names + ['foo', 'bar'], 1e3,
+                           ['eeg'] * (len(montage.ch_names) + 2))
+        _set_montage(info, montage)
+        assert_true(len(w) == 1)
+
 
 def test_read_dig_montage():
     """Test read_dig_montage"""
@@ -155,16 +163,13 @@ def test_read_dig_montage():
                                transform=True, dev_head_t=True)
     # check coordinate transformation
     # nasion
-    assert_almost_equal(montage.elp[0, 0], 0)
     assert_almost_equal(montage.nasion[0], 0)
-    assert_almost_equal(montage.elp[0, 2], 0)
-    assert_almost_equal(montage.nasion[0], 0)
+    assert_almost_equal(montage.nasion[2], 0)
     # lpa and rpa
-    assert_allclose(montage.elp[1:3, 1:], 0, atol=1e-16)
     assert_allclose(montage.lpa[1:], 0, atol=1e-16)
     assert_allclose(montage.rpa[1:], 0, atol=1e-16)
     # device head transform
-    dev_head_t = fit_matched_points(tgt_pts=montage.elp[3:],
+    dev_head_t = fit_matched_points(tgt_pts=montage.elp,
                                     src_pts=montage.hpi, out='trans')
     assert_array_equal(montage.dev_head_t, dev_head_t)
 

@@ -250,12 +250,14 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
                     indices = labels[this_label]
                     if ii in indices:
                         annot.append(this_label)
+
                 line_label += (' - ' + ', '.join(annot))
             exclude_labels.append(line_label)
         else:
             exclude_labels.append(None)
 
     if labels is not None:
+        # compute colors only based on label categories
         unique_labels = set([k.split(' - ')[1] for k in exclude_labels if k])
         label_colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_labels)))
         label_colors = dict(zip(unique_labels, label_colors))
@@ -264,9 +266,13 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
 
     for exc_label, ii in zip(exclude_labels, picks):
         if exc_label is not None:
-            if labels is not None:
-                exc_label = exc_label.split(' - ')[1]
-            color = label_colors[exc_label]
+            # create look up for color ...
+            if ' - ' in exc_label:
+                key = exc_label.split(' - ')[1]
+            else:
+                key = exc_label
+            color = label_colors[key]
+            # ... but display component number too
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
                          zorder=1, color=color, label=exc_label))
         else:

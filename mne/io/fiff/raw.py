@@ -20,8 +20,8 @@ from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
 from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
 from ..compensator import get_current_comp, set_current_comp, make_compensator
-from ..base import (_BaseRaw, _RawShell, _check_raw_compatibility,
-                    _mult_cal_one)
+from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
+from ..utils import _mult_cal_one
 
 from ...utils import check_fname, logger, verbose
 

@@ -36,6 +36,11 @@ class CSP(TransformerMixin, EstimatorMixin):
     log : bool (default True)
         If true, apply log to standardize the features.
         If false, features are just z-scored.
+    cov_est : str (default 'concat')
+        If 'concat', covariance matrices are estimated on concatenated epochs
+        for each class.
+        If 'epoch', covariance matrices are estimated on each epoch separately
+        and then averaged over each class.
 
     Attributes
     ----------
@@ -59,11 +64,12 @@ class CSP(TransformerMixin, EstimatorMixin):
         2008.
     """
 
-    def __init__(self, n_components=4, reg=None, log=True):
+    def __init__(self, n_components=4, reg=None, log=True, cov_est="concat"):
         """Init of CSP."""
         self.n_components = n_components
         self.reg = reg
         self.log = log
+        self.cov_est = cov_est
         self.filters_ = None
         self.patterns_ = None
         self.mean_ = None
@@ -102,20 +108,36 @@ class CSP(TransformerMixin, EstimatorMixin):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
         epochs_data = np.atleast_3d(epochs_data)
+        e, c, t = epochs_data.shape
         # check number of epochs
-        if epochs_data.shape[0] != len(y):
+        if e != len(y):
             raise ValueError("n_epochs must be the same for epochs_data and y")
         classes = np.unique(y)
         if len(classes) != 2:
             raise ValueError("More than two different classes in the data.")
-        # concatenate epochs
-        class_1 = np.transpose(epochs_data[y == classes[0]],
-                               [1, 0, 2]).reshape(epochs_data.shape[1], -1)
-        class_2 = np.transpose(epochs_data[y == classes[1]],
-                               [1, 0, 2]).reshape(epochs_data.shape[1], -1)
+        if not (self.cov_est == "concat" or self.cov_est == "epoch"):
+            raise ValueError("unknown covariance estimation method")
 
-        cov_1 = _regularized_covariance(class_1, reg=self.reg)
-        cov_2 = _regularized_covariance(class_2, reg=self.reg)
+        if self.cov_est == "concat":  # concatenate epochs
+            class_1 = np.transpose(epochs_data[y == classes[0]],
+                                   [1, 0, 2]).reshape(c, -1)
+            class_2 = np.transpose(epochs_data[y == classes[1]],
+                                   [1, 0, 2]).reshape(c, -1)
+            cov_1 = _regularized_covariance(class_1, reg=self.reg)
+            cov_2 = _regularized_covariance(class_2, reg=self.reg)
+        elif self.cov_est == "epoch":
+            class_1 = epochs_data[y == classes[0]]
+            class_2 = epochs_data[y == classes[1]]
+            cov_1 = np.zeros((c, c))
+            for t in class_1:
+                cov_1 += _regularized_covariance(t, reg=self.reg)
+            cov_1 /= class_1.shape[0]
+            cov_2 = np.zeros((c, c))
+            for t in class_2:
+                cov_2 += _regularized_covariance(t, reg=self.reg)
+            cov_2 /= class_2.shape[0]
+
+        # normalize by trace
         cov_1 /= np.trace(cov_1)
         cov_2 /= np.trace(cov_2)
 

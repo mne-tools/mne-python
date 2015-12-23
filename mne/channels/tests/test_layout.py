@@ -42,7 +42,7 @@ fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 fname_kit_157 = op.join(op.dirname(__file__), '..', '..',  'io', 'kit',
                         'tests', 'data', 'test.sqd')
 
-test_info = _empty_info()
+test_info = _empty_info(1000)
 test_info.update({
     'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
     'chs': [{'cal': 1,

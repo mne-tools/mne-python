@@ -292,6 +292,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def __repr__(self):
         s = "comment : '%s'" % self.comment
+        s += ', kind : %s' % self.kind
         s += ", time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", n_epochs : %d" % self.nave
         s += ", n_channels x n_times : %s x %s" % self.data.shape
@@ -403,9 +404,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         window_title : str | None
             The title to put at the top of the figure window.
         spatial_colors : bool
-            Color code lines by mapping physical sensor coordinates into color
-            values. Spatially similar channels will have similar colors.
-            Bad channels will be dotted.
+            If True, the lines are color coded by mapping physical sensor
+            coordinates into color values. Spatially similar channels will have
+            similar colors. Bad channels will be dotted. If False, the good
+            channels are plotted black and bad channels red. Defaults to False.
         """
         return plot_evoked(self, picks=picks, exclude=exclude, unit=unit,
                            show=show, ylim=ylim, proj=proj, xlim=xlim,
@@ -898,11 +900,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
                                seeg=seeg, ref_meg=False)
 
-        data = self.data if picks is None else self.data[picks]
+        data = self.data
+        ch_names = self.ch_names
+        if picks is not None:
+            data = data[picks]
+            ch_names = [ch_names[k] for k in picks]
         ch_idx, time_idx = _get_peak(data, self.times, tmin,
                                      tmax, mode)
 
-        return (self.ch_names[ch_idx],
+        return (ch_names[ch_idx],
                 time_idx if time_as_index else self.times[time_idx])
 
 

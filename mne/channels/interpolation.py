@@ -7,7 +7,7 @@ from numpy.polynomial.legendre import legval
 from scipy import linalg
 
 from ..utils import logger
-from ..io.pick import pick_types, pick_channels
+from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
 from ..bem import _fit_sphere
 from ..forward import _map_meg_channels
@@ -201,7 +201,7 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     # return without doing anything if there are no meg channels
     if len(picks_meg) == 0 or len(picks_bad) == 0:
         return
-
-    mapping = _map_meg_channels(inst, picks_good, picks_bad, mode=mode)
-
+    info_from = pick_info(inst.info, picks_good, copy=True)
+    info_to = pick_info(inst.info, picks_bad, copy=True)
+    mapping = _map_meg_channels(info_from, info_to, mode=mode)
     _do_interp_dots(inst, mapping, picks_good, picks_bad)

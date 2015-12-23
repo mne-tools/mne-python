@@ -21,7 +21,8 @@ from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans, Transform)
-from ..base import _BaseRaw, _mult_cal_one
+from ..base import _BaseRaw
+from ..utils import _mult_cal_one
 from ...epochs import _BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
@@ -622,10 +623,9 @@ def get_kit_info(rawfile):
         sens_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
         fid.seek(sens_offset)
         sens = np.fromfile(fid, dtype='d', count=sqd['nchan'] * 2)
-        sensitivities = (np.reshape(sens, (sqd['nchan'], 2))
-                         [:KIT_SYS.N_SENS, 1])
+        sens.shape = (sqd['nchan'], 2)
         sqd['sensor_gain'] = np.ones(KIT_SYS.NCHAN)
-        sqd['sensor_gain'][:KIT_SYS.N_SENS] = sensitivities
+        sqd['sensor_gain'][:KIT_SYS.N_SENS] = sens[:KIT_SYS.N_SENS, 1]
 
         fid.seek(KIT_SYS.SAMPLE_INFO)
         acqcond_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
@@ -652,10 +652,10 @@ def get_kit_info(rawfile):
         sqd['acq_type'] = acq_type
 
         # Create raw.info dict for raw fif object with SQD data
-        info = _empty_info()
+        info = _empty_info(float(sqd['sfreq']))
         info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
-                    highpass=sqd['highpass'], sfreq=float(sqd['sfreq']),
-                    filename=rawfile, nchan=sqd['nchan'])
+                    highpass=sqd['highpass'], filename=rawfile,
+                    nchan=sqd['nchan'], buffer_size_sec=1.)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')

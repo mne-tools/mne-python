@@ -4,6 +4,7 @@ import numpy as np
 from scipy import linalg
 from copy import deepcopy
 
+from ..bem import _check_origin
 from ..io.constants import FIFF
 from ..io.pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
@@ -40,24 +41,24 @@ def _ad_hoc_noise(coils, ch_type='meg'):
 
 def _setup_dots(mode, coils, ch_type):
     """Setup dot products"""
-    my_origin = np.array([0.0, 0.0, 0.04])
     int_rad = 0.06
     noise = _ad_hoc_noise(coils, ch_type)
     if mode == 'fast':
         # Use 50 coefficients with nearest-neighbor interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 50)
-        lut_fun = partial(_get_legen_lut_fast, lut=lut)
+        n_coeff = 50
+        lut_fun = _get_legen_lut_fast
     else:  # 'accurate'
         # Use 100 coefficients with linear interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 100)
-        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
-
-    return my_origin, int_rad, noise, lut_fun, n_fact
+        n_coeff = 100
+        lut_fun = _get_legen_lut_accurate
+    lut, n_fact = _get_legen_table(ch_type, False, n_coeff, verbose=False)
+    lut_fun = partial(lut_fun, lut=lut)
+    return int_rad, noise, lut_fun, n_fact
 
 
 def _compute_mapping_matrix(fmd, info):
     """Do the hairy computations"""
-    logger.info('preparing the mapping matrix...')
+    logger.info('    Preparing the mapping matrix...')
     # assemble a projector and apply it to the data
     ch_names = fmd['ch_names']
     projs = info.get('projs', list())
@@ -80,11 +81,10 @@ def _compute_mapping_matrix(fmd, info):
     sumk = np.cumsum(sing)
     sumk /= sumk[-1]
     fmd['nest'] = np.where(sumk > (1.0 - fmd['miss']))[0][0]
-    logger.info('Truncate at %d missing %g' % (fmd['nest'], fmd['miss']))
+    logger.info('    [Truncate at %d missing %g]' % (fmd['nest'], fmd['miss']))
     sing = 1.0 / sing[:fmd['nest']]
 
     # Put the inverse together
-    logger.info('Put the inverse together...')
     inv = np.dot(uu[:, :fmd['nest']] * sing, vv[:fmd['nest']]).T
 
     # Sandwich with the whitener
@@ -101,22 +101,20 @@ def _compute_mapping_matrix(fmd, info):
     # Optionally apply the average electrode reference to the final field map
     if fmd['kind'] == 'eeg':
         if _has_eeg_average_ref_proj(projs):
-            logger.info('The map will have average electrode reference')
+            logger.info('    The map will have average electrode reference')
             mapping_mat -= np.mean(mapping_mat, axis=0)[np.newaxis, :]
     return mapping_mat
 
 
-def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
+def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
     """Find mapping from one set of channels to another.
 
     Parameters
     ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    pick_from : array-like of int
-        The channels from which to interpolate.
-    pick_to : array-like of int
-        The channels to which to interpolate.
+    info_from : mne.io.MeasInfo
+        The measurement data to interpolate from.
+    info_to : mne.io.MeasInfo
+        The measurement info to interpolate to.
     mode : str
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
@@ -127,43 +125,38 @@ def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
     mapping : array
         A mapping matrix of shape len(pick_to) x len(pick_from).
     """
-    info_from = pick_info(inst.info, pick_from, copy=True)
-    info_to = pick_info(inst.info, pick_to, copy=True)
-
     # no need to apply trans because both from and to coils are in device
     # coordinates
-    templates = _read_coil_defs()
+    templates = _read_coil_defs(verbose=False)
     coils_from = _create_meg_coils(info_from['chs'], 'normal',
                                    info_from['dev_head_t'], templates)
     coils_to = _create_meg_coils(info_to['chs'], 'normal',
                                  info_to['dev_head_t'], templates)
     miss = 1e-4  # Smoothing criterion for MEG
-
+    origin = _check_origin(origin, info_from)
     #
     # Step 2. Calculate the dot products
     #
-    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from,
-                                                             'meg')
-    logger.info('Computing dot products for %i coils...' % (len(coils_from)))
-    self_dots = _do_self_dots(int_rad, False, coils_from, my_origin, 'meg',
+    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from, 'meg')
+    logger.info('    Computing dot products for %i coils...'
+                % (len(coils_from)))
+    self_dots = _do_self_dots(int_rad, False, coils_from, origin, 'meg',
                               lut_fun, n_fact, n_jobs=1)
-    logger.info('Computing cross products for coils %i x %i coils...'
+    logger.info('    Computing cross products for coils %i x %i coils...'
                 % (len(coils_from), len(coils_to)))
     cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
-                                my_origin, 'meg', lut_fun, n_fact).T
+                                origin, 'meg', lut_fun, n_fact).T
 
     ch_names = [c['ch_name'] for c in info_from['chs']]
     fmd = dict(kind='meg', ch_names=ch_names,
-               origin=my_origin, noise=noise, self_dots=self_dots,
+               origin=origin, noise=noise, self_dots=self_dots,
                surface_dots=cross_dots, int_rad=int_rad, miss=miss)
-    logger.info('Field mapping data ready')
 
     #
     # Step 3. Compute the mapping matrix
     #
-    fmd['data'] = _compute_mapping_matrix(fmd, info_from)
-
-    return fmd['data']
+    mapping = _compute_mapping_matrix(fmd, info_from)
+    return mapping
 
 
 def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
@@ -203,7 +196,9 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
                          ' locations of the destination channels will be used'
                          ' for interpolation.')
 
-    mapping = _map_meg_channels(evoked, pick_from, pick_to, mode='fast')
+    info_from = pick_info(evoked.info, pick_from, copy=True)
+    info_to = pick_info(evoked.info, pick_to, copy=True)
+    mapping = _map_meg_channels(info_from, info_to, mode='fast')
 
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
@@ -223,7 +218,7 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
 
 @verbose
 def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
-                          n_jobs=1, verbose=None):
+                          n_jobs=1, origin=(0., 0., 0.04), verbose=None):
     """Re-map M/EEG data to a surface
 
     Parameters
@@ -244,6 +239,10 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         for most applications.
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
+    origin : array-like, shape (3,) | str
+        Origin of internal and external multipolar moment space in head
+        coords and in meters. The default is ``'auto'``, which means
+        a head-digitization-based origin fit.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -263,8 +262,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 
     # deal with coordinate frames here -- always go to "head" (easiest)
     surf = transform_surface_to(deepcopy(surf), 'head', trans)
-
     n_jobs = check_n_jobs(n_jobs)
+    origin = _check_origin(origin, info)
 
     #
     # Step 1. Prepare the coil definitions
@@ -296,16 +295,15 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     #
     # Step 2. Calculate the dot products
     #
-    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils,
-                                                             ch_type)
+    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils, ch_type)
     logger.info('Computing dot products for %i %s...' % (len(coils), type_str))
-    self_dots = _do_self_dots(int_rad, False, coils, my_origin, ch_type,
+    self_dots = _do_self_dots(int_rad, False, coils, origin, ch_type,
                               lut_fun, n_fact, n_jobs)
     sel = np.arange(len(surf['rr']))  # eventually we should do sub-selection
     logger.info('Computing dot products for %i surface locations...'
                 % len(sel))
     surface_dots = _do_surface_dots(int_rad, False, coils, surf, sel,
-                                    my_origin, ch_type, lut_fun, n_fact,
+                                    origin, ch_type, lut_fun, n_fact,
                                     n_jobs)
 
     #
@@ -313,7 +311,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     #
     ch_names = [c['ch_name'] for c in chs]
     fmd = dict(kind=ch_type, surf=surf, ch_names=ch_names, coils=coils,
-               origin=my_origin, noise=noise, self_dots=self_dots,
+               origin=origin, noise=noise, self_dots=self_dots,
                surface_dots=surface_dots, int_rad=int_rad, miss=miss)
     logger.info('Field mapping data ready')
 
@@ -327,9 +325,10 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     return fmd
 
 
+@verbose
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
                    ch_type=None, mode='fast', meg_surf='helmet',
-                   n_jobs=1):
+                   origin=(0., 0., 0.04), n_jobs=1, verbose=None):
     """Compute surface maps used for field display in 3D
 
     Parameters
@@ -357,8 +356,20 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     meg_surf : str
         Should be ``'helmet'`` or ``'head'`` to specify in which surface
         to compute the MEG field map. The default value is ``'helmet'``
+    origin : array-like, shape (3,) | str
+        Origin of internal and external multipolar moment space in head
+        coords and in meters. The default is ``'auto'``, which means
+        a head-digitization-based origin fit.
+
+        .. versionadded:: 0.11
+
     n_jobs : int
         The number of jobs to run in parallel.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+        .. versionadded:: 0.11
+
 
     Returns
     -------
@@ -406,7 +417,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
 
     for this_type, this_surf in zip(types, surfs):
         this_map = _make_surface_mapping(evoked.info, this_surf, this_type,
-                                         trans, n_jobs=n_jobs)
+                                         trans, n_jobs=n_jobs, origin=origin)
         this_map['surf'] = this_surf  # XXX : a bit weird...
         surf_maps.append(this_map)
 

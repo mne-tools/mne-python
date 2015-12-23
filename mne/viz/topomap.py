@@ -403,6 +403,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         delete the prefix 'MEG ' from all channel names, pass the function
         lambda x: x.replace('MEG ', ''). If `mask` is not None, only
         significant sensors will be shown.
+        If `True`, a list of names must be provided (see `names` keyword).
     mask : ndarray of bool, shape (n_channels, n_times) | None
         The channels to be marked as significant at a given time point.
         Indices set to `True` will be considered. Defaults to None.
@@ -486,16 +487,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
-    pos_x = pos[:, 0]
-    pos_y = pos[:, 1]
 
     ax = axis if axis else plt.gca()
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_frame_on(False)
-    if any([not pos_y.any(), not pos_x.any()]):
-        raise RuntimeError('No position information found, cannot compute '
-                           'geometries for topomap.')
+    pos_x, pos_y = _prepare_topomap(pos, ax)
     if outlines is None:
         xmin, xmax = pos_x.min(), pos_x.max()
         ymin, ymax = pos_y.min(), pos_y.max()
@@ -587,6 +581,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
             ax.plot(x, y, color='k', linewidth=linewidth, clip_on=False)
 
     if show_names:
+        if names is None:
+            raise ValueError("To show names, a list of names must be provided"
+                             " (see `names` keyword).")
         if show_names is True:
             def _show_names(x):
                 return x
@@ -1613,3 +1610,17 @@ def _find_peaks(evoked, npeaks):
     if len(times) == 0:
         times = [evoked.times[gfp.argmax()]]
     return times
+
+
+def _prepare_topomap(pos, ax):
+    """Helper for preparing the topomap."""
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_frame_on(False)
+    if any([not pos_y.any(), not pos_x.any()]):
+        raise RuntimeError('No position information found, cannot compute '
+                           'geometries for topomap.')
+    return pos_x, pos_y

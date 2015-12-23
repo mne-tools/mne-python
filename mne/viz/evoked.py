@@ -18,11 +18,13 @@ from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show)
-from ..utils import logger
+from ..utils import logger, _clean_names
 from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
-from .topomap import _prepare_topo_plot, plot_topomap
+from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
+                      _prepare_topomap)
+from ..channels import find_layout
 
 
 def _butterfly_onpick(event, params):
@@ -126,6 +128,29 @@ def _rgb(x, y, z):
     return np.asarray([x, y, z]).T
 
 
+def _plot_legend(pos, colors, axis, bads, outlines='skirt'):
+    """Helper function to plot color/channel legends for butterfly plots
+    with spatial colors"""
+    from mpl_toolkits.axes_grid.inset_locator import inset_axes
+    bbox = axis.get_window_extent()  # Determine the correct size.
+    ratio = bbox.width / bbox.height
+    ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=2)
+    pos, outlines = _check_outlines(pos, outlines, None)
+    pos_x, pos_y = _prepare_topomap(pos, ax)
+    ax.scatter(pos_x, pos_y, color=colors, s=25, marker='.', zorder=0)
+    for idx in bads:
+        ax.scatter(pos_x[idx], pos_y[idx], s=5, marker='.', color='w',
+                   zorder=1)
+
+    if isinstance(outlines, dict):
+        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                          ['patch', 'autoshrink']])
+        for k, (x, y) in outlines_.items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=1)
+
+
 def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
@@ -145,6 +170,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
     from matplotlib.widgets import SpanSelector
+    info = evoked.info
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
@@ -158,16 +184,16 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     channel_types = ['eeg', 'grad', 'mag', 'seeg']
 
     if picks is None:
-        picks = list(range(evoked.info['nchan']))
+        picks = list(range(info['nchan']))
 
-    bad_ch_idx = [evoked.ch_names.index(ch) for ch in evoked.info['bads']
-                  if ch in evoked.ch_names]
+    bad_ch_idx = [info['ch_names'].index(ch) for ch in info['bads']
+                  if ch in info['ch_names']]
     if len(exclude) > 0:
         if isinstance(exclude, string_types) and exclude == 'bads':
             exclude = bad_ch_idx
         elif (isinstance(exclude, list) and
               all(isinstance(ch, string_types) for ch in exclude)):
-            exclude = [evoked.ch_names.index(ch) for ch in exclude]
+            exclude = [info['ch_names'].index(ch) for ch in exclude]
         else:
             raise ValueError('exclude has to be a list of channel names or '
                              '"bads"')
@@ -175,7 +201,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         picks = list(set(picks).difference(exclude))
     picks = np.array(picks)
 
-    types = np.array([channel_type(evoked.info, idx) for idx in picks])
+    types = np.array([channel_type(info, idx) for idx in picks])
     n_channel_types = 0
     ch_types_used = []
     for t in channel_types:
@@ -231,10 +257,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             D = this_scaling * evoked.data[idx, :]
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
-
                 text = ax.annotate('Loading...', xy=(0.01, 0.1),
                                    xycoords='axes fraction', fontsize=20,
-                                   color='green')
+                                   color='green', zorder=2)
                 text.set_visible(False)
                 callback_onselect = partial(_butterfly_onselect,
                                             ch_types=ch_types_used,
@@ -249,10 +274,26 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
                 if not gfp_only:
                     if spatial_colors:
-                        chs = [evoked.info['chs'][i] for i in idx]
+                        chs = [info['chs'][i] for i in idx]
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
                         colors = _rgb(x, y, z)
+                        layout = find_layout(info, ch_type=t, exclude=[])
+                        # drop channels that are not in the data
+                        used_nm = np.array(_clean_names(info['ch_names']))[idx]
+                        names = np.asarray([name for name in layout.names
+                                            if name in used_nm])
+                        name_idx = [layout.names.index(name) for name in names]
+                        if len(name_idx) < len(chs):
+                            logger.warning('Could not find layout for '
+                                           'all the channels. Legend for '
+                                           'spatial colors not drawn.')
+                        else:
+                            # find indices for bads
+                            bads = [np.where(names == bad)[0][0] for bad in
+                                    info['bads'] if bad in names]
+                            pos = layout.pos[name_idx, :2]
+                            _plot_legend(pos, colors, ax, bads=bads)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
@@ -265,7 +306,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 if gfp:  # 'only' or boolean True
                     gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
-                    this_ylim = ax.get_ylim()
+                    this_ylim = ax.get_ylim() if (ylim is None or t not in
+                                                  ylim.keys()) else ylim[t]
                     if not gfp_only:
                         y_offset = this_ylim[0]
                     else:
@@ -317,11 +359,12 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
             if (plot_type == 'butterfly') and (hline is not None):
                 for h in hline:
-                    ax.axhline(h, color='r', linestyle='--', linewidth=2)
+                    c = ('r' if not spatial_colors else 'grey')
+                    ax.axhline(h, linestyle='--', linewidth=2, color=c)
         lines.append(line_list)
     if plot_type == 'butterfly':
         params = dict(axes=axes, texts=texts, lines=lines,
-                      ch_names=evoked.ch_names, idxs=idxs, need_draw=False,
+                      ch_names=info['ch_names'], idxs=idxs, need_draw=False,
                       path_effects=path_effects, selectors=selectors)
         fig.canvas.mpl_connect('pick_event',
                                partial(_butterfly_onpick, params=params))
@@ -334,9 +377,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
-        params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
-                      axes=axes, types=types, units=units, scalings=scalings,
-                      unit=unit, ch_types_used=ch_types_used, picks=picks,
+        params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
+                      types=types, units=units, scalings=scalings, unit=unit,
+                      ch_types_used=ch_types_used, picks=picks,
                       plot_update_proj_callback=_plot_update_evoked,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
@@ -403,9 +446,10 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     window_title : str | None
         The title to put at the top of the figure.
     spatial_colors : bool
-        Color code lines by mapping physical sensor coordinates into color
-        values. Spatially similar channels will have similar colors.
-        Bad channels will be dotted.
+        If True, the lines are color coded by mapping physical sensor
+        coordinates into color values. Spatially similar channels will have
+        similar colors. Bad channels will be dotted. If False, the good
+        channels are plotted black and bad channels red. Defaults to False.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,

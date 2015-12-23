@@ -10,11 +10,12 @@ import matplotlib
 
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_equal, assert_raises, assert_true
-from mne import find_events, Epochs, pick_types, concatenate_raws
+from mne import find_events, Epochs, pick_types
 from mne.io import Raw
 from mne.io.array import RawArray
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info, _kind_dict
-from mne.utils import _TempDir, slow_test, requires_version
+from mne.utils import slow_test, requires_version
 
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -30,7 +31,6 @@ def test_array_raw():
     """Test creating raw from array
     """
     import matplotlib.pyplot as plt
-    tempdir = _TempDir()
     # creating
     raw = Raw(fif_fname).crop(2, 5, copy=False)
     data, times = raw[:, :]
@@ -54,22 +54,12 @@ def test_array_raw():
     assert_equal(info['chs'][0]['kind'], _kind_dict['misc'][0])
     # use real types
     info = create_info(ch_names, sfreq, types)
-    raw2 = RawArray(data, info)
+    raw2 = _test_raw_reader(RawArray, test_preloading=False,
+                            data=data, info=info)
     data2, times2 = raw2[:, :]
     assert_allclose(data, data2)
     assert_allclose(times, times2)
-    # Make sure concatenation works
-    raw_concat = concatenate_raws([raw2.copy(), raw2])
-    assert_equal(raw_concat.n_times, 2 * raw2.n_times)
     assert_true('RawArray' in repr(raw2))
-
-    # saving
-    temp_fname = op.join(tempdir, 'raw.fif')
-    raw2.save(temp_fname)
-    raw3 = Raw(temp_fname)
-    data3, times3 = raw3[:, :]
-    assert_allclose(data, data3)
-    assert_allclose(times, times3)
 
     # filtering
     picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]

@@ -196,6 +196,8 @@ class Info(dict):
                                             for ch_type, count
                                             in ch_counts.items())
             strs.append('%s : %s%s' % (k, str(type(v))[7:-2], entr))
+            if k in ['sfreq', 'lowpass', 'highpass']:
+                strs[-1] += ' Hz'
         strs_non_empty = sorted(s for s in strs if '|' in s)
         strs_empty = sorted(s for s in strs if '|' not in s)
         st = '\n    '.join(strs_non_empty + strs_empty)
@@ -382,16 +384,6 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         List of digitizer points to be added to the info['dig'].
     """
     dig = []
-    if nasion is not None:
-        nasion = np.asarray(nasion)
-        if nasion.shape == (3,):
-            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('Nasion should have the shape (3,) instead of %s'
-                   % (nasion.shape,))
-            raise ValueError(msg)
     if lpa is not None:
         lpa = np.asarray(lpa)
         if lpa.shape == (3,):
@@ -401,6 +393,16 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         else:
             msg = ('LPA should have the shape (3,) instead of %s'
                    % (lpa.shape,))
+            raise ValueError(msg)
+    if nasion is not None:
+        nasion = np.asarray(nasion)
+        if nasion.shape == (3,):
+            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+                        'kind': FIFF.FIFFV_POINT_CARDINAL,
+                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+        else:
+            msg = ('Nasion should have the shape (3,) instead of %s'
+                   % (nasion.shape,))
             raise ValueError(msg)
     if rpa is not None:
         rpa = np.asarray(rpa)
@@ -416,7 +418,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         hpi = np.asarray(hpi)
         if hpi.shape[1] == 3:
             for idx, point in enumerate(hpi):
-                dig.append({'r': point, 'ident': idx,
+                dig.append({'r': point, 'ident': idx + 1,
                             'kind': FIFF.FIFFV_POINT_HPI,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
@@ -427,7 +429,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         dig_points = np.asarray(dig_points)
         if dig_points.shape[1] == 3:
             for idx, point in enumerate(dig_points):
-                dig.append({'r': point, 'ident': idx,
+                dig.append({'r': point, 'ident': idx + 1,
                             'kind': FIFF.FIFFV_POINT_EXTRA,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
@@ -862,7 +864,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
 
     info['nchan'] = nchan
     info['sfreq'] = sfreq
-    info['highpass'] = highpass if highpass is not None else 0
+    info['highpass'] = highpass if highpass is not None else 0.
     info['lowpass'] = lowpass if lowpass is not None else info['sfreq'] / 2.0
     info['line_freq'] = line_freq
 
@@ -1044,8 +1046,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
     write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
-    write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
-    write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
+    if info['lowpass'] is not None:
+        write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
+    if info['highpass'] is not None:
+        write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
     if info.get('line_freq') is not None:
         write_float(fid, FIFF.FIFF_LINE_FREQ, info['line_freq'])
     if data_type is not None:
@@ -1340,9 +1344,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         ch_types = [ch_types] * nchan
     if len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length')
-    info = _empty_info()
+    info = _empty_info(sfreq)
     info['meas_date'] = np.array([0, 0], np.int32)
-    info['sfreq'] = sfreq
     info['ch_names'] = ch_names
     info['nchan'] = nchan
     loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
@@ -1355,7 +1358,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
-        chan_info = dict(loc=loc, unit_mul=0, range=1., cal=1.,
+        chan_info = dict(loc=loc.copy(), unit_mul=0, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
@@ -1388,7 +1391,7 @@ RAW_INFO_FIELDS = (
 )
 
 
-def _empty_info():
+def _empty_info(sfreq):
     """Create an empty info dictionary"""
     from ..transforms import Transform
     _none_keys = (
@@ -1408,8 +1411,11 @@ def _empty_info():
     for k in _list_keys:
         info[k] = list()
     info['custom_ref_applied'] = False
-    info['nchan'] = info['sfreq'] = 0
+    info['nchan'] = 0
     info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
+    info['highpass'] = 0.
+    info['sfreq'] = float(sfreq)
+    info['lowpass'] = info['sfreq'] / 2.
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
     info._check_consistency()
     return info

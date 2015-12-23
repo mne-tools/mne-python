@@ -159,34 +159,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     return figs
 
 
-def _drop_log_stats(drop_log, ignore=['IGNORED']):
-    """
-    Parameters
-    ----------
-    drop_log : list of lists
-        Epoch drop log from Epochs.drop_log.
-    ignore : list
-        The drop reasons to ignore.
-
-    Returns
-    -------
-    perc : float
-        Total percentage of epochs dropped.
-    """
-    # XXX: This function should be moved to epochs.py after
-    # removal of perc return parameter in plot_drop_log()
-
-    if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
-        raise ValueError('drop_log must be a list of lists')
-
-    perc = 100 * np.mean([len(d) > 0 for d in drop_log
-                          if not any(r in ignore for r in d)])
-
-    return perc
-
-
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
-                  color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
+                  color=(0.9, 0.9, 0.9), width=0.8, ignore=('IGNORED',),
                   show=True):
     """Show the channel stats based on a drop_log from Epochs
 
@@ -216,6 +190,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
         The figure.
     """
     import matplotlib.pyplot as plt
+    from ..epochs import _drop_log_stats
     perc = _drop_log_stats(drop_log, ignore)
     scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
@@ -223,7 +198,11 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     if perc < threshold or len(ch_names) == 0:
         plt.text(0, 0, 'No drops')
         return fig
-    counts = 100 * np.array(list(scores.values()), dtype=float) / len(drop_log)
+    n_used = 0
+    for d in drop_log:  # "d" is the list of drop reasons for each epoch
+        if len(d) == 0 or any(ch not in ignore for ch in d):
+            n_used += 1  # number of epochs not ignored
+    counts = 100 * np.array(list(scores.values()), dtype=float) / n_used
     n_plot = min(n_max_plot, len(ch_names))
     order = np.flipud(np.argsort(counts))
     plt.title('%s: %0.1f%%' % (subject, perc))

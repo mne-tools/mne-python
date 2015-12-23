@@ -13,7 +13,8 @@ import numpy as np
 from ...utils import verbose, logger
 from ...externals.six import string_types
 
-from ..base import _BaseRaw, _mult_cal_one, _blk_read_lims
+from ..base import _BaseRaw
+from ..utils import _mult_cal_one, _blk_read_lims
 
 from .res4 import _read_res4, _make_ctf_name
 from .hc import _read_hc
@@ -23,13 +24,19 @@ from .info import _compose_meas_info
 from .constants import CTF
 
 
-def read_raw_ctf(directory, preload=False, verbose=None):
+def read_raw_ctf(directory, system_clock='truncate', preload=False,
+                 verbose=None):
     """Raw object from CTF directory
 
     Parameters
     ----------
     directory : str
         Path to the KIT data (ending in ``'.ds'``).
+    system_clock : str
+        How to treat the system clock. Use "truncate" (default) to truncate
+        the data file when the system clock drops to zero, and use "ignore"
+        to ignore the system clock (e.g., if head positions are measured
+        multiple times during a recording).
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -47,8 +54,12 @@ def read_raw_ctf(directory, preload=False, verbose=None):
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    .. versionadded:: 0.11
     """
-    return RawCTF(directory, preload, verbose)
+    return RawCTF(directory, system_clock, preload=preload, verbose=verbose)
 
 
 class RawCTF(_BaseRaw):
@@ -58,6 +69,11 @@ class RawCTF(_BaseRaw):
     ----------
     directory : str
         Path to the KIT data (ending in ``'.ds'``).
+    system_clock : str
+        How to treat the system clock. Use "truncate" (default) to truncate
+        the data file when the system clock drops to zero, and use "ignore"
+        to ignore the system clock (e.g., if head positions are measured
+        multiple times during a recording).
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -72,13 +88,19 @@ class RawCTF(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, directory, preload=False, verbose=None):
+    def __init__(self, directory, system_clock='truncate', preload=False,
+                 verbose=None):
         # adapted from mne_ctf2fiff.c
         if not isinstance(directory, string_types) or \
                 not directory.endswith('.ds'):
             raise TypeError('directory must be a directory ending with ".ds"')
         if not op.isdir(directory):
             raise ValueError('directory does not exist: "%s"' % directory)
+        known_types = ['ignore', 'truncate']
+        if not isinstance(system_clock, string_types) or \
+                system_clock not in known_types:
+            raise ValueError('system_clock must be one of %s, not %s'
+                             % (known_types, system_clock))
         logger.info('ds directory : %s' % directory)
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations
@@ -97,7 +119,7 @@ class RawCTF(_BaseRaw):
             if meg4_name is None:
                 break
             # check how much data is in the file
-            sample_info = _get_sample_info(meg4_name, res4)
+            sample_info = _get_sample_info(meg4_name, res4, system_clock)
             if sample_info['n_samp'] == 0:
                 break
             if len(fnames) == 0:
@@ -135,7 +157,7 @@ class RawCTF(_BaseRaw):
                 offset += n_read
 
 
-def _get_sample_info(fname, res4):
+def _get_sample_info(fname, res4, system_clock):
     """Helper to determine the number of valid samples"""
     logger.info('Finding samples for %s: ' % (fname,))
     if CTF.SYSTEM_CLOCK_CH in res4['ch_names']:
@@ -160,13 +182,15 @@ def _get_sample_info(fname, res4):
         if clock_ch is None:
             logger.info('    System clock channel is not available, assuming '
                         'all samples to be valid.')
-        else:
+        elif system_clock == 'ignore':
+            logger.info('    System clock channel is available, but ignored.')
+        else:  # use it
             logger.info('    System clock channel is available, checking '
                         'which samples are valid.')
             for t in range(n_trial):
                 # Skip to the correct trial
-                offset = CTF.HEADER_SIZE + (t * (res4['nsamp'] *
-                                                 res4['nchan']) +
+                samp_offset = t * res4['nsamp']
+                offset = CTF.HEADER_SIZE + (samp_offset * res4['nchan'] +
                                             (clock_ch * res4['nsamp'])) * 4
                 fid.seek(offset, 0)
                 this_data = np.fromstring(fid.read(4 * res4['nsamp']), '>i4')
@@ -175,7 +199,7 @@ def _get_sample_info(fname, res4):
                                        % (t + 1))
                 end = np.where(this_data == 0)[0]
                 if len(end) > 0:
-                    n_samp = offset + end[0]
+                    n_samp = samp_offset + end[0]
                     break
     if n_samp < res4['nsamp']:
         n_trial = 1
@@ -183,7 +207,7 @@ def _get_sample_info(fname, res4):
                     % (n_trial, n_samp, n_samp, res4['nchan']))
     else:
         n_trial = n_samp // res4['nsamp']
-        n_omit = n_samp % res4['nsamp']
+        n_omit = n_samp_tot - n_samp
         n_samp = n_trial * res4['nsamp']
         logger.info('    %d x %d = %d samples from %d chs'
                     % (n_trial, res4['nsamp'], n_samp, res4['nchan']))

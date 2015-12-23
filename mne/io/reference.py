@@ -11,7 +11,7 @@ from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
 from .base import _BaseRaw
 from ..evoked import Evoked
-from ..epochs import Epochs
+from ..epochs import _BaseEpochs
 from ..utils import logger
 
 
@@ -110,7 +110,7 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
     if len(ref_from) > 0:
         ref_data = data[..., ref_from, :].mean(-2)
 
-        if isinstance(inst, Epochs):
+        if isinstance(inst, _BaseEpochs):
             data[:, ref_to, :] -= ref_data[:, np.newaxis, :]
         else:
             data[ref_to] -= ref_data
@@ -174,7 +174,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
         inst._data = data
-    elif isinstance(inst, Epochs):
+    elif isinstance(inst, _BaseEpochs):
         data = inst._data
         x, y, z = data.shape
         refs = np.zeros((x * len(ref_channels), z))
@@ -185,7 +185,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         raise TypeError("inst should be Raw, Epochs, or Evoked instead of %s."
                         % type(inst))
     nchan = len(inst.info['ch_names'])
-    if ch in ref_channels:
+    for ch in ref_channels:
         chan_info = {'ch_name': ch,
                      'coil_type': FIFF.FIFFV_COIL_EEG,
                      'kind': FIFF.FIFFV_EEG_CH,

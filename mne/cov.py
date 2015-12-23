@@ -17,7 +17,7 @@ from scipy import linalg
 
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
-                      _has_eeg_average_ref_proj)
+                      _needs_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
                       pick_channels, pick_info, _picks_by_type)
@@ -424,7 +424,7 @@ def compute_raw_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     info = pick_info(raw.info, picks)
     idx_by_type = channel_indices_by_type(info)
 
-    # Read data in chuncks
+    # Read data in chunks
     for first in range(start, stop, step):
         last = first + step
         if last >= stop:
@@ -1223,11 +1223,11 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
         C_eeg_eig, C_eeg_eigvec = _get_ch_whitener(C_eeg, False, 'EEG',
                                                    rank_eeg)
-        if not _has_eeg_average_ref_proj(info['projs']):
-            warnings.warn('No average EEG reference present in info["projs"], '
-                          'covariance may be adversely affected. Consider '
-                          'recomputing covariance using a raw file with an '
-                          'average eeg reference projector added.')
+    if _needs_eeg_average_ref_proj(info):
+        warnings.warn('No average EEG reference present in info["projs"], '
+                      'covariance may be adversely affected. Consider '
+                      'recomputing covariance using a raw file with an '
+                      'average eeg reference projector added.')
 
     n_chan = len(ch_names)
     eigvec = np.zeros((n_chan, n_chan), dtype=np.float)

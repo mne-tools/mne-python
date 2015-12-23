@@ -34,7 +34,7 @@ from ..io.write import (write_int, start_block, end_block,
                         write_string, start_file, end_file, write_id)
 from ..io.base import _BaseRaw
 from ..evoked import Evoked, write_evokeds, EvokedArray
-from ..epochs import Epochs
+from ..epochs import Epochs, _BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi,
                             _write_source_spaces_to_fid)
@@ -1447,7 +1447,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         events = np.array([[0, 0, 1]], dtype=np.int)
         end = 1. / meas.info['sfreq']
         meas_data = Epochs(meas, events, 1, 0, end, proj=False).average()
-    elif isinstance(meas, Epochs):
+    elif isinstance(meas, _BaseEpochs):
         meas_data = meas.average()
     elif isinstance(meas, Evoked):
         meas_data = meas

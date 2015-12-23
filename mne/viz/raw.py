@@ -15,7 +15,7 @@ import numpy as np
 from ..externals.six import string_types
 from ..io.pick import pick_types, _pick_data_channels
 from ..io.proj import setup_proj
-from ..utils import verbose, get_config
+from ..utils import verbose, get_config, logger
 from ..time_frequency import compute_raw_psd
 from .topo import _plot_topo, _plot_timeseries
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
@@ -77,7 +77,7 @@ def _pick_bad_channels(event, params):
     _plot_update_raw_proj(params, None)
 
 
-def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
+def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
@@ -96,7 +96,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     start : float
         Initial time to show (can be changed dynamically once plotted).
     n_channels : int
-        Number of channels to plot at once.
+        Number of channels to plot at once. Defaults to 20.
     bgcolor : color object
         Color of the background.
     color : dict | color object | None
@@ -235,10 +235,21 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-    for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
+    for t in ['eeg', 'seeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
               'misc', 'chpi', 'syst', 'ias', 'exci']:
         pick_kwargs[t] = True
         inds += [pick_types(raw.info, **pick_kwargs)]
+        if t == 'seeg' and len(inds[-1]) > 0:
+            # XXX hack to work around fiff mess
+            new_picks = [ind for ind in inds[-1] if
+                         not raw.ch_names[ind].startswith('CHPI')]
+            if len(new_picks) != len(inds[-1]):
+                inds[-1] = new_picks
+            else:
+                logger.warning('Conflicting FIFF constants detected. SEEG '
+                               'FIFF data saved before mne version 0.11 will '
+                               'not work with mne version 0.12! Save the raw '
+                               'files again to fix the FIFF tags!')
         types += [t] * len(inds[-1])
         pick_kwargs[t] = False
     inds = np.concatenate(inds).astype(int)

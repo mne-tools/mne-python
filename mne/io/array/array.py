@@ -19,7 +19,7 @@ class RawArray(_BaseRaw):
         The channels' time series.
     info : instance of Info
         Info dictionary. Consider using `create_info` to populate
-        this structure.
+        this structure. This may be modified in place by the class.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -42,6 +42,8 @@ class RawArray(_BaseRaw):
         if len(data) != len(info['ch_names']):
             raise ValueError('len(data) does not match len(info["ch_names"])')
         assert len(info['ch_names']) == info['nchan']
+        if info.get('buffer_size_sec', None) is None:
+            info['buffer_size_sec'] = 1.  # reasonable default
         super(RawArray, self).__init__(info, data, verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     self.first_samp, self.last_samp,

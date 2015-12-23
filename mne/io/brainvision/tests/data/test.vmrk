@@ -21,3 +21,4 @@ Mk9=Stimulus,S255,4946,1,0
 Mk10=Response,R255,6000,1,0
 Mk11=Stimulus,S254,6620,1,0
 Mk12=Stimulus,S255,6630,1,0
+Mk13=SyncStatus,Sync On,7630,1,0
