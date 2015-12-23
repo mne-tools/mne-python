@@ -185,7 +185,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         raise TypeError("inst should be Raw, Epochs, or Evoked instead of %s."
                         % type(inst))
     nchan = len(inst.info['ch_names'])
-    if ch in ref_channels:
+    for ch in ref_channels:
         chan_info = {'ch_name': ch,
                      'coil_type': FIFF.FIFFV_COIL_EEG,
                      'kind': FIFF.FIFFV_EEG_CH,
