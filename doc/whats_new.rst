@@ -4,8 +4,10 @@ What's new
     Note, we are now using links to highlight new functions and classes.
     Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
 
-Current
--------
+.. _changes_0_11:
+
+Version 0.11
+------------
 
 Changelog
 ~~~~~~~~~
@@ -70,6 +72,28 @@ API
 
     - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_average_proj` to properly add one.
 
+Authors
+~~~~~~~
+
+The committer list for this release is the following (preceded by number of commits):
+
+   171  Eric Larson
+   117  Jaakko Leppakangas
+    58  Jona Sassenhagen
+    52  Mainak Jas
+    46  Alexandre Gramfort
+    33  Denis A. Engemann
+    28  Teon Brooks
+    24  Clemens Brunner
+    23  Christian Brodbeck
+    15  Mark Wronkiewicz
+    10  Jean-Remi King
+     5  Marijn van Vliet
+     3  Fede Raimondo
+     2  Alexander Rudiuk
+     2  emilyps14
+     2  lennyvarghese
+     1  Marian Dovgialo
 
 .. _changes_0_10:
 
@@ -186,7 +210,7 @@ API
     - ``RawBrainVision`` objects now always have event channel ``'STI 014'``, and recordings with no events will have this channel set to zero by `Eric Larson`_
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number of commits):
 
@@ -420,7 +444,7 @@ API
    - Add ``montage`` parameter to the ``create_info`` function to create the info using montages by `Teon Brooks`_
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number of commits):
 
@@ -620,7 +644,7 @@ API
    - As default, for ICA the maximum number of PCA components equals the number of channels passed. The number of PCA components used to reconstruct the sensor space signals now defaults to the maximum number of PCA components estimated.
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number of commits):
 
@@ -766,7 +790,7 @@ API
 
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -929,7 +953,7 @@ API
    - Remove artifacts module. Artifacts- and preprocessing related functions can now be found in mne.preprocessing.
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -1063,7 +1087,7 @@ API
    - Epochs objects now also take dicts as values for the event_id argument. They now can represent multiple conditions.
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -1119,7 +1143,7 @@ Changelog
    - Add method to eliminate stimulation artifacts from raw data by linear interpolation or windowing by `Daniel Strohmeier`_.
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -1164,7 +1188,7 @@ Changelog
    - New tutorial in the documentation and new classes and functions reference page by `Alex Gramfort`_.
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -1201,7 +1225,7 @@ version 0.1:
   - New return values for the function find_ecg_events
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
