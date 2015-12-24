@@ -469,11 +469,11 @@ def _create_events_from_eeglab_raw(fname, event_id=dict()):
         n_no_numbers, n_have_integers = len(no_numbers), len(have_integers)
         if n_no_numbers > 0:
             nonumwarm = "dropped entirely: {}, {} in total"
-            warnings.warn(basewarn + nonumwarm.format(no_numbers[:5],
+            warnings.warn(basewarn + nonumwarm.format(list(no_numbers)[:5],
                                                       n_no_numbers))
         if n_have_integers > 0:
             intwarn = "reduced to their integer part: {}, {} in total"
-            warnings.warn(basewarn + intwarn.format(have_integers[:5],
+            warnings.warn(basewarn + intwarn.format(list(have_integers)[:5],
                                                     n_have_integers))
         warnings.warn("Use the `event_id` keyword to "
                       "include such events manually.")
