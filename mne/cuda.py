@@ -3,9 +3,8 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy.fftpack import fft, ifft
 
-from .utils import sizeof_fmt, logger, get_config
+from .utils import sizeof_fmt, logger, get_config, fft, ifft
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
@@ -200,7 +199,7 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
     """
     if not cuda_dict['use_cuda']:
         # do the fourier-domain operations
-        x = np.real(ifft(h_fft * fft(x), overwrite_x=True)).ravel()
+        x = np.real(ifft(h_fft * fft(x))).ravel()
     else:
         cudafft = _get_cudafft()
         # do the fourier-domain operations, results in second param
@@ -335,7 +334,7 @@ def fft_resample(x, W, new_len, npad, to_remove,
         y_fft[sl_1] = x_fft[sl_1]
         sl_2 = slice(-(N - 1) // 2, None)
         y_fft[sl_2] = x_fft[sl_2]
-        y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
+        y = np.real(ifft(y_fft)).ravel()
     else:
         cudafft = _get_cudafft()
         cuda_dict['x'].set(np.concatenate((x, np.zeros(max(new_len - old_len,

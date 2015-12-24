@@ -12,7 +12,6 @@ from math import sqrt
 from copy import deepcopy
 import numpy as np
 from scipy import linalg
-from scipy.fftpack import fftn, ifftn
 
 from ..fixes import partial
 from ..baseline import rescale
@@ -21,7 +20,7 @@ from ..utils import logger, verbose, _time_mask
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
-from ..utils import check_fname
+from ..utils import check_fname, fftn, ifftn
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar, plt_show
 from ..externals.h5io import write_hdf5, read_hdf5

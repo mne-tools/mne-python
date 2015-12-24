@@ -39,6 +39,19 @@ from .fixes import isclose, _get_args
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
+try:
+    from mklfft.fftpack import fft, ifft, fftn, ifftn  # noqa
+    try:
+        import mkl  # noqa
+    except ImportError:
+        warnings.warn("`mklfft` found, but `mkl` could not be loaded. Not able"
+                      " to set the number of threads via mkl.set_num_threads."
+                      " Note that single-threaded `mklfft` is not expected to"
+                      " be faster than Scipy's regular FFT.")
+    logger.info("Using `mklfft` for FFT.")
+except ImportError:
+    from scipy.fftpack import fft, ifft, fftn, ifftn  # noqa
+
 
 def _memory_usage(*args, **kwargs):
     if isinstance(args[0], tuple):

@@ -1,8 +1,8 @@
 from math import ceil
 import numpy as np
-from scipy.fftpack import fft, ifft, fftfreq
+from scipy.fftpack import fftfreq
 
-from ..utils import logger, verbose
+from ..utils import logger, verbose, fft, ifft
 
 
 @verbose

@@ -8,12 +8,13 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_true, assert_equal
 
-from scipy import fftpack
+from scipy.fftpack import fftfreq
 
 from mne import io, read_events, Epochs, pick_types
 from mne.time_frequency._stockwell import (tfr_stockwell, _st,
                                            _precompute_st_windows)
 from mne.time_frequency.tfr import AverageTFR
+from mne.utils import ifft
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -46,7 +47,7 @@ def test_stockwell_core():
     pulse[int(offset * sfreq):] = 0.         # and zero after our desired pulse
 
     width = 0.5
-    freqs = fftpack.fftfreq(len(pulse), 1. / sfreq)
+    freqs = fftfreq(len(pulse), 1. / sfreq)
     fmin, fmax = 1.0, 100.0
     start_f, stop_f = [np.abs(freqs - f).argmin() for f in (fmin, fmax)]
     W = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
@@ -68,7 +69,7 @@ def test_stockwell_core():
     W = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
     y = _st(pulse, start_f, W)
     # invert stockwell
-    y_inv = fftpack.ifft(np.sum(y, axis=1)).real
+    y_inv = ifft(np.sum(y, axis=1)).real
     assert_array_almost_equal(pulse, y_inv)
 
 

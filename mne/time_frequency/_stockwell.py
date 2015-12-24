@@ -6,11 +6,11 @@
 from copy import deepcopy
 import math
 import numpy as np
-from scipy import fftpack
+from scipy.fftpack import fftfreq
 # XXX explore cuda optimazation at some point.
 
 from ..io.pick import pick_types, pick_info
-from ..utils import logger, verbose
+from ..utils import logger, verbose, fft, ifft
 from ..parallel import parallel_func, check_n_jobs
 from .tfr import AverageTFR, _get_data
 
@@ -42,7 +42,7 @@ def _check_input_st(x_in, n_fft):
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
     """Precompute stockwell gausian windows (in the freq domain)"""
-    tw = fftpack.fftfreq(n_samp, 1. / sfreq) / n_samp
+    tw = fftfreq(n_samp, 1. / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
     k = width  # 1 for classical stowckwell transform
@@ -55,7 +55,7 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
             window = ((f / (np.sqrt(2. * np.pi) * k)) *
                       np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
         window /= window.sum()  # normalisation
-        windows[i_f] = fftpack.fft(window)
+        windows[i_f] = fft(window)
     return windows
 
 
@@ -64,11 +64,11 @@ def _st(x, start_f, windows):
     n_samp = x.shape[-1]
     ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex)
     # do the work
-    Fx = fftpack.fft(x)
+    Fx = fft(x)
     XF = np.concatenate([Fx, Fx], axis=-1)
     for i_f, window in enumerate(windows):
         f = start_f + i_f
-        ST[..., i_f, :] = fftpack.ifft(XF[..., f:f + n_samp] * window)
+        ST[..., i_f, :] = ifft(XF[..., f:f + n_samp] * window)
     return ST
 
 
@@ -79,11 +79,11 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     n_out = n_out // decim + bool(n_out % decim)
     psd = np.empty((len(W), n_out))
     itc = np.empty_like(psd) if compute_itc else None
-    X = fftpack.fft(x)
+    X = fft(x)
     XX = np.concatenate([X, X], axis=-1)
     for i_f, window in enumerate(W):
         f = start_f + i_f
-        ST = fftpack.ifft(XX[:, f:f + n_samp] * window)
+        ST = ifft(XX[:, f:f + n_samp] * window)
         TFR = ST[:, :-zero_pad:decim]
         TFR_abs = np.abs(TFR)
         if compute_itc:
@@ -158,7 +158,7 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     n_out = data.shape[2] // decim + bool(data.shape[2] % decim)
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
-    freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
+    freqs = fftfreq(n_fft_, 1. / sfreq)
     if fmin is None:
         fmin = freqs[freqs > 0][0]
     if fmax is None:

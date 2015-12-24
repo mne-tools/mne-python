@@ -5,11 +5,12 @@
 from warnings import warn
 
 import numpy as np
-from scipy import fftpack, linalg
+from scipy import linalg
+from scipy.fftpack import fftfreq
 import warnings
 
 from ..parallel import parallel_func
-from ..utils import verbose, sum_squared
+from ..utils import verbose, sum_squared, fft, ifft
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -231,8 +232,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
     n_fft = 2 ** int(np.ceil(np.log2(rxx_size)))
-    dpss_fft = fftpack.fft(dpss, n_fft)
-    dpss_rxx = np.real(fftpack.ifft(dpss_fft * dpss_fft.conj()))
+    dpss_fft = fft(dpss, n_fft)
+    dpss_rxx = np.real(ifft(dpss_fft * dpss_fft.conj()))
     dpss_rxx = dpss_rxx[:, :N]
 
     r = 4 * W * np.sinc(2 * W * nidx)
@@ -439,10 +440,10 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     # remove mean (do not use in-place subtraction as it may modify input x)
     x = x - np.mean(x, axis=-1)[:, np.newaxis]
-    x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
+    x_mt = fft(x[:, np.newaxis, :] * dpss, n=n_fft)
 
     # only keep positive frequencies
-    freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
+    freqs = fftfreq(n_fft, 1. / sfreq)
     freq_mask = (freqs >= 0)
 
     x_mt = x_mt[:, :, freq_mask]

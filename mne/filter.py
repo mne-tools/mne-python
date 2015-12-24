@@ -3,7 +3,8 @@
 from .externals.six import string_types, integer_types
 import warnings
 import numpy as np
-from scipy.fftpack import fft, ifftshift, fftfreq
+from scipy.fftpack import ifftshift, fftfreq
+
 from copy import deepcopy
 
 from .fixes import get_firwin2, get_filtfilt
@@ -11,7 +12,7 @@ from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .parallel import parallel_func, check_n_jobs
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
-from .utils import logger, verbose, sum_squared, check_version
+from .utils import logger, verbose, sum_squared, check_version, fft
 
 
 def is_power2(num):

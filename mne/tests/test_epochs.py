@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 import numpy as np
 import copy as cp
 import warnings
-from scipy import fftpack
+from scipy.fftpack import fftfreq
 import matplotlib
 
 from mne import (Epochs, read_events, pick_events, read_epochs,
@@ -27,7 +27,7 @@ from mne.epochs import (
     EpochsArray, concatenate_epochs, _BaseEpochs, average_movements)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
-                       requires_version)
+                       requires_version, fft)
 
 from mne.io import RawArray, Raw
 from mne.io.proj import _has_eeg_average_ref_proj
@@ -356,12 +356,12 @@ def test_savgol_filter():
     epochs = Epochs(raw, events, event_id, tmin, tmax)
     assert_raises(RuntimeError, epochs.savgol_filter, 10.)
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
-    freqs = fftpack.fftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
-    data = np.abs(fftpack.fft(epochs.get_data()))
+    freqs = fftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data = np.abs(fft(epochs.get_data()))
     match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
     mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
     epochs.savgol_filter(h_freq)
-    data_filt = np.abs(fftpack.fft(epochs.get_data()))
+    data_filt = np.abs(fft(epochs.get_data()))
     # decent in pass-band
     assert_allclose(np.mean(data[:, :, match_mask], 0),
                     np.mean(data_filt[:, :, match_mask], 0),

@@ -8,8 +8,6 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 
-from scipy.fftpack import fft
-
 from mne.datasets import testing
 from mne import (stats, SourceEstimate, VolSourceEstimate, Label,
                  read_source_spaces, MixedSourceEstimate, read_source_estimate,
@@ -23,7 +21,7 @@ from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
 from mne.minimum_norm import read_inverse_operator
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_h5py, run_tests_if_main, slow_test)
+                       requires_h5py, run_tests_if_main, slow_test, fft)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 

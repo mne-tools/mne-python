@@ -10,7 +10,7 @@ from copy import deepcopy
 import warnings
 
 import numpy as np
-from scipy import fftpack
+from scipy.fftpack import fftfreq
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_not_equal
@@ -20,7 +20,8 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.epochs import EpochsArray
 
-from mne.utils import _TempDir, requires_pandas, slow_test, requires_version
+from mne.utils import (_TempDir, requires_pandas, slow_test, requires_version,
+                       fft)
 
 from mne.externals.six.moves import cPickle as pickle
 
@@ -38,13 +39,13 @@ def test_savgol_filter():
     """
     h_freq = 10.
     evoked = read_evokeds(fname, 0)
-    freqs = fftpack.fftfreq(len(evoked.times), 1. / evoked.info['sfreq'])
-    data = np.abs(fftpack.fft(evoked.data))
+    freqs = fftfreq(len(evoked.times), 1. / evoked.info['sfreq'])
+    data = np.abs(fft(evoked.data))
     match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
     mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
     assert_raises(ValueError, evoked.savgol_filter, evoked.info['sfreq'])
     evoked.savgol_filter(h_freq)
-    data_filt = np.abs(fftpack.fft(evoked.data))
+    data_filt = np.abs(fft(evoked.data))
     # decent in pass-band
     assert_allclose(np.mean(data[:, match_mask], 0),
                     np.mean(data_filt[:, match_mask], 0),
