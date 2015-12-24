@@ -446,36 +446,41 @@ class EpochsEEGLAB(_BaseEpochs):
             reject_tmax=reject_tmax, add_eeg_ref=False, verbose=verbose)
         logger.info('Ready.')
 
-import numpy as np
-from scipy import io
-
 
 def _create_events_from_eeglab_raw(fname, event_id=dict()):
-    """Create events array from EEGLAB structure by looking them up in the event_id, trying to
-    reduce them to their integer part otherwise, and entirely dropping them (with a warning)
-    if this is impossible"""
+    """Create events array from EEGLAB structure by looking them up in the
+    event_id, trying to reduce them to their integer part otherwise, and
+    entirely dropping them (with a warning) if this is impossible"""
+    from scipy import io
+
     eeg = io.loadmat(fname, struct_as_record=False, squeeze_me=True)["EEG"]
     types = [event.type for event in eeg.event]
     latencies = [event.latency for event in eeg.event]
 
     not_in_event_id = [x for x in types if x not in event_id]
     not_purely_numeric = [x for x in not_in_event_id if not x.isdigit()]
-    no_numbers = [x for x in not_purely_numeric if not any([d.isdigit() for d in x])]
+    no_numbers = [x for x in not_purely_numeric
+                  if not any([d.isdigit() for d in x])]
     have_integers = [x for x in not_purely_numeric if x not in no_numbers]
     if len(not_purely_numeric) > 0:
-        print("Events like the following will be dropped entirely: ",
-              no_numbers[:5], ", {} in total".format(len(no_numbers)))
-        print("Events like the following will be reduced to their integer part: ",
-              have_integers[:5], ", {} in total".format(len(have_integers)))
-        print("Use the `event_id` keyword to include such events manually.")
-        # raise warning that some events are not in event_id and not fully numeric,
-        # use event_id to catch them
+        basewarn = "Events like the following will be "
+        if len(no_numbers) > 0:
+            warnings.warn(basewarn, "dropped entirely: ", no_numbers[:5],
+                          ", {} in total".format(len(no_numbers)))
+        if len(have_integers) > 0:
+            warnings.warn(basewarn, "reduced to their ",
+                          "integer part: ", have_integers[:5],
+                          ", {} in total".format(len(have_integers)))
+        warnings.warn("Use the `event_id` keyword to "
+                      "include such events manually.")
 
     events = list()
     for t, latency in zip(types, latencies):
         try:
-             events.append([int(latency), 1, event_id.get(t, int("".join([x for x in t if x.isdigit()])))])
+            event_code = event_id.get(t, int("".join([x for x in t
+                                                      if x.isdigit()])))
+            events.append([int(latency), 1, event_code])
         except ValueError:
-            pass  # raise warning
+            pass  # We're already raising a warning here
 
     return np.asarray(events)
