@@ -451,26 +451,30 @@ def _create_events_from_eeglab_raw(fname, event_id=dict()):
     """Create events array from EEGLAB structure by looking them up in the
     event_id, trying to reduce them to their integer part otherwise, and
     entirely dropping them (with a warning) if this is impossible"""
-    from scipy import io
+    import warnings
+    from scipy.io import loadmat
 
-    eeg = io.loadmat(fname, struct_as_record=False, squeeze_me=True)["EEG"]
+    eeg = loadmat(fname, struct_as_record=False, squeeze_me=True)["EEG"]
     types = [event.type for event in eeg.event]
     latencies = [event.latency for event in eeg.event]
 
-    not_in_event_id = [x for x in types if x not in event_id]
-    not_purely_numeric = [x for x in not_in_event_id if not x.isdigit()]
-    no_numbers = [x for x in not_purely_numeric
-                  if not any([d.isdigit() for d in x])]
-    have_integers = [x for x in not_purely_numeric if x not in no_numbers]
+    not_in_event_id = set([x for x in types if x not in event_id])
+    not_purely_numeric = set([x for x in not_in_event_id if not x.isdigit()])
+    no_numbers = set([x for x in not_purely_numeric
+                      if not any([d.isdigit() for d in x])])
+    have_integers = set([x for x in not_purely_numeric
+                         if x not in no_numbers])
     if len(not_purely_numeric) > 0:
         basewarn = "Events like the following will be "
-        if len(no_numbers) > 0:
-            warnings.warn(basewarn, "dropped entirely: ", no_numbers[:5],
-                          ", {} in total".format(len(no_numbers)))
-        if len(have_integers) > 0:
-            warnings.warn(basewarn, "reduced to their ",
-                          "integer part: ", have_integers[:5],
-                          ", {} in total".format(len(have_integers)))
+        n_no_numbers, n_have_integers = len(no_numbers), len(have_integers)
+        if n_no_numbers > 0:
+            nonumwarm = "dropped entirely: {}, {} in total"
+            warnings.warn(basewarn + nonumwarm.format(no_numbers[:5],
+                                                      n_no_numbers))
+        if n_have_integers > 0:
+            intwarn = "reduced to their integer part: {}, {} in total"
+            warnings.warn(basewarn + intwarn.format(have_integers[:5],
+                                                    n_have_integers))
         warnings.warn("Use the `event_id` keyword to "
                       "include such events manually.")
 
