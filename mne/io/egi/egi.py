@@ -105,7 +105,7 @@ def _combine_triggers(data, remapping=None):
 
 @verbose
 def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, preload=None, verbose=None):
+                 include=None, exclude=None, preload=False, verbose=None):
     """Read EGI simple binary as raw object
 
     .. note:: The trigger channel names are based on the
@@ -177,12 +177,7 @@ class RawEGI(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, preload=None, verbose=None):
-        if preload is None:
-            warnings.warn('preload is True by default but will be changed to '
-                          'False in v0.12. Please explicitly set preload.',
-                          DeprecationWarning)
-            preload = True
+                 include=None, exclude=None, preload=False, verbose=None):
         if eog is None:
             eog = []
         if misc is None:

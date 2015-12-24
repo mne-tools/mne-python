@@ -1016,12 +1016,7 @@ class RawBTi(_BaseRaw):
                  translation=(0.0, 0.02, 0.11), convert=True,
                  rename_channels=True, sort_by_ch_name=True,
                  ecg_ch='E31', eog_ch=('E63', 'E64'),
-                 preload=None, verbose=None):
-        if preload is None:
-            warnings.warn('preload is True by default but will be changed to '
-                          'False in v0.12. Please explicitly set preload.',
-                          DeprecationWarning)
-            preload = True
+                 preload=False, verbose=None):
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname, config_fname=config_fname,
             head_shape_fname=head_shape_fname, rotation_x=rotation_x,
@@ -1274,7 +1269,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), convert=True,
                  rename_channels=True, sort_by_ch_name=True,
-                 ecg_ch='E31', eog_ch=('E63', 'E64'), preload=None,
+                 ecg_ch='E31', eog_ch=('E63', 'E64'), preload=False,
                  verbose=None):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
