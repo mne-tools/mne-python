@@ -9,7 +9,6 @@
 
 import os.path as op
 from itertools import count
-import warnings
 
 import numpy as np
 
