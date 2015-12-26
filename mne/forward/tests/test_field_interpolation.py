@@ -1,8 +1,8 @@
 import numpy as np
 from os import path as op
 from numpy.polynomial import legendre
-from numpy.testing.utils import (assert_allclose, assert_array_equal,
-                                 assert_array_almost_equal)
+from numpy.testing import (assert_allclose, assert_array_equal, assert_equal,
+                           assert_array_almost_equal)
 from nose.tools import assert_raises, assert_true
 
 from mne.forward import _make_surface_mapping, make_field_map
@@ -15,7 +15,7 @@ from mne.forward._make_forward import _create_meg_coils
 from mne.forward._field_interpolation import _setup_dots
 from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import testing
-from mne import read_evokeds
+from mne import read_evokeds, pick_types
 from mne.fixes import partial
 from mne.externals.six.moves import zip
 from mne.utils import run_tests_if_main, slow_test
@@ -169,6 +169,28 @@ def test_make_field_map_meg():
 
     assert_raises(ValueError, make_field_map, evoked, meg_surf='foobar',
                   subjects_dir=subjects_dir, trans=trans_fname)
+
+
+@testing.requires_testing_data
+def test_make_field_map_meeg():
+    """Test making a M/EEG field map onto helmet & head"""
+    evoked = read_evokeds(evoked_fname, baseline=(-0.2, 0.0))[0]
+    picks = pick_types(evoked.info, meg=True, eeg=True)
+    picks = picks[::10]
+    evoked.pick_channels([evoked.ch_names[p] for p in picks])
+    maps = make_field_map(evoked, trans_fname, subject='sample',
+                          subjects_dir=subjects_dir, n_jobs=1)
+    assert_equal(maps[0]['data'].shape, (642, 6))  # EEG->Head
+    assert_equal(maps[1]['data'].shape, (304, 31))  # MEG->Helmet
+    # reasonable ranges
+    for map_ in maps:
+        assert_true(0.5 < map_['data'].max() < 2)
+        assert_true(-2 < map_['data'].min() < -0.5)
+    # calculated from correct looking mapping on 2015/12/26
+    assert_allclose(np.sqrt(np.sum(maps[0]['data'] ** 2)), 16.6088,
+                    atol=1e-3, rtol=1e-3)
+    assert_allclose(np.sqrt(np.sum(maps[1]['data'] ** 2)), 20.1245,
+                    atol=1e-3, rtol=1e-3)
 
 
 def _setup_args(info):
