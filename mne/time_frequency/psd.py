@@ -140,6 +140,39 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
 
 
 @verbose
+def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
+               n_jobs=1, verbose=None):
+    """Helper function for calculating Welch PSD."""
+    from scipy.signal import welch
+    dshape = x.shape[:-1]
+    n_times = x.shape[-1]
+    x = x.reshape(np.product(dshape), -1)
+
+    # Prep the PSD
+    n_fft, n_overlap = _check_nfft(n_times, n_fft, n_overlap)
+    win_size = n_fft / float(sfreq)
+    logger.info("Effective window size : %0.3f (s)" % win_size)
+    freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
+    freq_mask = (freqs >= fmin) & (freqs <= fmax)
+    freqs = freqs[freq_mask]
+
+    # Parallelize across first N-1 dimensions
+    psds = np.empty(x.shape[:-1] + (freqs.size,))
+    parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
+                                                verbose=verbose)
+    x_splits = np.array_split(x, n_jobs)
+    f_psd = parallel(my_pwelch(d, noverlap=n_overlap, nfft=n_fft,
+                     fs=sfreq, freq_mask=freq_mask,
+                     welch_fun=welch)
+                     for d in x_splits)
+
+    # Combining/reshaping to original data shape
+    psds = np.concatenate(f_psd, axis=0)
+    psds = psds.reshape(np.hstack([dshape, -1]))
+    return psds, freqs
+
+
+@verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               n_overlap=0, picks=None, proj=False, n_jobs=1, verbose=None):
     """Compute the PSD using Welch's method.
@@ -159,8 +192,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs. The default value is 256.
-        If ``n_fft > len(epochs.times)``, it will be adjusted down to
-        ``len(epochs.times)``.
+        If ``n_fft > len(inst.times)``, it will be adjusted down to
+        ``len(inst.times)``.
     n_overlap : int
         The number of points of overlap between blocks. Will be adjusted
         to be <= n_fft.
@@ -192,39 +225,23 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     return psds, freqs
 
 
-@verbose
-def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-               n_jobs=1, verbose=None):
-    """Helper function for calculating Welch PSD."""
-    from scipy.signal import welch
+def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
+                    adaptive=False, low_bias=True, normalization='length',
+                    n_jobs=1, verbose=None):
+    """Helper function for calculating Multitaper PSD."""
+    from .multitaper import multitaper_psd
     dshape = x.shape[:-1]
-    n_times = x.shape[-1]
+    x = x.reshape(np.product(dshape), -1)
 
-    # This will return the same object if len(dshape) == 1
-    x = x.reshape(np.product(dshape), n_times)
-
-    # Prep the PSD
-    n_fft, n_overlap = _check_nfft(n_times, n_fft, n_overlap)
-    win_size = n_fft / float(sfreq)
-    logger.info("Effective window size : %0.3f (s)" % win_size)
-    freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
-    freq_mask = (freqs >= fmin) & (freqs <= fmax)
-    freqs = freqs[freq_mask]
-    n_freqs = len(freqs)
-
-    # Parallelize across first N-1 dimensions
-    psds = np.empty(x.shape[:-1] + (freqs.size,))
-    parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
-                                                verbose=verbose)
-    x_splits = np.array_split(x, n_jobs)
-    f_psd = parallel(my_pwelch(d, noverlap=n_overlap, nfft=n_fft,
-                     fs=sfreq, freq_mask=freq_mask,
-                     welch_fun=welch)
-                     for d in x_splits)
+    # Stack data so it's treated separately
+    psds, freqs = multitaper_psd(x=x, sfreq=sfreq, fmin=fmin, fmax=fmax,
+                                 bandwidth=bandwidth, adaptive=adaptive,
+                                 low_bias=low_bias,
+                                 normalization=normalization, n_jobs=n_jobs,
+                                 verbose=verbose)
 
     # Combining/reshaping to original data shape
-    psds = np.concatenate(f_psd, axis=0)
-    psds = psds.reshape(np.hstack([dshape, n_freqs]))
+    psds = psds.reshape(np.hstack([dshape, -1]))
     return psds, freqs
 
 
@@ -232,7 +249,7 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    bandwidth=None, adaptive=False, low_bias=True,
                    normalization='length', picks=None, proj=False,
-                   sfreq=None, n_jobs=1, verbose=None):
+                   n_jobs=1, verbose=None):
     """Compute the PSD using multitapers.
 
 
@@ -267,9 +284,6 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         If None, take all channels.
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
-    sfreq : float
-        The sampling frequency of the data. Required if inst is an array,
-        otherwise this is not used and sfreq is pulled from inst.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -280,7 +294,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     psds : ndarray, shape ([n_epochs], n_channels, n_freqs)
         The power spectral densities. If Raw is provided,
         then psds will be 2-D.
-    freqs : ndarray (n_freqs)
+    freqs : ndarray, shape (n_freqs)
         The frequencies.
     """
     # Prep data
@@ -290,29 +304,6 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                                   low_bias=low_bias,
                                   normalization=normalization,  n_jobs=n_jobs,
                                   verbose=verbose)
-    return psds, freqs
-
-
-def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
-                    adaptive=False, low_bias=True, normalization='length',
-                    n_jobs=1, verbose=None):
-    """Helper function for calculating Welch PSD."""
-    from .multitaper import multitaper_psd
-    dshape = x.shape[:-1]
-    n_times = x.shape[-1]
-
-    # This will return the same object if len(dshape) == 1
-    x = x.reshape(np.product(dshape), n_times)
-
-    # Stack data so it's treated separately
-    psds, freqs = multitaper_psd(x=x, sfreq=sfreq, fmin=fmin, fmax=fmax,
-                                 bandwidth=bandwidth, adaptive=adaptive,
-                                 low_bias=low_bias,
-                                 normalization=normalization, n_jobs=n_jobs,
-                                 verbose=verbose)
-
-    # Combining/reshaping to original data shape
-    psds = psds.reshape(np.hstack([dshape, len(freqs)]))
     return psds, freqs
 
 
@@ -355,7 +346,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
     -------
     psds : ndarray (n_epochs, n_channels, n_freqs)
         The power spectral densities.
-    freqs : ndarray (n_freqs)
+    freqs : ndarray, shape (n_freqs)
         The frequencies.
     """
     from scipy.signal import welch

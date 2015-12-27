@@ -11,7 +11,7 @@ from .mixin import TransformerMixin
 from .. import pick_types
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
-from ..time_frequency.psd import psd_multitaper
+from ..time_frequency.psd import _psd_multitaper
 from ..externals import six
 from ..utils import _check_type_picks
 
@@ -296,7 +296,7 @@ class PSDEstimator(TransformerMixin):
         self.verbose = verbose
         self.normalization = normalization
 
-    def fit(self, epochs_data, y=None):
+    def fit(self, epochs_data, y):
         """Compute power spectrum density (PSD) using a multi-taper method
 
         Parameters
@@ -310,7 +310,6 @@ class PSDEstimator(TransformerMixin):
         -------
         self : instance of PSDEstimator
             returns the modified instance
-
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
@@ -332,19 +331,17 @@ class PSDEstimator(TransformerMixin):
         Returns
         -------
         psd : array, shape (n_signals, len(freqs)) or (len(freqs),)
-            The computed PSD. This also creates the attribute `freqs_`, which
-            contains the frequencies in the PSD estimate.
+            The computed PSD.
         """
 
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
-        psd, freqs = psd_multitaper(
-            epochs_data, fmin=self.fmin, fmax=self.fmax, sfreq=self.sfreq,
+        psd, freqs = _psd_multitaper(
+            epochs_data, sfreq=self.sfreq, fmin=self.fmin, fmax=self.fmax,
             bandwidth=self.bandwidth, adaptive=self.adaptive,
             low_bias=self.low_bias, normalization=self.normalization,
             n_jobs=self.n_jobs, verbose=self.verbose)
-        self.freqs_ = freqs
         return psd
 
 
