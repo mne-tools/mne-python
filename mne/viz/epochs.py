@@ -35,8 +35,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     epochs : instance of Epochs
         The epochs
     picks : int | array-like of int | None
-        The indices of the channels to consider. If None, all good
-        data channels are plotted.
+        The indices of the channels to consider. If None, the first
+        five good channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
@@ -82,7 +82,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     import matplotlib.pyplot as plt
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+                           exclude='bads')[:5]
 
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
