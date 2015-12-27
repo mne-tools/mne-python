@@ -5,7 +5,6 @@
 import numpy as np
 
 from ..parallel import parallel_func
-from ..io.proj import make_projector_info
 from ..io.pick import pick_types
 from ..utils import logger, verbose, deprecated, _time_mask
 
@@ -16,6 +15,7 @@ def compute_raw_psd(raw, tmin=0., tmax=None, picks=None, fmin=0,
                     fmax=np.inf, n_fft=2048, n_overlap=0,
                     proj=False, n_jobs=1, verbose=None):
     """Compute power spectral density with average periodograms.
+
     Parameters
     ----------
     raw : instance of Raw
@@ -44,6 +44,7 @@ def compute_raw_psd(raw, tmin=0., tmax=None, picks=None, fmin=0,
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
     Returns
     -------
     psd : array of float
@@ -54,18 +55,12 @@ def compute_raw_psd(raw, tmin=0., tmax=None, picks=None, fmin=0,
     from scipy.signal import welch
     tmax = raw.times[-1] if tmax is None else tmax
     start, stop = raw.time_as_index([tmin, tmax])
-    if picks is not None:
-        data, times = raw[picks, start:(stop + 1)]
-    else:
-        data, times = raw[:, start:(stop + 1)]
-    n_fft, n_overlap = _check_nfft(len(times), n_fft, n_overlap)
+    picks = slice(None) if picks is None else picks
 
     if proj:
-        proj, _ = make_projector_info(raw.info)
-        if picks is not None:
-            data = np.dot(proj[picks][:, picks], data)
-        else:
-            data = np.dot(proj, data)
+        raw = raw.apply_proj()
+    data, times = raw[picks, start:(stop + 1)]
+    n_fft, n_overlap = _check_nfft(len(times), n_fft, n_overlap)
 
     n_fft = int(n_fft)
     Fs = raw.info['sfreq']
@@ -149,7 +144,7 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     from scipy.signal import welch
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
-    x = x.reshape(np.product(dshape), -1)
+    x = x.reshape(-1, n_times)
 
     # Prep the PSD
     n_fft, n_overlap = _check_nfft(n_times, n_fft, n_overlap)
@@ -233,8 +228,9 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
                     n_jobs=1, verbose=None):
     """Helper function for calculating Multitaper PSD."""
     from .multitaper import multitaper_psd
+    n_times = x.shape[-1]
     dshape = x.shape[:-1]
-    x = x.reshape(np.product(dshape), -1)
+    x = x.reshape(-1, n_times)
 
     # Stack data so it's treated separately
     psds, freqs = multitaper_psd(x=x, sfreq=sfreq, fmin=fmin, fmax=fmax,
@@ -254,7 +250,6 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    normalization='length', picks=None, proj=False,
                    n_jobs=1, verbose=None):
     """Compute the PSD using multitapers.
-
 
     Parameters
     ----------
@@ -316,6 +311,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
                        tmax=None, n_fft=256, n_overlap=0, proj=False,
                        n_jobs=1, verbose=None):
     """Compute power spectral density with average periodograms.
+
     Parameters
     ----------
     epochs : instance of Epochs
@@ -345,6 +341,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
     Returns
     -------
     psds : ndarray (n_epochs, n_channels, n_freqs)
@@ -367,11 +364,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
 
     data = epochs.get_data()[:, picks][..., time_mask]
     if proj:
-        proj, _ = make_projector_info(epochs.info)
-        if picks is not None:
-            data = np.dot(proj[picks][:, picks], data)
-        else:
-            data = np.dot(proj, data)
+        epochs = epochs.apply_proj()
 
     logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
 

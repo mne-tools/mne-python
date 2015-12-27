@@ -15,47 +15,6 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 
 @requires_version('scipy', '0.12')
-def test_psd_deprecate():
-    """Test PSD estimation
-    """
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
-        raw = io.Raw(raw_fname)
-
-        exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
-
-        # picks MEG gradiometers
-        picks = pick_types(raw.info, meg='mag', eeg=False, stim=False,
-                           exclude=exclude)
-
-        picks = picks[:2]
-
-        tmin, tmax = 0, 10  # use the first 60s of data
-        fmin, fmax = 2, 70  # look at frequencies between 5 and 70Hz
-
-        n_fft = 128
-        psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, fmin=fmin,
-                                      fmax=fmax, proj=False, n_fft=n_fft,
-                                      picks=picks, n_jobs=1)
-        assert_true(psds.shape == (len(picks), len(freqs)))
-        assert_true(np.sum(freqs < 0) == 0)
-        assert_true(np.sum(psds < 0) == 0)
-
-        n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
-        psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                      fmin=fmin, fmax=fmax, n_fft=n_fft,
-                                      n_jobs=1, proj=False)
-        psds_proj, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax,
-                                           picks=picks, fmin=fmin, fmax=fmax,
-                                           n_fft=n_fft, n_jobs=1, proj=True)
-
-        assert_array_almost_equal(psds, psds_proj)
-        assert_true(psds.shape == (len(picks), len(freqs)))
-        assert_true(np.sum(freqs < 0) == 0)
-        assert_true(np.sum(psds < 0) == 0)
-
-
-@requires_version('scipy', '0.12')
 def test_psd():
     """Tests the welch and multitaper PSD
     """
@@ -72,23 +31,28 @@ def test_psd():
                        stim=False, include=include, exclude=exclude)
 
     # -- Raw --
-    picks_mt = picks[:2]
-    picks_wel = picks
-    kws_psd = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax)
-    kws_welch = dict(picks=picks_wel, n_fft=n_fft)
-    kws_mt = dict(picks=picks_mt, low_bias=True)
-    funcs = {psd_welch: kws_welch, psd_multitaper: kws_mt}
+    picks_psd = picks[:2]
+    kws_psd = dict(tmin=tmin, tmax=tmax, fmin=fmin,
+                   fmax=fmax, picks=picks_psd)  # Common to all
+    kws_welch = dict(n_fft=n_fft)
+    kws_mt = dict(low_bias=True)
+    funcs = {psd_welch: kws_welch,
+             psd_multitaper: kws_mt,
+             compute_raw_psd: kws_welch}
 
-    for func, kws in funcs.iteritems():
-        kws = kws.copy()
-        kws.update(kws_psd)
-        psds, freqs = func(raw, proj=False, **kws)
-        psds_proj, freqs_proj = func(raw, proj=True, **kws)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        for func, kws in funcs.iteritems():
+            kws = kws.copy()
+            kws.update(kws_psd)
+            psds, freqs = func(raw, proj=False, **kws)
+            psds_proj, freqs_proj = func(raw, proj=True, **kws)
 
-        assert_array_almost_equal(psds, psds_proj)
-        assert_true(psds.shape == (len(kws['picks']), len(freqs)))
-        assert_true(np.sum(freqs < 0) == 0)
-        assert_true(np.sum(psds < 0) == 0)
+            assert_array_almost_equal(psds, psds_proj)
+            assert_true(psds.shape == (len(kws['picks']), len(freqs)))
+            assert_true(np.sum(freqs < 0) == 0)
+            assert_true(np.sum(psds < 0) == 0)
+        assert_true(len(w), 3)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)
@@ -105,100 +69,41 @@ def test_psd():
                          reject=dict(grad=4000e-13, eog=150e-6), proj=False,
                          preload=True)
 
-    picks_wel = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
-    picks_mt = picks_wel[:2]
+    kws_psd = dict(fmin=fmin, fmax=fmax, picks=picks_psd)  # Common to all
+    kws_welch = dict(n_fft=n_fft)
+    kws_mt = dict(low_bias=True)
+    funcs = {psd_welch: kws_welch,
+             psd_multitaper: kws_mt,
+             compute_epochs_psd: kws_welch}
 
-    kws_psd = dict(fmin=2, fmax=300)
-    kws_welch = dict(picks=picks_wel, n_fft=512)
-    kws_mt = dict(picks=picks_mt, low_bias=True)
-    funcs = {psd_welch: kws_welch, psd_multitaper: kws_mt}
-
-    for func, kws in funcs.iteritems():
-        kws = kws.copy()
-        kws.update(kws_psd)
-
-        psds, freqs = func(
-            epochs[:1], tmin=tmin, tmax=tmax, proj=False, **kws)
-        psds_proj, freqs_proj = func(
-            epochs[:1], tmin=tmin, tmax=tmax, proj=True, **kws)
-        psds_f, freqs_f = func(
-            epochs_full[:1], tmin=tmin, tmax=tmax, proj=False, **kws)
-
-        psds_ev, freqs_ev = func(
-            evoked, tmin=tmin, tmax=tmax, proj=False, **kws)
-        psds_ev_proj, freqs_ev_proj = func(
-            evoked, tmin=tmin, tmax=tmax, proj=True, **kws)
-
-        # this one will fail if you add for example 0.1 to tmin
-        assert_array_almost_equal(psds, psds_f, 27)
-        assert_array_almost_equal(psds, psds_proj, 27)
-        assert_array_almost_equal(psds_ev, psds_ev_proj, 27)
-
-        assert_true(psds.shape == (1, len(kws['picks']), len(freqs)))
-        assert_true(psds_ev.shape == (len(kws['picks']), len(freqs)))
-        assert_true(np.sum(freqs < 0) == 0)
-        assert_true(np.sum(psds < 0) == 0)
-
-
-@requires_version('scipy', '0.12')
-def test_psd_epochs_deprecate():
-    """Test PSD estimation on epochs
-    """
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        raw = io.Raw(raw_fname)
+        for func, kws in funcs.iteritems():
+            kws = kws.copy()
+            kws.update(kws_psd)
 
-        exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+            psds, freqs = func(
+                epochs[:1], tmin=tmin, tmax=tmax, proj=False, **kws)
+            psds_proj, freqs_proj = func(
+                epochs[:1], tmin=tmin, tmax=tmax, proj=True, **kws)
+            psds_f, freqs_f = func(
+                epochs_full[:1], tmin=tmin, tmax=tmax, proj=False, **kws)
 
-        # picks MEG gradiometers
-        picks = pick_types(raw.info, meg='mag', eeg=False, stim=False,
-                           exclude=exclude)
+            # this one will fail if you add for example 0.1 to tmin
+            assert_array_almost_equal(psds, psds_f, 27)
+            assert_array_almost_equal(psds, psds_proj, 27)
+            assert_true(psds.shape == (1, len(kws['picks']), len(freqs)))
+            assert_true(np.sum(freqs < 0) == 0)
+            assert_true(np.sum(psds < 0) == 0)
 
-        picks = picks[:2]
-
-        n_fft = 512  # the FFT size (n_fft). Ideally a power of 2
-
-        tmin, tmax, event_id = -0.5, 0.5, 1
-        include = []
-        raw.info['bads'] += ['MEG 2443']  # bads
-
-        # picks MEG gradiometers
-        picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                           stim=False, include=include, exclude='bads')
-
-        events = read_events(event_fname)
-
-        epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0),
-                        reject=dict(grad=4000e-13, eog=150e-6), proj=False,
-                        preload=True)
-
-        tmin_full, tmax_full = -1, 1
-        epochs_full = Epochs(raw, events[:10], event_id, tmax=tmax_full,
-                             tmin=tmin_full, picks=picks,
-                             baseline=(None, 0),
-                             reject=dict(grad=4000e-13, eog=150e-6),
-                             proj=False, preload=True)
-
-        picks = pick_types(epochs.info, meg='grad', eeg=False, eog=True,
-                           stim=False, include=include, exclude='bads')
-        psds, freqs = compute_epochs_psd(epochs[:1], fmin=2, fmax=300,
-                                         n_fft=n_fft, picks=picks)
-
-        psds_t, freqs_t = compute_epochs_psd(epochs_full[:1], fmin=2, fmax=300,
-                                             tmin=tmin, tmax=tmax,
-                                             n_fft=n_fft, picks=picks)
-        # this one will fail if you add for example 0.1 to tmin
-        assert_array_almost_equal(psds, psds_t, 27)
-
-        psds_proj, _ = compute_epochs_psd(epochs[:1].apply_proj(), fmin=2,
-                                          fmax=300, n_fft=n_fft, picks=picks)
-
-        assert_array_almost_equal(psds, psds_proj)
-        assert_true(psds.shape == (1, len(picks), len(freqs)))
-        assert_true(np.sum(freqs < 0) == 0)
-        assert_true(np.sum(psds < 0) == 0)
+            if func is not compute_epochs_psd:
+                psds_ev, freqs_ev = func(
+                    evoked, tmin=tmin, tmax=tmax, proj=False, **kws)
+                psds_ev_proj, freqs_ev_proj = func(
+                    evoked, tmin=tmin, tmax=tmax, proj=True, **kws)
+                assert_array_almost_equal(psds_ev, psds_ev_proj, 27)
+                assert_true(psds_ev.shape == (len(kws['picks']), len(freqs)))
+        assert_true(len(w), 3)
 
 
 @slow_test

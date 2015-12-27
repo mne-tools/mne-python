@@ -11,9 +11,12 @@ distribution.
 #
 # License: BSD (3-clause)
 
+import numpy as np
 import mne
 from mne import io
 from mne.datasets import sample
+import matplotlib.pyplot as plt
+from mne.time_frequency import psd_welch, psd_multitaper
 
 print(__doc__)
 
@@ -22,6 +25,8 @@ print(__doc__)
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
+
+plt.ion()
 
 # Setup for reading the raw data
 raw = io.Raw(raw_fname)
@@ -43,3 +48,12 @@ picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=False,
 
 # Now let's take a look at the spatial distributions of the psd.
 epochs.plot_psd_topomap(ch_type='grad', normalize=True)
+
+# Alternatively, you may also create PSDs from Raw objects with psd_XXX
+psds_mt, freqs_mt = psd_multitaper(epochs[:5], low_bias=True, tmin=tmin,
+                                   tmax=tmax, picks=[1], n_jobs=1)
+f, ax = plt.subplots()
+ax.plot(freqs_mt, 10*np.log10(psds_mt[:, 0, :].T))
+ax.set(title='Multitaper PSD',  xlabel='Frequency',
+       ylabel='Power Spectral Density (dB)')
+mne.viz.tight_layout()

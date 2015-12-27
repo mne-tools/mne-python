@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne import io, read_proj, read_selection
 from mne.datasets import sample
+from mne.time_frequency import psd_welch, psd_multitaper
 
 print(__doc__)
 
@@ -35,12 +36,9 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 projs = read_proj(proj_fname)
 raw.add_proj(projs, remove_existing=True)
 
-
 tmin, tmax = 0, 60  # use the first 60s of data
 fmin, fmax = 2, 300  # look at frequencies between 2 and 300Hz
 n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
-
-plt.ion()
 
 # Let's first check out all channel types
 raw.plot_psd(area_mode='range', tmax=10.0)
@@ -70,3 +68,12 @@ raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
 
 ax.set_title('Four left-temporal magnetometers')
 plt.legend(['Without SSP', 'With SSP', 'SSP + Notch'])
+
+# Alternatively, you may also create PSDs from Raw objects with psd_XXX
+f, ax = plt.subplots()
+psds_mt, freqs_mt = psd_multitaper(raw, low_bias=True, tmin=tmin, tmax=tmax,
+                                   fmin=fmin, fmax=fmax, picks=picks, n_jobs=1)
+ax.plot(freqs_mt, 10*np.log10(psds_mt).T)
+ax.set(title='Multitaper PSD', xlabel='Frequency',
+       ylabel='Power Spectral Density (dB)')
+mne.viz.tight_layout()
