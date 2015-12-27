@@ -1,7 +1,7 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true, assert_raises, assert_equal
+from nose.tools import assert_true
 
 from mne import io, pick_types, Epochs, read_events
 from mne.utils import requires_version, slow_test, _time_mask
@@ -68,18 +68,12 @@ def test_psd_welch():
     picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
                        stim=False, include=include, exclude=exclude)
 
-    start, stop = raw.time_as_index([tmin, tmax])
-    raw_arr, times = raw[picks, start:(stop + 1)]
-    sfreq = raw.info['sfreq']
-
     # Test raw
     kws_welch = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft)
     psds, freqs = psd_welch(raw, proj=False, picks=picks, **kws_welch)
     psds_proj, freqs_proj = psd_welch(raw, proj=True, picks=picks, **kws_welch)
-    psds_ar, freqs_ar = psd_welch(raw_arr, sfreq=sfreq, **kws_welch)
 
     assert_array_almost_equal(psds, psds_proj)
-    assert_array_almost_equal(psds, psds_ar)
     assert_true(psds.shape == (len(picks), len(freqs)))
     assert_true(np.sum(freqs < 0) == 0)
     assert_true(np.sum(psds < 0) == 0)
@@ -100,20 +94,16 @@ def test_psd_welch():
 
     picks_psd = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
-    msk_time = _time_mask(epochs.times, tmin, tmax)
-    epochs_ar = epochs.get_data()[:1][:, picks_psd][..., msk_time]
 
     kws_welch = dict(fmin=2, fmax=300, n_fft=512, picks=picks_psd)
     psds, freqs = psd_welch(epochs[:1], proj=False, **kws_welch)
     psds_full, freqs_full = psd_welch(epochs_full[:1], proj=False,
                                       tmin=tmin, tmax=tmax, **kws_welch)
     psds_proj, freqs_proj = psd_welch(epochs[:1], proj=True, **kws_welch)
-    psds_ar, freqs_ar = psd_welch(epochs_ar, sfreq=sfreq, **kws_welch)
 
     # this one will fail if you add for example 0.1 to tmin
     assert_array_almost_equal(psds, psds_full, 27)
     assert_array_almost_equal(psds, psds_proj, 27)
-    assert_array_almost_equal(psds, psds_ar, 27)
 
     assert_true(psds.shape == (1, len(picks_psd), len(freqs)))
     assert_true(np.sum(freqs < 0) == 0)
@@ -136,19 +126,13 @@ def test_psd_multitaper():
                        stim=False, include=include, exclude=exclude)
     picks_psd = picks[:2]
 
-    start, stop = raw.time_as_index([tmin, tmax])
-    raw_arr, times = raw[picks_psd, start:(stop + 1)]
-    sfreq = raw.info['sfreq']
-
     # Test raw
     kws_mt = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, low_bias=True)
     psds, freqs = psd_multitaper(raw, proj=False, picks=picks_psd, **kws_mt)
     psds_proj, freqs_proj = psd_multitaper(raw, proj=True,
                                            picks=picks_psd, **kws_mt)
-    psds_ar, freqs_ar = psd_multitaper(raw_arr, sfreq=sfreq, **kws_mt)
 
     assert_array_almost_equal(psds, psds_proj)
-    assert_array_almost_equal(psds, psds_ar)
     assert_true(psds.shape == (len(picks_psd), len(freqs)))
     assert_true(np.sum(freqs < 0) == 0)
     assert_true(np.sum(psds < 0) == 0)
@@ -170,20 +154,16 @@ def test_psd_multitaper():
     picks_psd = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
     picks_psd = picks_psd[:2]
-    msk_time = _time_mask(epochs.times, tmin, tmax)
-    epochs_ar = epochs.get_data()[:1][:, picks_psd][..., msk_time]
 
     kws_mt = dict(fmin=2, fmax=300, picks=picks_psd, low_bias=True)
     psds, freqs = psd_multitaper(epochs[:1], proj=False, **kws_mt)
     psds_full, freqs_full = psd_multitaper(epochs_full[:1], proj=False,
                                            tmin=tmin, tmax=tmax, **kws_mt)
     psds_proj, freqs_proj = psd_multitaper(epochs[:1], proj=True, **kws_mt)
-    psds_ar, freqs_ar = psd_multitaper(epochs_ar, sfreq=sfreq, **kws_mt)
 
     # this one will fail if you add for example 0.1 to tmin
     assert_array_almost_equal(psds, psds_full, 27)
     assert_array_almost_equal(psds, psds_proj, 27)
-    assert_array_almost_equal(psds, psds_ar, 27)
 
     assert_true(psds.shape == (1, len(picks_psd), len(freqs)))
     assert_true(np.sum(freqs < 0) == 0)
