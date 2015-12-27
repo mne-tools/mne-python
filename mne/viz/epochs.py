@@ -18,7 +18,7 @@ from ..utils import verbose, get_config, set_config, logger
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
-from ..time_frequency import compute_epochs_psd
+from ..time_frequency import psd_welch
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show)
@@ -448,11 +448,11 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
-        psds, freqs = compute_epochs_psd(epochs, picks=picks, fmin=fmin,
-                                         fmax=fmax, tmin=tmin, tmax=tmax,
-                                         n_fft=n_fft,
-                                         n_overlap=n_overlap, proj=proj,
-                                         n_jobs=n_jobs)
+        psds, freqs = psd_welch(epochs, picks=picks, fmin=fmin,
+                                fmax=fmax, tmin=tmin, tmax=tmax,
+                                n_fft=n_fft,
+                                n_overlap=n_overlap, proj=proj,
+                                n_jobs=n_jobs)
 
         # Convert PSDs to dB
         if dB:

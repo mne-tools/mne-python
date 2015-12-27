@@ -281,7 +281,7 @@ class PSDEstimator(TransformerMixin):
 
     See Also
     --------
-    multitaper_psd, compute_epochs_psd, compute_raw_psd
+    psd_multitaper
     """
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
                  adaptive=False, low_bias=True, n_jobs=1,

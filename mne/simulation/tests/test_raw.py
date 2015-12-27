@@ -20,7 +20,7 @@ from mne.tests.test_chpi import _compare_positions
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.io import Raw, RawArray
-from mne.time_frequency import compute_raw_psd
+from mne.time_frequency import psd_welch
 from mne.utils import _TempDir, run_tests_if_main, requires_version, slow_test
 from mne.fixes import isclose
 
@@ -229,8 +229,8 @@ def test_simulate_raw_chpi():
     assert_allclose(raw_sim[hpi_pick][0], 0.)
     assert_allclose(raw_chpi[hpi_pick][0], hpi_on)
     # test that the cHPI signals make some reasonable values
-    psd_sim, freqs_sim = compute_raw_psd(raw_sim)
-    psd_chpi, freqs_chpi = compute_raw_psd(raw_chpi)
+    psd_sim, freqs_sim = psd_welch(raw_sim)
+    psd_chpi, freqs_chpi = psd_welch(raw_chpi)
     assert_array_equal(freqs_sim, freqs_chpi)
     freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f)) for f in hpi_freqs])
     picks_meg = pick_types(raw.info, meg=True, eeg=False)

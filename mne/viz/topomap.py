@@ -23,7 +23,7 @@ from ..utils import _clean_names, _time_mask, verbose, logger
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times)
-from ..time_frequency import compute_epochs_psd
+from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 
@@ -1389,10 +1389,10 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         epochs, ch_type, layout)
 
-    psds, freqs = compute_epochs_psd(epochs, picks=picks, n_fft=n_fft,
-                                     tmin=tmin, tmax=tmax,
-                                     n_overlap=n_overlap, proj=proj,
-                                     n_jobs=n_jobs)
+    psds, freqs = psd_welch(epochs, picks=picks, n_fft=n_fft,
+                            tmin=tmin, tmax=tmax,
+                            n_overlap=n_overlap, proj=proj,
+                            n_jobs=n_jobs)
     psds = np.mean(psds, axis=0)
 
     if merge_grads:

@@ -16,7 +16,7 @@ from ..externals.six import string_types
 from ..io.pick import pick_types, _pick_data_channels
 from ..io.proj import setup_proj
 from ..utils import verbose, get_config, logger
-from ..time_frequency import compute_raw_psd
+from ..time_frequency import psd_welch
 from .topo import _plot_topo, _plot_timeseries
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar,
@@ -479,10 +479,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
-        psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                      fmin=fmin, fmax=fmax, proj=proj,
-                                      n_fft=n_fft, n_overlap=n_overlap,
-                                      n_jobs=n_jobs, verbose=verbose)
+        psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
+                                fmin=fmin, fmax=fmax, proj=proj,
+                                n_fft=n_fft, n_overlap=n_overlap,
+                                n_jobs=n_jobs, verbose=verbose)
 
         # Convert PSDs to dB
         if dB:
@@ -736,10 +736,10 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
         from ..channels.layout import find_layout
         layout = find_layout(raw.info)
 
-    psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, fmin=fmin,
-                                  fmax=fmax, proj=proj, n_fft=n_fft,
-                                  n_overlap=n_overlap, n_jobs=n_jobs,
-                                  verbose=verbose)
+    psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
+                            fmax=fmax, proj=proj, n_fft=n_fft,
+                            n_overlap=n_overlap, n_jobs=n_jobs,
+                            verbose=verbose)
     if dB:
         psds = 10 * np.log10(psds)
         y_label = 'dB'
