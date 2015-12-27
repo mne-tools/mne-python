@@ -6,7 +6,8 @@ import os.path as op
 import numpy as np
 import warnings
 
-from ..utils import _read_segments_file, _find_channels
+from ..utils import (_read_segments_file, _find_channels,
+                     _synthesize_stim_channel)
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import _BaseRaw, _check_update_montage
@@ -108,7 +109,7 @@ def _get_info(eeg, montage, eog=()):
 
 
 def read_raw_eeglab(input_fname, montage=None, preload=False, eog=(),
-                    verbose=None):
+                    event_id=dict(), verbose=None):
     """Read an EEGLAB .set file
 
     Parameters
@@ -132,6 +133,12 @@ def read_raw_eeglab(input_fname, montage=None, preload=False, eog=(),
         Names or indices of channels that should be designated
         EOG channels. If 'auto', the channel names containing
         ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
+    event_id :dict
+        By default, events are read from the input file by dropping every
+        non-integer part of events containing integers, and completely
+        dropping any events without integer parts. If non-integer events
+        should be read, this should be a dict mapping from their names to
+        integers, e.g. dict(fmri_scan_onset=199, recording_start=255).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -226,6 +233,12 @@ class RawEEGLAB(_BaseRaw):
         Names or indices of channels that should be designated
         EOG channels. If 'auto', the channel names containing
         ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
+    event_id : dict
+        By default, events are read from the input file by dropping every
+        non-integer part of events containing integers, and completely
+        dropping any events without integer parts. If non-integer events
+        should be read, this should be a dict mapping from their names to
+        integers, e.g. dict(fmri_scan_onset=199, recording_start=255).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -244,7 +257,7 @@ class RawEEGLAB(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, montage, preload=False, eog=(),
-                 verbose=None):
+                 event_id=dict(), verbose=None):
         """Read EEGLAB .set file.
         """
         from scipy import io
@@ -259,6 +272,19 @@ class RawEEGLAB(_BaseRaw):
 
         last_samps = [eeg.pnts - 1]
         info = _get_info(eeg, montage, eog=eog)
+
+        n_chan = len(info["chs"])
+        stimchan = dict(ch_name='STI 014', coil_type=FIFF.FIFFV_COIL_NONE,
+                        kind=FIFF.FIFFV_STIM_CH, logno=n_chan + 1,
+                        scanno=n_chan + 1, cal=1., range=1., loc=np.zeros(12),
+                        unit=FIFF.FIFF_UNIT_NONE, unit_mul=0.,
+                        coord_frame=FIFF.FIFFV_COORD_HEAD)
+        info['chs'].append(stimchan)
+        info["ch_names"].append("STI 014")
+        info['nchan'] += 1
+        events = _events_from_eeglab_raw(input_fname, event_id=event_id)
+        self._event_ch = _synthesize_stim_channel(events, eeg.pnts)
+
         # read the data
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
@@ -447,11 +473,10 @@ class EpochsEEGLAB(_BaseEpochs):
         logger.info('Ready.')
 
 
-def _create_events_from_eeglab_raw(fname, event_id=dict()):
+def _events_from_eeglab_raw(fname, event_id=dict()):
     """Create events array from EEGLAB structure by looking them up in the
     event_id, trying to reduce them to their integer part otherwise, and
     entirely dropping them (with a warning) if this is impossible"""
-    import warnings
     from scipy.io import loadmat
 
     eeg = loadmat(fname, struct_as_record=False, squeeze_me=True)["EEG"]

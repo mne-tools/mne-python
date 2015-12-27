@@ -18,7 +18,7 @@ from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
-from ..utils import _mult_cal_one
+from ..utils import _mult_cal_one, _synthesize_stim_channel
 
 from ...externals.six import StringIO
 from ...externals.six.moves import configparser
@@ -214,31 +214,6 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
 
     events = np.array(events).reshape(-1, 3)
     return events
-
-
-def _synthesize_stim_channel(events, n_samp):
-    """Synthesize a stim channel from events read from a vmrk file
-
-    Parameters
-    ----------
-    events : array, shape (n_events, 3)
-        Each row representing an event as (onset, duration, trigger) sequence
-        (the format returned by _read_vmrk_events).
-    n_samp : int
-        The number of samples.
-
-    Returns
-    -------
-    stim_channel : array, shape (n_samples,)
-        An array containing the whole recording's event marking
-    """
-    # select events overlapping buffer
-    onset = events[:, 0]
-    # create output buffer
-    stim_channel = np.zeros(n_samp, int)
-    for onset, duration, trigger in events:
-        stim_channel[onset:onset + duration] = trigger
-    return stim_channel
 
 
 def _check_hdr_version(header):
