@@ -7,7 +7,7 @@ import numpy as np
 from ..parallel import parallel_func
 from ..io.proj import make_projector_info
 from ..io.pick import pick_types
-from ..utils import logger, verbose, _time_mask, deprecated
+from ..utils import logger, verbose, deprecated, _time_mask
 from scipy.signal import welch
 from .multitaper import multitaper_psd
 
@@ -125,20 +125,18 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, sfreq):
         if picks is None:
             picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=False,
                                exclude='bads')
+        if proj:
+            inst = inst.apply_proj()
 
         sfreq = inst.info['sfreq']
         if isinstance(inst, _BaseRaw):
-            data, times = inst[picks, time_mask]
+            start, stop = inst.time_as_index([tmin, tmax])
+            data, times = inst[picks, start:(stop + 1)]
         elif isinstance(inst, _BaseEpochs):
-            data = inst.get_data()[:, picks, time_mask]
+            data = inst.get_data()[:, picks][..., time_mask]
 
-        if proj:
-            proj, _ = make_projector_info(inst.info)
-            if picks is not None:
-                proj = proj[picks][:, picks]
-            data = np.dot(proj, data)
     elif isinstance(inst, np.ndarray):
-        if sfreq is None:
+        if not isinstance(sfreq, (float, int)):
             raise ValueError('If a numpy array is given, must provide sfreq')
         data = inst.copy()
         if data.ndim == 1:
@@ -256,6 +254,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Min time of interest
     tmax : float | None
         Max time of interest
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz.
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
