@@ -72,35 +72,32 @@ def test_psd():
                        stim=False, include=include, exclude=exclude)
 
     # -- Raw --
-    # Welch
-    kws_welch = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft)
-    psds, freqs = psd_welch(raw, proj=False, picks=picks, **kws_welch)
-    psds_proj, freqs_proj = psd_welch(raw, proj=True, picks=picks, **kws_welch)
-
-    assert_array_almost_equal(psds, psds_proj)
-    assert_true(psds.shape == (len(picks), len(freqs)))
-    assert_true(np.sum(freqs < 0) == 0)
-    assert_true(np.sum(psds < 0) == 0)
-
-    # Multitaper
     picks_mt = picks[:2]
-    kws_mt = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, low_bias=True)
-    psds, freqs = psd_multitaper(raw, proj=False, picks=picks_mt, **kws_mt)
-    psds_proj, freqs_proj = psd_multitaper(raw, proj=True,
-                                           picks=picks_mt, **kws_mt)
+    picks_wel = picks
+    kws_psd = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax)
+    kws_welch = dict(picks=picks_wel, n_fft=n_fft)
+    kws_mt = dict(picks=picks_mt, low_bias=True)
+    funcs = {psd_welch: kws_welch, psd_multitaper: kws_mt}
 
-    assert_array_almost_equal(psds, psds_proj)
-    assert_true(psds.shape == (len(picks_mt), len(freqs)))
-    assert_true(np.sum(freqs < 0) == 0)
-    assert_true(np.sum(psds < 0) == 0)
+    for func, kws in funcs.iteritems():
+        kws = kws.copy()
+        kws.update(kws_psd)
+        psds, freqs = func(raw, proj=False, **kws)
+        psds_proj, freqs_proj = func(raw, proj=True, **kws)
 
-    # -- Epochs --
+        assert_array_almost_equal(psds, psds_proj)
+        assert_true(psds.shape == (len(kws['picks']), len(freqs)))
+        assert_true(np.sum(freqs < 0) == 0)
+        assert_true(np.sum(psds < 0) == 0)
+
+    # -- Epochs/Evoked --
     events = read_events(event_fname)
     tmin, tmax, event_id = -0.5, 0.5, 1
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(grad=4000e-13, eog=150e-6), proj=False,
                     preload=True)
+    evoked = epochs.average()
 
     tmin_full, tmax_full = -1, 1
     epochs_full = Epochs(raw, events[:10], event_id, tmin_full, tmax_full,
@@ -108,38 +105,40 @@ def test_psd():
                          reject=dict(grad=4000e-13, eog=150e-6), proj=False,
                          preload=True)
 
-    # - Welch -
     picks_wel = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
-    kws_welch = dict(fmin=2, fmax=300, n_fft=512, picks=picks_wel)
-    psds, freqs = psd_welch(epochs[:1], proj=False, **kws_welch)
-    psds_full, freqs_full = psd_welch(epochs_full[:1], proj=False,
-                                      tmin=tmin, tmax=tmax, **kws_welch)
-    psds_proj, freqs_proj = psd_welch(epochs[:1], proj=True, **kws_welch)
-
-    # this one will fail if you add for example 0.1 to tmin
-    assert_array_almost_equal(psds, psds_full, 27)
-    assert_array_almost_equal(psds, psds_proj, 27)
-
-    assert_true(psds.shape == (1, len(picks_wel), len(freqs)))
-    assert_true(np.sum(freqs < 0) == 0)
-    assert_true(np.sum(psds < 0) == 0)
-
-    # - Multitaper -
     picks_mt = picks_wel[:2]
-    kws_mt = dict(fmin=2, fmax=300, picks=picks_mt, low_bias=True)
-    psds, freqs = psd_multitaper(epochs[:1], proj=False, **kws_mt)
-    psds_full, freqs_full = psd_multitaper(epochs_full[:1], proj=False,
-                                           tmin=tmin, tmax=tmax, **kws_mt)
-    psds_proj, freqs_proj = psd_multitaper(epochs[:1], proj=True, **kws_mt)
 
-    # this one will fail if you add for example 0.1 to tmin
-    assert_array_almost_equal(psds, psds_full, 27)
-    assert_array_almost_equal(psds, psds_proj, 27)
+    kws_psd = dict(fmin=2, fmax=300)
+    kws_welch = dict(picks=picks_wel, n_fft=512)
+    kws_mt = dict(picks=picks_mt, low_bias=True)
+    funcs = {psd_welch: kws_welch, psd_multitaper: kws_mt}
 
-    assert_true(psds.shape == (1, len(picks_mt), len(freqs)))
-    assert_true(np.sum(freqs < 0) == 0)
-    assert_true(np.sum(psds < 0) == 0)
+    for func, kws in funcs.iteritems():
+        kws = kws.copy()
+        kws.update(kws_psd)
+
+        psds, freqs = func(
+            epochs[:1], tmin=tmin, tmax=tmax, proj=False, **kws)
+        psds_proj, freqs_proj = func(
+            epochs[:1], tmin=tmin, tmax=tmax, proj=True, **kws)
+        psds_f, freqs_f = func(
+            epochs_full[:1], tmin=tmin, tmax=tmax, proj=False, **kws)
+
+        psds_ev, freqs_ev = func(
+            evoked, tmin=tmin, tmax=tmax, proj=False, **kws)
+        psds_ev_proj, freqs_ev_proj = func(
+            evoked, tmin=tmin, tmax=tmax, proj=True, **kws)
+
+        # this one will fail if you add for example 0.1 to tmin
+        assert_array_almost_equal(psds, psds_f, 27)
+        assert_array_almost_equal(psds, psds_proj, 27)
+        assert_array_almost_equal(psds_ev, psds_ev_proj, 27)
+
+        assert_true(psds.shape == (1, len(kws['picks']), len(freqs)))
+        assert_true(psds_ev.shape == (len(kws['picks']), len(freqs)))
+        assert_true(np.sum(freqs < 0) == 0)
+        assert_true(np.sum(psds < 0) == 0)
 
 
 @requires_version('scipy', '0.12')

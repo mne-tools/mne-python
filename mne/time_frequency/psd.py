@@ -115,9 +115,10 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
     """Helper to do checks on PSD data / pull arrays from inst"""
     from ..epochs import _BaseEpochs
     from ..io.base import _BaseRaw
-    if not isinstance(inst, (_BaseEpochs, _BaseRaw)):
-        raise ValueError('epochs must be an instance of Epochs or Raw.'
-                         ' Got type {0}'.format(type(inst)))
+    from ..evoked import Evoked
+    if not isinstance(inst, (_BaseEpochs, _BaseRaw, Evoked)):
+        raise ValueError('epochs must be an instance of Epochs, Raw, or'
+                         'Evoked. Got type {0}'.format(type(inst)))
 
     if tmin is not None or tmax is not None:
         time_mask = _time_mask(inst.times, tmin, tmax)
@@ -131,10 +132,12 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
 
     sfreq = inst.info['sfreq']
     if isinstance(inst, _BaseRaw):
-        start, stop = inst.time_as_index([tmin, tmax])
+        start, stop = np.where(time_mask)[0][[0, -1]]
         data, times = inst[picks, start:(stop + 1)]
     elif isinstance(inst, _BaseEpochs):
         data = inst.get_data()[:, picks][..., time_mask]
+    elif isinstance(inst, Evoked):
+        data = inst.data[picks][..., time_mask]
 
     return data, sfreq
 
