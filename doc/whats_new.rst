@@ -20,7 +20,7 @@ BUG
 API
 ~~~
 
-    - The default `picks=None` now only plots the first 5 channels in :func:`mne.viz.plot_epochs_image`, not all channels, by `Jona Sassenhagen`_
+    - The default `picks=None` in :func:`mne.viz.plot_epochs_image` now only plots the first 5 channels, not all channels, by `Jona Sassenhagen`_
 
 
 .. _changes_0_11:
