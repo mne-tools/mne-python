@@ -228,16 +228,24 @@ def test_simulate_raw_chpi():
     hpi_freqs, _, hpi_pick, hpi_on, _ = _get_hpi_info(raw.info)
     assert_allclose(raw_sim[hpi_pick][0], 0.)
     assert_allclose(raw_chpi[hpi_pick][0], hpi_on)
+
     # test that the cHPI signals make some reasonable values
-    psd_sim, freqs_sim = psd_welch(raw_sim)
-    psd_chpi, freqs_chpi = psd_welch(raw_chpi)
-    assert_array_equal(freqs_sim, freqs_chpi)
-    freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f)) for f in hpi_freqs])
     picks_meg = pick_types(raw.info, meg=True, eeg=False)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
-    assert_allclose(psd_sim[picks_eeg], psd_chpi[picks_eeg], atol=1e-20)
-    assert_true((psd_chpi[picks_meg][:, freq_idx] >
-                 100 * psd_sim[picks_meg][:, freq_idx]).all())
+
+    for picks in [picks_meg, picks_eeg]:
+        psd_sim, freqs_sim = psd_welch(raw_sim, picks=picks)
+        psd_chpi, freqs_chpi = psd_welch(raw_chpi, picks=picks)
+
+        assert_array_equal(freqs_sim, freqs_chpi)
+        freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f))
+                           for f in hpi_freqs])
+        if picks is picks_meg:
+            assert_true((psd_chpi[:, freq_idx] >
+                         100 * psd_sim[:, freq_idx]).all())
+        else:
+            assert_allclose(psd_sim, psd_chpi, atol=1e-20)
+
     # test localization based on cHPI information
     trans_sim, rot_sim, t_sim = _calculate_chpi_positions(raw_chpi)
     trans, rot, t = get_chpi_positions(pos_fname)

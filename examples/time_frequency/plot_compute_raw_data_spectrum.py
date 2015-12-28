@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne import io, read_proj, read_selection
 from mne.datasets import sample
-from mne.time_frequency import psd_welch, psd_multitaper
+from mne.time_frequency import psd_multitaper
 
 print(__doc__)
 
@@ -73,7 +73,7 @@ plt.legend(['Without SSP', 'With SSP', 'SSP + Notch'])
 f, ax = plt.subplots()
 psds_mt, freqs_mt = psd_multitaper(raw, low_bias=True, tmin=tmin, tmax=tmax,
                                    fmin=fmin, fmax=fmax, picks=picks, n_jobs=1)
-ax.plot(freqs_mt, 10*np.log10(psds_mt).T)
+ax.plot(freqs_mt, 10 * np.log10(psds_mt).T)
 ax.set(title='Multitaper PSD', xlabel='Frequency',
        ylabel='Power Spectral Density (dB)')
 mne.viz.tight_layout()

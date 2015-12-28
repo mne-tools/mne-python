@@ -18,7 +18,7 @@ from mne.minimum_norm.time_frequency import (source_band_induced_power,
                                              compute_source_psd_epochs)
 
 
-from mne.time_frequency import multitaper_psd
+from mne.time_frequency.multitaper import _psd_multitaper
 
 data_path = testing.data_path(download=False)
 fname_inv = op.join(data_path, 'MEG', 'sample',
@@ -169,8 +169,8 @@ def test_source_psd_epochs():
                                prepared=True)[0]
 
     sfreq = epochs.info['sfreq']
-    psd, freqs = multitaper_psd(stc.data, sfreq=sfreq, bandwidth=bandwidth,
-                                fmin=fmin, fmax=fmax)
+    psd, freqs = _psd_multitaper(stc.data, sfreq=sfreq, bandwidth=bandwidth,
+                                 fmin=fmin, fmax=fmax)
 
     assert_array_almost_equal(psd, stc_psd.data)
     assert_array_almost_equal(freqs, stc_psd.times)

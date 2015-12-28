@@ -9,7 +9,7 @@ from scipy import fftpack, linalg
 import warnings
 
 from ..parallel import parallel_func
-from ..utils import verbose, sum_squared
+from ..utils import verbose, sum_squared, deprecated
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -452,6 +452,109 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
 
 @verbose
+def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
+                    adaptive=False, low_bias=True, normalization='length',
+                    n_jobs=1, verbose=None):
+    """Compute power spectrum density (PSD) using a multi-taper method
+
+    Parameters
+    ----------
+    x : array, shape=([n_epochs], n_signals, n_times) or (n_times,)
+        The data to compute PSD from.
+    sfreq : float
+        The sampling frequency.
+    fmin : float
+        The lower frequency of interest.
+    fmax : float
+        The upper frequency of interest.
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz.
+    adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth.
+    n_jobs : int
+        Number of parallel jobs to use (only used if adaptive=True).
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    psd : array, shape=(n_signals, len(freqs)) or (len(freqs),)
+        The computed PSD.
+    freqs : array
+        The frequency points in Hz of the PSD.
+
+    See Also
+    --------
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    if normalization not in ('length', 'full'):
+        raise ValueError('Normalization must be "length" or "full", not %s'
+                         % normalization)
+
+    # Reshape data so its 2-D for parallelization
+    ndim_in = x.ndim
+    x = np.atleast_2d(x)
+    n_times = x.shape[-1]
+    dshape = x.shape[:-1]
+    x = x.reshape(-1, n_times)
+
+    # compute standardized half-bandwidth
+    if bandwidth is not None:
+        half_nbw = float(bandwidth) * n_times / (2 * sfreq)
+    else:
+        half_nbw = 4
+
+    # Create tapers and compute spectra
+    n_tapers_max = int(2 * half_nbw)
+    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
+                                 low_bias=low_bias)
+    x_mt, freqs = _mt_spectra(x, dpss, sfreq)
+
+    # descide which frequencies to keep
+    freq_mask = (freqs >= fmin) & (freqs <= fmax)
+
+    # combine the tapered spectra
+    if adaptive and len(eigvals) < 3:
+        warn('Not adaptively combining the spectral estimators '
+             'due to a low number of tapers.')
+        adaptive = False
+
+    if not adaptive:
+        x_mt = x_mt[:, :, freq_mask]
+        weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
+        psd = _psd_from_mt(x_mt, weights)
+    else:
+        parallel, my_psd_from_mt_adaptive, n_jobs = \
+            parallel_func(_psd_from_mt_adaptive, n_jobs)
+        out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
+                       for x in np.array_split(x_mt, n_jobs))
+        psd = np.concatenate(out)
+
+    freqs = freqs[freq_mask]
+    if normalization == 'full':
+        psd /= sfreq
+
+    # Combining/reshaping to original data shape
+    psd = psd.reshape(np.hstack([dshape, -1]))
+    if ndim_in == 1:
+        psd = psd.squeeze()
+    return psd, freqs
+
+
+@deprecated('This will be deprecated in release v0.13, see psd_multitaper.')
+@verbose
 def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
                    adaptive=False, low_bias=True, n_jobs=1,
                    normalization='length', verbose=None):
@@ -499,56 +602,8 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
     -----
     .. versionadded:: 0.9.0
     """
-    if normalization not in ('length', 'full'):
-        raise ValueError('Normalization must be "length" or "full", not %s'
-                         % normalization)
-    if x.ndim > 2:
-        raise ValueError('x can only be 1d or 2d')
-
-    x_in = np.atleast_2d(x)
-
-    n_times = x_in.shape[1]
-
-    # compute standardized half-bandwidth
-    if bandwidth is not None:
-        half_nbw = float(bandwidth) * n_times / (2 * sfreq)
-    else:
-        half_nbw = 4
-
-    n_tapers_max = int(2 * half_nbw)
-
-    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                 low_bias=low_bias)
-
-    # compute the tapered spectra
-    x_mt, freqs = _mt_spectra(x_in, dpss, sfreq)
-
-    # descide which frequencies to keep
-    freq_mask = (freqs >= fmin) & (freqs <= fmax)
-
-    # combine the tapered spectra
-    if adaptive and len(eigvals) < 3:
-        warn('Not adaptively combining the spectral estimators '
-             'due to a low number of tapers.')
-        adaptive = False
-
-    if not adaptive:
-        x_mt = x_mt[:, :, freq_mask]
-        weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
-        psd = _psd_from_mt(x_mt, weights)
-    else:
-        parallel, my_psd_from_mt_adaptive, n_jobs = \
-            parallel_func(_psd_from_mt_adaptive, n_jobs)
-        out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
-                       for x in np.array_split(x_mt, n_jobs))
-        psd = np.concatenate(out)
-
-    if x.ndim == 1:
-        # return a 1d array if input was 1d
-        psd = psd[0, :]
-
-    freqs = freqs[freq_mask]
-    if normalization == 'full':
-        psd /= sfreq
-
-    return psd, freqs
+    return _psd_multitaper(x=x, sfreq=sfreq, fmin=fmin, fmax=fmax,
+                           bandwidth=bandwidth, adaptive=adaptive,
+                           low_bias=low_bias,
+                           normalization=normalization, n_jobs=n_jobs,
+                           verbose=verbose)

@@ -1,7 +1,7 @@
 import numpy as np
 import warnings
 import os.path as op
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_raises
 from nose.tools import assert_true
 
 from mne import io, pick_types, Epochs, read_events
@@ -32,8 +32,8 @@ def test_psd():
 
     # -- Raw --
     picks_psd = picks[:2]
-    kws_psd = dict(tmin=tmin, tmax=tmax, fmin=fmin,
-                   fmax=fmax, picks=picks_psd)  # Common to all
+    kws_psd = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
+                   picks=picks_psd)  # Common to all
     kws_welch = dict(n_fft=n_fft)
     kws_mt = dict(low_bias=True)
     funcs = {psd_welch: kws_welch,
@@ -45,6 +45,7 @@ def test_psd():
         for func, kws in funcs.iteritems():
             kws = kws.copy()
             kws.update(kws_psd)
+            kws.update(tmin=tmin, tmax=tmax)
             psds, freqs = func(raw, proj=False, **kws)
             psds_proj, freqs_proj = func(raw, proj=True, **kws)
 
@@ -52,6 +53,9 @@ def test_psd():
             assert_true(psds.shape == (len(kws['picks']), len(freqs)))
             assert_true(np.sum(freqs < 0) == 0)
             assert_true(np.sum(psds < 0) == 0)
+
+            # Array input shouldn't work
+            assert_raises(ValueError, func, raw[:3, :20][0])
         assert_true(len(w), 3)
 
     # -- Epochs/Evoked --
@@ -69,9 +73,8 @@ def test_psd():
                          reject=dict(grad=4000e-13, eog=150e-6), proj=False,
                          preload=True)
 
-    kws_psd = dict(fmin=fmin, fmax=fmax, picks=picks_psd)  # Common to all
-    kws_welch = dict(n_fft=n_fft)
-    kws_mt = dict(low_bias=True)
+    kws_psd = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
+                   picks=picks_psd)  # Common to all
     funcs = {psd_welch: kws_welch,
              psd_multitaper: kws_mt,
              compute_epochs_psd: kws_welch}
@@ -83,24 +86,29 @@ def test_psd():
             kws.update(kws_psd)
 
             psds, freqs = func(
-                epochs[:1], tmin=tmin, tmax=tmax, proj=False, **kws)
+                epochs[:1], proj=False, **kws)
             psds_proj, freqs_proj = func(
-                epochs[:1], tmin=tmin, tmax=tmax, proj=True, **kws)
+                epochs[:1], proj=True, **kws)
             psds_f, freqs_f = func(
-                epochs_full[:1], tmin=tmin, tmax=tmax, proj=False, **kws)
+                epochs_full[:1], proj=False, **kws)
 
             # this one will fail if you add for example 0.1 to tmin
             assert_array_almost_equal(psds, psds_f, 27)
             assert_array_almost_equal(psds, psds_proj, 27)
+
             assert_true(psds.shape == (1, len(kws['picks']), len(freqs)))
             assert_true(np.sum(freqs < 0) == 0)
             assert_true(np.sum(psds < 0) == 0)
 
+            # Array input shouldn't work
+            assert_raises(ValueError, func, epochs.get_data())
+
             if func is not compute_epochs_psd:
+                # Testing evoked (doesn't work w/ compute_epochs_psd)
                 psds_ev, freqs_ev = func(
-                    evoked, tmin=tmin, tmax=tmax, proj=False, **kws)
+                    evoked, proj=False, **kws)
                 psds_ev_proj, freqs_ev_proj = func(
-                    evoked, tmin=tmin, tmax=tmax, proj=True, **kws)
+                    evoked, proj=True, **kws)
                 assert_array_almost_equal(psds_ev, psds_ev_proj, 27)
                 assert_true(psds_ev.shape == (len(kws['picks']), len(freqs)))
         assert_true(len(w), 3)
