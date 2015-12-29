@@ -248,12 +248,6 @@ class EpochsVectorizer(TransformerMixin):
 class PSDEstimator(TransformerMixin):
     """Compute power spectrum density (PSD) using a multi-taper method
 
-    This structures data so that it can be easily incorporated into
-    scikit-learn pipelines. It relies heavily on the _psd_multitaper
-    function found in the time_frequency module. Running the transform
-    method will create attributes for the estimated psd as well as the
-    frequencies used, on top of return these values.
-
     Parameters
     ----------
     sfreq : float

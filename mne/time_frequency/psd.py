@@ -184,7 +184,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
     Parameters
     ----------
-    inst : instance of Epochs or Raw
+    inst : instance of Epochs or Raw or Evoked
         The data for PSD calculation
     fmin : float
         Min frequency of interest
@@ -224,7 +224,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
     See Also
     --------
-    Raw.plot_psd, Epochs.plot_psd, psd_multitaper
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_multitaper
     """
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
@@ -241,14 +241,13 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     """Compute the power spectral density (PSD) using multitapers.
 
     Calculates spectral density for orthogonal tapers, then averages them
-    together for each channel/epoch.
+    together for each channel/epoch. See [1] for a description of the tapers
+    and [2] for the general method.
 
     Parameters
     ----------
-    inst : instance of Epochs or Raw |
-           array of shape ([n_epochs], n_channels, n_times)
-        The data. If not an instance of Epochs or Raw,
-        sfreq must also be supplied.
+    inst : instance of Epochs or Raw or Evoked
+        The data for PSD calculation.
     fmin : float
         Min frequency of interest
     fmax : float
@@ -287,9 +286,19 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     freqs : ndarray, shape (n_freqs)
         The frequencies.
 
+    References
+    ----------
+    .. [1] Slepian, D. "Prolate spheroidal wave functions, Fourier analysis,
+           and uncertainty V: The discrete case." Bell System Technical
+           Journal, vol. 57, 1978.
+
+    .. [2] Percival D.B. and Walden A.T. "Spectral Analysis for Physical
+           Applications: Multitaper and Conventional Univariate Techniques."
+           Cambridge University Press, 1993.
+
     See Also
     --------
-    Raw.plot_psd, Epochs.plot_psd, psd_welch
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_welch
     """
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
