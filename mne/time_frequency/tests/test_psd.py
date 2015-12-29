@@ -36,13 +36,13 @@ def test_psd():
                    picks=picks_psd)  # Common to all
     kws_welch = dict(n_fft=n_fft)
     kws_mt = dict(low_bias=True)
-    funcs = {psd_welch: kws_welch,
-             psd_multitaper: kws_mt,
-             compute_raw_psd: kws_welch}
+    funcs = [(psd_welch, kws_welch),
+             (psd_multitaper, kws_mt),
+             (compute_raw_psd, kws_welch)]
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        for func, kws in funcs.iteritems():
+        for func, kws in funcs:
             kws = kws.copy()
             kws.update(kws_psd)
             kws.update(tmin=tmin, tmax=tmax)
@@ -75,13 +75,13 @@ def test_psd():
 
     kws_psd = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                    picks=picks_psd)  # Common to all
-    funcs = {psd_welch: kws_welch,
-             psd_multitaper: kws_mt,
-             compute_epochs_psd: kws_welch}
+    funcs = [(psd_welch, kws_welch),
+             (psd_multitaper, kws_mt),
+             (compute_epochs_psd, kws_welch)]
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        for func, kws in funcs.iteritems():
+        for func, kws in funcs:
             kws = kws.copy()
             kws.update(kws_psd)
 

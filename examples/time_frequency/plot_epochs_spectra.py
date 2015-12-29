@@ -26,8 +26,6 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 
-plt.ion()
-
 # Setup for reading the raw data
 raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
