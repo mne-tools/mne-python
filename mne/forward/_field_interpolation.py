@@ -261,6 +261,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         raise ValueError('mode must be "accurate" or "fast", not "%s"' % mode)
 
     # deal with coordinate frames here -- always go to "head" (easiest)
+    orig_surf = surf
     surf = transform_surface_to(deepcopy(surf), 'head', trans)
     n_jobs = check_n_jobs(n_jobs)
     origin = _check_origin(origin, info)
@@ -316,6 +317,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     logger.info('Field mapping data ready')
 
     fmd['data'] = _compute_mapping_matrix(fmd, info)
+    # bring the original back, whatever coord frame it was in
+    fmd['surf'] = orig_surf
 
     # Remove some unecessary fields
     del fmd['self_dots']
@@ -418,7 +421,6 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     for this_type, this_surf in zip(types, surfs):
         this_map = _make_surface_mapping(evoked.info, this_surf, this_type,
                                          trans, n_jobs=n_jobs, origin=origin)
-        this_map['surf'] = this_surf  # XXX : a bit weird...
         surf_maps.append(this_map)
 
     return surf_maps

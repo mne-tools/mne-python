@@ -233,8 +233,10 @@ def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
     """
     if w1 is None:  # operating on surface, treat independently
         out_shape = (len(rr2s), len(rr1_orig))
+        sum_axis = 1  # operate along second axis only at the end
     else:
         out_shape = (len(rr2s),)
+        sum_axis = None  # operate on flattened array at the end
     out = np.empty(out_shape)
     rr2 = np.concatenate(rr2s)
     lr2 = np.concatenate(lr2s)
@@ -291,7 +293,7 @@ def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
     if w1 is not None:
         result *= w1[:, np.newaxis]
     for ii, w2 in enumerate(w2s):
-        out[ii] = np.sum(result[:, offset:offset + len(w2)])
+        out[ii] = np.sum(result[:, offset:offset + len(w2)], axis=sum_axis)
         offset += len(w2)
     return out
 
