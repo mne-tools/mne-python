@@ -65,6 +65,8 @@ Changelog
 
     - Add reader for EEGLAB data in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Mainak Jas`_
 
+    - Refactor PSD code and add functions :func:`mne.time_frequency.psd_multitaper` and :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
+
 BUG
 ~~~
 
