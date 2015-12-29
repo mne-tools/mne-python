@@ -176,7 +176,7 @@ def test_calculate_chpi_positions():
     with catch_logging() as log_file:
         calculate_chpi_positions(raw_bad, verbose=True)
     # ignore HPI info header and [done] footer
-    for line in log_file.getvalue().strip().split('\n')[3:-1]:
+    for line in log_file.getvalue().strip().split('\n')[4:-1]:
         assert_true('0/5 good' in line)
 
 run_tests_if_main()

@@ -17,6 +17,9 @@ from .utils import verbose, logger, check_version, use_log_level
 from .fixes import partial
 from .externals.six import string_types
 
+# XXX hpicons?
+# XXX use distances from digitization, not initial fit?
+
 
 # ############################################################################
 # Reading from text or FIF file
@@ -299,6 +302,10 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
     if not (check_version('numpy', '1.7') and check_version('scipy', '0.11')):
         raise RuntimeError('numpy>=1.7 and scipy>=0.11 required')
     hpi_freqs, coil_head_rrs, hpi_pick, hpi_on = _get_hpi_info(info)[:4]
+    line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,
+                           info['line_freq'])
+    logger.info('Line interference frequencies: %s Hz'
+                % ' '.join(['%d' % l for l in line_freqs]))
     # initial transforms
     dev_head_t = info['dev_head_t']['trans']
     head_dev_t = invert_transform(info['dev_head_t'])['trans']
@@ -312,10 +319,14 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
     # Set up amplitude fits
     slope = np.arange(n_window).astype(np.float64)[:, np.newaxis]
     f_t = 2 * np.pi * hpi_freqs[np.newaxis, :] * (slope / info['sfreq'])
-    model = np.concatenate([np.sin(f_t), np.cos(f_t),
-                            slope, np.ones((n_window, 1))], axis=1)
+    l_t = 2 * np.pi * line_freqs[np.newaxis, :] * (slope / info['sfreq'])
+    model = np.concatenate([np.sin(f_t), np.cos(f_t),  # hpi freqs
+                            np.sin(l_t), np.cos(l_t),  # line freqs
+                            slope,  # linear slope
+                            np.ones((n_window, 1))  # constant
+                            ], axis=1)
     inv_model = linalg.pinv(model)
-    del slope, f_t
+    del slope, f_t, l_t
 
     # Set up magnetic dipole fits
     picks_good = pick_types(info, meg=True, eeg=False)
@@ -435,8 +446,8 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         #    in device coordinates
         #
         logger.debug('    HPI amplitude correlation %0.3f: %0.3f '
-                     '(%s chnls > 0.950)' % (fit_time, g_sin,
-                                             (g_chan > 0.95).sum()))
+                     '(%s chnls > 0.950)' % (fit_time, np.sqrt(g_sin),
+                                             (np.sqrt(g_chan) > 0.95).sum()))
         outs = [_fit_magnetic_dipole(f, pos, hpi['coils'], hpi['scale'],
                                      hpi['method'])
                 for f, pos in zip(sin_fit, last['coil_dev_rrs'])]
