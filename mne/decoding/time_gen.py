@@ -170,7 +170,7 @@ class _GeneralizationAcrossTime(object):
         return self
 
     def predict(self, epochs):
-        """ Test each classifier on each specified testing time slice.
+        """ Classifiers' predictions on each specified testing time slice.
 
         .. note:: This function sets the ``y_pred_`` and ``test_times_``
                   attributes.
@@ -189,6 +189,64 @@ class _GeneralizationAcrossTime(object):
             not be regular; else
             ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs)``.
         """  # noqa
+        return self._predict(epochs, predict_function='predict')
+
+    def predict_proba(self, epochs):
+        """ Classifiers' probabilistic predictions on each specified testing
+        time slice. Necessitate clf to have `predict_proba`.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs. Can be similar to fitted epochs or not. See
+            predict_mode parameter.
+
+        Returns
+        -------
+        y_pred : list of lists of arrays of floats, shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
+            The single-trial probabilistic predictions at each training time and each
+            testing time. Note that the number of testing times per training time need
+            not be regular; else
+            ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs, n_class)``.
+
+        """  # noqa
+        return self._predict(epochs, predict_function='predict_proba')
+
+    def decision_function(self, epochs):
+        """ Classifiers' predictions distance to hyperplane on each specified
+         testing time slice. Necessitate clf to have `decision_function`.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs. Can be similar to fitted epochs or not. See
+            predict_mode parameter.
+
+        Returns
+        -------
+        y_pred : list of lists of arrays of floats, shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
+            The single-trial prediction distances at each training time and each
+            testing time. Note that the number of testing times per training time need
+            not be regular; else
+            ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs)``.
+        """  # noqa
+        return self._predict(epochs, predict_function='decision_function')
+
+    def _predict(self, epochs, predict_function):
+        """ Auxiliary function to make prediction for each clf at each testing
+        time. See predict
+        epochs : instance of Epochs
+                    The epochs. Can be similar to fitted epochs or not. See
+                    predict_mode parameter.
+        predict_function : {'predict', 'predict_proba', 'decision_function'}
+            Specifies prediction function. See scikit-learn.
+        """
+
+        # Check that classifier has predict_function (e.g. predict_proba is not
+        # always available):
+        if not hasattr(self.clf, predict_function):
+            raise NotImplementedError('%s does not have `%s`' % (
+                self.clf, predict_function))
 
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
@@ -255,7 +313,7 @@ class _GeneralizationAcrossTime(object):
             slices_ = np.array(slices) - start
             X_ = X[:, :, start:stop]
             return (X_, self.estimators_, self.cv_, slices_.tolist(),
-                    self.predict_mode)
+                    self.predict_mode, predict_function)
 
         y_pred = parallel(p_time_gen(*chunk_X(X, slices))
                           for slices in splits)
@@ -354,21 +412,22 @@ class _GeneralizationAcrossTime(object):
         return self.scores_
 
 
-def _predict_slices(X, estimators, cv, slices, predict_mode):
+def _predict_slices(X, estimators, cv, slices, predict_mode, predict_function):
     """Aux function of GeneralizationAcrossTime that loops across chunks of
     testing slices.
     """
     out = list()
     for this_estimator, this_slice in zip(estimators, slices):
         out.append(_predict_time_loop(X, this_estimator, cv, this_slice,
-                                      predict_mode))
+                                      predict_mode, predict_function))
     return out
 
 
 _warn_once = dict()
 
 
-def _predict_time_loop(X, estimators, cv, slices, predict_mode):
+def _predict_time_loop(X, estimators, cv, slices, predict_mode,
+                       predict_function):
     """Aux function of GeneralizationAcrossTime
 
     Run classifiers predictions loop across time samples.
@@ -392,6 +451,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
                 each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
         Default: 'cross-validation'
+    predict_function : {'predict', 'predict_proba', 'decision_function'}
+        Specifies prediction function. See scikit-learn.
     """
 
     # Check inputs
@@ -445,7 +506,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
         if predict_mode == 'mean-prediction':
             # Predict with each fold's estimator and average predictions.
             y_pred.append(_predict(X_pred, estimators,
-                          is_single_time_sample=is_single_time_sample))
+                          is_single_time_sample=is_single_time_sample,
+                          predict_function=predict_function))
         elif predict_mode == 'cross-validation':
             # Predict with the estimator trained on the separate training set.
             for k, (train, test) in enumerate(cv):
@@ -454,7 +516,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
                 # If is_single_time_sample, we are predicting each time sample
                 # as if it was a different epoch (vectoring)
                 y_pred_ = _predict(X_pred_t, estimators[k:k + 1],
-                                   is_single_time_sample=is_single_time_sample)
+                                   is_single_time_sample=is_single_time_sample,
+                                   predict_function=predict_function)
                 # XXX I didn't manage to initialize correctly this array, as
                 # its size depends on the the type of predictor and the
                 # number of class.
@@ -665,7 +728,7 @@ def _sliding_window(times, window_params, sfreq):
     return window_params
 
 
-def _predict(X, estimators, is_single_time_sample):
+def _predict(X, estimators, is_single_time_sample, predict_function):
     """Aux function of GeneralizationAcrossTime
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -702,7 +765,12 @@ def _predict(X, estimators, is_single_time_sample):
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
     for fold, clf in enumerate(estimators):
-        _y_pred = clf.predict(X)
+        if predict_function == 'predict':
+            _y_pred = clf.predict(X)
+        elif predict_function == 'predict_proba':
+            _y_pred = clf.predict_proba(X)
+        elif predict_function == 'decision_function':
+            _y_pred = clf.decision_function(X)
         # See inconsistency in dimensionality: scikit-learn/scikit-learn#5058
         if _y_pred.ndim == 1:
             _y_pred = _y_pred[:, None]

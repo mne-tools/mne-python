@@ -70,7 +70,15 @@ def test_generalization_across_time():
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), no "
                  "prediction, no score>", '%s' % gat)
     assert_equal(gat.ch_names, epochs.ch_names)
+    # test different predict function:
+    gat.decision_function(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
+    gat.predict_proba(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 2))
+    assert_raises(NotImplementedError, gat._predict, epochs,
+                  predict_function='foo')
     gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
                  "predicted 14 epochs, no score>",
                  "%s" % gat)
