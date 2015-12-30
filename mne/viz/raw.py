@@ -482,7 +482,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
                                 fmin=fmin, fmax=fmax, proj=proj,
                                 n_fft=n_fft, n_overlap=n_overlap,
-                                n_jobs=n_jobs, verbose=verbose)
+                                n_jobs=n_jobs)
 
         # Convert PSDs to dB
         if dB:
@@ -738,8 +738,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
 
     psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
                             fmax=fmax, proj=proj, n_fft=n_fft,
-                            n_overlap=n_overlap, n_jobs=n_jobs,
-                            verbose=verbose)
+                            n_overlap=n_overlap, n_jobs=n_jobs)
     if dB:
         psds = 10 * np.log10(psds)
         y_label = 'dB'

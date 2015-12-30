@@ -10,7 +10,7 @@ from ..utils import logger, verbose, deprecated, _time_mask
 from .multitaper import _psd_multitaper
 
 
-@deprecated('This will be deprecated in release v0.13, see psd_ functions.')
+@deprecated('This will be deprecated in release v0.12, see psd_welch.')
 @verbose
 def compute_raw_psd(raw, tmin=0., tmax=None, picks=None, fmin=0,
                     fmax=np.inf, n_fft=2048, n_overlap=0,
@@ -66,7 +66,7 @@ def compute_raw_psd(raw, tmin=0., tmax=None, picks=None, fmin=0,
     picks = slice(None) if picks is None else picks
 
     if proj:
-        raw = raw.apply_proj()
+        raw = raw.copy().apply_proj()
     data, times = raw[picks, start:(stop + 1)]
     n_fft, n_overlap = _check_nfft(len(times), n_fft, n_overlap)
 
@@ -128,7 +128,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
         picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
     if proj:
-        inst = inst.apply_proj()
+        inst = inst.copy().apply_proj()
 
     sfreq = inst.info['sfreq']
     if isinstance(inst, _BaseRaw):
@@ -142,9 +142,8 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
     return data, sfreq
 
 
-@verbose
 def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-               n_jobs=1, verbose=None):
+               n_jobs=1):
     """Helper function for calculating Welch PSD."""
     from scipy.signal import welch
     dshape = x.shape[:-1]
@@ -160,8 +159,7 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     freqs = freqs[freq_mask]
 
     # Parallelize across first N-1 dimensions
-    parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
-                                                verbose=verbose)
+    parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs)
     x_splits = np.array_split(x, n_jobs)
     f_psd = parallel(my_pwelch(d, noverlap=n_overlap, nfft=n_fft,
                      fs=sfreq, freq_mask=freq_mask,
@@ -219,7 +217,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     psds : ndarray, shape ([n_epochs], n_channels, n_freqs)
         The power spectral densities. If Raw is provided,
         then psds will be 2-D.
-    freqs : ndarray (n_freqs)
+    freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
     See Also
@@ -229,8 +227,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
     return _psd_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
-                      n_overlap=n_overlap, n_jobs=n_jobs,
-                      verbose=verbose)
+                      n_overlap=n_overlap, n_jobs=n_jobs)
 
 
 @verbose
@@ -283,7 +280,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     psds : ndarray, shape ([n_epochs], n_channels, n_freqs)
         The power spectral densities. If Raw is provided,
         then psds will be 2-D.
-    freqs : ndarray, shape (n_freqs)
+    freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
     References
@@ -305,11 +302,10 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     return _psd_multitaper(data, sfreq, fmin=fmin, fmax=fmax,
                            bandwidth=bandwidth, adaptive=adaptive,
                            low_bias=low_bias,
-                           normalization=normalization,  n_jobs=n_jobs,
-                           verbose=verbose)
+                           normalization=normalization,  n_jobs=n_jobs)
 
 
-@deprecated('This will be deprecated in release v0.13, see psd_ functions.')
+@deprecated('This will be deprecated in release v0.12, see psd_welch.')
 @verbose
 def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
                        tmax=None, n_fft=256, n_overlap=0, proj=False,
@@ -350,7 +346,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
     -------
     psds : ndarray (n_epochs, n_channels, n_freqs)
         The power spectral densities.
-    freqs : ndarray, shape (n_freqs)
+    freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
     See Also
@@ -372,10 +368,9 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
         time_mask = _time_mask(epochs.times, tmin, tmax)
     else:
         time_mask = slice(None)
-
-    data = epochs.get_data()[:, picks][..., time_mask]
     if proj:
-        epochs = epochs.apply_proj()
+        epochs = epochs.copy().apply_proj()
+    data = epochs.get_data()[:, picks][..., time_mask]
 
     logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
 

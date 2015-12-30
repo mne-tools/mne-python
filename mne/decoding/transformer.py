@@ -331,11 +331,11 @@ class PSDEstimator(TransformerMixin):
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
-        psd, freqs = _psd_multitaper(
+        psd, _ = _psd_multitaper(
             epochs_data, sfreq=self.sfreq, fmin=self.fmin, fmax=self.fmax,
             bandwidth=self.bandwidth, adaptive=self.adaptive,
             low_bias=self.low_bias, normalization=self.normalization,
-            n_jobs=self.n_jobs, verbose=self.verbose)
+            n_jobs=self.n_jobs)
         return psd
 
 

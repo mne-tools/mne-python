@@ -16,7 +16,7 @@ import mne
 from mne import io
 from mne.datasets import sample
 import matplotlib.pyplot as plt
-from mne.time_frequency import psd_multitaper
+from mne.time_frequency import psd_welch
 
 print(__doc__)
 
@@ -49,16 +49,16 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=True)
 
 # Alternatively, you may also create PSDs from Epochs objects with psd_XXX
 f, ax = plt.subplots()
-psds, freqs = psd_multitaper(epochs[:5], low_bias=True, tmin=tmin, tmax=tmax,
-                             picks=picks, n_jobs=1)
+psds, freqs = psd_welch(epochs, tmin=tmin, tmax=tmax,
+                        fmin=2, fmax=200, picks=picks, n_jobs=1)
 psds = 10 * np.log10(psds)
 psds_mean = psds.mean(0).mean(0)
-psds_std = psds.std(0).std(0)
+psds_std = psds.mean(0).std(0)
 
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                 color='k', alpha=.5)
-ax.set(title='Multitaper PSD', xlabel='Frequency',
+ax.set(title='Welch PSD', xlabel='Frequency',
        ylabel='Power Spectral Density (dB)')
 mne.viz.tight_layout()
 plt.show()

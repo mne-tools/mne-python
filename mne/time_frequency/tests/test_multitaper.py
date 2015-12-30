@@ -3,8 +3,11 @@ from nose.tools import assert_raises
 from numpy.testing import assert_array_almost_equal
 from distutils.version import LooseVersion
 
-from mne.time_frequency.multitaper import dpss_windows, _psd_multitaper
+from mne.time_frequency import psd_multitaper
+from mne.time_frequency.multitaper import dpss_windows
 from mne.utils import requires_nitime
+from mne.io import RawArray
+from mne import create_info
 
 
 @requires_nitime
@@ -37,16 +40,19 @@ def test_multitaper_psd():
 
     import nitime as ni
     n_times = 1000
-    x = np.random.randn(5, n_times)
+    n_chan = 5
+    x = np.random.randn(n_chan, n_times)
     sfreq = 500
-    assert_raises(ValueError, _psd_multitaper, x, sfreq, normalization='foo')
+    info = create_info([str(i) for i in range(n_chan)], sfreq, 'eeg')
+    raw = RawArray(x, info)
+    assert_raises(ValueError, psd_multitaper, raw, sfreq, normalization='foo')
     ni_5 = (LooseVersion(ni.__version__) >= LooseVersion('0.5'))
     norm = 'full' if ni_5 else 'length'
 
     for adaptive, n_jobs in zip((False, True, True), (1, 1, 2)):
-        psd, freqs = _psd_multitaper(x, sfreq, adaptive=adaptive,
-                                     n_jobs=n_jobs,
-                                     normalization=norm)
+        psd, freqs = psd_multitaper(raw, adaptive=adaptive,
+                                    n_jobs=n_jobs,
+                                    normalization=norm)
         freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(
             x, sfreq, adaptive=adaptive, jackknife=False)
 

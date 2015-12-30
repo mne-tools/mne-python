@@ -451,10 +451,9 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     return x_mt, freqs
 
 
-@verbose
 def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
                     adaptive=False, low_bias=True, normalization='length',
-                    n_jobs=1, verbose=None):
+                    n_jobs=1):
     """Compute power spectrum density (PSD) using a multi-taper method
 
     Parameters
@@ -481,8 +480,6 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -553,7 +550,7 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     return psd, freqs
 
 
-@deprecated('This will be deprecated in release v0.13, see psd_multitaper.')
+@deprecated('This will be deprecated in release v0.12, see psd_multitaper.')
 @verbose
 def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
                    adaptive=False, low_bias=True, n_jobs=1,

@@ -65,8 +65,6 @@ Changelog
 
     - Add reader for EEGLAB data in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Mainak Jas`_
 
-    - Refactor PSD code and add functions :func:`mne.time_frequency.psd_multitaper` and :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
-
 BUG
 ~~~
 
@@ -92,6 +90,10 @@ API
     - :func:`mne.read_epochs` now has ``add_eeg_ref=False`` by default, since average EEG reference can be added before writing or after reading using the method :func:`mne.Epochs.add_eeg_ref`.
 
     - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_average_proj` to properly add one.
+
+    - Deprecated functions :func:`mne.time_frequency.compute_raw_psd` and :func:`mne.time_frequency_compute_epochs_psd`, replaced by :func:`mne.time_frequency.psd_multitaper` and :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
+
+    - Deprecated function :func:`mne.time_frequency.multitaper_psd` and replaced by :func:`mne.time_frequency._psd_multitaper` by `Chris Holdgraf`_
 
 Authors
 ~~~~~~~
