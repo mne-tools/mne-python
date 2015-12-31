@@ -58,7 +58,7 @@ psds_std = psds.mean(0).std(0)
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                 color='k', alpha=.5)
-ax.set(title='Welch PSD', xlabel='Frequency',
+ax.set(title='Welch PSD (gradiometers)', xlabel='Frequency',
        ylabel='Power Spectral Density (dB)')
 mne.viz.tight_layout()
 plt.show()

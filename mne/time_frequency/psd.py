@@ -66,6 +66,7 @@ def compute_raw_psd(raw, tmin=0., tmax=None, picks=None, fmin=0,
     picks = slice(None) if picks is None else picks
 
     if proj:
+        # Copy first so it's not modified
         raw = raw.copy().apply_proj()
     data, times = raw[picks, start:(stop + 1)]
     n_fft, n_overlap = _check_nfft(len(times), n_fft, n_overlap)
@@ -128,6 +129,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
         picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
     if proj:
+        # Copy first so it's not modified
         inst = inst.copy().apply_proj()
 
     sfreq = inst.info['sfreq']
@@ -223,6 +225,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     See Also
     --------
     mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_multitaper
+
+    .. versionadded:: 0.12.0
     """
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
@@ -296,6 +300,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     See Also
     --------
     mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_welch
+
+    .. versionadded:: 0.12.0
     """
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
@@ -369,6 +375,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
     else:
         time_mask = slice(None)
     if proj:
+        # Copy first so it's not modified
         epochs = epochs.copy().apply_proj()
     data = epochs.get_data()[:, picks][..., time_mask]
 

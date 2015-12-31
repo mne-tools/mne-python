@@ -82,6 +82,8 @@ BUG
 
     - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_ref` to properly add one.
 
+    - :func:`compute_raw_psd` and :func:`compute_epochs_psd` no longer subset the SSP matrix with picks before applying SSP projectors by `Chris Holdgraf`_.
+
 API
 ~~~
 
@@ -91,9 +93,9 @@ API
 
     - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_average_proj` to properly add one.
 
-    - Deprecated functions :func:`mne.time_frequency.compute_raw_psd` and :func:`mne.time_frequency_compute_epochs_psd`, replaced by :func:`mne.time_frequency.psd_multitaper` and :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
+    - Deprecated functions :func:`mne.time_frequency.compute_raw_psd` and :func:`mne.time_frequency_compute_epochs_psd`, replaced by :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
 
-    - Deprecated function :func:`mne.time_frequency.multitaper_psd` and replaced by :func:`mne.time_frequency._psd_multitaper` by `Chris Holdgraf`_
+    - Deprecated function :func:`mne.time_frequency.multitaper_psd` and replaced :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
 Authors
 ~~~~~~~

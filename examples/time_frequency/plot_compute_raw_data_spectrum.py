@@ -65,7 +65,9 @@ raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
              n_jobs=1, proj=True, ax=ax, color=(0, 1, 0), picks=picks)
 
 # And now do the same with SSP + notch filtering
-raw.notch_filter(np.arange(60, 241, 60), picks=picks, n_jobs=1)
+# Pick all channels for notch since the SSP projection mixes channels together
+picks_notch = mne.pick_types(raw.info, meg=True, eeg=True)
+raw.notch_filter(np.arange(60, 241, 60), picks=picks_notch, n_jobs=1)
 raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
              n_jobs=1, proj=True, ax=ax, color=(1, 0, 0), picks=picks)
 
@@ -75,7 +77,8 @@ plt.legend(['Without SSP', 'With SSP', 'SSP + Notch'])
 # Alternatively, you may also create PSDs from Raw objects with psd_XXX
 f, ax = plt.subplots()
 psds, freqs = psd_multitaper(raw, low_bias=True, tmin=tmin, tmax=tmax,
-                             fmin=fmin, fmax=fmax, picks=picks, n_jobs=1)
+                             fmin=fmin, fmax=fmax, proj=True, picks=picks,
+                             n_jobs=1)
 psds = 10 * np.log10(psds)
 psds_mean = psds.mean(0)
 psds_std = psds.std(0)

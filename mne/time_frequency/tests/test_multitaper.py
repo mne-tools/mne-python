@@ -40,11 +40,11 @@ def test_multitaper_psd():
 
     import nitime as ni
     n_times = 1000
-    n_chan = 5
-    x = np.random.randn(n_chan, n_times)
+    n_channels = 5
+    data = np.random.randn(n_channels, n_times)
     sfreq = 500
-    info = create_info([str(i) for i in range(n_chan)], sfreq, 'eeg')
-    raw = RawArray(x, info)
+    info = create_info([str(i) for i in range(n_channels)], sfreq, 'eeg')
+    raw = RawArray(data, info)
     assert_raises(ValueError, psd_multitaper, raw, sfreq, normalization='foo')
     ni_5 = (LooseVersion(ni.__version__) >= LooseVersion('0.5'))
     norm = 'full' if ni_5 else 'length'
@@ -54,7 +54,7 @@ def test_multitaper_psd():
                                     n_jobs=n_jobs,
                                     normalization=norm)
         freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(
-            x, sfreq, adaptive=adaptive, jackknife=False)
+            data, sfreq, adaptive=adaptive, jackknife=False)
 
         # for some reason nitime returns n_times + 1 frequency points
         # causing the value at 0 to be different
