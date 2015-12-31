@@ -36,27 +36,6 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
     return legval(cosang, [0] + factors)
 
 
-def _calc_h(cosang, stiffness=4, num_lterms=50):
-    """Calculate spherical spline h function between points on a sphere.
-
-    Parameters
-    ----------
-    cosang : array-like of float, shape(n_channels, n_channels)
-        cosine of angles between pairs of points on a spherical surface. This
-        is equivalent to the dot product of unit vectors.
-    stiffness : float
-        stiffness of the spline. Also referred to as `m`.
-    num_lterms : int
-        number of Legendre terms to evaluate.
-    H : np.ndrarray of float, shape(n_channels, n_channels)
-        The H matrix.
-    """
-    factors = [(2 * n + 1) /
-               (n ** (stiffness - 1) * (n + 1) ** (stiffness - 1) * 4 * np.pi)
-               for n in range(1, num_lterms + 1)]
-    return legval(cosang, [0] + factors)
-
-
 def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     """Compute interpolation matrix based on spherical splines
 
@@ -95,7 +74,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     cosang_from = pos_from.dot(pos_from.T)
     cosang_to_from = pos_to.dot(pos_from.T)
     G_from = _calc_g(cosang_from)
-    G_to_from, H_to_from = (f(cosang_to_from) for f in (_calc_g, _calc_h))
+    G_to_from = _calc_g(cosang_to_from)
 
     if alpha is not None:
         G_from.flat[::len(G_from) + 1] += alpha
