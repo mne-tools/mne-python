@@ -50,6 +50,8 @@ def test_phase_amplitude_coupling():
     conn = phase_amplitude_coupling(data_raw, flo, fhi, [0, 1])
     assert_true(conn > .98)
 
+    # Tests for Raw + events functionality
+
     # Check that arrays don't work and correct ixs/freqs must be given
     assert_raises(ValueError, phase_amplitude_coupling, data, flo, fhi, [0, 1])
     assert_raises(

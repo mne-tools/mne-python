@@ -4,14 +4,16 @@
 # License: BSD (3-clause)
 import numpy as np
 from pacpy import pac as ppac
+from mne.filter import band_pass_filter
+from pacpy.pac import _range_sanity
 from ..utils import _time_mask
 from ..parallel import parallel_func
-from ..io.pick import pick_types
+from scipy.signal import hilbert
 
 
-def phase_amplitude_coupling(inst, f_phase, f_amp, ixs, tmin=None, tmax=None,
-                             pac_func='plv', picks=None, n_jobs=1,
-                             verbose=None):
+def phase_amplitude_coupling(inst, f_phase, f_amp, ixs, pac_func='plv',
+                             ev=None, tmin=None, tmax=None,
+                             n_jobs=1, verbose=None):
     """ Compute phase-amplitude coupling between pairs of signals using pacpy.
 
     Parameters
@@ -27,15 +29,19 @@ def phase_amplitude_coupling(inst, f_phase, f_amp, ixs, tmin=None, tmax=None,
     ixs : array-like, shape (n_pairs x 2)
         The indices for low/high frequency channels. PAC will be estimated
         between n_pairs of channels. Indices correspond to rows of `data`.
-    tmin : float
-        Minimum time instant to consider (in seconds).
-    tmax : float | None
-        Maximum time instant to consider (in seconds). None will use the
-        end of the dataset.
     pac_func : string, ['plv', 'glm', 'mi_canolty', 'mi_tort', 'ozkurt']
         The function for estimating PAC. Corresponds to functions in pacpy.pac
-    picks : array-like of int | None
-        The selection of channels to include in the computation.
+    ev : array-like, shape (n_events,) | None
+        Indices for events. To be supplied if data is 2D and output should be
+        split by events. In this case, tmin and tmax must be provided
+    tmin : float | None
+        If ev is not provided, it is the start time to use in inst. If ev
+        is provided, it is the time (in seconds) to include before each
+        event index.
+    tmax : float | None
+        If ev is not provided, it is the stop time to use in inst. If ev
+        is provided, it is the time (in seconds) to include after each
+        event index.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -56,24 +62,28 @@ def phase_amplitude_coupling(inst, f_phase, f_amp, ixs, tmin=None, tmax=None,
     from..epochs import _BaseEpochs
     if not isinstance(inst, (_BaseEpochs, _BaseRaw)):
         raise ValueError('Must supply either Epochs or Raw')
-    if picks is None:
-        picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+
     sfreq = inst.info['sfreq']
     time_mask = _time_mask(inst.times, tmin, tmax)
     if isinstance(inst, _BaseRaw):
-        start, stop = np.where(time_mask)[0][[0, -1]]
-        data = inst[picks, start:(stop + 1)][0]
+        if ev is None:
+            start, stop = np.where(time_mask)[0][[0, -1]]
+            data = inst[:, start:(stop + 1)][0]
+        else:
+            # In this case tmin/tmax are for creating epochs later
+            data = inst[:, :][0]
     else:
-        data = inst.get_data()[:, picks][..., time_mask]
+        data = inst.get_data()[..., time_mask]
     pac = _phase_amplitude_coupling(data, sfreq, f_phase, f_amp, ixs,
-                                    pac_func=pac_func, n_jobs=n_jobs,
+                                    pac_func=pac_func, ev=ev, tmin=tmin,
+                                    tmax=tmax, n_jobs=n_jobs,
                                     verbose=verbose)
     return pac
 
 
 def _phase_amplitude_coupling(data, sfreq, f_phase, f_amp, ixs,
-                              pac_func='plv', n_jobs=1, verbose=None):
+                              pac_func='plv', ev=None, tmin=None, tmax=None,
+                              n_jobs=1, verbose=None):
     """ Compute phase-amplitude coupling using pacpy.
 
     Parameters
@@ -94,9 +104,9 @@ def _phase_amplitude_coupling(data, sfreq, f_phase, f_amp, ixs,
 
     Returns
     -------
-    pac_out : array, dtype float, shape (n_pairs)
+    pac_out : array, dtype float, shape (n_pairs, [n_events])
         The computed phase-amplitude coupling between each pair of data sources
-        given in ixs
+        given in ixs.
     """
     func = getattr(ppac, pac_func)
     ixs = np.array(ixs, ndmin=2)
@@ -116,14 +126,80 @@ def _phase_amplitude_coupling(data, sfreq, f_phase, f_amp, ixs,
     n_epochs, n_channels, n_times = data.shape
     parallel, my_pac, n_jobs = parallel_func(_my_pac, n_jobs=n_jobs,
                                              verbose=verbose)
-    pacs = np.array(parallel(my_pac(data, ixf, ixa, f_phase, f_amp, func)
+    pacs = np.array(parallel(my_pac(data, ixf, ixa, f_phase, f_amp, func,
+                                    ev=ev, tmin=tmin, tmax=tmax, sfreq=sfreq)
                              for ixf, ixa in ixs))
     if ndim < 3:
         pacs = pacs.squeeze()
     return pacs
 
 
-def _my_pac(x, ix_phase, ix_amp, f_phase, f_amp, func):
-    """Aux function for PAC."""
-    pac = [func(ep[ix_phase], ep[ix_amp], f_phase, f_amp) for ep in x]
+def _filter_ph_am(xph, xam, f_ph, f_am, sfreq, filterfn=None, kws_filt=None):
+    """Aux function for phase/amplitude filtering"""
+    filterfn = band_pass_filter if filterfn is None else filterfn
+    kws_filt = {} if kws_filt is None else kws_filt
+
+    # Filter the two signals + hilbert/phase
+    _range_sanity(f_ph, f_am)
+    xph = filterfn(xph, sfreq, *f_ph)
+    xam = filterfn(xam, sfreq, *f_am)
+
+    xph = np.angle(hilbert(xph))
+    xam = np.abs(hilbert(xam))
+    return xph, xam
+
+
+def _my_pac(x, ix_phase, ix_amp, f_phase, f_amp, func,
+            ev=None, tmin=None, tmax=None, sfreq=None):
+    """Aux function for PAC.
+
+    This includes support for epochs-like shapes, as well as for the user
+    to provide a list of event indices (ev) in order to do all filtering before
+    the epochs are created."""
+    pac = []
+    for ep in x:
+        xph = ep[ix_phase]
+        xam = ep[ix_amp]
+        # If we have events, assume <3D shape
+        if ev is not None:
+            # Checks for proper inputs/shape
+            ev = np.array(ev)
+            if x.shape[0] > 1:
+                raise ValueError("If ev is given, input must have"
+                                 " first dim length 1")
+            if ev.ndim > 1:
+                raise ValueError('Events must be a 1-d array')
+            if any([tmin is None, tmax is None]):
+                raise ValueError('If ev is given,'
+                                 ' tmin/tmax must be given')
+            if not isinstance(sfreq, (int, float)):
+                raise ValueError('If ev is given, sfreq must be given')
+            xph, xam = _filter_ph_am(xph, xam, f_phase, f_amp, sfreq)
+
+            # Turn into events and pass through func
+            epochs = np.vstack([xph, xam])
+            epochs = _array_raw_to_epochs(epochs, sfreq, ev, tmin, tmax)
+            for ep_f in epochs:
+                # f_phase and f_amp won't be used in this case
+                pac.append(func(ep_f[0], ep_f[1],
+                           f_phase, f_amp, filterfn=False))
+        else:
+            pac.append(func(xph, xam, f_phase, f_amp))
     return np.array(pac)
+
+
+def _array_raw_to_epochs(x, sfreq, ev, tmin, tmax):
+    """Aux function to create epochs from a 2D array"""
+    win_size = sfreq * (tmax - tmin)
+    msk_remove = np.logical_or(ev < win_size, (ev > (x.shape[-1] - win_size)))
+    if any(msk_remove):
+        print('raise a warning!')
+        ev = ev[~msk_remove]
+    times = np.arange(x.shape[-1]) / float(sfreq)
+    epochs = []
+    for ix in ev:
+        start, stop = times[ix] - tmin, times[ix] + tmax
+        msk = _time_mask(times, start, stop)
+        epochs.append(x[np.newaxis, :, msk])
+    epochs = np.concatenate(epochs, axis=0)
+    return epochs
