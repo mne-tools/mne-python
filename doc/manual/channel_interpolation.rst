@@ -1,4 +1,4 @@
-.. _interp:
+.. _channel_interpolation:
 
 .. contents:: Contents
     :local:

@@ -46,7 +46,7 @@ Dealing with artifacts and noise sources in data.
    preprocessing/ica
    preprocessing/maxwell
    preprocessing/ssp
-   interp
+   channel_interpolation
 
 Source localization
 -------------------
