@@ -12,11 +12,13 @@ PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d _build/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
 .PHONY: help clean html dirhtml pickle json htmlhelp qthelp latex changes linkcheck doctest
+.PHONY: python gen_conf.py
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html_stable  to make standalone HTML files (stable version)"
 	@echo "  html_dev     to make standalone HTML files (dev version)"
+	@echo "  html_dev-dir to make standalone HTML files for one example dir (dev version)"
 	@echo "  *-noplot     to make standalone HTML files without plotting"
 	@echo "  dirhtml      to make HTML files named index.html in directories"
 	@echo "  pickle       to make pickle files"
@@ -46,6 +48,10 @@ html_dev:
 	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D raise_gallery=1 -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
+
+html_dev-dir:
+	-python gen_conf.py -d $(OUTPUTDIR)
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D raise_gallery=1 -b html $(ALLSPHINXOPTS) _build/html
 
 html_dev-noslow:
 	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=fast -b html $(ALLSPHINXOPTS) _build/html

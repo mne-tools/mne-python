@@ -273,8 +273,8 @@ trim_doctests_flags = True
 intersphinx_mapping = {'http://docs.python.org/': None}
 
 sphinxgallery_conf = {
-    'examples_dirs'   : ['../examples', '../tutorials'],
-    'gallery_dirs'    : ['auto_examples', 'auto_tutorials'],
+    'examples_dirs'   : {{examples_dirs}},
+    'gallery_dirs'    : {{gallery_dirs}},
     'doc_module': ('sphinxgallery', 'numpy'),
     'reference_url': {
         'mne': None,
