@@ -3,7 +3,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_equal
+from numpy.testing import assert_allclose, assert_equal, assert_array_equal
 
 from .. import pick_types, Evoked
 from ..io import _BaseRaw
@@ -27,7 +27,11 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., msg=None):
     """
     from nose.tools import assert_true
     picks = pick_types(desired.info, meg=True, exclude=[])
+    picks_desired = pick_types(desired.info, meg=True, exclude=[])
+    assert_array_equal(picks, picks_desired, err_msg='MEG pick mismatch')
     others = np.setdiff1d(np.arange(len(actual.ch_names)), picks)
+    others_desired = np.setdiff1d(np.arange(len(desired.ch_names)), picks)
+    assert_array_equal(others, others_desired, err_msg='Other pick mismatch')
     if len(others) > 0:  # if non-MEG channels present
         assert_allclose(_get_data(actual, others),
                         _get_data(desired, others), atol=1e-11, rtol=1e-5,

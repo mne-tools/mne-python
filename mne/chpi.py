@@ -4,7 +4,7 @@
 
 import numpy as np
 from os import path as op
-from scipy import linalg
+from scipy import linalg, fftpack
 
 from .io.pick import pick_types, pick_channels
 from .io.base import _BaseRaw
@@ -224,7 +224,10 @@ def _get_hpi_info(info):
     # how cHPI active is indicated in the FIF file
     hpi_sub = info['hpi_subsystem']
     hpi_pick = pick_channels(info['ch_names'], [hpi_sub['event_channel']])[0]
-    hpi_on = np.sum([coil['event_bits'][0] for coil in hpi_sub['hpi_coils']])
+    hpi_on = [coil['event_bits'][0] for coil in hpi_sub['hpi_coils']]
+    # not all HPI coils will actually be used
+    hpi_on = np.array([hpi_on[hc['number'] - 1] for hc in hpi_coils])
+    assert len(hpi_coils) == len(hpi_on)
     logger.info('Using %s HPI coils: %s Hz'
                 % (len(hpi_freqs), ' '.join(str(int(s)) for s in hpi_freqs)))
     return hpi_freqs, hpi_rrs, hpi_pick, hpi_on, pos_order
@@ -301,7 +304,7 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
     from .preprocessing.maxwell import _prep_bases
     if not (check_version('numpy', '1.7') and check_version('scipy', '0.11')):
         raise RuntimeError('numpy>=1.7 and scipy>=0.11 required')
-    hpi_freqs, coil_head_rrs, hpi_pick, hpi_on = _get_hpi_info(info)[:4]
+    hpi_freqs, coil_head_rrs, hpi_pick, hpi_ons = _get_hpi_info(info)[:4]
     line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,
                            info['line_freq'])
     logger.info('Line interference frequencies: %s Hz'
@@ -327,6 +330,10 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
                             ], axis=1)
     inv_model = linalg.pinv(model)
     del slope, f_t, l_t
+    # Set up highpass at half lowest cHPI freq
+    hp_n = 2 ** (int(np.ceil(np.log2(n_window))) + 1)
+    freqs = fftpack.rfftfreq(hp_n, 1. / info['sfreq'])
+    hp_ind = np.where(freqs > hpi_freqs.min() / 2.)[0][0]
 
     # Set up magnetic dipole fits
     picks_good = pick_types(info, meg=True, eeg=False)
@@ -344,8 +351,8 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
     dists = cdist(coil_head_rrs, coil_head_rrs)
     hpi = dict(dists=dists, scale=scale, picks=picks, model=model,
                inv_model=inv_model, coil_head_rrs=coil_head_rrs,
-               coils=coils, on=hpi_on, n_window=n_window, method=method,
-               n_freqs=n_freqs)
+               coils=coils, on=hpi_ons, n_window=n_window, method=method,
+               n_freqs=n_freqs, hp_ind=hp_ind, hp_n=hp_n)
     last = dict(quat=orig_dev_head_quat, coil_head_rrs=coil_head_rrs,
                 coil_dev_rrs=apply_trans(head_dev_t, coil_head_rrs),
                 sin_fit=None, fit_time=-t_step_min)
@@ -355,6 +362,14 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
 def _time_prefix(fit_time):
     """Helper to format log messages"""
     return ('    t=%0.3f:' % fit_time).ljust(17)
+
+
+def _high_pass(data, hp_n, hp_ind):
+    """Helper to highpass a data chunk a simple way"""
+    data -= data.mean(axis=1)[:, np.newaxis]  # demean
+    data_fft = fftpack.rfft(data, n=hp_n, overwrite_x=True, axis=-1)
+    data_fft[:, :hp_ind] = 0
+    data[...] = fftpack.irfft(data_fft, axis=-1)[:, :data.shape[1]]
 
 
 @verbose
@@ -414,10 +429,17 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         with use_log_level(False):
             meg_chpi_data = raw[hpi['picks'], start:start + hpi['n_window']][0]
         this_data = meg_chpi_data[:-1]
+        # XXX eventually high-pass filtering to get rid of interference?
+        # _high_pass(this_data, hpi['hp_n'], hpi['hp_ind'])
         chpi_data = meg_chpi_data[-1]
-        if not (chpi_data == hpi['on']).all():
-            logger.info(_time_prefix(fit_time) + 'HPI not turned on')
+        ons = (np.round(chpi_data).astype(np.int) &
+               hpi['on'][:, np.newaxis]).astype(bool)
+        n_on = np.sum(ons, axis=0)
+        if not (n_on >= 3).all():
+            logger.info(_time_prefix(fit_time) + '%s < 3 HPI coils turned on, '
+                        'skipping fit' % (n_on.min(),))
             continue
+        # ons = ons.all(axis=1)  # which HPI coils to use
         X = np.dot(hpi['inv_model'], this_data.T)
         data_diff = np.dot(hpi['model'], X).T - this_data
         data_diff *= data_diff
@@ -499,7 +521,7 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                                           axis=1)) / dt)
         logger.info(_time_prefix(fit_time) +
                     ('%s/%s good HPI fits, movements [mm/s] = ' +
-                     ' / '.join(['%0.1f'] * hpi['n_freqs']))
+                     ' / '.join(['% 6.1f'] * hpi['n_freqs']))
                     % ((use_mask.sum(), hpi['n_freqs']) + vs))
         # resulting errors in head coil positions
         est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
@@ -515,7 +537,7 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                 start, end = ' ', '/'
             else:
                 start, end = '(', ')'
-            log_str = (start +
+            log_str = ('    ' + start +
                        '{0:6.1f} {1:6.1f} {2:6.1f} / ' +
                        '{3:6.1f} {4:6.1f} {5:6.1f} / ' +
                        'g = {6:0.3f} err = {7:4.1f} ' +
@@ -540,6 +562,6 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs
     logger.info('[done]')
-    quats = np.array(quats)
+    quats = np.array(quats, np.float64)
     quats = np.zeros((0, 10)) if quats.size == 0 else quats
     return quats

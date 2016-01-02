@@ -155,7 +155,7 @@ def test_calculate_chpi_positions():
     with warnings.catch_warnings(record=True):
         raw = Raw(raw_fif_fname, allow_maxshield=True, preload=True)
     t -= raw.first_samp / raw.info['sfreq']
-    quats = calculate_chpi_positions(raw)
+    quats = calculate_chpi_positions(raw, verbose='debug')
     trans_est, rot_est, t_est = _quats_to_trans_rot_t(quats)
     _compare_positions((trans, rot, t), (trans_est, rot_est, t_est), 0.003)
 

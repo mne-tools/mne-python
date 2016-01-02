@@ -260,11 +260,11 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     ecg = ecg and len(meg_picks) > 0
     chpi = chpi and len(meg_picks) > 0
     if chpi:
-        hpi_freqs, hpi_rrs, hpi_pick, hpi_on = _get_hpi_info(info)[:4]
+        hpi_freqs, hpi_rrs, hpi_pick, hpi_ons = _get_hpi_info(info)[:4]
         hpi_nns = hpi_rrs / np.sqrt(np.sum(hpi_rrs * hpi_rrs,
                                            axis=1))[:, np.newaxis]
         # turn on cHPI in file
-        raw_data[hpi_pick, :] = hpi_on
+        raw_data[hpi_pick, :] = hpi_ons.sum()
         _log_ch('cHPI status bits enbled and', info, hpi_pick)
     if blink or ecg:
         exg_bem = make_sphere_model(r0, head_radius=R,
