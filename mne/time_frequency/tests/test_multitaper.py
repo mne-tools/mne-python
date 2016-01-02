@@ -41,9 +41,9 @@ def test_multitaper_psd():
     import nitime as ni
     n_times = 1000
     n_channels = 5
-    data = np.random.randn(n_channels, n_times)
+    data = np.random.RandomState(0).randn(n_channels, n_times)
     sfreq = 500
-    info = create_info([str(i) for i in range(n_channels)], sfreq, 'eeg')
+    info = create_info(n_channels, sfreq, 'eeg')
     raw = RawArray(data, info)
     assert_raises(ValueError, psd_multitaper, raw, sfreq, normalization='foo')
     ni_5 = (LooseVersion(ni.__version__) >= LooseVersion('0.5'))

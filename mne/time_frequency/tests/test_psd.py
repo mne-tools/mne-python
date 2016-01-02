@@ -49,11 +49,12 @@ def test_psd():
             psds, freqs = func(raw, proj=False, **kws)
             psds_proj, freqs_proj = func(raw, proj=True, **kws)
 
-            assert_array_almost_equal(psds, psds_proj)
             assert_true(psds.shape == (len(kws['picks']), len(freqs)))
             assert_true(np.sum(freqs < 0) == 0)
             assert_true(np.sum(psds < 0) == 0)
 
+            # Make sure the projection doesn't change channels it shouldn't
+            assert_array_almost_equal(psds, psds_proj)
             # Array input shouldn't work
             assert_raises(ValueError, func, raw[:3, :20][0])
         assert_true(len(w), 3)
@@ -94,6 +95,7 @@ def test_psd():
 
             # this one will fail if you add for example 0.1 to tmin
             assert_array_almost_equal(psds, psds_f, 27)
+            # Make sure the projection doesn't change channels it shouldn't
             assert_array_almost_equal(psds, psds_proj, 27)
 
             assert_true(psds.shape == (1, len(kws['picks']), len(freqs)))
@@ -109,6 +111,7 @@ def test_psd():
                     evoked, proj=False, **kws)
                 psds_ev_proj, freqs_ev_proj = func(
                     evoked, proj=True, **kws)
+                # Make sure the projection doesn't change channels it shouldn't
                 assert_array_almost_equal(psds_ev, psds_ev_proj, 27)
                 assert_true(psds_ev.shape == (len(kws['picks']), len(freqs)))
         assert_true(len(w), 3)

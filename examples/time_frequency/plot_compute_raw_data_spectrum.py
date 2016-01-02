@@ -66,8 +66,7 @@ raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
 
 # And now do the same with SSP + notch filtering
 # Pick all channels for notch since the SSP projection mixes channels together
-picks_notch = mne.pick_types(raw.info, meg=True, eeg=True)
-raw.notch_filter(np.arange(60, 241, 60), picks=picks_notch, n_jobs=1)
+raw.notch_filter(np.arange(60, 241, 60), n_jobs=1)
 raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
              n_jobs=1, proj=True, ax=ax, color=(1, 0, 0), picks=picks)
 

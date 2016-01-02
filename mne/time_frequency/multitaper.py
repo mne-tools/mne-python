@@ -494,7 +494,7 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     Notes
     -----
-    .. versionadded:: 0.9.0
+    .. versionadded:: 0.12.0
     """
     if normalization not in ('length', 'full'):
         raise ValueError('Normalization must be "length" or "full", not %s'

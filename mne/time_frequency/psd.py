@@ -201,9 +201,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         ``len(inst.times)``.
     n_overlap : int
         The number of points of overlap between blocks. Will be adjusted
-        to be <= n_fft.
-        bandwidth : float
-        The bandwidth of the multi taper windowing function in Hz.
+        to be <= n_fft. The default value is 0.
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
@@ -226,6 +224,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     --------
     mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_multitaper
 
+    Notes
+    -----
     .. versionadded:: 0.12.0
     """
     # Prep data
@@ -258,7 +258,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     tmax : float | None
         Max time of interest
     bandwidth : float
-        The bandwidth of the multi taper windowing function in Hz.
+        The bandwidth of the multi taper windowing function in Hz. The default
+        value is a window half-bandwidth of 4.
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
@@ -301,6 +302,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     --------
     mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_welch
 
+    Notes
+    -----
     .. versionadded:: 0.12.0
     """
     # Prep data
