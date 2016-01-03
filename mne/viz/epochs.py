@@ -99,7 +99,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     scale_vmax = True if vmax is None else False
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     if logscale:
-        data = np.log2(data)
+        data = np.log2(data, out=data)
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
