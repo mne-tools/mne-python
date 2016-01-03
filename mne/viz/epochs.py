@@ -27,7 +27,7 @@ from ..defaults import _handle_default
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap='RdBu_r', fig=None
+                      units=None, scalings=None, cmap='RdBu_r', fig=None,
                       logscale=False):
     """Plot Event Related Potential / Fields image
 
