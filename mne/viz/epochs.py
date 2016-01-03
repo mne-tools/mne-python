@@ -27,7 +27,8 @@ from ..defaults import _handle_default
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap='RdBu_r', fig=None):
+                      units=None, scalings=None, cmap='RdBu_r', fig=None
+                      logscale=False):
     """Plot Event Related Potential / Fields image
 
     Parameters
@@ -69,6 +70,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
+    logscale : bool 
+        Plots logarithmic colorscale (base 10) of epochs if True.
 
     Returns
     -------
@@ -95,6 +98,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     scale_vmin = True if vmin is None else False
     scale_vmax = True if vmax is None else False
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    if logscale:
+        data = np.log10(data)
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
