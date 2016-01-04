@@ -215,8 +215,7 @@ def test_merge_info():
     info_b = create_info(ch_names=['d', 'e', 'f'], sfreq=1000., ch_types=None)
     info_merged = _merge_info([info_a, info_b])
     assert_equal(info_merged['nchan'], 6)
-    assert_equal(info_merged['ch_names'].to_list(), ['a', 'b', 'c', 'd', 'e',
-                                                     'f'])
+    assert_equal(info_merged['ch_names'], ['a', 'b', 'c', 'd', 'e', 'f'])
     assert_raises(ValueError, _merge_info, [info_a, info_a])
 
 
