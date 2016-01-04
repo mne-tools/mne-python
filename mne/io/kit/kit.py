@@ -195,12 +195,12 @@ class RawKIT(_BaseRaw):
                                  % (np.max(stim),
                                     self._raw_extras[0]['nchan']))
             # modify info
-            info['nchan'] = self._raw_extras[0]['nchan'] + 1
+            nchan = self._raw_extras[0]['nchan'] + 1
             ch_name = 'STI 014'
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
-            chan_info['logno'] = info['nchan']
-            chan_info['scanno'] = info['nchan']
+            chan_info['logno'] = nchan
+            chan_info['scanno'] = nchan
             chan_info['range'] = 1.0
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['unit_mul'] = 0
@@ -209,7 +209,6 @@ class RawKIT(_BaseRaw):
             chan_info['loc'] = np.zeros(12)
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
             info['chs'].append(chan_info)
-            info['ch_names'].append(ch_name)
         if self.preload:
             err = "Can't change stim channel after preloading data"
             raise NotImplementedError(err)
@@ -661,7 +660,7 @@ def get_kit_info(rawfile):
         info = _empty_info(float(sqd['sfreq']))
         info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
                     highpass=sqd['highpass'], filename=rawfile,
-                    nchan=sqd['nchan'], buffer_size_sec=1.)
+                    buffer_size_sec=1.)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
@@ -737,8 +736,6 @@ def get_kit_info(rawfile):
             chan_info['loc'] = np.zeros(12)
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             info['chs'].append(chan_info)
-
-        info['ch_names'] = ch_names['MEG'] + ch_names['MISC']
 
     return info, sqd
 

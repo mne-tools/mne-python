@@ -318,9 +318,6 @@ def _read_forward_meas_info(tree, fid):
             chs.append(tag.data)
     info['chs'] = chs
 
-    info['ch_names'] = [c['ch_name'] for c in chs]
-    info['nchan'] = len(chs)
-
     #   Get the MRI <-> head coordinate transformation
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
     coord_head = FIFF.FIFFV_COORD_HEAD

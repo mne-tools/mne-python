@@ -430,9 +430,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
     info = _empty_info(sfreq)
     info['filename'] = fname
     info['meas_date'] = calendar.timegm(date.utctimetuple())
-    info['nchan'] = nchan
     info['chs'] = chs
-    info['ch_names'] = ch_names
 
     if highpass.size == 0:
         pass

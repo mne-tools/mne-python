@@ -101,15 +101,12 @@ def object_hash(x, h=None):
     """
     if h is None:
         h = hashlib.md5()
-    if isinstance(x, dict):
+    if hasattr(x, 'keys'):
+        # dict-like types
         keys = _sort_keys(x)
         for key in keys:
             object_hash(key, h)
             object_hash(x[key], h)
-    elif isinstance(x, (list, tuple)):
-        h.update(str(type(x)).encode('utf-8'))
-        for xx in x:
-            object_hash(xx, h)
     elif isinstance(x, bytes):
         # must come before "str" below
         h.update(x)
@@ -121,6 +118,11 @@ def object_hash(x, h=None):
         h.update(str(x.shape).encode('utf-8'))
         h.update(str(x.dtype).encode('utf-8'))
         h.update(x.tostring())
+    elif hasattr(x, '__len__'):
+        # all other list-like types
+        h.update(str(type(x)).encode('utf-8'))
+        for xx in x:
+            object_hash(xx, h)
     else:
         raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
     return int(h.hexdigest(), 16)

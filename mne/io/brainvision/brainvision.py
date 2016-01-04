@@ -328,10 +328,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     fmt = _fmt_dict[fmt]
 
     # load channel labels
-    info['nchan'] = cfg.getint('Common Infos', 'NumberOfChannels') + 1
-    ch_names = [''] * info['nchan']
-    cals = np.empty(info['nchan'])
-    ranges = np.empty(info['nchan'])
+    nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
+    ch_names = [''] * nchan
+    cals = np.empty(nchan)
+    ranges = np.empty(nchan)
     cals.fill(np.nan)
     ch_dict = dict()
     for chan, props in cfg.items('Channel Infos'):
@@ -437,13 +437,12 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
-    info['ch_names'] = ch_names
     for idx, ch_name in enumerate(ch_names):
-        if ch_name in eog or idx in eog or idx - info['nchan'] in eog:
+        if ch_name in eog or idx in eog or idx - nchan in eog:
             kind = FIFF.FIFFV_EOG_CH
             coil_type = FIFF.FIFFV_COIL_NONE
             unit = FIFF.FIFF_UNIT_V
-        elif ch_name in misc or idx in misc or idx - info['nchan'] in misc:
+        elif ch_name in misc or idx in misc or idx - nchan in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
             unit = FIFF.FIFF_UNIT_V

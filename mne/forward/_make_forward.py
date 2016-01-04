@@ -423,10 +423,9 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                 mindist, overwrite, n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
-    info = Info(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
-                ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
-                mri_file=trans, mri_id=mri_id, meas_file=info_extra,
-                meas_id=None, working_dir=os.getcwd(),
+    info = Info(chs=info['chs'], comps=info['comps'],
+                dev_head_t=info['dev_head_t'], mri_file=trans, mri_id=mri_id,
+                meas_file=info_extra, meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'], mri_head_t=mri_head_t)
     logger.info('')
 
@@ -549,13 +548,13 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'
                       % fname)
-    if not isinstance(info, (dict, string_types)):
-        raise TypeError('info should be a dict or string')
+    if not isinstance(info, (Info, string_types)):
+        raise TypeError('info should be an instance of Info or string')
     if isinstance(info, string_types):
         info_extra = op.split(info)[1]
         info = read_info(info, verbose=False)
     else:
-        info_extra = 'info dict'
+        info_extra = 'instance of Info'
 
     # Report the setup
     logger.info('Source space                 : %s' % src)

@@ -44,7 +44,6 @@ fname_kit_157 = op.join(op.dirname(__file__), '..', '..',  'io', 'kit',
 
 test_info = _empty_info(1000)
 test_info.update({
-    'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
     'chs': [{'cal': 1,
              'ch_name': 'ICA 001',
              'coil_type': 0,
@@ -81,7 +80,7 @@ test_info.update({
              'scanno': 376,
              'unit': 107,
              'unit_mul': 0}],
-    'nchan': 3})
+})
 
 
 def test_io_layout_lout():
@@ -229,7 +228,6 @@ def test_find_layout():
     sample_info4 = copy.deepcopy(sample_info)
     for ii, name in enumerate(sample_info4['ch_names']):
         new = name.replace(' ', '')
-        sample_info4['ch_names'][ii] = new
         sample_info4['chs'][ii]['ch_name'] = new
 
     eegs = pick_types(sample_info, meg=False, eeg=True)

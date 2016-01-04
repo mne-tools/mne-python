@@ -235,13 +235,5 @@ def test_clean_info_bads():
     info._check_consistency()
     info['bads'] += ['EEG 053']
     assert_raises(RuntimeError, info._check_consistency)
-    info = pick_info(raw.info, picks_meg)
-    info._check_consistency()
-    info['ch_names'][0] += 'f'
-    assert_raises(RuntimeError, info._check_consistency)
-    info = pick_info(raw.info, picks_meg)
-    info._check_consistency()
-    info['nchan'] += 1
-    assert_raises(RuntimeError, info._check_consistency)
 
 run_tests_if_main()

@@ -1120,7 +1120,6 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     info['buffer_size_sec'] = 1.  # reasonable default for writing
     date = bti_info['processes'][0]['timestamp']
     info['meas_date'] = [date, 0]
-    info['nchan'] = len(bti_info['chs'])
 
     # browse processing info for filter specs.
     hp, lp = info['highpass'], info['lowpass']
@@ -1211,7 +1210,6 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         chs.append(chan_info)
 
     info['chs'] = chs
-    info['ch_names'] = neuromag_ch_names if rename_channels else bti_ch_names
 
     if head_shape_fname:
         logger.info('... Reading digitization points from %s' %

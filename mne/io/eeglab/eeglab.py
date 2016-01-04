@@ -63,7 +63,6 @@ def _get_info(eeg, montage, eog=()):
     """Get measurement info.
     """
     info = _empty_info(sfreq=eeg.srate)
-    info['nchan'] = eeg.nbchan
 
     # add the ch_names and info['chs'][idx]['loc']
     path = None

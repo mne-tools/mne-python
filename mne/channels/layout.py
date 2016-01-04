@@ -18,6 +18,7 @@ import numpy as np
 from ..transforms import _polar_to_cartesian, _cartesian_to_sphere
 from ..io.pick import pick_types
 from ..io.constants import FIFF
+from ..io.meas_info import Info
 from ..utils import _clean_names
 from ..externals.six.moves import map
 
@@ -411,7 +412,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout_name = 'Vectorview-grad'
     elif ((has_eeg_coils_only and ch_type in [None, 'eeg']) or
           (has_eeg_coils_and_meg and ch_type == 'eeg')):
-        if not isinstance(info, dict):
+        if not isinstance(info, (dict, Info)):
             raise RuntimeError('Cannot make EEG layout, no measurement info '
                                'was passed to `find_layout`')
         return make_eeg_layout(info, exclude=exclude)

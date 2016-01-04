@@ -198,8 +198,6 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
                      'loc': np.zeros(12)}
         inst.info['chs'].append(chan_info)
-    inst.info['ch_names'].extend(ref_channels)
-    inst.info['nchan'] = len(inst.info['ch_names'])
     if isinstance(inst, _BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
 
@@ -378,7 +376,6 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         an_idx = inst.ch_names.index(an)
         inst.info['chs'][an_idx] = info
         inst.info['chs'][an_idx]['ch_name'] = name
-        inst.info['ch_names'][an_idx] = name
         logger.info('Bipolar channel added as "%s".' % name)
 
     # Drop cathode channels

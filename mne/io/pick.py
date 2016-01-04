@@ -97,6 +97,11 @@ def pick_channels(ch_names, include, exclude=[]):
         raise RuntimeError('ch_names is not a unique list, picking is unsafe')
     _check_excludes_includes(include)
     _check_excludes_includes(exclude)
+    if not isinstance(include, set):
+        include = set(include)
+    if not isinstance(exclude, set):
+        exclude = set(exclude)
+
     sel = []
     for k, name in enumerate(ch_names):
         if (len(include) == 0 or name in include) and name not in exclude:
@@ -328,8 +333,6 @@ def pick_info(info, sel=[], copy=True):
         raise ValueError('No channels match the selection.')
 
     info['chs'] = [info['chs'][k] for k in sel]
-    info['ch_names'] = [info['ch_names'][k] for k in sel]
-    info['nchan'] = len(sel)
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
 
     comps = deepcopy(info['comps'])
@@ -463,9 +466,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     fwd['sol']['row_names'] = ch_names
 
     # Pick the appropriate channel names from the info-dict using sel_info
-    fwd['info']['ch_names'] = [fwd['info']['ch_names'][k] for k in sel_info]
     fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
-    fwd['info']['nchan'] = nuse
     fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]
 
     if fwd['sol_grad'] is not None:
@@ -513,6 +514,7 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
     if len(sel) == 0:
         raise ValueError('No valid channels found')
     include_ch_names = [info['ch_names'][k] for k in sel]
+
     return pick_channels_forward(orig, include_ch_names)
 
 
@@ -621,8 +623,8 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
         Channels to be excluded/excluded. If allow_bads, and chs=="bads",
         this will be the bad channels found in 'info'.
     """
-    from .meas_info import Info
-    if not isinstance(chs, (list, tuple, np.ndarray)):
+    from .meas_info import Info, _ChannelNameList
+    if not isinstance(chs, (list, tuple, np.ndarray, _ChannelNameList)):
         if allow_bads is True:
             if not isinstance(info, Info):
                 raise ValueError('Supply an info object if allow_bads is true')
