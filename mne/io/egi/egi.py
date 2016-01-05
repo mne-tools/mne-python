@@ -285,12 +285,7 @@ class RawEGI(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file"""
         egi_info = self._raw_extras[fi]
-        if egi_info['dtype'] == '>i2':
-            n_bytes = 2
-        elif egi_info['dtype'] == '>f4':
-            n_bytes = 4
-        elif egi_info['dtype'] == '>f8':
-            n_bytes = 8
+        n_bytes = np.dtype(egi_info['dtype']).itemsize
         n_chan_read = egi_info['n_channels'] + egi_info['n_events']
         data_start = (36 + egi_info['n_events'] * 4 +
                       start * n_chan_read * egi_info['dtype'].itemsize)
