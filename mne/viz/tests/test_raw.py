@@ -10,6 +10,7 @@ from numpy.testing import assert_raises
 from mne import io, read_events, pick_types
 from mne.utils import requires_version, run_tests_if_main
 from mne.viz.utils import _fake_click
+from mne.viz import plot_raw
 
 # Set our plotters to test mode
 import matplotlib
@@ -85,7 +86,7 @@ def test_plot_raw():
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
         assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
-        fig = raw.plot(events=events, event_color={-1: 'r', 998: 'b'})
+        fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
 
 
@@ -119,6 +120,9 @@ def test_plot_raw_psd():
     # if ax is supplied, picks must be, too:
     assert_raises(ValueError, raw.plot_psd, ax=ax)
     raw.plot_psd(picks=picks, ax=ax)
+    plt.close('all')
+    # topo psd
+    raw.plot_psd_topo()
     plt.close('all')
 
 

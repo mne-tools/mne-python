@@ -152,24 +152,24 @@ def object_diff(a, b, pre=''):
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)
         if len(m1):
-            out += pre + ' x1 missing keys %s\n' % (m1)
+            out += pre + ' left missing keys %s\n' % (m1)
         for key in k1s:
             if key not in k2s:
-                out += pre + ' x2 missing key %s\n' % key
+                out += pre + ' right missing key %s\n' % key
             else:
-                out += object_diff(a[key], b[key], pre + 'd1[%s]' % repr(key))
+                out += object_diff(a[key], b[key], pre + '[%s]' % repr(key))
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
         else:
-            for xx1, xx2 in zip(a, b):
-                out += object_diff(xx1, xx2, pre='')
+            for ii, (xx1, xx2) in enumerate(zip(a, b)):
+                out += object_diff(xx1, xx2, pre + '[%s]' % ii)
     elif isinstance(a, (string_types, int, float, bytes)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
         if b is not None:
-            out += pre + ' a is None, b is not (%s)\n' % (b)
+            out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
         if not np.array_equal(a, b):
             out += pre + ' array mismatch\n'
@@ -910,6 +910,26 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger.addHandler(lh)
 
 
+class catch_logging(object):
+    """Helper to store logging
+
+    This will remove all other logging handlers, and return the handler to
+    stdout when complete.
+    """
+    def __enter__(self):
+        self._data = StringIO()
+        self._lh = logging.StreamHandler(self._data)
+        self._lh.setFormatter(logging.Formatter('%(message)s'))
+        for lh in logger.handlers:
+            logger.removeHandler(lh)
+        logger.addHandler(self._lh)
+        return self._data
+
+    def __exit__(self, *args):
+        logger.removeHandler(self._lh)
+        set_log_file(None)
+
+
 ###############################################################################
 # CONFIG / PREFS
 
@@ -1213,7 +1233,7 @@ class ProgressBar(object):
     def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
                  progress_character='.', spinner=False, verbose_bool=True):
         self.cur_value = initial_value
-        self.max_value = float(max_value)
+        self.max_value = max_value
         self.mesg = mesg
         self.max_chars = max_chars
         self.progress_character = progress_character
@@ -1245,6 +1265,9 @@ class ProgressBar(object):
 
         # Update the message
         if mesg is not None:
+            if mesg == 'file_sizes':
+                mesg = '(%s / %s)' % (sizeof_fmt(self.cur_value),
+                                      sizeof_fmt(self.max_value))
             self.mesg = mesg
 
         # The \r tells the cursor to return to the beginning of the line rather
@@ -1283,55 +1306,8 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-def _chunk_read(response, local_file, initial_size=0, verbose_bool=True):
-    """Download a file chunk by chunk and show advancement
-
-    Can also be used when resuming downloads over http.
-
-    Parameters
-    ----------
-    response: urllib.response.addinfourl
-        Response to the download request in order to get file size.
-    local_file: file
-        Hard disk file where data should be written.
-    initial_size: int, optional
-        If resuming, indicate the initial size of the file.
-
-    Notes
-    -----
-    The chunk size will be automatically adapted based on the connection
-    speed.
-    """
-    # Adapted from NISL:
-    # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-
-    # Returns only amount left to download when resuming, not the size of the
-    # entire file
-    total_size = int(response.headers.get('Content-Length', '1').strip())
-    total_size += initial_size
-
-    progress = ProgressBar(total_size, initial_value=initial_size,
-                           max_chars=40, spinner=True, mesg='downloading',
-                           verbose_bool=verbose_bool)
-    chunk_size = 8192  # 2 ** 13
-    while True:
-        t0 = time.time()
-        chunk = response.read(chunk_size)
-        dt = time.time() - t0
-        if dt < 0.001:
-            chunk_size *= 2
-        elif dt > 0.5 and chunk_size > 8192:
-            chunk_size = chunk_size // 2
-        if not chunk:
-            if verbose_bool:
-                sys.stdout.write('\n')
-                sys.stdout.flush()
-            break
-        _chunk_write(chunk, local_file, progress)
-
-
-def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
-    """Resume downloading of a file from an FTP server"""
+def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
+    """Safely (resume a) download to a file from FTP"""
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
 
@@ -1339,7 +1315,6 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
     file_name = os.path.basename(parsed_url.path)
     server_path = parsed_url.path.replace(file_name, "")
     unquoted_server_path = urllib.parse.unquote(server_path)
-    local_file_size = os.path.getsize(temp_file_name)
 
     data = ftplib.FTP()
     if parsed_url.port is not None:
@@ -1350,21 +1325,73 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
     if len(server_path) > 1:
         data.cwd(unquoted_server_path)
     data.sendcmd("TYPE I")
-    data.sendcmd("REST " + str(local_file_size))
+    data.sendcmd("REST " + str(initial_size))
     down_cmd = "RETR " + file_name
-    file_size = data.size(file_name)
-    progress = ProgressBar(file_size, initial_value=local_file_size,
-                           max_chars=40, spinner=True, mesg='downloading',
+    assert file_size == data.size(file_name)
+    progress = ProgressBar(file_size, initial_value=initial_size,
+                           max_chars=40, spinner=True, mesg='file_sizes',
                            verbose_bool=verbose_bool)
 
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
-    def chunk_write(chunk):
-        return _chunk_write(chunk, local_file, progress)
-    data.retrbinary(down_cmd, chunk_write)
-    data.close()
+    mode = 'ab' if initial_size > 0 else 'wb'
+    with open(temp_file_name, mode) as local_file:
+        def chunk_write(chunk):
+            return _chunk_write(chunk, local_file, progress)
+        data.retrbinary(down_cmd, chunk_write)
+        data.close()
     sys.stdout.write('\n')
     sys.stdout.flush()
+
+
+def _get_http(url, temp_file_name, initial_size, file_size, verbose_bool):
+    """Safely (resume a) download to a file from http(s)"""
+    # Actually do the reading
+    req = urllib.request.Request(url)
+    if initial_size > 0:
+        req.headers['Range'] = 'bytes=%s-' % (initial_size,)
+    try:
+        response = urllib.request.urlopen(req)
+    except Exception:
+        # There is a problem that may be due to resuming, some
+        # servers may not support the "Range" header. Switch
+        # back to complete download method
+        logger.info('Resuming download failed (server '
+                    'rejected the request). Attempting to '
+                    'restart downloading the entire file.')
+        del req.headers['Range']
+        response = urllib.request.urlopen(req)
+    total_size = int(response.headers.get('Content-Length', '1').strip())
+    if initial_size > 0 and file_size == total_size:
+        logger.info('Resuming download failed (resume file size '
+                    'mismatch). Attempting to restart downloading the '
+                    'entire file.')
+        initial_size = 0
+    total_size += initial_size
+    if total_size != file_size:
+        raise RuntimeError('URL could not be parsed properly')
+    mode = 'ab' if initial_size > 0 else 'wb'
+    progress = ProgressBar(total_size, initial_value=initial_size,
+                           max_chars=40, spinner=True, mesg='file_sizes',
+                           verbose_bool=verbose_bool)
+    chunk_size = 8192  # 2 ** 13
+    with open(temp_file_name, mode) as local_file:
+        while True:
+            t0 = time.time()
+            chunk = response.read(chunk_size)
+            dt = time.time() - t0
+            if dt < 0.005:
+                chunk_size *= 2
+            elif dt > 0.1 and chunk_size > 8192:
+                chunk_size = chunk_size // 2
+            if not chunk:
+                if verbose_bool:
+                    sys.stdout.write('\n')
+                    sys.stdout.flush()
+                break
+            local_file.write(chunk)
+            progress.update_with_increment_value(len(chunk),
+                                                 mesg='file_sizes')
 
 
 def _chunk_write(chunk, local_file, progress):
@@ -1375,7 +1402,7 @@ def _chunk_write(chunk, local_file, progress):
 
 @verbose
 def _fetch_file(url, file_name, print_destination=True, resume=True,
-                hash_=None, verbose=None):
+                hash_=None, timeout=10., verbose=None):
     """Load requested file, downloading it if needed or requested
 
     Parameters
@@ -1392,6 +1419,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     hash_ : str | None
         The hash of the file to check. If None, no checking is
         performed.
+    timeout : float
+        The URL open timeout.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
@@ -1402,12 +1431,14 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         raise ValueError('Bad hash value given, should be a 32-character '
                          'string:\n%s' % (hash_,))
     temp_file_name = file_name + ".part"
-    local_file = None
-    initial_size = 0
     verbose_bool = (logger.level <= 20)  # 20 is info
     try:
-        # Checking file size and displaying it alongside the download url
-        u = urllib.request.urlopen(url, timeout=10.)
+        # Check file size and displaying it alongside the download url
+        u = urllib.request.urlopen(url, timeout=timeout)
+        u.close()
+        # this is necessary to follow any redirects
+        url = u.geturl()
+        u = urllib.request.urlopen(url, timeout=timeout)
         try:
             file_size = int(u.headers.get('Content-Length', '1').strip())
         finally:
@@ -1415,46 +1446,28 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
             del u
         logger.info('Downloading data from %s (%s)\n'
                     % (url, sizeof_fmt(file_size)))
-        # Downloading data
-        if resume and os.path.exists(temp_file_name):
-            local_file = open(temp_file_name, "ab")
-            # Resuming HTTP and FTP downloads requires different procedures
-            scheme = urllib.parse.urlparse(url).scheme
-            if scheme in ('http', 'https'):
-                local_file_size = os.path.getsize(temp_file_name)
-                # If the file exists, then only download the remainder
-                req = urllib.request.Request(url)
-                req.headers["Range"] = "bytes=%s-" % local_file_size
-                try:
-                    data = urllib.request.urlopen(req)
-                except Exception:
-                    # There is a problem that may be due to resuming, some
-                    # servers may not support the "Range" header. Switch back
-                    # to complete download method
-                    logger.info('Resuming download failed. Attempting to '
-                                'restart downloading the entire file.')
-                    local_file.close()
-                    _fetch_file(url, file_name, resume=False)
-                else:
-                    _chunk_read(data, local_file, initial_size=local_file_size,
-                                verbose_bool=verbose_bool)
-                    data.close()
-                    del data  # should auto-close
-            else:
-                _chunk_read_ftp_resume(url, temp_file_name, local_file,
-                                       verbose_bool=verbose_bool)
+
+        # Triage resume
+        if not os.path.exists(temp_file_name):
+            resume = False
+        if resume:
+            with open(temp_file_name, 'rb', buffering=0) as local_file:
+                local_file.seek(0, 2)
+                initial_size = local_file.tell()
+            del local_file
         else:
-            local_file = open(temp_file_name, "wb")
-            data = urllib.request.urlopen(url)
-            try:
-                _chunk_read(data, local_file, initial_size=initial_size,
-                            verbose_bool=verbose_bool)
-            finally:
-                data.close()
-                del data  # should auto-close
-        # temp file must be closed prior to the move
-        if not local_file.closed:
-            local_file.close()
+            initial_size = 0
+        # This should never happen if our functions work properly
+        if initial_size >= file_size:
+            raise RuntimeError('Local file (%s) is larger than remote '
+                               'file (%s), cannot resume download'
+                               % (sizeof_fmt(initial_size),
+                                  sizeof_fmt(file_size)))
+
+        scheme = urllib.parse.urlparse(url).scheme
+        fun = _get_http if scheme in ('http', 'https') else _get_ftp
+        fun(url, temp_file_name, initial_size, file_size, verbose_bool)
+
         # check md5sum
         if hash_ is not None:
             logger.info('Verifying download hash.')
@@ -1466,15 +1479,10 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         shutil.move(temp_file_name, file_name)
         if print_destination is True:
             logger.info('File saved as %s.\n' % file_name)
-    except Exception as e:
+    except Exception:
         logger.error('Error while fetching file %s.'
                      ' Dataset fetching aborted.' % url)
-        logger.error("Error: %s", e)
         raise
-    finally:
-        if local_file is not None:
-            if not local_file.closed:
-                local_file.close()
 
 
 def sizeof_fmt(num):
@@ -1892,3 +1900,86 @@ def compute_corr(x, y):
     # transpose / broadcasting else Y is correct
     y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
     return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
+
+
+def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
+    """Make grand average of a list evoked or AverageTFR data
+
+    For evoked data, the function interpolates bad channels based on
+    `interpolate_bads` parameter. If `interpolate_bads` is True, the grand
+    average file will contain good channels and the bad channels interpolated
+    from the good MEG/EEG channels.
+    For AverageTFR data, the function takes the subset of channels not marked
+    as bad in any of the instances.
+
+    The grand_average.nave attribute will be equal to the number
+    of evoked datasets used to calculate the grand average.
+
+    Note: Grand average evoked should not be used for source localization.
+
+    Parameters
+    ----------
+    all_inst : list of Evoked or AverageTFR data
+        The evoked datasets.
+    interpolate_bads : bool
+        If True, bad MEG and EEG channels are interpolated. Ignored for
+        AverageTFR.
+    drop_bads : bool
+        If True, drop all bad channels marked as bad in any data set.
+        If neither interpolate_bads nor drop_bads is True, in the output file,
+        every channel marked as bad in at least one of the input files will be
+        marked as bad, but no interpolation or dropping will be performed.
+
+    Returns
+    -------
+    grand_average : Evoked | AverageTFR
+        The grand average data. Same type as input.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
+    """
+    # check if all elements in the given list are evoked data
+    from .evoked import Evoked
+    from .time_frequency import AverageTFR
+    from .channels.channels import equalize_channels
+    if not any([(all(isinstance(inst, t) for inst in all_inst)
+                for t in (Evoked, AverageTFR))]):
+        raise ValueError("Not all input elements are Evoked or AverageTFR")
+
+    # Copy channels to leave the original evoked datasets intact.
+    all_inst = [inst.copy() for inst in all_inst]
+
+    # Interpolates if necessary
+    if isinstance(all_inst[0], Evoked):
+        if interpolate_bads:
+            all_inst = [inst.interpolate_bads() if len(inst.info['bads']) > 0
+                        else inst for inst in all_inst]
+        equalize_channels(all_inst)  # apply equalize_channels
+        from .evoked import combine_evoked as combine
+    elif isinstance(all_inst[0], AverageTFR):
+        from .time_frequency.tfr import combine_tfr as combine
+
+    if drop_bads:
+        bads = list(set((b for inst in all_inst for b in inst.info['bads'])))
+        if bads:
+            for inst in all_inst:
+                inst.drop_channels(bads, copy=False)
+
+    # make grand_average object using combine_[evoked/tfr]
+    grand_average = combine(all_inst, weights='equal')
+    # change the grand_average.nave to the number of Evokeds
+    grand_average.nave = len(all_inst)
+    # change comment field
+    grand_average.comment = "Grand average (n = %d)" % grand_average.nave
+    return grand_average
+
+
+def _get_root_dir():
+    """Helper to get as close to the repo root as possible"""
+    root_dir = op.abspath(op.dirname(__file__))
+    up_dir = op.join(root_dir, '..')
+    if op.isfile(op.join(up_dir, 'setup.py')) and all(
+            op.isdir(op.join(up_dir, x)) for x in ('mne', 'examples', 'doc')):
+        root_dir = op.abspath(up_dir)
+    return root_dir

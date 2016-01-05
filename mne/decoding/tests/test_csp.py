@@ -70,6 +70,16 @@ def test_csp():
     csp.plot_filters(epochs.info, components=components, res=12,
                      show=False)
 
+    # test covariance estimation methods (results should be roughly equal)
+    csp_epochs = CSP(cov_est="epoch")
+    csp_epochs.fit(epochs_data, y)
+    assert_array_almost_equal(csp.filters_, csp_epochs.filters_, -1)
+    assert_array_almost_equal(csp.patterns_, csp_epochs.patterns_, -1)
+
+    # make sure error is raised for undefined estimation method
+    csp_fail = CSP(cov_est="undefined")
+    assert_raises(ValueError, csp_fail.fit, epochs_data, y)
+
 
 @requires_sklearn
 def test_regularized_csp():
@@ -106,3 +116,16 @@ def test_regularized_csp():
         csp.n_components = n_components
         sources = csp.transform(epochs_data)
         assert_true(sources.shape[1] == n_components)
+
+
+@requires_sklearn
+def test_csp_pipeline():
+    """Test if CSP works in a pipeline
+    """
+    from sklearn.svm import SVC
+    from sklearn.pipeline import Pipeline
+    csp = CSP(reg=1)
+    svc = SVC()
+    pipe = Pipeline([("CSP", csp), ("SVC", svc)])
+    pipe.set_params(CSP__reg=0.2)
+    assert_true(pipe.get_params()["CSP__reg"] == 0.2)

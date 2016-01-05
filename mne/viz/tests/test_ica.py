@@ -105,6 +105,9 @@ def test_plot_ica_sources():
         ica.plot_sources(evoked, exclude=[0])
         ica.exclude = [0]
         ica.plot_sources(evoked)  # does the same thing
+        ica.labels_ = dict(eog=[0])
+        ica.labels_['eog/0/crazy-channel'] = [0]
+        ica.plot_sources(evoked)  # now with labels
     assert_raises(ValueError, ica.plot_sources, 'meeow')
     plt.close('all')
 
@@ -139,7 +142,18 @@ def test_plot_ica_scores():
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
     ica.fit(raw, picks=picks)
+    ica.labels_ = dict()
+    ica.labels_['eog/0/foo'] = 0
+    ica.labels_['eog'] = 0
+    ica.labels_['ecg'] = 1
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='foo')
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='eog')
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1], labels='ecg')
+    assert_raises(
+        ValueError,
+        ica.plot_scores,
+        [0.3, 0.2], axhline=[0.1, -0.1], labels=['one', 'one-too-many'])
     assert_raises(ValueError, ica.plot_scores, [0.2])
     plt.close('all')
 

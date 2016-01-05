@@ -34,7 +34,7 @@ from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
                    plot_ica_sources, plot_ica_overlay)
-from ..viz.utils import (_prepare_trellis, tight_layout,
+from ..viz.utils import (_prepare_trellis, tight_layout, plt_show,
                          _setup_vmin_vmax)
 from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
                            plot_topomap)
@@ -909,7 +909,7 @@ class ICA(ContainsMixin):
             if verbose is not None:
                 verbose = self.verbose
             ecg, times = _make_ecg(inst, start, stop, verbose)
-            ch_name = 'ECG'
+            ch_name = 'ECG-MAG'
         else:
             ecg = inst.ch_names[idx_ecg]
 
@@ -949,6 +949,7 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'labels_'):
             self.labels_ = dict()
         self.labels_['ecg'] = list(ecg_idx)
+        self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
 
     @verbose
@@ -1015,13 +1016,19 @@ class ICA(ContainsMixin):
         if inst.ch_names != self.ch_names:
             inst = inst.pick_channels(self.ch_names, copy=True)
 
-        for eog_ch, target in zip(eog_chs, targets):
+        if not hasattr(self, 'labels_'):
+            self.labels_ = dict()
+
+        for ii, (eog_ch, target) in enumerate(zip(eog_chs, targets)):
             scores += [self.score_sources(inst, target=target,
                                           score_func='pearsonr',
                                           start=start, stop=stop,
                                           l_freq=l_freq, h_freq=h_freq,
                                           verbose=verbose)]
-            eog_idx += [find_outliers(scores[-1], threshold=threshold)]
+            # pick last scores
+            this_idx = find_outliers(scores[-1], threshold=threshold)
+            eog_idx += [this_idx]
+            self.labels_[('eog/%i/' % ii) + eog_ch] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
         # EOG channels
@@ -1037,10 +1044,8 @@ class ICA(ContainsMixin):
                 eog_idx_unique.remove(i)
         if len(scores) == 1:
             scores = scores[0]
-
-        if not hasattr(self, 'labels_'):
-            self.labels_ = dict()
         self.labels_['eog'] = list(eog_idx)
+
         return self.labels_['eog'], scores
 
     def apply(self, inst, include=None, exclude=None,
@@ -1421,7 +1426,7 @@ class ICA(ContainsMixin):
                                 title=title, start=start, stop=stop, show=show,
                                 block=block)
 
-    def plot_scores(self, scores, exclude=None, axhline=None,
+    def plot_scores(self, scores, exclude=None, labels=None, axhline=None,
                     title='ICA component scores', figsize=(12, 6),
                     show=True):
         """Plot scores related to detected components.
@@ -1436,6 +1441,12 @@ class ICA(ContainsMixin):
         exclude : array_like of int
             The components marked for exclusion. If None (default), ICA.exclude
             will be used.
+        labels : str | list | 'ecg' | 'eog' | None
+            The labels to consider for the axes tests. Defaults to None.
+            If list, should match the outer shape of `scores`.
+            If 'ecg' or 'eog', the labels_ attributes will be looked up.
+            Note that '/' is used internally for sublabels specifying ECG and
+            EOG channels.
         axhline : float
             Draw horizontal line to e.g. visualize rejection threshold.
         title : str
@@ -1450,9 +1461,9 @@ class ICA(ContainsMixin):
         fig : instance of matplotlib.pyplot.Figure
             The figure object.
         """
-        return plot_ica_scores(ica=self, scores=scores, exclude=exclude,
-                               axhline=axhline, title=title,
-                               figsize=figsize, show=show)
+        return plot_ica_scores(
+            ica=self, scores=scores, exclude=exclude, labels=labels,
+            axhline=axhline, title=title, figsize=figsize, show=show)
 
     def plot_overlay(self, inst, exclude=None, picks=None, start=None,
                      stop=None, title=None, show=True):
@@ -1743,16 +1754,24 @@ def _find_sources(sources, target, score_func):
 def _serialize(dict_, outer_sep=';', inner_sep=':'):
     """Aux function"""
     s = []
-    for k, v in dict_.items():
-        if callable(v):
-            v = v.__name__
-        elif isinstance(v, int):
-            v = int(v)
-        for cls in (np.random.RandomState, Covariance):
-            if isinstance(v, cls):
-                v = cls.__name__
+    for key, value in dict_.items():
+        if callable(value):
+            value = value.__name__
+        elif isinstance(value, int):
+            value = int(value)
+        elif isinstance(value, dict):
+            # py35 json does not support numpy int64
+            for subkey, subvalue in value.items():
+                if isinstance(subvalue, list):
+                    if len(subvalue) > 0:
+                        if isinstance(subvalue[0], (int, np.integer)):
+                            value[subkey] = [int(i) for i in subvalue]
 
-        s.append(k + inner_sep + json.dumps(v))
+        for cls in (np.random.RandomState, Covariance):
+            if isinstance(value, cls):
+                value = cls.__name__
+
+        s.append(key + inner_sep + json.dumps(value))
 
     return outer_sep.join(s)
 
@@ -1761,7 +1780,7 @@ def _deserialize(str_, outer_sep=';', inner_sep=':'):
     """Aux Function"""
     out = {}
     for mapping in str_.split(outer_sep):
-        k, v = mapping.split(inner_sep)
+        k, v = mapping.split(inner_sep, 1)
         vv = json.loads(v)
         out[k] = vv if not isinstance(vv, text_type) else str(vv)
 
@@ -1794,7 +1813,7 @@ def _write_ica(fid, ica):
         write_meas_info(fid, ica.info)
         end_block(fid, FIFF.FIFFB_MEAS)
 
-    start_block(fid, FIFF.FIFFB_ICA)
+    start_block(fid, FIFF.FIFFB_MNE_ICA)
 
     #   ICA interface params
     write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
@@ -1805,8 +1824,10 @@ def _write_ica(fid, ica):
         write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, ica.ch_names)
 
     # samples on fit
-    ica_misc = {'n_samples_': getattr(ica, 'n_samples_', None)}
-    #   ICA init params
+    n_samples = getattr(ica, 'n_samples_', None)
+    ica_misc = {'n_samples_': (None if n_samples is None else int(n_samples)),
+                'labels_': getattr(ica, 'labels_', None)}
+
     write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
                  _serialize(ica_init))
 
@@ -1836,7 +1857,7 @@ def _write_ica(fid, ica):
     write_int(fid, FIFF.FIFF_MNE_ICA_BADS, ica.exclude)
 
     # Done!
-    end_block(fid, FIFF.FIFFB_ICA)
+    end_block(fid, FIFF.FIFFB_MNE_ICA)
 
 
 @verbose
@@ -1870,10 +1891,12 @@ def read_ica(fname):
     else:
         info['filename'] = fname
 
-    ica_data = dir_tree_find(tree, FIFF.FIFFB_ICA)
+    ica_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ICA)
     if len(ica_data) == 0:
-        fid.close()
-        raise ValueError('Could not find ICA data')
+        ica_data = dir_tree_find(tree, 123)  # Constant 123 Used before v 0.11
+        if len(ica_data) == 0:
+            fid.close()
+            raise ValueError('Could not find ICA data')
 
     my_ica_data = ica_data[0]
     for d in my_ica_data['directory']:
@@ -1936,6 +1959,8 @@ def read_ica(fname):
     ica.info = info
     if 'n_samples_' in ica_misc:
         ica.n_samples_ = ica_misc['n_samples_']
+    if 'labels_' in ica_misc:
+        ica.labels_ = ica_misc['labels_']
 
     logger.info('Ready.')
 
@@ -2227,8 +2252,6 @@ def _find_max_corrs(all_maps, target, threshold):
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
                   layout, cmap, contours):
     """Customized ica.plot_components for corrmap"""
-    import matplotlib.pyplot as plt
-
     title = 'Detected components'
     if label is not None:
         title += ' of type ' + label
@@ -2275,8 +2298,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.8)
     fig.canvas.draw()
-    if show is True:
-        plt.show()
+    plt_show(show)
     return fig
 
 
@@ -2295,6 +2317,11 @@ def corrmap(icas, template, threshold="auto", label=None,
     maps best correlating with the template are identified. In the step, the
     analysis is repeated with the mean of the maps identified in the first
     stage.
+
+    Run with `plot` and `show` set to `True` and `label=False` to find
+    good parameters. Then, run with labelling enabled to apply the
+    labelling in the IC objects. (Running with both `plot` and `labels`
+    off does nothing.)
 
     Outputs a list of fitted ICAs with the indices of the marked ICs in a
     specified field.
@@ -2350,16 +2377,6 @@ def corrmap(icas, template, threshold="auto", label=None,
         outline. Moreover, a matplotlib patch object can be passed for
         advanced masking options, either directly or as a function that returns
         patches (required for multi-axis plots).
-    layout : None | Layout | list of Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). Or a list of Layout if projections
-        are from different sensor types.
-    cmap : matplotlib colormap
-        Colormap.
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     verbose : bool, str, int, or None
@@ -2382,6 +2399,7 @@ def corrmap(icas, template, threshold="auto", label=None,
 
     target = all_maps[template[0]][template[1]]
 
+    template_fig, labelled_ics = None, None
     if plot is True:
         ttl = 'Template from subj. {0}'.format(str(template[0]))
         template_fig = icas[template[0]].plot_components(

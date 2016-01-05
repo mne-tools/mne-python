@@ -57,7 +57,7 @@ title = 'Sources related to %s artifacts (red)'
 ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5, picks=picks)
 
 ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
-ica.plot_scores(scores, exclude=ecg_inds, title=title % 'ecg')
+ica.plot_scores(scores, exclude=ecg_inds, title=title % 'ecg', labels='ecg')
 
 show_picks = np.abs(scores).argsort()[::-1][:5]
 
@@ -70,7 +70,7 @@ ica.exclude += ecg_inds
 # detect EOG by correlation
 
 eog_inds, scores = ica.find_bads_eog(raw)
-ica.plot_scores(scores, exclude=eog_inds, title=title % 'eog')
+ica.plot_scores(scores, exclude=eog_inds, title=title % 'eog', labels='eog')
 
 show_picks = np.abs(scores).argsort()[::-1][:5]
 

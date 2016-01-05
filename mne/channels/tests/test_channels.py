@@ -71,10 +71,12 @@ def test_set_channel_types():
     # Test change to illegal channel type
     mapping = {'EOG 061': 'xxx'}
     assert_raises(ValueError, raw.set_channel_types, mapping)
-    # Test type change
-    raw2 = Raw(raw_fname)
-    raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
+    # Test changing type if in proj (avg eeg ref here)
     mapping = {'EEG 060': 'eog', 'EEG 059': 'ecg', 'EOG 061': 'seeg'}
+    assert_raises(RuntimeError, raw.set_channel_types, mapping)
+    # Test type change
+    raw2 = Raw(raw_fname, add_eeg_ref=False)
+    raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
     raw2.set_channel_types(mapping)
     info = raw2.info
     assert_true(info['chs'][374]['ch_name'] == 'EEG 060')

@@ -1,25 +1,27 @@
+# -*- coding: utf-8 -*-
 # Authors: Romain Trachel <trachelr@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Alexandre Barachant <alexandre.barachant@gmail.com>
+#          Clemens Brunner <clemens.brunner@gmail.com>
 #
 # License: BSD (3-clause)
 
 import copy as cp
-import warnings
 
 import numpy as np
 from scipy import linalg
 
-from .mixin import TransformerMixin
+from .mixin import TransformerMixin, EstimatorMixin
 from ..cov import _regularized_covariance
 
 
-class CSP(TransformerMixin):
+class CSP(TransformerMixin, EstimatorMixin):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
     This object can be used as a supervised decomposition to estimate
     spatial filters for feature extraction in a 2 class decoding problem.
-    See [1].
+    CSP in the context of EEG was first described in [1]; a comprehensive
+    tutorial on CSP can be found in [2].
 
     Parameters
     ----------
@@ -34,6 +36,11 @@ class CSP(TransformerMixin):
     log : bool (default True)
         If true, apply log to standardize the features.
         If false, features are just z-scored.
+    cov_est : str (default 'concat')
+        If 'concat', covariance matrices are estimated on concatenated epochs
+        for each class.
+        If 'epoch', covariance matrices are estimated on each epoch separately
+        and then averaged over each class.
 
     Attributes
     ----------
@@ -48,25 +55,39 @@ class CSP(TransformerMixin):
 
     References
     ----------
-    [1] Zoltan J. Koles. The quantitative extraction and topographic mapping
-    of the abnormal components in the clinical EEG. Electroencephalography
-    and Clinical Neurophysiology, 79(6):440--447, December 1991.
+    [1] Zoltan J. Koles, Michael S. Lazar, Steven Z. Zhou. Spatial Patterns
+        Underlying Population Differences in the Background EEG. Brain
+        Topography 2(4), 275-284, 1990.
+    [2] Benjamin Blankertz, Ryota Tomioka, Steven Lemm, Motoaki Kawanabe,
+        Klaus-Robert Müller. Optimizing Spatial Filters for Robust EEG
+        Single-Trial Analysis. IEEE Signal Processing Magazine 25(1), 41-56,
+        2008.
     """
 
-    def __init__(self, n_components=4, reg=None, log=True):
+    def __init__(self, n_components=4, reg=None, log=True, cov_est="concat"):
         """Init of CSP."""
         self.n_components = n_components
-        if reg == 'lws':
-            warnings.warn('`lws` has been deprecated for the `reg`'
-                          ' argument. It will be removed in 0.11.'
-                          ' Use `ledoit_wolf` instead.', DeprecationWarning)
-            reg = 'ledoit_wolf'
         self.reg = reg
         self.log = log
+        self.cov_est = cov_est
         self.filters_ = None
         self.patterns_ = None
         self.mean_ = None
         self.std_ = None
+
+    def get_params(self, deep=True):
+        """Return all parameters (mimics sklearn API).
+
+        Parameters
+        ----------
+        deep: boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+        """
+        params = {"n_components": self.n_components,
+                  "reg": self.reg,
+                  "log": self.log}
+        return params
 
     def fit(self, epochs_data, y):
         """Estimate the CSP decomposition on epochs.
@@ -87,26 +108,51 @@ class CSP(TransformerMixin):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
         epochs_data = np.atleast_3d(epochs_data)
+        e, c, t = epochs_data.shape
         # check number of epochs
-        if epochs_data.shape[0] != len(y):
+        if e != len(y):
             raise ValueError("n_epochs must be the same for epochs_data and y")
         classes = np.unique(y)
         if len(classes) != 2:
             raise ValueError("More than two different classes in the data.")
-        # concatenate epochs
-        class_1 = np.transpose(epochs_data[y == classes[0]],
-                               [1, 0, 2]).reshape(epochs_data.shape[1], -1)
-        class_2 = np.transpose(epochs_data[y == classes[1]],
-                               [1, 0, 2]).reshape(epochs_data.shape[1], -1)
+        if not (self.cov_est == "concat" or self.cov_est == "epoch"):
+            raise ValueError("unknown covariance estimation method")
 
-        cov_1 = _regularized_covariance(class_1, reg=self.reg)
-        cov_2 = _regularized_covariance(class_2, reg=self.reg)
+        if self.cov_est == "concat":  # concatenate epochs
+            class_1 = np.transpose(epochs_data[y == classes[0]],
+                                   [1, 0, 2]).reshape(c, -1)
+            class_2 = np.transpose(epochs_data[y == classes[1]],
+                                   [1, 0, 2]).reshape(c, -1)
+            cov_1 = _regularized_covariance(class_1, reg=self.reg)
+            cov_2 = _regularized_covariance(class_2, reg=self.reg)
+        elif self.cov_est == "epoch":
+            class_1 = epochs_data[y == classes[0]]
+            class_2 = epochs_data[y == classes[1]]
+            cov_1 = np.zeros((c, c))
+            for t in class_1:
+                cov_1 += _regularized_covariance(t, reg=self.reg)
+            cov_1 /= class_1.shape[0]
+            cov_2 = np.zeros((c, c))
+            for t in class_2:
+                cov_2 += _regularized_covariance(t, reg=self.reg)
+            cov_2 /= class_2.shape[0]
 
-        # then fit on covariance
-        self._fit(cov_1, cov_2)
+        # normalize by trace
+        cov_1 /= np.trace(cov_1)
+        cov_2 /= np.trace(cov_2)
+
+        e, w = linalg.eigh(cov_1, cov_1 + cov_2)
+        n_vals = len(e)
+        # Rearrange vectors
+        ind = np.empty(n_vals, dtype=int)
+        ind[::2] = np.arange(n_vals - 1, n_vals // 2 - 1, -1)
+        ind[1::2] = np.arange(0, n_vals // 2)
+        w = w[:, ind]  # first, last, second, second last, third, ...
+        self.filters_ = w.T
+        self.patterns_ = linalg.pinv(w)
 
         pick_filters = self.filters_[:self.n_components]
-        X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
+        X = np.asarray([np.dot(pick_filters, epoch) for epoch in epochs_data])
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
@@ -116,38 +162,6 @@ class CSP(TransformerMixin):
         self.std_ = X.std(axis=0)
 
         return self
-
-    def _fit(self, cov_a, cov_b):
-        """Aux Function (modifies cov_a and cov_b in-place)."""
-        cov_a /= np.trace(cov_a)
-        cov_b /= np.trace(cov_b)
-        # computes the eigen values
-        lambda_, u = linalg.eigh(cov_a + cov_b)
-        # sort them
-        ind = np.argsort(lambda_)[::-1]
-        lambda2_ = lambda_[ind]
-
-        u = u[:, ind]
-        p = np.dot(np.sqrt(linalg.pinv(np.diag(lambda2_))), u.T)
-
-        # Compute the generalized eigen value problem
-        w_a = np.dot(np.dot(p, cov_a), p.T)
-        w_b = np.dot(np.dot(p, cov_b), p.T)
-        # and solve it
-        vals, vecs = linalg.eigh(w_a, w_b)
-        # sort vectors by discriminative power using eigenvalues
-        ind = np.argsort(vals)[::-1]
-        vecs = vecs[:, ind]
-        # re-order (first, last, second, second last, third, ...)
-        n_vals = len(ind)
-        ind[::2] = np.arange(0, int(np.ceil(n_vals / 2.0)))
-        ind[1::2] = np.arange(n_vals - 1, int(np.ceil(n_vals / 2.0)) - 1, -1)
-        vecs = vecs[:, ind]
-        # and project
-        w = np.dot(vecs.T, p)
-
-        self.filters_ = w
-        self.patterns_ = linalg.pinv(w).T
 
     def transform(self, epochs_data, y=None):
         """Estimate epochs sources given the CSP filters.
@@ -172,7 +186,7 @@ class CSP(TransformerMixin):
                                'decomposition.')
 
         pick_filters = self.filters_[:self.n_components]
-        X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
+        X = np.asarray([np.dot(pick_filters, epoch) for epoch in epochs_data])
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)

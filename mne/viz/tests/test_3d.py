@@ -55,7 +55,7 @@ def test_plot_sparse_source_estimates():
     stc_data = np.zeros((n_verts * n_time))
     stc_size = stc_data.size
     stc_data[(np.random.rand(stc_size / 20) * stc_size).astype(int)] = \
-        np.random.rand(stc_data.size / 20)
+        np.random.RandomState(0).rand(stc_data.size / 20)
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     colormap = 'mne_analyze'
@@ -118,7 +118,7 @@ def test_limits_to_control_points():
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.random.rand((n_verts * n_time))
+    stc_data = np.random.RandomState(0).rand((n_verts * n_time))
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
 

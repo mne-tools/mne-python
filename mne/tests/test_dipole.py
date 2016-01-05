@@ -20,7 +20,7 @@ from mne.io import Raw
 
 from mne.surface import _compute_nearest
 from mne.bem import _bem_find_surface, read_bem_solution
-from mne.transforms import (read_trans, apply_trans, _get_mri_head_t)
+from mne.transforms import apply_trans, _get_trans
 
 warnings.simplefilter('always')
 data_path = testing.data_path(download=False)
@@ -89,9 +89,8 @@ def test_dipole_fitting():
                 for s in fwd['src']]
     nv = sum(len(v) for v in vertices)
     stc = SourceEstimate(amp * np.eye(nv), vertices, 0, 0.001)
-    with warnings.catch_warnings(record=True):  # semi-def cov
-        evoked = simulate_evoked(fwd, stc, evoked, cov, snr=20,
-                                 random_state=rng)
+    evoked = simulate_evoked(fwd, stc, evoked.info, cov, snr=20,
+                             random_state=rng)
     # For speed, let's use a subset of channels (strange but works)
     picks = np.sort(np.concatenate([
         pick_types(evoked.info, meg=True, eeg=False)[::2],
@@ -202,8 +201,7 @@ def test_min_distance_fit_dipole():
 
 def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
     """Compute dipole depth"""
-    trans = read_trans(fname_trans)
-    trans = _get_mri_head_t(trans)[0]
+    trans = _get_trans(fname_trans)[0]
     bem = read_bem_solution(fname_bem)
     surf = _bem_find_surface(bem, 'inner_skull')
     points = surf['rr']

@@ -160,11 +160,18 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
            }[name]
 
     path = _get_path(path, key, name)
+    # To update the testing dataset, push commits, then make a new release
+    # on GitHub. Then update the "testing_release" variable:
+    testing_release = '0.11'
+    # And also update the "hashes['testing']" variable below.
+
+    # To update any other dataset, update the data archive itself (upload
+    # an updated version) and update the hash.
     archive_names = dict(
         sample='MNE-sample-data-processed.tar.gz',
         spm='MNE-spm-face.tar.bz2',
         somato='MNE-somato-data.tar.gz',
-        testing='mne-testing-data-master.tar.gz',
+        testing='mne-testing-data-%s.tar.gz' % testing_release,
         fake='foo.tgz',
     )
     if archive_name is not None:
@@ -182,21 +189,21 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         spm='https://s3.amazonaws.com/mne-python/datasets/%s',
         somato='https://s3.amazonaws.com/mne-python/datasets/%s',
         brainstorm='https://copy.com/ZTHXXFcuIZycvRoA/brainstorm/%s',
-        testing='https://github.com/mne-tools/mne-testing-data/archive/'
-                'master.tar.gz',
+        testing='https://codeload.github.com/mne-tools/mne-testing-data/'
+                'tar.gz/%s' % testing_release,
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/%s',
     )
     hashes = dict(
-        sample='f73186795af820428e5e8e779ce5bfcf',
+        sample='ccf5cbc41a3727ed02821330a07abb13',
         spm='3e9e83c642136e5b720e2ecc5dcc3244',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
         brainstorm=None,
-        testing=None,
+        testing='d1753ce154e0e6af12f1b82b21e975ce',
         fake='3194e9f7b46039bb050a74f3e1ae9908',
     )
     folder_origs = dict(  # not listed means None
-        testing='mne-testing-data-master',
+        testing='mne-testing-data-%s' % testing_release,
     )
     folder_name = folder_names[name]
     archive_name = archive_names[name]

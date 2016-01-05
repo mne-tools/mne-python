@@ -13,14 +13,15 @@ from functools import partial
 import numpy as np
 
 from ..externals.six import string_types
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _pick_data_channels
 from ..io.proj import setup_proj
-from ..utils import verbose, get_config
+from ..utils import verbose, get_config, logger
 from ..time_frequency import compute_raw_psd
-from .utils import _toggle_options, _toggle_proj, tight_layout
-from .utils import _layout_figure, _plot_raw_onkey, figure_nobar
-from .utils import _plot_raw_onscroll, _mouse_click
-from .utils import _helper_raw_resize, _select_bads, _onclick_help
+from .topo import _plot_topo, _plot_timeseries
+from .utils import (_toggle_options, _toggle_proj, tight_layout,
+                    _layout_figure, _plot_raw_onkey, figure_nobar,
+                    _plot_raw_onscroll, _mouse_click, plt_show,
+                    _helper_raw_resize, _select_bads, _onclick_help)
 from ..defaults import _handle_default
 
 
@@ -43,7 +44,7 @@ def _update_raw_data(params):
     start = params['t_start']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
     start = params['raw'].time_as_index(start)[0]
-    data_picks = pick_types(params['raw'].info, meg=True, eeg=True)
+    data_picks = _pick_data_channels(params['raw'].info)
     data, times = params['raw'][:, start:stop]
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
@@ -76,7 +77,7 @@ def _pick_bad_channels(event, params):
     _plot_update_raw_proj(params, None)
 
 
-def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
+def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
@@ -95,7 +96,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     start : float
         Initial time to show (can be changed dynamically once plotted).
     n_channels : int
-        Number of channels to plot at once.
+        Number of channels to plot at once. Defaults to 20.
     bgcolor : color object
         Color of the background.
     color : dict | color object | None
@@ -234,10 +235,21 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-    for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
+    for t in ['eeg', 'seeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
               'misc', 'chpi', 'syst', 'ias', 'exci']:
         pick_kwargs[t] = True
         inds += [pick_types(raw.info, **pick_kwargs)]
+        if t == 'seeg' and len(inds[-1]) > 0:
+            # XXX hack to work around fiff mess
+            new_picks = [ind for ind in inds[-1] if
+                         not raw.ch_names[ind].startswith('CHPI')]
+            if len(new_picks) != len(inds[-1]):
+                inds[-1] = new_picks
+            else:
+                logger.warning('Conflicting FIFF constants detected. SEEG '
+                               'FIFF data saved before mne version 0.11 will '
+                               'not work with mne version 0.12! Save the raw '
+                               'files again to fix the FIFF tags!')
         types += [t] * len(inds[-1])
         pick_kwargs[t] = False
     inds = np.concatenate(inds).astype(int)
@@ -331,11 +343,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     if show_options is True:
         _toggle_options(None, params)
 
-    if show:
-        try:
-            plt.show(block=block)
-        except TypeError:  # not all versions have this
-            plt.show()
+    try:
+        plt_show(show, block=block)
+    except TypeError:  # not all versions have this
+        plt_show(show)
 
     return params['fig']
 
@@ -461,9 +472,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     Returns
     -------
     fig : instance of matplotlib figure
-        Figure distributing one image per channel across sensor topography.
+        Figure with frequency spectra of the data channels.
     """
-    import matplotlib.pyplot as plt
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
 
@@ -472,7 +482,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
                                       fmin=fmin, fmax=fmax, proj=proj,
                                       n_fft=n_fft, n_overlap=n_overlap,
-                                      n_jobs=n_jobs, verbose=None)
+                                      n_jobs=n_jobs, verbose=verbose)
 
         # Convert PSDs to dB
         if dB:
@@ -502,8 +512,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-    if show is True:
-        plt.show()
+    plt_show(show)
     return fig
 
 
@@ -670,3 +679,78 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
     # CGContextRef error on the MacOSX backend :(
     if params['fig_proj'] is not None:
         params['fig_proj'].canvas.draw()
+
+
+def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
+                      n_fft=2048, n_overlap=0, layout=None, color='w',
+                      fig_facecolor='k', axis_facecolor='k', dB=True,
+                      show=True, n_jobs=1, verbose=None):
+    """Function for plotting channel wise frequency spectra as topography.
+
+    Parameters
+    ----------
+    raw : instance of io.Raw
+        The raw instance to use.
+    tmin : float
+        Start time for calculations. Defaults to zero.
+    tmax : float | None
+        End time for calculations. If None (default), the end of data is used.
+    fmin : float
+        Start frequency to consider. Defaults to zero.
+    fmax : float
+        End frequency to consider. Defaults to 100.
+    proj : bool
+        Apply projection. Defaults to False.
+    n_fft : int
+        Number of points to use in Welch FFT calculations. Defaults to 2048.
+    n_overlap : int
+        The number of points of overlap between blocks. Defaults to 0
+        (no overlap).
+    layout : instance of Layout | None
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). If None (default), the correct layout is
+        inferred from the data.
+    color : str | tuple
+        A matplotlib-compatible color to use for the curves. Defaults to white.
+    fig_facecolor : str | tuple
+        A matplotlib-compatible color to use for the figure background.
+        Defaults to black.
+    axis_facecolor : str | tuple
+        A matplotlib-compatible color to use for the axis background.
+        Defaults to black.
+    dB : bool
+        If True, transform data to decibels. Defaults to True.
+    show : bool
+        Show figure if True. Defaults to True.
+    n_jobs : int
+        Number of jobs to run in parallel. Defaults to 1.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure distributing one image per channel across sensor topography.
+    """
+    if layout is None:
+        from ..channels.layout import find_layout
+        layout = find_layout(raw.info)
+
+    psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, fmin=fmin,
+                                  fmax=fmax, proj=proj, n_fft=n_fft,
+                                  n_overlap=n_overlap, n_jobs=n_jobs,
+                                  verbose=verbose)
+    if dB:
+        psds = 10 * np.log10(psds)
+        y_label = 'dB'
+    else:
+        y_label = 'Power'
+    plot_fun = partial(_plot_timeseries, data=[psds], color=color, times=freqs)
+
+    fig = _plot_topo(raw.info, times=freqs, show_func=plot_fun, layout=layout,
+                     axis_facecolor=axis_facecolor,
+                     fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
+                     y_label=y_label)
+
+    plt_show(show)
+    return fig

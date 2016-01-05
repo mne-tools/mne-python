@@ -8,9 +8,10 @@ def test_indices():
     """Test connectivity indexing methods"""
     n_seeds_test = [1, 3, 4]
     n_targets_test = [2, 3, 200]
+    rng = np.random.RandomState(42)
     for n_seeds in n_seeds_test:
         for n_targets in n_targets_test:
-            idx = np.random.permutation(np.arange(n_seeds + n_targets))
+            idx = rng.permutation(np.arange(n_seeds + n_targets))
             seeds = idx[:n_seeds]
             targets = idx[n_seeds:]
             indices = seed_target_indices(seeds, targets)

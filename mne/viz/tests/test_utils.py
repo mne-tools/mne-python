@@ -41,7 +41,7 @@ def test_clickable_image():
     """Test the ClickableImage class."""
     # Gen data and create clickable image
     import matplotlib.pyplot as plt
-    im = np.random.randn(100, 100)
+    im = np.random.RandomState(0).randn(100, 100)
     clk = ClickableImage(im)
     clicks = [(12, 8), (46, 48), (10, 24)]
 
@@ -63,9 +63,10 @@ def test_clickable_image():
 def test_add_background_image():
     """Test adding background image to a figure."""
     import matplotlib.pyplot as plt
+    rng = np.random.RandomState(0)
     f, axs = plt.subplots(1, 2)
-    x, y = np.random.randn(2, 10)
-    im = np.random.randn(10, 10)
+    x, y = rng.randn(2, 10)
+    im = rng.randn(10, 10)
     axs[0].scatter(x, y)
     axs[1].scatter(y, x)
     for ax in axs:

@@ -30,7 +30,7 @@ from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
 from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
-                         combine_transforms, _get_mri_head_t,
+                         combine_transforms, _get_trans,
                          _coord_frame_name, Transform)
 from .externals.six import string_types
 
@@ -227,55 +227,37 @@ class SourceSpaces(list):
                 raise ValueError('Unrecognized source type: %s.' % src['type'])
 
         # Get shape, inuse array and interpolation matrix from volume sources
-        first_vol = True  # mark the first volume source
-        # Loop through the volume sources
-        for vs in src_types['volume']:
+        inuse = 0
+        for ii, vs in enumerate(src_types['volume']):
             # read the lookup table value for segmented volume
             if 'seg_name' not in vs:
                 raise ValueError('Volume sources should be segments, '
                                  'not the entire volume.')
             # find the color value for this volume
-            i = _get_lut_id(lut, vs['seg_name'], use_lut)
+            id_ = _get_lut_id(lut, vs['seg_name'], use_lut)
 
-            if first_vol:
+            if ii == 0:
                 # get the inuse array
                 if mri_resolution:
                     # read the mri file used to generate volumes
-                    aseg = nib.load(vs['mri_file'])
-
+                    aseg_data = nib.load(vs['mri_file']).get_data()
                     # get the voxel space shape
                     shape3d = (vs['mri_height'], vs['mri_depth'],
                                vs['mri_width'])
-
-                    # get the values for this volume
-                    inuse = i * (aseg.get_data() == i).astype(int)
-                    # store as 1D array
-                    inuse = inuse.ravel((2, 1, 0))
-
                 else:
-                    inuse = i * vs['inuse']
-
                     # get the volume source space shape
-                    shape = vs['shape']
-
                     # read the shape in reverse order
                     # (otherwise results are scrambled)
-                    shape3d = (shape[2], shape[1], shape[0])
-
-                first_vol = False
-
+                    shape3d = vs['shape'][2::-1]
+            if mri_resolution:
+                # get the values for this volume
+                use = id_ * (aseg_data == id_).astype(int).ravel('F')
             else:
-                # update the inuse array
-                if mri_resolution:
-
-                    # get the values for this volume
-                    use = i * (aseg.get_data() == i).astype(int)
-                    inuse += use.ravel((2, 1, 0))
-                else:
-                    inuse += i * vs['inuse']
+                use = id_ * vs['inuse']
+            inuse += use
 
         # Raise error if there are no volume source spaces
-        if first_vol:
+        if np.array(inuse).ndim == 0:
             raise ValueError('Source spaces must contain at least one volume.')
 
         # create 3d grid in the MRI_VOXEL coordinate frame
@@ -300,7 +282,7 @@ class SourceSpaces(list):
             if coords == 'head':
 
                 # read mri -> head transformation
-                mri_head_t = _get_mri_head_t(trans)[0]
+                mri_head_t = _get_trans(trans)[0]
 
                 # get the HEAD to MRI transform
                 head_mri_t = invert_transform(mri_head_t)
@@ -2106,7 +2088,7 @@ def _get_solids(tri_rrs, fros):
 
 
 @verbose
-def _ensure_src(src, verbose=None):
+def _ensure_src(src, kind=None, verbose=None):
     """Helper to ensure we have a source space"""
     if isinstance(src, string_types):
         if not op.isfile(src):
@@ -2115,6 +2097,13 @@ def _ensure_src(src, verbose=None):
         src = read_source_spaces(src, verbose=False)
     if not isinstance(src, SourceSpaces):
         raise ValueError('src must be a string or instance of SourceSpaces')
+    if kind is not None:
+        if kind == 'surf':
+            surf = [s for s in src if s['type'] == 'surf']
+            if len(surf) != 2 or len(src) != 2:
+                raise ValueError('Source space must contain exactly two '
+                                 'surfaces.')
+            src = surf
     return src
 
 

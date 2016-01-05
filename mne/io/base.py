@@ -37,8 +37,8 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose, _time_mask, deprecated)
-from ..viz import plot_raw, plot_raw_psd
+                     logger, verbose, _time_mask)
+from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
@@ -218,8 +218,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     Subclasses must provide the following methods:
 
-        * _read_segment_file(self, data, idx, offset, fi, start, stop,
-                             cals, mult)
+        * _read_segment_file(self, data, idx, fi, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
 
     The `_BaseRaw._raw_extras` list can contain whatever data is necessary for
@@ -260,6 +259,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._first_samps = np.array(first_samps)
         info._check_consistency()  # make sure subclass did a good job
         self.info = info
+        if info.get('buffer_size_sec', None) is None:
+            raise RuntimeError('Reader error, notify mne-python developers')
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
@@ -354,22 +355,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # set up cals and mult (cals, compensation, and projector)
         cals = self._cals.ravel()[np.newaxis, :]
-        if self.comp is None and projector is None:
-            mult = None
+        if self.comp is not None:
+            if projector is not None:
+                mult = self.comp * cals
+                mult = np.dot(projector[idx], mult)
+            else:
+                mult = self.comp[idx] * cals
+        elif projector is not None:
+            mult = projector[idx] * cals
         else:
-            mult = list()
-            for ri in range(len(self._first_samps)):
-                if self.comp is not None:
-                    if projector is not None:
-                        mul = self.comp * cals
-                        mul = np.dot(projector[idx], mul)
-                    else:
-                        mul = self.comp[idx] * cals
-                elif projector is not None:
-                    mul = projector[idx] * cals
-                else:
-                    mul = np.diag(self._cals.ravel())[idx]
-                mult.append(mul)
+            mult = None
         cals = cals.T[idx]
 
         # read from necessary files
@@ -379,23 +374,21 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # first iteration (only) could start in the middle somewhere
             if offset == 0:
                 start_file += start - cumul_lens[fi]
-            stop_file = np.min([stop - 1 - cumul_lens[fi] +
-                                self._first_samps[fi], self._last_samps[fi]])
-            if start_file < self._first_samps[fi] or \
-                    stop_file > self._last_samps[fi] or \
-                    stop_file < start_file or start_file > stop_file:
+            stop_file = np.min([stop - cumul_lens[fi] + self._first_samps[fi],
+                                self._last_samps[fi] + 1])
+            if start_file < self._first_samps[fi] or stop_file < start_file:
                 raise ValueError('Bad array indexing, could be a bug')
-
-            self._read_segment_file(data, idx, offset, fi,
-                                    start_file, stop_file, cals, mult)
-            offset += stop_file - start_file + 1
+            n_read = stop_file - start_file
+            this_sl = slice(offset, offset + n_read)
+            self._read_segment_file(data[:, this_sl], idx, fi,
+                                    int(start_file), int(stop_file),
+                                    cals, mult)
+            offset += n_read
 
         logger.info('[done]')
-        times = np.arange(start, stop) / self.info['sfreq']
-        return data, times
+        return data
 
-    def _read_segment_file(self, data, idx, offset, fi, start, stop,
-                           cals, mult):
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file
 
         Only needs to be implemented for readers that support
@@ -403,15 +396,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        data : ndarray, shape (len(idx), n_samp)
+        data : ndarray, shape (len(idx), stop - start + 1)
             The data array. Should be modified inplace.
         idx : ndarray | slice
             The requested channel indices.
-        offset : int
-            Offset. Data should be stored in something like::
-
-                data[:, offset:offset + (start - stop + 1)] = r[idx]
-
         fi : int
             The file index that must be read from.
         start : int
@@ -424,28 +412,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The compensation + projection + cals matrix, if applicable.
         """
         raise NotImplementedError
-
-    @deprecated("This method has been renamed 'load_data' and will be removed "
-                "in v0.11.")
-    def preload_data(self, verbose=None):
-        """Preload raw data
-
-        Parameters
-        ----------
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        raw : instance of Raw
-            The raw object with data.
-
-        Notes
-        -----
-        This function will load raw data if it was not already preloaded.
-        If data were already preloaded, it will do nothing.
-        """
-        return self.load_data(verbose=verbose)
 
     @verbose
     def load_data(self, verbose=None):
@@ -475,7 +441,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _preload_data(self, preload):
         """This function actually preloads the data"""
         data_buffer = preload if isinstance(preload, string_types) else None
-        self._data = self._read_segment(data_buffer=data_buffer)[0]
+        self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info['nchan']
         self.preload = True
         self.close()
@@ -575,11 +541,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """getting raw data content with python slicing"""
         sel, start, stop = self._parse_get_set_params(item)
         if self.preload:
-            data, times = self._data[sel, start:stop], self.times[start:stop]
+            data = self._data[sel, start:stop]
         else:
-            data, times = self._read_segment(start=start, stop=stop, sel=sel,
-                                             projector=self._projector,
-                                             verbose=self.verbose)
+            data = self._read_segment(start=start, stop=stop, sel=sel,
+                                      projector=self._projector,
+                                      verbose=self.verbose)
+        times = self.times[start:stop]
         return data, times
 
     def __setitem__(self, item, value):
@@ -1325,7 +1292,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         start : float
             Initial time to show (can be changed dynamically once plotted).
         n_channels : int
-            Number of channels to plot at once.
+            Number of channels to plot at once. Defaults to 20.
         bgcolor : color object
             Color of the background.
         color : dict | color object | None
@@ -1453,13 +1420,72 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Returns
         -------
         fig : instance of matplotlib figure
-            Figure distributing one image per channel across sensor topography.
+            Figure with frequency spectra of the data channels.
         """
         return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                             proj=proj, n_fft=n_fft, picks=picks, ax=ax,
                             color=color, area_mode=area_mode,
                             area_alpha=area_alpha, n_overlap=n_overlap,
                             dB=dB, show=show, n_jobs=n_jobs)
+
+    def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
+                      n_fft=2048, n_overlap=0, layout=None, color='w',
+                      fig_facecolor='k', axis_facecolor='k', dB=True,
+                      show=True, n_jobs=1, verbose=None):
+        """Function for plotting channel wise frequency spectra as topography.
+
+        Parameters
+        ----------
+        tmin : float
+            Start time for calculations. Defaults to zero.
+        tmax : float | None
+            End time for calculations. If None (default), the end of data is
+            used.
+        fmin : float
+            Start frequency to consider. Defaults to zero.
+        fmax : float
+            End frequency to consider. Defaults to 100.
+        proj : bool
+            Apply projection. Defaults to False.
+        n_fft : int
+            Number of points to use in Welch FFT calculations. Defaults to
+            2048.
+        n_overlap : int
+            The number of points of overlap between blocks. Defaults to 0
+            (no overlap).
+        layout : instance of Layout | None
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If None (default), the correct
+            layout is inferred from the data.
+        color : str | tuple
+            A matplotlib-compatible color to use for the curves. Defaults to
+            white.
+        fig_facecolor : str | tuple
+            A matplotlib-compatible color to use for the figure background.
+            Defaults to black.
+        axis_facecolor : str | tuple
+            A matplotlib-compatible color to use for the axis background.
+            Defaults to black.
+        dB : bool
+            If True, transform data to decibels. Defaults to True.
+        show : bool
+            Show figure if True. Defaults to True.
+        n_jobs : int
+            Number of jobs to run in parallel. Defaults to 1.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
+        """
+        return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
+                                 fmax=fmax, proj=proj, n_fft=n_fft,
+                                 n_overlap=n_overlap, layout=layout,
+                                 color=color, fig_facecolor=fig_facecolor,
+                                 axis_facecolor=axis_facecolor, dB=dB,
+                                 show=show, n_jobs=n_jobs, verbose=verbose)
 
     def time_as_index(self, times, use_first_samp=False, use_rounding=False):
         """Convert time to indices
@@ -1690,7 +1716,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             nsamp = c_ns[-1]
 
             if not self.preload:
-                this_data = self._read_segment()[0]
+                this_data = self._read_segment()
             else:
                 this_data = self._data
 
@@ -1796,6 +1822,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
+    """Helper to data in memory or in memmap for preloading"""
     if data is None:
         # if not already done, allocate array with right type
         if isinstance(data_buffer, string_types):
@@ -1899,8 +1926,6 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         use_fname = fname
     logger.info('Writing %s' % use_fname)
 
-    meas_id = info['meas_id']
-
     fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
                                    reset_range)
 
@@ -1913,8 +1938,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         start_block(fid, FIFF.FIFFB_REF)
         write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
         write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
-        if meas_id is not None:
-            write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+        if info['meas_id'] is not None:
+            write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
         write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
         end_block(fid, FIFF.FIFFB_REF)
 
@@ -1964,8 +1989,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
             write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
-            if meas_id is not None:
-                write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+            if info['meas_id'] is not None:
+                write_id(fid, FIFF.FIFF_REF_FILE_ID, info['meas_id'])
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
             end_block(fid, FIFF.FIFFB_REF)
             break
@@ -2189,17 +2214,17 @@ def concatenate_raws(raws, preload=None, events_list=None):
         return raws[0], events
 
 
-def _check_update_montage(info, montage):
+def _check_update_montage(info, montage, path=None, update_ch_names=False):
     """ Helper function for eeg readers to add montage"""
     if montage is not None:
-        if not isinstance(montage, (str, Montage)):
+        if not isinstance(montage, (string_types, Montage)):
             err = ("Montage must be str, None, or instance of Montage. "
                    "%s was provided" % type(montage))
             raise TypeError(err)
         if montage is not None:
-            if isinstance(montage, str):
-                montage = read_montage(montage)
-            _set_montage(info, montage)
+            if isinstance(montage, string_types):
+                montage = read_montage(montage, path=path)
+            _set_montage(info, montage, update_ch_names=update_ch_names)
 
             missing_positions = []
             exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,

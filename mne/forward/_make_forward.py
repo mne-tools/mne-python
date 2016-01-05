@@ -9,21 +9,20 @@ import os
 from os import path as op
 import numpy as np
 
-from .. import pick_types, pick_info
-from ..io.pick import _has_kit_refs
-from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc
-from ..io.meas_info import Info
+from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc, Info
+from ..io.pick import _has_kit_refs, pick_types, pick_info
 from ..io.constants import FIFF
-from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
-from ._compute_forward import _compute_forwards
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
-                          _get_mri_head_t, _print_coord_trans,
-                          _coord_frame_name, Transform)
+                          _get_trans, _print_coord_trans, _coord_frame_name,
+                          Transform)
 from ..utils import logger, verbose
 from ..source_space import _ensure_src, _filter_source_spaces
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
+
+from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
+from ._compute_forward import _compute_forwards
 
 
 _accuracy_dict = dict(normal=FIFF.FWD_COIL_ACCURACY_NORMAL,
@@ -31,16 +30,17 @@ _accuracy_dict = dict(normal=FIFF.FWD_COIL_ACCURACY_NORMAL,
 
 
 @verbose
-def _read_coil_defs(fname=None, elekta_defs=False, verbose=None):
+def _read_coil_defs(elekta_defs=False, verbose=None):
     """Read a coil definition file.
 
     Parameters
     ----------
-    fname : str
-        The name of the file from which coil definitions are read.
     elekta_defs : bool
-        If true, use Elekta's coil definitions for numerical integration
-        (from Abramowitz and Stegun section 25.4.62).
+        If true, prepend Elekta's coil definitions for numerical
+        integration (from Abramowitz and Stegun section 25.4.62).
+        Note that this will likely cause duplicate coil definitions,
+        so the first matching coil should be selected for optimal
+        integration parameters.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -54,58 +54,61 @@ def _read_coil_defs(fname=None, elekta_defs=False, verbose=None):
         cosmag contains the direction of the coils and rmag contains the
         position vector.
     """
-    if fname is None:
-        if not elekta_defs:
-            fname = op.join(op.split(__file__)[0], '..', 'data',
-                            'coil_def.dat')
-        else:
-            fname = op.join(op.split(__file__)[0], '..', 'data',
-                            'coil_def_Elekta.dat')
+    coil_dir = op.join(op.split(__file__)[0], '..', 'data')
+    coils = list()
+    if elekta_defs:
+        coils += _read_coil_def_file(op.join(coil_dir, 'coil_def_Elekta.dat'))
+    coils += _read_coil_def_file(op.join(coil_dir, 'coil_def.dat'))
+    return coils
+
+
+def _read_coil_def_file(fname):
+    """Helper to read a coil def file"""
     big_val = 0.5
+    coils = list()
     with open(fname, 'r') as fid:
         lines = fid.readlines()
-        res = dict(coils=list())
-        lines = lines[::-1]
-        while len(lines) > 0:
-            line = lines.pop()
-            if line[0] != '#':
-                vals = np.fromstring(line, sep=' ')
-                assert len(vals) in (6, 7)  # newer numpy can truncate comment
-                start = line.find('"')
-                end = len(line.strip()) - 1
-                assert line.strip()[end] == '"'
-                desc = line[start:end]
-                npts = int(vals[3])
-                coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
-                            accuracy=vals[2], size=vals[4], base=vals[5])
-                # get parameters of each component
-                rmag = list()
-                cosmag = list()
-                w = list()
-                for p in range(npts):
-                    # get next non-comment line
+    lines = lines[::-1]
+    while len(lines) > 0:
+        line = lines.pop()
+        if line[0] != '#':
+            vals = np.fromstring(line, sep=' ')
+            assert len(vals) in (6, 7)  # newer numpy can truncate comment
+            start = line.find('"')
+            end = len(line.strip()) - 1
+            assert line.strip()[end] == '"'
+            desc = line[start:end]
+            npts = int(vals[3])
+            coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
+                        accuracy=vals[2], size=vals[4], base=vals[5])
+            # get parameters of each component
+            rmag = list()
+            cosmag = list()
+            w = list()
+            for p in range(npts):
+                # get next non-comment line
+                line = lines.pop()
+                while(line[0] == '#'):
                     line = lines.pop()
-                    while(line[0] == '#'):
-                        line = lines.pop()
-                    vals = np.fromstring(line, sep=' ')
-                    assert len(vals) == 7
-                    # Read and verify data for each integration point
-                    w.append(vals[0])
-                    rmag.append(vals[[1, 2, 3]])
-                    cosmag.append(vals[[4, 5, 6]])
-                w = np.array(w)
-                rmag = np.array(rmag)
-                cosmag = np.array(cosmag)
-                size = np.sqrt(np.sum(cosmag ** 2, axis=1))
-                if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
-                    raise RuntimeError('Unreasonable integration point')
-                if np.any(size <= 0):
-                    raise RuntimeError('Unreasonable normal')
-                cosmag /= size[:, np.newaxis]
-                coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
-                res['coils'].append(coil)
-    logger.info('%d coil definitions read', len(res['coils']))
-    return res
+                vals = np.fromstring(line, sep=' ')
+                assert len(vals) == 7
+                # Read and verify data for each integration point
+                w.append(vals[0])
+                rmag.append(vals[[1, 2, 3]])
+                cosmag.append(vals[[4, 5, 6]])
+            w = np.array(w)
+            rmag = np.array(rmag)
+            cosmag = np.array(cosmag)
+            size = np.sqrt(np.sum(cosmag ** 2, axis=1))
+            if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
+                raise RuntimeError('Unreasonable integration point')
+            if np.any(size <= 0):
+                raise RuntimeError('Unreasonable normal')
+            cosmag /= size[:, np.newaxis]
+            coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
+            coils.append(coil)
+    logger.info('%d coil definitions read', len(coils))
+    return coils
 
 
 def _create_meg_coil(coilset, ch, acc, t):
@@ -118,7 +121,7 @@ def _create_meg_coil(coilset, ch, acc, t):
         raise RuntimeError('%s is not a MEG channel' % ch['ch_name'])
 
     # Simple linear search from the coil definitions
-    for coil in coilset['coils']:
+    for coil in coilset:
         if coil['coil_type'] == (ch['coil_type'] & 0xFFFF) and \
                 coil['accuracy'] == acc:
             break
@@ -135,8 +138,10 @@ def _create_meg_coil(coilset, ch, acc, t):
                type=ch['coil_type'], w=coil['w'], desc=coil['desc'],
                coord_frame=t['to'], rmag=apply_trans(coil_trans, coil['rmag']),
                cosmag=apply_trans(coil_trans, coil['cosmag'], False))
+    r0_exey = (np.dot(coil['rmag'][:, :2], coil_trans[:3, :2].T) +
+               coil_trans[:3, 3])
     res.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
-               ez=coil_trans[:3, 2], r0=coil_trans[:3, 3])
+               ez=coil_trans[:3, 2], r0=coil_trans[:3, 3], r0_exey=r0_exey)
     return res
 
 
@@ -169,7 +174,7 @@ def _create_eeg_el(ch, t=None):
 
 
 def _create_meg_coils(chs, acc=None, t=None, coilset=None):
-    """Create a set of MEG or EEG coils in the head coordinate frame"""
+    """Create a set of MEG coils in the head coordinate frame"""
     acc = _accuracy_dict[acc] if isinstance(acc, string_types) else acc
     coilset = _read_coil_defs(verbose=False) if coilset is None else coilset
     coils = [_create_meg_coil(coilset, ch, acc, t) for ch in chs]
@@ -177,7 +182,7 @@ def _create_meg_coils(chs, acc=None, t=None, coilset=None):
 
 
 def _create_eeg_els(chs):
-    """Create a set of MEG or EEG coils in the head coordinate frame"""
+    """Create a set of EEG electrodes in the head coordinate frame"""
     return [_create_eeg_el(ch) for ch in chs]
 
 
@@ -211,7 +216,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
 
 @verbose
 def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
-                       elekta_defs=False, verbose=None):
+                       elekta_defs=False, head_frame=True, verbose=None):
     """Prepare MEG coil definitions for forward calculation
 
     Parameters
@@ -226,6 +231,11 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         info['bads']
     ignore_ref : bool
         If true, ignore compensation coils
+    elekta_defs : bool
+        If True, use Elekta's coil definitions, which use different integration
+        point geometry. False by default.
+    head_frame : bool
+        If True (default), use head frame coords. Otherwise, use device frame.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -272,14 +282,12 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
                         % (ncomp, info_extra))
             # We need to check to make sure these are NOT KIT refs
             if _has_kit_refs(info, picks):
-                err = ('Cannot create forward solution with KIT reference '
-                       'channels. Consider using "ignore_ref=True" in '
-                       'calculation')
-                raise NotImplementedError(err)
+                raise NotImplementedError(
+                    'Cannot create forward solution with KIT reference '
+                    'channels. Consider using "ignore_ref=True" in '
+                    'calculation')
     else:
         ncomp = 0
-
-    _print_coord_trans(info['dev_head_t'])
 
     # Make info structure to allow making compensator later
     ncomp_data = len(info['comps'])
@@ -287,17 +295,29 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
     meg_info = pick_info(info, picks) if nmeg > 0 else None
 
-    # Create coil descriptions with transformation to head or MRI frame
+    # Create coil descriptions with transformation to head or device frame
     templates = _read_coil_defs(elekta_defs=elekta_defs)
 
-    megcoils = _create_meg_coils(megchs, accuracy, info['dev_head_t'],
-                                 templates)
+    if head_frame:
+        _print_coord_trans(info['dev_head_t'])
+        transform = info['dev_head_t']
+    else:
+        transform = None
+
+    megcoils = _create_meg_coils(megchs, accuracy, transform, templates)
+
     if ncomp > 0:
         logger.info('%d compensation data sets in %s' % (ncomp_data,
                                                          info_extra))
-        compcoils = _create_meg_coils(compchs, 'normal', info['dev_head_t'],
-                                      templates)
-    logger.info('Head coordinate MEG coil definitions created.')
+        compcoils = _create_meg_coils(compchs, 'normal', transform, templates)
+
+    # Check that coordinate frame is correct and log it
+    if head_frame:
+        assert megcoils[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+        logger.info('MEG coil definitions created in head coordinates.')
+    else:
+        assert megcoils[0]['coord_frame'] == FIFF.FIFFV_COORD_DEVICE
+        logger.info('MEG coil definitions created in device coordinate.')
 
     return megcoils, compcoils, megnames, meg_info
 
@@ -500,7 +520,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     # read the transformation from MRI to HEAD coordinates
     # (could also be HEAD to MRI)
-    mri_head_t, trans = _get_mri_head_t(trans)
+    mri_head_t, trans = _get_trans(trans)
     bem_extra = 'dict' if isinstance(bem, dict) else bem
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'

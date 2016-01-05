@@ -14,15 +14,14 @@ import copy
 
 import numpy as np
 
-from ..utils import verbose, get_config, set_config, deprecated
-from ..utils import logger
+from ..utils import verbose, get_config, set_config, logger
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
 from ..time_frequency import compute_epochs_psd
-from .utils import tight_layout, figure_nobar, _toggle_proj
-from .utils import _toggle_options, _layout_figure, _setup_vmin_vmax
-from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
+from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
+                    _layout_figure, _setup_vmin_vmax, _channels_changed,
+                    _plot_raw_onscroll, _onclick_help, plt_show)
 from ..defaults import _handle_default
 
 
@@ -156,52 +155,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             plt.colorbar(im, cax=ax3)
             tight_layout(fig=this_fig)
 
-    if show:
-        plt.show()
-
+    plt_show(show)
     return figs
 
 
-@deprecated('`plot_image_epochs` is deprecated and will be removed in '
-            '"MNE 0.11." Please use plot_epochs_image instead')
-def plot_image_epochs(epochs, picks=None, sigma=0., vmin=None,
-                      vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap='RdBu_r', fig=None):
-
-    return plot_epochs_image(epochs=epochs, picks=picks, sigma=sigma,
-                             vmin=vmin, vmax=None, colorbar=True, order=order,
-                             show=show, units=None, scalings=None, cmap=cmap,
-                             fig=fig)
-
-
-def _drop_log_stats(drop_log, ignore=['IGNORED']):
-    """
-    Parameters
-    ----------
-    drop_log : list of lists
-        Epoch drop log from Epochs.drop_log.
-    ignore : list
-        The drop reasons to ignore.
-
-    Returns
-    -------
-    perc : float
-        Total percentage of epochs dropped.
-    """
-    # XXX: This function should be moved to epochs.py after
-    # removal of perc return parameter in plot_drop_log()
-
-    if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
-        raise ValueError('drop_log must be a list of lists')
-
-    perc = 100 * np.mean([len(d) > 0 for d in drop_log
-                          if not any(r in ignore for r in d)])
-
-    return perc
-
-
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
-                  color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
+                  color=(0.9, 0.9, 0.9), width=0.8, ignore=('IGNORED',),
                   show=True):
     """Show the channel stats based on a drop_log from Epochs
 
@@ -231,6 +190,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
         The figure.
     """
     import matplotlib.pyplot as plt
+    from ..epochs import _drop_log_stats
     perc = _drop_log_stats(drop_log, ignore)
     scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
@@ -238,7 +198,11 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     if perc < threshold or len(ch_names) == 0:
         plt.text(0, 0, 'No drops')
         return fig
-    counts = 100 * np.array(list(scores.values()), dtype=float) / len(drop_log)
+    n_used = 0
+    for d in drop_log:  # "d" is the list of drop reasons for each epoch
+        if len(d) == 0 or any(ch not in ignore for ch in d):
+            n_used += 1  # number of epochs not ignored
+    counts = 100 * np.array(list(scores.values()), dtype=float) / n_used
     n_plot = min(n_max_plot, len(ch_names))
     order = np.flipud(np.argsort(counts))
     plt.title('%s: %0.1f%%' % (subject, perc))
@@ -250,10 +214,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     plt.ylabel('% of epochs rejected')
     plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
     plt.grid(True, axis='y')
-
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
@@ -394,36 +355,36 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     Notes
     -----
-    With trellis set to False, the arrow keys (up/down/left/right) can
-    be used to navigate between channels and epochs and the scaling can be
-    adjusted with - and + (or =) keys, but this depends on the backend
-    matplotlib is configured to use (e.g., mpl.use(``TkAgg``) should work).
-    Full screen mode can be to toggled with f11 key. The amount of epochs and
-    channels per view can be adjusted with home/end and page down/page up keys.
-    Butterfly plot can be toggled with ``b`` key. Right mouse click adds a
-    vertical line to the plot.
+    The arrow keys (up/down/left/right) can be used to navigate between
+    channels and epochs and the scaling can be adjusted with - and + (or =)
+    keys, but this depends on the backend matplotlib is configured to use
+    (e.g., mpl.use(``TkAgg``) should work). Full screen mode can be toggled
+    with f11 key. The amount of epochs and channels per view can be adjusted
+    with home/end and page down/page up keys. Butterfly plot can be toggled
+    with ``b`` key. Right mouse click adds a vertical line to the plot.
     """
-    import matplotlib.pyplot as plt
+    epochs.drop_bad_epochs()
     scalings = _handle_default('scalings_plot_raw', scalings)
 
     projs = epochs.info['projs']
 
     params = {'epochs': epochs,
-              'orig_data': np.concatenate(epochs.get_data(), axis=1),
               'info': copy.deepcopy(epochs.info),
               'bad_color': (0.8, 0.8, 0.8),
-              't_start': 0}
+              't_start': 0,
+              'histogram': None}
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks)
+    _prepare_projectors(params)
+    _layout_figure(params)
 
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
-    if show:
-        try:
-            plt.show(block=block)
-        except TypeError:  # not all versions have this
-            plt.show()
+    try:
+        plt_show(show, block=block)
+    except TypeError:  # not all versions have this
+        plt_show(show)
 
     return params['fig']
 
@@ -481,7 +442,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    import matplotlib.pyplot as plt
     from .raw import _set_psd_plot_params
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         epochs.info, proj, picks, ax, area_mode)
@@ -525,8 +485,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-    if show:
-        plt.show()
+    plt_show(show)
     return fig
 
 
@@ -646,14 +605,14 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         lines.append(lc)
 
     times = epochs.times
-    data = np.zeros((params['info']['nchan'], len(times) * len(epochs.events)))
+    data = np.zeros((params['info']['nchan'], len(times) * n_epochs))
 
     ylim = (25., 0.)  # Hardcoded 25 because butterfly has max 5 rows (5*5=25).
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
 
-    times = np.arange(len(data[0]))
+    times = np.arange(len(times) * len(epochs.events))
     epoch_times = np.arange(0, len(times), n_times)
 
     ax.set_yticks(offsets)
@@ -732,14 +691,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
-    if len(projs) > 0 and not epochs.proj:
-        ax_button = plt.subplot2grid((10, 15), (9, 14))
-        opt_button = mpl.widgets.Button(ax_button, 'Proj')
-        callback_option = partial(_toggle_options, params=params)
-        opt_button.on_clicked(callback_option)
-        params['opt_button'] = opt_button
-        params['ax_button'] = ax_button
-
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)
     fig.canvas.mpl_connect('scroll_event', callback_scroll)
@@ -750,9 +701,25 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     callback_resize = partial(_resize_event, params=params)
     fig.canvas.mpl_connect('resize_event', callback_resize)
     fig.canvas.mpl_connect('pick_event', partial(_onpick, params=params))
+    params['callback_key'] = callback_key
 
     # Draw event lines for the first time.
     _plot_vert_lines(params)
+
+
+def _prepare_projectors(params):
+    """ Helper for setting up the projectors for epochs browser """
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    epochs = params['epochs']
+    projs = params['projs']
+    if len(projs) > 0 and not epochs.proj:
+        ax_button = plt.subplot2grid((10, 15), (9, 14))
+        opt_button = mpl.widgets.Button(ax_button, 'Proj')
+        callback_option = partial(_toggle_options, params=params)
+        opt_button.on_clicked(callback_option)
+        params['opt_button'] = opt_button
+        params['ax_button'] = ax_button
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -761,10 +728,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     callback_proj = partial(_toggle_proj, params=params)
     # store these for use by callbacks in the options figure
     params['callback_proj'] = callback_proj
-    params['callback_key'] = callback_key
-
     callback_proj('none')
-    _layout_figure(params)
 
 
 def _plot_traces(params):
@@ -817,7 +781,7 @@ def _plot_traces(params):
             else:
                 tick_list += [params['ch_names'][ch_idx]]
                 offset = offsets[line_idx]
-            this_data = data[ch_idx][params['t_start']:end]
+            this_data = data[ch_idx]
 
             # subtraction here gets correct orientation for flipped ylim
             ydata = offset - this_data
@@ -904,7 +868,7 @@ def _plot_traces(params):
         params['fig_proj'].canvas.draw()
 
 
-def _plot_update_epochs_proj(params, bools):
+def _plot_update_epochs_proj(params, bools=None):
     """Helper only needs to be called when proj is changed"""
     if bools is not None:
         inds = np.where(bools)[0]
@@ -914,7 +878,10 @@ def _plot_update_epochs_proj(params, bools):
     params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
                                         verbose=False)
 
-    data = params['orig_data']
+    start = int(params['t_start'] / len(params['epochs'].times))
+    n_epochs = params['n_epochs']
+    end = start + n_epochs
+    data = np.concatenate(params['epochs'][start:end].get_data(), axis=1)
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
     types = params['types']
@@ -944,7 +911,7 @@ def _plot_window(value, params):
     if params['t_start'] != value:
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
-        params['plot_fun']()
+        params['plot_update_proj_callback'](params)
 
 
 def _plot_vert_lines(params):
@@ -1018,7 +985,7 @@ def _pick_bad_channels(pos, params):
     if 'ica' in params:
         params['plot_fun']()
     else:
-        params['plot_update_proj_callback'](params, None)
+        params['plot_update_proj_callback'](params)
 
 
 def _plot_onscroll(event, params):
@@ -1184,15 +1151,13 @@ def _plot_onkey(event, params):
         params['n_epochs'] = n_epochs
         params['duration'] -= n_times
         params['hsel_patch'].set_width(params['duration'])
-        params['plot_fun']()
+        params['data'] = params['data'][:, :-n_times]
+        params['plot_update_proj_callback'](params)
     elif event.key == 'end':
         n_epochs = params['n_epochs'] + 1
         n_times = len(params['epochs'].times)
-        if n_times * n_epochs > len(params['data'][0]):
+        if n_times * n_epochs > len(params['times']):
             return
-        if params['t_start'] + n_times * n_epochs > len(params['data'][0]):
-            params['t_start'] -= n_times
-            params['hsel_patch'].set_x(params['t_start'])
         ticks = params['epoch_times'] + 0.5 * n_times
         params['ax2'].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
@@ -1202,11 +1167,12 @@ def _plot_onkey(event, params):
             params['vert_lines'].append(ax.plot(pos, ax.get_ylim(), 'y',
                                                 zorder=3))
         params['duration'] += n_times
-        if params['t_start'] + params['duration'] > len(params['data'][0]):
+        if params['t_start'] + params['duration'] > len(params['times']):
             params['t_start'] -= n_times
             params['hsel_patch'].set_x(params['t_start'])
         params['hsel_patch'].set_width(params['duration'])
-        params['plot_fun']()
+        params['data'] = np.zeros((len(params['data']), params['duration']))
+        params['plot_update_proj_callback'](params)
     elif event.key == 'b':
         if params['fig_options'] is not None:
             plt.close(params['fig_options'])
@@ -1328,8 +1294,8 @@ def _onpick(event, params):
 def _close_event(event, params):
     """Function to drop selected bad epochs. Called on closing of the plot."""
     params['epochs'].drop_epochs(params['bads'])
-    logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
     params['epochs'].info['bads'] = params['info']['bads']
+    logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
 
 
 def _resize_event(event, params):
@@ -1366,10 +1332,11 @@ def _update_channels_epochs(event, params):
     params['n_epochs'] = n_epochs
     params['duration'] = n_times * n_epochs
     params['hsel_patch'].set_width(params['duration'])
-    if params['t_start'] + n_times * n_epochs > len(params['data'][0]):
-        params['t_start'] = len(params['data'][0]) - n_times * n_epochs
+    params['data'] = np.zeros((len(params['data']), params['duration']))
+    if params['t_start'] + n_times * n_epochs > len(params['times']):
+        params['t_start'] = len(params['times']) - n_times * n_epochs
         params['hsel_patch'].set_x(params['t_start'])
-    _plot_traces(params)
+    params['plot_update_proj_callback'](params)
 
 
 def _toggle_labels(label, params):
@@ -1439,7 +1406,7 @@ def _open_options(params):
     params['fig_options'].canvas.mpl_connect('close_event', close_callback)
     try:
         params['fig_options'].canvas.draw()
-        params['fig_options'].show()
+        params['fig_options'].show(warn=False)
         if params['fig_proj'] is not None:
             params['fig_proj'].canvas.draw()
     except Exception:
@@ -1473,8 +1440,7 @@ def _plot_histogram(params):
                           x in enumerate(params['types']) if x == 'grad'])
         data.append(grads.ravel())
         types.append('grad')
-    fig = plt.figure(len(types))
-    fig.clf()
+    params['histogram'] = plt.figure()
     scalings = _handle_default('scalings')
     units = _handle_default('units')
     titles = _handle_default('titles')
@@ -1495,10 +1461,10 @@ def _plot_histogram(params):
         if rej is not None:
             ax.plot((rej, rej), (0, ax.get_ylim()[1]), color='r')
         plt.title(titles[types[idx]])
-    fig.suptitle('Peak-to-peak histogram', y=0.99)
-    fig.subplots_adjust(hspace=0.6)
+    params['histogram'].suptitle('Peak-to-peak histogram', y=0.99)
+    params['histogram'].subplots_adjust(hspace=0.6)
     try:
-        fig.show()
+        params['histogram'].show(warn=False)
     except:
         pass
     if params['fig_proj'] is not None:

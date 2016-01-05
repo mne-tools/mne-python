@@ -12,7 +12,7 @@ from mne.io import read_info, Raw
 from mne.io.constants import FIFF
 from mne.chpi import (_rot_to_quat, _quat_to_rot, get_chpi_positions,
                       _calculate_chpi_positions, _angle_between_quats)
-from mne.utils import (run_tests_if_main, _TempDir, slow_test, set_log_file,
+from mne.utils import (run_tests_if_main, _TempDir, slow_test, catch_logging,
                        requires_version)
 from mne.datasets import testing
 
@@ -36,6 +36,22 @@ def test_quaternions():
     rots = [np.eye(3)]
     for fname in [test_fif_fname, ctf_fname, hp_fif_fname]:
         rots += [read_info(fname)['dev_head_t']['trans'][:3, :3]]
+    # nasty numerical cases
+    rots += [np.array([
+        [-0.99978541, -0.01873462, -0.00898756],
+        [-0.01873462, 0.62565561, 0.77987608],
+        [-0.00898756, 0.77987608, -0.62587152],
+    ])]
+    rots += [np.array([
+        [0.62565561, -0.01873462, 0.77987608],
+        [-0.01873462, -0.99978541, -0.00898756],
+        [0.77987608, -0.00898756, -0.62587152],
+    ])]
+    rots += [np.array([
+        [-0.99978541, -0.00898756, -0.01873462],
+        [-0.00898756, -0.62587152, 0.77987608],
+        [-0.01873462, 0.77987608, 0.62565561],
+    ])]
     for rot in rots:
         assert_allclose(rot, _quat_to_rot(_rot_to_quat(rot)),
                         rtol=1e-5, atol=1e-5)
@@ -57,7 +73,8 @@ def test_quaternions():
 def test_get_chpi():
     """Test CHPI position computation
     """
-    trans0, rot0 = get_chpi_positions(hp_fname)[:2]
+    trans0, rot0, _, quat0 = get_chpi_positions(hp_fname, return_quat=True)
+    assert_allclose(rot0[0], _quat_to_rot(quat0[0]))
     trans0, rot0 = trans0[:-1], rot0[:-1]
     raw = Raw(hp_fif_fname)
     out = get_chpi_positions(raw)
@@ -154,15 +171,9 @@ def test_calculate_chpi_positions():
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['r'] = np.ones(3)
     raw_bad.crop(0, 1., copy=False)
-    tempdir = _TempDir()
-    log_file = op.join(tempdir, 'temp_log.txt')
-    set_log_file(log_file, overwrite=True)
-    try:
+    with catch_logging() as log_file:
         _calculate_chpi_positions(raw_bad)
-    finally:
-        set_log_file()
-    with open(log_file, 'r') as fid:
-        for line in fid:
-            assert_true('0/5 acceptable' in line)
+    for line in log_file.getvalue().split('\n')[:-1]:
+        assert_true('0/5 acceptable' in line)
 
 run_tests_if_main()

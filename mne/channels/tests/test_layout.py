@@ -20,8 +20,7 @@ from mne.channels.layout import (_box_size, _auto_topomap_coords,
                                  generate_2d_layout)
 from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
-from mne.io import Raw, read_raw_kit
-from mne.io.meas_info import _empty_info
+from mne.io import Raw, read_raw_kit, _empty_info
 from mne.io.constants import FIFF
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.utils import _TempDir
@@ -43,7 +42,7 @@ fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 fname_kit_157 = op.join(op.dirname(__file__), '..', '..',  'io', 'kit',
                         'tests', 'data', 'test.sqd')
 
-test_info = _empty_info()
+test_info = _empty_info(1000)
 test_info.update({
     'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
     'chs': [{'cal': 1,
@@ -353,7 +352,7 @@ def test_generate_2d_layout():
     snobg = 10
     sbg = 15
     side = range(snobg)
-    bg_image = np.random.randn(sbg, sbg)
+    bg_image = np.random.RandomState(42).randn(sbg, sbg)
     w, h = [.2, .5]
 
     # Generate fake data

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
@@ -191,11 +192,14 @@ def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
     vals = [k for k, v in six.iteritems(FIFF)
             if v == value and any(fmt in k for fmt in fmts) and
             not any(exc in k for exc in exclude)]
+    if len(vals) == 0:
+        vals = ['???']
     return vals
 
 
 def _show_tree(fid, tree, indent, level, read_limit, max_str):
     """Helper for showing FIFF"""
+    from scipy import sparse
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information
@@ -236,12 +240,16 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                         postpend += ' ... str len=' + str(len(tag.data))
                     elif isinstance(tag.data, (list, tuple)):
                         postpend += ' ... list len=' + str(len(tag.data))
+                    elif sparse.issparse(tag.data):
+                        postpend += (' ... sparse (%s) shape=%s'
+                                     % (tag.data.getformat(), tag.data.shape))
                     else:
-                        postpend += ' ... (unknown type)'
+                        postpend += ' ... type=' + str(type(tag.data))
                 postpend = '>' * 20 + 'BAD' if not good else postpend
                 out += [next_idt + prepend + str(k) + ' = ' +
                         '/'.join(this_type) + ' (' + str(size) + ')' +
                         postpend]
+                out[-1] = out[-1].replace('\n', u'¶')
                 counter = 0
                 good = True
 

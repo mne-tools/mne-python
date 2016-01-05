@@ -23,8 +23,9 @@ from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
 from ..utils import check_fname
 from .multitaper import dpss_windows
-from ..viz.utils import figure_nobar
+from ..viz.utils import figure_nobar, plt_show
 from ..externals.h5io import write_hdf5, read_hdf5
+from ..externals.six import string_types
 
 
 def _get_data(inst, return_itc):
@@ -724,8 +725,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             if title:
                 fig.suptitle(title)
             colorbar = False  # only one colorbar for multiple axes
-        if show:
-            plt.show()
+        plt_show(show)
         return fig
 
     def _onselect(self, eclick, erelease, baseline, mode, layout):
@@ -842,7 +842,6 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             The figure containing the topography.
         """
         from ..viz.topo import _imshow_tfr, _plot_topo
-        import matplotlib.pyplot as plt
         times = self.times.copy()
         freqs = self.freqs
         data = self.data
@@ -869,10 +868,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                          title=title, border=border, x_label='Time (ms)',
                          y_label='Frequency (Hz)', fig_facecolor=fig_facecolor,
                          font_color=font_color)
-
-        if show:
-            plt.show()
-
+        plt_show(show)
         return fig
 
     def _check_compat(self, tfr):
@@ -1374,3 +1370,63 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         out = (out, AverageTFR(info, itc, times, freqs, nave,
                                method='mutlitaper-itc'))
     return out
+
+
+def combine_tfr(all_tfr, weights='nave'):
+    """Merge AverageTFR data by weighted addition
+
+    Create a new AverageTFR instance, using a combination of the supplied
+    instances as its data. By default, the mean (weighted by trials) is used.
+    Subtraction can be performed by passing negative weights (e.g., [1, -1]).
+    Data must have the same channels and the same time instants.
+
+    Parameters
+    ----------
+    all_tfr : list of AverageTFR
+        The tfr datasets.
+    weights : list of float | str
+        The weights to apply to the data of each AverageTFR instance.
+        Can also be ``'nave'`` to weight according to tfr.nave,
+        or ``'equal'`` to use equal weighting (each weighted as ``1/N``).
+
+    Returns
+    -------
+    tfr : AverageTFR
+        The new TFR data.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
+    """
+    tfr = all_tfr[0].copy()
+    if isinstance(weights, string_types):
+        if weights not in ('nave', 'equal'):
+            raise ValueError('Weights must be a list of float, or "nave" or '
+                             '"equal"')
+        if weights == 'nave':
+            weights = np.array([e.nave for e in all_tfr], float)
+            weights /= weights.sum()
+        else:  # == 'equal'
+            weights = [1. / len(all_tfr)] * len(all_tfr)
+    weights = np.array(weights, float)
+    if weights.ndim != 1 or weights.size != len(all_tfr):
+        raise ValueError('Weights must be the same size as all_tfr')
+
+    ch_names = tfr.ch_names
+    for t_ in all_tfr[1:]:
+        assert t_.ch_names == ch_names, ValueError("%s and %s do not contain "
+                                                   "the same channels"
+                                                   % (tfr, t_))
+        assert np.max(np.abs(t_.times - tfr.times)) < 1e-7, \
+            ValueError("%s and %s do not contain the same time instants"
+                       % (tfr, t_))
+
+    # use union of bad channels
+    bads = list(set(tfr.info['bads']).union(*(t_.info['bads']
+                                              for t_ in all_tfr[1:])))
+    tfr.info['bads'] = bads
+
+    tfr.data = sum(w * t_.data for w, t_ in zip(weights, all_tfr))
+    tfr.nave = max(int(1. / sum(w ** 2 / e.nave
+                                for w, e in zip(weights, all_tfr))), 1)
+    return tfr

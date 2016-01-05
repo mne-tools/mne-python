@@ -20,6 +20,8 @@ from mne.datasets import testing
 from mne.stats.regression import linear_regression, linear_regression_raw
 from mne.io import RawArray
 
+warnings.simplefilter('always')
+
 data_path = testing.data_path(download=False)
 stc_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-lh.stc')
@@ -47,6 +49,7 @@ def test_regression():
     # creates contrast: aud_l=0, aud_r=1
     design_matrix[:, 1] -= 1
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         lm = linear_regression(epochs, design_matrix, ['intercept', 'aud'])
         assert_true(w[0].category == UserWarning)
         assert_true('non-data' in '%s' % w[0].message)
@@ -62,8 +65,20 @@ def test_regression():
     stc_list = [stc, stc, stc]
     stc_gen = (s for s in stc_list)
     with warnings.catch_warnings(record=True):  # divide by zero
+        warnings.simplefilter('always')
         lm1 = linear_regression(stc_list, design_matrix[:len(stc_list)])
     lm2 = linear_regression(stc_gen, design_matrix[:len(stc_list)])
+    for val in lm2.values():
+        # all p values are 0 < p <= 1 to start, but get stored in float32
+        # data, so can actually be truncated to 0. Thus the mlog10_p_val
+        # actually maintains better precision for tiny p-values.
+        assert_true(np.isfinite(val.p_val.data).all())
+        assert_true((val.p_val.data <= 1).all())
+        assert_true((val.p_val.data >= 0).all())
+        # all -log10(p) are non-negative
+        assert_true(np.isfinite(val.mlog10_p_val.data).all())
+        assert_true((val.mlog10_p_val.data >= 0).all())
+        assert_true((val.mlog10_p_val.data >= 0).all())
 
     for k in lm1:
         for v1, v2 in zip(lm1[k], lm2[k]):

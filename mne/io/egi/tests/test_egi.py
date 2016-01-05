@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          simplified BSD-3 license
 
@@ -6,48 +7,50 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne import find_events, pick_types, concatenate_raws
-from mne.io import read_raw_egi, Raw
+from mne import find_events, pick_types
+from mne.io import read_raw_egi
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.egi import _combine_triggers
-from mne.utils import _TempDir
+from mne.utils import run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(op.realpath(__file__)), 'data')
 egi_fname = op.join(base_dir, 'test_egi.raw')
+egi_txt_fname = op.join(base_dir, 'test_egi.txt')
 
 
 def test_io_egi():
     """Test importing EGI simple binary files"""
     # test default
-    tempdir = _TempDir()
+    with open(egi_txt_fname) as fid:
+        data = np.loadtxt(fid)
+    t = data[0]
+    data = data[1:]
+    data *= 1e-6  # μV
+
     with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always', category=RuntimeWarning)
+        warnings.simplefilter('always')
         raw = read_raw_egi(egi_fname, include=None)
         assert_true('RawEGI' in repr(raw))
-        raw.load_data()  # currently does nothing
-        assert_equal(len(w), 1)
-        assert_true(w[0].category == RuntimeWarning)
+        assert_equal(len(w), 2)
+        assert_true(w[0].category == DeprecationWarning)  # preload=None
+        assert_true(w[1].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
-        assert_true(msg in '%s' % w[0].message)
+        assert_true(msg in '%s' % w[1].message)
+    data_read, t_read = raw[:256]
+    assert_allclose(t_read, t)
+    assert_allclose(data_read, data, atol=1e-10)
 
     include = ['TRSP', 'XXX1']
-    raw = read_raw_egi(egi_fname, include=include)
-    repr(raw)
-    repr(raw.info)
+    with warnings.catch_warnings(record=True):  # preload=None
+        raw = _test_raw_reader(read_raw_egi, input_fname=egi_fname,
+                               include=include)
 
     assert_equal('eeg' in raw, True)
-    out_fname = op.join(tempdir, 'test_egi_raw.fif')
-    raw.save(out_fname)
-
-    raw2 = Raw(out_fname, preload=True)
-    data1, times1 = raw[:10, :]
-    data2, times2 = raw2[:10, :]
-    assert_array_almost_equal(data1, data2, 9)
-    assert_array_almost_equal(times1, times2)
 
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
     assert_equal(len(eeg_chan), 256)
@@ -63,20 +66,17 @@ def test_io_egi():
     triggers = np.array([[0, 1, 1, 0], [0, 0, 1, 0]])
 
     # test trigger functionality
-    assert_raises(RuntimeError, _combine_triggers, triggers, None)
     triggers = np.array([[0, 1, 0, 0], [0, 0, 1, 0]])
     events_ids = [12, 24]
     new_trigger = _combine_triggers(triggers, events_ids)
     assert_array_equal(np.unique(new_trigger), np.unique([0, 12, 24]))
 
-    assert_raises(ValueError, read_raw_egi, egi_fname,
-                  include=['Foo'])
-    assert_raises(ValueError, read_raw_egi, egi_fname,
-                  exclude=['Bar'])
+    assert_raises(ValueError, read_raw_egi, egi_fname, include=['Foo'],
+                  preload=False)
+    assert_raises(ValueError, read_raw_egi, egi_fname, exclude=['Bar'],
+                  preload=False)
     for ii, k in enumerate(include, 1):
         assert_true(k in raw.event_id)
         assert_true(raw.event_id[k] == ii)
 
-    # Make sure concatenation works
-    raw_concat = concatenate_raws([raw.copy(), raw])
-    assert_equal(raw_concat.n_times, 2 * raw.n_times)
+run_tests_if_main()

@@ -18,6 +18,8 @@ from mne.fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
 from mne.fixes import _firwin2 as mne_firwin2
 from mne.fixes import _filtfilt as mne_filtfilt
 
+rng = np.random.RandomState(0)
+
 
 def test_counter():
     """Test Counter replacement"""
@@ -42,7 +44,7 @@ def test_unique():
     # skip test for np version < 1.5
     if LooseVersion(np.__version__) < LooseVersion('1.5'):
         return
-    for arr in [np.array([]), np.random.rand(10), np.ones(10)]:
+    for arr in [np.array([]), rng.rand(10), np.ones(10)]:
         # basic
         assert_array_equal(np.unique(arr), _unique(arr))
         # with return_index=True
@@ -182,7 +184,7 @@ def test_meshgrid():
 def test_isclose():
     """Test isclose replacement
     """
-    a = np.random.RandomState(0).randn(10)
+    a = rng.randn(10)
     b = a.copy()
     assert_true(_isclose(a, b).all())
     a[0] = np.inf

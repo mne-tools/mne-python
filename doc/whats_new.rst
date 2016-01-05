@@ -4,6 +4,97 @@ What's new
     Note, we are now using links to highlight new functions and classes.
     Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
 
+.. _changes_0_11:
+
+Version 0.11
+------------
+
+Changelog
+~~~~~~~~~
+
+    - Maxwell filtering (SSS) implemented in :func:`mne.preprocessing.maxwell_filter` by `Mark Wronkiewicz`_ as part of Google Summer of Code, with help from `Samu Taulu`_, `Jukka Nenonen`_, and `Jussi Nurminen`_. Our implementation includes support for:
+
+        - Fine calibration
+
+        - Cross-talk correction
+
+        - Temporal SSS (tSSS)
+
+        - Head position translation
+
+        - Internal component regularization
+
+    - Compensation for movements using Maxwell filtering on epoched data in :func:`mne.epochs.average_movements` by `Eric Larson`_ and `Samu Taulu`_
+
+    - Add reader for Nicolet files in :func:`mne.io.read_raw_nicolet` by `Jaakko Leppakangas`_
+
+    - Add FIFF persistence for ICA labels by `Denis Engemann`_
+
+    - Display ICA labels in :func:`mne.viz.plot_ica_scores` and :func:`mne.viz.plot_ica_sources` (for evoked objects) by `Denis Engemann`_
+
+    - Plot spatially color coded lines in :func:`mne.Evoked.plot` by `Jona Sassenhagen`_ and `Jaakko Leppakangas`_
+
+    - Add reader for CTF data in :func:`mne.io.read_raw_ctf` by `Eric Larson`_
+
+    - Add support for Brainvision v2 in :func:`mne.io.read_raw_brainvision` by `Teon Brooks`_
+    
+    - Improve speed of generalization across time :class:`mne.decoding.GeneralizationAcrossTime` decoding up to a factor of seven by `Jean-Remi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
+
+    - Add the explained variance for each principal component, ``explained_var``, key to the :class:`mne.io.Projection` by `Teon Brooks`_
+
+    - Added methods :func:`mne.Epochs.add_eeg_average_proj`, :func:`mne.io.Raw.add_eeg_average_proj`, and :func:`mne.Evoked.add_eeg_average_proj` to add an average EEG reference.
+
+    - Add reader for EEGLAB data in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Mainak Jas`_
+
+BUG
+~~~
+
+    - Fix bug that prevented homogeneous bem surfaces to be displayed in HTML reports by `Denis Engemann`_
+
+    - Added safeguards against ``None`` and negative values in reject and flat parameters in :class:`mne.Epochs` by `Eric Larson`_
+
+    - Fix train and test time window-length in :class:`mne.decoding.GeneralizationAcrossTime` by `Jean-Remi King`_
+
+    - Added lower bound in :func:`mne.stats.linear_regression` on p-values ``p_val`` (and resulting ``mlog10_p_val``) using double floating point arithmetic limits by `Eric Larson`_
+
+    - Fix channel name pick in :func:`mne.Evoked.get_peak` method by `Alex Gramfort`_
+
+    - Fix drop percentages to take into account ``ignore`` option in :func:`mne.viz.plot_drop_log` and :func:`mne.Epochs.plot_drop_log` by `Eric Larson`_.
+
+    - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_ref` to properly add one.
+
+API
+~~~
+
+    - :func:`mne.io.read_raw_brainvision` now has ``event_id`` argument to assign non-standard trigger events to a trigger value by `Teon Brooks`_
+
+    - :func:`mne.read_epochs` now has ``add_eeg_ref=False`` by default, since average EEG reference can be added before writing or after reading using the method :func:`mne.Epochs.add_eeg_ref`.
+
+    - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_average_proj` to properly add one.
+
+Authors
+~~~~~~~
+
+The committer list for this release is the following (preceded by number of commits):
+
+   171  Eric Larson
+   117  Jaakko Leppakangas
+    58  Jona Sassenhagen
+    52  Mainak Jas
+    46  Alexandre Gramfort
+    33  Denis A. Engemann
+    28  Teon Brooks
+    24  Clemens Brunner
+    23  Christian Brodbeck
+    15  Mark Wronkiewicz
+    10  Jean-Remi King
+     5  Marijn van Vliet
+     3  Fede Raimondo
+     2  Alexander Rudiuk
+     2  emilyps14
+     2  lennyvarghese
+     1  Marian Dovgialo
+
 .. _changes_0_10:
 
 Version 0.10
@@ -119,7 +210,7 @@ API
     - ``RawBrainVision`` objects now always have event channel ``'STI 014'``, and recordings with no events will have this channel set to zero by `Eric Larson`_
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number of commits):
 
@@ -353,7 +444,7 @@ API
    - Add ``montage`` parameter to the ``create_info`` function to create the info using montages by `Teon Brooks`_
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number of commits):
 
@@ -553,7 +644,7 @@ API
    - As default, for ICA the maximum number of PCA components equals the number of channels passed. The number of PCA components used to reconstruct the sensor space signals now defaults to the maximum number of PCA components estimated.
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number of commits):
 
@@ -699,7 +790,7 @@ API
 
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -862,7 +953,7 @@ API
    - Remove artifacts module. Artifacts- and preprocessing related functions can now be found in mne.preprocessing.
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -996,7 +1087,7 @@ API
    - Epochs objects now also take dicts as values for the event_id argument. They now can represent multiple conditions.
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -1052,7 +1143,7 @@ Changelog
    - Add method to eliminate stimulation artifacts from raw data by linear interpolation or windowing by `Daniel Strohmeier`_.
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -1097,7 +1188,7 @@ Changelog
    - New tutorial in the documentation and new classes and functions reference page by `Alex Gramfort`_.
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -1134,7 +1225,7 @@ version 0.1:
   - New return values for the function find_ecg_events
 
 Authors
-~~~~~~~~~
+~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
@@ -1233,5 +1324,9 @@ of commits):
 .. _Samu Taulu: http://ilabs.washington.edu/institute-faculty/bio/i-labs-samu-taulu-dsc
 
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
+
+.. _Jukka Nenonen: https://www.linkedin.com/pub/jukka-nenonen/28/b5a/684
+
+.. _Jussi Nurminen: https://scholar.google.fi/citations?user=R6CQz5wAAAAJ&hl=en
 
 .. _Clemens Brunner: https://github.com/cle1109

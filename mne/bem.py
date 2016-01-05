@@ -10,12 +10,12 @@ import os
 import os.path as op
 import shutil
 import glob
+
 import numpy as np
 from scipy import linalg
 
 from .fixes import partial
-from .utils import (verbose, logger, run_subprocess, deprecated,
-                    get_subjects_dir)
+from .utils import verbose, logger, run_subprocess, get_subjects_dir
 from .transforms import _ensure_trans, apply_trans
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
@@ -821,6 +821,11 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
         Head center in head coordinates (mm).
     origin_device: ndarray, shape (3,)
         Head center in device coordinates (mm).
+
+    Notes
+    -----
+    This function excludes any points that are low and frontal
+    (``z < 0 and y > 0``) to improve the fit.
     """
     # get head digization points of the specified kind
     hsp = [p['r'] for p in info['dig'] if p['kind'] in dig_kinds]
@@ -844,6 +849,16 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     origin_device *= 1e3
 
     logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm' % radius)
+    # 99th percentile on Wikipedia for Giabella to back of head is 21.7cm,
+    # i.e. 108mm "radius", so let's go with 110mm
+    # en.wikipedia.org/wiki/Human_head#/media/File:HeadAnthropometry.JPG
+    if radius > 110.:
+        logger.warning('Estimated head size (%0.1f mm) exceeded 99th '
+                       'percentile for adult head size' % (radius,))
+    # > 2 cm away from head center in X or Y is strange
+    if np.sqrt(np.sum(origin_head[:2] ** 2)) > 20:
+        logger.warning('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '
+                       'head frame origin' % tuple(origin_head[:2]))
     logger.info('Origin head coordinates:'.ljust(30) +
                 '%0.1f %0.1f %0.1f mm' % tuple(origin_head))
     logger.info('Origin device coordinates:'.ljust(30) +
@@ -881,6 +896,30 @@ def _fit_sphere(points, disp='auto'):
     return radius, origin
 
 
+def _check_origin(origin, info, coord_frame='head', disp=False):
+    """Helper to check or auto-determine the origin"""
+    if isinstance(origin, string_types):
+        if origin != 'auto':
+            raise ValueError('origin must be a numerical array, or "auto", '
+                             'not %s' % (origin,))
+        if coord_frame == 'head':
+            R, origin = fit_sphere_to_headshape(info, verbose=False)[:2]
+            origin /= 1000.
+            logger.info('    Automatic origin fit: head of radius %0.1f mm'
+                        % R)
+            del R
+        else:
+            origin = (0., 0., 0.)
+    origin = np.array(origin, float)
+    if origin.shape != (3,):
+        raise ValueError('origin must be a 3-element array')
+    if disp:
+        origin_str = ', '.join(['%0.1f' % (o * 1000) for o in origin])
+        logger.info('    Using origin %s mm in the %s frame'
+                    % (origin_str, coord_frame))
+    return origin
+
+
 # ############################################################################
 # Create BEM surfaces
 
@@ -914,15 +953,9 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     .. versionadded:: 0.10
     """
     from .surface import read_surface
-    env = os.environ.copy()
-
-    if not os.environ.get('FREESURFER_HOME'):
-        raise RuntimeError('FREESURFER_HOME environment variable not set')
-
-    env['SUBJECT'] = subject
-
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    env['SUBJECTS_DIR'] = subjects_dir
+    env, mri_dir = _prepare_env(subject, subjects_dir,
+                                requires_freesurfer=True,
+                                requires_mne=True)[:2]
 
     subject_dir = op.join(subjects_dir, subject)
     mri_dir = op.join(subject_dir, 'mri')
@@ -1274,25 +1307,6 @@ def _bem_explain_surface(id_):
 # ############################################################################
 # Write
 
-@deprecated('write_bem_surface is deprecated and will be removed in 0.11, '
-            'use write_bem_surfaces instead')
-def write_bem_surface(fname, surf):
-    """Write one bem surface
-
-    Parameters
-    ----------
-    fname : string
-        File to write
-    surf : dict
-        A surface structured as obtained with read_bem_surfaces
-
-    See Also
-    --------
-    read_bem_surfaces
-    """
-    write_bem_surfaces(fname, surf)
-
-
 def write_bem_surfaces(fname, surfs):
     """Write BEM surfaces to a fiff file
 
@@ -1366,11 +1380,21 @@ def write_bem_solution(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def _prepare_env(subject, subjects_dir):
+def _prepare_env(subject, subjects_dir, requires_freesurfer, requires_mne):
     """Helper to prepare an env object for subprocess calls"""
     env = os.environ.copy()
+    if requires_freesurfer and not os.environ.get('FREESURFER_HOME'):
+        raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
+                           'environment variable is not set.')
+    if requires_mne and not os.environ.get('MNE_ROOT'):
+        raise RuntimeError('I cannot find the MNE command line tools. The '
+                           'MNE_ROOT environment variable is not set.')
+
     if not isinstance(subject, string_types):
         raise TypeError('The subject argument must be set')
+
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
     env['SUBJECT'] = subject
     env['SUBJECTS_DIR'] = subjects_dir
     mri_dir = op.join(subjects_dir, subject, 'mri')
@@ -1423,7 +1447,10 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
     """
-    env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
+    env, mri_dir = _prepare_env(subject, subjects_dir,
+                                requires_freesurfer=True,
+                                requires_mne=False)[:2]
+    curdir = os.getcwd()
     # Step 1a : Data conversion to mgz format
     if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
         os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'))
@@ -1513,6 +1540,9 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         if op.exists('flash5_reg.mgz'):
             os.remove('flash5_reg.mgz')
 
+    # Go back to initial directory
+    os.chdir(curdir)
+
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
@@ -1549,7 +1579,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     convert_flash_mris
     """
     from .viz.misc import plot_bem
-    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
+                                         requires_freesurfer=True,
+                                         requires_mne=True)
+
+    curdir = os.getcwd()
 
     logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
                 'the following parameters:\n'
@@ -1658,3 +1692,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     if show:
         plot_bem(subject=subject, subjects_dir=subjects_dir,
                  orientation='coronal', slices=None, show=True)
+
+    # Go back to initial directory
+    os.chdir(curdir)

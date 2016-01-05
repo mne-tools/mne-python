@@ -2,7 +2,6 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_equal, assert_true, assert_raises
-import os.path as op
 import warnings
 from scipy.signal import resample as sp_resample
 
@@ -11,15 +10,14 @@ from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad)
 
-from mne import set_log_file
-from mne.utils import _TempDir, sum_squared, run_tests_if_main, slow_test
+from mne.utils import sum_squared, run_tests_if_main, slow_test, catch_logging
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
+rng = np.random.RandomState(0)
 
 
 def test_1d_filter():
     """Test our private overlap-add filtering function"""
-    rng = np.random.RandomState(0)
     # make some random signals and filters
     for n_signal in (1, 2, 5, 10, 20, 40, 100, 200, 400, 1000, 2000):
         x = rng.randn(n_signal)
@@ -99,8 +97,6 @@ def test_iir_stability():
 def test_notch_filters():
     """Test notch filters
     """
-    tempdir = _TempDir()
-    log_file = op.join(tempdir, 'temp_log.txt')
     # let's use an ugly, prime sfreq for fun
     sfreq = 487.0
     sig_len_secs = 20
@@ -108,7 +104,6 @@ def test_notch_filters():
     freqs = np.arange(60, 241, 60)
 
     # make a "signal"
-    rng = np.random.RandomState(0)
     a = rng.randn(int(sig_len_secs * sfreq))
     orig_power = np.sqrt(np.mean(a ** 2))
     # make line noise
@@ -122,16 +117,12 @@ def test_notch_filters():
     line_freqs = [None, freqs, freqs, freqs, freqs]
     tols = [2, 1, 1, 1]
     for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
-        if lf is None:
-            set_log_file(log_file, overwrite=True)
-
-        b = notch_filter(a, sfreq, lf, filter_length=fl, method=meth,
-                         verbose='INFO')
+        with catch_logging() as log_file:
+            b = notch_filter(a, sfreq, lf, filter_length=fl, method=meth,
+                             verbose='INFO')
 
         if lf is None:
-            set_log_file()
-            with open(log_file) as fid:
-                out = fid.readlines()
+            out = log_file.getvalue().split('\n')[:-1]
             if len(out) != 2 and len(out) != 3:  # force_serial: len(out) == 3
                 raise ValueError('Detected frequencies not logged properly')
             out = np.fromstring(out[-1], sep=', ')
@@ -142,7 +133,7 @@ def test_notch_filters():
 
 def test_resample():
     """Test resampling"""
-    x = np.random.normal(0, 1, (10, 10, 10))
+    x = rng.normal(0, 1, (10, 10, 10))
     x_rs = resample(x, 1, 2, 10)
     assert_equal(x.shape, (10, 10, 10))
     assert_equal(x_rs.shape, (10, 10, 5))
@@ -194,7 +185,7 @@ def test_filters():
     sfreq = 500
     sig_len_secs = 30
 
-    a = np.random.randn(2, sig_len_secs * sfreq)
+    a = rng.randn(2, sig_len_secs * sfreq)
 
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
@@ -281,7 +272,7 @@ def test_filters():
     assert_true(iir_params['b'].size - 1 == 4)
 
     # check that picks work for 3d array with one channel and picks=[0]
-    a = np.random.randn(5 * sfreq, 5 * sfreq)
+    a = rng.randn(5 * sfreq, 5 * sfreq)
     b = a[:, None, :]
 
     with warnings.catch_warnings(record=True) as w:
@@ -291,7 +282,7 @@ def test_filters():
     assert_array_equal(a_filt[:, None, :], b_filt)
 
     # check for n-dimensional case
-    a = np.random.randn(2, 2, 2, 2)
+    a = rng.randn(2, 2, 2, 2)
     assert_raises(ValueError, band_pass_filter, a, sfreq, Fp1=4, Fp2=8,
                   picks=np.array([0, 1]))
 
@@ -316,38 +307,34 @@ def test_cuda():
     # some warnings about clean-up failing
     # Also, using `n_jobs='cuda'` on a non-CUDA system should be fine,
     # as it should fall back to using n_jobs=1.
-    tempdir = _TempDir()
-    log_file = op.join(tempdir, 'temp_log.txt')
     sfreq = 500
     sig_len_secs = 20
-    a = np.random.randn(sig_len_secs * sfreq)
+    a = rng.randn(sig_len_secs * sfreq)
 
-    set_log_file(log_file, overwrite=True)
-    for fl in ['10s', None, 2048]:
-        bp = band_pass_filter(a, sfreq, 4, 8, n_jobs=1, filter_length=fl)
-        bs = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs=1,
-                              filter_length=fl)
-        lp = low_pass_filter(a, sfreq, 8, n_jobs=1, filter_length=fl)
-        hp = high_pass_filter(lp, sfreq, 4, n_jobs=1, filter_length=fl)
+    with catch_logging() as log_file:
+        for fl in ['10s', None, 2048]:
+            bp = band_pass_filter(a, sfreq, 4, 8, n_jobs=1, filter_length=fl)
+            bs = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs=1,
+                                  filter_length=fl)
+            lp = low_pass_filter(a, sfreq, 8, n_jobs=1, filter_length=fl)
+            hp = high_pass_filter(lp, sfreq, 4, n_jobs=1, filter_length=fl)
 
-        bp_c = band_pass_filter(a, sfreq, 4, 8, n_jobs='cuda',
-                                filter_length=fl, verbose='INFO')
-        bs_c = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
-                                filter_length=fl, verbose='INFO')
-        lp_c = low_pass_filter(a, sfreq, 8, n_jobs='cuda', filter_length=fl,
-                               verbose='INFO')
-        hp_c = high_pass_filter(lp, sfreq, 4, n_jobs='cuda', filter_length=fl,
-                                verbose='INFO')
+            bp_c = band_pass_filter(a, sfreq, 4, 8, n_jobs='cuda',
+                                    filter_length=fl, verbose='INFO')
+            bs_c = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
+                                    filter_length=fl, verbose='INFO')
+            lp_c = low_pass_filter(a, sfreq, 8, n_jobs='cuda',
+                                   filter_length=fl, verbose='INFO')
+            hp_c = high_pass_filter(lp, sfreq, 4, n_jobs='cuda',
+                                    filter_length=fl, verbose='INFO')
 
-        assert_array_almost_equal(bp, bp_c, 12)
-        assert_array_almost_equal(bs, bs_c, 12)
-        assert_array_almost_equal(lp, lp_c, 12)
-        assert_array_almost_equal(hp, hp_c, 12)
+            assert_array_almost_equal(bp, bp_c, 12)
+            assert_array_almost_equal(bs, bs_c, 12)
+            assert_array_almost_equal(lp, lp_c, 12)
+            assert_array_almost_equal(hp, hp_c, 12)
 
     # check to make sure we actually used CUDA
-    set_log_file()
-    with open(log_file) as fid:
-        out = fid.readlines()
+    out = log_file.getvalue().split('\n')[:-1]
     # triage based on whether or not we actually expected to use CUDA
     from mne.cuda import _cuda_capable  # allow above funs to set it
     tot = 12 if _cuda_capable else 0
@@ -355,7 +342,7 @@ def test_cuda():
                      for o in out]) == tot)
 
     # check resampling
-    a = np.random.RandomState(0).randn(3, sig_len_secs * sfreq)
+    a = rng.randn(3, sig_len_secs * sfreq)
     a1 = resample(a, 1, 2, n_jobs=2, npad=0)
     a2 = resample(a, 1, 2, n_jobs='cuda', npad=0)
     a3 = resample(a, 2, 1, n_jobs=2, npad=0)

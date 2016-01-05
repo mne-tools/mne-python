@@ -11,6 +11,7 @@ import copy
 from ..io.pick import pick_types
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
+from ..utils import logger
 
 
 class _DecodingTime(dict):
@@ -148,7 +149,8 @@ class _GeneralizationAcrossTime(object):
         # defined in __init__
         self.train_times_ = copy.deepcopy(self.train_times)
         if 'slices' not in self.train_times_:
-            self.train_times_ = _sliding_window(epochs.times, self.train_times)
+            self.train_times_ = _sliding_window(epochs.times, self.train_times,
+                                                epochs.info['sfreq'])
 
         # Parallel across training time
         # TODO: JRK: Chunking times points needs to be simplified
@@ -223,7 +225,8 @@ class _GeneralizationAcrossTime(object):
             slices_list = list()
             times_list = list()
             for t in range(0, len(self.train_times_['slices'])):
-                test_times_ = _sliding_window(epochs.times, test_times)
+                test_times_ = _sliding_window(epochs.times, test_times,
+                                              epochs.info['sfreq'])
                 times_list += [test_times_['times']]
                 slices_list += [test_times_['slices']]
             test_times = test_times_
@@ -236,7 +239,7 @@ class _GeneralizationAcrossTime(object):
         # Prepare parallel predictions across time points
         # FIXME Note that this means that TimeDecoding.predict isn't parallel
         parallel, p_time_gen, n_jobs = parallel_func(_predict_slices, n_jobs)
-        n_test_slice = max([len(sl) for sl in self.train_times_['slices']])
+        n_test_slice = max(len(sl) for sl in self.train_times_['slices'])
         # Loop across estimators (i.e. training times)
         n_chunks = min(n_test_slice, n_jobs)
         splits = [np.array_split(slices, n_chunks)
@@ -261,6 +264,8 @@ class _GeneralizationAcrossTime(object):
         # np.concatenate as this would need new memory allocations
         self.y_pred_ = [[test for chunk in train for test in chunk]
                         for train in map(list, zip(*y_pred))]
+
+        _warn_once.clear()  # reset self-baked warning tracker
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
@@ -360,6 +365,9 @@ def _predict_slices(X, estimators, cv, slices, predict_mode):
     return out
 
 
+_warn_once = dict()
+
+
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     """Aux function of GeneralizationAcrossTime
 
@@ -385,42 +393,82 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
                 these predictions into a single estimate per sample.
         Default: 'cross-validation'
     """
-    n_epochs = len(X)
-    # Loop across testing slices
-    y_pred = [list() for _ in range(len(slices))]
 
-    # XXX EHN: This loop should be parallelized in a similar way to fit()
+    # Check inputs
+    n_orig_epochs, _, n_times = X.shape
+    if predict_mode == 'cross-validation':
+        # Subselect to-be-predicted epochs so as to manipulate a contiguous
+        # array X by using slices rather than indices.
+        all_test = np.concatenate(list(zip(*cv))[-1])
+        test_epochs_slices = []
+        start = 0
+        for _, test in cv:
+            n_test_epochs = len(test)
+            stop = start + n_test_epochs
+            test_epochs_slices.append(slice(start, stop, 1))
+            start += n_test_epochs
+        X = X[all_test]  # XXX JRK: Still 12 % of cpu time.
+
+        # Check that training cv and predicting cv match
+        if (len(estimators) != len(cv)) or (cv.n != len(X)):
+            raise ValueError(
+                'When `predict_mode = "cross-validation"`, the training '
+                'and predicting cv schemes must be identical.')
+    elif predict_mode != 'mean-prediction':
+        raise ValueError('`predict_mode` must be a str, "mean-prediction" or'
+                         '"cross-validation"')
+    n_epochs, _, n_times = X.shape
+
+    # Checks whether the GAT is based on contiguous window of lengths = 1
+    # time-sample, ranging across the entire times. In this case, we will
+    # be able to vectorize the testing times samples.
+    expected_start = np.arange(n_times)
+    is_single_time_sample = np.array_equal([ii for sl in slices for ii in sl],
+                                           expected_start)
+    if is_single_time_sample:
+        # In simple mode, we avoid iterating over time slices.
+        slices = [slice(expected_start[0], expected_start[-1] + 1, 1)]
+    elif _warn_once.get('vectorization', True):
+        logger.warning('not vectorizing predictions across testing times, '
+                       'using a time window with length > 1')
+        _warn_once['vectorization'] = False
+    # Iterate over testing times. If is_single_time_sample, then 1 iteration.
+    y_pred = list()
     for t, indices in enumerate(slices):
-        # Flatten features in case of multiple time samples
-        Xtrain = X[:, :, indices].reshape(
-            n_epochs, np.prod(X[:, :, indices].shape[1:]))
+        # Vectoring chan_times features in case of multiple time samples given
+        # to the estimators.
+        if not is_single_time_sample:
+            X_pred = X[:, :, indices].reshape(n_epochs, -1)
+        else:
+            X_pred = X
 
-        # Single trial predictions
-        if predict_mode == 'cross-validation':
-            # If predict within cross validation, only predict with
-            # corresponding classifier, else predict with each fold's
-            # classifier and average prediction.
-
-            # Check that training cv and predicting cv match
-            if (len(estimators) != len(cv)) or (cv.n != Xtrain.shape[0]):
-                raise ValueError(
-                    'When `predict_mode = "cross-validation"`, the training '
-                    'and predicting cv schemes must be identical.')
+        if predict_mode == 'mean-prediction':
+            # Predict with each fold's estimator and average predictions.
+            y_pred.append(_predict(X_pred, estimators,
+                          is_single_time_sample=is_single_time_sample))
+        elif predict_mode == 'cross-validation':
+            # Predict with the estimator trained on the separate training set.
             for k, (train, test) in enumerate(cv):
+                # Single trial predictions
+                X_pred_t = X_pred[test_epochs_slices[k]]
+                # If is_single_time_sample, we are predicting each time sample
+                # as if it was a different epoch (vectoring)
+                y_pred_ = _predict(X_pred_t, estimators[k:k + 1],
+                                   is_single_time_sample=is_single_time_sample)
                 # XXX I didn't manage to initialize correctly this array, as
                 # its size depends on the the type of predictor and the
                 # number of class.
                 if k == 0:
-                    y_pred_ = _predict(Xtrain[test, :], estimators[k:k + 1])
-                    y_pred[t] = np.empty((n_epochs, y_pred_.shape[1]))
-                    y_pred[t][test, :] = y_pred_
-                y_pred[t][test, :] = _predict(Xtrain[test, :],
-                                              estimators[k:k + 1])
-        elif predict_mode == 'mean-prediction':
-            y_pred[t] = _predict(Xtrain, estimators)
-        else:
-            raise ValueError('`predict_mode` must be a str, "mean-prediction"'
-                             ' or "cross-validation"')
+                    # /!\ The CV may not be exhaustive. Thus, we need to fill
+                    # the prediction to an array whose length is similar to X
+                    # before it was rendered contiguous.
+                    this_ypred = np.empty((n_orig_epochs,) + y_pred_.shape[1:])
+                    y_pred.append(this_ypred)
+                y_pred[-1][test, ...] = y_pred_
+
+    if is_single_time_sample:
+        y_pred = [yp for yp in y_pred[0].transpose([1, 0, 2])]
+
     return y_pred
 
 
@@ -540,7 +588,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
     return estimators
 
 
-def _sliding_window(times, window_params):
+def _sliding_window(times, window_params, sfreq):
     """Aux function of GeneralizationAcrossTime
 
     Define the slices on which to train each classifier.
@@ -561,9 +609,6 @@ def _sliding_window(times, window_params):
 
     window_params = _DecodingTime(window_params)
 
-    # Sampling frequency as int
-    freq = (times[-1] - times[0]) / len(times)
-
     # Default values
     if ('slices' in window_params and
             all(k in window_params for k in
@@ -575,9 +620,9 @@ def _sliding_window(times, window_params):
         if 'stop' not in window_params:
             window_params['stop'] = times[-1]
         if 'step' not in window_params:
-            window_params['step'] = freq
+            window_params['step'] = 1. / sfreq
         if 'length' not in window_params:
-            window_params['length'] = freq
+            window_params['length'] = 1. / sfreq
 
         if (window_params['start'] < times[0] or
                 window_params['start'] > times[-1]):
@@ -589,9 +634,9 @@ def _sliding_window(times, window_params):
             raise ValueError(
                 '`stop` (%.2f s) outside time range [%.2f, %.2f].' % (
                     window_params['stop'], times[0], times[-1]))
-        if window_params['step'] < freq:
+        if window_params['step'] < 1. / sfreq:
             raise ValueError('`step` must be >= 1 / sampling_frequency')
-        if window_params['length'] < freq:
+        if window_params['length'] < 1. / sfreq:
             raise ValueError('`length` must be >= 1 / sampling_frequency')
         if window_params['length'] > np.ptp(times):
             raise ValueError('`length` must be <= time range')
@@ -603,8 +648,8 @@ def _sliding_window(times, window_params):
 
         start = find_time_idx(window_params['start'])
         stop = find_time_idx(window_params['stop'])
-        step = int(round(window_params['step'] / freq))
-        length = int(round(window_params['length'] / freq))
+        step = int(round(window_params['step'] * sfreq))
+        length = int(round(window_params['length'] * sfreq))
 
         # For each training slice, give time samples to be included
         time_pick = [range(start, start + length)]
@@ -620,7 +665,7 @@ def _sliding_window(times, window_params):
     return window_params
 
 
-def _predict(X, estimators):
+def _predict(X, estimators, is_single_time_sample):
     """Aux function of GeneralizationAcrossTime
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -641,8 +686,18 @@ def _predict(X, estimators):
     from scipy import stats
     from sklearn.base import is_classifier
     # Initialize results:
-    n_epochs = X.shape[0]
+
+    orig_shape = X.shape
+    n_epochs = orig_shape[0]
+    n_times = orig_shape[-1]
+
     n_clf = len(estimators)
+
+    # in simple case, we are predicting each time sample as if it
+    # was a different epoch
+    if is_single_time_sample:  # treat times as trials for optimization
+        X = np.hstack(X).T  # XXX JRK: still 17% of cpu time
+    n_epochs_tmp = len(X)
 
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
@@ -654,7 +709,7 @@ def _predict(X, estimators):
         # initialize predict_results array
         if fold == 0:
             predict_size = _y_pred.shape[1]
-            y_pred = np.ones((n_epochs, predict_size, n_clf))
+            y_pred = np.ones((n_epochs_tmp, predict_size, n_clf))
         y_pred[:, :, fold] = _y_pred
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
@@ -666,14 +721,18 @@ def _predict(X, estimators):
             y_pred = np.mean(y_pred, axis=2)
 
     # Format shape
-    y_pred = y_pred.reshape((n_epochs, predict_size))
+    y_pred = y_pred.reshape((n_epochs_tmp, predict_size))
+    if is_single_time_sample:
+        y_pred = np.reshape(y_pred,
+                            [n_epochs, n_times, y_pred.shape[-1]])
+
     return y_pred
 
 
 class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     """Generalize across time and conditions
 
-    Creates and estimator object used to 1) fit a series of classifiers on
+    Creates an estimator object used to 1) fit a series of classifiers on
     multidimensional time-resolved data, and 2) test the ability of each
     classifier to generalize across other time samples.
 

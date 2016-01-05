@@ -100,6 +100,15 @@ class ProjMixin(object):
 
         return self
 
+    def add_eeg_average_proj(self):
+        """Add an average EEG reference projector if one does not exist
+        """
+        if _needs_eeg_average_ref_proj(self.info):
+            # Don't set as active, since we haven't applied it
+            eeg_proj = make_eeg_average_ref_proj(self.info, activate=False)
+            self.add_proj(eeg_proj)
+        return self
+
     def apply_proj(self):
         """Apply the signal space projection (SSP) operators to the data.
 
@@ -152,7 +161,6 @@ class ProjMixin(object):
             logger.info('The projections don\'t apply to these data.'
                         ' Doing nothing.')
             return self
-
         self._projector, self.info = _projector, info
         if isinstance(self, _BaseRaw):
             if self.preload:
@@ -341,6 +349,12 @@ def _read_proj(fid, node, verbose=None):
         else:
             active = False
 
+        tag = find_tag(fid, item, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR)
+        if tag is not None:
+            explained_var = tag.data
+        else:
+            explained_var = None
+
         # handle the case when data is transposed for some reason
         if data.shape[0] == len(names) and data.shape[1] == nvec:
             data = data.T
@@ -352,7 +366,8 @@ def _read_proj(fid, node, verbose=None):
         #   Use exactly the same fields in data as in a named matrix
         one = Projection(kind=kind, active=active, desc=desc,
                          data=dict(nrow=nvec, ncol=nchan, row_names=None,
-                                   col_names=names, data=data))
+                                   col_names=names, data=data),
+                         explained_var=explained_var)
 
         projs.append(one)
 
@@ -383,6 +398,8 @@ def _write_proj(fid, projs):
     projs : dict
         The projection operator.
     """
+    if len(projs) == 0:
+        return
     start_block(fid, FIFF.FIFFB_PROJ)
 
     for proj in projs:
@@ -399,6 +416,9 @@ def _write_proj(fid, projs):
         write_int(fid, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE, proj['active'])
         write_float_matrix(fid, FIFF.FIFF_PROJ_ITEM_VECTORS,
                            proj['data']['data'])
+        if proj['explained_var'] is not None:
+            write_float(fid, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR,
+                        proj['explained_var'])
         end_block(fid, FIFF.FIFFB_PROJ_ITEM)
 
     end_block(fid, FIFF.FIFFB_PROJ)
@@ -625,11 +645,13 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
         raise ValueError('Cannot create EEG average reference projector '
                          '(no EEG data found)')
     vec = np.ones((1, n_eeg)) / n_eeg
+    explained_var = None
     eeg_proj_data = dict(col_names=eeg_names, row_names=None,
                          data=vec, nrow=1, ncol=n_eeg)
     eeg_proj = Projection(active=activate, data=eeg_proj_data,
                           desc='Average EEG reference',
-                          kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF)
+                          kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF,
+                          explained_var=explained_var)
     return eeg_proj
 
 
@@ -680,7 +702,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         The modified measurement info (Warning: info is modified inplace).
     """
     # Add EEG ref reference proj if necessary
-    if _needs_eeg_average_ref_proj(info) and add_eeg_ref:
+    if add_eeg_ref and _needs_eeg_average_ref_proj(info):
         eeg_proj = make_eeg_average_ref_proj(info, activate=activate)
         info['projs'].append(eeg_proj)
 

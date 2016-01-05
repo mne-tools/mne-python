@@ -18,7 +18,7 @@ from .open import fiff_open
 from .tree import dir_tree_find
 from .tag import read_tag, find_tag
 from .proj import _read_proj, _write_proj, _uniquify_projs
-from .ctf import read_ctf_comp, write_ctf_comp
+from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
@@ -76,13 +76,13 @@ class Info(dict):
         Event list, usually extracted from the stim channels.
         See: :ref:`faq` for details.
     hpi_results : list of dict
-        Head position indicator (HPI) digitization points.
-        See: :ref:`faq` for details.
+        Head position indicator (HPI) digitization points and fit information
+        (e.g., the resulting transform). See: :ref:`faq` for details.
     meas_date : list of int
         The first element of this list is a POSIX timestamp (milliseconds since
         1970-01-01 00:00:00) denoting the date and time at which the
-        measurement was taken.
-        TODO: what are the other fields?
+        measurement was taken. The second element is the number of
+        microseconds.
     nchan : int
         Number of channels.
     projs : list of dict
@@ -94,7 +94,7 @@ class Info(dict):
     acq_pars : str | None
         MEG system acquition parameters.
     acq_stim : str | None
-        TODO: What is this?
+        MEG system stimulus parameters.
     buffer_size_sec : float | None
         Buffer size (in seconds) when reading the raw data in chunks.
     ctf_head_t : dict | None
@@ -123,10 +123,11 @@ class Info(dict):
     highpass : float | None
         Highpass corner frequency in Hertz. Zero indicates a DC recording.
     hpi_meas : list of dict | None
-        HPI measurements.
-        TODO: What is this exactly?
-    hpi_subsystem: | None
-        TODO: What is this?
+        HPI measurements that were taken at the start of the recording
+        (e.g. coil frequencies).
+    hpi_subsystem : dict | None
+        Information about the HPI subsystem that was used (e.g., event
+        channel used for cHPI measurements).
     line_freq : float | None
         Frequency of the power line in Hertz.
     lowpass : float | None
@@ -195,6 +196,8 @@ class Info(dict):
                                             for ch_type, count
                                             in ch_counts.items())
             strs.append('%s : %s%s' % (k, str(type(v))[7:-2], entr))
+            if k in ['sfreq', 'lowpass', 'highpass']:
+                strs[-1] += ' Hz'
         strs_non_empty = sorted(s for s in strs if '|' in s)
         strs_empty = sorted(s for s in strs if '|' not in s)
         st = '\n    '.join(strs_non_empty + strs_empty)
@@ -381,16 +384,6 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         List of digitizer points to be added to the info['dig'].
     """
     dig = []
-    if nasion is not None:
-        nasion = np.asarray(nasion)
-        if nasion.shape == (3,):
-            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('Nasion should have the shape (3,) instead of %s'
-                   % (nasion.shape,))
-            raise ValueError(msg)
     if lpa is not None:
         lpa = np.asarray(lpa)
         if lpa.shape == (3,):
@@ -400,6 +393,16 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         else:
             msg = ('LPA should have the shape (3,) instead of %s'
                    % (lpa.shape,))
+            raise ValueError(msg)
+    if nasion is not None:
+        nasion = np.asarray(nasion)
+        if nasion.shape == (3,):
+            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+                        'kind': FIFF.FIFFV_POINT_CARDINAL,
+                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+        else:
+            msg = ('Nasion should have the shape (3,) instead of %s'
+                   % (nasion.shape,))
             raise ValueError(msg)
     if rpa is not None:
         rpa = np.asarray(rpa)
@@ -415,7 +418,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         hpi = np.asarray(hpi)
         if hpi.shape[1] == 3:
             for idx, point in enumerate(hpi):
-                dig.append({'r': point, 'ident': idx,
+                dig.append({'r': point, 'ident': idx + 1,
                             'kind': FIFF.FIFFV_POINT_HPI,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
@@ -426,7 +429,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         dig_points = np.asarray(dig_points)
         if dig_points.shape[1] == 3:
             for idx, point in enumerate(dig_points):
-                dig.append({'r': point, 'ident': idx,
+                dig.append({'r': point, 'ident': idx + 1,
                             'kind': FIFF.FIFFV_POINT_EXTRA,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
@@ -593,7 +596,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind == FIFF.FIFF_LINE_FREQ:
             tag = read_tag(fid, pos)
             line_freq = float(tag.data)
-        elif kind == FIFF.FIFF_CUSTOM_REF:
+        elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
             custom_ref_applied = bool(tag.data)
 
@@ -861,7 +864,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
 
     info['nchan'] = nchan
     info['sfreq'] = sfreq
-    info['highpass'] = highpass if highpass is not None else 0
+    info['highpass'] = highpass if highpass is not None else 0.
     info['lowpass'] = lowpass if lowpass is not None else info['sfreq'] / 2.0
     info['line_freq'] = line_freq
 
@@ -1024,9 +1027,6 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     #   Projectors
     _write_proj(fid, info['projs'])
 
-    #   CTF compensation info
-    write_ctf_comp(fid, info['comps'])
-
     #   Bad channels
     if len(info['bads']) > 0:
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
@@ -1046,14 +1046,16 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
     write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
-    write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
-    write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
+    if info['lowpass'] is not None:
+        write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
+    if info['highpass'] is not None:
+        write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
     if info.get('line_freq') is not None:
         write_float(fid, FIFF.FIFF_LINE_FREQ, info['line_freq'])
     if data_type is not None:
         write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
     if info.get('custom_ref_applied'):
-        write_int(fid, FIFF.FIFF_CUSTOM_REF, info['custom_ref_applied'])
+        write_int(fid, FIFF.FIFF_MNE_CUSTOM_REF, info['custom_ref_applied'])
 
     #  Channel information
     for k, c in enumerate(info['chs']):
@@ -1102,6 +1104,9 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
                               coil['event_bits'])
                 end_block(fid, FIFF.FIFFB_HPI_COIL)
         end_block(fid, FIFF.FIFFB_HPI_SUBSYSTEM)
+
+    #   CTF compensation info
+    write_ctf_comp(fid, info['comps'])
 
     end_block(fid, FIFF.FIFFB_MEAS_INFO)
 
@@ -1339,9 +1344,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         ch_types = [ch_types] * nchan
     if len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length')
-    info = _empty_info()
+    info = _empty_info(sfreq)
     info['meas_date'] = np.array([0, 0], np.int32)
-    info['sfreq'] = sfreq
     info['ch_names'] = ch_names
     info['nchan'] = nchan
     loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
@@ -1354,7 +1358,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
-        chan_info = dict(loc=loc, unit_mul=0, range=1., cal=1.,
+        chan_info = dict(loc=loc.copy(), unit_mul=0, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
@@ -1387,7 +1391,7 @@ RAW_INFO_FIELDS = (
 )
 
 
-def _empty_info():
+def _empty_info(sfreq):
     """Create an empty info dictionary"""
     from ..transforms import Transform
     _none_keys = (
@@ -1407,8 +1411,11 @@ def _empty_info():
     for k in _list_keys:
         info[k] = list()
     info['custom_ref_applied'] = False
-    info['nchan'] = info['sfreq'] = 0
+    info['nchan'] = 0
     info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
+    info['highpass'] = 0.
+    info['sfreq'] = float(sfreq)
+    info['lowpass'] = info['sfreq'] / 2.
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
     info._check_consistency()
     return info

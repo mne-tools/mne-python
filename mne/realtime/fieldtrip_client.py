@@ -9,9 +9,9 @@ import threading
 import warnings
 import numpy as np
 
-from ..io.constants import FIFF
-from ..io.meas_info import _empty_info
+from ..io import _empty_info
 from ..io.pick import pick_info
+from ..io.constants import FIFF
 from ..epochs import EpochsArray
 from ..utils import logger
 from ..externals.FieldTrip import Client as FtClient
@@ -139,11 +139,10 @@ class FieldTripClient(object):
             warnings.warn('Info dictionary not provided. Trying to guess it '
                           'from FieldTrip Header object')
 
-            info = _empty_info()  # create info dictionary
+            info = _empty_info(self.ft_header.fSample)  # create info
 
             # modify info attributes according to the FieldTrip Header object
             info['nchan'] = self.ft_header.nChannels
-            info['sfreq'] = self.ft_header.fSample
             info['ch_names'] = self.ft_header.labels
 
             info['comps'] = list()
