@@ -70,8 +70,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
-    logscale : bool 
-        Plots logarithmic colorscale (base 2) of epochs if True. Defaults to False.
+    logscale : bool
+        Plots logarithmic colorscale (base 2) of epochs if True. Defaults to
+        False.
 
     Returns
     -------
