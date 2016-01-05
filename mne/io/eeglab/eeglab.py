@@ -6,7 +6,8 @@ import os.path as op
 import numpy as np
 import warnings
 
-from ..utils import _read_segments_file, _find_channels
+from ..utils import (_read_segments_file, _find_channels,
+                     _synthesize_stim_channel)
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import _BaseRaw, _check_update_montage
@@ -108,7 +109,7 @@ def _get_info(eeg, montage, eog=()):
 
 
 def read_raw_eeglab(input_fname, montage=None, preload=False, eog=(),
-                    verbose=None):
+                    event_id=dict(), verbose=None):
     """Read an EEGLAB .set file
 
     Parameters
@@ -132,6 +133,12 @@ def read_raw_eeglab(input_fname, montage=None, preload=False, eog=(),
         Names or indices of channels that should be designated
         EOG channels. If 'auto', the channel names containing
         ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
+    event_id :dict
+        By default, events are read from the input file by dropping every
+        non-integer part of events containing integers, and completely
+        dropping any events without integer parts. If non-integer events
+        should be read, this should be a dict mapping from their names to
+        integers, e.g. dict(fmri_scan_onset=199, recording_start=255).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -226,6 +233,12 @@ class RawEEGLAB(_BaseRaw):
         Names or indices of channels that should be designated
         EOG channels. If 'auto', the channel names containing
         ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
+    event_id : dict
+        By default, events are read from the input file by dropping every
+        non-integer part of events containing integers, and completely
+        dropping any events without integer parts. If non-integer events
+        should be read, this should be a dict mapping from their names to
+        integers, e.g. dict(fmri_scan_onset=199, recording_start=255).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -244,7 +257,7 @@ class RawEEGLAB(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, montage, preload=False, eog=(),
-                 verbose=None):
+                 event_id=dict(), verbose=None):
         """Read EEGLAB .set file.
         """
         from scipy import io
@@ -259,6 +272,19 @@ class RawEEGLAB(_BaseRaw):
 
         last_samps = [eeg.pnts - 1]
         info = _get_info(eeg, montage, eog=eog)
+
+        n_chan = len(info["chs"])
+        stimchan = dict(ch_name='STI 014', coil_type=FIFF.FIFFV_COIL_NONE,
+                        kind=FIFF.FIFFV_STIM_CH, logno=n_chan + 1,
+                        scanno=n_chan + 1, cal=1., range=1., loc=np.zeros(12),
+                        unit=FIFF.FIFF_UNIT_NONE, unit_mul=0.,
+                        coord_frame=FIFF.FIFFV_COORD_HEAD)
+        info['chs'].append(stimchan)
+        info["ch_names"].append("STI 014")
+        info['nchan'] += 1
+        events = _events_from_eeglab_raw(input_fname, event_id=event_id)
+        self._event_ch = _synthesize_stim_channel(events, eeg.pnts)
+
         # read the data
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
@@ -285,7 +311,7 @@ class RawEEGLAB(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
-                            dtype=np.float32)
+                            dtype=np.float32, eeglab=True)
 
 
 class EpochsEEGLAB(_BaseEpochs):
@@ -445,3 +471,45 @@ class EpochsEEGLAB(_BaseEpochs):
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, add_eeg_ref=False, verbose=verbose)
         logger.info('Ready.')
+
+
+def _events_from_eeglab_raw(fname, event_id=dict()):
+    """Create events array from EEGLAB structure by looking them up in the
+    event_id, trying to reduce them to their integer part otherwise, and
+    entirely dropping them (with a warning) if this is impossible"""
+    from scipy.io import loadmat
+
+    eeg = loadmat(fname, struct_as_record=False, squeeze_me=True)["EEG"]
+    types = [event.type for event in eeg.event]
+    latencies = [event.latency for event in eeg.event]
+
+    not_in_event_id = set([x for x in types if x not in event_id])
+    not_purely_numeric = set([x for x in not_in_event_id if not x.isdigit()])
+    no_numbers = set([x for x in not_purely_numeric
+                      if not any([d.isdigit() for d in x])])
+    have_integers = set([x for x in not_purely_numeric
+                         if x not in no_numbers])
+    if len(not_purely_numeric) > 0:
+        basewarn = "Events like the following will be "
+        n_no_numbers, n_have_integers = len(no_numbers), len(have_integers)
+        if n_no_numbers > 0:
+            nonumwarm = "dropped entirely: {}, {} in total"
+            warnings.warn(basewarn + nonumwarm.format(list(no_numbers)[:5],
+                                                      n_no_numbers))
+        if n_have_integers > 0:
+            intwarn = "reduced to their integer part: {}, {} in total"
+            warnings.warn(basewarn + intwarn.format(list(have_integers)[:5],
+                                                    n_have_integers))
+        warnings.warn("Use the `event_id` keyword to "
+                      "include such events manually.")
+
+    events = list()
+    for t, latency in zip(types, latencies):
+        try:
+            event_code = event_id.get(t, int("".join([x for x in t
+                                                      if x.isdigit()])))
+            events.append([int(latency), 1, event_code])
+        except ValueError:
+            pass  # We're already raising a warning here
+
+    return np.asarray(events)
