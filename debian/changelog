@@ -1,6 +1,7 @@
 python-mne (0.11+dfsg-1) unstable; urgency=medium
 
   * Fresh upstream release
+  * debian/patches/fix_test - dropped, upstreamed
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 04 Jan 2016 20:51:51 -0500
 
