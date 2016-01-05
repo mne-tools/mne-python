@@ -11,7 +11,7 @@ from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     _loc_to_coil_trans, Raw, read_info, write_info)
 from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, _write_dig_points,
-                              _read_dig_points, _make_dig_points)
+                              _read_dig_points, _make_dig_points, _merge_info)
 from mne.utils import _TempDir, run_tests_if_main
 from mne.channels.montage import read_montage, read_dig_montage
 
@@ -207,5 +207,16 @@ def test_make_dig_points():
                   dig_points[:, :2])
     assert_raises(ValueError, _make_dig_points, None, None, None, None,
                   dig_points[:, :2])
+
+
+def test_merge_info():
+    """Test merging of multiple Info objects"""
+    info_a = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
+    info_b = create_info(ch_names=['d', 'e', 'f'], sfreq=1000., ch_types=None)
+    info_merged = _merge_info([info_a, info_b])
+    assert_equal(info_merged['nchan'], 6)
+    assert_equal(info_merged['ch_names'], ['a', 'b', 'c', 'd', 'e', 'f'])
+    assert_raises(ValueError, _merge_info, [info_a, info_a])
+
 
 run_tests_if_main()
