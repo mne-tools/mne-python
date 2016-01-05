@@ -31,7 +31,7 @@ def get_chpi_positions(raw, t_step=None, return_quat=False, verbose=None):
     ----------
     raw : instance of Raw | str
         Raw instance to extract the head positions from. Can also be a
-        path to a Maxfilter log file (str).
+        path to a Maxfilter head position estimation log file (str).
     t_step : float | None
         Sampling interval to use when converting data. If None, it will
         be automatically determined. By default, a sampling interval of
