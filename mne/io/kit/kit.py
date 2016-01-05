@@ -248,30 +248,28 @@ class RawKIT(_BaseRaw):
                 blk_stop = blk_start + block.shape[1]
                 data_view = data[:, blk_start:blk_stop]
                 block *= conv_factor[:, np.newaxis]
-                if self._raw_extras[fi]['stim'] is None:
-                    _mult_cal_one(data_view, block, idx, None, mult)
-                else:
-                    _mult_cal_one(data_view[:-1], block, idx, None, mult)  # TODO stim channel exclusion
 
-        # Create a synthetic channel
-        if self._raw_extras[fi]['stim'] is not None:
-            trig_chs = data[self._raw_extras[fi]['stim'], :]
-            if self._raw_extras[fi]['slope'] == '+':
-                trig_chs = trig_chs > self._raw_extras[0]['stimthresh']
-            elif self._raw_extras[fi]['slope'] == '-':
-                trig_chs = trig_chs < self._raw_extras[0]['stimthresh']
-            else:
-                raise ValueError("slope needs to be '+' or '-'")
-
-            # trigger value
-            if self._raw_extras[0]['stim_code'] == 'binary':
-                ntrigchan = len(self._raw_extras[0]['stim'])
-                trig_vals = np.array(2 ** np.arange(ntrigchan), ndmin=2).T
-            else:
-                trig_vals = np.reshape(self._raw_extras[0]['stim'], (-1, 1))
-            trig_chs = trig_chs * trig_vals
-            stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
-            data[-1] = stim_ch
+                # Create a synthetic channel
+                if self._raw_extras[fi]['stim'] is not None:
+                    trig_chs = block[self._raw_extras[fi]['stim'], :]
+                    if self._raw_extras[fi]['slope'] == '+':
+                        trig_chs = trig_chs > self._raw_extras[0]['stimthresh']
+                    elif self._raw_extras[fi]['slope'] == '-':
+                        trig_chs = trig_chs < self._raw_extras[0]['stimthresh']
+                    else:
+                        raise ValueError("slope needs to be '+' or '-'")
+                    # trigger value
+                    if self._raw_extras[0]['stim_code'] == 'binary':
+                        ntrigchan = len(self._raw_extras[0]['stim'])
+                        trig_vals = np.array(2 ** np.arange(ntrigchan),
+                                             ndmin=2).T
+                    else:
+                        trig_vals = np.reshape(self._raw_extras[0]['stim'],
+                                               (-1, 1))
+                    trig_chs = trig_chs * trig_vals
+                    stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
+                    block = np.vstack((block, stim_ch))
+                _mult_cal_one(data_view, block, idx, None, mult)
         # cals are all unity, so can be ignored
 
 
