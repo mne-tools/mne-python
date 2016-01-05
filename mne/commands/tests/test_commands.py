@@ -8,10 +8,10 @@ from nose.tools import assert_true, assert_raises
 
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
-                          mne_coreg, mne_flash_bem_model, mne_kit2fiff,
+                          mne_coreg, mne_kit2fiff,
                           mne_make_scalp_surfaces, mne_maxfilter,
                           mne_report, mne_surf2bem, mne_watershed_bem,
-                          mne_compare_fiff, mne_flash_bem)
+                          mne_compare_fiff, mne_flash_bem, mne_show_fiff)
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        ArgvSetter, slow_test, ultra_slow_test)
@@ -54,6 +54,13 @@ def test_compare_fiff():
     check_usage(mne_compare_fiff)
 
 
+def test_show_fiff():
+    """Test mne compare_fiff"""
+    check_usage(mne_show_fiff)
+    with ArgvSetter((raw_fname,)):
+        mne_show_fiff.run()
+
+
 @requires_mne
 def test_clean_eog_ecg():
     """Test mne clean_eog_ecg"""
@@ -94,12 +101,6 @@ def test_compute_proj_ecg_eog():
 def test_coreg():
     """Test mne coreg"""
     assert_true(hasattr(mne_coreg, 'run'))
-
-
-def test_flash_bem_model():
-    """Test mne flash_bem_model"""
-    assert_true(hasattr(mne_flash_bem_model, 'run'))
-    check_usage(mne_flash_bem_model)
 
 
 def test_kit2fiff():

@@ -21,6 +21,7 @@ from ..tag import read_tag, read_tag_info
 from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
 from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
+from ..utils import _mult_cal_one
 
 from ...utils import check_fname, logger, verbose
 
@@ -151,7 +152,7 @@ class RawFIF(_BaseRaw):
         with ff as fid:
             #   Read the measurement info
 
-            info, meas = read_meas_info(fid, tree)
+            info, meas = read_meas_info(fid, tree, clean_bads=True)
 
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
@@ -341,9 +342,10 @@ class RawFIF(_BaseRaw):
         self._dtype_ = dtype
         return dtype
 
-    def _read_segment_file(self, data, idx, offset, fi, start, stop,
-                           cals, mult):
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file"""
+        stop -= 1
+        offset = 0
         with _fiff_get_fid(self._filenames[fi]) as fid:
             for this in self._raw_extras[fi]:
                 #  Do we need this buffer
@@ -381,19 +383,8 @@ class RawFIF(_BaseRaw):
                                                   self.info['nchan']),
                                            rlims=(first_pick, last_pick)).data
                             one.shape = (picksamp, self.info['nchan'])
-                            one = one.T.astype(data.dtype)
-                            data_view = data[:, offset:(offset + picksamp)]
-                            if mult is not None:
-                                data_view[:] = np.dot(mult[fi], one)
-                            else:  # cals is not None
-                                if isinstance(idx, slice):
-                                    data_view[:] = one[idx]
-                                else:
-                                    # faster to iterate than doing
-                                    # one = one[idx]
-                                    for ii, ix in enumerate(idx):
-                                        data_view[ii] = one[ix]
-                                data_view *= cals
+                            _mult_cal_one(data[:, offset:(offset + picksamp)],
+                                          one.T, idx, cals, mult)
                         offset += picksamp
 
                 #   Done?

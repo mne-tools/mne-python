@@ -1,4 +1,3 @@
-
 .. _ch_convert:
 
 .. contents:: Contents
@@ -6,7 +5,24 @@
    :depth: 2
 
 Here we describe the data reading and conversion utilities included
-with the MNE software.
+with the MNE software. The cheatsheet below summarizes the different
+file formats supported by MNE software.
+
+===================   ========================   =========  =================================================================
+Datatype              File format                Extension  MNE-Python function
+===================   ========================   =========  =================================================================
+MEG                   Elekta Neuromag            .fif       :func:`mne.io.read_raw_fif`
+MEG                   4-D Neuroimaging / BTI      dir       :func:`mne.io.read_raw_bti`
+MEG                   CTF                         dir       :func:`mne.io.read_raw_ctf`
+MEG                   KIT                         sqd       :func:`mne.io.read_raw_kit` and :func:`mne.read_epochs_kit`
+EEG                   Brainvision                .vhdr      :func:`mne.io.read_raw_brainvision`
+EEG                   European data format       .edf       :func:`mne.io.read_raw_edf`
+EEG                   Biosemi data format        .bdf       :func:`mne.io.read_raw_edf`
+EEG                   EGI simple binary          .egi       :func:`mne.io.read_raw_egi`
+EEG                   EEGLAB                     .set       :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab`
+Electrode locations   elc, txt, csd, sfp, htps   Misc       :func:`mne.channels.read_montage`
+Electrode locations   EEGLAB loc, locs, eloc     Misc       :func:`mne.channels.read_montage`
+===================   ========================   =========  =================================================================
 
 .. note::
     All IO functions in MNE-Python performing reading/conversion of MEG and
@@ -85,10 +101,7 @@ See :ref:`mne_create_comp_data` for command-line options.
 Importing CTF data
 ==================
 
-The C command line tools include a utility :ref:`mne_ctf2fiff`,
-based on the BrainStorm Matlab code by Richard Leahy, John Mosher,
-and Sylvain Baillet, to convert data in CTF ds directory to fif
-format.
+In MNE-Python, :func:`mne.io.read_raw_ctf` can be used to read CTF data.
 
 
 Importing CTF Polhemus data
@@ -283,6 +296,12 @@ EGI simple binary files can be read in using :func:`mne.io.read_raw_egi`.
 The EGI raw files are simple binary files with a header and can be exported
 from using the EGI Netstation acquisition software.
 
+
+EEGLAB set files (.set)
+=======================
+
+EEGLAB .set files can be read in using :func:`mne.io.read_raw_eeglab`
+and :func:`mne.read_epochs_eeglab`.
 
 Importing EEG data saved in the Tufts University format
 =======================================================

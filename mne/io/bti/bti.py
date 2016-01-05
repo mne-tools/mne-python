@@ -9,6 +9,7 @@
 
 import os.path as op
 from itertools import count
+import warnings
 
 import numpy as np
 
@@ -17,6 +18,7 @@ from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
 from .. import _BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
+from ..utils import _mult_cal_one
 from .constants import BTI
 from .read import (read_int32, read_int16, read_str, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
@@ -893,8 +895,7 @@ def _read_bti_header_pdf(pdf_fname):
 def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     """ Read bti PDF header
     """
-    info = _read_bti_header_pdf(pdf_fname) if pdf_fname else dict()
-
+    info = _read_bti_header_pdf(pdf_fname)
     cfg = _read_config(config_fname)
     info['bti_transform'] = cfg['transforms']
 
@@ -926,13 +927,10 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
             ch['loc'] = _coil_trans_to_loc(ch_cfg['dev']['transform'])
         else:
             ch['loc'] = None
-        if pdf_fname:
-            if info['data_format'] <= 2:  # see DTYPES, implies integer
-                ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
-            else:  # float
-                ch['cal'] = ch['scale'] * ch['gain']
-        else:
-            ch['scale'] = 1.0
+        if info['data_format'] <= 2:  # see DTYPES, implies integer
+            ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
+        else:  # float
+            ch['cal'] = ch['scale'] * ch['gain']
 
     if sort_by_ch_name:
         by_index = [(i, d['index']) for i, d in enumerate(chans)]
@@ -959,57 +957,6 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     info['weights'] = cfg['user_blocks'][BTI.UB_B_WEIGHTS_USED]
 
     return info
-
-
-def _read_data(info, start=None, stop=None):
-    """ Helper function: read Bti processed data file (PDF)
-
-    Parameters
-    ----------
-    info : dict
-        The measurement info.
-    start : int | None
-        The number of the first time slice to read. If None, all data will
-        be read from the beginning.
-    stop : int | None
-        The number of the last time slice to read. If None, all data will
-        be read to the end.
-    dtype : str | dtype object
-        The type the data are casted to.
-
-    Returns
-    -------
-    data : ndarray
-        The measurement data, a channels x time slices array.
-        The data will be cast to np.float64 for compatibility.
-    """
-
-    total_slices = info['total_slices']
-    if start is None:
-        start = 0
-    if stop is None:
-        stop = total_slices
-
-    if any([start < 0, stop > total_slices, start >= stop]):
-        raise RuntimeError('Invalid data range supplied:'
-                           ' %d, %d' % (start, stop))
-    fname = info['pdf_fname']
-    with _bti_open(fname, 'rb') as fid:
-        fid.seek(info['bytes_per_slice'] * start, 0)
-        cnt = (stop - start) * info['total_chans']
-        shape = [stop - start, info['total_chans']]
-
-        if isinstance(fid, six.BytesIO):
-            data = np.fromstring(fid.getvalue(),
-                                 dtype=info['dtype'], count=cnt)
-        else:
-            data = np.fromfile(fid, dtype=info['dtype'], count=cnt)
-        data = data.astype('f4').reshape(shape)
-
-    for ch in info['chs']:
-        data[:, ch['index']] *= ch['cal']
-
-    return data[:, info['order']].T.astype(np.float64)
 
 
 def _correct_trans(t):
@@ -1051,6 +998,15 @@ class RawBTi(_BaseRaw):
     eog_ch : tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
+
+        ..versionadded:: 0.11
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
@@ -1060,40 +1016,57 @@ class RawBTi(_BaseRaw):
                  translation=(0.0, 0.02, 0.11), convert=True,
                  rename_channels=True, sort_by_ch_name=True,
                  ecg_ch='E31', eog_ch=('E63', 'E64'),
-                 verbose=None):
-
+                 preload=None, verbose=None):
+        if preload is None:
+            warnings.warn('preload is True by default but will be changed to '
+                          'False in v0.12. Please explicitly set preload.',
+                          DeprecationWarning)
+            preload = True
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname, config_fname=config_fname,
             head_shape_fname=head_shape_fname, rotation_x=rotation_x,
             translation=translation, convert=convert, ecg_ch=ecg_ch,
             rename_channels=rename_channels,
             sort_by_ch_name=sort_by_ch_name, eog_ch=eog_ch)
-        logger.info('Reading raw data from %s...' % pdf_fname)
-        data = _read_data(bti_info)
-        assert len(data) == len(info['ch_names'])
-        self._projector_hashes = [None]
         self.bti_ch_labels = [c['chan_label'] for c in bti_info['chs']]
-
         # make Raw repr work if we have a BytesIO as input
         if isinstance(pdf_fname, six.BytesIO):
             pdf_fname = repr(pdf_fname)
-
         super(RawBTi, self).__init__(
-            info, data, filenames=[pdf_fname], verbose=verbose)
-        logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
-                    self.first_samp, self.last_samp,
-                    float(self.first_samp) / info['sfreq'],
-                    float(self.last_samp) / info['sfreq']))
-        logger.info('Ready.')
+            info, preload, filenames=[pdf_fname], raw_extras=[bti_info],
+            last_samps=[bti_info['total_slices'] - 1], verbose=verbose)
+
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        """Read a segment of data from a file"""
+        bti_info = self._raw_extras[fi]
+        fname = bti_info['pdf_fname']
+        read_cals = np.empty((bti_info['total_chans'],))
+        for ch in bti_info['chs']:
+            read_cals[ch['index']] = ch['cal']
+        with _bti_open(fname, 'rb') as fid:
+            fid.seek(bti_info['bytes_per_slice'] * start, 0)
+            shape = (stop - start, bti_info['total_chans'])
+            count = np.prod(shape)
+            dtype = bti_info['dtype']
+            if isinstance(fid, six.BytesIO):
+                one_orig = np.fromstring(fid.getvalue(), dtype, count)
+            else:
+                one_orig = np.fromfile(fid, dtype, count)
+            one_orig.shape = shape
+            one = np.empty(shape[::-1])
+            for ii, b_i_o in enumerate(bti_info['order']):
+                one[ii] = one_orig[:, b_i_o] * read_cals[b_i_o]
+        _mult_cal_one(data, one, idx, cals, mult)
 
 
 def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                   translation, convert, ecg_ch, eog_ch, rename_channels=True,
                   sort_by_ch_name=True):
-
-    if pdf_fname is not None and not isinstance(pdf_fname, six.BytesIO):
-        if not op.isabs(pdf_fname):
-            pdf_fname = op.abspath(pdf_fname)
+    """Helper to read BTI info"""
+    if pdf_fname is None:
+        raise ValueError('pdf_fname must be a path, not None')
+    if not isinstance(pdf_fname, six.BytesIO):
+        pdf_fname = op.abspath(pdf_fname)
 
     if not isinstance(config_fname, six.BytesIO):
         if not op.isabs(config_fname):
@@ -1134,20 +1107,18 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     use_hpi = False  # hard coded, but marked as later option.
     logger.info('Creating Neuromag info structure ...')
-    info = _empty_info()
-    if pdf_fname is not None:
-        date = bti_info['processes'][0]['timestamp']
-        info['meas_date'] = [date, 0]
-        info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
-    else:  # for some use case we just want a partial info with channel geom.
-        info['meas_date'] = None
-        info['sfreq'] = None
-        bti_info['processes'] = list()
+    if 'sample_period' in bti_info.keys():
+        sfreq = 1. / bti_info['sample_period']
+    else:
+        sfreq = None
+    info = _empty_info(sfreq)
+    info['buffer_size_sec'] = 1.  # reasonable default for writing
+    date = bti_info['processes'][0]['timestamp']
+    info['meas_date'] = [date, 0]
     info['nchan'] = len(bti_info['chs'])
 
     # browse processing info for filter specs.
-    # find better default
-    hp, lp = (0.0, info['sfreq'] * 0.4) if pdf_fname else (None, None)
+    hp, lp = info['highpass'], info['lowpass']
     for proc in bti_info['processes']:
         if 'filt' in proc['process_type']:
             for step in proc['processing_steps']:
@@ -1160,8 +1131,6 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     info['highpass'] = hp
     info['lowpass'] = lp
-    info['acq_pars'] = info['acq_stim'] = info['hpi_subsystem'] = None
-    info['events'], info['hpi_results'], info['hpi_meas'] = [], [], []
     chs = []
 
     bti_ch_names = [ch['name'] for ch in bti_info['chs']]
@@ -1305,7 +1274,8 @@ def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), convert=True,
                  rename_channels=True, sort_by_ch_name=True,
-                 ecg_ch='E31', eog_ch=('E63', 'E64'), verbose=None):
+                 ecg_ch='E31', eog_ch=('E63', 'E64'), preload=None,
+                 verbose=None):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     .. note::
@@ -1345,6 +1315,15 @@ def read_raw_bti(pdf_fname, config_fname='config',
     eog_ch : tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
+
+        ..versionadded:: 0.11
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1362,4 +1341,4 @@ def read_raw_bti(pdf_fname, config_fname='config',
                   rotation_x=rotation_x, translation=translation,
                   convert=convert, rename_channels=rename_channels,
                   sort_by_ch_name=sort_by_ch_name, ecg_ch=ecg_ch,
-                  eog_ch=eog_ch, verbose=verbose)
+                  eog_ch=eog_ch, preload=preload, verbose=verbose)

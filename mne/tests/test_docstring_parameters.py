@@ -66,7 +66,6 @@ def get_name(func):
 _docstring_ignores = [
     'mne.io.write',  # always ignore these
     'mne.fixes._in1d',  # fix function
-    'mne.gui.coregistration',  # deprecated single argument w/None
 ]
 
 _tab_ignores = [

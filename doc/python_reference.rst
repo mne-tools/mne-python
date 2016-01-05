@@ -36,6 +36,8 @@ Classes
    Label
    BiHemiLabel
    Transform
+   io.Info
+   io.Projection
    preprocessing.ICA
    decoding.CSP
    decoding.Scaler
@@ -102,8 +104,11 @@ Functions:
   :template: function.rst
 
   read_raw_bti
+  read_raw_ctf
   read_raw_edf
   read_raw_kit
+  read_raw_nicolet
+  read_raw_eeglab
   read_raw_brainvision
   read_raw_egi
   read_raw_fif
@@ -141,6 +146,7 @@ Functions:
    read_dipole
    read_epochs
    read_epochs_kit
+   read_epochs_eeglab
    read_events
    read_evokeds
    read_forward_solution
@@ -353,6 +359,14 @@ Projections:
    read_proj
    write_proj
 
+.. currentmodule:: mne.preprocessing.ssp
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   make_eeg_average_ref_proj
+
 Manipulate channels and set sensors locations for processing and plotting:
 
 .. currentmodule:: mne.channels
@@ -405,6 +419,7 @@ Functions:
    find_eog_events
    ica_find_ecg_events
    ica_find_eog_events
+   maxwell_filter
    read_ica
    run_ica
 
@@ -471,10 +486,11 @@ Events
    :toctree: generated/
    :template: function.rst
 
-   combine_event_ids
-   equalize_epoch_counts
    add_channels_epochs
+   average_movements
+   combine_event_ids
    concatenate_epochs
+   equalize_epoch_counts
 
 Sensor Space Data
 =================
@@ -857,6 +873,7 @@ Functions to compute connectivity (adjacency) matrices for cluster-level statist
    spatial_dist_connectivity
    spatial_src_connectivity
    spatial_tris_connectivity
+   spatial_inter_hemi_connectivity
    spatio_temporal_src_connectivity
    spatio_temporal_tris_connectivity
    spatio_temporal_dist_connectivity

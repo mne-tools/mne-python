@@ -15,7 +15,7 @@
 .. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
 .. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
 
-`mne-python <http://martinos.org/mne/mne-python.html>`_
+`mne-python <http://mne-tools.github.io/>`_
 =======================================================
 
 This package is designed for sensor- and source-space analysis of M-EEG
@@ -31,10 +31,10 @@ This page only contains bare-bones instructions for installing mne-python.
 
 If you're familiar with MNE and you're looking for information on using
 mne-python specifically, jump right to the `mne-python homepage
-<http://martinos.org/mne/mne-python.html>`_. This website includes a
-`tutorial <http://martinos.org/mne/python_tutorial.html>`_,
-helpful `examples <http://martinos.org/mne/auto_examples/index.html>`_, and
-a handy `function reference <http://martinos.org/mne/python_reference.html>`_,
+<http://mne-tools.github.io/stable/python_reference.html>`_. This website includes
+`tutorials <http://mne-tools.github.io/stable/tutorials.html>`_,
+helpful `examples <http://mne-tools.github.io/stable/auto_examples/index.html>`_, and
+a handy `function reference <http://mne-tools.github.io/stable/python_reference.html>`_,
 among other things.
 
 If you're unfamiliar with MNE, you can visit the

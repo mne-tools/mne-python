@@ -377,19 +377,21 @@ def test_fetch_file():
     """Test file downloading
     """
     tempdir = _TempDir()
-    urls = ['http://martinos.org/mne/',
-            'ftp://surfer.nmr.mgh.harvard.edu/pub/data/bert.recon.md5sum.txt']
+    urls = ['http://google.com',
+            'ftp://ftp.openbsd.org/pub/OpenBSD/README']
     with ArgvSetter(disable_stderr=False):  # to capture stdout
         for url in urls:
             archive_name = op.join(tempdir, "download_test")
-            _fetch_file(url, archive_name, verbose=False)
+            _fetch_file(url, archive_name, timeout=30., verbose=False,
+                        resume=False)
             assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
                           op.join(tempdir, 'test'), verbose=False)
             resume_name = op.join(tempdir, "download_resume")
             # touch file
             with open(resume_name + '.part', 'w'):
                 os.utime(resume_name + '.part', None)
-            _fetch_file(url, resume_name, resume=True, verbose=False)
+            _fetch_file(url, resume_name, resume=True, timeout=30.,
+                        verbose=False)
             assert_raises(ValueError, _fetch_file, url, archive_name,
                           hash_='a', verbose=False)
             assert_raises(RuntimeError, _fetch_file, url, archive_name,
@@ -399,7 +401,7 @@ def test_fetch_file():
 def test_sum_squared():
     """Test optimized sum of squares
     """
-    X = np.random.randint(0, 50, (3, 3))
+    X = np.random.RandomState(0).randint(0, 50, (3, 3))
     assert_equal(np.sum(X ** 2), sum_squared(X))
 
 

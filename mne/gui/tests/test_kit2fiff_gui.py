@@ -39,9 +39,19 @@ def test_kit2fiff_model():
     model.hsp_file = hsp_path
     assert_false(model.can_save)
     model.fid_file = fid_path
+    assert_true(model.can_save)
+
+    # stim channels
+    model.stim_chs = "181:184, 186"
+    assert_array_equal(model.stim_chs_array, [181, 182, 183, 186])
+    assert_true(model.stim_chs_ok)
+    model.stim_chs = "181:184, bad"
+    assert_false(model.stim_chs_ok)
+    assert_false(model.can_save)
+    model.stim_chs = ""
+    assert_true(model.can_save)
 
     # export raw
-    assert_true(model.can_save)
     raw_out = model.get_raw()
     raw_out.save(tgt_fname)
     raw = Raw(tgt_fname)
@@ -71,23 +81,23 @@ def test_kit2fiff_model():
     model.stim_slope = '+'
     events_bin = mne.find_events(raw_bin, stim_channel='STI 014')
 
-    model.stim_chs = '<'
+    model.stim_coding = '<'
     raw = model.get_raw()
     events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events, events_bin)
 
     events_rev = events_bin.copy()
     events_rev[:, 2] = 1
-    model.stim_chs = '>'
+    model.stim_coding = '>'
     raw = model.get_raw()
     events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events, events_rev)
 
-    model.stim_chs = 'man'
-    model.stim_chs_manual = list(range(167, 159, -1))
+    model.stim_coding = 'channel'
+    model.stim_chs = "160:161"
     raw = model.get_raw()
     events = mne.find_events(raw, stim_channel='STI 014')
-    assert_array_equal(events, events_bin)
+    assert_array_equal(events, events_bin + [0, 0, 32])
 
     # test reset
     model.clear_all()

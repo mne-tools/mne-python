@@ -9,15 +9,15 @@ import os.path as op
 import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_equal, assert_raises, assert_true
+from nose.tools import assert_raises, assert_true
 import scipy.io
 
-from mne import pick_types, concatenate_raws, Epochs, read_events
-from mne.utils import _TempDir, run_tests_if_main
-from mne.io import Raw
-from mne.io import read_raw_kit, read_epochs_kit
+from mne import pick_types, Epochs, find_events, read_events
+from mne.tests.common import assert_dig_allclose
+from mne.utils import run_tests_if_main
+from mne.io import Raw, read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
-from mne.io.tests.test_raw import _test_concat
+from mne.io.tests.test_raw import _test_raw_reader
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
@@ -32,12 +32,6 @@ elp_path = op.join(data_dir, 'test_elp.txt')
 hsp_path = op.join(data_dir, 'test_hsp.txt')
 
 
-def test_concat():
-    """Test EDF concatenation
-    """
-    _test_concat(read_raw_kit, sqd_path)
-
-
 def test_data():
     """Test reading raw kit files
     """
@@ -49,12 +43,23 @@ def test_data():
     assert_raises(ValueError, read_raw_kit, sqd_path, None, None, None,
                   list(range(167, 159, -1)), '*', 1, True)
     # check functionality
-    _ = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_path,
-                     hsp_path)
-    raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path,
-                          stim=list(range(167, 159, -1)), slope='+',
-                          stimthresh=1, preload=True)
+    raw_mrk = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_path,
+                           hsp_path)
+    raw_py = _test_raw_reader(read_raw_kit,
+                              input_fname=sqd_path, mrk=mrk_path, elp=elp_path,
+                              hsp=hsp_path, stim=list(range(167, 159, -1)),
+                              slope='+', stimthresh=1)
     assert_true('RawKIT' in repr(raw_py))
+
+    # Test stim channel
+    raw_stim = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
+                            preload=False)
+    for raw in [raw_py, raw_stim, raw_mrk]:
+        stim_pick = pick_types(raw.info, meg=False, ref_meg=False,
+                               stim=True, exclude='bads')
+        stim1, _ = raw[stim_pick]
+        stim2 = np.array(raw.read_stim_ch(), ndmin=2)
+        assert_array_equal(stim1, stim2)
 
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude='bads')
@@ -76,10 +81,6 @@ def test_data():
     data_py, _ = raw_py[py_picks]
     assert_array_almost_equal(data_py, data_bin)
 
-    # Make sure concatenation works
-    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
-    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
-
 
 def test_epochs():
     raw = read_raw_kit(sqd_path, stim=None)
@@ -91,37 +92,28 @@ def test_epochs():
     assert_array_equal(data1, data11)
 
 
-def test_read_segment():
-    """Test writing raw kit files when preload is False
-    """
-    tempdir = _TempDir()
-    raw1 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=False)
-    raw1_file = op.join(tempdir, 'test1-raw.fif')
-    raw1.save(raw1_file, buffer_size_sec=.1, overwrite=True)
-    raw2 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=True)
-    raw2_file = op.join(tempdir, 'test2-raw.fif')
-    raw2.save(raw2_file, buffer_size_sec=.1, overwrite=True)
-    data1, times1 = raw1[0, 0:1]
+def test_raw_events():
+    def evts(a, b, c, d, e, f=None):
+        out = [[269, a, b], [281, b, c], [1552, c, d], [1564, d, e]]
+        if f is not None:
+            out.append([2000, e, f])
+        return out
 
-    raw1 = Raw(raw1_file, preload=True)
-    raw2 = Raw(raw2_file, preload=True)
-    assert_array_equal(raw1._data, raw2._data)
-    data2, times2 = raw2[0, 0:1]
-    assert_array_almost_equal(data1, data2)
-    assert_array_almost_equal(times1, times2)
-    raw3 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=True)
-    assert_array_almost_equal(raw1._data, raw3._data)
-    raw4 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=False)
-    raw4.load_data()
-    buffer_fname = op.join(tempdir, 'buffer')
-    assert_array_almost_equal(raw1._data, raw4._data)
-    raw5 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=buffer_fname)
-    assert_array_almost_equal(raw1._data, raw5._data)
+    raw = read_raw_kit(sqd_path)
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(255, 254, 255, 254, 255, 0))
+
+    raw = read_raw_kit(sqd_path, slope='+')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 1, 0, 1, 0))
+
+    raw = read_raw_kit(sqd_path, stim='<', slope='+')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 128, 0, 128, 0))
+
+    raw = read_raw_kit(sqd_path, stim='<', slope='+', stim_code='channel')
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       evts(0, 160, 0, 160, 0))
 
 
 def test_ch_loc():
@@ -146,18 +138,9 @@ def test_ch_loc():
     # test when more than one marker file provided
     mrks = [mrk_path, mrk2_path, mrk3_path]
     read_raw_kit(sqd_path, mrks, elp_path, hsp_path, preload=False)
-
-
-def test_stim_ch():
-    """Test raw kit stim ch
-    """
-    raw = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                       slope='+', preload=True)
-    stim_pick = pick_types(raw.info, meg=False, ref_meg=False,
-                           stim=True, exclude='bads')
-    stim1, _ = raw[stim_pick]
-    stim2 = np.array(raw.read_stim_ch(), ndmin=2)
-    assert_array_equal(stim1, stim2)
-
+    # this dataset does not have the equivalent set of points :(
+    raw_bin.info['dig'] = raw_bin.info['dig'][:8]
+    raw_py.info['dig'] = raw_py.info['dig'][:8]
+    assert_dig_allclose(raw_py.info, raw_bin.info)
 
 run_tests_if_main()

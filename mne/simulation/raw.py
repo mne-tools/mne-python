@@ -22,7 +22,7 @@ from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
                        _prepare_for_forward, _prep_meg_channels,
                        _compute_forwards, _to_forward_dict)
-from ..transforms import _get_mri_head_t, transform_surface_to
+from ..transforms import _get_trans, transform_surface_to
 from ..source_space import _ensure_src, _points_outside_surface
 from ..source_estimate import _BaseSourceEstimate
 from ..utils import logger, verbose, check_random_state
@@ -463,7 +463,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
                             mindist, hpi_rrs, blink_rrs, ecg_rrs, n_jobs):
     """Calculate a forward solution for a subject"""
-    mri_head_t, trans = _get_mri_head_t(trans)
+    mri_head_t, trans = _get_trans(trans)
     logger.info('Setting up forward solutions')
     megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
         update_kwargs, bem = _prepare_for_forward(

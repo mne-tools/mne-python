@@ -58,6 +58,7 @@ def test_map_effects():
 
 def test_f_twoway_rm():
     """ Test 2-way anova """
+    rng = np.random.RandomState(42)
     iter_params = product([4, 10], [2, 15], [4, 6, 8],
                           ['A', 'B', 'A:B'],
                           [False, True])
@@ -68,7 +69,7 @@ def test_f_twoway_rm():
     }
     for params in iter_params:
         n_subj, n_obs, n_levels, effects, correction = params
-        data = np.random.random([n_subj, n_levels, n_obs])
+        data = rng.random_sample([n_subj, n_levels, n_obs])
         fvals, pvals = f_mway_rm(data, _effects[n_levels], effects,
                                  correction=correction)
         assert_true((fvals >= 0).all())
@@ -83,10 +84,10 @@ def test_f_twoway_rm():
         assert_true((fvals_ >= 0).all())
         assert_true(fvals_.size == n_effects)
 
-    data = np.random.random([n_subj, n_levels, 1])
+    data = rng.random_sample([n_subj, n_levels, 1])
     assert_raises(ValueError, f_mway_rm, data, _effects[n_levels],
                   effects='C', correction=correction)
-    data = np.random.random([n_subj, n_levels, n_obs, 3])
+    data = rng.random_sample([n_subj, n_levels, n_obs, 3])
     # check for dimension handling
     f_mway_rm(data, _effects[n_levels], effects, correction=correction)
 

@@ -180,7 +180,7 @@ def test_label_subject():
 def test_label_addition():
     """Test label addition
     """
-    pos = np.random.rand(10, 3)
+    pos = np.random.RandomState(0).rand(10, 3)
     values = np.arange(10.) / 10
     idx0 = list(range(7))
     idx1 = list(range(7, 10))  # non-overlapping

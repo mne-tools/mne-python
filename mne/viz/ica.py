@@ -12,9 +12,9 @@ from functools import partial
 
 import numpy as np
 
-from .utils import tight_layout, _prepare_trellis, _select_bads
-from .utils import _layout_figure, _plot_raw_onscroll, _mouse_click
-from .utils import _helper_raw_resize, _plot_raw_onkey
+from .utils import (tight_layout, _prepare_trellis, _select_bads,
+                    _layout_figure, _plot_raw_onscroll, _mouse_click,
+                    _helper_raw_resize, _plot_raw_onkey, plt_show)
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
@@ -23,6 +23,7 @@ from ..utils import logger
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types
+from ..externals.six import string_types
 
 
 def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
@@ -120,10 +121,9 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         sources = ica.get_sources(inst)
         if start is not None or stop is not None:
             inst = inst.crop(start, stop, copy=True)
-        fig = _plot_ica_sources_evoked(evoked=sources,
-                                       picks=picks,
-                                       exclude=exclude,
-                                       title=title, show=show)
+        fig = _plot_ica_sources_evoked(
+            evoked=sources, picks=picks, exclude=exclude, title=title,
+            labels=getattr(ica, 'labels_', None), show=show)
     else:
         raise ValueError('Data input must be of Raw or Epochs type')
 
@@ -194,14 +194,11 @@ def _plot_ica_grid(sources, start, stop,
     # register callback
     callback = partial(_ica_plot_sources_onpick_, sources=sources, ylims=ylims)
     fig.canvas.mpl_connect('pick_event', callback)
-
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
-def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
+def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     """Plot average over epochs in ICA space
 
     Parameters
@@ -218,6 +215,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
         The figure title.
     show : bool
         Show figure if True.
+    labels : None | dict
+        The ICA labels attribute.
     """
     import matplotlib.pyplot as plt
     if title is None:
@@ -234,12 +233,48 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     texts = list()
     if picks is None:
         picks = np.arange(evoked.data.shape[0])
+    picks = np.sort(picks)
     idxs = [picks]
+    color = 'r'
+
+    if labels is not None:
+        labels_used = [k for k in labels if '/' not in k]
+
+    exclude_labels = list()
     for ii in picks:
         if ii in exclude:
-            label = 'ICA %03d' % (ii + 1)
+            line_label = 'ICA %03d' % (ii + 1)
+            if labels is not None:
+                annot = list()
+                for this_label in labels_used:
+                    indices = labels[this_label]
+                    if ii in indices:
+                        annot.append(this_label)
+
+                line_label += (' - ' + ', '.join(annot))
+            exclude_labels.append(line_label)
+        else:
+            exclude_labels.append(None)
+
+    if labels is not None:
+        # compute colors only based on label categories
+        unique_labels = set([k.split(' - ')[1] for k in exclude_labels if k])
+        label_colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_labels)))
+        label_colors = dict(zip(unique_labels, label_colors))
+    else:
+        label_colors = dict((k, 'red') for k in exclude_labels)
+
+    for exc_label, ii in zip(exclude_labels, picks):
+        if exc_label is not None:
+            # create look up for color ...
+            if ' - ' in exc_label:
+                key = exc_label.split(' - ')[1]
+            else:
+                key = exc_label
+            color = label_colors[key]
+            # ... but display component number too
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
-                         zorder=1, color='r', label=label))
+                         zorder=1, color=color, label=exc_label))
         else:
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
                                  color='k', zorder=0))
@@ -275,13 +310,13 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     fig.canvas.mpl_connect('button_press_event',
                            partial(_butterfly_on_button_press,
                                    params=params))
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
-def plot_ica_scores(ica, scores, exclude=None, axhline=None,
+def plot_ica_scores(ica, scores,
+                    exclude=None, labels=None,
+                    axhline=None,
                     title='ICA component scores',
                     figsize=(12, 6), show=True):
     """Plot scores related to detected components.
@@ -298,6 +333,12 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
     exclude : array_like of int
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
+    labels : str | list | 'ecg' | 'eog' | None
+        The labels to consider for the axes tests. Defaults to None.
+        If list, should match the outer shape of `scores`.
+        If 'ecg' or 'eog', the labels_ attributes will be looked up.
+        Note that '/' is used internally for sublabels specifying ECG and
+        EOG channels.
     axhline : float
         Draw horizontal line to e.g. visualize rejection threshold.
     title : str
@@ -327,7 +368,22 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
     else:
         axes = [axes]
     plt.suptitle(title)
-    for this_scores, ax in zip(scores, axes):
+
+    if labels == 'ecg':
+        labels = [l for l in ica.labels_ if l.startswith('ecg/')]
+    elif labels == 'eog':
+        labels = [l for l in ica.labels_ if l.startswith('eog/')]
+        labels.sort(key=lambda l: l.split('/')[1])  # sort by index
+    elif isinstance(labels, string_types):
+        if len(axes) > 1:
+            raise ValueError('Need as many labels as axes (%i)' % len(axes))
+        labels = [labels]
+    elif isinstance(labels, (tuple, list)):
+        if len(labels) != len(axes):
+            raise ValueError('Need as many labels as axes (%i)' % len(axes))
+    elif labels is None:
+        labels = (None, None)
+    for label, this_scores, ax in zip(labels, scores, axes):
         if len(my_range) != len(this_scores):
             raise ValueError('The length of `scores` must equal the '
                              'number of ICA components.')
@@ -340,15 +396,21 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
             for axl in axhline:
                 ax.axhline(axl, color='r', linestyle='--')
         ax.set_ylabel('score')
+
+        if label is not None:
+            if 'eog/' in label:
+                split = label.split('/')
+                label = ', '.join([split[0], split[2]])
+            elif '/' in label:
+                label = ', '.join(label.split('/'))
+            ax.set_title('(%s)' % label)
         ax.set_xlabel('ICA components')
         ax.set_xlim(0, len(this_scores))
 
     tight_layout(fig=fig)
     if len(axes) > 1:
         plt.subplots_adjust(top=0.9)
-
-    if show:
-        plt.show()
+    plt_show(show)
     return fig
 
 
@@ -473,10 +535,7 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
 
     fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
-
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
@@ -520,17 +579,13 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
-
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
 
 
 def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                       block):
     """Function for plotting the ICA components as raw array."""
-    import matplotlib.pyplot as plt
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
     if picks is None:
@@ -606,12 +661,10 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     params['event_times'] = None
     params['update_fun']()
     params['plot_fun']()
-    if show:
-        try:
-            plt.show(block=block)
-        except TypeError:  # not all versions have this
-            plt.show()
-
+    try:
+        plt_show(show, block=block)
+    except TypeError:  # not all versions have this
+        plt_show(show)
     return params['fig']
 
 
@@ -643,7 +696,6 @@ def _close_event(events, params):
 def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                          title, block):
     """Function for plotting the components as epochs."""
-    import matplotlib.pyplot as plt
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
@@ -692,16 +744,28 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                                n_epochs=n_epochs, scalings=scalings,
                                title=title, picks=picks,
                                order=['misc', 'eog', 'ecg'])
+    params['plot_update_proj_callback'] = _update_epoch_data
+    _update_epoch_data(params)
     params['hsel_patch'].set_x(params['t_start'])
     callback_close = partial(_close_epochs_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
-    if show:
-        try:
-            plt.show(block=block)
-        except TypeError:  # not all versions have this
-            plt.show()
-
+    try:
+        plt_show(show, block=block)
+    except TypeError:  # not all versions have this
+        plt_show(show)
     return params['fig']
+
+
+def _update_epoch_data(params):
+    """Function for preparing the data on horizontal shift."""
+    start = params['t_start']
+    n_epochs = params['n_epochs']
+    end = start + n_epochs * len(params['epochs'].times)
+    data = params['orig_data'][:, start:end]
+    types = params['types']
+    for pick, ind in enumerate(params['inds']):
+        params['data'][pick] = data[ind] / params['scalings'][types[pick]]
+    params['plot_fun']()
 
 
 def _close_epochs_event(events, params):
@@ -757,5 +821,4 @@ def _label_clicked(pos, params):
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
-
-    plt.show()
+    plt_show(True)

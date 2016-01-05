@@ -3,17 +3,20 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: Simplified BSD
 
-import numpy as np
-from scipy.sparse import csc_matrix
+from os import path as op
 import warnings
 
-from .open import read_tag
+import numpy as np
+from scipy.sparse import csc_matrix
+
+from .open import read_tag, fiff_open
 from .tree import dir_tree_find
 from .write import (start_block, end_block, write_int, write_float,
                     write_string, write_float_matrix, write_int_matrix,
                     write_float_sparse_rcs, write_id)
+from .tag import find_tag
 from .constants import FIFF
-from ..externals.six import text_type
+from ..externals.six import text_type, string_types
 
 
 _proc_keys = ['parent_file_id', 'block_id', 'parent_block_id',
@@ -153,23 +156,37 @@ _max_st_ids = (FIFF.FIFF_SSS_JOB, FIFF.FIFF_SSS_ST_CORR,
 _max_st_writers = (write_int, write_float, write_float)
 _max_st_casters = (int, float, float)
 
-_sss_ctc_keys = ('parent_file_id', 'block_id', 'parent_block_id',
-                 'date', 'creator', 'decoupler')
-_sss_ctc_ids = (FIFF.FIFF_PARENT_FILE_ID,
-                FIFF.FIFF_BLOCK_ID,
-                FIFF.FIFF_PARENT_BLOCK_ID,
+_sss_ctc_keys = ('block_id', 'date', 'creator', 'decoupler')
+_sss_ctc_ids = (FIFF.FIFF_BLOCK_ID,
                 FIFF.FIFF_MEAS_DATE,
                 FIFF.FIFF_CREATOR,
                 FIFF.FIFF_DECOUPLER_MATRIX)
-_sss_ctc_writers = (write_id, write_id, write_id,
-                    write_int, write_string, write_float_sparse_rcs)
-_sss_ctc_casters = (dict, dict, dict,
-                    np.array, text_type, csc_matrix)
+_sss_ctc_writers = (write_id, write_int, write_string, write_float_sparse_rcs)
+_sss_ctc_casters = (dict, np.array, text_type, csc_matrix)
 
 _sss_cal_keys = ('cal_chans', 'cal_corrs')
 _sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)
 _sss_cal_writers = (write_int_matrix, write_float_matrix)
 _sss_cal_casters = (np.array, np.array)
+
+
+def _read_ctc(fname):
+    """Read cross-talk correction matrix"""
+    if not isinstance(fname, string_types) or not op.isfile(fname):
+        raise ValueError('fname must be a file that exists, not %s' % fname)
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        sss_ctc = _read_maxfilter_record(fid, tree)['sss_ctc']
+        bad_str = 'Invalid cross-talk FIF: %s' % fname
+        if len(sss_ctc) == 0:
+            raise ValueError(bad_str)
+        node = dir_tree_find(tree, FIFF.FIFFB_DATA_CORRECTION)[0]
+        comment = find_tag(fid, node, FIFF.FIFF_COMMENT).data
+        if comment != 'cross-talk compensation matrix':
+            raise ValueError(bad_str)
+        sss_ctc['creator'] = find_tag(fid, node, FIFF.FIFF_CREATOR).data
+        sss_ctc['date'] = find_tag(fid, node, FIFF.FIFF_MEAS_DATE).data
+    return sss_ctc
 
 
 def _read_maxfilter_record(fid, tree):
@@ -218,7 +235,12 @@ def _read_maxfilter_record(fid, tree):
             else:
                 if kind == FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST:
                     tag = read_tag(fid, pos)
-                    sss_ctc['proj_items_chs'] = tag.data.split(':')
+                    chs = tag.data.split(':')
+                    # XXX for some reason this list can have a bunch of junk
+                    # in the last entry, e.g.:
+                    # [..., u'MEG2642', u'MEG2643', u'MEG2641\x00 ... \x00']
+                    chs[-1] = chs[-1].split('\x00')[0]
+                    sss_ctc['proj_items_chs'] = chs
 
     sss_cal_block = dir_tree_find(tree, FIFF.FIFFB_SSS_CAL)  # 503
     sss_cal = dict()

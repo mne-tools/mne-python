@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
@@ -20,7 +18,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.io import Raw, RawArray, concatenate_raws, read_raw_fif
-from mne.io.tests.test_raw import _test_concat
+from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
@@ -44,6 +42,7 @@ bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+rng = np.random.RandomState(0)
 
 
 def test_fix_types():
@@ -425,7 +424,7 @@ def test_io_raw():
     raw = Raw(fif_fname).crop(0, 3.5, False)
     raw.load_data()
     # put in some data that we know the values of
-    data = np.random.randn(raw._data.shape[0], raw._data.shape[1])
+    data = rng.randn(raw._data.shape[0], raw._data.shape[1])
     raw._data[:, :] = data
     # save it somewhere
     fname = op.join(tempdir, 'test_copy_raw.fif')
@@ -523,17 +522,18 @@ def test_io_raw():
 def test_io_complex():
     """Test IO with complex data types
     """
+    rng = np.random.RandomState(0)
     tempdir = _TempDir()
     dtypes = [np.complex64, np.complex128]
 
-    raw = Raw(fif_fname, preload=True)
+    raw = _test_raw_reader(Raw, fnames=fif_fname)
     picks = np.arange(5)
     start, stop = raw.time_as_index([0, 5])
 
     data_orig, _ = raw[picks, start:stop]
 
     for di, dtype in enumerate(dtypes):
-        imag_rand = np.array(1j * np.random.randn(data_orig.shape[0],
+        imag_rand = np.array(1j * rng.randn(data_orig.shape[0],
                              data_orig.shape[1]), dtype)
 
         raw_cp = raw.copy()
@@ -658,7 +658,7 @@ def test_preload_modify():
         nsamp = raw.last_samp - raw.first_samp + 1
         picks = pick_types(raw.info, meg='grad', exclude='bads')
 
-        data = np.random.randn(len(picks), nsamp // 2)
+        data = rng.randn(len(picks), nsamp // 2)
 
         try:
             raw[picks, :nsamp // 2] = data

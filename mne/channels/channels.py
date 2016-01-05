@@ -56,7 +56,7 @@ def _contains_ch_type(info, ch_type):
 
     Parameters
     ---------
-    info : instance of mne.io.meas_info.Info
+    info : instance of mne.io.Info
         The measurement information.
     ch_type : str
         the channel type to be checked for
@@ -106,7 +106,7 @@ def equalize_channels(candidates, verbose=None):
     Parameters
     ----------
     candidates : list
-        list Raw | Epochs | Evoked.
+        list Raw | Epochs | Evoked | AverageTFR
     verbose : None | bool
         whether to be verbose or not.
 
@@ -153,6 +153,44 @@ class ContainsMixin(object):
         else:
             has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
+
+
+_human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
+               'eeg': FIFF.FIFFV_EEG_CH,
+               'emg': FIFF.FIFFV_EMG_CH,
+               'eog': FIFF.FIFFV_EOG_CH,
+               'exci': FIFF.FIFFV_EXCI_CH,
+               'ias': FIFF.FIFFV_IAS_CH,
+               'misc': FIFF.FIFFV_MISC_CH,
+               'resp': FIFF.FIFFV_RESP_CH,
+               'seeg': FIFF.FIFFV_SEEG_CH,
+               'stim': FIFF.FIFFV_STIM_CH,
+               'syst': FIFF.FIFFV_SYST_CH}
+_human2unit = {'ecg': FIFF.FIFF_UNIT_V,
+               'eeg': FIFF.FIFF_UNIT_V,
+               'emg': FIFF.FIFF_UNIT_V,
+               'eog': FIFF.FIFF_UNIT_V,
+               'exci': FIFF.FIFF_UNIT_NONE,
+               'ias': FIFF.FIFF_UNIT_NONE,
+               'misc': FIFF.FIFF_UNIT_V,
+               'resp': FIFF.FIFF_UNIT_NONE,
+               'seeg': FIFF.FIFF_UNIT_V,
+               'stim': FIFF.FIFF_UNIT_NONE,
+               'syst': FIFF.FIFF_UNIT_NONE}
+_unit2human = {FIFF.FIFF_UNIT_V: 'V',
+               FIFF.FIFF_UNIT_NONE: 'NA'}
+
+
+def _check_set(ch, projs, ch_type):
+    """Helper to make sure type change is compatible with projectors"""
+    new_kind = _human2fiff[ch_type]
+    if ch['kind'] != new_kind:
+        for proj in projs:
+            if ch['ch_name'] in proj['data']['col_names']:
+                raise RuntimeError('Cannot change channel type for channel %s '
+                                   'in projector "%s"'
+                                   % (ch['ch_name'], proj['desc']))
+    ch['kind'] = new_kind
 
 
 class SetChannelsMixin(object):
@@ -228,32 +266,6 @@ class SetChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
-                      'eeg': FIFF.FIFFV_EEG_CH,
-                      'emg': FIFF.FIFFV_EMG_CH,
-                      'eog': FIFF.FIFFV_EOG_CH,
-                      'exci': FIFF.FIFFV_EXCI_CH,
-                      'ias': FIFF.FIFFV_IAS_CH,
-                      'misc': FIFF.FIFFV_MISC_CH,
-                      'resp': FIFF.FIFFV_RESP_CH,
-                      'seeg': FIFF.FIFFV_SEEG_CH,
-                      'stim': FIFF.FIFFV_STIM_CH,
-                      'syst': FIFF.FIFFV_SYST_CH}
-
-        human2unit = {'ecg': FIFF.FIFF_UNIT_V,
-                      'eeg': FIFF.FIFF_UNIT_V,
-                      'emg': FIFF.FIFF_UNIT_V,
-                      'eog': FIFF.FIFF_UNIT_V,
-                      'exci': FIFF.FIFF_UNIT_NONE,
-                      'ias': FIFF.FIFF_UNIT_NONE,
-                      'misc': FIFF.FIFF_UNIT_V,
-                      'resp': FIFF.FIFF_UNIT_NONE,
-                      'seeg': FIFF.FIFF_UNIT_V,
-                      'stim': FIFF.FIFF_UNIT_NONE,
-                      'syst': FIFF.FIFF_UNIT_NONE}
-
-        unit2human = {FIFF.FIFF_UNIT_V: 'V',
-                      FIFF.FIFF_UNIT_NONE: 'NA'}
         ch_names = self.info['ch_names']
 
         # first check and assemble clean mappings of index and name
@@ -263,21 +275,22 @@ class SetChannelsMixin(object):
                                  "info." % ch_name)
 
             c_ind = ch_names.index(ch_name)
-            if ch_type not in human2fiff:
+            if ch_type not in _human2fiff:
                 raise ValueError('This function cannot change to this '
                                  'channel type: %s. Accepted channel types '
-                                 'are %s.' % (ch_type,
-                                              ", ".join(human2unit.keys())))
+                                 'are %s.'
+                                 % (ch_type,
+                                    ", ".join(sorted(_human2unit.keys()))))
             # Set sensor type
-            self.info['chs'][c_ind]['kind'] = human2fiff[ch_type]
+            _check_set(self.info['chs'][c_ind], self.info['projs'], ch_type)
             unit_old = self.info['chs'][c_ind]['unit']
-            unit_new = human2unit[ch_type]
-            if unit_old != human2unit[ch_type]:
+            unit_new = _human2unit[ch_type]
+            if unit_old != _human2unit[ch_type]:
                 warnings.warn("The unit for Channel %s has changed "
                               "from %s to %s." % (ch_name,
-                                                  unit2human[unit_old],
-                                                  unit2human[unit_new]))
-            self.info['chs'][c_ind]['unit'] = human2unit[ch_type]
+                                                  _unit2human[unit_old],
+                                                  _unit2human[unit_new]))
+            self.info['chs'][c_ind]['unit'] = _human2unit[ch_type]
             if ch_type in ['eeg', 'seeg']:
                 self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
             else:
@@ -494,9 +507,8 @@ class UpdateChannelsMixin(object):
             object if copy==False)
         """
         # avoid circular imports
-        from ..io.base import _BaseRaw
+        from ..io import _BaseRaw, _merge_info
         from ..epochs import _BaseEpochs
-        from ..io.meas_info import _merge_info
 
         if not isinstance(add_list, (list, tuple)):
             raise AssertionError('Input must be a list or tuple of objs')
@@ -747,7 +759,7 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
 
 def fix_mag_coil_types(info):
-    """Fix Elekta magnetometer coil types
+    """Fix magnetometer coil types
 
     Parameters
     ----------
@@ -774,10 +786,22 @@ def fix_mag_coil_types(info):
               current estimates computed by the MNE software is very small.
               Therefore the use of mne_fix_mag_coil_types is not mandatory.
     """
+    old_mag_inds = _get_T1T2_mag_inds(info)
+
+    for ii in old_mag_inds:
+        info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
+    logger.info('%d of %d T1/T2 magnetometer types replaced with T3.' %
+                (len(old_mag_inds), len(pick_types(info, meg='mag'))))
+    info._check_consistency()
+
+
+def _get_T1T2_mag_inds(info):
+    """Helper to find T1/T2 magnetometer coil types"""
     picks = pick_types(info, meg='mag')
+    old_mag_inds = []
     for ii in picks:
         ch = info['chs'][ii]
         if ch['coil_type'] in (FIFF.FIFFV_COIL_VV_MAG_T1,
                                FIFF.FIFFV_COIL_VV_MAG_T2):
-            ch['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
-    info._check_consistency()
+            old_mag_inds.append(ii)
+    return old_mag_inds

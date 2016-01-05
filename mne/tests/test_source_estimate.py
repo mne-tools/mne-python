@@ -12,11 +12,12 @@ from scipy.fftpack import fft
 
 from mne.datasets import testing
 from mne import (stats, SourceEstimate, VolSourceEstimate, Label,
-                 read_source_spaces, MixedSourceEstimate)
-from mne import read_source_estimate, morph_data, extract_label_time_course
-from mne.source_estimate import (spatio_temporal_tris_connectivity,
-                                 spatio_temporal_src_connectivity,
-                                 compute_morph_matrix, grade_to_vertices,
+                 read_source_spaces, MixedSourceEstimate, read_source_estimate,
+                 morph_data, extract_label_time_course,
+                 spatio_temporal_tris_connectivity,
+                 spatio_temporal_src_connectivity,
+                 spatial_inter_hemi_connectivity)
+from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
                                  grade_to_tris)
 
 from mne.minimum_norm import read_inverse_operator
@@ -33,6 +34,8 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname_src = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+fname_src_3 = op.join(data_path, 'subjects', 'sample', 'bem',
+                      'sample-oct-4-src.fif')
 fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
 fname_smorph = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-meg')
@@ -42,6 +45,41 @@ fname_vol = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 fname_vsrc = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-vol-7-fwd.fif')
+rng = np.random.RandomState(0)
+
+
+@testing.requires_testing_data
+def test_aaspatial_inter_hemi_connectivity():
+    """Test spatial connectivity between hemispheres"""
+    # trivial cases
+    conn = spatial_inter_hemi_connectivity(fname_src_3, 5e-6)
+    assert_equal(conn.data.size, 0)
+    conn = spatial_inter_hemi_connectivity(fname_src_3, 5e6)
+    assert_equal(conn.data.size, np.prod(conn.shape) // 2)
+    # actually interesting case (1cm), should be between 2 and 10% of verts
+    src = read_source_spaces(fname_src_3)
+    conn = spatial_inter_hemi_connectivity(src, 10e-3)
+    conn = conn.tocsr()
+    n_src = conn.shape[0]
+    assert_true(n_src * 0.02 < conn.data.size < n_src * 0.10)
+    assert_equal(conn[:src[0]['nuse'], :src[0]['nuse']].data.size, 0)
+    assert_equal(conn[-src[1]['nuse']:, -src[1]['nuse']:].data.size, 0)
+    c = (conn.T + conn) / 2. - conn
+    c.eliminate_zeros()
+    assert_equal(c.data.size, 0)
+    # check locations
+    upper_right = conn[:src[0]['nuse'], src[0]['nuse']:].toarray()
+    assert_equal(upper_right.sum(), conn.sum() // 2)
+    good_labels = ['S_pericallosal', 'Unknown', 'G_and_S_cingul-Mid-Post',
+                   'G_cuneus']
+    for hi, hemi in enumerate(('lh', 'rh')):
+        has_neighbors = src[hi]['vertno'][np.where(np.any(upper_right,
+                                                          axis=1 - hi))[0]]
+        labels = read_labels_from_annot('sample', 'aparc.a2009s', hemi,
+                                        subjects_dir=subjects_dir)
+        use_labels = [l.name[:-3] for l in labels
+                      if np.in1d(l.vertices, has_neighbors).any()]
+        assert_true(set(use_labels) - set(good_labels) == set())
 
 
 @slow_test
@@ -497,8 +535,8 @@ def test_transform_data():
     """Test applying linear (time) transform to data"""
     # make up some data
     n_sensors, n_vertices, n_times = 10, 20, 4
-    kernel = np.random.randn(n_vertices, n_sensors)
-    sens_data = np.random.randn(n_sensors, n_times)
+    kernel = rng.randn(n_vertices, n_sensors)
+    sens_data = rng.randn(n_sensors, n_times)
 
     vertices = np.arange(n_vertices)
     data = np.dot(kernel, sens_data)
@@ -528,7 +566,7 @@ def test_transform():
     # make up some data
     n_verts_lh, n_verts_rh, n_times = 10, 10, 10
     vertices = [np.arange(n_verts_lh), n_verts_lh + np.arange(n_verts_rh)]
-    data = np.random.randn(n_verts_lh + n_verts_rh, n_times)
+    data = rng.randn(n_verts_lh + n_verts_rh, n_times)
     stc = SourceEstimate(data, vertices=vertices, tmin=-0.1, tstep=0.1)
 
     # data_t.ndim > 2 & copy is True
@@ -629,7 +667,7 @@ def test_to_data_frame():
     """Test stc Pandas exporter"""
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
-    data = np.random.randn(n_vert, n_times)
+    data = rng.randn(n_vert, n_times)
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
     stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
@@ -651,7 +689,7 @@ def test_get_peak():
     """
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
-    data = np.random.randn(n_vert, n_times)
+    data = rng.randn(n_vert, n_times)
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
 
@@ -682,7 +720,7 @@ def test_mixed_stc():
     T = 2  # number of time points
     S = 3  # number of source spaces
 
-    data = np.random.randn(N, T)
+    data = rng.randn(N, T)
     vertno = S * [np.arange(N // S)]
 
     # make sure error is raised if vertices are not a list of length >= 2

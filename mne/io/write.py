@@ -195,27 +195,29 @@ def get_machid():
     return ids
 
 
+def get_new_file_id():
+    """Helper to create a new file ID tag"""
+    secs, usecs = divmod(time.time(), 1.)
+    secs, usecs = int(secs), int(usecs * 1e6)
+    return {'machid': get_machid(), 'version': FIFF.FIFFC_VERSION,
+            'secs': secs, 'usecs': usecs}
+
+
 def write_id(fid, kind, id_=None):
     """Writes fiff id"""
     id_ = _generate_meas_id() if id_ is None else id_
 
-    FIFFT_ID_STRUCT = 31
-    FIFFV_NEXT_SEQ = 0
-
     data_size = 5 * 4                       # The id comprises five integers
     fid.write(np.array(kind, dtype='>i4').tostring())
-    fid.write(np.array(FIFFT_ID_STRUCT, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFT_ID_STRUCT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
 
     # Collect the bits together for one write
-    data = np.empty(5, dtype=np.int32)
-    data[0] = id_['version']
-    data[1] = id_['machid'][0]
-    data[2] = id_['machid'][1]
-    data[3] = id_['secs']
-    data[4] = id_['usecs']
-    fid.write(np.array(data, dtype='>i4').tostring())
+    arr = np.array([id_['version'],
+                    id_['machid'][0], id_['machid'][1],
+                    id_['secs'], id_['usecs']], dtype='>i4')
+    fid.write(arr.tostring())
 
 
 def start_block(fid, kind):
@@ -378,7 +380,7 @@ def write_float_sparse_rcs(fid, kind, mat):
 def _generate_meas_id():
     """Helper to generate a new meas_id dict"""
     id_ = dict()
-    id_['version'] = (1 << 16) | 2
+    id_['version'] = FIFF.FIFFC_VERSION
     id_['machid'] = get_machid()
     id_['secs'], id_['usecs'] = _date_now()
     return id_

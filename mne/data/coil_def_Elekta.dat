@@ -8,12 +8,10 @@
 #	These coil definitions were used by Samu Taulu in the Spherical Space
 #	Separation work, which was subsequently used by Elekta in Maxfilter. The only 
 #	difference is that the local z-coordinate was set to zero in Taulu's original
-#	formulation.
+#	formulation. Source of small z-coordinate offset (0.0003m) is due to manufacturing bug.
 #
 #	Issues left to be sorted out.
 #	1) Discrepancy between gradiometer base size. 16.69 in Elekta, 16.80 in MNE
-#	2) Source of small z-coordinate offset (0.0003m). Not use in original SSS work,
-#	   but is present in Elekta's and MNE's coil definitions.
 #
 #	<class>	<id> <accuracy> <np> <size> <baseline> "<description>"
 #
@@ -39,6 +37,12 @@
 #			2	accurate
 #
 #
+1   2000    2   1  0.000e+00  0.000e+00	"Point magnetometer, z-normal"
+  1.0000000000e+00  0.0000000000e+00  0.0000000000e+00  0.0000000000e+00  0.0000000000e+00  0.0000000000e+00  1.0000000000e+00
+1   2002    2   1  0.000e+00  0.000e+00	"Point magnetometer, x-normal"
+  1.0000000000e+00  0.0000000000e+00  0.0000000000e+00  0.0000000000e+00  1.0000000000e+00  0.0000000000e+00  0.0000000000e+00
+1   2003    2   1  0.000e+00  0.000e+00	"Point magnetometer, y-normal"
+  1.0000000000e+00  0.0000000000e+00  0.0000000000e+00  0.0000000000e+00  0.0000000000e+00  1.0000000000e+00  0.0000000000e+00
 3   3012    2   8  2.639e-02  1.669e-02	"Vectorview planar gradiometer T1 size = 26.39  mm base = 16.69  mm"
 1.4979029359e+01  1.0800000000e-02  6.7100000000e-03  3.0000000000e-04  0.0000000000e+00  0.0000000000e+00  1.0000000000e+00
 1.4979029359e+01  5.8900000000e-03  6.7100000000e-03  3.0000000000e-04  0.0000000000e+00  0.0000000000e+00  1.0000000000e+00

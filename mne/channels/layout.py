@@ -350,8 +350,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
         VectorView type layout. Use `meg` to force using the full layout
         in situations where the info does only contain one sensor type.
     exclude : list of string | str
-        List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in info['bads'].
+        List of channels to exclude. If empty do not exclude any.
+        If 'bads', exclude channels in info['bads'] (default).
 
     Returns
     -------
@@ -573,7 +573,7 @@ def _auto_topomap_coords(info, picks):
     locs : array, shape = (n_sensors, 2)
         An array of positions of the 2 dimensional map.
     """
-    from scipy.spatial.distance import pdist
+    from scipy.spatial.distance import pdist, squareform
 
     chs = [info['chs'][i] for i in picks]
 
@@ -631,8 +631,16 @@ def _auto_topomap_coords(info, picks):
         locs3d = np.array([eeg_ch_locs[ch['ch_name']] for ch in chs])
 
     # Duplicate points cause all kinds of trouble during visualization
-    if np.min(pdist(locs3d)) < 1e-10:
-        raise ValueError('Electrode positions must be unique.')
+    dist = pdist(locs3d)
+    if np.min(dist) < 1e-10:
+        problematic_electrodes = [
+            info['ch_names'][elec_i]
+            for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]
+        ]
+
+        raise ValueError('The following electrodes have overlapping positions:'
+                         '\n    ' + str(problematic_electrodes) + '\nThis '
+                         'causes problems during visualization.')
 
     x, y, z = locs3d.T
     az, el, r = _cartesian_to_sphere(x, y, z)

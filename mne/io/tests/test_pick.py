@@ -1,21 +1,82 @@
+import os.path as op
+import inspect
+
 from nose.tools import assert_equal, assert_raises
 from numpy.testing import assert_array_equal
 import numpy as np
-import os.path as op
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
-                 pick_info, pick_channels, __file__)
-
-from mne.io.meas_info import create_info
-from mne.io.array import RawArray
+                 pick_info, pick_channels, __file__, create_info)
+from mne.io import Raw, RawArray, read_raw_bti, read_raw_kit
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type)
 from mne.io.constants import FIFF
-from mne.io import Raw
 from mne.datasets import testing
-from mne.forward.tests import test_forward
 from mne.utils import run_tests_if_main
+
+io_dir = op.join(op.dirname(inspect.getfile(inspect.currentframe())), '..')
+data_path = testing.data_path(download=False)
+fname_meeg = op.join(data_path, 'MEG', 'sample',
+                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+
+
+def test_pick_refs():
+    """Test picking of reference sensors
+    """
+    infos = list()
+    # KIT
+    kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
+    sqd_path = op.join(kit_dir, 'test.sqd')
+    mrk_path = op.join(kit_dir, 'test_mrk.sqd')
+    elp_path = op.join(kit_dir, 'test_elp.txt')
+    hsp_path = op.join(kit_dir, 'test_hsp.txt')
+    raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+    infos.append(raw_kit.info)
+    # BTi
+    bti_dir = op.join(io_dir, 'bti', 'tests', 'data')
+    bti_pdf = op.join(bti_dir, 'test_pdf_linux')
+    bti_config = op.join(bti_dir, 'test_config_linux')
+    bti_hs = op.join(bti_dir, 'test_hs_linux')
+    raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
+    infos.append(raw_bti.info)
+    # CTF
+    fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+    raw_ctf = Raw(fname_ctf_raw, compensation=2)
+    infos.append(raw_ctf.info)
+    for info in infos:
+        info['bads'] = []
+        assert_raises(ValueError, pick_types, info, meg='foo')
+        assert_raises(ValueError, pick_types, info, ref_meg='foo')
+        picks_meg_ref = pick_types(info, meg=True, ref_meg=True)
+        picks_meg = pick_types(info, meg=True, ref_meg=False)
+        picks_ref = pick_types(info, meg=False, ref_meg=True)
+        assert_array_equal(picks_meg_ref,
+                           np.sort(np.concatenate([picks_meg, picks_ref])))
+        picks_grad = pick_types(info, meg='grad', ref_meg=False)
+        picks_ref_grad = pick_types(info, meg=False, ref_meg='grad')
+        picks_meg_ref_grad = pick_types(info, meg='grad', ref_meg='grad')
+        assert_array_equal(picks_meg_ref_grad,
+                           np.sort(np.concatenate([picks_grad,
+                                                   picks_ref_grad])))
+        picks_mag = pick_types(info, meg='mag', ref_meg=False)
+        picks_ref_mag = pick_types(info, meg=False, ref_meg='mag')
+        picks_meg_ref_mag = pick_types(info, meg='mag', ref_meg='mag')
+        assert_array_equal(picks_meg_ref_mag,
+                           np.sort(np.concatenate([picks_mag,
+                                                   picks_ref_mag])))
+        assert_array_equal(picks_meg,
+                           np.sort(np.concatenate([picks_mag, picks_grad])))
+        assert_array_equal(picks_ref,
+                           np.sort(np.concatenate([picks_ref_mag,
+                                                   picks_ref_grad])))
+        assert_array_equal(picks_meg_ref, np.sort(np.concatenate(
+            [picks_grad, picks_mag, picks_ref_grad, picks_ref_mag])))
+        for pick in (picks_meg_ref, picks_meg, picks_ref,
+                     picks_grad, picks_ref_grad, picks_meg_ref_grad,
+                     picks_mag, picks_ref_mag, picks_meg_ref_mag):
+            if len(pick) > 0:
+                pick_info(info, pick)
 
 
 def test_pick_channels_regexp():
@@ -60,7 +121,7 @@ def _check_fwd_n_chan_consistent(fwd, n_expected):
 def test_pick_forward_seeg():
     """Test picking forward with SEEG
     """
-    fwd = read_forward_solution(test_forward.fname_meeg)
+    fwd = read_forward_solution(fname_meeg)
     counts = channel_indices_by_type(fwd['info'])
     for key in counts.keys():
         counts[key] = len(counts[key])

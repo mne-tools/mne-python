@@ -33,6 +33,7 @@ subjects_dir = op.join(data_path, 'subjects')
 def test_legendre_val():
     """Test Legendre polynomial (derivative) equivalence
     """
+    rng = np.random.RandomState(0)
     # check table equiv
     xs = np.linspace(-1., 1., 1000)
     n_terms = 100
@@ -50,8 +51,8 @@ def test_legendre_val():
                         rtol=1e-2, atol=5e-3)
 
         # Now let's look at our sums
-        ctheta = np.random.rand(20, 30) * 2.0 - 1.0
-        beta = np.random.rand(20, 30) * 0.8
+        ctheta = rng.rand(20, 30) * 2.0 - 1.0
+        beta = rng.rand(20, 30) * 0.8
         lut_fun = partial(fun, lut=lut)
         c1 = _comp_sum_eeg(beta.flatten(), ctheta.flatten(), lut_fun, n_fact)
         c1.shape = beta.shape
@@ -70,8 +71,8 @@ def test_legendre_val():
         assert_allclose(c1, c2, 1e-2, 1e-3)  # close enough...
 
     # compare fast and slow for MEG
-    ctheta = np.random.rand(20 * 30) * 2.0 - 1.0
-    beta = np.random.rand(20 * 30) * 0.8
+    ctheta = rng.rand(20 * 30) * 2.0 - 1.0
+    beta = rng.rand(20 * 30) * 0.8
     lut, n_fact = _get_legen_table('meg', n_coeff=10, force_calc=True)
     fun = partial(_get_legen_lut_fast, lut=lut)
     coeffs = _comp_sums_meg(beta, ctheta, fun, n_fact, False)
@@ -173,9 +174,8 @@ def test_make_field_map_meg():
 def _setup_args(info):
     """Helper to test_as_meg_type_evoked."""
     coils = _create_meg_coils(info['chs'], 'normal', info['dev_head_t'])
-    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots('fast',
-                                                             coils,
-                                                             'meg')
+    int_rad, noise, lut_fun, n_fact = _setup_dots('fast', coils, 'meg')
+    my_origin = np.array([0., 0., 0.04])
     args_dict = dict(intrad=int_rad, volume=False, coils1=coils, r0=my_origin,
                      ch_type='meg', lut=lut_fun, n_fact=n_fact)
     return args_dict

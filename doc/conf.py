@@ -17,7 +17,12 @@ import os
 import os.path as op
 from datetime import date
 
-import sphinxgallery
+try:
+    import sphinx_gallery as sg
+    sg_extension = 'sphinx_gallery.gen_gallery'
+except ImportError:
+    import sphinxgallery as sg
+    sg_extension = 'sphinxgallery.gen_gallery'
 import sphinx_bootstrap_theme
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -41,7 +46,7 @@ extensions = ['sphinx.ext.autodoc',
               'numpy_ext.numpydoc',
             #   'sphinx.ext.intersphinx',
               # 'flow_diagram',
-              'sphinxgallery.gen_gallery']
+              sg_extension]
 
 autosummary_generate = True
 
@@ -168,7 +173,7 @@ html_favicon = "favicon.ico"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static', '_images', sphinxgallery.glr_path_static()]
+html_static_path = ['_static', '_images', sg.glr_path_static()]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.

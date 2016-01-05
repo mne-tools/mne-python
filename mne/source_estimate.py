@@ -1394,7 +1394,7 @@ class SourceEstimate(_BaseSourceEstimate):
         """
         if self.subject is None:
             raise ValueError('stc.subject must be set')
-        src_orig = _ensure_src(src_orig)
+        src_orig = _ensure_src(src_orig, kind='surf')
         subject_orig = _ensure_src_subject(src_orig, subject_orig)
         data_idx, vertices = _get_morph_src_reordering(
             self.vertices, src_orig, subject_orig, self.subject, subjects_dir)
@@ -1835,10 +1835,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         """
 
         # extract surface source spaces
-        src = _ensure_src(src)
-        surf = [s for s in src if s['type'] == 'surf']
-        if len(surf) != 2:
-            raise ValueError('Source space must contain exactly two surfaces.')
+        surf = _ensure_src(src, kind='surf')
 
         # extract surface source estimate
         data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]
@@ -2322,7 +2319,7 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
 
     Parameters
     ----------
-    src : source space
+    src : instance of SourceSpaces
         The source space.
     n_times : int
         Number of time instants.
@@ -2442,7 +2439,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
 
     Parameters
     ----------
-    src : source space
+    src : instance of SourceSpaces
         The source space must have distances between vertices computed, such
         that src['dist'] exists and is useful. This can be obtained using MNE
         with a call to mne_add_patch_info with the --dist option.
@@ -2482,7 +2479,7 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
 
     Parameters
     ----------
-    src : source space
+    src : instance of SourceSpaces
         The source space.
     dist : float, or None
         Maximal geodesic distance (in m) between vertices in the
@@ -2526,7 +2523,7 @@ def spatial_dist_connectivity(src, dist, verbose=None):
 
     Parameters
     ----------
-    src : source space
+    src : instance of SourceSpaces
         The source space must have distances between vertices computed, such
         that src['dist'] exists and is useful. This can be obtained using MNE
         with a call to mne_add_patch_info with the --dist option.
@@ -2542,6 +2539,38 @@ def spatial_dist_connectivity(src, dist, verbose=None):
         The connectivity matrix describing the spatial graph structure.
     """
     return spatio_temporal_dist_connectivity(src, 1, dist)
+
+
+def spatial_inter_hemi_connectivity(src, dist, verbose=None):
+    """Get vertices on each hemisphere that are close to the other hemisphere
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces
+        The source space. Must be surface type.
+    dist : float
+        Maximal Euclidean distance (in m) between vertices in one hemisphere
+        compared to the other to consider neighbors.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    connectivity : sparse COO matrix
+        The connectivity matrix describing the spatial graph structure.
+        Typically this should be combined (addititively) with another
+        existing intra-hemispheric connectivity matrix, e.g. computed
+        using geodesic distances.
+    """
+    from scipy.spatial.distance import cdist
+    src = _ensure_src(src, kind='surf')
+    conn = cdist(src[0]['rr'][src[0]['vertno']],
+                 src[1]['rr'][src[1]['vertno']])
+    conn = sparse.csr_matrix(conn <= dist, dtype=int)
+    empties = [sparse.csr_matrix((nv, nv), dtype=int) for nv in conn.shape]
+    conn = sparse.vstack([sparse.hstack([empties[0], conn]),
+                          sparse.hstack([conn.T, empties[1]])])
+    return conn
 
 
 @verbose

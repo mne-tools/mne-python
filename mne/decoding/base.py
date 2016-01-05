@@ -135,7 +135,7 @@ def _pprint(params, offset=0, printer=repr):
     params: dict
         The dictionary to pretty print
     offset: int
-        The offset in characters to add at the begin of each line.
+        The offset in characters to add at the beginning of each line.
     printer:
         The function to convert entries to strings, typically
         the builtin str or repr
@@ -178,19 +178,19 @@ def _pprint(params, offset=0, printer=repr):
 class LinearModel(BaseEstimator):
     """
     This object clones a Linear Model from scikit-learn
-    and updates the attribute for each fit. The linear model coefficient
+    and updates the attributes for each fit. The linear model coefficients
     (filters) are used to extract discriminant neural sources from
-    the measured data. This class implement the computation of patterns
+    the measured data. This class implements the computation of patterns
     which provides neurophysiologically interpretable information [1],
     in the sense that significant nonzero weights are only observed at channels
-    the activity of which is related to discriminant neural sources.
+    where activity is related to discriminant neural sources.
 
     Parameters
     ----------
     model : object | None
         A linear model from scikit-learn with a fit method
         that updates a coef_ attribute.
-        If None the model will be a LogisticRegression
+        If None the model will be LogisticRegression
 
     Attributes
     ----------
@@ -226,8 +226,8 @@ class LinearModel(BaseEstimator):
         self.filters_ = None
 
     def fit(self, X, y):
-        """Estimate the coefficient of the linear model.
-        Save the coefficient in the attribute filters_ and
+        """Estimate the coefficients of the linear model.
+        Save the coefficients in the attribute filters_ and
         computes the attribute patterns_ using [1].
 
         Parameters
@@ -274,7 +274,7 @@ class LinearModel(BaseEstimator):
         return self.model.transform(X)
 
     def fit_transform(self, X, y):
-        """fit the data and transform it using the linear model.
+        """Fit the data and transform it using the linear model.
 
         Parameters
         ----------
@@ -292,12 +292,12 @@ class LinearModel(BaseEstimator):
         return self.fit(X, y).transform(X)
 
     def predict(self, X):
-        """Computes prediction of X.
+        """Computes predictions of y from X.
 
         Parameters
         ----------
         X : array, shape (n_epochs, n_features)
-            The data used to compute prediction.
+            The data used to compute the predictions.
 
         Returns
         -------

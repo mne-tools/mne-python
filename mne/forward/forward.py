@@ -19,14 +19,14 @@ from os import path as op
 import tempfile
 
 from ..fixes import sparse_block_diag
-from ..io import RawArray
+from ..io import RawArray, Info
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tree import dir_tree_find
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
-from ..io.meas_info import read_bad_channels, Info
+from ..io.meas_info import read_bad_channels
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
@@ -34,7 +34,7 @@ from ..io.write import (write_int, start_block, end_block,
                         write_string, start_file, end_file, write_id)
 from ..io.base import _BaseRaw
 from ..evoked import Evoked, write_evokeds, EvokedArray
-from ..epochs import Epochs
+from ..epochs import Epochs, _BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi,
                             _write_source_spaces_to_fid)
@@ -352,7 +352,10 @@ def _read_forward_meas_info(tree, fid):
     info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
 
     # Check if a custom reference has been applied
-    tag = find_tag(fid, parent_mri, FIFF.FIFF_CUSTOM_REF)
+    tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_CUSTOM_REF)
+    if tag is None:
+        tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
+
     info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
     info._check_consistency()
     return info
@@ -1110,8 +1113,8 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, info=None, start=None, stop=None,
-                  verbose=None, evoked_template=None):
+def apply_forward(fwd, stc, info, start=None, stop=None,
+                  verbose=None):
     """
     Project source space currents to sensor space using a forward operator.
 
@@ -1139,8 +1142,6 @@ def apply_forward(fwd, stc, info=None, start=None, stop=None,
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    evoked_template : Evoked object (deprecated)
-        Evoked object used as template to generate the output argument.
 
     Returns
     -------
@@ -1151,23 +1152,6 @@ def apply_forward(fwd, stc, info=None, start=None, stop=None,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
-    if evoked_template is None and info is None:
-        raise ValueError('You have to provide the info parameter.')
-
-    if evoked_template is not None and not isinstance(evoked_template, Info):
-        warnings.warn('The "evoked_template" parameter is being deprecated '
-                      'and will be removed in MNE-0.11. '
-                      'Please provide info parameter instead',
-                      DeprecationWarning)
-        info = evoked_template.info
-
-    if info is not None and not isinstance(info, Info):
-        warnings.warn('The "evoked_template" parameter is being deprecated '
-                      'and will be removed in MNE-0.11. '
-                      'Please provide info parameter instead',
-                      DeprecationWarning)
-        info = info.info
-
     # make sure evoked_template contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
         if ch_name not in info['ch_names']:
@@ -1228,13 +1212,6 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     --------
     apply_forward: Compute sensor space data and return an Evoked object.
     """
-    if isinstance(info, _BaseRaw):
-        warnings.warn('The "Raw_template" parameter is being deprecated '
-                      'and will be removed in MNE-0.11. '
-                      'Please provide info parameter instead',
-                      DeprecationWarning)
-        info = info.info
-
     # make sure info contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
         if ch_name not in info['ch_names']:
@@ -1470,7 +1447,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         events = np.array([[0, 0, 1]], dtype=np.int)
         end = 1. / meas.info['sfreq']
         meas_data = Epochs(meas, events, 1, 0, end, proj=False).average()
-    elif isinstance(meas, Epochs):
+    elif isinstance(meas, _BaseEpochs):
         meas_data = meas.average()
     elif isinstance(meas, Evoked):
         meas_data = meas

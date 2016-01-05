@@ -2,6 +2,8 @@
 """
 import numpy as np
 
+from .utils import plt_show
+
 
 def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):
     """Plot a montage
@@ -52,7 +54,5 @@ def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):
     ax.set_ylabel('y')
     ax.set_zlabel('z')
 
-    if show:
-        plt.show()
-
+    plt_show(show)
     return fig
