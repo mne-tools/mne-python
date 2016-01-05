@@ -21,6 +21,7 @@ API
 ~~~
 
     - Added logscale epoch plotting option via `logscale=True` in :func:`mne.viz.plot_epochs_image`, by `Sagun Pai`_
+    
     - The default `picks=None` in :func:`mne.viz.plot_epochs_image` now only plots the first 5 channels, not all channels, by `Jona Sassenhagen`_
 
 
@@ -1350,3 +1351,5 @@ of commits):
 .. _Jussi Nurminen: https://scholar.google.fi/citations?user=R6CQz5wAAAAJ&hl=en
 
 .. _Clemens Brunner: https://github.com/cle1109
+
+.. _Sagun Pai: https://github.com/Famguy
