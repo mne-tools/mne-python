@@ -290,9 +290,4 @@ class RawEGI(_BaseRaw):
         offset = 36 + egi_info['n_events'] * 4
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=dtype, n_channels=n_chan_read, offset=offset,
-                            trig_func=self._add_trigger_ch)
-
-    def _add_trigger_ch(self, block, start, stop, sample_start, sample_stop):
-        """Callback for adding the trigger channel."""
-        stim_ch = self._new_trigger[start:stop][sample_start:sample_stop]
-        return np.vstack((block, stim_ch))
+                            trigger_ch=self._new_trigger)

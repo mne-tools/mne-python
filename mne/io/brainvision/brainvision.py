@@ -98,12 +98,7 @@ class RawBrainVision(_BaseRaw):
         n_data_ch = len(self.ch_names) - 1
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=dtype, n_channels=n_data_ch,
-                            trig_func=self._add_trigger_ch)
-
-    def _add_trigger_ch(self, block, start, stop, sample_start, sample_stop):
-        """Callback function for adding the trigger channel."""
-        stim_ch = self._event_ch[start:stop][sample_start:sample_stop]
-        return np.vstack((block, stim_ch))
+                            trigger_ch=self._event_ch)
 
     def get_brainvision_events(self):
         """Retrieve the events associated with the Brain Vision Raw object
