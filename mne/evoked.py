@@ -815,7 +815,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
-        .. versionadded:: 0.11.0
+        .. versionadded:: 0.12.0
         """
         return animate_evoked(self, ch_type=ch_type, times=times,
                               frame_rate=frame_rate, butterfly=butterfly,

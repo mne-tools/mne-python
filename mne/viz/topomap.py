@@ -1665,14 +1665,14 @@ def _init_anim(ax, ax_line, ax_cbar, params):
     return params['items']
 
 
-def _animate(i, ax, ax_line, params):
+def _animate(frame, ax, ax_line, params):
     """Updates animated topomap."""
     if params['pause']:
-        i = params['i']
+        frame = params['frame']
     all_times = params['all_times']
-    time_idx = params['frames'][i]
+    time_idx = params['frames'][frame]
 
-    title = '%6.0f ms' % (params['times'][i] * 1e3)
+    title = '%6.0f ms' % (params['times'][frame] * 1e3)
     if params['blit']:
         text = params['text']
     else:
@@ -1685,7 +1685,7 @@ def _animate(i, ax, ax_line, params):
     vmax = params['vmax']
     Xi = params['Xi']
     Yi = params['Yi']
-    Zi = params['Zis'][i]
+    Zi = params['Zis'][frame]
     extent = params['extent']
     cmap = params['cmap']
     patch = params['patch']
@@ -1707,7 +1707,7 @@ def _animate(i, ax, ax_line, params):
                                         all_times[time_idx]],
                                        ax_line.get_ylim(), color='r')
         items.append(params['line'])
-    params['i'] = i
+    params['frame'] = frame
     params['items'] = tuple(items) + tuple(cont.collections)
     return tuple(items) + tuple(cont.collections)
 
@@ -1721,10 +1721,10 @@ def _key_press(event, params):
     """Function for handling key presses for the animation."""
     if event.key == 'left':
         params['pause'] = True
-        params['i'] = max(params['i'] - 1, 0)
+        params['frame'] = max(params['frame'] - 1, 0)
     elif event.key == 'right':
         params['pause'] = True
-        params['i'] = min(params['i'] + 1, len(params['frames']) - 1)
+        params['frame'] = min(params['frame'] + 1, len(params['frames']) - 1)
 
 
 def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
@@ -1764,7 +1764,7 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
 
     Notes
     -----
-    .. versionadded:: 0.11.0
+    .. versionadded:: 0.12.0
     """
     import matplotlib.pyplot as plt
     from matplotlib import animation
@@ -1798,7 +1798,7 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
 
-    params = {'data': data, 'pos': pos, 'all_times': evoked.times, 'i': 0,
+    params = {'data': data, 'pos': pos, 'all_times': evoked.times, 'frame': 0,
               'frames': frames, 'butterfly': butterfly, 'blit': blit,
               'pause': False, 'times': times}
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
