@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 
 from ..base import _BaseRaw, _check_update_montage
-from ..utils import _mult_cal_one
+from ..utils import _read_segments_file
 from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...utils import verbose, logger
@@ -285,25 +285,14 @@ class RawEGI(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file"""
         egi_info = self._raw_extras[fi]
-        n_bytes = np.dtype(egi_info['dtype']).itemsize
+        dtype = egi_info['dtype']
         n_chan_read = egi_info['n_channels'] + egi_info['n_events']
-        data_start = (36 + egi_info['n_events'] * 4 +
-                      start * n_chan_read * egi_info['dtype'].itemsize)
-        n_chan_out = n_chan_read + (1 if self._new_trigger is not None else 0)
-        # Read up to 100 MB of data at a time.
-        data_left = (stop - start) * n_chan_read
-        blk_size = min(data_left, (100000000 // n_bytes // n_chan_read)
-                       * n_chan_read)
-        with open(self._filenames[fi], 'rb') as fid:
-            fid.seek(data_start, 0)  # skip header
-            for blk_start in np.arange(0, data_left, blk_size) // n_chan_read:
-                blk_size = min(blk_size, data_left - blk_start * n_chan_read)
-                one_ = np.fromfile(fid, egi_info['dtype'], blk_size)
-                one_ = one_.reshape(n_chan_read, -1, order='F')
-                blk_stop = blk_start + one_.shape[1]
-                one = np.empty((n_chan_out, blk_stop - blk_start))
-                data_view = data[:, blk_start:blk_stop]
-                one[:n_chan_read] = one_
-                if self._new_trigger is not None:
-                    one[-1] = self._new_trigger[blk_start:blk_stop]
-                _mult_cal_one(data_view, one, idx, cals, mult)
+        offset = 36 + egi_info['n_events'] * 4
+        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
+                            dtype=dtype, n_channels=n_chan_read, offset=offset,
+                            trig_func=self._add_trigger_ch)
+
+    def _add_trigger_ch(self, block, start, stop, sample_start, sample_stop):
+        """Callback for adding the trigger channel."""
+        stim_ch = self._new_trigger[start:stop][sample_start:sample_stop]
+        return np.vstack((block, stim_ch))
