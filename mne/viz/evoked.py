@@ -572,7 +572,7 @@ def animate_evoked(evoked, ch_type='mag', times=None, frame_rate=None,
 
     Notes
     -----
-    .. versionadded:: 0.11.0
+    .. versionadded:: 0.12.0
     """
     return topomap_animation(evoked, ch_type=ch_type, times=times,
                              frame_rate=frame_rate, butterfly=butterfly,
