@@ -18,7 +18,7 @@ from scipy import linalg
 
 from ..baseline import rescale
 from ..io.constants import FIFF
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _picks_by_type
 from ..utils import _clean_names, _time_mask, verbose, logger
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
@@ -1737,9 +1737,10 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     ----------
     evoked : instance of Evoked
         The evoked data.
-    ch_type : str
+    ch_type : str | None
         Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
-        Defaults to 'mag'.
+        If None, first available channel type from ['mag', 'grad', 'eeg'] is
+        used. Defaults to None.
     times : array of floats | None
         The time points to plot. If None, 10 evenly spaced samples are
         calculated over the evoked time series. Defaults to None.
@@ -1768,6 +1769,11 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     """
     import matplotlib.pyplot as plt
     from matplotlib import animation
+    if ch_type is None:
+        ch_type = _picks_by_type(evoked.info)[0][0]
+    if ch_type not in ['mag', 'grad', 'eeg']:
+        raise ValueError("Channel type not supported. Supported channel "
+                         "types include 'mag', 'grad' and 'eeg'.")
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
     times = np.array(times)
