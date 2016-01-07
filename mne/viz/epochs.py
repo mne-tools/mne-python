@@ -101,6 +101,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     if logscale:
         if (data >= 0).all():
+            data[data == 0] = np.nan
             np.log2(data, out=data)
         else:
             raise ValueError('Only Epochs with positive data can be'

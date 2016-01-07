@@ -20,9 +20,10 @@ BUG
 API
 ~~~
 
+    - The default `picks=None` in :func:`mne.viz.plot_epochs_image` now only plots the first 5 channels, not all channels, by `Jona Sassenhagen`_
+
     - Added logscale epoch plotting option via `logscale=True` in :func:`mne.viz.plot_epochs_image`, by `Sagun Pai`_
     
-    - The default `picks=None` in :func:`mne.viz.plot_epochs_image` now only plots the first 5 channels, not all channels, by `Jona Sassenhagen`_
 
 
 .. _changes_0_11:
