@@ -8,14 +8,16 @@ from numpy.testing import assert_allclose
 from nose.tools import assert_raises, assert_equal, assert_true
 import warnings
 
-from mne.io import read_info, Raw
+from mne.io import Raw
 from mne.io.constants import FIFF
-from mne.chpi import (_rot_to_quat, _quat_to_rot, get_chpi_positions,
-                      calculate_chpi_positions, _angle_between_quats,
-                      _quats_to_trans_rot_t)
+from mne.chpi import (get_chpi_positions, calculate_chpi_positions,
+                      head_quats_to_trans_rot_t, read_head_quats,
+                      write_head_quats, filter_chpi)
+from mne.transforms import rot_to_quat, quat_to_rot, _angle_between_quats
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, catch_logging,
                        requires_version)
 from mne.datasets import testing
+from mne.tests.common import assert_meg_snr
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 test_fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -27,70 +29,55 @@ data_path = testing.data_path(download=False)
 raw_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 sss_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_sss.fif')
+sss_hpisubt_fname = op.join(data_path, 'SSS', 'test_move_anon_hpisubt_raw.fif')
 
 warnings.simplefilter('always')
 
 
-def test_quaternions():
-    """Test quaternion calculations
-    """
-    rots = [np.eye(3)]
-    for fname in [test_fif_fname, ctf_fname, hp_fif_fname]:
-        rots += [read_info(fname)['dev_head_t']['trans'][:3, :3]]
-    # nasty numerical cases
-    rots += [np.array([
-        [-0.99978541, -0.01873462, -0.00898756],
-        [-0.01873462, 0.62565561, 0.77987608],
-        [-0.00898756, 0.77987608, -0.62587152],
-    ])]
-    rots += [np.array([
-        [0.62565561, -0.01873462, 0.77987608],
-        [-0.01873462, -0.99978541, -0.00898756],
-        [0.77987608, -0.00898756, -0.62587152],
-    ])]
-    rots += [np.array([
-        [-0.99978541, -0.00898756, -0.01873462],
-        [-0.00898756, -0.62587152, 0.77987608],
-        [-0.01873462, 0.77987608, 0.62565561],
-    ])]
-    for rot in rots:
-        assert_allclose(rot, _quat_to_rot(_rot_to_quat(rot)),
-                        rtol=1e-5, atol=1e-5)
-        rot = rot[np.newaxis, np.newaxis, :, :]
-        assert_allclose(rot, _quat_to_rot(_rot_to_quat(rot)),
-                        rtol=1e-5, atol=1e-5)
-
-    # let's make sure our angle function works in some reasonable way
-    for ii in range(3):
-        for jj in range(3):
-            a = np.zeros(3)
-            b = np.zeros(3)
-            a[ii] = 1.
-            b[jj] = 1.
-            expected = np.pi if ii != jj else 0.
-            assert_allclose(_angle_between_quats(a, b), expected, atol=1e-5)
+@testing.requires_testing_data
+def test_read_write_head_quats():
+    """Test reading and writing head position quaternion parameters"""
+    tempdir = _TempDir()
+    temp_name = op.join(tempdir, 'temp.pos')
+    # This isn't a 100% valid quat matrix but it should be okay for tests
+    pos_rand = np.random.RandomState(0).randn(20, 10)
+    # This one is valid
+    pos_read = read_head_quats(pos_fname)
+    for pos_orig in (pos_rand, pos_read):
+        write_head_quats(temp_name, pos_orig)
+        pos = read_head_quats(temp_name)
+        assert_allclose(pos_orig, pos, atol=1e-3)
+    # Degenerate cases
+    assert_raises(TypeError, write_head_quats, 0, pos_read)  # not filename
+    assert_raises(ValueError, write_head_quats, temp_name, 'foo')  # not array
+    assert_raises(ValueError, write_head_quats, temp_name, pos_read[:, :9])
+    assert_raises(TypeError, read_head_quats, 0)
+    assert_raises(IOError, read_head_quats, temp_name + 'foo')
 
 
 def test_get_chpi():
     """Test CHPI position computation
     """
-    trans0, rot0, _, quat0 = get_chpi_positions(hp_fname, return_quat=True)
-    assert_allclose(rot0[0], _quat_to_rot(quat0[0]))
+    with warnings.catch_warnings(record=True):  # deprecation
+        trans0, rot0, _, quat0 = get_chpi_positions(hp_fname, return_quat=True)
+    assert_allclose(rot0[0], quat_to_rot(quat0[0]))
     trans0, rot0 = trans0[:-1], rot0[:-1]
     raw = Raw(hp_fif_fname)
-    out = get_chpi_positions(raw)
+    with warnings.catch_warnings(record=True):  # deprecation
+        out = get_chpi_positions(raw)
     trans1, rot1, t1 = out
     trans1, rot1 = trans1[2:], rot1[2:]
     # these will not be exact because they don't use equiv. time points
     assert_allclose(trans0, trans1, atol=1e-5, rtol=1e-1)
     assert_allclose(rot0, rot1, atol=1e-6, rtol=1e-1)
     # run through input checking
-    assert_raises(TypeError, get_chpi_positions, 1)
-    assert_raises(ValueError, get_chpi_positions, hp_fname, [1])
     raw_no_chpi = Raw(test_fif_fname)
-    assert_raises(RuntimeError, get_chpi_positions, raw_no_chpi)
-    assert_raises(ValueError, get_chpi_positions, raw, t_step='foo')
-    assert_raises(IOError, get_chpi_positions, 'foo')
+    with warnings.catch_warnings(record=True):  # deprecation
+        assert_raises(TypeError, get_chpi_positions, 1)
+        assert_raises(ValueError, get_chpi_positions, hp_fname, [1])
+        assert_raises(RuntimeError, get_chpi_positions, raw_no_chpi)
+        assert_raises(ValueError, get_chpi_positions, raw, t_step='foo')
+        assert_raises(IOError, get_chpi_positions, 'foo')
 
 
 @testing.requires_testing_data
@@ -117,13 +104,13 @@ def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
     from scipy.interpolate import interp1d
     trans, rot, t = a
     trans_est, rot_est, t_est = b
-    quats_est = _rot_to_quat(rot_est)
+    quats_est = rot_to_quat(rot_est)
 
     # maxfilter produces some times that are implausibly large (weird)
     use_mask = (t >= t_est[0]) & (t <= t_est[-1])
     t = t[use_mask]
     trans = trans[use_mask]
-    quats = _rot_to_quat(rot)
+    quats = rot_to_quat(rot)
     quats = quats[use_mask]
 
     # double-check our angle function
@@ -151,13 +138,13 @@ def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
 def test_calculate_chpi_positions():
     """Test calculation of cHPI positions
     """
-    trans, rot, t = get_chpi_positions(pos_fname)
+    trans, rot, t = head_quats_to_trans_rot_t(read_head_quats(pos_fname))
     with warnings.catch_warnings(record=True):
         raw = Raw(raw_fif_fname, allow_maxshield=True, preload=True)
     t -= raw.first_samp / raw.info['sfreq']
     quats = calculate_chpi_positions(raw, verbose='debug')
-    trans_est, rot_est, t_est = _quats_to_trans_rot_t(quats)
-    _compare_positions((trans, rot, t), (trans_est, rot_est, t_est), 0.003)
+    trans_est, rot_est, t_est = head_quats_to_trans_rot_t(quats)
+    _compare_positions((trans, rot, t), (trans_est, rot_est, t_est), 0.0027)
 
     # degenerate conditions
     raw_no_chpi = Raw(test_fif_fname)
@@ -178,5 +165,18 @@ def test_calculate_chpi_positions():
     # ignore HPI info header and [done] footer
     for line in log_file.getvalue().strip().split('\n')[4:-1]:
         assert_true('0/5 good' in line)
+
+
+@testing.requires_testing_data
+def test_chpi_subtraction():
+    """Test subtraction of cHPI signals"""
+    with warnings.catch_warnings(record=True):  # maxshield
+        raw = Raw(raw_fif_fname, allow_maxshield=True, preload=True)
+    filter_chpi(raw)
+    raw_c = Raw(sss_hpisubt_fname, preload=True)
+    raw_c.pick_types(meg=True, eeg=True, eog=True, ecg=True, stim=True,
+                     misc=True, copy=False)  # remove cHPI status chans
+    # this poor result will affect all following results :(
+    assert_meg_snr(raw, raw_c, 1., 5.9)
 
 run_tests_if_main()

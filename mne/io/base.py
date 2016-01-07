@@ -336,7 +336,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         dtype = self._dtype
         if isinstance(data_buffer, np.ndarray):
             if data_buffer.shape != data_shape:
-                raise ValueError('data_buffer has incorrect shape')
+                raise ValueError('data_buffer has incorrect shape: %s != %s'
+                                 % (data_buffer.shape, data_shape))
             data = data_buffer
         elif isinstance(data_buffer, string_types):
             # use a memmap
@@ -438,9 +439,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._preload_data(True)
         return self
 
-    def _preload_data(self, preload):
+    @verbose
+    def _preload_data(self, preload, verbose=False):
         """This function actually preloads the data"""
-        data_buffer = preload if isinstance(preload, string_types) else None
+        data_buffer = preload if isinstance(preload, (string_types,
+                                                      np.ndarray)) else None
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info['nchan']
         self.preload = True
@@ -504,6 +507,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if isinstance(item[0], slice):
             start = item[0].start if item[0].start is not None else 0
             nchan = self.info['nchan']
+            if start < 0:
+                start += nchan
+                if start < 0:
+                    raise ValueError('start must be >= -%s' % nchan)
             stop = item[0].stop if item[0].stop is not None else nchan
             step = item[0].step if item[0].step is not None else 1
             sel = list(range(start, stop, step))

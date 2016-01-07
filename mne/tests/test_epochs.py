@@ -19,8 +19,7 @@ import matplotlib
 
 from mne import (Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
-                 write_evokeds, create_info, make_fixed_length_events,
-                 get_chpi_positions)
+                 write_evokeds, create_info, make_fixed_length_events)
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
@@ -28,6 +27,7 @@ from mne.epochs import (
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_version)
+from mne.chpi import head_quats_to_trans_rot_t, read_head_quats
 
 from mne.io import RawArray, Raw
 from mne.io.proj import _has_eeg_average_ref_proj
@@ -99,8 +99,8 @@ def test_average_movements():
                              picks=picks, proj=False)
     evoked_sss_stat = epochs_sss_stat.average()
     del raw_sss_stat, epochs_sss_stat
-    pos = get_chpi_positions(fname_raw_move_pos)
-    ts = pos[2]
+    pos = read_head_quats(fname_raw_move_pos)
+    ts = pos[:, 0]
     trans = epochs.info['dev_head_t']['trans']
     pos_stat = (np.array([trans[:3, 3]]),
                 np.array([trans[:3, :3]]),

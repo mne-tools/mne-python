@@ -452,6 +452,27 @@ EEG referencing:
    high_pass_filter
    low_pass_filter
 
+Head position estimation:
+
+.. currentmodule:: mne.chpi
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   calculate_chpi_positions
+   head_quats_to_trans_rot_t
+   read_head_quats
+   write_head_quats
+
+.. currentmodule:: mne.transforms
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   quat_to_rot
+   rot_to_quat
 
 Events
 ======
@@ -505,7 +526,6 @@ Sensor Space Data
    concatenate_raws
    equalize_channels
    grand_average
-   get_chpi_positions
    pick_channels
    pick_channels_cov
    pick_channels_forward

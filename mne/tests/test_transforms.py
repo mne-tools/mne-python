@@ -9,12 +9,14 @@ import warnings
 
 from mne.datasets import testing
 from mne import read_trans, write_trans
+from mne.io import read_info
 from mne.utils import _TempDir, run_tests_if_main
 from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
                             get_ras_to_neuromag_trans, _sphere_to_cartesian,
-                            _polar_to_cartesian, _cartesian_to_sphere)
+                            _polar_to_cartesian, _cartesian_to_sphere,
+                            quat_to_rot, rot_to_quat, _angle_between_quats)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -159,5 +161,44 @@ def test_combine():
     assert_raises(RuntimeError, combine_transforms, trans, trans,
                   trans['from'], trans['to'])
 
+
+def test_quaternions():
+    """Test quaternion calculations
+    """
+    rots = [np.eye(3)]
+    for fname in [test_fif_fname, ctf_fname, hp_fif_fname]:
+        rots += [read_info(fname)['dev_head_t']['trans'][:3, :3]]
+    # nasty numerical cases
+    rots += [np.array([
+        [-0.99978541, -0.01873462, -0.00898756],
+        [-0.01873462, 0.62565561, 0.77987608],
+        [-0.00898756, 0.77987608, -0.62587152],
+    ])]
+    rots += [np.array([
+        [0.62565561, -0.01873462, 0.77987608],
+        [-0.01873462, -0.99978541, -0.00898756],
+        [0.77987608, -0.00898756, -0.62587152],
+    ])]
+    rots += [np.array([
+        [-0.99978541, -0.00898756, -0.01873462],
+        [-0.00898756, -0.62587152, 0.77987608],
+        [-0.01873462, 0.77987608, 0.62565561],
+    ])]
+    for rot in rots:
+        assert_allclose(rot, quat_to_rot(rot_to_quat(rot)),
+                        rtol=1e-5, atol=1e-5)
+        rot = rot[np.newaxis, np.newaxis, :, :]
+        assert_allclose(rot, quat_to_rot(rot_to_quat(rot)),
+                        rtol=1e-5, atol=1e-5)
+
+    # let's make sure our angle function works in some reasonable way
+    for ii in range(3):
+        for jj in range(3):
+            a = np.zeros(3)
+            b = np.zeros(3)
+            a[ii] = 1.
+            b[jj] = 1.
+            expected = np.pi if ii != jj else 0.
+            assert_allclose(_angle_between_quats(a, b), expected, atol=1e-5)
 
 run_tests_if_main()

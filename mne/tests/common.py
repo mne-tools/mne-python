@@ -19,23 +19,9 @@ def _get_data(x, ch_idx):
         return x.data[ch_idx]
 
 
-def assert_meg_snr(actual, desired, min_tol, med_tol=500., msg=None):
-    """Helper to assert channel SNR of a certain level
-
-    Mostly useful for operations like Maxwell filtering that modify
-    MEG channels while leaving EEG and others intact.
-    """
+def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG'):
+    """Helper to check the SNR of a set of channels"""
     from nose.tools import assert_true
-    picks = pick_types(desired.info, meg=True, exclude=[])
-    picks_desired = pick_types(desired.info, meg=True, exclude=[])
-    assert_array_equal(picks, picks_desired, err_msg='MEG pick mismatch')
-    others = np.setdiff1d(np.arange(len(actual.ch_names)), picks)
-    others_desired = np.setdiff1d(np.arange(len(desired.ch_names)), picks)
-    assert_array_equal(others, others_desired, err_msg='Other pick mismatch')
-    if len(others) > 0:  # if non-MEG channels present
-        assert_allclose(_get_data(actual, others),
-                        _get_data(desired, others), atol=1e-11, rtol=1e-5,
-                        err_msg='non-MEG channel mismatch')
     actual_data = _get_data(actual, picks)
     desired_data = _get_data(desired, picks)
     bench_rms = np.sqrt(np.mean(desired_data * desired_data, axis=1))
@@ -50,8 +36,37 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., msg=None):
                 'channels%s' % (snr, min_tol, bad_count, len(picks), msg))
     # median tol
     snr = np.median(snrs)
-    assert_true(snr >= med_tol, 'SNR median %0.2f < %0.2f%s'
-                % (snr, med_tol, msg))
+    assert_true(snr >= med_tol, '%s SNR median %0.2f < %0.2f%s'
+                % (kind, snr, med_tol, msg))
+
+
+def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
+                   msg=None):
+    """Helper to assert channel SNR of a certain level
+
+    Mostly useful for operations like Maxwell filtering that modify
+    MEG channels while leaving EEG and others intact.
+    """
+    picks = pick_types(desired.info, meg=True, exclude=[])
+    picks_desired = pick_types(desired.info, meg=True, exclude=[])
+    assert_array_equal(picks, picks_desired, err_msg='MEG pick mismatch')
+    chpis = pick_types(actual.info, meg=False, chpi=True, exclude=[])
+    chpis_desired = pick_types(desired.info, meg=False, chpi=True, exclude=[])
+    if chpi_med_tol is not None:
+        assert_array_equal(chpis, chpis_desired, err_msg='cHPI pick mismatch')
+    others = np.setdiff1d(np.arange(len(actual.ch_names)),
+                          np.concatenate([picks, chpis]))
+    others_desired = np.setdiff1d(np.arange(len(desired.ch_names)),
+                                  np.concatenate([picks_desired,
+                                                  chpis_desired]))
+    assert_array_equal(others, others_desired, err_msg='Other pick mismatch')
+    if len(others) > 0:  # if non-MEG channels present
+        assert_allclose(_get_data(actual, others),
+                        _get_data(desired, others), atol=1e-11, rtol=1e-5,
+                        err_msg='non-MEG channel mismatch')
+    _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG')
+    if chpi_med_tol is not None and len(chpis) > 0:
+        _check_snr(actual, desired, chpis, 0., chpi_med_tol, msg, kind='cHPI')
 
 
 def _dig_sort_key(dig):

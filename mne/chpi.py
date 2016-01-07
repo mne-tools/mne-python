@@ -10,10 +10,11 @@ from .io.pick import pick_types, pick_channels
 from .io.base import _BaseRaw
 from .io.constants import FIFF
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
-                      _concatenate_coils)
+                      _concatenate_coils, _read_coil_defs)
 from .cov import make_ad_hoc_cov, _get_whitener_data
-from .transforms import apply_trans, invert_transform
-from .utils import verbose, logger, check_version, use_log_level
+from .transforms import (apply_trans, invert_transform, _angle_between_quats,
+                         quat_to_rot, rot_to_quat)
+from .utils import verbose, logger, check_version, use_log_level, deprecated
 from .fixes import partial
 from .externals.six import string_types
 
@@ -24,6 +25,9 @@ from .externals.six import string_types
 # ############################################################################
 # Reading from text or FIF file
 
+@deprecated('get_chpi_positions will be removed in v0.13, use '
+            'read_head_pos(fname) or raw[pick_types(meg=False, chpi=True), :] '
+            'instead')
 @verbose
 def get_chpi_positions(raw, t_step=None, return_quat=False, verbose=None):
     """Extract head positions
@@ -87,25 +91,87 @@ def get_chpi_positions(raw, t_step=None, return_quat=False, verbose=None):
     else:
         if not isinstance(raw, string_types):
             raise TypeError('raw must be an instance of Raw or string')
-        if not op.isfile(raw):
-            raise IOError('File "%s" does not exist' % raw)
         if t_step is not None:
             raise ValueError('t_step must be None if processing a log')
-        data = np.loadtxt(raw, skiprows=1)  # first line is header, skip it
-        data.shape = (-1, 10)  # ensure it's the right size even if empty
-    out = _quats_to_trans_rot_t(data)
+        data = read_head_quats(raw)
+    out = head_quats_to_trans_rot_t(data)
     if return_quat:
         out = out + (data[:, 1:4],)
     return out
 
 
-def _quats_to_trans_rot_t(quats):
+def read_head_quats(fname):
+    """Read MaxFilter-formatted head position parameters
+
+    Parameters
+    ----------
+    fname : str
+        The filename to read. This can be produced by e.g.,
+        ``maxfilter -headpos <name>.pos``.
+
+    Returns
+    -------
+    pos : array, shape (N, 10)
+        The position parameters.
+
+    See Also
+    --------
+    write_head_quats
+    head_quats_to_trans_rot_t
+
+    Notes
+    -----
+    .. versionadded:: 0.12
+    """
+    if not isinstance(fname, string_types):
+        raise TypeError('fname must be str, not %s' % type(fname))
+    if not op.isfile(fname):
+        raise IOError('File "%s" does not exist' % fname)
+    data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
+    data.shape = (-1, 10)  # ensure it's the right size even if empty
+    return data
+
+
+def write_head_quats(fname, pos):
+    """Write MaxFilter-formatted head position parameters
+
+    Parameters
+    ----------
+    fname : str
+        The filename to write.
+    pos : array, shape (N, 10)
+        The position parameters.
+
+    See Also
+    --------
+    read_head_quats
+    head_quats_to_trans_rot_t
+
+    Notes
+    -----
+    .. versionadded:: 0.12
+    """
+    if not isinstance(fname, string_types):
+        raise TypeError('fname must be a string')
+    pos = np.array(pos, np.float64)
+    if pos.ndim != 2 or pos.shape[1] != 10:
+        raise ValueError('pos must be a 2D array of shape (N, 10)')
+    with open(fname, 'wb') as fid:
+        fid.write(' Time       q1       q2       q3       q4       q5       '
+                  'q6       g-value  error    velocity\n'.encode('ASCII'))
+        for p in pos:
+            fmts = ['% 9.3f'] + ['% 8.5f'] * 9
+            fid.write(((' ' + ' '.join(fmts) + '\n')
+                       % tuple(p)).encode('ASCII'))
+
+
+def head_quats_to_trans_rot_t(quats):
     """Convert Maxfilter-formatted head position quaternions
 
     Parameters
     ----------
     quats : ndarray, shape (N, 10)
-        Maxfilter-formatted quaternions.
+        MaxFilter-formatted position and quaternion parameters.
 
     Returns
     -------
@@ -119,73 +185,13 @@ def _quats_to_trans_rot_t(quats):
     See Also
     --------
     calculate_chpi_positions
-    get_chpi_positions
+    read_pos
+    write_pos
     """
     t = quats[:, 0].copy()
-    rotation = _quat_to_rot(quats[:, 1:4])
+    rotation = quat_to_rot(quats[:, 1:4])
     translation = quats[:, 4:7].copy()
     return translation, rotation, t
-
-
-def _quat_to_rot(q):
-    """Helper to convert quaternions to rotations"""
-    # z = a + bi + cj + dk
-    b, c, d = q[..., 0], q[..., 1], q[..., 2]
-    bb, cc, dd = b * b, c * c, d * d
-    # use max() here to be safe in case roundoff errs put us over
-    aa = np.maximum(1. - bb - cc - dd, 0.)
-    a = np.sqrt(aa)
-    ab_2 = 2 * a * b
-    ac_2 = 2 * a * c
-    ad_2 = 2 * a * d
-    bc_2 = 2 * b * c
-    bd_2 = 2 * b * d
-    cd_2 = 2 * c * d
-    rotation = np.array([(aa + bb - cc - dd, bc_2 - ad_2, bd_2 + ac_2),
-                         (bc_2 + ad_2, aa + cc - bb - dd, cd_2 - ab_2),
-                         (bd_2 - ac_2, cd_2 + ab_2, aa + dd - bb - cc),
-                         ])
-    if q.ndim > 1:
-        rotation = np.rollaxis(np.rollaxis(rotation, 1, q.ndim + 1), 0, q.ndim)
-    return rotation
-
-
-def _one_rot_to_quat(rot):
-    """Convert a rotation matrix to quaternions"""
-    # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/
-    #                 conversions/matrixToQuaternion/
-    t = 1. + rot[0] + rot[4] + rot[8]
-    if t > np.finfo(rot.dtype).eps:
-        s = np.sqrt(t) * 2.
-        qx = (rot[7] - rot[5]) / s
-        qy = (rot[2] - rot[6]) / s
-        qz = (rot[3] - rot[1]) / s
-        # qw = 0.25 * s
-    elif rot[0] > rot[4] and rot[0] > rot[8]:
-        s = np.sqrt(1. + rot[0] - rot[4] - rot[8]) * 2.
-        qx = 0.25 * s
-        qy = (rot[1] + rot[3]) / s
-        qz = (rot[2] + rot[6]) / s
-        # qw = (rot[7] - rot[5]) / s
-    elif rot[4] > rot[8]:
-        s = np.sqrt(1. - rot[0] + rot[4] - rot[8]) * 2
-        qx = (rot[1] + rot[3]) / s
-        qy = 0.25 * s
-        qz = (rot[5] + rot[7]) / s
-        # qw = (rot[2] - rot[6]) / s
-    else:
-        s = np.sqrt(1. - rot[0] - rot[4] + rot[8]) * 2.
-        qx = (rot[2] + rot[6]) / s
-        qy = (rot[5] + rot[7]) / s
-        qz = 0.25 * s
-        # qw = (rot[3] - rot[1]) / s
-    return qx, qy, qz
-
-
-def _rot_to_quat(rot):
-    """Convert a set of rotations to quaternions"""
-    rot = rot.reshape(rot.shape[:-2] + (9,))
-    return np.apply_along_axis(_one_rot_to_quat, -1, rot)
 
 
 # ############################################################################
@@ -241,7 +247,7 @@ def _magnetic_dipole_objective(x, B, B2, coils, scale, method):
         from .preprocessing.maxwell import _sss_basis
         # Eventually we can try incorporating external bases here, which
         # is why the :3 is on the SVD below
-        fwd = _sss_basis(x, coils, 1, 0).T
+        fwd = _sss_basis(dict(origin=x, int_order=1, ext_order=0), coils).T
     fwd = np.dot(fwd, scale.T)
     one = np.dot(linalg.svd(fwd, full_matrices=False)[2][:3], B)
     one *= one
@@ -262,7 +268,7 @@ def _fit_magnetic_dipole(B_orig, x0, coils, scale, method):
 
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
     """Helper objective function"""
-    d = np.dot(coil_dev_rrs, _quat_to_rot(x[:3]).T)
+    d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
     d += x[3:]
     d -= coil_head_rrs
     d *= d
@@ -285,20 +291,9 @@ def _fit_chpi_pos(coil_dev_rrs, coil_head_rrs, x0):
     return x, 1. - objective(x) / denom
 
 
-def _angle_between_quats(x, y):
-    """Compute the angle between two quaternions w/3-element representations"""
-    # convert to complete quaternion representation
-    # use max() here to be safe in case roundoff errs put us over
-    x0 = np.sqrt(np.maximum(1. - x[..., 0] ** 2 -
-                            x[..., 1] ** 2 - x[..., 2] ** 2, 0.))
-    y0 = np.sqrt(np.maximum(1. - y[..., 0] ** 2 -
-                            y[..., 1] ** 2 - y[..., 2] ** 2, 0.))
-    # the difference z = x * conj(y), and theta = np.arccos(z0)
-    z0 = np.maximum(np.minimum(y0 * x0 + (x * y).sum(axis=-1), 1.), -1)
-    return 2 * np.arccos(z0)
-
-
-def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
+@verbose
+def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
+                     include_slope=True, verbose=None):
     """Helper to set up cHPI fits"""
     from scipy.spatial.distance import cdist
     from .preprocessing.maxwell import _prep_bases
@@ -314,45 +309,51 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward'):
     head_dev_t = invert_transform(info['dev_head_t'])['trans']
     # determine timing
     n_window = int(round(t_window * info['sfreq']))
-    n_freqs = len(hpi_freqs)
     logger.debug('Coordinate transformation:')
     for d in (dev_head_t[0, :3], dev_head_t[1, :3], dev_head_t[2, :3],
               dev_head_t[:3, 3] * 1000.):
         logger.debug('{0:8.4f} {1:8.4f} {2:8.4f}'.format(*d))
-    # Set up amplitude fits
     slope = np.arange(n_window).astype(np.float64)[:, np.newaxis]
-    f_t = 2 * np.pi * hpi_freqs[np.newaxis, :] * (slope / info['sfreq'])
-    l_t = 2 * np.pi * line_freqs[np.newaxis, :] * (slope / info['sfreq'])
-    model = np.concatenate([np.sin(f_t), np.cos(f_t),  # hpi freqs
-                            np.sin(l_t), np.cos(l_t),  # line freqs
-                            slope,  # linear slope
-                            np.ones((n_window, 1))  # constant
-                            ], axis=1)
+    slope -= np.mean(slope)
+    rads = slope / info['sfreq']
+    rads *= 2 * np.pi
+    f_t = hpi_freqs[np.newaxis, :] * rads
+    l_t = line_freqs[np.newaxis, :] * rads
+    model = [np.sin(f_t), np.cos(f_t)]  # hpi freqs
+    if include_slope:
+        model += [model[0] * slope, model[1] * slope]
+    model += [np.sin(l_t), np.cos(l_t)]  # line freqs
+    model += [slope, np.ones(slope.shape)]
+    model = np.concatenate(model, axis=1)
     inv_model = linalg.pinv(model)
-    del slope, f_t, l_t
     # Set up highpass at half lowest cHPI freq
     hp_n = 2 ** (int(np.ceil(np.log2(n_window))) + 1)
     freqs = fftpack.rfftfreq(hp_n, 1. / info['sfreq'])
-    hp_ind = np.where(freqs > hpi_freqs.min() / 2.)[0][0]
+    hp_ind = np.where(freqs >= hpi_freqs.min())[0][0] - 2
+    hp_window = np.concatenate(
+        [[0], np.repeat(np.hanning(hp_ind - 1)[:(hp_ind - 1) // 2],
+                        2)])[np.newaxis]
 
     # Set up magnetic dipole fits
     picks_good = pick_types(info, meg=True, eeg=False)
     picks = np.concatenate([picks_good, [hpi_pick]])
     megchs = [ch for ci, ch in enumerate(info['chs']) if ci in picks_good]
-    coils = _create_meg_coils(megchs, 'normal')
+    templates = _read_coil_defs(elekta_defs=True, verbose=False)
+    coils = _create_meg_coils(megchs, 'accurate', coilset=templates)
     if method == 'forward':
         coils = _concatenate_coils(coils)
     else:  # == 'multipole'
         coils = _prep_bases(coils, 1, 0)
     scale = make_ad_hoc_cov(info, verbose=False)
     scale = _get_whitener_data(info, scale, picks_good, verbose=False)
-    orig_dev_head_quat = np.concatenate([_rot_to_quat(dev_head_t[:3, :3]),
+    orig_dev_head_quat = np.concatenate([rot_to_quat(dev_head_t[:3, :3]),
                                          dev_head_t[:3, 3]])
     dists = cdist(coil_head_rrs, coil_head_rrs)
     hpi = dict(dists=dists, scale=scale, picks=picks, model=model,
                inv_model=inv_model, coil_head_rrs=coil_head_rrs,
                coils=coils, on=hpi_ons, n_window=n_window, method=method,
-               n_freqs=n_freqs, hp_ind=hp_ind, hp_n=hp_n)
+               freqs=hpi_freqs, line_freqs=line_freqs,
+               hp_ind=hp_ind, hp_n=hp_n, hp_window=hp_window)
     last = dict(quat=orig_dev_head_quat, coil_head_rrs=coil_head_rrs,
                 coil_dev_rrs=apply_trans(head_dev_t, coil_head_rrs),
                 sin_fit=None, fit_time=-t_step_min)
@@ -364,11 +365,11 @@ def _time_prefix(fit_time):
     return ('    t=%0.3f:' % fit_time).ljust(17)
 
 
-def _high_pass(data, hp_n, hp_ind):
+def _high_pass(data, hpi):
     """Helper to highpass a data chunk a simple way"""
     data -= data.mean(axis=1)[:, np.newaxis]  # demean
-    data_fft = fftpack.rfft(data, n=hp_n, overwrite_x=True, axis=-1)
-    data_fft[:, :hp_ind] = 0
+    data_fft = fftpack.rfft(data, n=hpi['hp_n'], overwrite_x=True, axis=-1)
+    data_fft[:, :hpi['hp_ind']] *= hpi['hp_window']
     data[...] = fftpack.irfft(data_fft, axis=-1)[:, :data.shape[1]]
 
 
@@ -400,7 +401,7 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
     Returns
     -------
-    fits : ndarray, shape (N, 10)
+    quats : ndarray, shape (N, 10)
         The ``[t, q1, q2, q3, x, y, z, gof, err, v]`` for each fit.
 
     Notes
@@ -410,27 +411,30 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
     See Also
     --------
-    get_chpi_positions
+    read_head_quats
+    write_head_quats
     """
     from scipy.spatial.distance import cdist
-    hpi, last = _setup_chpi_fits(raw.info, t_window, t_step_min,
-                                 method='forward')
-    fit_starts = np.round(np.arange(0, raw.times[-1], t_step_min) *
-                          raw.info['sfreq']).astype(int)
-    fit_starts = fit_starts[fit_starts < raw.n_times - hpi['n_window']]
-    fit_times = (fit_starts + (hpi['n_window'] + 1) // 2) / raw.info['sfreq']
+    hpi, last = _setup_chpi_fits(raw.info, t_window, t_step_min)
+    fit_idxs = raw.time_as_index(np.arange(0., raw.times[-1], t_step_min),
+                                 use_rounding=True)
     quats = []
     logger.info('Fitting up to %s time points (%0.1f sec duration)'
-                % (len(fit_starts), raw.times[-1]))
-    for start, fit_time in zip(fit_starts, fit_times):
+                % (len(fit_idxs), raw.times[-1]))
+    pos_0 = None
+    n_freqs = len(hpi['freqs'])
+    for midpt in fit_idxs:
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
+        fit_time = midpt / raw.info['sfreq']
+        time_sl = midpt - hpi['n_window'] // 2
+        time_sl = slice(max(time_sl, 0),
+                        min(time_sl + hpi['n_window'], len(raw.times)))
         with use_log_level(False):
-            meg_chpi_data = raw[hpi['picks'], start:start + hpi['n_window']][0]
+            meg_chpi_data = raw[hpi['picks'], time_sl][0]
         this_data = meg_chpi_data[:-1]
-        # XXX eventually high-pass filtering to get rid of interference?
-        # _high_pass(this_data, hpi['hp_n'], hpi['hp_ind'])
+        # _high_pass(this_data, hpi)
         chpi_data = meg_chpi_data[-1]
         ons = (np.round(chpi_data).astype(np.int) &
                hpi['on'][:, np.newaxis]).astype(bool)
@@ -440,14 +444,22 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                         'skipping fit' % (n_on.min(),))
             continue
         # ons = ons.all(axis=1)  # which HPI coils to use
-        X = np.dot(hpi['inv_model'], this_data.T)
-        data_diff = np.dot(hpi['model'], X).T - this_data
+        this_len = time_sl.stop - time_sl.start
+        if this_len == hpi['n_window']:
+            model, inv_model = hpi['model'], hpi['inv_model']
+        else:  # first or last window
+            print('yo')
+            model = hpi['model'][:this_len]
+            inv_model = linalg.pinv(model)
+        X = np.dot(inv_model, this_data.T)
+        data_diff = np.dot(model, X).T - this_data
+        del model, inv_model
         data_diff *= data_diff
         this_data *= this_data
         g_chan = (1 - np.sqrt(data_diff.sum(axis=1) / this_data.sum(axis=1)))
         g_sin = (1 - np.sqrt(data_diff.sum() / this_data.sum()))
         del data_diff, this_data
-        X_sin, X_cos = X[:hpi['n_freqs']], X[hpi['n_freqs']:2 * hpi['n_freqs']]
+        X_sin, X_cos = X[:n_freqs], X[n_freqs:2 * n_freqs]
         signs = np.sign(np.arctan2(X_sin, X_cos))
         X_sin *= X_sin
         X_cos *= X_cos
@@ -457,7 +469,7 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
             corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
             # check to see if we need to continue
             if fit_time - last['fit_time'] <= t_step_max - 1e-7 and \
-                    corr * corr > 0.98 and fit_time != fit_times[-1]:
+                    corr * corr > 0.98:
                 continue  # don't need to re-fit data
         last['sin_fit'] = sin_fit.copy()  # save *before* inplace sign mult
         sin_fit *= signs
@@ -479,7 +491,7 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         these_dists = np.abs(hpi['dists'] - these_dists)
         # there is probably a better algorithm for finding the bad ones...
         good = False
-        use_mask = np.ones(hpi['n_freqs'], bool)
+        use_mask = np.ones(n_freqs, bool)
         while not good:
             d = these_dists[use_mask][:, use_mask]
             d_bad = (d > dist_limit)
@@ -496,7 +508,7 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         if not good:
             logger.warning(_time_prefix(fit_time) + '%s/%s good HPI fits, '
                            'cannot determine the transformation!'
-                           % (use_mask.sum(), hpi['n_freqs']))
+                           % (use_mask.sum(), n_freqs))
             continue
 
         #
@@ -511,7 +523,7 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                         'Bad coil fit! (g=%7.3f)' % (g,))
             continue
         this_dev_head_t = np.concatenate(
-            (_quat_to_rot(this_quat[:3]),
+            (quat_to_rot(this_quat[:3]),
              this_quat[3:][:, np.newaxis]), axis=1)
         this_dev_head_t = np.concatenate((this_dev_head_t, [[0, 0, 0, 1.]]))
         # velocities, in device coords, of HPI coils
@@ -521,18 +533,22 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                                           axis=1)) / dt)
         logger.info(_time_prefix(fit_time) +
                     ('%s/%s good HPI fits, movements [mm/s] = ' +
-                     ' / '.join(['% 6.1f'] * hpi['n_freqs']))
-                    % ((use_mask.sum(), hpi['n_freqs']) + vs))
+                     ' / '.join(['% 6.1f'] * n_freqs))
+                    % ((use_mask.sum(), n_freqs) + vs))
         # resulting errors in head coil positions
         est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
         errs = 1000. * np.sqrt(np.sum((hpi['coil_head_rrs'] -
                                        est_coil_head_rrs) ** 2,
                                       axis=1))
-        e = 0.  # XXX eventually calculate this
+        e = 0.  # XXX eventually calculate this -- cumulative error of fit?
         d = 100 * np.sqrt(np.sum(last['quat'][3:] - this_quat[3:]) ** 2)  # cm
         r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
         v = d / dt  # cm/sec
-        for ii in range(hpi['n_freqs']):
+        if pos_0 is None:
+            pos_0 = this_quat[3:].copy()
+        d = 100 * np.sqrt(np.sum((this_quat[3:] - pos_0) ** 2))  # dis from 1st
+        # MaxFilter averages over a 200 ms window for display, but we don't
+        for ii in range(n_freqs):
             if use_mask[ii]:
                 start, end = ' ', '/'
             else:
@@ -565,3 +581,62 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     quats = np.array(quats, np.float64)
     quats = np.zeros((0, 10)) if quats.size == 0 else quats
     return quats
+
+
+@verbose
+def filter_chpi(raw, include_line=True, verbose=None):
+    """Remove cHPI and line noise from data
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Raw data with cHPI information. Must be preloaded. Operates in-place.
+    include_line : bool
+        If True, also filter line noise.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    raw : instance of Raw
+        The raw data.
+
+    Notes
+    -----
+    .. versionadded:: 0.12
+    """
+    if not raw.preload:
+        raise RuntimeError('raw data must be preloaded')
+    t_window = 0.2
+    include_slope = True  # eventually might be an option?
+    hpi = _setup_chpi_fits(raw.info, t_window, t_window,
+                           include_slope=include_slope, verbose=False)[0]
+    fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2 - 1,
+                         hpi['n_window'])
+    n_freqs = len(hpi['freqs'])
+    n_remove = 2 * (1 + bool(include_slope)) * n_freqs
+    msg = 'Removing %s cHPI frequencies' % n_freqs
+    if include_line:
+        n_remove += 2 * len(hpi['line_freqs'])
+        msg += ' and %s line frequency harmonics' % len(hpi['line_freqs'])
+    proj = np.dot(hpi['model'][:, :n_remove], hpi['inv_model'][:n_remove]).T
+    logger.info(msg)
+    used = np.zeros(len(raw.times), bool)
+    for midpt in fit_idxs:
+        time_sl = midpt - hpi['n_window'] // 2
+        time_sl = slice(max(time_sl, 0),
+                        min(time_sl + hpi['n_window'], len(raw.times)))
+        assert not used[time_sl].any()
+        this_len = time_sl.stop - time_sl.start
+        if this_len == hpi['n_window']:
+            this_proj = proj
+        else:  # first or last window
+            model = hpi['model'][:this_len]
+            inv_model = linalg.pinv(model)
+            this_proj = np.dot(model[:, :n_remove], inv_model[:n_remove]).T
+        used[time_sl] = True
+        this_data = raw._data[hpi['picks'][:-1], time_sl]
+        # _high_pass(this_data, hpi)
+        raw._data[hpi['picks'][:-1], time_sl] -= np.dot(this_data, this_proj)
+    assert used.all()
+    return raw

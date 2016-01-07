@@ -173,7 +173,7 @@ def _create_eeg_el(ch, t=None):
     return res
 
 
-def _create_meg_coils(chs, acc=None, t=None, coilset=None):
+def _create_meg_coils(chs, acc, t=None, coilset=None):
     """Create a set of MEG coils in the head coordinate frame"""
     acc = _accuracy_dict[acc] if isinstance(acc, string_types) else acc
     coilset = _read_coil_defs(verbose=False) if coilset is None else coilset

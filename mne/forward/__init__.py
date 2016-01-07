@@ -11,7 +11,8 @@ from .forward import (Forward, read_forward_solution, write_forward_solution,
                       _to_fixed_ori, prepare_bem_model, _merge_meg_eeg_fwds)
 from ._make_forward import (make_forward_solution, _prepare_for_forward,
                             _prep_meg_channels, _prep_eeg_channels,
-                            _to_forward_dict, _create_meg_coils)
+                            _to_forward_dict, _create_meg_coils,
+                            _read_coil_defs)
 from ._compute_forward import (_magnetic_dipole_field_vec, _compute_forwards,
                                _concatenate_coils)
 from ._field_interpolation import (_make_surface_mapping, make_field_map,

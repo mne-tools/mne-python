@@ -1473,7 +1473,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         else:
             initial_size = 0
         # This should never happen if our functions work properly
-        if initial_size >= file_size:
+        if initial_size > file_size:
             raise RuntimeError('Local file (%s) is larger than remote '
                                'file (%s), cannot resume download'
                                % (sizeof_fmt(initial_size),

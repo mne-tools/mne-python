@@ -2664,10 +2664,11 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     ----------
     epochs : instance of Epochs
         The epochs to operate on.
-    pos : tuple
-        Tuple of position information as ``(trans, rot, t)`` like that
-        returned by `get_chpi_positions`. The positions will be matched
-        based on the last given position before the onset of the epoch.
+    pos : array | tuple | None
+        The array should be of shape ``(N, 10)``, holding the position
+        parameters as returned by e.g. `read_head_quats`. For backward
+        compatibility, this can also be a tuple of ``(trans, rot t)``
+        as returned by `head_quats_to_trans_rot_t`.
     orig_sfreq : float | None
         The original sample frequency of the data (that matches the
         event sample numbers in ``epochs.events``). Can be ``None``
@@ -2708,6 +2709,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     See Also
     --------
     mne.preprocessing.maxwell_filter
+    mne.chpi.read_head_quats
 
     Notes
     -----
@@ -2735,11 +2737,14 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     from .preprocessing.maxwell import (_info_sss_basis, _reset_meg_bads,
                                         _check_usable, _col_norm_pinv,
                                         _get_n_moments, _get_mf_picks)
+    from .chpi import head_quats_to_trans_rot_t
     if not isinstance(epochs, _BaseEpochs):
         raise TypeError('epochs must be an instance of Epochs, not %s'
                         % (type(epochs),))
     orig_sfreq = epochs.info['sfreq'] if orig_sfreq is None else orig_sfreq
     orig_sfreq = float(orig_sfreq)
+    if isinstance(pos, np.ndarray):
+        pos = head_quats_to_trans_rot_t(pos)
     trn, rot, t = pos
     del pos
     _check_usable(epochs)
@@ -2764,6 +2769,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     S_decomp = 0.  # this will end up being a weighted average
     last_trans = None
     decomp_coil_scale = coil_scale[good_picks]
+    exp = dict(int_order=int_order, ext_order=ext_order, head_frame=True,
+               origin=origin)
     for ei, epoch in enumerate(epochs):
         event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
         use_idx = np.where(t <= event_time)[0]
@@ -2786,8 +2793,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
             reuse = True
         epoch = epoch.copy()  # because we operate inplace
         if not reuse:
-            S = _info_sss_basis(info_from, trans, origin,
-                                int_order, ext_order, True,
+            S = _info_sss_basis(info_from, trans, exp,
                                 coil_scale=decomp_coil_scale)
             # Get the weight from the un-regularized version
             weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
@@ -2809,8 +2815,9 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         S_decomp /= w_sum
         # Get recon matrix
         # (We would need to include external here for regularization to work)
-        S_recon = _info_sss_basis(epochs.info, None, origin,
-                                  int_order, 0, True)
+        exp['ext_order'] = 0
+        S_recon = _info_sss_basis(epochs.info, None, exp)
+        exp['ext_order'] = ext_order
         # We could determine regularization on basis of destination basis
         # matrix, restricted to good channels, as regularizing individual
         # matrices within the loop above does not seem to work. But in

@@ -7,13 +7,16 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
-import numpy as np
-from scipy import linalg
 from math import factorial
 from os import path as op
+import warnings
+
+import numpy as np
+from scipy import linalg
 
 from .. import __version__
 from ..bem import _check_origin
+from ..chpi import quat_to_rot, rot_to_quat
 from ..transforms import _str_to_frame, _get_trans, Transform
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _prep_meg_channels
@@ -24,7 +27,7 @@ from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..utils import verbose, logger, _clean_names
-from ..fixes import _get_args
+from ..fixes import _get_args, partial
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -39,7 +42,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,
                    st_correlation=0.98, coord_frame='head', destination=None,
                    regularize='in', ignore_ref=False, bad_condition='error',
-                   pos=None, verbose=None):
+                   pos=None, st_fixed=True, verbose=None):
     """Apply Maxwell filter to data using multipole moments
 
     .. warning:: Automatic bad channel detection is not currently implemented.
@@ -107,12 +110,17 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     bad_condition : str
         How to deal with ill-conditioned SSS matrices. Can be "error"
         (default), "warning", or "ignore".
-    pos : tuple | None
-        If tuple, movement compensation will be performed.
-        The tuple should contain a ``(trans, rot, t)`` tuple as obtained
-        from `get_chpi_positions`, with the initial skip included in ``t``.
-        A suitable position file can be obtained from MaxFilter™ by using
-        the ``-headpos`` option.
+    pos : array | None
+        If array, movement compensation will be performed.
+        The array should be of shape (N, 10), holding the position
+        parameters as returned by e.g. `read_head_quats`.
+
+        .. versionadded:: 0.12
+
+    st_fixed : bool
+        If True (default), do tSSS using the median head position during the
+        ``st_duration`` window. This is the default behavior of MaxFilter
+        and has been most extensively tested.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -124,6 +132,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     See Also
     --------
     mne.epochs.average_movements
+    mne.chpi.read_head_quats
 
     Notes
     -----
@@ -142,11 +151,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         * tSSS
         * Coordinate frame translation
         * Regularization of internal components using information theory
+        * Raw movement compensation
 
     The following features are not yet implemented:
 
         * **Not certified for clinical use**
-        * Raw movement compensation
         * Automatic bad channel detection
         * cHPI subtraction
 
@@ -251,12 +260,13 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                            'info["dev_head_t"] is None; if this is an '
                            'empty room recording, consider using '
                            'coord_frame="meg"')
-    pos = _check_pos(pos, head_frame, raw)
+    pos = _check_pos(pos, head_frame, raw, st_fixed)
 
     # Now we can actually get moving
 
     logger.info('Maxwell filtering raw data')
-    raw_sss = raw.copy().load_data(verbose=False)
+    raw_sss, pos_picks = _copy_preload_add_channels(
+        raw, add_channels=pos[0] is not None)
     del raw
     info, times = raw_sss.info, raw_sss.times
     meg_picks, mag_picks, grad_picks, good_picks, coil_scale, mag_or_fine = \
@@ -315,9 +325,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         max_st.update(job=10, subspcorr=st_correlation, buflen=st_duration)
         logger.info('    Processing data using tSSS with st_duration=%s'
                     % st_duration)
+        st_when = 'before' if st_fixed else 'after'  # relative to movecomp
     else:
         st_duration = min(raw_sss.times[-1], 10.)  # chunk size
         st_correlation = None
+        st_when = 'never'
+    del st_fixed
 
     # Generate time points to break up data into windows
     chunk_times = np.arange(times[0], times[-1], st_duration)
@@ -333,102 +346,114 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                         'raw object. The final %0.2f seconds were lumped '
                         'onto the previous window.' % len_last_buf)
 
-    logger.info('    Processing data in chunks of %0.1f sec' % st_duration)
-
     #
     # Do the heavy lifting
     #
 
     # Figure out which transforms we need for each tSSS block
     pos[1] = raw_sss.time_as_index(pos[1], use_rounding=True)  # transform to t
-    pos_groups = np.searchsorted(pos[1], read_lims)
-    S_decomp, pS_decomp, reg_moments, n_use_in = _get_decomp(
-        info, None, calibration, regularize, exp, ignore_ref, coil_scale,
-        grad_picks, mag_picks, good_picks, mag_or_fine, bad_condition)
+    # Compute the first bit of pos_data for cHPI reporting
+    if raw_sss.info['dev_head_t'] is not None and pos[0] is not None:
+        this_pos_quat = np.concatenate([
+            rot_to_quat(info['dev_head_t']['trans'][:3, :3]),
+            info['dev_head_t']['trans'][:3, 3],
+            np.zeros(3)])
+    else:
+        this_pos_quat = None
+    trans = None
+    _get_this_decomp_trans = partial(
+        _get_decomp, info=info, cal=calibration, regularize=regularize,
+        exp=exp, ignore_ref=ignore_ref, coil_scale=coil_scale,
+        grad_picks=grad_picks, mag_picks=mag_picks, good_picks=good_picks,
+        mag_or_fine=mag_or_fine, bad_condition=bad_condition)
+    S_decomp, pS_decomp, reg_moments, n_use_in = _get_this_decomp_trans(trans)
     reg_moments_0 = reg_moments.copy()
     # Loop through buffer windows of data
-    for ii in range(len(read_lims) - 1):
-        start, stop = read_lims[ii], read_lims[ii + 1]
-        # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
+    pl = 's' if len(read_lims) != 2 else ''
+    logger.info('    Processing %s data chunk%s of (at least) %0.1f sec'
+                % (len(read_lims) - 1, pl, st_duration))
+    for start, stop in zip(read_lims[:-1], read_lims[1:]):
+        t_str = '% 8.2f - % 8.2f sec' % tuple(raw_sss.times[[start, stop - 1]])
+
+        # Get original data
         orig_data = raw_sss._data[good_picks, start:stop]
+        # Apply cross-talk correction
         if cross_talk is not None:
             orig_data = ctc.dot(orig_data)
-        clean_data = np.empty((len(meg_picks), stop - start))
-        if st_correlation is not None:
-            orig_in_data = np.empty((len(meg_picks), stop - start))
+        out_meg_data = np.empty((len(meg_picks), stop - start))
+        out_pos_data = np.empty((len(pos_picks), stop - start))
 
         # Figure out which positions to use
-        pos_idx = np.arange(pos_groups[ii], pos_groups[ii + 1])
-        n_positions = 0
-        used = np.zeros(stop - start, bool)
-        for ti in range(-1, len(pos_idx)):
-            # first iteration for this block of data
-            if ti < 0:
-                rel_start = 0
-                rel_stop = pos[1][pos_idx[0]] if len(pos_idx) > 0 else stop
-                rel_stop = rel_stop - start
-                if rel_start == rel_stop:
-                    continue  # our first pos occurs on first time sample
-                # Don't calculate S_decomp here, use the last one
-            else:
-                rel_start = pos[1][pos_idx[ti]] - start
-                if ti == len(pos_idx) - 1:
-                    rel_stop = stop - start
+        t_s_s_q_a = _trans_starts_stops_quats(pos, start, stop, this_pos_quat)
+        n_positions = len(t_s_s_q_a[0])
+
+        # Set up post-tSSS or do pre-tSSS
+        if st_correlation is not None:
+            # If doing tSSS before movecomp...
+            resid = orig_data.copy()  # to be safe let's operate on a copy
+            if st_when == 'after':
+                orig_in_data = np.empty((len(meg_picks), stop - start))
+            else:  # 'before'
+                avg_trans = t_s_s_q_a[-1]
+                if avg_trans is not None:
+                    # if doing movecomp
+                    S_decomp_st, pS_decomp_st, _, n_use_in_st = \
+                        _get_this_decomp_trans(avg_trans, verbose=False)
                 else:
-                    rel_stop = pos[1][pos_idx[ti + 1]] - start
-                trans = pos[0][pos_idx[ti]]
-                S_decomp, pS_decomp, reg_moments, n_use_in = _get_decomp(
-                    info, trans, calibration, regularize, exp, ignore_ref,
-                    coil_scale, grad_picks, mag_picks, good_picks, mag_or_fine,
-                    bad_condition, verbose=False)
-            assert 0 <= rel_start
-            assert rel_start < rel_stop
-            assert rel_stop <= stop - start
-            assert not used[rel_start:rel_stop].any()
-            used[rel_start:rel_stop] = True
-            rel_resid_data = orig_data[:, rel_start:rel_stop]
+                    S_decomp_st, pS_decomp_st = S_decomp, pS_decomp
+                    n_use_in_st = n_use_in
+                orig_in_data = np.dot(np.dot(S_decomp_st[:, :n_use_in_st],
+                                             pS_decomp_st[:n_use_in_st]),
+                                      resid)
+                resid -= np.dot(np.dot(S_decomp_st[:, n_use_in_st:],
+                                       pS_decomp_st[n_use_in_st:]), resid)
+                resid -= orig_in_data
+                # Here we operate on our actual data
+                _do_tSSS(orig_data, orig_in_data, resid, st_correlation,
+                         n_positions, t_str)
+
+        # Do movement compensation on the data
+        for trans, rel_start, rel_stop, this_pos_quat in zip(*t_s_s_q_a[:4]):
+            # Recalculate bases if necessary (trans will be None iff the
+            # first position in this interval is the same as last of the
+            # previous interval)
+            if trans is not None:
+                S_decomp, pS_decomp, reg_moments, n_use_in = \
+                    _get_this_decomp_trans(trans, verbose=False)
 
             # Determine multipole moments for this interval
-            mm_in = np.dot(pS_decomp[:n_use_in], rel_resid_data)
+            mm_in = np.dot(pS_decomp[:n_use_in],
+                           orig_data[:, rel_start:rel_stop])
 
             # Our output data
-            clean_data[:, rel_start:rel_stop] = \
+            out_meg_data[:, rel_start:rel_stop] = \
                 np.dot(S_recon.take(reg_moments[:n_use_in], axis=1), mm_in)
+            if len(pos_picks) > 0:
+                out_pos_data[:, rel_start:rel_stop] = \
+                    this_pos_quat[:, np.newaxis]
 
             # Transform orig_data to store just the residual
-            if st_correlation is not None:
+            if st_when == 'after':
                 # Reconstruct data using original location from external
                 # and internal spaces and compute residual
+                rel_resid_data = resid[:, rel_start:rel_stop]
                 orig_in_data[:, rel_start:rel_stop] = \
                     np.dot(S_decomp[:, :n_use_in], mm_in)
-                rel_resid_data -= np.dot(S_decomp[:, n_use_in:],
-                                         np.dot(pS_decomp[n_use_in:],
-                                                rel_resid_data))
+                rel_resid_data -= np.dot(np.dot(S_decomp[:, n_use_in:],
+                                                pS_decomp[n_use_in:]),
+                                         rel_resid_data)
                 rel_resid_data -= orig_in_data[:, rel_start:rel_stop]
-            n_positions += 1
-        assert used.all()
-        # This doesn't do anything but change namespaces that we're using to
-        # make it clear that, at this point, orig_data actually stores the
-        # residual values, *not* the original data
-        resid = orig_data
-        del orig_data
 
-        if st_correlation is not None:
-            np.asarray_chkfinite(resid)
-
-            # Compute SSP-like projection vectors based on minimal correlation
-            t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
-
-            # Apply projector according to Eq. 12 in [2]_
-            msg = ('        Projecting %d intersecting tSSS components for '
-                   '% 8.2f - % 8.2f sec'
-                   % (t_proj.shape[1], start / raw_sss.info['sfreq'],
-                      stop / raw_sss.info['sfreq']))
-            if n_positions > 1:
-                msg += ' (across %d positions)' % n_positions
-            logger.info(msg)
-            clean_data -= np.dot(np.dot(clean_data, t_proj), t_proj.T)
-        raw_sss._data[meg_picks, start:stop] = clean_data
+        # If doing tSSS at the end
+        if st_when == 'after':
+            _do_tSSS(out_meg_data, orig_in_data, resid, st_correlation,
+                     n_positions, t_str)
+        else:
+            pl = 's' if n_positions > 1 else ''
+            logger.info('        Used % 2d head position%s for %s'
+                        % (n_positions, pl, t_str))
+        raw_sss._data[meg_picks, start:stop] = out_meg_data
+        raw_sss._data[pos_picks, start:stop] = out_pos_data
 
     # Update info
     _update_sss_info(raw_sss, origin, int_order, ext_order, len(good_picks),
@@ -437,24 +462,129 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     return raw_sss
 
 
-def _check_pos(pos, head_frame, raw):
-    """Check for a valid pos tuple"""
+def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
+    """Helper to get all trans and limits we need"""
+    pos_idx = np.arange(*np.searchsorted(pos[1], [start, stop]))
+    used = np.zeros(stop - start, bool)
+    trans = list()
+    rel_starts = list()
+    rel_stops = list()
+    quats = list()
+    if this_pos_data is None:
+        avg_trans = None
+    else:
+        avg_trans = np.zeros(6)
+    for ti in range(-1, len(pos_idx)):
+        # first iteration for this block of data
+        if ti < 0:
+            rel_start = 0
+            rel_stop = pos[1][pos_idx[0]] if len(pos_idx) > 0 else stop
+            rel_stop = rel_stop - start
+            if rel_start == rel_stop:
+                continue  # our first pos occurs on first time sample
+            # Don't calculate S_decomp here, use the last one
+            trans.append(None)  # meaning: use previous
+            quats.append(this_pos_data)
+        else:
+            rel_start = pos[1][pos_idx[ti]] - start
+            if ti == len(pos_idx) - 1:
+                rel_stop = stop - start
+            else:
+                rel_stop = pos[1][pos_idx[ti + 1]] - start
+            trans.append(pos[0][pos_idx[ti]])
+            quats.append(pos[2][pos_idx[ti]])
+        assert 0 <= rel_start
+        assert rel_start < rel_stop
+        assert rel_stop <= stop - start
+        assert not used[rel_start:rel_stop].any()
+        used[rel_start:rel_stop] = True
+        rel_starts.append(rel_start)
+        rel_stops.append(rel_stop)
+        if this_pos_data is not None:
+            avg_trans += quats[-1][:6] * (rel_stop - rel_start)
+    assert used.all()
+    # Use weighted average for average trans over the window
+    if avg_trans is not None:
+        avg_trans /= (stop - start)
+        avg_trans = np.vstack([
+            np.hstack([quat_to_rot(avg_trans[:3]),
+                       avg_trans[3:][:, np.newaxis]]),
+            [[0., 0., 0., 1.]]])
+    return trans, rel_starts, rel_stops, quats, avg_trans
+
+
+def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
+             n_positions, t_str):
+    """Compute and apply SSP-like projection vectors based on min corr"""
+    np.asarray_chkfinite(resid)
+    t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
+    # Apply projector according to Eq. 12 in [2]_
+    msg = ('        Projecting % 2d intersecting tSSS components '
+           'for %s' % (t_proj.shape[1], t_str))
+    if n_positions > 1:
+        msg += ' (across % 2d positions)' % n_positions
+    logger.info(msg)
+    clean_data -= np.dot(np.dot(clean_data, t_proj), t_proj.T)
+
+
+def _copy_preload_add_channels(raw, add_channels):
+    """Helper to load data for processing and (maybe) add cHPI pos channels"""
+    raw = raw.copy()
+    if add_channels:
+        kinds = [FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
+                 FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5, FIFF.FIFFV_QUAT_6,
+                 FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR, FIFF.FIFFV_HPI_MOV]
+        out_shape = (len(raw.ch_names) + len(kinds), len(raw.times))
+        out_data = np.zeros(out_shape, np.float64)
+        msg = '    Appending head position result channels and '
+        if raw.preload:
+            logger.info(msg + 'copying original raw data')
+            out_data[:len(raw.ch_names)] = raw._data
+            raw._data = out_data
+        else:
+            logger.info(msg + 'loading raw data from disk')
+            raw._preload_data(out_data[:len(raw.ch_names)], verbose=False)
+            raw._data = out_data
+        assert raw.preload is True
+        off = len(raw.ch_names)
+        chpi_chs = [
+            dict(ch_name='CHPI%03d' % (ii + 1), logno=ii + 1,
+                 scanno=off + ii + 1, unit_mul=-1, range=1., unit=-1,
+                 kind=kinds[ii], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                 cal=1. / 10000., coil_type=FIFF.FWD_COIL_UNKNOWN)
+            for ii in range(len(kinds))]
+        raw.info['chs'].extend(chpi_chs)
+        raw.info['nchan'] += len(chpi_chs)
+        raw.info['ch_names'] += [c['ch_name'] for c in chpi_chs]
+        raw.info._check_consistency()
+        assert raw._data.shape == (raw.info['nchan'], len(raw.times))
+        # Return the pos picks
+        pos_picks = np.arange(len(raw.ch_names) - len(chpi_chs),
+                              len(raw.ch_names))
+        return raw, pos_picks
+    else:
+        if not raw.preload:
+            logger.info('    Loading raw data from disk')
+            raw.load_data(verbose=False)
+        else:
+            logger.info('    Using loaded raw data')
+        return raw, np.array([], int)
+
+
+def _check_pos(pos, head_frame, raw, st_fixed):
+    """Check for a valid pos array"""
     if pos is None:
-        return [[None], np.array([0.])]
+        return [None, np.array([-1])]
     if not head_frame:
         raise ValueError('positions can only be used if coord_frame="head"')
-    if (not (isinstance(pos, tuple) and len(pos) == 3)) or \
-            not all(isinstance(p, np.ndarray) for p in pos):
-        raise TypeError('pos must be a 3-element tuple of ndarray')
-    trans = pos[0]
-    rot = pos[1]
-    t = pos[2]
-    del pos
-    if not (trans.ndim == 2 and rot.ndim == 3 and t.ndim == 1 and
-            trans.shape[0] == rot.shape[0] == t.shape[0] and
-            trans.shape[1] == 3 and rot.shape[1] == rot.shape[2] == 3):
-        raise ValueError('pos must be a (trans, rot, t) tuple, but shapes '
-                         'were not compatible')
+    if not st_fixed:
+        warnings.warn('st_fixed=False is untested, use with caution!',
+                      category=RuntimeWarning, stacklevel=5)
+    if not isinstance(pos, np.ndarray):
+        raise TypeError('pos must be an ndarray')
+    if pos.ndim != 2 or pos.shape[1] != 10:
+        raise ValueError('pos must be an array of shape (N, 10)')
+    t = pos[:, 0]
     t_off = raw.first_samp / raw.info['sfreq']
     if not np.array_equal(t, np.unique(t)):
         raise ValueError('Time points must unique and in ascending order')
@@ -462,16 +592,16 @@ def _check_pos(pos, head_frame, raw):
         raise ValueError('Head position time points must be greater than '
                          'first sample offset, but found %0.4f < %0.4f'
                          % (t[0], t_off))
-    dev_head_ts = np.zeros((len(trans), 4, 4))
+    dev_head_ts = np.zeros((len(t), 4, 4))
     dev_head_ts[:, 3, 3] = 1.
-    dev_head_ts[:, :3, 3] = trans
-    dev_head_ts[:, :3, :3] = rot
-    pos = [dev_head_ts, t - t_off]
+    dev_head_ts[:, :3, 3] = pos[:, 4:7]
+    dev_head_ts[:, :3, :3] = quat_to_rot(pos[:, 1:4])
+    pos = [dev_head_ts, t - t_off, pos[:, 1:]]
     return pos
 
 
 @verbose
-def _get_decomp(info, trans, cal, regularize, exp, ignore_ref, coil_scale,
+def _get_decomp(trans, info, cal, regularize, exp, ignore_ref, coil_scale,
                 grad_picks, mag_picks, good_picks, mag_or_fine, bad_condition,
                 verbose=None):
     """Helper to get a decomposition matrix"""
