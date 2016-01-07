@@ -81,7 +81,14 @@ def write_hdf5(fname, data, overwrite=False, compression=4,
 
 
 def _triage_write(key, value, root, comp_kw, where):
-    if isinstance(value, dict):
+    if hasattr(value, '__to_hdf5_dict__'):
+        class_name = '%s.%s' % (value.__module__, value.__class__.__name__)
+        sub_root = _create_titled_group(root, key,
+                                        'instance of %s' % class_name)
+        for key, sub_value in value.__to_hdf5_dict__().items():
+            _triage_write('key_{0}'.format(key), sub_value, sub_root, comp_kw,
+                          where + '.__to_hdf5_dict__()["%s"]' % key)
+    elif isinstance(value, dict):
         sub_root = _create_titled_group(root, key, 'dict')
         for key, sub_value in value.items():
             if not isinstance(key, string_types):
@@ -183,6 +190,27 @@ def _triage_read(node):
             data = sparse.csc_matrix((_triage_read(node['data']),
                                       _triage_read(node['indices']),
                                       _triage_read(node['indptr'])))
+        elif type_str.startswith('instance of '):
+            class_name = type_str[12:]
+            try:
+                # http://stackoverflow.com/a/452981
+                parts = class_name.split('.')
+                module = ".".join(parts[:-1])
+                m = __import__( module )
+                for comp in parts[1:]:
+                    m = getattr(m, comp)
+
+                if not hasattr(m, '__from_hdf5_dict__'):
+                    raise NotImplementedError('Cannot read instances of {0} '
+                                              ''.format(class_name))
+
+                data = dict()
+                for key, subnode in node.items():
+                    data[key[4:]] = _triage_read(subnode)
+                data = m.__from_hdf5_dict__(data)
+            except ImportError:
+                raise NotImplementedError('Cannot find the class {0} '
+                                          ''.format(class_name))
         else:
             raise NotImplementedError('Unknown group type: {0}'
                                       ''.format(type_str))

@@ -226,6 +226,28 @@ class Info(dict):
             if self.get(key) is not None:
                 self[key] = float(self[key])
 
+    def __to_hdf5_dict__(self):
+        """Convert this object to a dictionary suitable with storing with the
+        h5io package"""
+        return dict(self)
+
+    @staticmethod
+    def __from_hdf5_dict__(values):
+        """Create an Info object from a dictionary constructed earlier by the
+        __to_hdf5_dict__ method
+        
+        Parameters
+        ----------
+        values : dict
+            A dictionary as read with the h5io package.
+            
+        Returns
+        -------
+        info: instance of Info
+            An Info object populated with the supplied values.
+        """
+        return Info(values)
+
 
 def read_fiducials(fname):
     """Read fiducials from a fiff file
