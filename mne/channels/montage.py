@@ -262,7 +262,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = np.vstack((data['x'], data['y'], data['z'])).T
         ch_names_ = data['name'].astype(np.str)
     elif ext in ('.loc', '.locs', '.eloc'):
-        ch_names_ = np.loadtxt(fname, dtype='S4', usecols=[3]).tolist()
+        ch_names_ = np.loadtxt(fname, dtype='S8',
+                               usecols=[3]).astype(str).tolist()
         dtype = {'names': ('angle', 'radius'), 'formats': ('f4', 'f4')}
         angle, radius = np.loadtxt(fname, dtype=dtype, usecols=[1, 2],
                                    unpack=True)

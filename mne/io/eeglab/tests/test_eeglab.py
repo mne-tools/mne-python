@@ -31,7 +31,9 @@ def test_io_set():
     """Test importing EEGLAB .set files"""
     from scipy import io
 
-    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname, montage=montage)
+    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
+                     montage=montage, event_id=dict(square=1, rt=2))
+
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,

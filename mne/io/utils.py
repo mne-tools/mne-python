@@ -139,15 +139,15 @@ def _blk_read_lims(start, stop, buf_len):
 
 
 def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
-                        dtype='<i2', eeglab=False):
+                        dtype='<i2', stim_channel=False):
     """Read a chunk of raw data"""
-    n_channels = raw.info['nchan'] - (1 if eeglab else 0)
+    n_channels = raw.info['nchan'] - (1 if stim_channel else 0)
     n_bytes = np.dtype(dtype).itemsize
     # data_offset and data_left count data samples (channels x time points),
     # not bytes.
     data_offset = n_channels * start * n_bytes
     data_left = (stop - start) * n_channels
-    if eeglab:
+    if stim_channel:
         idx = slice(0, n_channels, None)
         cals = cals[:-1]
 
@@ -159,26 +159,28 @@ def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
         # extract data in chunks
         for sample_start in np.arange(0, data_left, block_size) // n_channels:
 
+
             count = min(block_size, data_left - sample_start * n_channels)
             block = np.fromfile(fid, dtype, count)
             block = block.reshape(n_channels, -1, order='F')
             n_samples = block.shape[1]  # = count // n_channels
             sample_stop = sample_start + n_samples
-            data_view = data[:-(1 if eeglab else 0), sample_start:sample_stop]
+            data_view = data[:-(1 if stim_channel else 0),
+                             sample_start:sample_stop]
             _mult_cal_one(data_view, block, idx, cals, mult)
-            if eeglab:
+            if stim_channel:
                 data[-1, sample_start:sample_stop] = \
                 raw._event_ch[sample_start:sample_stop]
 
 
 def _synthesize_stim_channel(events, n_samp):
-    """Synthesize a stim channel from events read from a vmrk file
+    """Synthesize a stim channel from events
 
     Parameters
     ----------
     events : array, shape (n_events, 3)
         Each row representing an event as (onset, duration, trigger) sequence
-        (the format returned by _read_vmrk_events).
+        (the format returned by _read_vmrk_events and _read_eeglab_events).
     n_samp : int
         The number of samples.
 
