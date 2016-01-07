@@ -273,8 +273,9 @@ trim_doctests_flags = True
 intersphinx_mapping = {'http://docs.python.org/': None}
 
 sphinxgallery_conf = {
-    'examples_dirs'   : {{examples_dirs}},
-    'gallery_dirs'    : {{gallery_dirs}},
+    'filename_pattern': '/plot_',
+    'examples_dirs'   : ['../examples', '../tutorials'],
+    'gallery_dirs'    : ['auto_examples', 'auto_tutorials'],
     'doc_module': ('sphinxgallery', 'numpy'),
     'reference_url': {
         'mne': None,
@@ -285,3 +286,6 @@ sphinxgallery_conf = {
     'find_mayavi_figures': True,
     'default_thumb_file': '_static/mne_helmet.png',
     }
+if sg_extension == 'sphinx_gallery.gen_gallery':
+    sphinx_gallery_conf = sphinxgallery_conf
+    del sphinxgallery_conf
