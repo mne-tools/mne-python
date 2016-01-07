@@ -1034,23 +1034,34 @@ class RawBTi(_BaseRaw):
         """Read a segment of data from a file"""
         bti_info = self._raw_extras[fi]
         fname = bti_info['pdf_fname']
+        dtype = bti_info['dtype']
+        n_channels = self.info['nchan']
+        n_bytes = np.dtype(dtype).itemsize
+        data_left = (stop - start) * n_channels
         read_cals = np.empty((bti_info['total_chans'],))
         for ch in bti_info['chs']:
             read_cals[ch['index']] = ch['cal']
+
+        block_size = ((int(100e6) // n_bytes) // n_channels) * n_channels
+        block_size = min(data_left, block_size)
+        # extract data in chunks
         with _bti_open(fname, 'rb') as fid:
             fid.seek(bti_info['bytes_per_slice'] * start, 0)
-            shape = (stop - start, bti_info['total_chans'])
-            count = np.prod(shape)
-            dtype = bti_info['dtype']
-            if isinstance(fid, six.BytesIO):
-                one_orig = np.fromstring(fid.getvalue(), dtype, count)
-            else:
-                one_orig = np.fromfile(fid, dtype, count)
-            one_orig.shape = shape
-            one = np.empty(shape[::-1])
-            for ii, b_i_o in enumerate(bti_info['order']):
-                one[ii] = one_orig[:, b_i_o] * read_cals[b_i_o]
-        _mult_cal_one(data, one, idx, cals, mult)
+            for sample_start in np.arange(0, data_left,
+                                          block_size) // n_channels:
+                count = min(block_size, data_left - sample_start * n_channels)
+                if isinstance(fid, six.BytesIO):
+                    block = np.fromstring(fid.getvalue(), dtype, count)
+                else:
+                    block = np.fromfile(fid, dtype, count)
+                sample_stop = sample_start + count // n_channels
+                shape = (sample_stop - sample_start, bti_info['total_chans'])
+                block.shape = shape
+                data_view = data[:, sample_start:sample_stop]
+                one = np.empty(block.shape[::-1])
+                for ii, b_i_o in enumerate(bti_info['order']):
+                    one[ii] = block[:, b_i_o] * read_cals[b_i_o]
+                _mult_cal_one(data_view, one, idx, cals, mult)
 
 
 def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,

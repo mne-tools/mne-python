@@ -220,21 +220,9 @@ class RawKIT(_BaseRaw):
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
-        with open(self._filenames[fi], 'rb', buffering=0) as fid:
-            # extract data
-            data_offset = KIT.RAW_OFFSET
-            fid.seek(data_offset)
-            # data offset info
-            data_offset = unpack('i', fid.read(KIT.INT))[0]
-            nchan = self._raw_extras[fi]['nchan']
-            buffer_size = stop - start
-            count = buffer_size * nchan
-            pointer = start * nchan * KIT.SHORT
-            fid.seek(data_offset + pointer)
-            data_ = np.fromfile(fid, dtype='h', count=count)
-
+        nchan = self._raw_extras[fi]['nchan']
+        data_left = (stop - start) * nchan
         # amplifier applies only to the sensor channels
-        data_.shape = (buffer_size, nchan)
         n_sens = self._raw_extras[fi]['n_sens']
         sensor_gain = self._raw_extras[fi]['sensor_gain'].copy()
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
@@ -242,29 +230,47 @@ class RawKIT(_BaseRaw):
         conv_factor = np.array((KIT.VOLTAGE_RANGE /
                                 self._raw_extras[fi]['DYNAMIC_RANGE']) *
                                sensor_gain)
-        data_ = conv_factor[:, np.newaxis] * data_.T
+        n_bytes = 2
+        # Read up to 100 MB of data at a time.
+        blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
+        with open(self._filenames[fi], 'rb', buffering=0) as fid:
+            # extract data
+            data_offset = KIT.RAW_OFFSET
+            fid.seek(data_offset)
+            # data offset info
+            data_offset = unpack('i', fid.read(KIT.INT))[0]
+            pointer = start * nchan * KIT.SHORT
+            fid.seek(data_offset + pointer)
+            for blk_start in np.arange(0, data_left, blk_size) // nchan:
+                blk_size = min(blk_size, data_left - blk_start * nchan)
+                block = np.fromfile(fid, dtype='h', count=blk_size)
+                block = block.reshape(nchan, -1, order='F').astype(float)
+                blk_stop = blk_start + block.shape[1]
+                data_view = data[:, blk_start:blk_stop]
+                block *= conv_factor[:, np.newaxis]
 
-        # Create a synthetic channel
-        if self._raw_extras[fi]['stim'] is not None:
-            trig_chs = data_[self._raw_extras[fi]['stim'], :]
-            if self._raw_extras[fi]['slope'] == '+':
-                trig_chs = trig_chs > self._raw_extras[0]['stimthresh']
-            elif self._raw_extras[fi]['slope'] == '-':
-                trig_chs = trig_chs < self._raw_extras[0]['stimthresh']
-            else:
-                raise ValueError("slope needs to be '+' or '-'")
-
-            # trigger value
-            if self._raw_extras[0]['stim_code'] == 'binary':
-                ntrigchan = len(self._raw_extras[0]['stim'])
-                trig_vals = np.array(2 ** np.arange(ntrigchan), ndmin=2).T
-            else:
-                trig_vals = np.reshape(self._raw_extras[0]['stim'], (-1, 1))
-            trig_chs = trig_chs * trig_vals
-            stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
-            data_ = np.vstack((data_, stim_ch))
+                # Create a synthetic channel
+                if self._raw_extras[fi]['stim'] is not None:
+                    trig_chs = block[self._raw_extras[fi]['stim'], :]
+                    if self._raw_extras[fi]['slope'] == '+':
+                        trig_chs = trig_chs > self._raw_extras[0]['stimthresh']
+                    elif self._raw_extras[fi]['slope'] == '-':
+                        trig_chs = trig_chs < self._raw_extras[0]['stimthresh']
+                    else:
+                        raise ValueError("slope needs to be '+' or '-'")
+                    # trigger value
+                    if self._raw_extras[0]['stim_code'] == 'binary':
+                        ntrigchan = len(self._raw_extras[0]['stim'])
+                        trig_vals = np.array(2 ** np.arange(ntrigchan),
+                                             ndmin=2).T
+                    else:
+                        trig_vals = np.reshape(self._raw_extras[0]['stim'],
+                                               (-1, 1))
+                    trig_chs = trig_chs * trig_vals
+                    stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
+                    block = np.vstack((block, stim_ch))
+                _mult_cal_one(data_view, block, idx, None, mult)
         # cals are all unity, so can be ignored
-        _mult_cal_one(data, data_, idx, None, mult)
 
 
 class EpochsKIT(_BaseEpochs):
