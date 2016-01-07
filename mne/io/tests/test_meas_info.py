@@ -5,6 +5,7 @@ import os.path as op
 from nose.tools import assert_false, assert_equal, assert_raises, assert_true
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
+from tempfile import NamedTemporaryFile
 
 from mne import Epochs, read_events
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
@@ -14,6 +15,7 @@ from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _read_dig_points, _make_dig_points, _merge_info)
 from mne.utils import _TempDir, run_tests_if_main
 from mne.channels.montage import read_montage, read_dig_montage
+from mne.externals.h5io import read_hdf5, write_hdf5
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
@@ -217,6 +219,17 @@ def test_merge_info():
     assert_equal(info_merged['nchan'], 6)
     assert_equal(info_merged['ch_names'], ['a', 'b', 'c', 'd', 'e', 'f'])
     assert_raises(ValueError, _merge_info, [info_a, info_a])
+
+
+def test_hdf5():
+    """Test reading and writing Info object to/from HDF5"""
+    tmp = NamedTemporaryFile(delete=False)
+    info_a = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
+    write_hdf5(tmp.name, info_a, overwrite=True)
+    info_b = read_hdf5(tmp.name)
+    assert_true(type(info_a) == type(info_b))
+    info_b._check_consistency()
+    assert_equal(sorted(list(info_a.keys())), sorted(list(info_b.keys())))
 
 
 run_tests_if_main()
