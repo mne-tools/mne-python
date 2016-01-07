@@ -296,7 +296,7 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
                      include_slope=True, verbose=None):
     """Helper to set up cHPI fits"""
     from scipy.spatial.distance import cdist
-    from .preprocessing.maxwell import _prep_bases
+    from .preprocessing.maxwell import _prep_mf_coils
     if not (check_version('numpy', '1.7') and check_version('scipy', '0.11')):
         raise RuntimeError('numpy>=1.7 and scipy>=0.11 required')
     hpi_freqs, coil_head_rrs, hpi_pick, hpi_ons = _get_hpi_info(info)[:4]
@@ -343,7 +343,7 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
     if method == 'forward':
         coils = _concatenate_coils(coils)
     else:  # == 'multipole'
-        coils = _prep_bases(coils, 1, 0)
+        coils = _prep_mf_coils(info)
     scale = make_ad_hoc_cov(info, verbose=False)
     scale = _get_whitener_data(info, scale, picks_good, verbose=False)
     orig_dev_head_quat = np.concatenate([rot_to_quat(dev_head_t[:3, :3]),

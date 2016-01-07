@@ -2734,9 +2734,10 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
            of children in MEG: Quantification, effects on source
            estimation, and compensation. NeuroImage 40:541–550, 2008.
     """
-    from .preprocessing.maxwell import (_info_sss_basis, _reset_meg_bads,
+    from .preprocessing.maxwell import (_trans_sss_basis, _reset_meg_bads,
                                         _check_usable, _col_norm_pinv,
-                                        _get_n_moments, _get_mf_picks)
+                                        _get_n_moments, _get_mf_picks,
+                                        _prep_mf_coils)
     from .chpi import head_quats_to_trans_rot_t
     if not isinstance(epochs, _BaseEpochs):
         raise TypeError('epochs must be an instance of Epochs, not %s'
@@ -2760,6 +2761,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     count = 0
     # keep only MEG w/bad channels marked in "info_from"
     info_from = pick_info(epochs.info, good_picks, copy=True)
+    all_coils_recon = _prep_mf_coils(epochs.info, ignore_ref=ignore_ref)
+    all_coils = _prep_mf_coils(info_from, ignore_ref=ignore_ref)
     # remove MEG bads in "to" info
     info_to = deepcopy(epochs.info)
     _reset_meg_bads(info_to)
@@ -2778,9 +2781,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
             raise RuntimeError('Event time %0.3f occurs before first '
                                'position time %0.3f' % (event_time, t[0]))
         use_idx = use_idx[-1]
-        trans = np.row_stack([np.column_stack([rot[use_idx],
-                                               trn[[use_idx]].T]),
-                              [[0., 0., 0., 1.]]])
+        trans = np.vstack([np.hstack([rot[use_idx], trn[[use_idx]].T]),
+                           [[0., 0., 0., 1.]]])
         loc_str = ', '.join('%0.1f' % tr for tr in (trans[:3, 3] * 1000))
         if last_trans is None or not np.allclose(last_trans, trans):
             logger.info('    Processing epoch %s (device location: %s mm)'
@@ -2793,8 +2795,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
             reuse = True
         epoch = epoch.copy()  # because we operate inplace
         if not reuse:
-            S = _info_sss_basis(info_from, trans, exp,
-                                coil_scale=decomp_coil_scale)
+            S = _trans_sss_basis(exp, all_coils, trans,
+                                 coil_scale=decomp_coil_scale)
             # Get the weight from the un-regularized version
             weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
             # XXX Eventually we could do cross-talk and fine-cal here
@@ -2816,7 +2818,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         # Get recon matrix
         # (We would need to include external here for regularization to work)
         exp['ext_order'] = 0
-        S_recon = _info_sss_basis(epochs.info, None, exp)
+        S_recon = _trans_sss_basis(exp, all_coils_recon, info_to['dev_head_t'])
         exp['ext_order'] = ext_order
         # We could determine regularization on basis of destination basis
         # matrix, restricted to good channels, as regularizing individual

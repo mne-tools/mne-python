@@ -27,6 +27,7 @@ def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG'):
     bench_rms = np.sqrt(np.mean(desired_data * desired_data, axis=1))
     error = actual_data - desired_data
     error_rms = np.sqrt(np.mean(error * error, axis=1))
+    np.clip(error_rms, 1e-60, np.inf, out=error_rms)  # avoid division by zero
     snrs = bench_rms / error_rms
     # min tol
     snr = snrs.min()

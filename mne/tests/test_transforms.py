@@ -24,8 +24,12 @@ data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
 fname_eve = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc_raw-eve.fif')
-fname_trans = op.join(op.split(__file__)[0], '..', 'io', 'tests',
-                      'data', 'sample-audvis-raw-trans.txt')
+
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
+fname_trans = op.join(base_dir, 'sample-audvis-raw-trans.txt')
+test_fif_fname = op.join(base_dir, 'test_raw.fif')
+ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
 @testing.requires_testing_data

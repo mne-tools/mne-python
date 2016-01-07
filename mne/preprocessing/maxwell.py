@@ -6,7 +6,6 @@
 
 # License: BSD (3-clause)
 
-from copy import deepcopy
 from math import factorial
 from os import path as op
 import warnings
@@ -17,9 +16,8 @@ from scipy import linalg
 from .. import __version__
 from ..bem import _check_origin
 from ..chpi import quat_to_rot, rot_to_quat
-from ..transforms import _str_to_frame, _get_trans, Transform
-from ..forward._compute_forward import _concatenate_coils
-from ..forward._make_forward import _prep_meg_channels
+from ..transforms import _str_to_frame, _get_trans, Transform, apply_trans
+from ..forward import _concatenate_coils, _prep_meg_channels
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF
 from ..io.proc_history import _read_ctc
@@ -232,7 +230,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
             raise RuntimeError('destination can only be set if using the '
                                'head coordinate frame')
         if isinstance(destination, string_types):
-            recon_trans = _get_trans(destination, 'meg', 'head')[0]['trans']
+            recon_trans = _get_trans(destination, 'meg', 'head')[0]
         else:
             destination = np.array(destination, float)
             if destination.shape != (3,):
@@ -240,8 +238,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                                  'str, or None')
             recon_trans = np.eye(4)
             recon_trans[:3, 3] = destination
+            recon_trans = Transform('meg', 'head', recon_trans)
     else:
-        recon_trans = None
+        recon_trans = raw.info['dev_head_t']
     if st_duration is not None:
         st_duration = float(st_duration)
         if not 0. < st_duration <= raw.times[-1]:
@@ -277,7 +276,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     #
     sss_cal = dict()
     if calibration is not None:
-        calibration, sss_cal = _update_sensor_geometry(info, calibration)
+        calibration, sss_cal = _update_sensor_geometry(info, calibration,
+                                                       head_frame, ignore_ref)
         mag_or_fine.fill(True)  # all channels now have some mag-type data
 
     # Determine/check the origin of the expansion
@@ -306,14 +306,15 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     #
     exp = dict(origin=origin, int_order=int_order, ext_order=0,
                head_frame=head_frame)
-    S_recon = _info_sss_basis(info, recon_trans, exp, ignore_ref, coil_scale)
+    all_coils = _prep_mf_coils(info, ignore_ref)
+    S_recon = _trans_sss_basis(exp, all_coils, recon_trans, coil_scale)
     exp['ext_order'] = ext_order
     # Reconstruct data from internal space only (Eq. 38), and rescale S_recon
     S_recon /= coil_scale
     if recon_trans is not None:
         # warn if we have translated too far
         diff = 1000 * (info['dev_head_t']['trans'][:3, 3] -
-                       recon_trans[:3, 3])
+                       recon_trans['trans'][:3, 3])
         dist = np.sqrt(np.sum(_sq(diff)))
         if dist > 25.:
             logger.warning('Head position change is over 25 mm (%s) = %0.1f mm'
@@ -360,13 +361,14 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
             np.zeros(3)])
     else:
         this_pos_quat = None
-    trans = None
     _get_this_decomp_trans = partial(
-        _get_decomp, info=info, cal=calibration, regularize=regularize,
+        _get_decomp, all_coils=all_coils,
+        cal=calibration, regularize=regularize,
         exp=exp, ignore_ref=ignore_ref, coil_scale=coil_scale,
         grad_picks=grad_picks, mag_picks=mag_picks, good_picks=good_picks,
         mag_or_fine=mag_or_fine, bad_condition=bad_condition)
-    S_decomp, pS_decomp, reg_moments, n_use_in = _get_this_decomp_trans(trans)
+    S_decomp, pS_decomp, reg_moments, n_use_in = _get_this_decomp_trans(
+        info['dev_head_t'])
     reg_moments_0 = reg_moments.copy()
     # Loop through buffer windows of data
     pl = 's' if len(read_lims) != 2 else ''
@@ -460,6 +462,36 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0)
     logger.info('[done]')
     return raw_sss
+
+
+def _prep_mf_coils(info, ignore_ref=True):
+    """Helper to get all coil integration information loaded and sorted"""
+    coils, comp_coils = _prep_meg_channels(
+        info, accurate=True, elekta_defs=True, head_frame=False,
+        ignore_ref=ignore_ref, verbose=False)[:2]
+    mag_mask = _get_mag_mask(coils)
+    if len(comp_coils) > 0:
+        meg_picks = pick_types(info, meg=True, ref_meg=False, exclude=[])
+        ref_picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
+        inserts = np.searchsorted(meg_picks, ref_picks)
+        # len(inserts) == len(comp_coils)
+        for idx, comp_coil in zip(inserts[::-1], comp_coils[::-1]):
+            coils.insert(idx, comp_coil)
+        # Now we have:
+        # [c['chname'] for c in coils] ==
+        # [info['ch_names'][ii]
+        #  for ii in pick_types(info, meg=True, ref_meg=True)]
+
+    # Now coils is a sorted list of coils. Time to do some vectorization.
+    n_coils = len(coils)
+    rmags = np.concatenate([coil['rmag'] for coil in coils])
+    cosmags = np.concatenate([coil['cosmag'] for coil in coils])
+    ws = np.concatenate([coil['w'] for coil in coils])
+    cosmags *= ws[:, np.newaxis]
+    del ws
+    n_int = np.array([len(coil['rmag']) for coil in coils])
+    bins = np.repeat(np.arange(len(n_int)), n_int)
+    return rmags, cosmags, bins, n_coils, mag_mask
 
 
 def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
@@ -601,21 +633,19 @@ def _check_pos(pos, head_frame, raw, st_fixed):
 
 
 @verbose
-def _get_decomp(trans, info, cal, regularize, exp, ignore_ref, coil_scale,
-                grad_picks, mag_picks, good_picks, mag_or_fine, bad_condition,
-                verbose=None):
+def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
+                coil_scale, grad_picks, mag_picks, good_picks, mag_or_fine,
+                bad_condition, verbose=None):
     """Helper to get a decomposition matrix"""
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
-    S_decomp = _info_sss_basis(info, trans, exp, ignore_ref, coil_scale)
+    S_decomp = _trans_sss_basis(exp, all_coils, trans, coil_scale)
     if cal is not None:
         # Compute point-like mags to incorporate gradiometer imbalance
-        grad_info = pick_info(info, grad_picks)
-        S_fine = _sss_basis_point(grad_info, exp,
-                                  cal['grad_imbalances'], ignore_ref)
+        cal['grad_cals'] = _sss_basis_point(exp, trans, cal, ignore_ref)
         # Add point like magnetometer data to bases.
-        S_decomp[grad_picks, :] += S_fine
+        S_decomp[grad_picks, :] += cal['grad_cals']
         # Scale magnetometers by calibration coefficient
         S_decomp[mag_picks, :] /= cal['mag_cals']
         # We need to be careful about KIT gradiometers
@@ -842,12 +872,10 @@ def _concatenate_sph_coils(coils):
 _mu_0 = 4e-7 * np.pi  # magnetic permeability
 
 
-def _get_coil_scale(coils, mag_scale=100.):
+def _get_mag_mask(coils, mag_scale=100.):
     """Helper to get the coil_scale for Maxwell filtering"""
-    coil_scale = np.ones((len(coils), 1))
-    coil_scale[np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
-                         for coil in coils])] = mag_scale
-    return coil_scale
+    return np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
+                     for coil in coils])
 
 
 def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
@@ -857,12 +885,13 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
     # Compute vector between origin and coil, convert to spherical coords
     if method == 'standard':
         # Get position, normal, weights, and number of integration pts.
-        rmags, cosmags, wcoils, bins = _concatenate_coils(coils)
+        rmags, cosmags, ws, bins = _concatenate_coils(
+            coils)
         rmags -= origin
         # Convert points to spherical coordinates
         rad, az, pol = _cart_to_sph(rmags).T
-        cosmags *= wcoils[:, np.newaxis]
-        del rmags, wcoils
+        cosmags *= ws[:, np.newaxis]
+        del rmags, ws
         out_type = np.float64
     else:  # testing equivalence method
         rs, wcoils, ezs, bins = _concatenate_sph_coils(coils)
@@ -878,7 +907,8 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
     S_tot = np.empty((len(coils), n_in + n_out), out_type)
     S_in = S_tot[:, :n_in]
     S_out = S_tot[:, n_in:]
-    coil_scale = _get_coil_scale(coils)
+    coil_scale = np.ones((len(coils), 1))
+    coil_scale[_get_mag_mask(coils)] = 100.
 
     # Compute internal/external basis vectors (exclude degree 0; L/RHS Eq. 5)
     for degree in range(1, max(int_order, ext_order) + 1):
@@ -950,19 +980,7 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
     return S_tot
 
 
-def _prep_bases(coils, int_order, ext_order):
-    """Helper to prepare for basis computation"""
-    if isinstance(coils, tuple):  # done already
-        return coils
-    # Get position, normal, weights, and number of integration pts.
-    rmags, cosmags, wcoils, bins = _concatenate_coils(coils)
-    cosmags *= wcoils[:, np.newaxis]
-    n_in, n_out = _get_n_moments([int_order, ext_order])
-    S_tot = np.empty((len(coils), n_in + n_out), np.float64)
-    return rmags, cosmags, bins, len(coils), S_tot, n_in
-
-
-def _sss_basis(exp, coils):
+def _sss_basis(exp, all_coils):
     """Compute SSS basis for given conditions.
 
     Parameters
@@ -994,9 +1012,11 @@ def _sss_basis(exp, coils):
 
     Adapted from code provided by Jukka Nenonen.
     """
+    rmags, cosmags, bins, n_coils = all_coils[:4]
     int_order, ext_order = exp['int_order'], exp['ext_order']
-    rmags, cosmags, bins, n_coils, S_tot, n_in = _prep_bases(
-        coils, int_order, ext_order)
+    n_in, n_out = _get_n_moments([int_order, ext_order])
+    S_tot = np.empty((n_coils, n_in + n_out), np.float64)
+
     rmags = rmags - exp['origin']
     S_in = S_tot[:, :n_in]
     S_out = S_tot[:, n_in:]
@@ -1046,8 +1066,9 @@ def _sss_basis(exp, coils):
                     cos_az, sin_az, cos_pol, sin_pol, b_r, 0., b_pol,
                     cosmags, bins, n_coils)
         for order in range(1, degree + 1):
-            sin_order = np.sin(order * phi)
-            cos_order = np.cos(order * phi)
+            ord_phi = order * phi
+            sin_order = np.sin(ord_phi)
+            cos_order = np.cos(ord_phi)
             mult /= np.sqrt((degree - order + 1) * (degree + order))
             factor = mult * np.sqrt(2)  # equivalence fix (Elekta uses 2.)
 
@@ -1542,7 +1563,7 @@ def _find_vector_rotation(a, b):
     return R
 
 
-def _update_sensor_geometry(info, fine_cal):
+def _update_sensor_geometry(info, fine_cal, head_frame, ignore_ref):
     """Helper to replace sensor geometry information and reorder cal_chs"""
     logger.info('    Using fine calibration %s' % op.basename(fine_cal))
     cal_chs, cal_ch_numbers = _read_fine_cal(fine_cal)
@@ -1625,37 +1646,38 @@ def _update_sensor_geometry(info, fine_cal):
     mag_picks = pick_types(info, meg='mag', exclude=[])
     grad_imbalances = np.array([cal_chs[ii]['calib_coeff']
                                 for ii in grad_picks]).T
-    mag_cals = np.array([cal_chs[ii]['calib_coeff'] for ii in mag_picks])
-    calibration = dict(grad_imbalances=grad_imbalances,
-                       mag_cals=mag_cals)
-    return calibration, sss_cal
-
-
-def _sss_basis_point(info, exp, imbalances, ignore_ref=False):
-    """Compute multipolar moments for point-like magnetometers (in fine cal)"""
-
-    # Construct 'coils' with r, weights, normal vecs, # integration pts, and
-    # channel type.
-    if imbalances.shape[0] not in [1, 3]:
+    if grad_imbalances.shape[0] not in [1, 3]:
         raise ValueError('Must have 1 (x) or 3 (x, y, z) point-like ' +
                          'magnetometers. Currently have %i' %
-                         imbalances.shape[0])
+                         grad_imbalances.shape[0])
+    mag_cals = np.array([cal_chs[ii]['calib_coeff'] for ii in mag_picks])
 
+    # Now let's actually construct our point-like adjustment coils for grads
+    grad_coilsets = list()
+    grad_info = pick_info(info, grad_picks, copy=True)
     # Coil_type values for x, y, z point magnetometers
     # Note: 1D correction files only have x-direction corrections
     pt_types = [FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X,
                 FIFF.FIFFV_COIL_POINT_MAGNETOMETER_Y,
                 FIFF.FIFFV_COIL_POINT_MAGNETOMETER]
+    for pt_type in pt_types[:len(grad_imbalances)]:
+        for ch in grad_info['chs']:
+            ch['coil_type'] = pt_type
+        grad_coilsets.append(_prep_mf_coils(grad_info, ignore_ref))
 
+    calibration = dict(grad_imbalances=grad_imbalances,
+                       grad_coilsets=grad_coilsets, mag_cals=mag_cals)
+    return calibration, sss_cal
+
+
+def _sss_basis_point(exp, trans, cal, ignore_ref=False):
+    """Compute multipolar moments for point-like magnetometers (in fine cal)"""
     # Loop over all coordinate directions desired and create point mags
     S_tot = 0.
     # These are magnetometers, so use a uniform coil_scale of 100.
     this_cs = np.array([100.])
-    for imb, pt_type in zip(imbalances, pt_types):
-        temp_info = deepcopy(info)
-        for ch in temp_info['chs']:
-            ch['coil_type'] = pt_type
-        S_add = _info_sss_basis(temp_info, None, exp, ignore_ref, this_cs)
+    for imb, coils in zip(cal['grad_imbalances'], cal['grad_coilsets']):
+        S_add = _trans_sss_basis(exp, coils, trans, this_cs)
         # Scale spaces by gradiometer imbalance
         S_add *= imb[:, np.newaxis]
         S_tot += S_add
@@ -1810,30 +1832,19 @@ def _compute_sphere_activation_in(degrees):
     return a_power, rho_i
 
 
-def _info_sss_basis(info, trans, exp, ignore_ref=False, coil_scale=100.):
-    """SSS basis using an info structure and dev<->head trans"""
+def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.):
+    """SSS basis (optionally) using a dev<->head trans"""
     if trans is not None:
-        info = info.copy()
-        info['dev_head_t'] = info['dev_head_t'].copy()
-        trans = trans['trans'] if isinstance(trans, Transform) else trans
-        info['dev_head_t']['trans'] = trans
-    coils, comp_coils = _prep_meg_channels(
-        info, accurate=True, elekta_defs=True, head_frame=exp['head_frame'],
-        ignore_ref=ignore_ref, verbose=False)[:2]
-    if len(comp_coils) > 0:
-        meg_picks = pick_types(info, meg=True, ref_meg=False, exclude=[])
-        ref_picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
-        inserts = np.searchsorted(meg_picks, ref_picks)
-        # len(inserts) == len(comp_coils)
-        for idx, comp_coil in zip(inserts[::-1], comp_coils[::-1]):
-            coils.insert(idx, comp_coil)
-        # Now we have:
-        # [c['chname'] for c in coils] ==
-        # [info['ch_names'][ii]
-        #  for ii in pick_types(info, meg=True, ref_meg=True)]
+        if not isinstance(trans, Transform):
+            trans = Transform('meg', 'head', trans)
+        all_coils = (apply_trans(trans, all_coils[0]),
+                     apply_trans(trans, all_coils[1], move=False),
+                     all_coils[2], all_coils[3], all_coils[4])
     if not isinstance(coil_scale, np.ndarray):
         # Scale all magnetometers (with `coil_class` == 1.0) by `mag_scale`
-        coil_scale = _get_coil_scale(coils, coil_scale)
-    S_tot = _sss_basis(exp, coils)
+        cs = coil_scale
+        coil_scale = np.ones((all_coils[3], 1))
+        coil_scale[all_coils[4]] = cs
+    S_tot = _sss_basis(exp, all_coils)
     S_tot *= coil_scale
     return S_tot

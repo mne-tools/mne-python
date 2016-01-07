@@ -27,7 +27,7 @@ from mne.epochs import (
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_version)
-from mne.chpi import head_quats_to_trans_rot_t, read_head_quats
+from mne.chpi import read_head_quats
 
 from mne.io import RawArray, Raw
 from mne.io.proj import _has_eeg_average_ref_proj

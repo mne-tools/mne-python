@@ -18,12 +18,10 @@ from mne.forward import _prep_meg_channels
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.io import Raw, proc_history, read_info, read_raw_bti, read_raw_kit
-from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
-                                       _sss_basis_basic, _sh_complex_to_real,
-                                       _sh_real_to_complex, _sh_negate,
-                                       _bases_complex_to_real, _sss_basis,
-                                       _bases_real_to_complex, _sph_harm,
-                                       _get_coil_scale)
+from mne.preprocessing.maxwell import (
+    maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
+    _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
+    _bases_real_to_complex, _sph_harm, _prep_mf_coils)
 from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, catch_logging,
                        requires_version, object_diff)
@@ -278,7 +276,8 @@ def test_multipolar_bases():
     from scipy.io import loadmat
     # Test our basis calculations
     info = read_info(raw_fname)
-    coils = _prep_meg_channels(info, accurate=True, elekta_defs=True)[0]
+    coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
+                               do_es=True)[0]
     # Check against a known benchmark
     sss_data = loadmat(bases_fname)
     exp = dict(int_order=int_order, ext_order=ext_order)
@@ -319,8 +318,8 @@ def test_multipolar_bases():
 
         # Now test our optimized version
         S_tot = _sss_basis_basic(exp, coils)
-        S_tot_fast = _sss_basis(exp, coils)
-        S_tot_fast *= _get_coil_scale(coils)
+        S_tot_fast = _trans_sss_basis(
+            exp, all_coils=_prep_mf_coils(info), trans=info['dev_head_t'])
         # there are some sign differences for columns (order/degrees)
         # in here, likely due to Condon-Shortley. Here we use a
         # Magnetometer channel to figure out the flips because the
