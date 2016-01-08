@@ -134,10 +134,10 @@ def test_aamovement_compensation():
     assert_true('is untested' in str(w[0].message))
     # Neither match is particularly good because our algorithm actually differs
     assert_meg_snr(raw_sss_mv, Raw(sss_movecomp_reg_in_st4s_fname).crop(*lims),
-                   0.7, 1.3)
+                   0.6, 1.3)
     tSSS_fname = op.join(sss_path, 'test_move_anon_st4s_raw_sss.fif')
     assert_meg_snr(raw_sss_mv, Raw(tSSS_fname).crop(*lims),
-                   0.8, 1.0, chpi_med_tol=None)
+                   0.6, 1.0, chpi_med_tol=None)
     assert_meg_snr(Raw(sss_movecomp_reg_in_st4s_fname), Raw(tSSS_fname),
                    0.8, 1.0, chpi_med_tol=None)
 
@@ -148,7 +148,7 @@ def test_aamovement_compensation():
                                 origin=mf_head_origin)
     assert_meg_snr(raw_sss_mc, Raw(tSSS_fname).crop(*lims),
                    0.6, 1.0, chpi_med_tol=None)
-    assert_meg_snr(raw_sss_mc, raw_sss_mv, 0.6, 1.9)
+    assert_meg_snr(raw_sss_mc, raw_sss_mv, 0.6, 1.4)
 
     # some degenerate cases
     with warnings.catch_warnings(record=True):  # maxshield

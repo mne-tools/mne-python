@@ -10,7 +10,7 @@ import warnings
 
 from mne.io import Raw
 from mne.io.constants import FIFF
-from mne.chpi import (get_chpi_positions, calculate_chpi_positions,
+from mne.chpi import (get_chpi_positions, _calculate_chpi_positions,
                       head_quats_to_trans_rot_t, read_head_quats,
                       write_head_quats, filter_chpi)
 from mne.transforms import rot_to_quat, quat_to_rot, _angle_between_quats
@@ -26,7 +26,7 @@ hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 
 data_path = testing.data_path(download=False)
-raw_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
+chpi_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 sss_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_sss.fif')
 sss_hpisubt_fname = op.join(data_path, 'SSS', 'test_move_anon_hpisubt_raw.fif')
@@ -86,7 +86,7 @@ def test_hpi_info():
     """
     tempdir = _TempDir()
     temp_name = op.join(tempdir, 'temp_raw.fif')
-    for fname in (raw_fif_fname, sss_fif_fname):
+    for fname in (chpi_fif_fname, sss_fif_fname):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter('always')
             raw = Raw(fname, allow_maxshield=True)
@@ -140,28 +140,28 @@ def test_calculate_chpi_positions():
     """
     trans, rot, t = head_quats_to_trans_rot_t(read_head_quats(pos_fname))
     with warnings.catch_warnings(record=True):
-        raw = Raw(raw_fif_fname, allow_maxshield=True, preload=True)
+        raw = Raw(chpi_fif_fname, allow_maxshield=True, preload=True)
     t -= raw.first_samp / raw.info['sfreq']
-    quats = calculate_chpi_positions(raw, verbose='debug')
+    quats = _calculate_chpi_positions(raw, verbose='debug')
     trans_est, rot_est, t_est = head_quats_to_trans_rot_t(quats)
     _compare_positions((trans, rot, t), (trans_est, rot_est, t_est), 0.0027)
 
     # degenerate conditions
     raw_no_chpi = Raw(test_fif_fname)
-    assert_raises(RuntimeError, calculate_chpi_positions, raw_no_chpi)
+    assert_raises(RuntimeError, _calculate_chpi_positions, raw_no_chpi)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['coord_frame'] = 999
             break
-    assert_raises(RuntimeError, calculate_chpi_positions, raw_bad)
+    assert_raises(RuntimeError, _calculate_chpi_positions, raw_bad)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['r'] = np.ones(3)
     raw_bad.crop(0, 1., copy=False)
     with catch_logging() as log_file:
-        calculate_chpi_positions(raw_bad, verbose=True)
+        _calculate_chpi_positions(raw_bad, verbose=True)
     # ignore HPI info header and [done] footer
     for line in log_file.getvalue().strip().split('\n')[4:-1]:
         assert_true('0/5 good' in line)
@@ -171,12 +171,17 @@ def test_calculate_chpi_positions():
 def test_chpi_subtraction():
     """Test subtraction of cHPI signals"""
     with warnings.catch_warnings(record=True):  # maxshield
-        raw = Raw(raw_fif_fname, allow_maxshield=True, preload=True)
-    filter_chpi(raw)
-    raw_c = Raw(sss_hpisubt_fname, preload=True)
+        raw = Raw(chpi_fif_fname, allow_maxshield=True, preload=True)
+    filter_chpi(raw, include_line=False)
+    # MaxFilter doesn't do quite as well as our algorithm with the last bit
+    raw.crop(0, 16, copy=False)
+    raw_c = Raw(sss_hpisubt_fname, preload=True).crop(0, 16, copy=False)
     raw_c.pick_types(meg=True, eeg=True, eog=True, ecg=True, stim=True,
                      misc=True, copy=False)  # remove cHPI status chans
-    # this poor result will affect all following results :(
-    assert_meg_snr(raw, raw_c, 1., 5.9)
+    assert_meg_snr(raw, raw_c, 143, 624)
+
+    # Degenerate cases
+    raw_nohpi = Raw(test_fif_fname, preload=True)
+    assert_raises(RuntimeError, filter_chpi, raw_nohpi)
 
 run_tests_if_main()

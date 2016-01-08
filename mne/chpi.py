@@ -18,8 +18,9 @@ from .utils import verbose, logger, check_version, use_log_level, deprecated
 from .fixes import partial
 from .externals.six import string_types
 
-# XXX hpicons?
-# XXX use distances from digitization, not initial fit?
+# Eventually we should add:
+#   hpicons
+#   high-passing of data during fits
 
 
 # ############################################################################
@@ -184,7 +185,6 @@ def head_quats_to_trans_rot_t(quats):
 
     See Also
     --------
-    calculate_chpi_positions
     read_pos
     write_pos
     """
@@ -293,7 +293,7 @@ def _fit_chpi_pos(coil_dev_rrs, coil_head_rrs, x0):
 
 @verbose
 def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
-                     include_slope=True, verbose=None):
+                     exclude='bads', verbose=None):
     """Helper to set up cHPI fits"""
     from scipy.spatial.distance import cdist
     from .preprocessing.maxwell import _prep_mf_coils
@@ -320,8 +320,6 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
     f_t = hpi_freqs[np.newaxis, :] * rads
     l_t = line_freqs[np.newaxis, :] * rads
     model = [np.sin(f_t), np.cos(f_t)]  # hpi freqs
-    if include_slope:
-        model += [model[0] * slope, model[1] * slope]
     model += [np.sin(l_t), np.cos(l_t)]  # line freqs
     model += [slope, np.ones(slope.shape)]
     model = np.concatenate(model, axis=1)
@@ -335,9 +333,9 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
                         2)])[np.newaxis]
 
     # Set up magnetic dipole fits
-    picks_good = pick_types(info, meg=True, eeg=False)
-    picks = np.concatenate([picks_good, [hpi_pick]])
-    megchs = [ch for ci, ch in enumerate(info['chs']) if ci in picks_good]
+    picks_meg = pick_types(info, meg=True, eeg=False, exclude=exclude)
+    picks = np.concatenate([picks_meg, [hpi_pick]])
+    megchs = [ch for ci, ch in enumerate(info['chs']) if ci in picks_meg]
     templates = _read_coil_defs(elekta_defs=True, verbose=False)
     coils = _create_meg_coils(megchs, 'accurate', coilset=templates)
     if method == 'forward':
@@ -345,7 +343,7 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
     else:  # == 'multipole'
         coils = _prep_mf_coils(info)
     scale = make_ad_hoc_cov(info, verbose=False)
-    scale = _get_whitener_data(info, scale, picks_good, verbose=False)
+    scale = _get_whitener_data(info, scale, picks_meg, verbose=False)
     orig_dev_head_quat = np.concatenate([rot_to_quat(dev_head_t[:3, :3]),
                                          dev_head_t[:3, 3]])
     dists = cdist(coil_head_rrs, coil_head_rrs)
@@ -365,18 +363,10 @@ def _time_prefix(fit_time):
     return ('    t=%0.3f:' % fit_time).ljust(17)
 
 
-def _high_pass(data, hpi):
-    """Helper to highpass a data chunk a simple way"""
-    data -= data.mean(axis=1)[:, np.newaxis]  # demean
-    data_fft = fftpack.rfft(data, n=hpi['hp_n'], overwrite_x=True, axis=-1)
-    data_fft[:, :hpi['hp_ind']] *= hpi['hp_window']
-    data[...] = fftpack.irfft(data_fft, axis=-1)[:, :data.shape[1]]
-
-
 @verbose
-def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
-                             t_window=0.2, dist_limit=0.005, gof_limit=0.98,
-                             verbose=None):
+def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
+                              t_window=0.2, dist_limit=0.005, gof_limit=0.98,
+                              verbose=None):
     """Calculate head positions using cHPI coils
 
     Parameters
@@ -434,7 +424,6 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         with use_log_level(False):
             meg_chpi_data = raw[hpi['picks'], time_sl][0]
         this_data = meg_chpi_data[:-1]
-        # _high_pass(this_data, hpi)
         chpi_data = meg_chpi_data[-1]
         ons = (np.round(chpi_data).astype(np.int) &
                hpi['on'][:, np.newaxis]).astype(bool)
@@ -587,6 +576,9 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 def filter_chpi(raw, include_line=True, verbose=None):
     """Remove cHPI and line noise from data
 
+    .. note:: This function will only work properly if cHPI was on
+              during the recording.
+
     Parameters
     ----------
     raw : instance of Raw
@@ -603,30 +595,47 @@ def filter_chpi(raw, include_line=True, verbose=None):
 
     Notes
     -----
+    cHPI signals are in general not stationary, because head movements act
+    like amplitude modulators on cHPI signals. Thus it is recommended to
+    to use this procedure, which uses an iterative fitting method, to
+    remove cHPI signals, as opposed to notch filtering.
+
     .. versionadded:: 0.12
     """
     if not raw.preload:
         raise RuntimeError('raw data must be preloaded')
     t_window = 0.2
-    include_slope = True  # eventually might be an option?
-    hpi = _setup_chpi_fits(raw.info, t_window, t_window,
-                           include_slope=include_slope, verbose=False)[0]
-    fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2 - 1,
-                         hpi['n_window'])
+    t_step = 0.01
+    n_step = int(np.ceil(t_step * raw.info['sfreq']))
+    hpi = _setup_chpi_fits(raw.info, t_window, t_window, exclude=(),
+                           verbose=False)[0]
+    fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2, n_step)
     n_freqs = len(hpi['freqs'])
-    n_remove = 2 * (1 + bool(include_slope)) * n_freqs
-    msg = 'Removing %s cHPI frequencies' % n_freqs
+    n_remove = 2 * n_freqs
+    meg_picks = hpi['picks'][:-1]
+    n_times = len(raw.times)
+
+    msg = 'Removing %s cHPI' % n_freqs
     if include_line:
         n_remove += 2 * len(hpi['line_freqs'])
-        msg += ' and %s line frequency harmonics' % len(hpi['line_freqs'])
+        msg += ' and %s line harmonic' % len(hpi['line_freqs'])
+    msg += ' frequencies from %s MEG channels' % len(meg_picks)
+
     proj = np.dot(hpi['model'][:, :n_remove], hpi['inv_model'][:n_remove]).T
     logger.info(msg)
-    used = np.zeros(len(raw.times), bool)
-    for midpt in fit_idxs:
-        time_sl = midpt - hpi['n_window'] // 2
-        time_sl = slice(max(time_sl, 0),
-                        min(time_sl + hpi['n_window'], len(raw.times)))
-        assert not used[time_sl].any()
+    chunks = list()  # the chunks to subtract
+    last_endpt = 0
+    last_done = 0.
+    next_done = 60.
+    for ii, midpt in enumerate(fit_idxs):
+        if midpt / raw.info['sfreq'] >= next_done or ii == len(fit_idxs) - 1:
+            logger.info('    Filtering % 5.1f - % 5.1f sec'
+                        % (last_done, min(next_done, raw.times[-1])))
+            last_done = next_done
+            next_done += 60.
+        left_edge = midpt - hpi['n_window'] // 2
+        time_sl = slice(max(left_edge, 0),
+                        min(left_edge + hpi['n_window'], len(raw.times)))
         this_len = time_sl.stop - time_sl.start
         if this_len == hpi['n_window']:
             this_proj = proj
@@ -634,9 +643,23 @@ def filter_chpi(raw, include_line=True, verbose=None):
             model = hpi['model'][:this_len]
             inv_model = linalg.pinv(model)
             this_proj = np.dot(model[:, :n_remove], inv_model[:n_remove]).T
-        used[time_sl] = True
-        this_data = raw._data[hpi['picks'][:-1], time_sl]
-        # _high_pass(this_data, hpi)
-        raw._data[hpi['picks'][:-1], time_sl] -= np.dot(this_data, this_proj)
-    assert used.all()
+        this_data = raw._data[meg_picks, time_sl]
+        subt_pt = min(midpt + n_step, n_times)
+        if last_endpt != subt_pt:
+            fit_left_edge = left_edge - time_sl.start + hpi['n_window'] // 2
+            fit_sl = slice(fit_left_edge,
+                           fit_left_edge + (subt_pt - last_endpt))
+            chunks.append((subt_pt, np.dot(this_data, this_proj[:, fit_sl])))
+        last_endpt = subt_pt
+
+        # Consume (trailing) chunks that are now safe to remove because
+        # our windows will no longer touch them
+        if ii < len(fit_idxs) - 1:
+            next_left_edge = fit_idxs[ii + 1] - hpi['n_window'] // 2
+        else:
+            next_left_edge = np.inf
+        while len(chunks) > 0 and chunks[0][0] <= next_left_edge:
+            right_edge, chunk = chunks.pop(0)
+            raw._data[meg_picks,
+                      right_edge - chunk.shape[1]:right_edge] -= chunk
     return raw

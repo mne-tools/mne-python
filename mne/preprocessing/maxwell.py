@@ -150,12 +150,14 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         * Coordinate frame translation
         * Regularization of internal components using information theory
         * Raw movement compensation
+          (using head positions estimated by MaxFilter)
+        * cHPI subtraction (see :func:`mne.chpi.filter_chpi')
 
     The following features are not yet implemented:
 
         * **Not certified for clinical use**
         * Automatic bad channel detection
-        * cHPI subtraction
+        * Head position estimation
 
     Our algorithm has the following enhancements:
 

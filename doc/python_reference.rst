@@ -451,6 +451,7 @@ EEG referencing:
    construct_iir_filter
    high_pass_filter
    low_pass_filter
+   notch_filter
 
 Head position estimation:
 
@@ -460,7 +461,7 @@ Head position estimation:
    :toctree: generated/
    :template: function.rst
 
-   calculate_chpi_positions
+   filter_chpi
    head_quats_to_trans_rot_t
    read_head_quats
    write_head_quats
