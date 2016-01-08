@@ -437,7 +437,6 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         if this_len == hpi['n_window']:
             model, inv_model = hpi['model'], hpi['inv_model']
         else:  # first or last window
-            print('yo')
             model = hpi['model'][:this_len]
             inv_model = linalg.pinv(model)
         X = np.dot(inv_model, this_data.T)

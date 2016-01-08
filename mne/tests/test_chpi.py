@@ -144,7 +144,7 @@ def test_calculate_chpi_positions():
     t -= raw.first_samp / raw.info['sfreq']
     quats = _calculate_chpi_positions(raw, verbose='debug')
     trans_est, rot_est, t_est = head_quats_to_trans_rot_t(quats)
-    _compare_positions((trans, rot, t), (trans_est, rot_est, t_est), 0.0027)
+    _compare_positions((trans, rot, t), (trans_est, rot_est, t_est), 0.003)
 
     # degenerate conditions
     raw_no_chpi = Raw(test_fif_fname)
