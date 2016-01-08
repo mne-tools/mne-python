@@ -5,8 +5,9 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
-from .. import pick_types, Evoked
-from ..io import _BaseRaw
+from .. import pick_types, Evoked, create_info
+from ..io import _BaseRaw, RawArray
+from ..epochs import EpochsArray
 from ..io.constants import FIFF
 from ..bem import fit_sphere_to_headshape
 
@@ -72,3 +73,33 @@ def assert_dig_allclose(info_py, info_bin):
         assert_allclose(R_py, R_bin)
         assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-3)  # mm
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-3)  # mm
+
+
+def create_random_events(nev_per_class, nclasses, ntimes):
+    """Creates a random set of nev events for each of
+    nclasses, randomly interspersed in ntimes."""
+    ixs = np.random.permutation(range(ntimes))
+    classes = np.tile(range(nclasses), (nev_per_class, 1)).ravel()
+    ixs_ev = ixs[:nev_per_class * nclasses]
+    events = np.zeros([nev_per_class * nclasses, 3])
+    for i, (ix, evclass) in enumerate(zip(ixs_ev, classes)):
+        events[i, :] = [ix, 0, evclass]
+    return events.astype(int)
+
+
+def create_random_epochs(nep_per_class, nchan, ntime, sfreq,
+                         nclasses=2, ch_types='eeg'):
+    """Creates an Epochs object with random data"""
+    data = np.random.randn(nep_per_class * nclasses, nchan, ntime * sfreq)
+    ev = create_random_events(nep_per_class, ntime * sfreq, nclasses)
+    info = create_info([str(i) for i in range(nchan)], sfreq, ch_types)
+    ep = EpochsArray(data, info, ev)
+    return ep
+
+
+def create_random_raw(nchan, ntime, sfreq, ch_types='eeg'):
+    """Creates a Raw object with random data"""
+    data = np.random.randn(nchan, ntime * sfreq)
+    info = create_info([str(i) for i in range(nchan)], sfreq, ch_types)
+    raw = RawArray(data, info)
+    return raw
