@@ -892,11 +892,11 @@ def _connection_line(x, fig, sourceax, targetax):
     (xs, _) = transFigure.transform(sourceax.transData.transform([x, 0]))
     (_, ys) = transFigure.transform(sourceax.transAxes.transform([0, 1]))
     return Line2D((xt, xs), (yt, ys), transform=tf, color='grey',
-                  linestyle='--', linewidth=1.5, alpha=.66, zorder=-1)
+                  linestyle='-', linewidth=1.5, alpha=.66, zorder=-1)
 
 
-def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
-               ts_args=dict(), topomap_args=dict()):
+def joint_plot(evoked, times="peaks", title='', picks=None, exclude=list(),
+               show=True, ts_args=dict(), topomap_args=dict()):
     """Plot evoked data as butterfly plot and add topomaps for selected
     time points.
 
@@ -904,6 +904,11 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
     ----------
     evoked : instance of Evoked
         The evoked instance.
+    times : float | array of floats | "auto" | "peaks".
+        The time point(s) to plot. If "auto", 5 evently spaced topographies
+        between the first and last time instant will be shown. If "peaks",
+        finds time points automatically by checking for 3 local maxima in
+        Global Field Power.
     title : str
         The title.
     picks : array-like of int | None
@@ -937,7 +942,8 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
     # channel selection
     # simply create a new evoked object(s) with the desired channel selection
     if exclude == "bads":
-        exclude = [ch for ch in evoked.info['bads'] if ch in info['ch_names']]
+        exclude = [ch for ch in evoked.info['bads']
+                   if ch in evked.info['ch_names']]
     evoked = evoked.copy().drop_channels(exclude)
     if picks is not None:
         pick_names = [evoked.info["ch_names"][pick] for pick in picks]
@@ -970,7 +976,6 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
     fig = plt.figure()
 
     # set up time points to show topomaps for
-    times = topomap_args.get("times", "peaks")
     if isinstance(times, string_types):
         if times == "peaks":
             times = _find_peaks(evoked, topomap_args.get("peaks", 3))
@@ -990,13 +995,13 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
 
     old_title = ts_ax.get_title()
     ts_ax.set_title('')
-    fig.suptitle(title + "\n" + old_title, y=.9)
+    fig.suptitle(title + "\n" + old_title, y=.95)
 
     # prepare axes for topomap
     # slightly convoluted due to colorbar placement and for vertical alignment
     ts = len(times) + 2
-    map_ax = [plt.subplot(5, ts, x + 2 + ts) for x in range(ts - 2)]
-    cbar_ax = plt.subplot(5, 3 * (ts + 1), 6 * (ts + 1))
+    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(ts - 2)]
+    cbar_ax = plt.subplot(4, 3 * (ts + 1), 6 * (ts + 1))
 
     # topomap
     topomap_args_pass = dict((k, v) for k, v in topomap_args.items() if
@@ -1012,7 +1017,7 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
         cbar.locator = ticker.MaxNLocator(nbins=5)
         cbar.update_ticks()
 
-    plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.95, bottom=0.1)
 
     # connection lines
     # draw the connection lines between time series and topoplots
@@ -1024,7 +1029,7 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
 
     # mark times in time series plot
     for timepoint in tstimes:
-        ts_ax.axvline(timepoint, color='grey', linestyle='--',
+        ts_ax.axvline(timepoint, color='grey', linestyle='-',
                       linewidth=1.5, alpha=.66, zorder=-1)
 
     # show and return it
