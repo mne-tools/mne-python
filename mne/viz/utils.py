@@ -20,6 +20,8 @@ import numpy as np
 
 from ..io import show_fiff
 from ..utils import verbose, set_config
+from ..externals.six import string_types
+from ..fixes import _get_argrelmax
 
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -850,3 +852,51 @@ def add_background_image(fig, im, set_ratios=None):
     ax_im.imshow(im, aspect='auto')
     ax_im.set_zorder(-1)
     return ax_im
+
+
+def _find_peaks(evoked, npeaks):
+    """Helper function for finding peaks from evoked data
+    Returns ``npeaks`` biggest peaks as a list of time points.
+    """
+    argrelmax = _get_argrelmax()
+    gfp = evoked.data.std(axis=0)
+    order = len(evoked.times) // 30
+    if order < 1:
+        order = 1
+    peaks = argrelmax(gfp, order=order, axis=0)[0]
+    if len(peaks) > npeaks:
+        max_indices = np.argsort(gfp[peaks])[-npeaks:]
+        peaks = np.sort(peaks[max_indices])
+    times = evoked.times[peaks]
+    if len(times) == 0:
+        times = [evoked.times[gfp.argmax()]]
+    return times
+
+
+def _process_times(inst, times, n_peaks=None, few=False):
+    """Helper to return a list of times for topomaps"""
+    if isinstance(times, string_types):
+        if times == "peaks":
+            if n_peaks is None:
+                n_peaks = 3 if few else 7
+            times = _find_peaks(inst, n_peaks)
+        elif times == "auto":
+            if n_peaks is None:
+                n_peaks = 5 if few else 10
+            times = np.linspace(inst.times[0], inst.times[-1], n_peaks)
+        else:
+            raise ValueError("Got an unrecognized method for `times`. Only "
+                             "'peaks' and 'auto' are supported (or directly "
+                             "passing numbers).")
+    elif np.isscalar(times):
+        times = [times]
+
+    times = np.array(times)
+
+    if times.ndim != 1:
+        raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
+    if len(times) > 20:
+        raise RuntimeError('Too many plots requested. Please pass fewer '
+                           'than 20 time instants.')
+
+    return times

@@ -17,13 +17,13 @@ from ..io.pick import channel_type, pick_types, _picks_by_type
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
-                    plt_show)
+                    plt_show, _process_times)
 from ..utils import logger, _clean_names
 from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
-                      _prepare_topomap, _find_peaks)
+                      _prepare_topomap)
 from ..channels import find_layout
 
 
@@ -888,15 +888,15 @@ def _connection_line(x, fig, sourceax, targetax):
     transFigure = fig.transFigure.inverted()
     tf = fig.transFigure
 
-    (xt, yt) = transFigure.transform(targetax.transAxes.transform([.5, 0]))
+    (xt, yt) = transFigure.transform(targetax.transAxes.transform([.5, 0.2]))
     (xs, _) = transFigure.transform(sourceax.transData.transform([x, 0]))
     (_, ys) = transFigure.transform(sourceax.transAxes.transform([0, 1]))
     return Line2D((xt, xs), (yt, ys), transform=tf, color='grey',
                   linestyle='-', linewidth=1.5, alpha=.66, zorder=-1)
 
 
-def joint_plot(evoked, times="peaks", title='', picks=None, exclude=list(),
-               show=True, ts_args=dict(), topomap_args=dict()):
+def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
+                show=True, ts_args=None, topomap_args=None):
     """Plot evoked data as butterfly plot and add topomaps for selected
     time points.
 
@@ -913,18 +913,22 @@ def joint_plot(evoked, times="peaks", title='', picks=None, exclude=list(),
         The title.
     picks : array-like of int | None
         The indices of channels to plot. If None show all.
-    exclude : list of str | 'bads'
+    exclude : None | list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded.
     show : bool
         Show figure if True.
-    ts_args : dict
+    ts_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot` to
         style the butterfly plot. `axes` and `show` are ignored.
-    topomap_args : dict
+        If `spatial_colors` is not in this dict, `spatial_colors=True`
+        will be passed. Beyond that, if `None`, no customizable arguments will
+        be passed.
+    topomap_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
         to style the topomaps. `axes` and `show` are ignored. If `times`
-        is not in this dict, automatic peak detection is used.
+        is not in this dict, automatic peak detection is used. Beyond that,
+        if `None`, no customizable arguments will be passed.
 
     Returns
     -------
@@ -939,15 +943,24 @@ def joint_plot(evoked, times="peaks", title='', picks=None, exclude=list(),
     """
     import matplotlib.pyplot as plt
 
+    if ts_args is None:
+        ts_args = dict(spatial_colors=True)
+    if topomap_args is None:
+        topomap_args = dict()
+
     # channel selection
     # simply create a new evoked object(s) with the desired channel selection
+    evoked = evoked.copy()
+
+    if picks is not None:
+        pick_names = [evoked.info["ch_names"][pick] for pick in picks]
+        evoked.pick_channels(pick_names)
     if exclude == "bads":
         exclude = [ch for ch in evoked.info['bads']
                    if ch in evoked.info['ch_names']]
-    evoked = evoked.copy().drop_channels(exclude)
-    if picks is not None:
-        pick_names = [evoked.info["ch_names"][pick] for pick in picks]
-        evoked = evoked.pick_channels(pick_names)
+    if exclude is not None:
+        evoked.drop_channels(exclude)
+
     info = evoked.info
     data_types = ['eeg', 'grad', 'mag', 'seeg']
     ch_types = set([channel_type(info, idx)
@@ -955,7 +968,6 @@ def joint_plot(evoked, times="peaks", title='', picks=None, exclude=list(),
                     if channel_type(info, idx) in data_types])
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
-        print(ch_types)
         figs = list()
         for t in ch_types:  # pick only the corresponding channel type
             ev_ = evoked.pick_channels([info["ch_names"][idx]
@@ -968,21 +980,15 @@ def joint_plot(evoked, times="peaks", title='', picks=None, exclude=list(),
                 raise RuntimeError("Possibly infinite loop due to channel "
                                    "selection problem. This should never "
                                    "happen! Please check your channel types.")
-            figs.append(joint_plot(ev_, title=title, show=show,
-                                   ts_args=ts_args,
+            figs.append(_joint_plot(ev_, times=times, title=title, show=show,
+                                   ts_args=ts_args, exclude=list(),
                                    topomap_args=topomap_args))
         return figs
 
     fig = plt.figure()
 
     # set up time points to show topomaps for
-    if isinstance(times, string_types):
-        if times == "peaks":
-            times = _find_peaks(evoked, topomap_args.get("peaks", 3))
-        elif times == "auto":
-            times = np.linspace(evoked.times[0], evoked.times[-1], 5)
-    elif np.isscalar(times):
-        times = [times]
+    times = _process_times(evoked, times, few=True)
 
     # butterfly/time series plot
     ts_ax = fig.add_subplot(212)

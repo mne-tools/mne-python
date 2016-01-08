@@ -19,7 +19,7 @@ from .fixes import in1d
 from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
-from .viz.evoked import _plot_evoked_white, joint_plot
+from .viz.evoked import _plot_evoked_white, _joint_plot
 from .externals.six import string_types
 
 from .io.constants import FIFF
@@ -727,8 +727,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
 
-    def plot_joint(evoked, title='', picks=None, exclude=list(), show=True,
-                   ts_args=dict(spatial_colors=True), topomap_args=dict()):
+    def plot_joint(evoked, times="peaks", title='', picks=None,
+                   exclude='bads', show=True, ts_args=None,
+                   topomap_args=None):
         """Plot evoked data as butterfly plots and add topomaps for selected
         time points.
 
@@ -736,6 +737,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         evoked : instance of Evoked
             The evoked instance.
+        times : float | array of floats | "auto" | "peaks"
+            The time point(s) to plot. If "auto", 5 evently spaced topographies
+            between the first and last time instant will be shown. If "peaks"
+            finds time points automatically by checking for 3 local
+            maxima in Global Field Power.
         title : str
             The title.
         picks : array-like of int | None
@@ -745,13 +751,17 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             bad channels are excluded.
         show : bool
             Show figure if True.
-        ts_args : dict
-            A dict of `kwargs` that are forwarded to evoked.plot to
+        ts_args : None | dict
+            A dict of `kwargs` that are forwarded to `evoked.plot` to
             style the butterfly plot. `axes` and `show` are ignored.
-        topomap_args : dict
-            A dict of `kwargs` that are forwarded to evoked.plot_topomap
-            to style the topoplots. `axes` and `show` are ignored. If
-            `times` is not in this dict, automatic peak detection is used.
+            If `spatial_colors` is not in this dict, `spatial_colors=True`
+            will be passed. Beyond that, if `None`, no customizable arguments will
+            be passed.
+        topomap_args : None | dict
+            A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
+            to style the topomaps. `axes` and `show` are ignored. If `times`
+            is not in this dict, automatic peak detection is used. Beyond
+            that, if `None`, no customizable arguments will be passed.
 
         Returns
         -------
@@ -764,9 +774,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         .. versionadded:: 0.12.0
         """
-        return joint_plot(evoked, title=title, picks=picks, exclude=exclude,
-                          show=show, ts_args=ts_args,
-                          topomap_args=topomap_args)
+        return _joint_plot(evoked, times=times, title=title, picks=picks,
+                           exclude=exclude, show=show, ts_args=ts_args,
+                           topomap_args=topomap_args)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields in mag/grad
