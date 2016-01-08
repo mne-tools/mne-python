@@ -934,35 +934,39 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
     """
     # channel selection
     # simply create a new evoked object(s) with the desired channel selection
-    info = evoked.info
     if exclude == "bads":
-        exclude = [ch for ch in info['bads'] if ch in info['ch_names']]
+        exclude = [ch for ch in evoked.info['bads'] if ch in info['ch_names']]
     evoked = evoked.copy().drop_channels(exclude)
     if picks is not None:
-        evoked = evoked.pick_channels(picks)
+        pick_names = [evoked.info["ch_names"][pick] for pick in picks]
+        evoked = evoked.pick_channels(pick_names)
+    info = evoked.info
     data_types = ['eeg', 'grad', 'mag', 'seeg']
-    ch_types = set([channel_type(info, idx) for idx in range(info['nchan'])
-                    if channel_type(info, idx) in data_types])
+    ch_types = set([channel_type(evoked.info, idx)
+                    for idx in range(info['nchan'])
+                    if channel_type(evoked.info, idx) in data_types])
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
+        print(ch_types)
         figs = list()
         for t in ch_types:  # pick only the corresponding channel type
-            e = evoked.copy().pick_channels([info["ch_names"][idx]
-                                             for idx in range(info['nchan'])
-                                             if channel_type(info, idx) == t])
-            if len(set([channel_type(e.info, idx)
-                        for idx in range(e.info['nchan'])
-                        if channel_type(e.info, idx) in data_types])) > 1:
+            ev_ = evoked.pick_channels([info["ch_names"][idx]
+                                        for idx in range(info['nchan'])
+                                        if channel_type(info, idx) == t],
+                                        copy=True)
+            if len(set([channel_type(ev_.info, idx)
+                        for idx in range(ev_.info['nchan'])
+                        if channel_type(ev_.info, idx) in data_types])) > 1:
                 raise RuntimeError("Possibly infinite loop due to channel "
                                    "selection problem. This should never "
                                    "happen! Please check your channel types.")
-            figs.append(joint_plot(e, title=title, show=show, ts_args=ts_args,
+            figs.append(joint_plot(ev_, title=title, show=show,
+                                   ts_args=ts_args,
                                    topomap_args=topomap_args))
         return figs
 
     import matplotlib.pyplot as plt
-    f = plt.figure()
-    f.suptitle(title)
+    fig = plt.figure()
 
     # set up time points to show topomaps for
     times = topomap_args.get("times", "peaks")
@@ -975,19 +979,23 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
         times = [times]
 
     # butterfly/time series plot
-    ts_ax = f.add_subplot(212)
+    ts_ax = fig.add_subplot(212)
     ts_args_pass = dict((k, v) for k, v in ts_args.items()
                         if k not in ["axes", "show", "colorbar"])
     ts_args_pass.update(dict(spatial_colors=ts_args.get("spatial_colors",
                                                         True)))
     plot_evoked(evoked, axes=ts_ax, show=False, set_tight_layout=False,
                 **ts_args_pass)
+    old_title = ts_ax.get_title()
+    ts_ax.set_title('')
+
+    fig.suptitle(title + "\n" + old_title, y=.9)
 
     # prepare axes for topomap
     # slightly convoluted due to colorbar placement and for vertical alignment
-    t = len(times) + 2
-    map_ax = [plt.subplot(5, t, x + 2 + t) for x in range(t - 2)]
-    cbar_ax = plt.subplot(5, 3 * (t + 1), 6 * (t + 1))
+    ts = len(times) + 2
+    map_ax = [plt.subplot(5, ts, x + 2 + ts) for x in range(ts - 2)]
+    cbar_ax = plt.subplot(5, 3 * (ts + 1), 6 * (ts + 1))
 
     # topomap
     topomap_args_pass = dict((k, v) for k, v in topomap_args.items() if
@@ -1003,13 +1011,15 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
         cbar.locator = ticker.MaxNLocator(nbins=5)
         cbar.update_ticks()
 
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+
     # connection lines
     # draw the connection lines between time series and topoplots
     tstimes = [timepoint * 1e3 for timepoint in times]
-    lines = [_connection_line(timepoint, f, ts_ax, map_ax_)
+    lines = [_connection_line(timepoint, fig, ts_ax, map_ax_)
              for timepoint, map_ax_ in zip(tstimes, map_ax)]
     for line in lines:
-        f.lines.append(line)
+        fig.lines.append(line)
 
     # mark times in time series plot
     for timepoint in tstimes:
@@ -1018,4 +1028,4 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
 
     # show and return it
     plt_show(show)
-    return f
+    return fig
