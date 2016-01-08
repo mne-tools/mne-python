@@ -755,8 +755,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             A dict of `kwargs` that are forwarded to `evoked.plot` to
             style the butterfly plot. `axes` and `show` are ignored.
             If `spatial_colors` is not in this dict, `spatial_colors=True`
-            will be passed. Beyond that, if `None`, no customizable arguments will
-            be passed.
+            will be passed. Beyond that, if `None`, no customizable arguments
+            will be passed.
         topomap_args : None | dict
             A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
             to style the topomaps. `axes` and `show` are ignored. If `times`

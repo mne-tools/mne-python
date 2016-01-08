@@ -26,7 +26,6 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
 from ..time_frequency import compute_epochs_psd
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
-from ..externals.six import string_types
 
 
 def _prepare_topo_plot(inst, ch_type, layout):

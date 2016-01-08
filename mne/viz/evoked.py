@@ -981,8 +981,8 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
                                    "selection problem. This should never "
                                    "happen! Please check your channel types.")
             figs.append(_joint_plot(ev_, times=times, title=title, show=show,
-                                   ts_args=ts_args, exclude=list(),
-                                   topomap_args=topomap_args))
+                                    ts_args=ts_args, exclude=list(),
+                                    topomap_args=topomap_args))
         return figs
 
     fig = plt.figure()
