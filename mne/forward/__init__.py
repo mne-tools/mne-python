@@ -12,7 +12,7 @@ from .forward import (Forward, read_forward_solution, write_forward_solution,
 from ._make_forward import (make_forward_solution, _prepare_for_forward,
                             _prep_meg_channels, _prep_eeg_channels,
                             _to_forward_dict, _create_meg_coils,
-                            _read_coil_defs, _transform_meg_coils)
+                            _read_coil_defs, _transform_orig_meg_coils)
 from ._compute_forward import (_magnetic_dipole_field_vec, _compute_forwards,
                                _concatenate_coils)
 from ._field_interpolation import (_make_surface_mapping, make_field_map,

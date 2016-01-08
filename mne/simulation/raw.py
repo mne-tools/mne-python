@@ -20,7 +20,7 @@ from ..chpi import read_head_quats, head_quats_to_trans_rot_t, _get_hpi_info
 from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
-                       _prepare_for_forward, _prep_meg_channels,
+                       _prepare_for_forward, _transform_orig_meg_coils,
                        _compute_forwards, _to_forward_dict)
 from ..transforms import _get_trans, transform_surface_to
 from ..source_space import _ensure_src, _points_outside_surface
@@ -502,10 +502,8 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         # but the cost here is tiny compared to actual fwd calculation
         logger.info('Computing gain matrix for transform #%s/%s'
                     % (ti + 1, len(dev_head_ts)))
-        info = deepcopy(info)
-        info['dev_head_t'] = dev_head_t
-        megcoils, compcoils, megnames, meg_info = \
-            _prep_meg_channels(info, True, [], False, verbose=False)
+        _transform_orig_meg_coils(megcoils, dev_head_t)
+        _transform_orig_meg_coils(compcoils, dev_head_t)
 
         # Make sure our sensors are all outside our BEM
         coil_rr = [coil['r0'] for coil in megcoils]

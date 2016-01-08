@@ -134,29 +134,30 @@ def _create_meg_coil(coilset, ch, acc, do_es):
                accuracy=coil['accuracy'], base=coil['base'], size=coil['size'],
                type=ch['coil_type'], w=coil['w'], desc=coil['desc'],
                coord_frame=FIFF.FIFFV_COORD_DEVICE, rmag_orig=coil['rmag'],
-               cosmag_orig=coil['cosmag'], coil_trans_orig=coil_trans)
-    res.update(rmag=apply_trans(coil_trans, coil['rmag']),
+               cosmag_orig=coil['cosmag'], coil_trans_orig=coil_trans,
+               r0=coil_trans[:3, 3],
+               rmag=apply_trans(coil_trans, coil['rmag']),
                cosmag=apply_trans(coil_trans, coil['cosmag'], False))
     if do_es:
         r0_exey = (np.dot(coil['rmag'][:, :2], coil_trans[:3, :2].T) +
                    coil_trans[:3, 3])
         res.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
-                   ez=coil_trans[:3, 2], r0=coil_trans[:3, 3], r0_exey=r0_exey)
+                   ez=coil_trans[:3, 2], r0_exey=r0_exey)
     return res
 
 
-def _transform_meg_coil(coil, t, do_es=False):
+def _transform_orig_meg_coil(coil, t, do_es=False):
     """Transform an MEG coil from its original FIFFV_COORD_DEVICE position"""
     coil_trans = np.dot(t['trans'], coil['coil_trans_orig'])
     coil.update(coord_frame=t['to'],
                 rmag=apply_trans(coil_trans, coil['rmag_orig']),
-                cosmag=apply_trans(coil_trans, coil['cosmag_orig'], False))
+                cosmag=apply_trans(coil_trans, coil['cosmag_orig'], False),
+                r0=coil_trans[:3, 3])
     if do_es:
         r0_exey = (np.dot(coil['rmag_orig'][:, :2], coil_trans[:3, :2].T) +
                    coil_trans[:3, 3])
         coil.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
-                    ez=coil_trans[:3, 2], r0=coil_trans[:3, 3],
-                    r0_exey=r0_exey)
+                    ez=coil_trans[:3, 2], r0_exey=r0_exey)
 
 
 def _create_eeg_el(ch, t=None):
@@ -192,15 +193,15 @@ def _create_meg_coils(chs, acc, t=None, coilset=None, do_es=False):
     acc = _accuracy_dict[acc] if isinstance(acc, string_types) else acc
     coilset = _read_coil_defs(verbose=False) if coilset is None else coilset
     coils = [_create_meg_coil(coilset, ch, acc, do_es) for ch in chs]
-    return _transform_meg_coils(coils, t, do_es=do_es)
+    _transform_orig_meg_coils(coils, t, do_es=do_es)
+    return coils
 
 
-def _transform_meg_coils(coils, t, do_es=True):
-    """Helper to transform MEG coils"""
+def _transform_orig_meg_coils(coils, t, do_es=True):
+    """Helper to transform original (device) MEG coil positions"""
     if t is not None:
         for coil in coils:
-            _transform_meg_coil(coil, t, do_es=do_es)
-    return coils
+            _transform_orig_meg_coil(coil, t, do_es=do_es)
 
 
 def _create_eeg_els(chs):
