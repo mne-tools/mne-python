@@ -21,3 +21,4 @@ from .ica import plot_ica_scores, plot_ica_sources, plot_ica_overlay
 from .ica import _plot_sources_raw, _plot_sources_epochs
 from .montage import plot_montage
 from .decoding import plot_gat_matrix, plot_gat_times
+from .cfc import plot_phase_locked_amplitude, plot_phase_binned_amplitude

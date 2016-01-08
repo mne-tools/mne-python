@@ -13,11 +13,11 @@ from mne.connectivity.cfc import phase_amplitude_coupling
 
 
 def test_phase_amplitude_coupling():
-    """ Test phase amplitdue coupling. """
+    """ Test phase amplitude coupling. """
     # Set params
     n_sig = 3
     n_ep = 5
-    sfreq, n_t = 1000., 5
+    sfreq, n_t = 1000., 40
     ev = np.linspace(0, sfreq * n_t, n_ep).astype(int)
     ev = np.vstack([ev, np.zeros_like(ev), np.ones_like(ev)]).T
     t = np.linspace(0, n_t, sfreq * n_t)
@@ -28,13 +28,27 @@ def test_phase_amplitude_coupling():
                            sfreq, 'eeg')
 
     # Test random signals
+    ev = np.vstack([np.linspace(0, len(t), n_ep),
+                    np.zeros(n_ep),
+                    np.ones(n_ep)]).astype(int).T
     rand_data = np.random.randn(n_ep, n_sig, len(t))
-    rand_epochs = mne.epochs.EpochsArray(rand_data, info, ev)
-    rand_raw = mne.io.RawArray(rand_data[0], info)
+    rand_raw = mne.io.RawArray(np.hstack(rand_data), info)
+    rand_epochs = mne.Epochs(rand_raw, ev, {'ev': 1}, -1, 8)
 
     for data in [rand_epochs, rand_raw]:
         conn = phase_amplitude_coupling(data, flo, fhi, ixs_conn)
         assert_true(conn.mean() < .3)
+
+    # Test events handling
+    conn = phase_amplitude_coupling(rand_raw, flo, fhi, ixs_conn, ev=ev[:, 0],
+                                    tmin=0, tmax=2)
+    assert_true(conn.mean() < .05)
+    # events ndim > 1
+    assert_raises(ValueError, phase_amplitude_coupling, rand_raw, flo, fhi,
+                  ixs_conn, tmin=0, tmax=2, ev=ev)
+    # No tmin/tmax
+    assert_raises(ValueError, phase_amplitude_coupling, rand_raw, flo, fhi,
+                  ixs_conn, ev=ev)
 
     # Test low frequency carrier / modulated oscillation
     lo = np.sin(t * 2 * np.pi * 6)

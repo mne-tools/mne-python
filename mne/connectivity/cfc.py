@@ -9,6 +9,9 @@ from pacpy.pac import _range_sanity
 from ..utils import _time_mask
 from ..parallel import parallel_func
 from scipy.signal import hilbert
+from mne.time_frequency import cwt_morlet
+from sklearn.preprocessing import scale, MinMaxScaler
+from ..preprocessing import peak_finder
 
 
 def phase_amplitude_coupling(inst, f_phase, f_amp, ixs, pac_func='plv',
@@ -122,15 +125,13 @@ def _phase_amplitude_coupling(data, sfreq, f_phase, f_amp, ixs,
     if pac_func not in ppac.__dict__.keys():
         raise ValueError("That PAC function doesn't exist in PacPy")
 
-    ndim = data.ndim
     n_epochs, n_channels, n_times = data.shape
     parallel, my_pac, n_jobs = parallel_func(_my_pac, n_jobs=n_jobs,
                                              verbose=verbose)
     pacs = np.array(parallel(my_pac(data, ixf, ixa, f_phase, f_amp, func,
                                     ev=ev, tmin=tmin, tmax=tmax, sfreq=sfreq)
                              for ixf, ixa in ixs))
-    if ndim < 3:
-        pacs = pacs.squeeze()
+    pacs = np.atleast_2d(pacs)
     return pacs
 
 
@@ -160,13 +161,12 @@ def _my_pac(x, ix_phase, ix_amp, f_phase, f_amp, func,
     for ep in x:
         xph = ep[ix_phase]
         xam = ep[ix_amp]
-        # If we have events, assume <3D shape
         if ev is not None:
             # Checks for proper inputs/shape
             ev = np.array(ev)
             if x.shape[0] > 1:
                 raise ValueError("If ev is given, input must have"
-                                 " first dim length 1")
+                                 " first dim (epochs) length 1")
             if ev.ndim > 1:
                 raise ValueError('Events must be a 1-d array')
             if any([tmin is None, tmax is None]):
@@ -174,11 +174,13 @@ def _my_pac(x, ix_phase, ix_amp, f_phase, f_amp, func,
                                  ' tmin/tmax must be given')
             if not isinstance(sfreq, (int, float)):
                 raise ValueError('If ev is given, sfreq must be given')
-            xph, xam = _filter_ph_am(xph, xam, f_phase, f_amp, sfreq)
 
-            # Turn into events and pass through func
+            # Pre-filter the data, then turn into epochs
+            xph, xam = _filter_ph_am(xph, xam, f_phase, f_amp, sfreq)
             epochs = np.vstack([xph, xam])
             epochs = _array_raw_to_epochs(epochs, sfreq, ev, tmin, tmax)
+
+            # Run the PAC code w/o using a filtering function
             for ep_f in epochs:
                 # f_phase and f_amp won't be used in this case
                 pac.append(func(ep_f[0], ep_f[1],
@@ -193,7 +195,7 @@ def _array_raw_to_epochs(x, sfreq, ev, tmin, tmax):
     win_size = sfreq * (tmax - tmin)
     msk_remove = np.logical_or(ev < win_size, (ev > (x.shape[-1] - win_size)))
     if any(msk_remove):
-        print('raise a warning!')
+        print('Some events will be cut off!')
         ev = ev[~msk_remove]
     times = np.arange(x.shape[-1]) / float(sfreq)
     epochs = []
@@ -203,3 +205,73 @@ def _array_raw_to_epochs(x, sfreq, ev, tmin, tmax):
         epochs.append(x[np.newaxis, :, msk])
     epochs = np.concatenate(epochs, axis=0)
     return epochs
+
+
+# For the viz functions
+def _extract_phase_and_amp(data_phase, data_amp, sfreq, freqs_phase,
+                           freqs_amp):
+    """Extract the phase and amplitude of two signals for PAC viz"""
+    # Morlet transform to get complex representation
+    band_ph = cwt_morlet(data_phase, sfreq,
+                         freqs_phase)
+    band_amp = cwt_morlet(data_amp, sfreq,
+                          freqs_amp)
+
+    # Calculate the phase/amplitude of relevant signals
+    amp_ph = np.hstack(np.real(band_ph.mean(1)))
+    angle_ph = np.hstack(np.angle(band_ph.mean(1)))
+    amp = np.hstack(np.abs(band_amp))
+
+    # Scale the amplitude for viz so low freqs don't dominate highs
+    amp = scale(amp, axis=1)
+    return angle_ph, amp_ph, amp
+
+
+def phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
+                           ix_ph, ix_amp, tmin=-.5, tmax=.5):
+    """Calculate the average amplitude of a signal at a phase of another"""
+    sfreq = epochs.info['sfreq']
+    angle_ph, amp_ph, amp = _extract_phase_and_amp(
+        epochs._data[:, ix_ph, :], epochs._data[:, ix_amp, :],
+        sfreq, freqs_phase, freqs_amp)
+
+    # Find peaks in the phase for time-locking
+    phase_peaks, vals = peak_finder.peak_finder(angle_ph)
+    tmin, tmax = (-.5, .5)
+    ixmin, ixmax = [t * epochs.info['sfreq'] for t in [tmin, tmax]]
+
+    # Remove peaks w/o buffer
+    phase_peaks = phase_peaks[(phase_peaks > np.abs(ixmin)) *
+                              (phase_peaks < len(angle_ph) - ixmax)]
+    data_phase = np.array([amp_ph[int(i+ixmin):int(i+ixmax)]
+                          for i in phase_peaks])
+    data_amp = np.array([amp[:, int(i+ixmin):int(i+ixmax)]
+                         for i in phase_peaks])
+
+    # Average across phase peak events
+    times = np.linspace(tmin, tmax, data_amp.shape[-1])
+    data_amp = data_amp.mean(0)
+    data_phase = data_phase.mean(0)
+    return data_amp, data_phase, times
+
+
+def phase_binned_amplitude(epochs, freqs_phase, freqs_amp,
+                           ix_ph, ix_amp, n_bins=20):
+    """Calculate amplitude of one signal in sub-ranges of phase for another.
+    """
+    sfreq = epochs.info['sfreq']
+
+    # Pull the amplitudes/phases using Morlet
+    angle_ph, amp_ph, amp = _extract_phase_and_amp(
+        epochs._data[:, ix_ph, :], epochs._data[:, ix_amp, :],
+        sfreq, freqs_phase, freqs_amp)
+
+    # Bin our phases and extract amplitudes based on bins
+    bins_phase = np.linspace(-np.pi, np.pi, n_bins)
+    bins_phase_ixs = np.digitize(angle_ph, bins_phase)
+    unique_bins = np.unique(bins_phase_ixs)
+    amp_binned = [np.mean(amp[:, bins_phase_ixs == i], 1)
+                  for i in unique_bins]
+    amp_binned = np.vstack(amp_binned).mean(1)
+
+    return amp_binned, bins_phase
