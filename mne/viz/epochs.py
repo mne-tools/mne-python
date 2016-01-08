@@ -27,7 +27,8 @@ from ..defaults import _handle_default
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap='RdBu_r', fig=None):
+                      units=None, scalings=None, cmap='RdBu_r',
+                      fig=None, show_times=None):
     """Plot Event Related Potential / Fields image
 
     Parameters
@@ -69,6 +70,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
+    show_times : array-like, shape (n_epochs,) | None
+        If not None the parameter is interpreted as time instants in seconds
+        and is added to the image. It is typically useful to display reaction
+        times.
 
     Returns
     -------
@@ -96,6 +101,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     scale_vmax = True if vmax is None else False
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
+    if show_times is not None and len(show_times) != len(data):
+        raise ValueError('size of show_times parameter (%s) do not '
+                         'match the number of epochs (%s).'
+                         % (len(show_times), len(data)))
+
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
         if fig is None:
@@ -117,6 +127,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if this_order is not None:
             this_data = this_data[this_order]
 
+        this_show_times = None
+        if show_times is not None and this_order is not None:
+            this_show_times = show_times[this_order]
+
         if sigma > 0.:
             this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
                                                   axis=0)
@@ -131,6 +145,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                                 0, len(data)],
                         aspect='auto', origin='lower', interpolation='nearest',
                         vmin=vmin, vmax=vmax, cmap=cmap)
+        if this_show_times is not None:
+            plt.plot(1e3 * this_show_times, 0.5 + np.arange(len(this_data)),
+                     'k', linewidth=2)
         ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
         if colorbar:
             ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)

@@ -131,6 +131,8 @@ def test_plot_epochs_image():
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     plot_epochs_image(epochs, picks=[1, 2])
+    show_times = [0.1]
+    plot_epochs_image(epochs, order=[0], show_times=show_times)
     plt.close('all')
 
 
