@@ -122,7 +122,8 @@ def test_other_systems():
     log_file = log_file.getvalue()
     assert_true('badly conditioned' in log_file)
     assert_true('more than 20 mm from' in log_file)
-    _assert_n_free(raw_sss, 28, 32)  # bad origin == brutal reg
+    # fits can differ slightly based on scipy version, so be lenient here
+    _assert_n_free(raw_sss, 28, 34)  # bad origin == brutal reg
     # Let's set the origin
     with catch_logging() as log_file:
         raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
