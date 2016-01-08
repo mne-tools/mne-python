@@ -943,7 +943,7 @@ def joint_plot(evoked, times="peaks", title='', picks=None, exclude=list(),
     # simply create a new evoked object(s) with the desired channel selection
     if exclude == "bads":
         exclude = [ch for ch in evoked.info['bads']
-                   if ch in evked.info['ch_names']]
+                   if ch in evoked.info['ch_names']]
     evoked = evoked.copy().drop_channels(exclude)
     if picks is not None:
         pick_names = [evoked.info["ch_names"][pick] for pick in picks]
