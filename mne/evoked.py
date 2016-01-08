@@ -18,7 +18,7 @@ from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
-                  plot_evoked_image, plot_evoked_topo, )
+                  plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import _plot_evoked_white, joint_plot
 from .externals.six import string_types
 
@@ -765,7 +765,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         .. versionadded:: 0.12.0
         """
         return joint_plot(evoked, title=title, picks=picks, exclude=exclude,
-                          show=True, ts_args=ts_args,
+                          show=show, ts_args=ts_args,
                           topomap_args=topomap_args)
 
     def as_type(self, ch_type='grad', mode='fast'):

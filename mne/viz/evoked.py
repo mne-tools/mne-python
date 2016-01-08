@@ -932,6 +932,8 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
     -----
     .. versionadded:: 0.12.0
     """
+    import matplotlib.pyplot as plt
+
     # channel selection
     # simply create a new evoked object(s) with the desired channel selection
     if exclude == "bads":
@@ -942,9 +944,9 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
         evoked = evoked.pick_channels(pick_names)
     info = evoked.info
     data_types = ['eeg', 'grad', 'mag', 'seeg']
-    ch_types = set([channel_type(evoked.info, idx)
+    ch_types = set([channel_type(info, idx)
                     for idx in range(info['nchan'])
-                    if channel_type(evoked.info, idx) in data_types])
+                    if channel_type(info, idx) in data_types])
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
         print(ch_types)
@@ -953,7 +955,7 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
             ev_ = evoked.pick_channels([info["ch_names"][idx]
                                         for idx in range(info['nchan'])
                                         if channel_type(info, idx) == t],
-                                        copy=True)
+                                       copy=True)
             if len(set([channel_type(ev_.info, idx)
                         for idx in range(ev_.info['nchan'])
                         if channel_type(ev_.info, idx) in data_types])) > 1:
@@ -965,7 +967,6 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
                                    topomap_args=topomap_args))
         return figs
 
-    import matplotlib.pyplot as plt
     fig = plt.figure()
 
     # set up time points to show topomaps for
@@ -986,9 +987,9 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
                                                         True)))
     plot_evoked(evoked, axes=ts_ax, show=False, set_tight_layout=False,
                 **ts_args_pass)
+
     old_title = ts_ax.get_title()
     ts_ax.set_title('')
-
     fig.suptitle(title + "\n" + old_title, y=.9)
 
     # prepare axes for topomap
@@ -1024,7 +1025,7 @@ def joint_plot(evoked, title='', picks=None, exclude=list(), show=True,
     # mark times in time series plot
     for timepoint in tstimes:
         ts_ax.axvline(timepoint, color='grey', linestyle='--',
-                      linewidth=1.5, alpha=.66)
+                      linewidth=1.5, alpha=.66, zorder=-1)
 
     # show and return it
     plt_show(show)
