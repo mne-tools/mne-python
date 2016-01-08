@@ -16,7 +16,8 @@ import mne
 from mne import io
 from mne.datasets import sample
 import matplotlib.pyplot as plt
-from mne.time_frequency import psd_welch
+from mne.epochs import EpochsArray
+from mne.time_frequency import psd_multitaper
 
 print(__doc__)
 
@@ -36,6 +37,9 @@ raw.info['bads'] += ['MEG 2443']  # bads
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     proj=True, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6))
+# Pull 2**n points to speed up computation
+epochs = EpochsArray(epochs._data[..., :1024], epochs.info,
+                     epochs.events, tmin, epochs.event_id)
 
 # Let's first check out all channel types by averaging across epochs.
 epochs.plot_psd(fmin=2, fmax=200)
@@ -49,8 +53,7 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=True)
 
 # Alternatively, you may also create PSDs from Epochs objects with psd_XXX
 f, ax = plt.subplots()
-psds, freqs = psd_welch(epochs, tmin=tmin, tmax=tmax,
-                        fmin=2, fmax=200, picks=picks, n_jobs=1)
+psds, freqs = psd_multitaper(epochs, fmin=2, fmax=200, picks=picks, n_jobs=1)
 psds = 10 * np.log10(psds)
 psds_mean = psds.mean(0).mean(0)
 psds_std = psds.mean(0).std(0)
@@ -58,7 +61,7 @@ psds_std = psds.mean(0).std(0)
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                 color='k', alpha=.5)
-ax.set(title='Welch PSD (gradiometers)', xlabel='Frequency',
+ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency',
        ylabel='Power Spectral Density (dB)')
 mne.viz.tight_layout()
 plt.show()
