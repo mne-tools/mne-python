@@ -133,6 +133,8 @@ def test_plot_epochs_image():
     plot_epochs_image(epochs, picks=[1, 2])
     overlay_times = [0.1]
     plot_epochs_image(epochs, order=[0], overlay_times=overlay_times)
+    assert_raises(ValueError, plot_epochs_image, epochs,
+                  overlay_times=[0.1, 0.2])
     plt.close('all')
 
 
