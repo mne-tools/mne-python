@@ -71,7 +71,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
     logscale : bool
-        Plots logarithmic value (base 2) of epochs on linear colorscale if True
+        If True, transform data to logarithmic scale (base 2) before plotting.
         Defaults to False.
 
     Returns
@@ -100,13 +100,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     scale_vmax = True if vmax is None else False
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     if logscale:
-        if (data >= 0).all():
-            data[data == 0] = np.nan
-            np.log2(data, out=data)
-        else:
+        if (data < 0).all():
             raise ValueError('Only Epochs with positive data can be'
                              ' plotted on logscale.')
-
+        data[data == 0] = np.nan
+        np.log2(data, out=data)
+            
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
         if fig is None:
