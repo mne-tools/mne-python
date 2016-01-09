@@ -123,3 +123,22 @@ def test_continuous_regression_with_overlap():
     assert_allclose(effect,
                     linear_regression_raw(raw, events, {1: 1}, tmin=0)[1]
                     .data.flatten())
+
+
+def test_continuous_regression_with_overlap_tfr():
+    """Test regression with overlap correction"""
+    signal = np.zeros(20000)
+    times = [5000, 12500]
+    events = np.zeros((len(times), 3), int)
+    events[:, 2] = 1
+    events[:, 0] = times
+    signal[events[:, 0]] = 1.
+    effect = hann(101)
+    signal = np.convolve(signal, effect)[:len(signal)]
+    raw = RawArray(signal[np.newaxis, :], mne.create_info(1, 100, 'eeg'))
+    epochs = mne.Epochs(raw, events, {1: 1}, 0, 1, baseline=None, reject=None)
+    tfr = dict(freqs=np.arange(5,10,1), n_cycles=3, use_fft=False)
+    power = mne.time_frequency.tfr_morlet(epochs, itc=False, **tfr)
+    assert_allclose(power.data.flatten(),
+                    linear_regression_raw(raw, events, {1: 1}, tmin=0, tfr=tfr)[1]
+                    .data.flatten())
