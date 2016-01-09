@@ -105,7 +105,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                              ' plotted on logscale.')
         data[data == 0] = np.nan
         np.log2(data, out=data)
-            
+
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
         if fig is None:
