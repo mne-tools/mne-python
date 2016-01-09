@@ -3,9 +3,9 @@
 #
 # License: BSD (3-clause)
 import numpy as np
-from pacpy import pac as ppac
+from ..externals.pacpy import pac as ppac
 from mne.filter import band_pass_filter
-from pacpy.pac import _range_sanity
+from ..externals.pacpy.pac import _range_sanity
 from ..utils import _time_mask
 from ..parallel import parallel_func
 from scipy.signal import hilbert
