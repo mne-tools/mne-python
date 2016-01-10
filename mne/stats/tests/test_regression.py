@@ -103,6 +103,10 @@ def test_continuous_regression_no_overlap():
                                      tmin=tmin, tmax=tmax,
                                      reject=None)
 
+    events[1, 0] = events[0, 0]
+    assert_raises(ValueError, linear_regression_raw,
+                  raw, events, event_id, tmin, tmax)
+
     for cond in event_id.keys():
         assert_allclose(revokeds[cond].data,
                         epochs[cond].average().data)
