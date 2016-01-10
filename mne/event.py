@@ -518,7 +518,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         All events that were found. The first column contains the event time
         in samples and the third column contains the event id. For output =
         'onset' or 'step', the second column contains the value of the stim
-        channel immediately before the the event/step. For output = 'offset',
+        channel immediately before the event/step. For output = 'offset',
         the second column contains the value of the stim channel after the
         event offset.
 
