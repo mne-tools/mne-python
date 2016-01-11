@@ -1580,10 +1580,12 @@ def _get_stim_channel(stim_channel, info):
                      "manually using the 'stim_channel' parameter.")
 
 
-def _check_fname(fname, overwrite):
+def _check_fname(fname, overwrite=False, must_exist=False):
     """Helper to check for file existence"""
     if not isinstance(fname, string_types):
         raise TypeError('file name is not a string')
+    if must_exist and not op.isfile(fname):
+        raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
         if not overwrite:
             raise IOError('Destination file exists. Please use option '

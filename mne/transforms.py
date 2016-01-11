@@ -676,3 +676,24 @@ def _angle_between_quats(x, y):
     # the difference z = x * conj(y), and theta = np.arccos(z0)
     z0 = np.maximum(np.minimum(y0 * x0 + (x * y).sum(axis=-1), 1.), -1)
     return 2 * np.arccos(z0)
+
+
+def _skew_symmetric_cross(a):
+    """The skew-symmetric cross product of a vector"""
+    return np.array([[0., -a[2], a[1]], [a[2], 0., -a[0]], [-a[1], a[0], 0.]])
+
+
+def _find_vector_rotation(a, b):
+    """Find the rotation matrix that maps unit vector a to b"""
+    # Rodrigues' rotation formula:
+    #   https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
+    #   http://math.stackexchange.com/a/476311
+    R = np.eye(3)
+    v = np.cross(a, b)
+    if np.allclose(v, 0.):  # identical
+        return R
+    s = np.sqrt(np.sum(v * v))  # sine of the angle between them
+    c = np.sqrt(np.sum(a * b))  # cosine of the angle between them
+    vx = _skew_symmetric_cross(v)
+    R += vx + np.dot(vx, vx) * (1 - c) / s
+    return R

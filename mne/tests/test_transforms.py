@@ -16,7 +16,8 @@ from mne.transforms import (invert_transform, _get_trans,
                             combine_transforms, apply_trans, translation,
                             get_ras_to_neuromag_trans, _sphere_to_cartesian,
                             _polar_to_cartesian, _cartesian_to_sphere,
-                            quat_to_rot, rot_to_quat, _angle_between_quats)
+                            quat_to_rot, rot_to_quat, _angle_between_quats,
+                            _find_vector_rotation)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -204,5 +205,18 @@ def test_quaternions():
             b[jj] = 1.
             expected = np.pi if ii != jj else 0.
             assert_allclose(_angle_between_quats(a, b), expected, atol=1e-5)
+
+
+def test_vector_rotation():
+    """Test basic rotation matrix math
+    """
+    x = np.array([1., 0., 0.])
+    y = np.array([0., 1., 0.])
+    rot = _find_vector_rotation(x, y)
+    assert_array_equal(rot,
+                       [[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+    quat_1 = rot_to_quat(rot)
+    quat_2 = rot_to_quat(np.eye(3))
+    assert_allclose(_angle_between_quats(quat_1, quat_2), np.pi / 2.)
 
 run_tests_if_main()

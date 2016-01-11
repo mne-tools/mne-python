@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from os import path as op
 from scipy import linalg, fftpack
 
 from .io.pick import pick_types, pick_channels
@@ -14,7 +13,8 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
 from .cov import make_ad_hoc_cov, _get_whitener_data
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
-from .utils import verbose, logger, check_version, use_log_level, deprecated
+from .utils import (verbose, logger, check_version, use_log_level, deprecated,
+                    _check_fname)
 from .fixes import partial
 from .externals.six import string_types
 
@@ -113,7 +113,7 @@ def read_head_quats(fname):
     Returns
     -------
     pos : array, shape (N, 10)
-        The position parameters.
+        The position and quaternion parameters from cHPI fitting.
 
     See Also
     --------
@@ -124,10 +124,7 @@ def read_head_quats(fname):
     -----
     .. versionadded:: 0.12
     """
-    if not isinstance(fname, string_types):
-        raise TypeError('fname must be str, not %s' % type(fname))
-    if not op.isfile(fname):
-        raise IOError('File "%s" does not exist' % fname)
+    _check_fname(fname, exist=True)
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
     data.shape = (-1, 10)  # ensure it's the right size even if empty
     return data
@@ -141,7 +138,7 @@ def write_head_quats(fname, pos):
     fname : str
         The filename to write.
     pos : array, shape (N, 10)
-        The position parameters.
+        The position and quaternion parameters from cHPI fitting.
 
     See Also
     --------
@@ -152,8 +149,7 @@ def write_head_quats(fname, pos):
     -----
     .. versionadded:: 0.12
     """
-    if not isinstance(fname, string_types):
-        raise TypeError('fname must be a string')
+    _check_fname(fname, overwrite=True)
     pos = np.array(pos, np.float64)
     if pos.ndim != 2 or pos.shape[1] != 10:
         raise ValueError('pos must be a 2D array of shape (N, 10)')

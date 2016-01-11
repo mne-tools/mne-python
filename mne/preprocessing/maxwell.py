@@ -16,7 +16,8 @@ from scipy import linalg
 from .. import __version__
 from ..bem import _check_origin
 from ..chpi import quat_to_rot, rot_to_quat
-from ..transforms import _str_to_frame, _get_trans, Transform, apply_trans
+from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
+                          _find_vector_rotation)
 from ..forward import _concatenate_coils, _prep_meg_channels
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF
@@ -606,7 +607,7 @@ def _copy_preload_add_channels(raw, add_channels):
 
 
 def _check_pos(pos, head_frame, raw, st_fixed):
-    """Check for a valid pos array"""
+    """Check for a valid pos array and transform it to a more usable form"""
     if pos is None:
         return [None, np.array([-1])]
     if not head_frame:
@@ -874,7 +875,7 @@ def _concatenate_sph_coils(coils):
 _mu_0 = 4e-7 * np.pi  # magnetic permeability
 
 
-def _get_mag_mask(coils, mag_scale=100.):
+def _get_mag_mask(coils):
     """Helper to get the coil_scale for Maxwell filtering"""
     return np.array([coil['coil_class'] == FIFF.FWD_COILC_MAG
                      for coil in coils])
@@ -887,8 +888,7 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
     # Compute vector between origin and coil, convert to spherical coords
     if method == 'standard':
         # Get position, normal, weights, and number of integration pts.
-        rmags, cosmags, ws, bins = _concatenate_coils(
-            coils)
+        rmags, cosmags, ws, bins = _concatenate_coils(coils)
         rmags -= origin
         # Convert points to spherical coordinates
         rad, az, pol = _cart_to_sph(rmags).T
@@ -1544,27 +1544,6 @@ def _read_fine_cal(fine_cal):
     return cal_chs, cal_ch_numbers
 
 
-def _skew_symmetric_cross(a):
-    """The skew-symmetric cross product of a vector"""
-    return np.array([[0., -a[2], a[1]], [a[2], 0., -a[0]], [-a[1], a[0], 0.]])
-
-
-def _find_vector_rotation(a, b):
-    """Find the rotation matrix that maps unit vector a to b"""
-    # Rodrigues' rotation formula:
-    #   https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
-    #   http://math.stackexchange.com/a/476311
-    R = np.eye(3)
-    v = np.cross(a, b)
-    if np.allclose(v, 0.):  # identical
-        return R
-    s = np.sqrt(np.sum(v * v))  # sine of the angle between them
-    c = np.sqrt(np.sum(a * b))  # cosine of the angle between them
-    vx = _skew_symmetric_cross(v)
-    R += vx + np.dot(vx, vx) * (1 - c) / s
-    return R
-
-
 def _update_sensor_geometry(info, fine_cal, head_frame, ignore_ref):
     """Helper to replace sensor geometry information and reorder cal_chs"""
     logger.info('    Using fine calibration %s' % op.basename(fine_cal))
@@ -1672,12 +1651,12 @@ def _update_sensor_geometry(info, fine_cal, head_frame, ignore_ref):
     return calibration, sss_cal
 
 
-def _sss_basis_point(exp, trans, cal, ignore_ref=False):
+def _sss_basis_point(exp, trans, cal, ignore_ref=False, mag_scale=100.):
     """Compute multipolar moments for point-like magnetometers (in fine cal)"""
     # Loop over all coordinate directions desired and create point mags
     S_tot = 0.
     # These are magnetometers, so use a uniform coil_scale of 100.
-    this_cs = np.array([100.])
+    this_cs = np.array([mag_scale], float)
     for imb, coils in zip(cal['grad_imbalances'], cal['grad_coilsets']):
         S_add = _trans_sss_basis(exp, coils, trans, this_cs)
         # Scale spaces by gradiometer imbalance
