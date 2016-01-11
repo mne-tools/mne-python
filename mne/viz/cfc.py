@@ -2,7 +2,6 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
 
 
 def plot_phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
@@ -81,6 +80,7 @@ def plot_phase_binned_amplitude(epochs, freqs_phase, freqs_amp,
         The axis used for plotting.
     """
     from ..connectivity import phase_binned_amplitude
+    from sklearn.preprocessing import MinMaxScaler
     amps, bins = phase_binned_amplitude(epochs, freqs_phase, freqs_amp,
                                         ix_ph, ix_amp, n_bins=n_bins)
     if normalize is True:

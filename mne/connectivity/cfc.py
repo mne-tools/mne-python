@@ -10,7 +10,6 @@ from ..utils import _time_mask
 from ..parallel import parallel_func
 from scipy.signal import hilbert
 from mne.time_frequency import cwt_morlet
-from sklearn.preprocessing import scale
 from ..preprocessing import peak_finder
 
 
@@ -224,6 +223,7 @@ def _array_raw_to_epochs(x, sfreq, ev, tmin, tmax):
 def _extract_phase_and_amp(data_phase, data_amp, sfreq, freqs_phase,
                            freqs_amp):
     """Extract the phase and amplitude of two signals for PAC viz"""
+    from sklearn.preprocessing import scale
     # Morlet transform to get complex representation
     band_ph = cwt_morlet(data_phase, sfreq,
                          freqs_phase)
