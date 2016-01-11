@@ -233,6 +233,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         segments = list()
     else:
         segments = np.array(segments)
+        segments = segments[segments[:, 0].argsort(axis=0)]  # sort by t_start
 
     # reorganize the data in plotting order
     inds = list()
@@ -305,26 +306,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # plot event_line first so it's in the back
     event_lines = [params['ax'].plot([np.nan], color=event_color[ev_num])[0]
                    for ev_num in sorted(event_color.keys())]
-
-    # segments need to be drawn only once
-    if len(params['segments']) > 0:
-        ylim = params['ax'].get_ylim()
-        sfreq = float(raw.info['sfreq'])
-        starts = segments[:, 0] / sfreq
-        ends = segments[:, 1] / sfreq
-        start_mask = np.logical_and(starts >= raw.times[0],
-                                    starts <= raw.times[-1])
-        end_mask = np.logical_and(ends >= raw.times[0],
-                                  ends <= raw.times[-1])
-        for segment in segments[start_mask]:
-            end = min(segment[1] / sfreq, raw.times[-1])
-            params['ax'].fill_betweenx(ylim, segment[0] / sfreq, end,
-                                       alpha=0.3)
-        for segment in segments[end_mask]:
-            if segment[0] / sfreq > raw.times[0]:
-                continue  # Already drawn
-            params['ax'].fill_betweenx(ylim, raw.times[0],
-                                       segment[1] / sfreq, alpha=0.3)
 
     params['plot_fun'] = partial(_plot_raw_traces, params=params, inds=inds,
                                  color=color, bad_color=bad_color,
@@ -695,6 +676,22 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
             else:
                 line.set_xdata([])
                 line.set_ydata([])
+
+    if len(params['segments']) > 0:
+        while len(params['ax'].collections) > 0:
+            params['ax'].collections.pop(0)
+        segments = params['segments']
+        times = params['times']
+        ylim = params['ax'].get_ylim()
+        sfreq = float(params['info']['sfreq'])
+        for segment in segments:
+            if segment[0] / sfreq > times[-1]:
+                break  # Since the segments are sorted by t_start
+            if segment[1] / sfreq < times[0]:
+                continue
+            start = segment[0] / sfreq
+            end = segment[1] / sfreq
+            params['ax'].fill_betweenx(ylim, start, end, alpha=0.3)
 
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
