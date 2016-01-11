@@ -11,6 +11,7 @@
 
 from functools import partial
 import copy
+import warnings
 
 import numpy as np
 
@@ -106,6 +107,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                          'match the number of epochs (%s).'
                          % (len(overlay_times), len(data)))
 
+    if overlay_times is not None:
+        overlay_times = np.array(overlay_times)
+        if ((np.min(overlay_times) < epochs.tmin)
+                or (np.max(overlay_times) > epochs.tmax)):
+            warnings.warn('Some values in overlay_times fall outside of '
+                          'the epochs time interval (between %s s and %s s)' %
+                          (epochs.tmin, epochs.tmax))
+
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
         if fig is None:
@@ -124,13 +133,15 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if callable(order):
             this_order = order(epochs.times, this_data)
 
+        this_overlay_times = None
+        if overlay_times is not None:
+            this_overlay_times = overlay_times
+
         if this_order is not None:
             this_order = np.asarray(this_order)
             this_data = this_data[this_order]
-
-        this_overlay_times = None
-        if overlay_times is not None and this_order is not None:
-            this_overlay_times = np.array(overlay_times)[this_order]
+            if this_overlay_times is not None:
+                this_overlay_times = this_overlay_times[this_order]
 
         if sigma > 0.:
             this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
