@@ -12,10 +12,11 @@ distribution.
 # License: BSD (3-clause)
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 import mne
 from mne import io
 from mne.datasets import sample
-import matplotlib.pyplot as plt
 from mne.epochs import EpochsArray
 from mne.time_frequency import psd_multitaper
 
@@ -38,7 +39,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     proj=True, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6))
 # Pull 2**n points to speed up computation
-epochs = EpochsArray(epochs._data[..., :1024], epochs.info,
+epochs = EpochsArray(epochs.get_data()[..., :1024], epochs.info,
                      epochs.events, tmin, epochs.event_id)
 
 # Let's first check out all channel types by averaging across epochs.
@@ -63,5 +64,4 @@ ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                 color='k', alpha=.5)
 ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency',
        ylabel='Power Spectral Density (dB)')
-mne.viz.tight_layout()
 plt.show()

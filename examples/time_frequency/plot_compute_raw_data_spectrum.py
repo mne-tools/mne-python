@@ -87,4 +87,3 @@ ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                 color='k', alpha=.5)
 ax.set(title='Multitaper PSD', xlabel='Frequency',
        ylabel='Power Spectral Density (dB)')
-mne.viz.tight_layout()
