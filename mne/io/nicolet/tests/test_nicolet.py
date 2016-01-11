@@ -26,4 +26,4 @@ def test_annotations():
     """Test reading of annotations from file."""
     fname = op.join(base_dir, 'test.json')
     annot = read_nicolet_annotations(fname, '223')
-    assert_equal(len(annot), 2)
+    assert_equal(len(annot.segments), 2)

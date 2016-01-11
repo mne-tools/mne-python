@@ -13,6 +13,7 @@ from ..utils import _read_segments_file, _find_channels
 from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
+from ...annotations import Annotations
 
 
 def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
@@ -243,15 +244,14 @@ def read_nicolet_annotations(fname, record_id):
         raise RuntimeError('Could not find record with id %s' % record_id)
 
     tstart = int(record['startTime'])
-    sfreq = list()
-    for name, channel in record['channels'].items():
-        sfreq.append(channel['samplingRate'])
-    sfreq = max(sfreq)
-    annot = list()
+    segments = list()
+    descriptions = list()
     for annotation in record['annotations']:
-        item = list()
-        item.append(annotation['typeStr'])
-        item.append((int(annotation['startTime']) - tstart) * sfreq / 1000000.)
-        item.append((int(annotation['endTime']) - tstart) * sfreq / 1000000.)
-        annot.append(item)
+        segment = list()
+        descriptions.append(annotation['typeStr'])
+        segment.append((int(annotation['startTime']) - tstart) / 1000000.)
+        segment.append((int(annotation['endTime']) -
+                        int(annotation['startTime'])) / 1000000.)
+        segments.append(segment)
+    annot = Annotations(tstart / 1000000., segments, descriptions)
     return annot

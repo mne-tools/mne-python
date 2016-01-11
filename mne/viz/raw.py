@@ -82,7 +82,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
-             segments=None):
+             annotations=None):
     """Plot raw data
 
     Parameters
@@ -229,12 +229,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     else:
         event_times = event_nums = None
 
-    if segments is None:
-        segments = list()
-    else:
-        segments = np.array(segments)
-        segments = segments[segments[:, 0].argsort(axis=0)]  # sort by t_start
-
+    segments = list()
+    if annotations is not None:
+        for segment in annotations.segments:
+            annot_start = (annotations.orig_time - raw.info['meas_date'] -
+                           raw.first_samp + segment[0])
+            segments.append([annot_start, annot_start + segment[1]])
+    segments = np.array(segments)
     # reorganize the data in plotting order
     inds = list()
     types = list()
@@ -683,14 +684,13 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
         segments = params['segments']
         times = params['times']
         ylim = params['ax'].get_ylim()
-        sfreq = float(params['info']['sfreq'])
         for segment in segments:
-            if segment[0] / sfreq > times[-1]:
+            if segment[0] > times[-1]:
                 break  # Since the segments are sorted by t_start
-            if segment[1] / sfreq < times[0]:
+            if segment[1] < times[0]:
                 continue
-            start = segment[0] / sfreq
-            end = segment[1] / sfreq
+            start = segment[0]
+            end = segment[1]
             params['ax'].fill_betweenx(ylim, start, end, alpha=0.3)
 
     # finalize plot
