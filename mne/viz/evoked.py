@@ -888,7 +888,7 @@ def _connection_line(x, fig, sourceax, targetax):
     transFigure = fig.transFigure.inverted()
     tf = fig.transFigure
 
-    (xt, yt) = transFigure.transform(targetax.transAxes.transform([.5, 0.2]))
+    (xt, yt) = transFigure.transform(targetax.transAxes.transform([.5, .25]))
     (xs, _) = transFigure.transform(sourceax.transData.transform([x, 0]))
     (_, ys) = transFigure.transform(sourceax.transAxes.transform([0, 1]))
     return Line2D((xt, xs), (yt, ys), transform=tf, color='grey',
@@ -909,8 +909,8 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
         between the first and last time instant will be shown. If "peaks",
         finds time points automatically by checking for 3 local maxima in
         Global Field Power.
-    title : str
-        The title.
+    title : str | None
+        The title. If `None`, supress printing channel type.
     picks : array-like of int | None
         The indices of channels to plot. If None show all.
     exclude : None | list of str | 'bads'
@@ -944,7 +944,7 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
     import matplotlib.pyplot as plt
 
     if ts_args is None:
-        ts_args = dict(spatial_colors=True)
+        ts_args = dict()
     if topomap_args is None:
         topomap_args = dict()
 
@@ -963,9 +963,8 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
 
     info = evoked.info
     data_types = ['eeg', 'grad', 'mag', 'seeg']
-    ch_types = set([channel_type(info, idx)
-                    for idx in range(info['nchan'])
-                    if channel_type(info, idx) in data_types])
+    ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
+
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
         figs = list()
@@ -994,14 +993,22 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
     ts_ax = fig.add_subplot(212)
     ts_args_pass = dict((k, v) for k, v in ts_args.items()
                         if k not in ["axes", "show", "colorbar"])
-    ts_args_pass.update(dict(spatial_colors=ts_args.get("spatial_colors",
-                                                        True)))
+    ts_args_pass["spatial_colors"] = (ts_args["spatial_colors"] if
+                                      "spatial_colors" in ts_args else True)
     plot_evoked(evoked, axes=ts_ax, show=False, set_tight_layout=False,
                 **ts_args_pass)
 
+    # handle title
+    # we use a new axis for the title to handle scaling of plots
     old_title = ts_ax.get_title()
     ts_ax.set_title('')
-    fig.suptitle(title + "\n" + old_title, y=.95)
+    if title is not None:
+        title_ax = plt.subplot(4, 3, 2)
+        title = ", ".join([title, old_title]) if len(title) > 0 else old_title
+        title_ax.text(.5, .5, title, transform=title_ax.transAxes,
+                      horizontalalignment='center',
+                      verticalalignment='center')
+        title_ax.axis('off')
 
     # prepare axes for topomap
     # slightly convoluted due to colorbar placement and for vertical alignment
@@ -1012,8 +1019,8 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
     # topomap
     topomap_args_pass = dict((k, v) for k, v in topomap_args.items() if
                              k not in ["times", "axes", "show", "colorbar"])
-    topomap_args_pass.update(dict(outlines=topomap_args.get("outlines",
-                                                            "skirt")))
+    topomap_args_pass["outlines"] = (topomap_args["outlines"] if "outlines"
+                                     in topomap_args else 'skirt')
     evoked.plot_topomap(times=times, axes=map_ax, show=False,
                         colorbar=False, **topomap_args_pass)
 
@@ -1023,7 +1030,8 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
         cbar.locator = ticker.MaxNLocator(nbins=5)
         cbar.update_ticks()
 
-    plt.subplots_adjust(left=0.1, right=0.9, top=0.95, bottom=0.1)
+    plt.subplots_adjust(left=.1, right=.9, bottom=.13,
+                        top=1. if title is not None else 1.2)
 
     # connection lines
     # draw the connection lines between time series and topoplots

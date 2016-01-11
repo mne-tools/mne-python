@@ -727,7 +727,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
 
-    def plot_joint(evoked, times="peaks", title='', picks=None,
+    def plot_joint(self, times="peaks", title='', picks=None,
                    exclude='bads', show=True, ts_args=None,
                    topomap_args=None):
         """Plot evoked data as butterfly plots and add topomaps for selected
@@ -735,15 +735,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        evoked : instance of Evoked
-            The evoked instance.
         times : float | array of floats | "auto" | "peaks"
             The time point(s) to plot. If "auto", 5 evently spaced topographies
             between the first and last time instant will be shown. If "peaks"
             finds time points automatically by checking for 3 local
             maxima in Global Field Power.
         title : str
-            The title.
+            The title. If `None`, supress printing channel type.
         picks : array-like of int | None
             The indices of channels to plot. If None show all.
         exclude : list of str | 'bads'
@@ -774,7 +772,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         .. versionadded:: 0.12.0
         """
-        return _joint_plot(evoked, times=times, title=title, picks=picks,
+        return _joint_plot(self, times=times, title=title, picks=picks,
                            exclude=exclude, show=show, ts_args=ts_args,
                            topomap_args=topomap_args)
 
