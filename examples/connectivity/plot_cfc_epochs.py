@@ -59,7 +59,7 @@ ixs = [(4, 10)]
 # First we can simply calculate a PAC statistic for these signals
 f_range_phase = (8, 10)
 f_range_amp = (40, 60)
-pac = mne.connectivity.phase_amplitude_coupling(
+pac = phase_amplitude_coupling(
     raw, f_range_phase, f_range_amp, ixs, ev=events[:, 0], tmin=-.1, tmax=.5)
 pac = pac.mean()  # Average across events
 

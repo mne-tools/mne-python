@@ -3,14 +3,14 @@
 #
 # License: BSD (3-clause)
 import numpy as np
-from ..externals.pacpy import pac as ppac
 from mne.filter import band_pass_filter
+from ..externals.pacpy import pac as ppac
 from ..externals.pacpy.pac import _range_sanity
 from ..utils import _time_mask
 from ..parallel import parallel_func
 from scipy.signal import hilbert
 from mne.time_frequency import cwt_morlet
-from sklearn.preprocessing import scale, MinMaxScaler
+from sklearn.preprocessing import scale
 from ..preprocessing import peak_finder
 
 
@@ -23,11 +23,9 @@ def phase_amplitude_coupling(inst, f_phase, f_amp, ixs, pac_func='plv',
     ----------
     inst : an instance of Raw or Epochs
         The data used to calculate PAC
-    sfreq : float
-        The sampling frequency of the data
     f_phase : array, dtype float, shape (2,)
         The frequency range to use for low-frequency phase carrier.
-    f_amplitude : array, dtype float, shape (2,)
+    f_amp : array, dtype float, shape (2,)
         The frequency range to use for high-frequency amplitude modulation.
     ixs : array-like, shape (n_pairs x 2)
         The indices for low/high frequency channels. PAC will be estimated
@@ -97,13 +95,28 @@ def _phase_amplitude_coupling(data, sfreq, f_phase, f_amp, ixs,
         The sampling frequency of the data
     f_phase : array, dtype float, shape (2,)
         The frequency range to use for low-frequency phase carrier.
-    f_amplitude : array, dtype float, shape (2,)
+    f_amp : array, dtype float, shape (2,)
         The frequency range to use for high-frequency amplitude modulation.
     ixs : array-like, shape (n_pairs x 2)
         The indices for low/high frequency channels. PAC will be estimated
         between n_pairs of channels. Indices correspond to rows of `data`.
     pac_func : string, ['plv', 'glm', 'mi_canolty', 'mi_tort', 'ozkurt']
         The function for estimating PAC. Corresponds to functions in pacpy.pac
+    ev : array-like, shape (n_events,) | None
+        Indices for events. To be supplied if data is 2D and output should be
+        split by events. In this case, tmin and tmax must be provided
+    tmin : float | None
+        If ev is not provided, it is the start time to use in inst. If ev
+        is provided, it is the time (in seconds) to include before each
+        event index.
+    tmax : float | None
+        If ev is not provided, it is the stop time to use in inst. If ev
+        is provided, it is the time (in seconds) to include after each
+        event index.
+    n_jobs : int
+        Number of CPUs to use in the computation.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -229,7 +242,37 @@ def _extract_phase_and_amp(data_phase, data_amp, sfreq, freqs_phase,
 
 def phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
                            ix_ph, ix_amp, tmin=-.5, tmax=.5):
-    """Calculate the average amplitude of a signal at a phase of another"""
+    """Calculate the average amplitude of a signal at a phase of another.
+
+    Parameters
+    ----------
+    epochs : mne.Epochs
+        The epochs to be used in phase locking computation
+    freqs_phase : np.array
+        The frequencies to use in phase calculation. The phase of each
+        frequency will be averaged together.
+    freqs_amp : np.array
+        The frequencies to use in amplitude calculation.
+    ix_ph : int
+        The index of the signal to be used for phase calculation
+    ix_amp : int
+        The index of the signal to be used for amplitude calculation
+    tmin : float
+        The time to include before each phase peak
+    tmax : float
+        The time to include after each phase peak
+
+    Returns
+    -------
+    data_amp : np.array
+        The mean amplitude values for the frequencies specified in freqs_amp,
+        time-locked to peaks of the low-frequency phase.
+    data_phase : np.array
+        The mean low-frequency signal, phase-locked to low-frequency phase
+        peaks.
+    times : np.array
+        The times before / after each phase peak.
+    """
     sfreq = epochs.info['sfreq']
     angle_ph, amp_ph, amp = _extract_phase_and_amp(
         epochs._data[:, ix_ph, :], epochs._data[:, ix_amp, :],
@@ -243,9 +286,9 @@ def phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
     # Remove peaks w/o buffer
     phase_peaks = phase_peaks[(phase_peaks > np.abs(ixmin)) *
                               (phase_peaks < len(angle_ph) - ixmax)]
-    data_phase = np.array([amp_ph[int(i+ixmin):int(i+ixmax)]
+    data_phase = np.array([amp_ph[int(i + ixmin):int(i + ixmax)]
                           for i in phase_peaks])
-    data_amp = np.array([amp[:, int(i+ixmin):int(i+ixmax)]
+    data_amp = np.array([amp[:, int(i + ixmin):int(i + ixmax)]
                          for i in phase_peaks])
 
     # Average across phase peak events
@@ -258,6 +301,32 @@ def phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
 def phase_binned_amplitude(epochs, freqs_phase, freqs_amp,
                            ix_ph, ix_amp, n_bins=20):
     """Calculate amplitude of one signal in sub-ranges of phase for another.
+
+    Parameters
+    ----------
+    epochs : mne.Epochs
+        The epochs to be used in phase locking computation
+    freqs_phase : np.array
+        The frequencies to use in phase calculation. The phase of each
+        frequency will be averaged together.
+    freqs_amp : np.array
+        The frequencies to use in amplitude calculation. The amplitude
+        of each frequency will be averaged together.
+    ix_ph : int
+        The index of the signal to be used for phase calculation
+    ix_amp : int
+        The index of the signal to be used for amplitude calculation
+    n_bins : int
+        The number of bins to use when grouping amplitudes. Each bin will
+        have size (2 * np.pi) / n_bins.
+
+    Returns
+    -------
+    amp_binned : np.array, shape (n_bins,)
+        The mean amplitude of freqs_amp at each phase bin
+    bins_phase : np.array, shape (n_bins+1)
+        The bins used in the calculation. There is one extra bin because
+        bins represent the left/right edges of each bin, not the center value.
     """
     sfreq = epochs.info['sfreq']
 
