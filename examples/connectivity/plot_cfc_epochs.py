@@ -3,9 +3,21 @@
 Compute cross-frequency coupling measures between signals
 ==============================================================
 
-EXPLANATIONS
+Computes the normalized amplitude traces for a cross frequency coupled
+signal across a given range of frequencies and displays it along with
+the event related average response.
 
-[1] REFERENCES
+References
+----------
+
+[1] Canolty RT, Edwards E, Dalal SS, Soltani M, Nagarajan SS, Kirsch HE,
+    Berger MS, Barbaro NM, Knight RT. "High gamma power is phase-locked to
+    theta oscillations in human neocortex." Science. 2006.
+
+[2] Tort ABL, Komorowski R, Eichenbaum H, Kopell N. Measuring phase-amplitude
+    coupling between neuronal oscillations of different frequencies. Journal of
+    Neurophysiology. 2010.
+
 """
 # Author: Chris Holdgraf <choldgraf@berkeley.edu>
 #         Praveen Sripad <praveen.sripad@rwth-aachen.de>
