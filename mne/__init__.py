@@ -79,6 +79,7 @@ from .selection import read_selection
 from .dipole import read_dipole, Dipole, fit_dipole
 from .channels import equalize_channels, rename_channels, find_layout
 
+from . import annotations
 from . import beamformer
 from . import channels
 from . import chpi

@@ -153,6 +153,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         the plot. If "clamp", then values are clamped to the appropriate
         range for display, creating step-like artifacts. If "transparent",
         then excessive values are not shown, creating gaps in the traces.
+    annotations: instance of Annotations | None
+        Annotations to plot. If None (default), no annotations are plotted.
 
     Returns
     -------
@@ -231,9 +233,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     segments = list()
     if annotations is not None:
+        meas_date = info['meas_date']
+        if not np.isscalar(meas_date):
+            meas_date = meas_date[0]
         for segment in annotations.segments:
-            annot_start = (annotations.orig_time - raw.info['meas_date'] -
-                           raw.first_samp + segment[0])
+            annot_start = (annotations.orig_time - meas_date -
+                           raw.first_samp / info['sfreq'] + segment[0])
             segments.append([annot_start, annot_start + segment[1]])
     segments = np.array(segments)
     # reorganize the data in plotting order

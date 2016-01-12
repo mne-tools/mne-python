@@ -1289,7 +1289,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None):
+             highpass=None, lowpass=None, filtorder=4, clipping=None,
+             annotations=None):
         """Plot raw data
 
         Parameters
@@ -1355,6 +1356,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             the plot. If "clamp", then values are clamped to the appropriate
             range for display, creating step-like artifacts. If "transparent",
             then excessive values are not shown, creating gaps in the traces.
+        annotations: instance of Annotations | None
+            Annotations to plot. If None (default), no annotations are plotted.
 
         Returns
         -------
@@ -1376,7 +1379,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
-                        lowpass, filtorder, clipping)
+                        lowpass, filtorder, clipping, annotations=annotations)
 
     @verbose
     def plot_psd(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
