@@ -505,7 +505,7 @@ def test_spatiotemporal_maxwell():
 
 
 @testing.requires_testing_data
-def test_maxwell_filter_fine_calibration():
+def test_fine_calibration():
     """Test Maxwell filter fine calibration"""
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
@@ -517,7 +517,7 @@ def test_maxwell_filter_fine_calibration():
     raw_sss = maxwell_filter(raw, calibration=fine_cal_fname,
                              origin=mf_head_origin, regularize=None,
                              bad_condition='ignore')
-    assert_meg_snr(raw_sss, sss_fine_cal, 70, 500)
+    assert_meg_snr(raw_sss, sss_fine_cal, 82, 611)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert_true(py_cal is not None)
     assert_true(len(py_cal) > 0)
@@ -538,7 +538,7 @@ def test_maxwell_filter_fine_calibration():
 
 @slow_test
 @testing.requires_testing_data
-def test_maxwell_filter_regularization():
+def test_regularization():
     """Test Maxwell filter regularization"""
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     min_tols = (100., 2.6, 1.0)
