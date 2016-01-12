@@ -4,11 +4,8 @@
 # License: BSD (3-clause)
 import numpy as np
 from mne.filter import band_pass_filter
-from ..externals.pacpy import pac as ppac
-from ..externals.pacpy.pac import _range_sanity
 from ..utils import _time_mask
 from ..parallel import parallel_func
-from scipy.signal import hilbert
 from mne.time_frequency import cwt_morlet
 from ..preprocessing import peak_finder
 
@@ -123,6 +120,7 @@ def _phase_amplitude_coupling(data, sfreq, f_phase, f_amp, ixs,
         The computed phase-amplitude coupling between each pair of data sources
         given in ixs.
     """
+    from ..externals.pacpy import pac as ppac
     func = getattr(ppac, pac_func)
     ixs = np.array(ixs, ndmin=2)
 
@@ -149,6 +147,8 @@ def _phase_amplitude_coupling(data, sfreq, f_phase, f_amp, ixs,
 
 def _filter_ph_am(xph, xam, f_ph, f_am, sfreq, filterfn=None, kws_filt=None):
     """Aux function for phase/amplitude filtering"""
+    from ..externals.pacpy.pac import _range_sanity
+    from scipy.signal import hilbert
     filterfn = band_pass_filter if filterfn is None else filterfn
     kws_filt = {} if kws_filt is None else kws_filt
 

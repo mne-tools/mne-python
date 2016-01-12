@@ -6,7 +6,6 @@
 
 import numpy as np
 import mne
-from scipy.signal import hilbert
 from itertools import combinations
 from nose.tools import assert_true, assert_raises, assert_equal
 from mne.connectivity.cfc import (phase_amplitude_coupling,
@@ -39,6 +38,7 @@ def _create_rand_data():
 
 def test_phase_amplitude_coupling():
     """ Test phase amplitude coupling. """
+    from scipy.signal import hilbert
     flo = [4, 8]
     fhi = [80, 150]
     rand_raw, rand_epochs, ev, ixs_conn = _create_rand_data()

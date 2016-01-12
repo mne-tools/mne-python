@@ -3,4 +3,3 @@ from . import jdcal
 from . import decorator
 from . import tempita
 from . import h5io
-from . import pacpy
