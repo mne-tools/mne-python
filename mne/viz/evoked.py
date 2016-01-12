@@ -991,15 +991,15 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
     ts_ax = fig.add_subplot(212)
     ts_args_pass = dict((k, v) for k, v in ts_args.items() if k not in
                         ['axes', 'show', 'colorbar', 'set_tight_layout'])
-    ts_args_def = dict(picks=None, exclude=None, unit=True,
-                       ylim=None, xlim='tight', proj=False, hline=None,
-                       units=None, scalings=None, titles=None,
-                       gfp=False, window_title=None, spatial_colors=True)
+    ts_args_def = dict(picks=None, unit=True, ylim=None, xlim='tight',
+                       proj=False, hline=None, units=None, scalings=None,
+                       titles=None, gfp=False, window_title=None,
+                       spatial_colors=True)
     for key in ts_args_def:
         if key not in ts_args:
             ts_args_pass[key] = ts_args_def[key]
     _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
-                 set_tight_layout=False, **ts_args_pass)
+                 exclude=[], set_tight_layout=False, **ts_args_pass)
 
     # handle title
     # we use a new axis for the title to handle scaling of plots
