@@ -1,7 +1,6 @@
 """Functions to visualize phase/amplitude relationships in signals"""
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 
 def plot_phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
@@ -36,6 +35,7 @@ def plot_phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
         The axes used for plotting.
     """
     from ..connectivity import phase_locked_amplitude
+    from matplotlib import pyplot as plt
     data_amp, data_phase, times = phase_locked_amplitude(
         epochs, freqs_phase, freqs_amp,
         ix_ph, ix_amp, tmin=tmin, tmax=tmax)
@@ -88,6 +88,7 @@ def plot_phase_binned_amplitude(epochs, freqs_phase, freqs_amp,
     """
     from ..connectivity import phase_binned_amplitude
     from sklearn.preprocessing import MinMaxScaler
+    from matplotlib import pyplot as plt
     amps, bins = phase_binned_amplitude(epochs, freqs_phase, freqs_amp,
                                         ix_ph, ix_amp, n_bins=n_bins)
     if normalize is True:

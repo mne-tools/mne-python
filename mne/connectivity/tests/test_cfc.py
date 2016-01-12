@@ -30,7 +30,8 @@ def _create_rand_data():
     ev = np.vstack([np.linspace(0, len(t), n_ep),
                     np.zeros(n_ep),
                     np.ones(n_ep)]).astype(int).T
-    rand_data = np.random.randn(n_ep, n_sig, len(t))
+    rng = np.random.RandomState(42)
+    rand_data = rng.randn(n_ep, n_sig, len(t))
     rand_raw = mne.io.RawArray(np.hstack(rand_data), info)
     rand_epochs = mne.Epochs(rand_raw, ev, {'ev': 1}, -1, 8, preload=True)
     return rand_raw, rand_epochs, ev, ixs_conn
@@ -43,15 +44,16 @@ def test_phase_amplitude_coupling():
     fhi = [80, 150]
     rand_raw, rand_epochs, ev, ixs_conn = _create_rand_data()
     conn = phase_amplitude_coupling(rand_epochs, flo, fhi, ixs_conn)
-    assert_true(conn.mean() < .3)  # More variable because not as many times
+    assert_true(conn.mean() < .2)  # More variable because not as many times
 
-    conn = phase_amplitude_coupling(rand_raw, flo, fhi, ixs_conn)
-    assert_true(conn.mean() < .1)
+    rand_raw_test = rand_raw.crop(0, 15, copy=True)  # To speed things up
+    conn = phase_amplitude_coupling(rand_raw_test, flo, fhi, ixs_conn)
+    assert_true(conn.mean() < .2)
 
     # Test events handling
     conn = phase_amplitude_coupling(rand_raw, flo, fhi, ixs_conn, ev=ev[:, 0],
                                     tmin=0, tmax=2)
-    assert_true(conn.mean() < .1)
+    assert_true(conn.mean() < .2)
     # events ndim > 1
     assert_raises(ValueError, phase_amplitude_coupling, rand_raw, flo, fhi,
                   ixs_conn, tmin=0, tmax=2, ev=ev)
