@@ -1637,21 +1637,28 @@ def _update_sensor_geometry(info, fine_cal, head_frame, ignore_ref):
     mag_cals = np.array([cal_chs[ii]['calib_coeff'] for ii in mag_picks])
 
     # Now let's actually construct our point-like adjustment coils for grads
+    grad_coilsets = _get_grad_point_coilsets(
+        info, n_types=len(grad_imbalances), ignore_ref=ignore_ref)
+    calibration = dict(grad_imbalances=grad_imbalances,
+                       grad_coilsets=grad_coilsets, mag_cals=mag_cals)
+    return calibration, sss_cal
+
+
+def _get_grad_point_coilsets(info, n_types, ignore_ref):
+    """Helper to get point-type coilsets for gradiometers"""
     grad_coilsets = list()
-    grad_info = pick_info(info, grad_picks, copy=True)
+    grad_info = pick_info(
+        info, pick_types(info, meg='grad', exclude=[]), copy=True)
     # Coil_type values for x, y, z point magnetometers
     # Note: 1D correction files only have x-direction corrections
     pt_types = [FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X,
                 FIFF.FIFFV_COIL_POINT_MAGNETOMETER_Y,
                 FIFF.FIFFV_COIL_POINT_MAGNETOMETER]
-    for pt_type in pt_types[:len(grad_imbalances)]:
+    for pt_type in pt_types[:n_types]:
         for ch in grad_info['chs']:
             ch['coil_type'] = pt_type
         grad_coilsets.append(_prep_mf_coils(grad_info, ignore_ref))
-
-    calibration = dict(grad_imbalances=grad_imbalances,
-                       grad_coilsets=grad_coilsets, mag_cals=mag_cals)
-    return calibration, sss_cal
+    return grad_coilsets
 
 
 def _sss_basis_point(exp, trans, cal, ignore_ref=False, mag_scale=100.):
