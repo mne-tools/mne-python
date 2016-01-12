@@ -394,8 +394,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
-                window_title=None, spatial_colors=False,
-                set_tight_layout=True):
+                window_title=None, spatial_colors=False):
     """Plot evoked data
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -451,16 +450,13 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
         channels are plotted black and bad channels red. Defaults to False.
-    set_tight_layout : bool
-        If True, set layout to tight.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors,
-                        set_tight_layout=set_tight_layout)
+                        spatial_colors=spatial_colors)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
@@ -910,7 +906,7 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
         finds time points automatically by checking for 3 local maxima in
         Global Field Power.
     title : str | None
-        The title. If `None`, supress printing channel type.
+        The title. If `None`, supress printing channel type. Defaults to ''.
     picks : array-like of int | None
         The indices of channels to plot. If None show all.
     exclude : None | list of str | 'bads'
@@ -922,13 +918,13 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
         A dict of `kwargs` that are forwarded to `evoked.plot` to
         style the butterfly plot. `axes` and `show` are ignored.
         If `spatial_colors` is not in this dict, `spatial_colors=True`
-        will be passed. Beyond that, if `None`, no customizable arguments will
-        be passed.
+        will be passed. Beyond that, if ``None``, no customizable arguments
+        will be passed.
     topomap_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
         to style the topomaps. `axes` and `show` are ignored. If `times`
         is not in this dict, automatic peak detection is used. Beyond that,
-        if `None`, no customizable arguments will be passed.
+        if ``None`, no customizable arguments will be passed.
 
     Returns
     -------
@@ -953,9 +949,9 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
     evoked = evoked.copy()
 
     if picks is not None:
-        pick_names = [evoked.info["ch_names"][pick] for pick in picks]
+        pick_names = [evoked.info['ch_names'][pick] for pick in picks]
         evoked.pick_channels(pick_names)
-    if exclude == "bads":
+    if exclude == 'bads':
         exclude = [ch for ch in evoked.info['bads']
                    if ch in evoked.info['ch_names']]
     if exclude is not None:
@@ -969,34 +965,40 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
     if len(ch_types) > 1:
         figs = list()
         for t in ch_types:  # pick only the corresponding channel type
-            ev_ = evoked.pick_channels([info["ch_names"][idx]
+            ev_ = evoked.pick_channels([info['ch_names'][idx]
                                         for idx in range(info['nchan'])
                                         if channel_type(info, idx) == t],
                                        copy=True)
             if len(set([channel_type(ev_.info, idx)
                         for idx in range(ev_.info['nchan'])
                         if channel_type(ev_.info, idx) in data_types])) > 1:
-                raise RuntimeError("Possibly infinite loop due to channel "
-                                   "selection problem. This should never "
-                                   "happen! Please check your channel types.")
+                raise RuntimeError('Possibly infinite loop due to channel '
+                                   'selection problem. This should never '
+                                   'happen! Please check your channel types.')
             figs.append(_joint_plot(ev_, times=times, title=title, show=show,
                                     ts_args=ts_args, exclude=list(),
                                     topomap_args=topomap_args))
         return figs
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(8.0, 4.2))
 
     # set up time points to show topomaps for
     times = _process_times(evoked, times, few=True)
 
     # butterfly/time series plot
+    # most of this code is about passing defaults on demand
     ts_ax = fig.add_subplot(212)
-    ts_args_pass = dict((k, v) for k, v in ts_args.items()
-                        if k not in ["axes", "show", "colorbar"])
-    ts_args_pass["spatial_colors"] = (ts_args["spatial_colors"] if
-                                      "spatial_colors" in ts_args else True)
-    plot_evoked(evoked, axes=ts_ax, show=False, set_tight_layout=False,
-                **ts_args_pass)
+    ts_args_pass = dict((k, v) for k, v in ts_args.items() if k not in
+                        ['axes', 'show', 'colorbar', 'set_tight_layout'])
+    ts_args_def = dict(picks=None, exclude=None, unit=True,
+                       ylim=None, xlim='tight', proj=False, hline=None,
+                       units=None, scalings=None, titles=None,
+                       gfp=False, window_title=None, spatial_colors=True)
+    for key in ts_args_def:
+        if key not in ts_args:
+            ts_args_pass[key] = ts_args_def[key]
+    _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
+                 set_tight_layout=False, **ts_args_pass)
 
     # handle title
     # we use a new axis for the title to handle scaling of plots
@@ -1004,7 +1006,7 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
     ts_ax.set_title('')
     if title is not None:
         title_ax = plt.subplot(4, 3, 2)
-        title = ", ".join([title, old_title]) if len(title) > 0 else old_title
+        title = ', '.join([title, old_title]) if len(title) > 0 else old_title
         title_ax.text(.5, .5, title, transform=title_ax.transAxes,
                       horizontalalignment='center',
                       verticalalignment='center')
@@ -1018,19 +1020,19 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
 
     # topomap
     topomap_args_pass = dict((k, v) for k, v in topomap_args.items() if
-                             k not in ["times", "axes", "show", "colorbar"])
-    topomap_args_pass["outlines"] = (topomap_args["outlines"] if "outlines"
+                             k not in ['times', 'axes', 'show', 'colorbar'])
+    topomap_args_pass['outlines'] = (topomap_args['outlines'] if 'outlines'
                                      in topomap_args else 'skirt')
     evoked.plot_topomap(times=times, axes=map_ax, show=False,
                         colorbar=False, **topomap_args_pass)
 
-    if topomap_args.get("colorbar", True):
+    if topomap_args.get('colorbar', True):
         from matplotlib import ticker
         cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
         cbar.locator = ticker.MaxNLocator(nbins=5)
         cbar.update_ticks()
 
-    plt.subplots_adjust(left=.1, right=.9, bottom=.13,
+    plt.subplots_adjust(left=.1, right=.93, bottom=.14,
                         top=1. if title is not None else 1.2)
 
     # connection lines
