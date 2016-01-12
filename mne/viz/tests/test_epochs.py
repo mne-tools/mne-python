@@ -136,6 +136,8 @@ def test_plot_epochs_image():
     plot_epochs_image(epochs, overlay_times=overlay_times)
     assert_raises(ValueError, plot_epochs_image, epochs,
                   overlay_times=[0.1, 0.2])
+    assert_raises(ValueError, plot_epochs_image, epochs,
+                  order=[0, 1])
     with warnings.catch_warnings(record=True) as w:
         plot_epochs_image(epochs, overlay_times=[1.1])
         warnings.simplefilter('always')

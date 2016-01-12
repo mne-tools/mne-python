@@ -133,6 +133,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if callable(order):
             this_order = order(epochs.times, this_data)
 
+        if this_order is not None and (len(this_order) != len(this_data)):
+            raise ValueError('size of order parameter (%s) does not '
+                             'match the number of epochs (%s).'
+                             % (len(this_order), len(this_data)))
+
         this_overlay_times = None
         if overlay_times is not None:
             this_overlay_times = overlay_times
