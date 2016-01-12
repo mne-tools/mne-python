@@ -221,8 +221,8 @@ def read_nicolet_annotations(fname, record_id):
 
     Returns
     -------
-    annot : list
-        List of segments.
+    annot : instance of Annotations
+        Found annotations from the file.
     """
     data = list()
     jsons = list()
