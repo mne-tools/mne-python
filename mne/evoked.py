@@ -737,18 +737,20 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         times : float | array of floats | "auto" | "peaks"
             The time point(s) to plot. If "auto", 5 evently spaced topographies
-            between the first and last time instant will be shown. If "peaks"
+            between the first and last time instant will be shown. If "peaks",
             finds time points automatically by checking for 3 local
-            maxima in Global Field Power.
+            maxima in Global Field Power. Defaults to "peaks".
         title : str
-            The title. If `None`, supress printing channel type.
+            The title. If ``None``, supress printing channel type. Defaults to
+            an empty string.
         picks : array-like of int | None
-            The indices of channels to plot. If None show all.
+            The indices of channels to plot. If ``None``, show all. Defaults
+            to None.
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
-            bad channels are excluded.
+            bad channels are excluded. Defaults to 'bads'.
         show : bool
-            Show figure if True.
+            Show figure if True. Defaults to True.
         ts_args : None | dict
             A dict of `kwargs` that are forwarded to `evoked.plot` to
             style the butterfly plot. `axes` and `show` are ignored.

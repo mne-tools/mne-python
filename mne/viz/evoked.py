@@ -904,27 +904,28 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
         The time point(s) to plot. If "auto", 5 evently spaced topographies
         between the first and last time instant will be shown. If "peaks",
         finds time points automatically by checking for 3 local maxima in
-        Global Field Power.
+        Global Field Power. Defaults to "peaks".
     title : str | None
         The title. If `None`, supress printing channel type. Defaults to ''.
     picks : array-like of int | None
-        The indices of channels to plot. If None show all.
+        The indices of channels to plot. If None show all. Defaults to None.
     exclude : None | list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
-        bad channels are excluded.
+        bad channels are excluded. Defaults to None.
     show : bool
-        Show figure if True.
+        Show figure if True. Defaults to True.
     ts_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot` to
         style the butterfly plot. `axes` and `show` are ignored.
         If `spatial_colors` is not in this dict, `spatial_colors=True`
         will be passed. Beyond that, if ``None``, no customizable arguments
-        will be passed.
+        will be passed. Defaults to ``None``.
     topomap_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
         to style the topomaps. `axes` and `show` are ignored. If `times`
         is not in this dict, automatic peak detection is used. Beyond that,
         if ``None`, no customizable arguments will be passed.
+        Defaults to ``None``.
 
     Returns
     -------
