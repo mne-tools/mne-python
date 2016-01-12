@@ -494,7 +494,10 @@ def _prep_mf_coils(info, ignore_ref=True):
     del ws
     n_int = np.array([len(coil['rmag']) for coil in coils])
     bins = np.repeat(np.arange(len(n_int)), n_int)
-    return rmags, cosmags, bins, n_coils, mag_mask
+    bd = np.concatenate(([0], np.cumsum(n_int)))
+    slice_map = dict((ii, slice(start, stop))
+                     for ii, (start, stop) in enumerate(zip(bd[:-1], bd[1:])))
+    return rmags, cosmags, bins, n_coils, mag_mask, slice_map
 
 
 def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
@@ -1820,7 +1823,7 @@ def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.):
             trans = Transform('meg', 'head', trans)
         all_coils = (apply_trans(trans, all_coils[0]),
                      apply_trans(trans, all_coils[1], move=False),
-                     all_coils[2], all_coils[3], all_coils[4])
+                     ) + all_coils[2:]
     if not isinstance(coil_scale, np.ndarray):
         # Scale all magnetometers (with `coil_class` == 1.0) by `mag_scale`
         cs = coil_scale

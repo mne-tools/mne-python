@@ -692,8 +692,8 @@ def _find_vector_rotation(a, b):
     v = np.cross(a, b)
     if np.allclose(v, 0.):  # identical
         return R
-    s = np.sqrt(np.sum(v * v))  # sine of the angle between them
-    c = np.sqrt(np.sum(a * b))  # cosine of the angle between them
+    s = np.dot(v, v)  # sine of the angle between them
+    c = np.dot(a, b)  # cosine of the angle between them
     vx = _skew_symmetric_cross(v)
     R += vx + np.dot(vx, vx) * (1 - c) / s
     return R

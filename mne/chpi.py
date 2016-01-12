@@ -124,7 +124,7 @@ def read_head_quats(fname):
     -----
     .. versionadded:: 0.12
     """
-    _check_fname(fname, exist=True)
+    _check_fname(fname, must_exist=True, overwrite=True)
     data = np.loadtxt(fname, skiprows=1)  # first line is header, skip it
     data.shape = (-1, 10)  # ensure it's the right size even if empty
     return data
