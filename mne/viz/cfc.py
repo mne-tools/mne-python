@@ -5,7 +5,8 @@ from matplotlib import pyplot as plt
 
 
 def plot_phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
-                                ix_ph, ix_amp, tmin=-.5, tmax=.5):
+                                ix_ph, ix_amp, normalize=True,
+                                tmin=-.5, tmax=.5):
     """Make a phase-locked amplitude plot.
 
     Parameters
@@ -21,6 +22,9 @@ def plot_phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
         The index of the signal to be used for phase calculation
     ix_amp : int
         The index of the signal to be used for amplitude calculation
+    normalize : bool
+        Whether amplitudes are normalized before averaging together. Helps
+        if some frequencies have a larger mean amplitude than others.
     tmin : float
         The time to include before each phase peak
     tmax : float
@@ -35,6 +39,9 @@ def plot_phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
     data_amp, data_phase, times = phase_locked_amplitude(
         epochs, freqs_phase, freqs_amp,
         ix_ph, ix_amp, tmin=tmin, tmax=tmax)
+
+    if normalize is True:
+        data_amp /= data_amp.mean(-1)[..., np.newaxis]
 
     # Plotting
     f, axs = plt.subplots(2, 1)

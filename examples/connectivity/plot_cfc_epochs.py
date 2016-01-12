@@ -70,11 +70,11 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
                     preload=True)
 ph_range = np.linspace(8, 10, 6)
-amp_range = np.linspace(40, 120, 20)
+amp_range = np.linspace(40, 60, 20)
 
 # Show the amplitude for a range of frequencies, phase-locked to a low-freq
 ax = plot_phase_locked_amplitude(epochs, ph_range, amp_range, ixs[0][0],
-                                 ixs[0][1])
+                                 ixs[0][1], normalize=True)
 ax[0].set_title('Phase Locked Amplitude, PAC = {0}'.format(pac))
 
 # Show the avg amplitude of the high freqs for bins of phase in the low freq

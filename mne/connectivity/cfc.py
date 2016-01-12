@@ -221,33 +221,47 @@ def _array_raw_to_epochs(x, sfreq, ev, tmin, tmax):
 
 # For the viz functions
 def _extract_phase_and_amp(data_phase, data_amp, sfreq, freqs_phase,
-                           freqs_amp):
-    """Extract the phase and amplitude of two signals for PAC viz"""
+                           freqs_amp, scale=True):
+    """Extract the phase and amplitude of two signals for PAC viz.
+    data should be shape (n_epochs, n_times)"""
     from sklearn.preprocessing import scale
     # Morlet transform to get complex representation
-    band_ph = cwt_morlet(data_phase, sfreq,
-                         freqs_phase)
-    band_amp = cwt_morlet(data_amp, sfreq,
-                          freqs_amp)
+    band_ph = cwt_morlet(data_phase, sfreq, freqs_phase)
+    band_amp = cwt_morlet(data_amp, sfreq, freqs_amp)
 
-    # Calculate the phase/amplitude of relevant signals
-    amp_ph = np.hstack(np.real(band_ph.mean(1)))
-    angle_ph = np.hstack(np.angle(band_ph.mean(1)))
-    amp = np.hstack(np.abs(band_amp))
+    # Calculate the phase/amplitude of relevant signals across epochs
+    band_ph_stacked = np.hstack(np.real(band_ph))
+    angle_ph = np.hstack(np.angle(band_ph))
+    amp = np.hstack(np.abs(band_amp) ** 2)
 
     # Scale the amplitude for viz so low freqs don't dominate highs
-    amp = scale(amp, axis=1)
-    return angle_ph, amp_ph, amp
+    if scale is True:
+        amp = scale(amp, axis=1)
+    return angle_ph, band_ph_stacked, amp
 
 
-def phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
-                           ix_ph, ix_amp, tmin=-.5, tmax=.5):
+def _pull_data(inst, ix_ph, ix_amp, ev=None, tmin=None, tmax=None):
+    """Pull data from either Base or Epochs instances"""
+    from ..io.base import _BaseRaw
+    from..epochs import _BaseEpochs
+    if isinstance(inst, _BaseEpochs):
+        data_ph = inst._data[:, ix_ph, :]
+        data_amp = inst._data[:, ix_amp, :]
+    elif isinstance(inst, _BaseRaw):
+        data = inst[[ix_ph, ix_amp], :][0]
+        data_ph, data_amp = [i[np.newaxis, ...] for i in data]
+    return data_ph, data_amp
+
+
+def phase_locked_amplitude(inst, freqs_phase, freqs_amp,
+                           ix_ph, ix_amp, tmin=-.5, tmax=.5,
+                           mask_times=None):
     """Calculate the average amplitude of a signal at a phase of another.
 
     Parameters
     ----------
-    epochs : mne.Epochs
-        The epochs to be used in phase locking computation
+    inst : instance of mne.Epochs or mne.io.Raw
+        The data to be used in phase locking computation
     freqs_phase : np.array
         The frequencies to use in phase calculation. The phase of each
         frequency will be averaged together.
@@ -261,6 +275,9 @@ def phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
         The time to include before each phase peak
     tmax : float
         The time to include after each phase peak
+    mask_times : np.array, dtype bool, shape (inst.n_times,)
+        If inst is an instance of Raw, this will only include times contained
+        in mask_times.
 
     Returns
     -------
@@ -273,23 +290,34 @@ def phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
     times : np.array
         The times before / after each phase peak.
     """
-    sfreq = epochs.info['sfreq']
-    angle_ph, amp_ph, amp = _extract_phase_and_amp(
-        epochs._data[:, ix_ph, :], epochs._data[:, ix_amp, :],
-        sfreq, freqs_phase, freqs_amp)
+    sfreq = inst.info['sfreq']
+    # Pull the amplitudes/phases using Morlet
+    data_ph, data_amp = _pull_data(inst, ix_ph, ix_amp)
+    angle_ph, band_ph, amp = _extract_phase_and_amp(
+        data_ph, data_amp, sfreq, freqs_phase, freqs_amp)
+    angle_ph = angle_ph.mean(0)  # Mean across freq bands
+    band_ph = band_ph.mean(0)
 
     # Find peaks in the phase for time-locking
     phase_peaks, vals = peak_finder.peak_finder(angle_ph)
-    tmin, tmax = (-.5, .5)
-    ixmin, ixmax = [t * epochs.info['sfreq'] for t in [tmin, tmax]]
-
+    ixmin, ixmax = [t * sfreq for t in [tmin, tmax]]
     # Remove peaks w/o buffer
     phase_peaks = phase_peaks[(phase_peaks > np.abs(ixmin)) *
                               (phase_peaks < len(angle_ph) - ixmax)]
-    data_phase = np.array([amp_ph[int(i + ixmin):int(i + ixmax)]
-                          for i in phase_peaks])
+
+    if mask_times is not None:
+        # Set datapoints outside out times to nan so we can drop later
+        if len(mask_times) != angle_ph.shape[-1]:
+            raise ValueError('mask_times must be == in length to data')
+        band_ph[..., mask_times] = np.nan
+
+    data_phase = np.array([band_ph[int(i + ixmin):int(i + ixmax)]
+                           for i in phase_peaks])
     data_amp = np.array([amp[:, int(i + ixmin):int(i + ixmax)]
                          for i in phase_peaks])
+    # Drop any peak events where there was a nan
+    keep_rows = np.where(~np.isnan(data_ph).any(-1))[0]
+    data_phase, data_amp = [i[keep_rows, ...] for i in [data_phase, data_amp]]
 
     # Average across phase peak events
     times = np.linspace(tmin, tmax, data_amp.shape[-1])
@@ -298,14 +326,14 @@ def phase_locked_amplitude(epochs, freqs_phase, freqs_amp,
     return data_amp, data_phase, times
 
 
-def phase_binned_amplitude(epochs, freqs_phase, freqs_amp,
-                           ix_ph, ix_amp, n_bins=20):
+def phase_binned_amplitude(inst, freqs_phase, freqs_amp,
+                           ix_ph, ix_amp, n_bins=20, mask_times=None):
     """Calculate amplitude of one signal in sub-ranges of phase for another.
 
     Parameters
     ----------
-    epochs : mne.Epochs
-        The epochs to be used in phase locking computation
+    inst : instance of mne.Epochs or mne.io.Raw
+        The data to be used in phase locking computation
     freqs_phase : np.array
         The frequencies to use in phase calculation. The phase of each
         frequency will be averaged together.
@@ -319,6 +347,9 @@ def phase_binned_amplitude(epochs, freqs_phase, freqs_amp,
     n_bins : int
         The number of bins to use when grouping amplitudes. Each bin will
         have size (2 * np.pi) / n_bins.
+    mask_times : np.array, dtype bool, shape (inst.n_times,)
+        If inst is an instance of Raw, this will only include times contained
+        in mask_times.
 
     Returns
     -------
@@ -328,12 +359,18 @@ def phase_binned_amplitude(epochs, freqs_phase, freqs_amp,
         The bins used in the calculation. There is one extra bin because
         bins represent the left/right edges of each bin, not the center value.
     """
-    sfreq = epochs.info['sfreq']
-
+    sfreq = inst.info['sfreq']
     # Pull the amplitudes/phases using Morlet
-    angle_ph, amp_ph, amp = _extract_phase_and_amp(
-        epochs._data[:, ix_ph, :], epochs._data[:, ix_amp, :],
-        sfreq, freqs_phase, freqs_amp)
+    data_ph, data_amp = _pull_data(inst, ix_ph, ix_amp)
+    angle_ph, band_ph, amp = _extract_phase_and_amp(
+        data_ph, data_amp, sfreq, freqs_phase, freqs_amp)
+    angle_ph = angle_ph.mean(0)  # Mean across freq bands
+    if mask_times is not None:
+        # Only keep times we want
+        if len(mask_times) != amp.shape[-1]:
+            raise ValueError('mask_times must be == in length to data')
+        angle_ph, band_ph, amp = [i[..., mask_times]
+                                  for i in [angle_ph, band_ph, amp]]
 
     # Bin our phases and extract amplitudes based on bins
     bins_phase = np.linspace(-np.pi, np.pi, n_bins)
