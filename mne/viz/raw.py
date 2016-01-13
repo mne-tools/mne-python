@@ -81,8 +81,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None,
-             annotations=None):
+             highpass=None, lowpass=None, filtorder=4, clipping=None):
     """Plot raw data
 
     Parameters
@@ -153,8 +152,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         the plot. If "clamp", then values are clamped to the appropriate
         range for display, creating step-like artifacts. If "transparent",
         then excessive values are not shown, creating gaps in the traces.
-    annotations: instance of Annotations | None
-        Annotations to plot. If None (default), no annotations are plotted.
 
     Returns
     -------
@@ -231,16 +228,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     else:
         event_times = event_nums = None
 
-    segments = list()
-    if annotations is not None:
-        meas_date = info['meas_date']
-        if not np.isscalar(meas_date):
-            meas_date = meas_date[0]
-        for segment in annotations.segments:
-            annot_start = (annotations.orig_time - meas_date -
-                           raw.first_samp / info['sfreq'] + segment[0])
-            segments.append([annot_start, annot_start + segment[1]])
-    segments = np.array(segments)
     # reorganize the data in plotting order
     inds = list()
     types = list()
@@ -303,7 +290,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
-                  n_times=n_times, event_times=event_times, segments=segments,
+                  n_times=n_times, event_times=event_times,
                   event_nums=event_nums, clipping=clipping, fig_proj=None)
 
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
@@ -317,6 +304,29 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                  color=color, bad_color=bad_color,
                                  event_lines=event_lines,
                                  event_color=event_color)
+
+    segments = list()
+    if hasattr(raw, 'annotations'):
+        segment_colors = dict()
+        meas_date = info['meas_date']
+        color_keys = set(raw.annotations.descriptions)
+        for idx, key in enumerate(color_keys):
+            segment_colors[key] = plt.cm.rainbow(idx / float(len(color_keys)))
+        params['segment_colors'] = segment_colors
+        if not np.isscalar(meas_date):
+            meas_date = meas_date[0]
+        for idx, segment in enumerate(raw.annotations.segments):
+            annot_start = (raw.annotations.orig_time - meas_date + segment[0] -
+                           raw.first_samp / info['sfreq'])
+            annot_end = annot_start + segment[1]
+            segments.append([annot_start, annot_end])
+            ylim = params['ax_hscroll'].get_ylim()
+            dscr = raw.annotations.descriptions[idx]
+            params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
+                                               alpha=0.3,
+                                               color=segment_colors[dscr])
+    params['segments'] = np.array(segments)
+
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
@@ -689,14 +699,17 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
         segments = params['segments']
         times = params['times']
         ylim = params['ax'].get_ylim()
-        for segment in segments:
+        for idx, segment in enumerate(segments):
             if segment[0] > times[-1]:
                 break  # Since the segments are sorted by t_start
             if segment[1] < times[0]:
                 continue
             start = segment[0]
             end = segment[1]
-            params['ax'].fill_betweenx(ylim, start, end, alpha=0.3)
+            dscr = params['raw'].annotations.descriptions[idx]
+            segment_color = params['segment_colors'][dscr]
+            params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
+                                       alpha=0.3)
 
     # finalize plot
     params['ax'].set_xlim(params['times'][0],

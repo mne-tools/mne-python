@@ -24,8 +24,11 @@ class Annotations():
         """
         if isinstance(orig_time, datetime):
             orig_time = time.mktime(orig_time.timetuple())
+        elif not np.isscalar(orig_time):
+            orig_time = orig_time[0]
         self.orig_time = orig_time
         segments = np.array(segments)
+
         if len(segments.shape) != 2 or segments.shape[1] != 2:
             raise RuntimeError('Segments must be an array in shape '
                                '(n_segments, 2).')
@@ -33,5 +36,6 @@ class Annotations():
             raise RuntimeError('Segments and descriptions are different in '
                                'size. Every segment must have a description.')
         # sort the segments by start time
-        self.segments = segments[segments[:, 0].argsort(axis=0)]
-        self.descriptions = descriptions
+        order = segments[:, 0].argsort(axis=0)
+        self.segments = segments[order]
+        self.descriptions = np.array(descriptions)[order]

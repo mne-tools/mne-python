@@ -63,6 +63,7 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
                            get_volume_labels_from_aseg)
+from .annotations import Annotations
 from .epochs import Epochs, EpochsArray, read_epochs
 from .evoked import Evoked, EvokedArray, read_evokeds, write_evokeds, combine_evoked
 from .label import (read_label, label_sign_flip,
@@ -79,7 +80,6 @@ from .selection import read_selection
 from .dipole import read_dipole, Dipole, fit_dipole
 from .channels import equalize_channels, rename_channels, find_layout
 
-from . import annotations
 from . import beamformer
 from . import channels
 from . import chpi
