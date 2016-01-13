@@ -305,8 +305,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                  event_lines=event_lines,
                                  event_color=event_color)
 
-    segments = list()
     if hasattr(raw, 'annotations'):
+        segments = list()
         segment_colors = dict()
         meas_date = info['meas_date']
         color_keys = set(raw.annotations.descriptions)
@@ -332,7 +332,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
                                                alpha=0.3,
                                                color=segment_colors[dscr])
-    params['segments'] = np.array(segments)
+        params['segments'] = np.array(segments)
 
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
@@ -700,7 +700,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
                 line.set_xdata([])
                 line.set_ydata([])
 
-    if len(params['segments']) > 0:
+    if 'segments' in params:
         while len(params['ax'].collections) > 0:
             params['ax'].collections.pop(0)
         segments = params['segments']
