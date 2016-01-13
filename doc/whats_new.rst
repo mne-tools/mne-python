@@ -12,7 +12,7 @@ Changelog
 
     - Add `overlay_times` parameter to :func:`mne.viz.plot_epochs_image` to be able to display for example reaction times on top of the images, by `Alex Gramfort`_
 
-    - Add :func:`mne.Evoked.plot_joint` method for evoked data, showing butterly time series and topoplots for peaks in the time series together one figure, by `Jona Sassenhagen`_
+    - Add :func:`mne.Evoked.plot_joint` method for evoked data, showing butterly time series and topoplots for peaks in the time series together in one figure, by `Jona Sassenhagen`_
 
 BUG
 ~~~
