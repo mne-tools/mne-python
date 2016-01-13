@@ -10,7 +10,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - Add :func:`mne.Evoked.plot_joint` method for evoked data, showing butterly time series and topoplots for peaks in the time series together one figure, by `Jona Sassenhagen`_
+    - Add :func:`mne.Evoked.plot_joint` method for evoked data, showing butterly time series and topoplots for peaks in the time series together in one figure, by `Jona Sassenhagen`_
 
 BUG
 ~~~
