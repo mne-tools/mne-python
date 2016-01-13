@@ -309,13 +309,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         segments = list()
         segment_colors = dict()
         meas_date = info['meas_date']
-        color_keys = set(raw.annotations.descriptions)
+        color_keys = set(raw.annotations.description)
+        color_vals = np.linspace(0, 1, len(color_keys))
         for idx, key in enumerate(color_keys):
-            segment_colors[key] = plt.cm.rainbow(idx / float(len(color_keys)))
+            if key.lower().startswith('bad'):
+                segment_colors[key] = 'red'
+            else:
+                segment_colors[key] = plt.cm.summer(color_vals[idx])
         params['segment_colors'] = segment_colors
         if not np.isscalar(meas_date):
             meas_date = meas_date[0]
-        for idx, onset in enumerate(raw.annotations.onsets):
+        for idx, onset in enumerate(raw.annotations.onset):
             if raw.annotations.orig_time is None:
                 if np.isscalar(info['meas_date']):
                     orig_time = raw.info['meas_date']
@@ -325,10 +329,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                 orig_time = raw.annotations.orig_time
             annot_start = (orig_time - meas_date + onset -
                            raw.first_samp / info['sfreq'])
-            annot_end = annot_start + raw.annotations.durations[idx]
+            annot_end = annot_start + raw.annotations.duration[idx]
             segments.append([annot_start, annot_end])
             ylim = params['ax_hscroll'].get_ylim()
-            dscr = raw.annotations.descriptions[idx]
+            dscr = raw.annotations.description[idx]
             params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
                                                alpha=0.3,
                                                color=segment_colors[dscr])
@@ -713,7 +717,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
                 continue
             start = segment[0]
             end = segment[1]
-            dscr = params['raw'].annotations.descriptions[idx]
+            dscr = params['raw'].annotations.description[idx]
             segment_color = params['segment_colors'][dscr]
             params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
                                        alpha=0.3)
