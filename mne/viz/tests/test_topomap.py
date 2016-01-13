@@ -22,8 +22,8 @@ from mne.time_frequency.tfr import AverageTFR
 from mne.utils import slow_test
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
-from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap,
-                             _find_peaks)
+from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap)
+from mne.viz.utils import _find_peaks
 
 # Set our plotters to test mode
 import matplotlib

@@ -17,7 +17,7 @@ from ..io.pick import channel_type, pick_types, _picks_by_type
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
-                    plt_show)
+                    plt_show, _process_times)
 from ..utils import logger, _clean_names
 from ..fixes import partial
 from ..io.pick import pick_info
@@ -155,7 +155,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
-                 spatial_colors=False):
+                 spatial_colors=False, set_tight_layout=True):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -386,7 +386,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
     plt_show(show)
     fig.canvas.draw()  # for axes plots update axes.
-    tight_layout(fig=fig)
+    if set_tight_layout:
+        tight_layout(fig=fig)
 
     return fig
 
@@ -874,5 +875,181 @@ def plot_snr_estimate(evoked, inv, show=True):
     if evoked.comment is not None:
         ax.set_title(evoked.comment)
     plt.draw()
+    plt_show(show)
+    return fig
+
+
+def _connection_line(x, fig, sourceax, targetax):
+    """Helper function to connect time series and topolots"""
+    from matplotlib.lines import Line2D
+    transFigure = fig.transFigure.inverted()
+    tf = fig.transFigure
+
+    (xt, yt) = transFigure.transform(targetax.transAxes.transform([.5, .25]))
+    (xs, _) = transFigure.transform(sourceax.transData.transform([x, 0]))
+    (_, ys) = transFigure.transform(sourceax.transAxes.transform([0, 1]))
+    return Line2D((xt, xs), (yt, ys), transform=tf, color='grey',
+                  linestyle='-', linewidth=1.5, alpha=.66, zorder=-1)
+
+
+def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
+                show=True, ts_args=None, topomap_args=None):
+    """Plot evoked data as butterfly plot and add topomaps for selected
+    time points.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked instance.
+    times : float | array of floats | "auto" | "peaks".
+        The time point(s) to plot. If "auto", 5 evenly spaced topographies
+        between the first and last time instant will be shown. If "peaks",
+        finds time points automatically by checking for 3 local maxima in
+        Global Field Power. Defaults to "peaks".
+    title : str | None
+        The title. If `None`, supress printing channel type. Defaults to ''.
+    picks : array-like of int | None
+        The indices of channels to plot. If None show all. Defaults to None.
+    exclude : None | list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded. Defaults to None.
+    show : bool
+        Show figure if True. Defaults to True.
+    ts_args : None | dict
+        A dict of `kwargs` that are forwarded to `evoked.plot` to
+        style the butterfly plot. `axes` and `show` are ignored.
+        If `spatial_colors` is not in this dict, `spatial_colors=True`
+        will be passed. Beyond that, if ``None``, no customizable arguments
+        will be passed. Defaults to ``None``.
+    topomap_args : None | dict
+        A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
+        to style the topomaps. `axes` and `show` are ignored. If `times`
+        is not in this dict, automatic peak detection is used. Beyond that,
+        if ``None`, no customizable arguments will be passed.
+        Defaults to ``None``.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure | list
+        The figure object containing the plot. If `evoked` has multiple
+        channel types, a list of figures, one for each channel type, is
+        returned.
+
+    Notes
+    -----
+    .. versionadded:: 0.12.0
+    """
+    import matplotlib.pyplot as plt
+
+    if ts_args is None:
+        ts_args = dict()
+    if topomap_args is None:
+        topomap_args = dict()
+
+    # channel selection
+    # simply create a new evoked object(s) with the desired channel selection
+    evoked = evoked.copy()
+
+    if picks is not None:
+        pick_names = [evoked.info['ch_names'][pick] for pick in picks]
+        evoked.pick_channels(pick_names)
+    if exclude == 'bads':
+        exclude = [ch for ch in evoked.info['bads']
+                   if ch in evoked.info['ch_names']]
+    if exclude is not None:
+        evoked.drop_channels(exclude)
+
+    info = evoked.info
+    data_types = ['eeg', 'grad', 'mag', 'seeg']
+    ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
+
+    # if multiple sensor types: one plot per channel type, recursive call
+    if len(ch_types) > 1:
+        figs = list()
+        for t in ch_types:  # pick only the corresponding channel type
+            ev_ = evoked.pick_channels([info['ch_names'][idx]
+                                        for idx in range(info['nchan'])
+                                        if channel_type(info, idx) == t],
+                                       copy=True)
+            if len(set([channel_type(ev_.info, idx)
+                        for idx in range(ev_.info['nchan'])
+                        if channel_type(ev_.info, idx) in data_types])) > 1:
+                raise RuntimeError('Possibly infinite loop due to channel '
+                                   'selection problem. This should never '
+                                   'happen! Please check your channel types.')
+            figs.append(_joint_plot(ev_, times=times, title=title, show=show,
+                                    ts_args=ts_args, exclude=list(),
+                                    topomap_args=topomap_args))
+        return figs
+
+    fig = plt.figure(figsize=(8.0, 4.2))
+
+    # set up time points to show topomaps for
+    times = _process_times(evoked, times, few=True)
+
+    # butterfly/time series plot
+    # most of this code is about passing defaults on demand
+    ts_ax = fig.add_subplot(212)
+    ts_args_pass = dict((k, v) for k, v in ts_args.items() if k not in
+                        ['axes', 'show', 'colorbar', 'set_tight_layout'])
+    ts_args_def = dict(picks=None, unit=True, ylim=None, xlim='tight',
+                       proj=False, hline=None, units=None, scalings=None,
+                       titles=None, gfp=False, window_title=None,
+                       spatial_colors=True)
+    for key in ts_args_def:
+        if key not in ts_args:
+            ts_args_pass[key] = ts_args_def[key]
+    _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
+                 exclude=[], set_tight_layout=False, **ts_args_pass)
+
+    # handle title
+    # we use a new axis for the title to handle scaling of plots
+    old_title = ts_ax.get_title()
+    ts_ax.set_title('')
+    if title is not None:
+        title_ax = plt.subplot(4, 3, 2)
+        title = ', '.join([title, old_title]) if len(title) > 0 else old_title
+        title_ax.text(.5, .5, title, transform=title_ax.transAxes,
+                      horizontalalignment='center',
+                      verticalalignment='center')
+        title_ax.axis('off')
+
+    # prepare axes for topomap
+    # slightly convoluted due to colorbar placement and for vertical alignment
+    ts = len(times) + 2
+    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(ts - 2)]
+    cbar_ax = plt.subplot(4, 3 * (ts + 1), 6 * (ts + 1))
+
+    # topomap
+    topomap_args_pass = dict((k, v) for k, v in topomap_args.items() if
+                             k not in ['times', 'axes', 'show', 'colorbar'])
+    topomap_args_pass['outlines'] = (topomap_args['outlines'] if 'outlines'
+                                     in topomap_args else 'skirt')
+    evoked.plot_topomap(times=times, axes=map_ax, show=False,
+                        colorbar=False, **topomap_args_pass)
+
+    if topomap_args.get('colorbar', True):
+        from matplotlib import ticker
+        cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
+        cbar.locator = ticker.MaxNLocator(nbins=5)
+        cbar.update_ticks()
+
+    plt.subplots_adjust(left=.1, right=.93, bottom=.14,
+                        top=1. if title is not None else 1.2)
+
+    # connection lines
+    # draw the connection lines between time series and topoplots
+    tstimes = [timepoint * 1e3 for timepoint in times]
+    lines = [_connection_line(timepoint, fig, ts_ax, map_ax_)
+             for timepoint, map_ax_ in zip(tstimes, map_ax)]
+    for line in lines:
+        fig.lines.append(line)
+
+    # mark times in time series plot
+    for timepoint in tstimes:
+        ts_ax.axvline(timepoint, color='grey', linestyle='-',
+                      linewidth=1.5, alpha=.66, zorder=-1)
+
+    # show and return it
     plt_show(show)
     return fig
