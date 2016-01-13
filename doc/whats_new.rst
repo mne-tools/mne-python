@@ -10,7 +10,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    -
+    - Add :func:`mne.Evoked.plot_joint` method for evoked data, showing butterly time series and topoplots for peaks in the time series together one figure, by `Jona Sassenhagen`_
 
 BUG
 ~~~
@@ -64,6 +64,8 @@ Changelog
     - Added methods :func:`mne.Epochs.add_eeg_average_proj`, :func:`mne.io.Raw.add_eeg_average_proj`, and :func:`mne.Evoked.add_eeg_average_proj` to add an average EEG reference.
 
     - Add reader for EEGLAB data in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Mainak Jas`_
+
+    - Extended :func:`mne.utils.grand_average` for averaging evoked or time-frequency objects across multiple subjects or conditions by `Jaakko Leppakangas`_ and `Jona Sassenhagen`_
 
 BUG
 ~~~
@@ -191,6 +193,10 @@ Changelog
    - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
 
     - Add :func:`mne.report.Report.add_slider_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
+
+    - Extended functionality of :func:`mne.Epochs` selection by ``event_id``: allow selecting multiple conditions based on tags separated by ``/``s, by `Jona Sassenhagen`_
+
+    - Add :func:`mne.statistics.linear_regression_raw` function for the estimation of potentially overlapping linear effects of potentially continuous predictors in continuous data ("rER[P/F]s"), by `Jona Sassenhagen`_
 
 BUG
 ~~~
