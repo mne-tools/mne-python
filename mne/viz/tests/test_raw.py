@@ -86,7 +86,7 @@ def test_plot_raw():
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
         assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
-        annot = Annotations(raw.info['meas_date'], [[10, 10]], ['test'])
+        annot = Annotations([10], [10], ['test'], raw.info['meas_date'])
         raw.annotations = annot
         fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')

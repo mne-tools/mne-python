@@ -4,7 +4,6 @@
 
 import numpy as np
 from os import path
-import json
 import datetime
 import calendar
 
@@ -13,7 +12,6 @@ from ..utils import _read_segments_file, _find_channels
 from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
-from ...annotations import Annotations
 
 
 def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
@@ -206,52 +204,3 @@ class RawNicolet(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult)
-
-
-def read_nicolet_annotations(fname, record_id):
-    """
-    Function for reading annotations from a json file of records.
-
-    Parameters
-    ----------
-    fname : str
-        Path to the record file.
-    record_id : str
-        The record id (or key) as a string.
-
-    Returns
-    -------
-    annot : instance of Annotations
-        Found annotations from the file.
-    """
-    data = list()
-    jsons = list()
-    with open(fname, 'r') as data_file:
-        for line in data_file:
-            if 'ObjectId' in line:  # skip ObjectId key
-                continue
-            data.append(line)
-            if line.startswith('}'):
-                jsons.append(json.loads(''.join(data)))
-                data = list()
-
-    record = None
-    for json_data in jsons:
-        if record_id == json_data['recordKey']:
-            record = json_data
-            break
-    if record is None:
-        raise RuntimeError('Could not find record with id %s' % record_id)
-
-    tstart = int(record['startTime'])
-    segments = list()
-    descriptions = list()
-    for annotation in record['annotations']:
-        segment = list()
-        descriptions.append(annotation['typeStr'])
-        segment.append((int(annotation['startTime']) - tstart) / 1000000.)
-        segment.append((int(annotation['endTime']) -
-                        int(annotation['startTime'])) / 1000000.)
-        segments.append(segment)
-    annot = Annotations(tstart / 1000000., segments, descriptions)
-    return annot

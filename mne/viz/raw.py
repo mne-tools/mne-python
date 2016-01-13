@@ -315,10 +315,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         params['segment_colors'] = segment_colors
         if not np.isscalar(meas_date):
             meas_date = meas_date[0]
-        for idx, segment in enumerate(raw.annotations.segments):
-            annot_start = (raw.annotations.orig_time - meas_date + segment[0] -
+        for idx, onset in enumerate(raw.annotations.onsets):
+            if raw.annotations.orig_time is None:
+                if np.isscalar(info['meas_date']):
+                    orig_time = raw.info['meas_date']
+                else:
+                    orig_time = raw.info['meas_date'][0]
+            else:
+                orig_time = raw.annotations.orig_time
+            annot_start = (orig_time - meas_date + onset -
                            raw.first_samp / info['sfreq'])
-            annot_end = annot_start + segment[1]
+            annot_end = annot_start + raw.annotations.durations[idx]
             segments.append([annot_start, annot_end])
             ylim = params['ax_hscroll'].get_ylim()
             dscr = raw.annotations.descriptions[idx]
