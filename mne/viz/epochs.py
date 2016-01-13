@@ -109,8 +109,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     if overlay_times is not None:
         overlay_times = np.array(overlay_times)
-        if ((np.min(overlay_times) < epochs.tmin)
-                or (np.max(overlay_times) > epochs.tmax)):
+        times_min = np.min(overlay_times)
+        times_max = np.max(overlay_times)
+        if ((times_min < epochs.tmin) or (times_max > epochs.tmax)):
             warnings.warn('Some values in overlay_times fall outside of '
                           'the epochs time interval (between %s s and %s s)' %
                           (epochs.tmin, epochs.tmax))
