@@ -901,7 +901,7 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
     evoked : instance of Evoked
         The evoked instance.
     times : float | array of floats | "auto" | "peaks".
-        The time point(s) to plot. If "auto", 5 evently spaced topographies
+        The time point(s) to plot. If "auto", 5 evenly spaced topographies
         between the first and last time instant will be shown. If "peaks",
         finds time points automatically by checking for 3 local maxima in
         Global Field Power. Defaults to "peaks".
