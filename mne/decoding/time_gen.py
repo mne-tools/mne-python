@@ -460,6 +460,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode,
         elif predict_mode == 'cross-validation':
             # Predict with the estimator trained on the separate training set.
             for k, (train, test) in enumerate(cv):
+                if not np.any(test):
+                    continue
                 # Single trial predictions
                 X_pred_t = X_pred[test_epochs_slices[k]]
                 # If is_single_time_sample, we are predicting each time sample
