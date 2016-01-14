@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 import mne
 from mne import io
 from mne.datasets import sample
-from mne.epochs import EpochsArray
 from mne.time_frequency import psd_multitaper
 
 print(__doc__)
@@ -39,8 +38,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     proj=True, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6))
 # Pull 2**n points to speed up computation
-epochs = EpochsArray(epochs.get_data()[..., :1024], epochs.info,
-                     epochs.events, tmin, epochs.event_id)
+tmax = tmin + 1023. / raw.info['sfreq']
+epochs.crop(None, tmax)
 
 # Let's first check out all channel types by averaging across epochs.
 epochs.plot_psd(fmin=2, fmax=200)

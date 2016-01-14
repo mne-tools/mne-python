@@ -146,7 +146,35 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
 
 def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
                n_jobs=1):
-    """Helper function for calculating Welch PSD."""
+    """Compute power spectral density (PSD) using Welch's method.
+
+    x : array, shape=(..., n_times)
+        The data to compute PSD from.
+    sfreq : float
+        The sampling frequency.
+    fmin : float
+        The lower frequency of interest.
+    fmax : float
+        The upper frequency of interest.
+    n_fft : int
+        The length of the tapers ie. the windows. The smaller
+        it is the smoother are the PSDs. The default value is 256.
+        If ``n_fft > len(inst.times)``, it will be adjusted down to
+        ``len(inst.times)``.
+    n_overlap : int
+        The number of points of overlap between blocks. Will be adjusted
+        to be <= n_fft. The default value is 0.
+    n_jobs : int
+        Number of CPUs to use in the computation.
+
+    Returns
+    -------
+    psds : ndarray, shape (..., n_freqs) or
+        The power spectral densities. All dimensions up to the last will
+        be the same as input.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies.
+    """
     from scipy.signal import welch
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
@@ -214,9 +242,10 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
     Returns
     -------
-    psds : ndarray, shape ([n_epochs], n_channels, n_freqs)
-        The power spectral densities. If Raw is provided,
-        then psds will be 2-D.
+    psds : ndarray, shape (..., n_freqs)
+        The power spectral densities. If input is of type Raw,
+        then psds will be shape (n_channels, n_freqs), if input is type Epochs
+        then psds will be shape (n_epochs, n_channels, n_freqs).
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
@@ -282,9 +311,10 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     Returns
     -------
-    psds : ndarray, shape ([n_epochs], n_channels, n_freqs)
-        The power spectral densities. If Raw is provided,
-        then psds will be 2-D.
+    psds : ndarray, shape (..., n_freqs)
+        The power spectral densities. If input is of type Raw,
+        then psds will be shape (n_channels, n_freqs), if input is type Epochs
+        then psds will be shape (n_epochs, n_channels, n_freqs).
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 

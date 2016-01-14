@@ -15,9 +15,9 @@ Changelog
 BUG
 ~~~
 
-    - :func:`compute_raw_psd` and :func:`compute_epochs_psd` no longer subset the SSP matrix with picks before applying SSP projectors by `Chris Holdgraf`_.
+    - :func:`compute_raw_psd`, :func:`compute_epochs_psd`, :func:`psd_multitaper`, and :func:`psd_welch` no longer remove rows/columns of the SSP matrix before applying SSP projectors when picks are provided by `Chris Holdgraf`_.
 
-    - :func:`mne.Epochs.plot_psd` no longer calls a Welch PSD, and instead uses a Multitaper method for the PSD. Flags for this function have been updated accordingly to be passed to :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
+    - :func:`mne.Epochs.plot_psd` no longer calls a Welch PSD, and instead uses a Multitaper method which is more appropriate for epochs. Flags for this function are passed to :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
 API
 ~~~

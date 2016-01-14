@@ -1333,7 +1333,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Apply projection.
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
-        value is a window half-bandwidth of 4.
+        value is a window half-bandwidth of 4 Hz.
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).

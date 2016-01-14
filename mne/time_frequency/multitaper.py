@@ -458,7 +458,7 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     Parameters
     ----------
-    x : array, shape=([n_epochs], n_signals, n_times) or (n_times,)
+    x : array, shape=(..., n_times)
         The data to compute PSD from.
     sfreq : float
         The sampling frequency.
@@ -474,17 +474,18 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     low_bias : bool
         Only use tapers with more than 90% spectral concentration within
         bandwidth.
-    n_jobs : int
-        Number of parallel jobs to use (only used if adaptive=True).
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
+    n_jobs : int
+        Number of parallel jobs to use (only used if adaptive=True).
 
     Returns
     -------
-    psd : array, shape=(n_signals, len(freqs)) or (len(freqs),)
-        The computed PSD.
+    psds : ndarray, shape (..., n_freqs) or
+        The power spectral densities. All dimensions up to the last will
+        be the same as input.
     freqs : array
         The frequency points in Hz of the PSD.
 
