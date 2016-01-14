@@ -74,7 +74,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     overlay_times : array-like, shape (n_epochs,) | None
         If not None the parameter is interpreted as time instants in seconds
         and is added to the image. It is typically useful to display reaction
-        times.
+        times. Note that it is defined with respect to the order
+        of epochs such that overlay_times[0] corresponds to epochs[0].
 
     Returns
     -------
