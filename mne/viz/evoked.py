@@ -280,7 +280,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         chs = [info['chs'][i] for i in idx]
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
-                        colors = _rgb(evoked.info, x, y, z)
+                        colors = _rgb(info, x, y, z)
                         layout = find_layout(info, ch_type=t, exclude=[])
                         # drop channels that are not in the data
 
