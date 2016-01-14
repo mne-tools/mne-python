@@ -128,14 +128,13 @@ def _rgb(x, y, z):
     return np.asarray([x, y, z]).T
 
 
-def _plot_legend(pos, colors, axis, bads, outlines='skirt'):
+def _plot_legend(pos, colors, axis, bads, outlines):
     """Helper function to plot color/channel legends for butterfly plots
     with spatial colors"""
     from mpl_toolkits.axes_grid.inset_locator import inset_axes
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=2)
-    pos, outlines = _check_outlines(pos, outlines, None)
     pos_x, pos_y = _prepare_topomap(pos, ax)
     ax.scatter(pos_x, pos_y, color=colors, s=25, marker='.', zorder=0)
     for idx in bads:
@@ -292,8 +291,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                             # find indices for bads
                             bads = [np.where(names == bad)[0][0] for bad in
                                     info['bads'] if bad in names]
-                            pos = layout.pos[name_idx, :2]
-                            _plot_legend(pos, colors, ax, bads=bads)
+                            pos, outlines = _check_outlines(layout.pos[:, :2],
+                                                            'skirt', None)
+                            pos = pos[name_idx]
+                            _plot_legend(pos, colors, ax, bads, outlines)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
