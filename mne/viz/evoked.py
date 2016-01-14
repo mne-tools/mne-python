@@ -120,22 +120,25 @@ def _topo_closed(events, ax, lines, fill):
     ax.get_figure().canvas.draw()
 
 
-def _rgb(x, y, z):
+def _rgb(info, x, y, z):
     """Helper to transform x, y, z values into RGB colors"""
-    for dim in (x, y, z):
-        dim -= dim.min()
-        dim /= dim.max()
+    all_pos = np.array([ch['loc'][:3] for ch in info['chs']])
+    for idx, dim in enumerate([x, y, z]):
+        this_pos = all_pos[:, idx]
+        dim_min = this_pos.min()
+        dim_max = (this_pos - dim_min).max()
+        dim -= dim_min
+        dim /= dim_max
     return np.asarray([x, y, z]).T
 
 
-def _plot_legend(pos, colors, axis, bads, outlines='skirt'):
+def _plot_legend(pos, colors, axis, bads, outlines):
     """Helper function to plot color/channel legends for butterfly plots
     with spatial colors"""
     from mpl_toolkits.axes_grid.inset_locator import inset_axes
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=2)
-    pos, outlines = _check_outlines(pos, outlines, None)
     pos_x, pos_y = _prepare_topomap(pos, ax)
     ax.scatter(pos_x, pos_y, color=colors, s=25, marker='.', zorder=0)
     for idx in bads:
@@ -277,12 +280,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         chs = [info['chs'][i] for i in idx]
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
-                        colors = _rgb(x, y, z)
+                        colors = _rgb(info, x, y, z)
                         layout = find_layout(info, ch_type=t, exclude=[])
                         # drop channels that are not in the data
+
                         used_nm = np.array(_clean_names(info['ch_names']))[idx]
-                        names = np.asarray([name for name in layout.names
-                                            if name in used_nm])
+                        names = np.asarray([name for name in used_nm
+                                            if name in layout.names])
                         name_idx = [layout.names.index(name) for name in names]
                         if len(name_idx) < len(chs):
                             logger.warning('Could not find layout for '
@@ -292,8 +296,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                             # find indices for bads
                             bads = [np.where(names == bad)[0][0] for bad in
                                     info['bads'] if bad in names]
-                            pos = layout.pos[name_idx, :2]
-                            _plot_legend(pos, colors, ax, bads=bads)
+                            pos, outlines = _check_outlines(layout.pos[:, :2],
+                                                            'skirt', None)
+                            pos = pos[name_idx]
+                            _plot_legend(pos, colors, ax, bads, outlines)
                     else:
                         colors = ['k'] * len(idx)
                         for i in bad_ch_idx:
