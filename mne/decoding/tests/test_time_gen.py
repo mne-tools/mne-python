@@ -253,6 +253,10 @@ def test_generalization_across_time():
 
     # TODO JRK: test GAT with non-exhaustive CV (eg. train on 80%, test on 10%)
 
+    # Make CV with some empty tests to ensure that the folds are passed
+    gat.cv_.test_folds[gat.cv_.test_folds == 1] = 0
+    gat.predict(epochs)
+
     # Check that still works with classifier that output y_pred with
     # shape = (n_trials, 1) instead of (n_trials,)
     gat = GeneralizationAcrossTime(clf=RANSACRegressor(LinearRegression()),
