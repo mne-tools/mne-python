@@ -27,7 +27,7 @@ from mne.epochs import (
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_version)
-from mne.chpi import read_head_quats
+from mne.chpi import read_head_quats, head_quats_to_trans_rot_t
 
 from mne.io import RawArray, Raw
 from mne.io.proj import _has_eeg_average_ref_proj
@@ -100,7 +100,6 @@ def test_average_movements():
     evoked_sss_stat = epochs_sss_stat.average()
     del raw_sss_stat, epochs_sss_stat
     pos = read_head_quats(fname_raw_move_pos)
-    ts = pos[:, 0]
     trans = epochs.info['dev_head_t']['trans']
     pos_stat = (np.array([trans[:3, 3]]),
                 np.array([trans[:3, :3]]),
@@ -144,14 +143,24 @@ def test_average_movements():
     # these should be close to numerical precision
     assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-20)
 
+    # pos[0] > epochs.events[0] uses dev_head_t, so make it equivalent
+    destination = deepcopy(epochs.info['dev_head_t'])
+    x = head_quats_to_trans_rot_t(pos[1])
+    epochs.info['dev_head_t']['trans'][:3, :3] = x[1]
+    epochs.info['dev_head_t']['trans'][:3, 3] = x[0]
+    evoked_miss = average_movements(epochs, pos=pos[2:], origin=origin,
+                                    destination=destination)
+    assert_allclose(evoked_miss.data, evoked_move_all.data)
+
     # degenerate cases
-    ts += 10.
-    assert_raises(RuntimeError, average_movements, epochs, pos=pos)  # bad pos
-    ts -= 10.
+    destination['to'] = destination['from']  # bad dest
+    assert_raises(RuntimeError, average_movements, epochs, pos, origin=origin,
+                  destination=destination)
     assert_raises(TypeError, average_movements, 'foo', pos=pos)
     assert_raises(RuntimeError, average_movements, epochs_proj, pos=pos)  # prj
     epochs.info['comps'].append([0])
     assert_raises(RuntimeError, average_movements, epochs, pos=pos)
+    epochs.info['comps'].pop()
 
 
 def test_reject():

@@ -228,22 +228,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         raise ValueError('coord_frame must be either "head" or "meg", not "%s"'
                          % coord_frame)
     head_frame = True if coord_frame == 'head' else False
-    if destination is not None:
-        if not head_frame:
-            raise RuntimeError('destination can only be set if using the '
-                               'head coordinate frame')
-        if isinstance(destination, string_types):
-            recon_trans = _get_trans(destination, 'meg', 'head')[0]
-        else:
-            destination = np.array(destination, float)
-            if destination.shape != (3,):
-                raise ValueError('destination must be a 3-element vector, '
-                                 'str, or None')
-            recon_trans = np.eye(4)
-            recon_trans[:3, 3] = destination
-            recon_trans = Transform('meg', 'head', recon_trans)
-    else:
-        recon_trans = raw.info['dev_head_t']
+    recon_trans = _check_destination(destination, raw.info, head_frame)
     if st_duration is not None:
         st_duration = float(st_duration)
         if not 0. < st_duration <= raw.times[-1]:
@@ -465,6 +450,32 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0)
     logger.info('[done]')
     return raw_sss
+
+
+def _check_destination(destination, info, head_frame):
+    """Helper to triage our reconstruction trans"""
+    if destination is None:
+        return info['dev_head_t']
+    if not head_frame:
+        raise RuntimeError('destination can only be set if using the '
+                           'head coordinate frame')
+    if isinstance(destination, string_types):
+        recon_trans = _get_trans(destination, 'meg', 'head')[0]
+    elif isinstance(destination, Transform):
+        recon_trans = destination
+    else:
+        destination = np.array(destination, float)
+        if destination.shape != (3,):
+            raise ValueError('destination must be a 3-element vector, '
+                             'str, or None')
+        recon_trans = np.eye(4)
+        recon_trans[:3, 3] = destination
+        recon_trans = Transform('meg', 'head', recon_trans)
+    if recon_trans.to_str != 'head' or recon_trans.from_str != 'MEG device':
+        raise RuntimeError('Destination transform is not MEG device -> head, '
+                           'got %s -> %s' % (recon_trans.from_str,
+                                             recon_trans.to_str))
+    return recon_trans
 
 
 def _prep_mf_coils(info, ignore_ref=True):

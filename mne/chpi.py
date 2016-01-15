@@ -184,9 +184,9 @@ def head_quats_to_trans_rot_t(quats):
     read_pos
     write_pos
     """
-    t = quats[:, 0].copy()
-    rotation = quat_to_rot(quats[:, 1:4])
-    translation = quats[:, 4:7].copy()
+    t = quats[..., 0].copy()
+    rotation = quat_to_rot(quats[..., 1:4])
+    translation = quats[..., 4:7].copy()
     return translation, rotation, t
 
 

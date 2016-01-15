@@ -2657,7 +2657,8 @@ def concatenate_epochs(epochs_list):
 @verbose
 def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
                       weight_all=True, int_order=8, ext_order=3,
-                      ignore_ref=False, return_mapping=False, verbose=None):
+                      destination=None, ignore_ref=False, return_mapping=False,
+                      verbose=None):
     """Average data using Maxwell filtering, transforming using head positions
 
     Parameters
@@ -2692,6 +2693,17 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         Basis regularization type, must be "in" or None.
         See :func:`mne.preprocessing.maxwell_filter` for details.
         Regularization is chosen based only on the destination position.
+    destination : str | array-like, shape (3,) | None
+        The destination location for the head. Can be ``None``, which
+        will not change the head position, or a string path to a FIF file
+        containing a MEG device<->head transformation, or a 3-element array
+        giving the coordinates to translate to (with no rotations).
+        For example, ``destination=(0, 0, 0.04)`` would translate the bases
+        as ``--trans default`` would in MaxFilter™ (i.e., to the default
+        head location).
+
+        .. versionadded:: 0.12
+
     ignore_ref : bool
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since Maxwell filtering
@@ -2737,7 +2749,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     from .preprocessing.maxwell import (_trans_sss_basis, _reset_meg_bads,
                                         _check_usable, _col_norm_pinv,
                                         _get_n_moments, _get_mf_picks,
-                                        _prep_mf_coils)
+                                        _prep_mf_coils, _check_destination)
     from .chpi import head_quats_to_trans_rot_t
     if not isinstance(epochs, _BaseEpochs):
         raise TypeError('epochs must be an instance of Epochs, not %s'
@@ -2750,9 +2762,12 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     del pos
     _check_usable(epochs)
     origin = _check_origin(origin, epochs.info, 'head')
+    recon_trans = _check_destination(destination, epochs.info, True)
 
     logger.info('Aligning and averaging up to %s epochs'
                 % (len(epochs.events)))
+    if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):
+        raise RuntimeError('Epochs must have monotonically increasing events')
     meg_picks, _, _, good_picks, coil_scale, _ = \
         _get_mf_picks(epochs.info, int_order, ext_order, ignore_ref)
     n_channels, n_times = len(epochs.ch_names), len(epochs.times)
@@ -2778,11 +2793,11 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
         use_idx = np.where(t <= event_time)[0]
         if len(use_idx) == 0:
-            raise RuntimeError('Event time %0.3f occurs before first '
-                               'position time %0.3f' % (event_time, t[0]))
-        use_idx = use_idx[-1]
-        trans = np.vstack([np.hstack([rot[use_idx], trn[[use_idx]].T]),
-                           [[0., 0., 0., 1.]]])
+            trans = epochs.info['dev_head_t']['trans']
+        else:
+            use_idx = use_idx[-1]
+            trans = np.vstack([np.hstack([rot[use_idx], trn[[use_idx]].T]),
+                               [[0., 0., 0., 1.]]])
         loc_str = ', '.join('%0.1f' % tr for tr in (trans[:3, 3] * 1000))
         if last_trans is None or not np.allclose(last_trans, trans):
             logger.info('    Processing epoch %s (device location: %s mm)'
@@ -2818,7 +2833,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         # Get recon matrix
         # (We would need to include external here for regularization to work)
         exp['ext_order'] = 0
-        S_recon = _trans_sss_basis(exp, all_coils_recon, info_to['dev_head_t'])
+        S_recon = _trans_sss_basis(exp, all_coils_recon, recon_trans)
         exp['ext_order'] = ext_order
         # We could determine regularization on basis of destination basis
         # matrix, restricted to good channels, as regularizing individual
