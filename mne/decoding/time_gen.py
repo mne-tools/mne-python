@@ -142,6 +142,8 @@ class _GeneralizationAcrossTime(object):
             cv = StratifiedKFold(y, cv)
         cv = check_cv(cv, X, y, classifier=True)
         self.cv_ = cv  # update CV
+        if not np.all([len(train) for train, _ in self.cv_]):
+            raise ValueError('Some folds do not have any train epochs.')
 
         self.y_train_ = y
 
@@ -209,6 +211,9 @@ class _GeneralizationAcrossTime(object):
         n_jobs = self.n_jobs
 
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
+
+        if not np.all([len(test) for train, test in self.cv_]):
+            logger.warning('Some folds do not have any test epochs.')
 
         # Define testing sliding window
         if self.test_times == 'diagonal':
