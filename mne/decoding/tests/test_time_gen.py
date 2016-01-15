@@ -253,9 +253,14 @@ def test_generalization_across_time():
 
     # TODO JRK: test GAT with non-exhaustive CV (eg. train on 80%, test on 10%)
 
-    # Make CV with some empty tests to ensure that the folds are passed
+    # Make CV with some empty train and test folds:
+    # --- empty test fold(s) should warn when gat.predict()
     gat.cv_.test_folds[gat.cv_.test_folds == 1] = 0
-    gat.predict(epochs)
+    with warnings.catch_warnings(record=True):
+        gat.predict(epochs)
+    # --- empty train fold(s) should raise when gat.fit()
+    gat = GeneralizationAcrossTime(cv=[([0], [1]), ([], [0])])
+    assert_raises(ValueError, gat.fit, epochs[:2])
 
     # Check that still works with classifier that output y_pred with
     # shape = (n_trials, 1) instead of (n_trials,)
