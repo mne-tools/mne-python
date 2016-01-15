@@ -1826,6 +1826,4 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         # Finally remove the vertical line so it does not appear in saved fig.
         params['line'].remove()
 
-    fig.set_size_inches(8, 8, forward=True)  # work around for mpl bug
-    tight_layout(fig=fig)
     return fig, anim
