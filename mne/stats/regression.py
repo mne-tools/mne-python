@@ -273,6 +273,12 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     events = events.copy()
     events[:, 0] -= raw.first_samp
     events[:, 0] //= decim
+    if len(set(events[:, 0])) < len(events[:, 0]):
+        msg = ("After decimating, `events` contains duplicate time points. "
+                "This means some events are too closely spaced for the "
+                "requested decimation factor. Choose different events, "
+                "drop close events, or choose a different decimation factor.")
+        raise ValueError(msg)
 
     conds = list(event_id)
     if covariates is not None:
