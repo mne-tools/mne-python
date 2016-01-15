@@ -116,7 +116,7 @@ def test_continuous_regression_no_overlap():
 
     events[1, 0] = old_latency
     events[:, 0] = range(len(events))
-    assert_raises(ValueError, linear_regression_raw, raw, 
+    assert_raises(ValueError, linear_regression_raw, raw,
                   events, event_id, tmin, tmax, decim=2)
 
 
