@@ -19,8 +19,7 @@ from .fixes import in1d
 from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
-from .viz.evoked import _plot_evoked_white, _joint_plot,
-                  plot_evoked_image, plot_evoked_topo, animate_evoked)
+from .viz.evoked import _plot_evoked_white, _joint_plot, animate_evoked
 
 from .externals.six import string_types
 
