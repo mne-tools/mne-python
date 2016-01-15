@@ -103,14 +103,22 @@ def test_continuous_regression_no_overlap():
                                      tmin=tmin, tmax=tmax,
                                      reject=None)
 
-    events[1, 0] = events[0, 0]
-    assert_raises(ValueError, linear_regression_raw,
-                  raw, events, event_id, tmin, tmax)
-
+    # Check that evokeds and revokeds are nearly equivalent
     for cond in event_id.keys():
         assert_allclose(revokeds[cond].data,
                         epochs[cond].average().data)
 
+    # Test events that will lead to "duplicate" errors
+    old_latency = events[1, 0]
+    events[1, 0] = events[0, 0]
+    assert_raises(ValueError, linear_regression_raw,
+                  raw, events, event_id, tmin, tmax)
+
+    events[1, 0] = old_latency
+    events[:, 0] = range(len(events)
+    assert_raises(ValueError, linear_regression_raw,
+                  raw, events, event_id, tmin, tmax,
+                  decim=2)
 
 def test_continuous_regression_with_overlap():
     """Test regression with overlap correction"""
