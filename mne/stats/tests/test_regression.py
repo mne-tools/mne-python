@@ -120,6 +120,7 @@ def test_continuous_regression_no_overlap():
                   raw, events, event_id, tmin, tmax,
                   decim=2)
 
+
 def test_continuous_regression_with_overlap():
     """Test regression with overlap correction"""
     signal = np.zeros(100000)
