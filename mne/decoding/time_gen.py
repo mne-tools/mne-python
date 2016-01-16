@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+import warnings
 import numpy as np
 import copy
 
@@ -213,7 +214,7 @@ class _GeneralizationAcrossTime(object):
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
         if not np.all([len(test) for train, test in self.cv_]):
-            logger.warning('Some folds do not have any test epochs.')
+            warnings.warn('Some folds do not have any test epochs.')
 
         # Define testing sliding window
         if self.test_times == 'diagonal':
@@ -465,7 +466,7 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode,
         elif predict_mode == 'cross-validation':
             # Predict with the estimator trained on the separate training set.
             for k, (train, test) in enumerate(cv):
-                if np.asarray(test).size == 0:
+                if test.size == 0:
                     continue
                 # Single trial predictions
                 X_pred_t = X_pred[test_epochs_slices[k]]
