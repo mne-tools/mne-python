@@ -267,12 +267,19 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     data = data[picks, ::decim]
     times = times[::decim]
     if len(set(events[:, 0])) < len(events[:, 0]):
-        msg = ("`events` contains duplicate time points. Make sure"
-               " all entries in the first column of `events` are unique.")
-        raise ValueError(msg)
+        raise ValueError("`events` contains duplicate time points. Make "
+                         "sure all entries in the first column of `events` "
+                         "are unique.")
+
     events = events.copy()
     events[:, 0] -= raw.first_samp
     events[:, 0] //= decim
+    if len(set(events[:, 0])) < len(events[:, 0]):
+        raise ValueError("After decimating, `events` contains duplicate time "
+                         "points. This means some events are too closely "
+                         "spaced for the requested decimation factor. Choose "
+                         "different events, drop close events, or choose a "
+                         "different decimation factor.")
 
     conds = list(event_id)
     if covariates is not None:
