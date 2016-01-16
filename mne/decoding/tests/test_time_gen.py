@@ -36,9 +36,10 @@ def make_epochs():
     decim = 30
 
     # Test on time generalization within one condition
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True, decim=decim)
+        assert_equal(len(w), 1)
     return epochs
 
 
@@ -136,17 +137,13 @@ def test_generalization_across_time():
 
     # Test longer time window
     gat = GeneralizationAcrossTime(train_times={'length': .100})
-    with warnings.catch_warnings(record=True) as w:
-        # Warning is thrown when window duration is not 1 time sample
-        # XXX
-        gat2 = gat.fit(epochs)
+    gat2 = gat.fit(epochs)  # FIXME need to catch warning from logger
 
     assert_true(gat is gat2)  # return self
     assert_true(hasattr(gat2, 'cv_'))
     assert_true(gat2.cv_ != gat.cv)
-    with warnings.catch_warnings(record=True) as w:
-        # Warning is thrown when window duration is not 1 time sample
-        scores = gat.score(epochs)
+    scores = gat.score(epochs)  # FIXME need to catch warning from logger
+
     assert_true(isinstance(scores, list))  # type check
     assert_equal(len(scores[0]), len(scores))  # shape check
 
@@ -175,8 +172,7 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime(test_times='diagonal')
     gat.fit(epochs)
     assert_raises(RuntimeError, gat.score)
-    with warnings.catch_warnings(record=True) as w:
-        gat.predict(epochs)
+    gat.predict(epochs)  # FIXME need to catch warning from logger
     scores = gat.score()
     assert_true(scores is gat.scores_)
     assert_equal(np.shape(gat.scores_), (15, 1))
