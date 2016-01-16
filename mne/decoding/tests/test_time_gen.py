@@ -184,7 +184,6 @@ def test_generalization_across_time():
     with warnings.catch_warnings(record=True) as w:
         # This scenario use has len(y) < n_folds and thus throws a warning
         gat.fit(epochs[0:6])
-        print(w[0].message)
         # This scenario introduces empty slices and thus throws warnings
         gat.predict(epochs[7:])
         gat.score(epochs[7:])
