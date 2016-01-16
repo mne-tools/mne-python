@@ -5,6 +5,7 @@ from numpy.testing import assert_array_almost_equal, assert_raises
 from nose.tools import assert_true
 
 from mne import io, pick_types, Epochs, read_events
+from mne.io import RawArray
 from mne.utils import requires_version, slow_test
 from mne.time_frequency import (compute_raw_psd, compute_epochs_psd,
                                 psd_welch, psd_multitaper)
@@ -19,19 +20,22 @@ def test_psd():
     """Tests the welch and multitaper PSD
     """
     raw = io.Raw(raw_fname)
-    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
-    include = []
+    picks_psd = [0, 1]
 
-    tmin, tmax = 0, 10  # use the first 60s of data
-    fmin, fmax = 2, 70  # look at frequencies between 5 and 70Hz
+    # Populate raw with sinusoids
+    rng = np.random.RandomState(40)
+    data = 0.1 * rng.randn(len(raw.ch_names), raw.n_times)
+    freqs_sig = [8., 50.]
+    for ix, freq in zip(picks_psd, freqs_sig):
+        data[ix, :] += 2 * np.sin(np.pi * 2. * freq * raw.times)
+    first_samp = raw._first_samps[0]
+    raw = RawArray(data, raw.info)
+
+    tmin, tmax = 0, 20  # use a few seconds of data
+    fmin, fmax = 2, 70  # look at frequencies between 2 and 70Hz
     n_fft = 128
 
-    # picks MEG gradiometers
-    picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                       stim=False, include=include, exclude=exclude)
-
     # -- Raw --
-    picks_psd = picks[:2]
     kws_psd = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                    picks=picks_psd)  # Common to all
     kws_welch = dict(n_fft=n_fft)
@@ -45,13 +49,19 @@ def test_psd():
         for func, kws in funcs:
             kws = kws.copy()
             kws.update(kws_psd)
-            kws.update(tmin=tmin, tmax=tmax)
             psds, freqs = func(raw, proj=False, **kws)
             psds_proj, freqs_proj = func(raw, proj=True, **kws)
 
             assert_true(psds.shape == (len(kws['picks']), len(freqs)))
             assert_true(np.sum(freqs < 0) == 0)
             assert_true(np.sum(psds < 0) == 0)
+
+            # Is power found where it should be
+            ixs_max = np.argmax(psds, axis=1)
+            for ixmax, ifreq in zip(ixs_max, freqs_sig):
+                # Find nearest frequency to the "true" freq
+                ixtrue = np.argmin(np.abs(ifreq - freqs))
+                assert_true(np.abs(ixmax - ixtrue) < 2)
 
             # Make sure the projection doesn't change channels it shouldn't
             assert_array_almost_equal(psds, psds_proj)
@@ -61,19 +71,16 @@ def test_psd():
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)
+    events[:, 0] -= first_samp
     tmin, tmax, event_id = -0.5, 0.5, 1
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0),
-                    reject=dict(grad=4000e-13, eog=150e-6), proj=False,
-                    preload=True)
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks_psd,
+                    proj=False, preload=True, baseline=None)
     evoked = epochs.average()
 
     tmin_full, tmax_full = -1, 1
     epochs_full = Epochs(raw, events[:10], event_id, tmin_full, tmax_full,
-                         picks=picks, baseline=(None, 0),
-                         reject=dict(grad=4000e-13, eog=150e-6), proj=False,
-                         preload=True)
-
+                         picks=picks_psd, proj=False, preload=True,
+                         baseline=None)
     kws_psd = dict(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                    picks=picks_psd)  # Common to all
     funcs = [(psd_welch, kws_welch),
@@ -98,6 +105,12 @@ def test_psd():
             # Make sure the projection doesn't change channels it shouldn't
             assert_array_almost_equal(psds, psds_proj, 27)
 
+            # Is power found where it should be
+            ixs_max = np.argmax(psds.mean(0), axis=1)
+            for ixmax, ifreq in zip(ixs_max, freqs_sig):
+                # Find nearest frequency to the "true" freq
+                ixtrue = np.argmin(np.abs(ifreq - freqs))
+                assert_true(np.abs(ixmax - ixtrue) < 2)
             assert_true(psds.shape == (1, len(kws['picks']), len(freqs)))
             assert_true(np.sum(freqs < 0) == 0)
             assert_true(np.sum(psds < 0) == 0)
@@ -111,6 +124,14 @@ def test_psd():
                     evoked, proj=False, **kws)
                 psds_ev_proj, freqs_ev_proj = func(
                     evoked, proj=True, **kws)
+
+                # Is power found where it should be
+                ixs_max = np.argmax(psds_ev, axis=1)
+                for ixmax, ifreq in zip(ixs_max, freqs_sig):
+                    # Find nearest frequency to the "true" freq
+                    ixtrue = np.argmin(np.abs(ifreq - freqs_ev))
+                    assert_true(np.abs(ixmax - ixtrue) < 2)
+
                 # Make sure the projection doesn't change channels it shouldn't
                 assert_array_almost_equal(psds_ev, psds_ev_proj, 27)
                 assert_true(psds_ev.shape == (len(kws['picks']), len(freqs)))

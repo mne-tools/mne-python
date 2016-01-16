@@ -547,7 +547,7 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     # Combining/reshaping to original data shape
     psd = psd.reshape(np.hstack([dshape, -1]))
     if ndim_in == 1:
-        psd = psd.squeeze()
+        psd = psd[0, :]
     return psd, freqs
 
 
