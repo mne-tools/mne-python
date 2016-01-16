@@ -185,8 +185,10 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
     with warnings.catch_warnings(record=True):
         gat.fit(epochs[0:6])
-    gat.predict(epochs[7:])
-    gat.score(epochs[7:])
+    with warnings.catch_warnings(record=True):
+        # There are some empty test folds because of n_trials
+        gat.predict(epochs[7:])
+        gat.score(epochs[7:])
 
     # Test training time parameters
     gat_ = copy.deepcopy(gat)
@@ -256,8 +258,10 @@ def test_generalization_across_time():
     # Make CV with some empty train and test folds:
     # --- empty test fold(s) should warn when gat.predict()
     gat.cv_.test_folds[gat.cv_.test_folds == 1] = 0
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         gat.predict(epochs)
+        # FIXME assert_true('Some folds do not have any test epochs.' in w)
     # --- empty train fold(s) should raise when gat.fit()
     gat = GeneralizationAcrossTime(cv=[([0], [1]), ([], [0])])
     assert_raises(ValueError, gat.fit, epochs[:2])
