@@ -91,8 +91,7 @@ def test_generalization_across_time():
     gat.score(epochs, y=epochs.events[:, 2])
     gat.score(epochs, y=epochs.events[:, 2].tolist())
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
-                 "predicted 14 epochs,\n scored "
-                 "(accuracy_score)>", "%s" % gat)
+                 "predicted 14 epochs,\n scored (accuracy_score)>", "%s" % gat)
     gat.fit(epochs, y=epochs.events[:, 2])
 
     old_mode = gat.predict_mode
