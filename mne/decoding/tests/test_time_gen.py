@@ -71,12 +71,16 @@ def test_generalization_across_time():
                  "prediction, no score>", '%s' % gat)
     assert_equal(gat.ch_names, epochs.ch_names)
     # test different predict function:
-    gat.decision_function(epochs)
+    gat = GeneralizationAcrossTime(predict_function='decision_function')
+    gat.fit(epochs)
+    gat.predict(epochs)
     assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
-    gat.predict_proba(epochs)
+    gat.predict_function = 'predict_proba'
+    gat.predict(epochs)
     assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 2))
-    assert_raises(NotImplementedError, gat._predict, epochs,
-                  predict_function='foo')
+    gat.predict_function = 'foo'
+    assert_raises(NotImplementedError, gat.predict, epochs)
+    gat.predict_function = 'predict'
     gat.predict(epochs)
     assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "

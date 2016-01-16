@@ -64,8 +64,8 @@ class _GeneralizationAcrossTime(object):
     """ see GeneralizationAcrossTime
     """  # noqa
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
-                 test_times=None, predict_mode='cross-validation', scorer=None,
-                 n_jobs=1):
+                 test_times=None, predict_function='predict',
+                 predict_mode='cross-validation', scorer=None, n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
         from sklearn.linear_model import LogisticRegression
@@ -93,6 +93,7 @@ class _GeneralizationAcrossTime(object):
         self.predict_mode = predict_mode
         self.scorer = scorer
         self.picks = picks
+        self.predict_function = predict_function
         self.n_jobs = n_jobs
 
     def fit(self, epochs, y=None):
@@ -189,64 +190,12 @@ class _GeneralizationAcrossTime(object):
             not be regular; else
             ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs)``.
         """  # noqa
-        return self._predict(epochs, predict_function='predict')
-
-    def predict_proba(self, epochs):
-        """ Classifiers' probabilistic predictions on each specified testing
-        time slice. Necessitate clf to have `predict_proba`.
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            The epochs. Can be similar to fitted epochs or not. See
-            predict_mode parameter.
-
-        Returns
-        -------
-        y_pred : list of lists of arrays of floats, shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
-            The single-trial probabilistic predictions at each training time and each
-            testing time. Note that the number of testing times per training time need
-            not be regular; else
-            ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs, n_class)``.
-
-        """  # noqa
-        return self._predict(epochs, predict_function='predict_proba')
-
-    def decision_function(self, epochs):
-        """ Classifiers' predictions distance to hyperplane on each specified
-         testing time slice. Necessitate clf to have `decision_function`.
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            The epochs. Can be similar to fitted epochs or not. See
-            predict_mode parameter.
-
-        Returns
-        -------
-        y_pred : list of lists of arrays of floats, shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
-            The single-trial prediction distances at each training time and each
-            testing time. Note that the number of testing times per training time need
-            not be regular; else
-            ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs)``.
-        """  # noqa
-        return self._predict(epochs, predict_function='decision_function')
-
-    def _predict(self, epochs, predict_function):
-        """ Auxiliary function to make prediction for each clf at each testing
-        time. See predict
-        epochs : instance of Epochs
-                    The epochs. Can be similar to fitted epochs or not. See
-                    predict_mode parameter.
-        predict_function : {'predict', 'predict_proba', 'decision_function'}
-            Specifies prediction function. See scikit-learn.
-        """
 
         # Check that classifier has predict_function (e.g. predict_proba is not
         # always available):
-        if not hasattr(self.clf, predict_function):
+        if not hasattr(self.clf, self.predict_function):
             raise NotImplementedError('%s does not have `%s`' % (
-                self.clf, predict_function))
+                self.clf, self.predict_function))
 
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
@@ -313,7 +262,7 @@ class _GeneralizationAcrossTime(object):
             slices_ = np.array(slices) - start
             X_ = X[:, :, start:stop]
             return (X_, self.estimators_, self.cv_, slices_.tolist(),
-                    self.predict_mode, predict_function)
+                    self.predict_mode, self.predict_function)
 
         y_pred = parallel(p_time_gen(*chunk_X(X, slices))
                           for slices in splits)
@@ -441,6 +390,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode,
     slices : list
         List of slices selecting data from X from which is prediction is
         generated.
+    predict_function : {'predict', 'predict_proba', 'decision_function'}
+        Specifies prediction function. See scikit-learn.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -451,8 +402,6 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode,
                 each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
         Default: 'cross-validation'
-    predict_function : {'predict', 'predict_proba', 'decision_function'}
-        Specifies prediction function. See scikit-learn.
     """
 
     # Check inputs
@@ -765,12 +714,7 @@ def _predict(X, estimators, is_single_time_sample, predict_function):
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
     for fold, clf in enumerate(estimators):
-        if predict_function == 'predict':
-            _y_pred = clf.predict(X)
-        elif predict_function == 'predict_proba':
-            _y_pred = clf.predict_proba(X)
-        elif predict_function == 'decision_function':
-            _y_pred = clf.decision_function(X)
+        _y_pred = getattr(clf, predict_function)(X)
         # See inconsistency in dimensionality: scikit-learn/scikit-learn#5058
         if _y_pred.ndim == 1:
             _y_pred = _y_pred[:, None]
@@ -851,6 +795,8 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
                 If not given, computed from 'start', 'stop', 'length', 'step'.
 
         If None, empty dict.
+    predict_function : str
+        Function used to make estimator predictions. Defaults to 'predict'.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -928,12 +874,12 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     .. versionadded:: 0.9.0
     """  # noqa
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
-                 test_times=None, predict_mode='cross-validation', scorer=None,
-                 n_jobs=1):
+                 test_times=None, predict_function='predict',
+                 predict_mode='cross-validation', scorer=None, n_jobs=1):
         super(GeneralizationAcrossTime, self).__init__(
             picks=picks, cv=cv, clf=clf, train_times=train_times,
-            test_times=test_times, predict_mode=predict_mode, scorer=scorer,
-            n_jobs=n_jobs)
+            test_times=test_times, predict_function=predict_function,
+            predict_mode=predict_mode, scorer=scorer, n_jobs=n_jobs)
 
     def __repr__(self):
         s = ''
@@ -1144,6 +1090,8 @@ class TimeDecoding(_GeneralizationAcrossTime):
                 one time sample.
 
         If None, empty dict.
+    predict_function : str
+        Function used to make estimator predictions. Defaults to 'predict'.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -1203,10 +1151,12 @@ class TimeDecoding(_GeneralizationAcrossTime):
     """
 
     def __init__(self, picks=None, cv=5, clf=None, times=None,
-                 predict_mode='cross-validation', scorer=None, n_jobs=1):
+                 predict_function='predict', predict_mode='cross-validation',
+                 scorer=None, n_jobs=1):
         super(TimeDecoding, self).__init__(picks=picks, cv=cv, clf=None,
                                            train_times=times,
                                            test_times='diagonal',
+                                           predict_function=predict_function,
                                            predict_mode=predict_mode,
                                            scorer=scorer, n_jobs=n_jobs)
         self._clean_times()
