@@ -727,7 +727,7 @@ def _predict(X, estimators, is_single_time_sample, predict_method):
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:
         # XXX need API to identify how multiple predictions can be combined?
-        if is_classifier(clf):
+        if is_classifier(clf) and (predict_method == 'predict'):
             y_pred, _ = stats.mode(y_pred, axis=2)
         else:
             y_pred = np.mean(y_pred, axis=2)

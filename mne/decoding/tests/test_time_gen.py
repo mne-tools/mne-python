@@ -284,12 +284,14 @@ def test_generalization_across_time():
     for clf, scorer in zip(clfs, scorers):
         for y in ys:
             for n_class in n_classes:
-                y_ = y % n_class
-                with warnings.catch_warnings(record=True):
-                    gat = GeneralizationAcrossTime(cv=2, clf=clf,
-                                                   scorer=scorer)
-                    gat.fit(epochs, y=y_)
-                    gat.score(epochs, y=y_)
+                for predict_mode in ['cross-validation', 'mean-prediction']:
+                    y_ = y % n_class
+                    with warnings.catch_warnings(record=True):
+                        gat = GeneralizationAcrossTime(
+                            cv=2, clf=clf, scorer=scorer,
+                            predict_mode=predict_mode)
+                        gat.fit(epochs, y=y_)
+                        gat.score(epochs, y=y_)
 
 
 @requires_sklearn
