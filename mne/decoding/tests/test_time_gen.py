@@ -70,7 +70,19 @@ def test_generalization_across_time():
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), no "
                  "prediction, no score>", '%s' % gat)
     assert_equal(gat.ch_names, epochs.ch_names)
+    # test different predict function:
+    gat = GeneralizationAcrossTime(predict_method='decision_function')
+    gat.fit(epochs)
     gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
+    gat.predict_method = 'predict_proba'
+    gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 2))
+    gat.predict_method = 'foo'
+    assert_raises(NotImplementedError, gat.predict, epochs)
+    gat.predict_method = 'predict'
+    gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
                  "predicted 14 epochs, no score>",
                  "%s" % gat)
@@ -272,12 +284,14 @@ def test_generalization_across_time():
     for clf, scorer in zip(clfs, scorers):
         for y in ys:
             for n_class in n_classes:
-                y_ = y % n_class
-                with warnings.catch_warnings(record=True):
-                    gat = GeneralizationAcrossTime(cv=2, clf=clf,
-                                                   scorer=scorer)
-                    gat.fit(epochs, y=y_)
-                    gat.score(epochs, y=y_)
+                for predict_mode in ['cross-validation', 'mean-prediction']:
+                    y_ = y % n_class
+                    with warnings.catch_warnings(record=True):
+                        gat = GeneralizationAcrossTime(
+                            cv=2, clf=clf, scorer=scorer,
+                            predict_mode=predict_mode)
+                        gat.fit(epochs, y=y_)
+                        gat.score(epochs, y=y_)
 
 
 @requires_sklearn
