@@ -23,7 +23,7 @@ from ..utils import _clean_names, _time_mask, verbose, logger
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times)
-from ..time_frequency import compute_epochs_psd
+from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 
@@ -1298,9 +1298,9 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
 
 @verbose
 def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
-                            tmin=None, tmax=None,
-                            proj=False, n_fft=256, ch_type=None,
-                            n_overlap=0, layout=None,
+                            tmin=None, tmax=None, proj=False,
+                            bandwidth=None, adaptive=False, low_bias=True,
+                            normalization='length', ch_type=None, layout=None,
                             cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
                             normalize=False, cbar_fmt='%0.3f',
                             outlines='head', show=True, verbose=None):
@@ -1331,14 +1331,23 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         End time to consider.
     proj : bool
         Apply projection.
-    n_fft : int
-        Number of points to use in Welch FFT calculations.
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz. The default
+        value is a window half-bandwidth of 4 Hz.
+    adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth.
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.
         If None, then channels are chosen in the order given above.
-    n_overlap : int
-        The number of points of overlap between blocks.
     layout : None | Layout
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout
@@ -1389,10 +1398,11 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         epochs, ch_type, layout)
 
-    psds, freqs = compute_epochs_psd(epochs, picks=picks, n_fft=n_fft,
-                                     tmin=tmin, tmax=tmax,
-                                     n_overlap=n_overlap, proj=proj,
-                                     n_jobs=n_jobs)
+    psds, freqs = psd_multitaper(epochs, tmin=tmin, tmax=tmax,
+                                 bandwidth=bandwidth, adaptive=adaptive,
+                                 low_bias=low_bias,
+                                 normalization=normalization, picks=picks,
+                                 proj=proj, n_jobs=n_jobs)
     psds = np.mean(psds, axis=0)
 
     if merge_grads:

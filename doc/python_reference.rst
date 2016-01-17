@@ -774,8 +774,8 @@ Functions that operate on mne-python objects:
    :template: function.rst
 
    compute_epochs_csd
-   compute_epochs_psd
-   compute_raw_psd
+   psd_welch
+   psd_multitaper
    fit_iir_model_raw
    tfr_morlet
    tfr_multitaper

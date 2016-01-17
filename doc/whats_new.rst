@@ -15,13 +15,18 @@ Changelog
 BUG
 ~~~
 
-    -
+    - :func:`compute_raw_psd`, :func:`compute_epochs_psd`, :func:`psd_multitaper`, and :func:`psd_welch` no longer remove rows/columns of the SSP matrix before applying SSP projectors when picks are provided by `Chris Holdgraf`_.
+
+    - :func:`mne.Epochs.plot_psd` no longer calls a Welch PSD, and instead uses a Multitaper method which is more appropriate for epochs. Flags for this function are passed to :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
 API
 ~~~
 
     - The default `picks=None` in :func:`mne.viz.plot_epochs_image` now only plots the first 5 channels, not all channels, by `Jona Sassenhagen`_
 
+    - Deprecated functions :func:`mne.time_frequency.compute_raw_psd` and :func:`mne.time_frequency.compute_epochs_psd`, replaced by :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
+
+    - Deprecated function :func:`mne.time_frequency.multitaper_psd` and replaced by :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
 .. _changes_0_11:
 

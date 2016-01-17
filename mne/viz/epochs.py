@@ -19,7 +19,7 @@ from ..utils import verbose, get_config, set_config, logger
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
-from ..time_frequency import compute_epochs_psd
+from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show)
@@ -427,10 +427,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
 @verbose
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
-                    proj=False, n_fft=256,
-                    picks=None, ax=None, color='black', area_mode='std',
-                    area_alpha=0.33, n_overlap=0,
-                    dB=True, n_jobs=1, show=True, verbose=None):
+                    proj=False, bandwidth=None, adaptive=False, low_bias=True,
+                    normalization='length', picks=None, ax=None, color='black',
+                    area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
+                    show=True, verbose=None):
     """Plot the power spectral density across epochs
 
     Parameters
@@ -447,8 +447,19 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         End time to consider.
     proj : bool
         Apply projection.
-    n_fft : int
-        Number of points to use in Welch FFT calculations.
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz. The default
+        value is a window half-bandwidth of 4.
+    adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth.
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
     picks : array-like of int | None
         List of channels to use.
     ax : instance of matplotlib Axes | None
@@ -462,8 +473,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         If None, no area will be plotted.
     area_alpha : float
         Alpha for the area.
-    n_overlap : int
-        The number of points of overlap between blocks.
     dB : bool
         If True, transform data to decibels.
     n_jobs : int
@@ -484,11 +493,12 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
-        psds, freqs = compute_epochs_psd(epochs, picks=picks, fmin=fmin,
-                                         fmax=fmax, tmin=tmin, tmax=tmax,
-                                         n_fft=n_fft,
-                                         n_overlap=n_overlap, proj=proj,
-                                         n_jobs=n_jobs)
+        psds, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
+                                     fmax=fmax, tmin=tmin, tmax=tmax,
+                                     bandwidth=bandwidth, adaptive=adaptive,
+                                     low_bias=low_bias,
+                                     normalization=normalization, proj=proj,
+                                     n_jobs=n_jobs)
 
         # Convert PSDs to dB
         if dB:

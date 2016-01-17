@@ -828,10 +828,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, show=show, block=block)
 
-    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
+    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, bandwidth=None,
+                 adaptive=False, low_bias=True, normalization='length',
                  picks=None, ax=None, color='black', area_mode='std',
-                 area_alpha=0.33, n_overlap=0, dB=True,
-                 n_jobs=1, verbose=None, show=True):
+                 area_alpha=0.33, dB=True, n_jobs=1, verbose=None, show=True):
         """Plot the power spectral density across epochs
 
         Parameters
@@ -842,8 +842,19 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             End frequency to consider.
         proj : bool
             Apply projection.
-        n_fft : int
-            Number of points to use in Welch FFT calculations.
+        bandwidth : float
+            The bandwidth of the multi taper windowing function in Hz.
+            The default value is a window half-bandwidth of 4.
+        adaptive : bool
+            Use adaptive weights to combine the tapered spectra into PSD
+            (slow, use n_jobs >> 1 to speed up computation).
+        low_bias : bool
+            Only use tapers with more than 90% spectral concentration within
+            bandwidth.
+        normalization : str
+            Either "full" or "length" (default). If "full", the PSD will
+            be normalized by the sampling rate as well as the length of
+            the signal (as in nitime).
         picks : array-like of int | None
             List of channels to use.
         ax : instance of matplotlib Axes | None
@@ -857,8 +868,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             these calculations. If None, no area will be plotted.
         area_alpha : float
             Alpha for the area.
-        n_overlap : int
-            The number of points of overlap between blocks.
         dB : bool
             If True, transform data to decibels.
         n_jobs : int
@@ -874,18 +883,18 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Figure distributing one image per channel across sensor topography.
         """
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, proj=proj,
-                               n_fft=n_fft, picks=picks, ax=ax,
-                               color=color, area_mode=area_mode,
-                               area_alpha=area_alpha,
-                               n_overlap=n_overlap, dB=dB, n_jobs=n_jobs,
-                               verbose=None, show=show)
+                               bandwidth=bandwidth, adaptive=adaptive,
+                               low_bias=low_bias, normalization=normalization,
+                               picks=picks, ax=ax, color=color,
+                               area_mode=area_mode, area_alpha=area_alpha,
+                               dB=dB, n_jobs=n_jobs, verbose=None, show=show)
 
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
-                         n_fft=256, ch_type=None,
-                         n_overlap=0, layout=None, cmap='RdBu_r',
-                         agg_fun=None, dB=True, n_jobs=1, normalize=False,
-                         cbar_fmt='%0.3f', outlines='head', show=True,
-                         verbose=None):
+                         bandwidth=None, adaptive=False, low_bias=True,
+                         normalization='length', ch_type=None,
+                         layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
+                         n_jobs=1, normalize=False, cbar_fmt='%0.3f',
+                         outlines='head', show=True, verbose=None):
         """Plot the topomap of the power spectral density across epochs
 
         Parameters
@@ -907,16 +916,25 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             output equals vmax(data). Defaults to None.
         proj : bool
             Apply projection.
-        n_fft : int
-            Number of points to use in Welch FFT calculations.
+        bandwidth : float
+            The bandwidth of the multi taper windowing function in Hz.
+            The default value is a window half-bandwidth of 4 Hz.
+        adaptive : bool
+            Use adaptive weights to combine the tapered spectra into PSD
+            (slow, use n_jobs >> 1 to speed up computation).
+        low_bias : bool
+            Only use tapers with more than 90% spectral concentration within
+            bandwidth.
+        normalization : str
+            Either "full" or "length" (default). If "full", the PSD will
+            be normalized by the sampling rate as well as the length of
+            the signal (as in nitime).
         ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
             The channel type to plot. For 'grad', the gradiometers are
             collected in
             pairs and the RMS for each pair is plotted. If None, defaults to
             'mag' if MEG data are present and to 'eeg' if only EEG data are
             present.
-        n_overlap : int
-            The number of points of overlap between blocks.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct layout
@@ -962,8 +980,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Figure distributing one image per channel across sensor topography.
         """
         return plot_epochs_psd_topomap(
-            self, bands=bands, vmin=vmin, vmax=vmax, proj=proj, n_fft=n_fft,
-            ch_type=ch_type, n_overlap=n_overlap, layout=layout, cmap=cmap,
+            self, bands=bands, vmin=vmin, vmax=vmax, proj=proj,
+            bandwidth=bandwidth, adaptive=adaptive,
+            low_bias=low_bias, normalization=normalization,
+            ch_type=ch_type, layout=layout, cmap=cmap,
             agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
             cbar_fmt=cbar_fmt, outlines=outlines, show=show, verbose=None)
 
