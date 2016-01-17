@@ -16,6 +16,8 @@ from mne.utils import (requires_sklearn, requires_sklearn_0_15, slow_test,
 from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
 
+warnings.simplefilter('always')
+
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
@@ -57,15 +59,14 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime(picks='foo')
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
     assert_raises(ValueError, gat.fit, epochs)
-    with warnings.catch_warnings(record=True):
-        # check classic fit + check manual picks
-        gat.picks = [0]
-        gat.fit(epochs)
-        # check optional y as array
-        gat.picks = None
-        gat.fit(epochs, y=epochs.events[:, 2])
-        # check optional y as list
-        gat.fit(epochs, y=epochs.events[:, 2].tolist())
+    # check classic fit + check manual picks
+    gat.picks = [0]
+    gat.fit(epochs)
+    # check optional y as array
+    gat.picks = None
+    gat.fit(epochs, y=epochs.events[:, 2])
+    # check optional y as list
+    gat.fit(epochs, y=epochs.events[:, 2].tolist())
     assert_equal(len(gat.picks_), len(gat.ch_names), 1)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), no "
                  "prediction, no score>", '%s' % gat)
@@ -92,8 +93,7 @@ def test_generalization_across_time():
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
                  "predicted 14 epochs,\n scored "
                  "(accuracy_score)>", "%s" % gat)
-    with warnings.catch_warnings(record=True):
-        gat.fit(epochs, y=epochs.events[:, 2])
+    gat.fit(epochs, y=epochs.events[:, 2])
 
     old_mode = gat.predict_mode
     gat.predict_mode = 'super-foo-mode'
@@ -137,20 +137,24 @@ def test_generalization_across_time():
 
     # Test longer time window
     gat = GeneralizationAcrossTime(train_times={'length': .100})
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
+        # Warning is thrown when window duration is not 1 time sample
+        # XXX
         gat2 = gat.fit(epochs)
+
     assert_true(gat is gat2)  # return self
     assert_true(hasattr(gat2, 'cv_'))
     assert_true(gat2.cv_ != gat.cv)
-    scores = gat.score(epochs)
+    with warnings.catch_warnings(record=True) as w:
+        # Warning is thrown when window duration is not 1 time sample
+        scores = gat.score(epochs)
     assert_true(isinstance(scores, list))  # type check
     assert_equal(len(scores[0]), len(scores))  # shape check
 
     assert_equal(len(gat.test_times_['slices'][0][0]), 2)
     # Decim training steps
     gat = GeneralizationAcrossTime(train_times={'step': .100})
-    with warnings.catch_warnings(record=True):
-        gat.fit(epochs)
+    gat.fit(epochs)
 
     gat.score(epochs)
     assert_true(len(gat.scores_) == len(gat.estimators_) == 8)  # training time
@@ -162,8 +166,7 @@ def test_generalization_across_time():
                                    train_times={'start': 0.090, 'stop': 0.250})
     # predict without fit
     assert_raises(RuntimeError, gat.predict, epochs)
-    with warnings.catch_warnings(record=True):
-        gat.fit(epochs, y=y_4classes)
+    gat.fit(epochs, y=y_4classes)
     gat.score(epochs)
     assert_equal(len(gat.scores_), 4)
     assert_equal(gat.train_times_['times'][0], epochs.times[6])
@@ -171,10 +174,10 @@ def test_generalization_across_time():
 
     # Test score without passing epochs & Test diagonal decoding
     gat = GeneralizationAcrossTime(test_times='diagonal')
-    with warnings.catch_warnings(record=True):
-        gat.fit(epochs)
+    gat.fit(epochs)
     assert_raises(RuntimeError, gat.score)
-    gat.predict(epochs)
+    with warnings.catch_warnings(record=True) as w:
+        gat.predict(epochs)
     scores = gat.score()
     assert_true(scores is gat.scores_)
     assert_equal(np.shape(gat.scores_), (15, 1))
@@ -183,12 +186,14 @@ def test_generalization_across_time():
 
     # Test generalization across conditions
     gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
+        # This scenario use has len(y) < n_folds and thus throws a warning
         gat.fit(epochs[0:6])
-    with warnings.catch_warnings(record=True):
-        # There are some empty test folds because of n_trials
+        print(w[0].message)
+        # This scenario introduces empty slices and thus throws warnings
         gat.predict(epochs[7:])
         gat.score(epochs[7:])
+        assert_equal(len(w), 3)
 
     # Test training time parameters
     gat_ = copy.deepcopy(gat)
@@ -207,33 +212,45 @@ def test_generalization_across_time():
 
     # Test testing time parameters
     # --- outside time range
-    gat.test_times = dict(start=-999.)
-    assert_raises(ValueError, gat.predict, epochs)
-    gat.test_times = dict(start=999.)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True) as w:
+        # This scenario use has len(y) < n_folds and thus throws a warning
+        gat.test_times = dict(start=-999.)
+        assert_raises(ValueError, gat.predict, epochs)
+        gat.test_times = dict(start=999.)
+        assert_raises(ValueError, gat.predict, epochs)
+        assert_equal(len(w), 2)
     # --- impossible slices
     gat.test_times = dict(step=.000001)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True) as w:
+        assert_raises(ValueError, gat.predict, epochs)
+        assert_equal(len(w), 1)
     gat_ = copy.deepcopy(gat)
     gat_.train_times_['length'] = .000001
     gat_.test_times = dict(length=.000001)
-    assert_raises(ValueError, gat_.predict, epochs)
+    with warnings.catch_warnings(record=True) as w:
+        assert_raises(ValueError, gat_.predict, epochs)
+        assert_equal(len(w), 1)
     # --- test time region of interest
     gat.test_times = dict(step=.150)
-    gat.predict(epochs)
+    with warnings.catch_warnings(record=True) as w:
+        gat.predict(epochs)
+        assert_equal(len(w), 1)
     assert_array_equal(np.shape(gat.y_pred_), (15, 5, 14, 1))
     # --- silly value
     gat.test_times = 'foo'
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True) as w:
+        assert_raises(ValueError, gat.predict, epochs)
+        assert_equal(len(w), 1)
     assert_raises(RuntimeError, gat.score)
     # --- unmatched length between training and testing time
     gat.test_times = dict(length=.150)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True) as w:
+        assert_raises(ValueError, gat.predict, epochs)
+        assert_equal(len(w), 1)
 
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
-    with warnings.catch_warnings(record=True):
-        gat.fit(epochs)
+    gat.fit(epochs)
 
     # sklearn needs it: c.f.
     # https://github.com/scikit-learn/scikit-learn/issues/2723
@@ -247,9 +264,7 @@ def test_generalization_across_time():
     # Test that gets error if train on one dataset, test on another, and don't
     # specify appropriate cv:
     gat = GeneralizationAcrossTime()
-    with warnings.catch_warnings(record=True):
-        gat.fit(epochs)
-
+    gat.fit(epochs)
     gat.predict(epochs)
     assert_raises(IndexError, gat.predict, epochs[:10])
 
@@ -259,9 +274,8 @@ def test_generalization_across_time():
     # --- empty test fold(s) should warn when gat.predict()
     gat.cv_.test_folds[gat.cv_.test_folds == 1] = 0
     with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
         gat.predict(epochs)
-        # FIXME assert_true('Some folds do not have any test epochs.' in w)
+        assert_equal(len(w), 1)
     # --- empty train fold(s) should raise when gat.fit()
     gat = GeneralizationAcrossTime(cv=[([0], [1]), ([], [0])])
     assert_raises(ValueError, gat.fit, epochs[:2])
@@ -299,12 +313,10 @@ def test_generalization_across_time():
             for n_class in n_classes:
                 for predict_mode in ['cross-validation', 'mean-prediction']:
                     y_ = y % n_class
-                    with warnings.catch_warnings(record=True):
-                        gat = GeneralizationAcrossTime(
-                            cv=2, clf=clf, scorer=scorer,
-                            predict_mode=predict_mode)
-                        gat.fit(epochs, y=y_)
-                        gat.score(epochs, y=y_)
+                    gat = GeneralizationAcrossTime(cv=2, clf=clf,
+                                                   scorer=scorer)
+                    gat.fit(epochs, y=y_)
+                    gat.score(epochs, y=y_)
 
 
 @requires_sklearn
