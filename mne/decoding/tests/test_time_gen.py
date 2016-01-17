@@ -37,6 +37,7 @@ def make_epochs():
 
     # Test on time generalization within one condition
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True, decim=decim)
         assert_equal(len(w), 1)
@@ -182,6 +183,7 @@ def test_generalization_across_time():
     # Test generalization across conditions
     gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         # This scenario use has len(y) < n_folds and thus throws a warning
         gat.fit(epochs[0:6])
         # This scenario introduces empty slices and thus throws warnings
@@ -207,6 +209,7 @@ def test_generalization_across_time():
     # Test testing time parameters
     # --- outside time range
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         # This scenario use has len(y) < n_folds and thus throws a warning
         gat.test_times = dict(start=-999.)
         assert_raises(ValueError, gat.predict, epochs)
@@ -216,29 +219,34 @@ def test_generalization_across_time():
     # --- impossible slices
     gat.test_times = dict(step=.000001)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         assert_raises(ValueError, gat.predict, epochs)
         assert_equal(len(w), 1)
     gat_ = copy.deepcopy(gat)
     gat_.train_times_['length'] = .000001
     gat_.test_times = dict(length=.000001)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         assert_raises(ValueError, gat_.predict, epochs)
         assert_equal(len(w), 1)
     # --- test time region of interest
     gat.test_times = dict(step=.150)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         gat.predict(epochs)
         assert_equal(len(w), 1)
     assert_array_equal(np.shape(gat.y_pred_), (15, 5, 14, 1))
     # --- silly value
     gat.test_times = 'foo'
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         assert_raises(ValueError, gat.predict, epochs)
         assert_equal(len(w), 1)
     assert_raises(RuntimeError, gat.score)
     # --- unmatched length between training and testing time
     gat.test_times = dict(length=.150)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         assert_raises(ValueError, gat.predict, epochs)
         assert_equal(len(w), 1)
 
@@ -268,6 +276,7 @@ def test_generalization_across_time():
     # --- empty test fold(s) should warn when gat.predict()
     gat.cv_.test_folds[gat.cv_.test_folds == 1] = 0
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         gat.predict(epochs)
         assert_equal(len(w), 1)
     # --- empty train fold(s) should raise when gat.fit()
