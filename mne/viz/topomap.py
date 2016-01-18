@@ -1594,13 +1594,11 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     data = params['data']
     items = list()
     if params['butterfly']:
-        from matplotlib.ticker import FormatStrFormatter
         all_times = params['all_times']
         for idx in range(len(data)):
             ax_line.plot(all_times, data[idx], color='k')
         vmin, vmax = _setup_vmin_vmax(data, None, None)
-        ax_line.set_yticks(np.linspace(vmin, vmax, 5))
-        ax_line.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+        ax_line.set_yticks(np.around(np.linspace(vmin, vmax, 5), -1))
         params['line'], = ax_line.plot([all_times[0], all_times[0]],
                                        ax_line.get_ylim(), color='r')
         items.append(params['line'])
