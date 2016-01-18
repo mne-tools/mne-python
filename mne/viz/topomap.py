@@ -1666,8 +1666,11 @@ def _init_anim(ax, ax_line, ax_cbar, params):
     params['patch'] = patch_
 
     if params['butterfly']:
+        from matplotlib.ticker import FormatStrFormatter
         for idx in range(len(data)):
-            ax_line.plot(all_times, data[idx], color='k')
+            ax_line.plot(all_times, data[idx], color=params['color'])
+        ax_line.set_yticks(np.linspace(vmin, vmax, 5))
+        ax_line.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
         params['line'], = ax_line.plot([all_times[0], all_times[0]],
                                        ax_line.get_ylim(), color='r')
         items.append(params['line'])
@@ -1798,6 +1801,8 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
                                                              ch_type=ch_type,
                                                              layout=None)
     data = evoked.data[picks, :]
+    data *= _handle_default('scalings')[ch_type]
+    this_color = _handle_default('color')[ch_type]
     if merge_grads:
         from mne.channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
@@ -1813,10 +1818,11 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     if isinstance(frames, int):
         frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
+    ax_cbar.set_title(_handle_default('units')[ch_type], fontsize=10)
 
     params = {'data': data, 'pos': pos, 'all_times': evoked.times, 'frame': 0,
               'frames': frames, 'butterfly': butterfly, 'blit': blit,
-              'pause': False, 'times': times}
+              'pause': False, 'times': times, 'color': this_color}
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
