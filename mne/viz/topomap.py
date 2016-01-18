@@ -1586,15 +1586,30 @@ def _hide_frame(ax):
     ax.set_frame_on(False)
 
 
-def _init_anim(ax, ax_line, ax_cbar, params):
+def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     """Initialize animated topomap."""
     import matplotlib.pyplot as plt
     from matplotlib import patches
     logger.info('Initializing animation...')
     data = params['data']
+    items = list()
+    if params['butterfly']:
+        from matplotlib.ticker import FormatStrFormatter
+        all_times = params['all_times']
+        for idx in range(len(data)):
+            ax_line.plot(all_times, data[idx], color='k')
+        vmin, vmax = _setup_vmin_vmax(data, None, None)
+        ax_line.set_yticks(np.linspace(vmin, vmax, 5))
+        ax_line.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+        params['line'], = ax_line.plot([all_times[0], all_times[0]],
+                                       ax_line.get_ylim(), color='r')
+        items.append(params['line'])
+    if merge_grads:
+        from mne.channels.layout import _merge_grad_data
+        data = _merge_grad_data(data)
     norm = True if np.min(data) > 0 else False
     cmap = 'Reds' if norm else 'RdBu_r'
-    all_times = params['all_times']
+
     vmin, vmax = _setup_vmin_vmax(data, None, None, norm)
 
     pos, outlines = _check_outlines(params['pos'], 'head', None)
@@ -1643,7 +1658,8 @@ def _init_anim(ax, ax_line, ax_cbar, params):
     text = ax.text(0.55, 0.95, '', transform=ax.transAxes, va='center',
                    ha='right')
     params['text'] = text
-    items = [im, text]
+    items.append(im)
+    items.append(text)
     for col in cont.collections:
         col.set_clip_path(patch_)
 
@@ -1653,26 +1669,14 @@ def _init_anim(ax, ax_line, ax_cbar, params):
         if 'mask' in k:
             continue
         ax.plot(x, y, color='k', linewidth=1, clip_on=False)
-    params['patch'] = patch_
-
-    if params['butterfly']:
-        from matplotlib.ticker import FormatStrFormatter
-        for idx in range(len(data)):
-            ax_line.plot(all_times, data[idx], color=params['color'])
-        ax_line.set_yticks(np.linspace(vmin, vmax, 5))
-        ax_line.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
-        params['line'], = ax_line.plot([all_times[0], all_times[0]],
-                                       ax_line.get_ylim(), color='r')
-        items.append(params['line'])
-    params['items'] = tuple(items) + tuple(cont.collections)
-    return params['items']
+    params.update({'patch': patch_, 'outlines': outlines_})
+    return tuple(items) + tuple(cont.collections)
 
 
 def _animate(frame, ax, ax_line, params):
     """Updates animated topomap."""
     if params['pause']:
         frame = params['frame']
-    all_times = params['all_times']
     time_idx = params['frames'][frame]
 
     title = '%6.0f ms' % (params['times'][frame] * 1e3)
@@ -1681,6 +1685,11 @@ def _animate(frame, ax, ax_line, params):
     else:
         ax.cla()  # Clear old contours.
         text = ax.text(0.45, 1.15, '', transform=ax.transAxes)
+        for k, (x, y) in params['outlines'].items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+
     _hide_frame(ax)
     text.set_text(title)
 
@@ -1704,6 +1713,7 @@ def _animate(frame, ax, ax_line, params):
         col.set_clip_path(patch)
 
     if params['butterfly']:
+        all_times = params['all_times']
         line = params['line']
         line.remove()
         params['line'], = ax_line.plot([all_times[time_idx],
@@ -1711,7 +1721,6 @@ def _animate(frame, ax, ax_line, params):
                                        ax_line.get_ylim(), color='r')
         items.append(params['line'])
     params['frame'] = frame
-    params['items'] = tuple(items) + tuple(cont.collections)
     return tuple(items) + tuple(cont.collections)
 
 
@@ -1792,10 +1801,7 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
                                                              layout=None)
     data = evoked.data[picks, :]
     data *= _handle_default('scalings')[ch_type]
-    this_color = _handle_default('color')[ch_type]
-    if merge_grads:
-        from mne.channels.layout import _merge_grad_data
-        data = _merge_grad_data(data)
+
     fig = plt.figure()
     offset = 0. if blit else 0.4  # blit changes the sizes for some reason
     ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
@@ -1812,9 +1818,9 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
 
     params = {'data': data, 'pos': pos, 'all_times': evoked.times, 'frame': 0,
               'frames': frames, 'butterfly': butterfly, 'blit': blit,
-              'pause': False, 'times': times, 'color': this_color}
+              'pause': False, 'times': times}
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
-                        params=params)
+                        params=params, merge_grads=merge_grads)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
     pause_func = partial(_pause_anim, params=params)
     fig.canvas.mpl_connect('button_press_event', pause_func)
