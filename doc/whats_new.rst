@@ -21,6 +21,7 @@ API
 ~~~
 
     - The default `picks=None` in :func:`mne.viz.plot_epochs_image` now only plots the first 5 channels, not all channels, by `Jona Sassenhagen`_
+    - Deprecated `mesh_color` in `mne.viz.plot_dipole_locations` (use `brain_color`) by `Marijn van Vliet`_
 
 
 .. _changes_0_11:
