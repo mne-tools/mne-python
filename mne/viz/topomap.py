@@ -1598,8 +1598,7 @@ def _hide_frame(ax):
 
 def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     """Initialize animated topomap."""
-    import matplotlib.pyplot as plt
-    from matplotlib import patches
+    from matplotlib import pyplot as plt, patches
     logger.info('Initializing animation...')
     data = params['data']
     items = list()
@@ -1811,7 +1810,7 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     data *= _handle_default('scalings')[ch_type]
 
     fig = plt.figure()
-    offset = 0. if blit else 0.4  # blit changes the sizes for some reason
+    offset = 0. if blit else 0.4  # XXX: blit changes the sizes for some reason
     ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
                    1. - offset], xlim=(-1, 1), ylim=(-1, 1))
     if butterfly:

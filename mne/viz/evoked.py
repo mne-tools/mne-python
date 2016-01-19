@@ -536,8 +536,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              font_color=font_color, show=show)
 
 
-def animate_evoked(evoked, ch_type='mag', times=None, frame_rate=None,
-                   butterfly=False, blit=True):
+def animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
+                           butterfly=False, blit=True):
     """Make animation of evoked data as topomap timeseries. Animation can be
     paused/resumed with left mouse button. Left and right arrow keys can be
     used to move backward or forward in time

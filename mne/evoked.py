@@ -19,7 +19,7 @@ from .fixes import in1d
 from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
-from .viz.evoked import _plot_evoked_white, _joint_plot, animate_evoked
+from .viz.evoked import _plot_evoked_white, _joint_plot, animate_evoked_topomap
 
 from .externals.six import string_types
 
@@ -779,8 +779,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            exclude=exclude, show=show, ts_args=ts_args,
                            topomap_args=topomap_args)
 
-    def animate(self, ch_type='mag', times=None, frame_rate=None,
-                butterfly=False, blit=True):
+    def animate_topomap(self, ch_type='mag', times=None, frame_rate=None,
+                        butterfly=False, blit=True):
         """Make animation of evoked data as topomap timeseries. Animation can
         be paused/resumed with left mouse button. Left and right arrow keys can
         be used to move backward or forward in time
@@ -817,9 +817,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         .. versionadded:: 0.12.0
         """
-        return animate_evoked(self, ch_type=ch_type, times=times,
-                              frame_rate=frame_rate, butterfly=butterfly,
-                              blit=blit)
+        return animate_evoked_topomap(self, ch_type=ch_type, times=times,
+                                      frame_rate=frame_rate,
+                                      butterfly=butterfly, blit=blit)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields in mag/grad
