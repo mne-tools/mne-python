@@ -1747,7 +1747,7 @@ def _key_press(event, params):
 
 
 def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
-                      butterfly=False, blit=True):
+                      butterfly=False, blit=True, show=True):
     """Make animation of evoked data as topomap timeseries. Animation can be
     paused/resumed with left mouse button. Left and right arrow keys can be
     used to move backward or forward in time.
@@ -1758,7 +1758,7 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         The evoked data.
     ch_type : str | None
         Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
-        If None, first available channel type from ['mag', 'grad', 'eeg'] is
+        If None, first available channel type from ('mag', 'grad', 'eeg') is
         used. Defaults to None.
     times : array of floats | None
         The time points to plot. If None, 10 evenly spaced samples are
@@ -1774,6 +1774,8 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         to use blit in combination with ``show=True``. If you intend to save
         the animation it is better to disable blit. For MacOSX blit is always
         disabled. Defaults to True.
+    show : bool
+        Whether to show the animation.
 
     Returns
     -------
@@ -1790,7 +1792,7 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     from matplotlib import animation
     if ch_type is None:
         ch_type = _picks_by_type(evoked.info)[0][0]
-    if ch_type not in ['mag', 'grad', 'eeg']:
+    if ch_type not in ('mag', 'grad', 'eeg'):
         raise ValueError("Channel type not supported. Supported channel "
                          "types include 'mag', 'grad' and 'eeg'.")
     if times is None:
@@ -1799,7 +1801,8 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
 
     if times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
-
+    if max(times) > evoked.times[-1] or min(times) < evoked.times[0]:
+        raise ValueError('All times must be inside the evoked time series.')
     frames = [np.abs(evoked.times - time).argmin() for time in times]
 
     blit = False if plt.get_backend() == 'MacOSX' else True
@@ -1840,7 +1843,8 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
                                    frames=len(frames), interval=interval,
                                    blit=blit)
     fig.mne_animation = anim  # to make sure anim is not garbage collected
-    plt.show()
+    if show:
+        plt.show()
     if 'line' in params:
         # Finally remove the vertical line so it does not appear in saved fig.
         params['line'].remove()
