@@ -16,6 +16,8 @@ Changelog
 
     - Make :func:`mne.find_layout` more robust for KIT systems in the presence of bad or missing channels by `Jaakko Leppakangas`_
 
+    - Add raw movement compensation to :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
+
 BUG
 ~~~
 
