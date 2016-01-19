@@ -38,7 +38,7 @@ class Annotations(object):
         if onset.ndim != 1:
             raise ValueError('Onset must be a one dimensional array.')
         duration = np.array(duration)
-        if len(duration.shape) != 1:
+        if duration.ndim != 1:
             raise ValueError('Duration must be a one dimensional array.')
         if not (len(onset) == len(duration) == len(description)):
             raise ValueError('Onset, duration and description must be '
