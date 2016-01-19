@@ -5,6 +5,7 @@
 import numpy as np
 from datetime import datetime
 import time
+import json
 
 
 class Annotations(object):
@@ -12,11 +13,11 @@ class Annotations(object):
 
     Parameters
     ----------
-    onset: array of float
+    onset: array of float, shape (n_annotations,)
         Annotation time onsets from the beginning of the recording.
-    duration: array of float
+    duration: array of float, shape (n_annotations,)
         Durations of the annotations.
-    description: array of str
+    description: array of str, shape (n_annotations,)
         Array of strings containing description for each annotation.
     orig_time: int | instance of datetime | None
         Timestamp or a datetime determining the starting time of annotation
@@ -34,16 +35,23 @@ class Annotations(object):
         self.orig_time = orig_time
 
         onset = np.array(onset)
-        if len(onset.shape) != 1:
-            raise RuntimeError('Onset must be a one dimensional array.')
+        if onset.ndim != 1:
+            raise ValueError('Onset must be a one dimensional array.')
         duration = np.array(duration)
         if len(duration.shape) != 1:
-            raise RuntimeError('Duration must be a one dimensional array.')
+            raise ValueError('Duration must be a one dimensional array.')
         if not (len(onset) == len(duration) == len(description)):
-            raise RuntimeError('Onset, duration and description must be '
-                               'equal in sizes.')
+            raise ValueError('Onset, duration and description must be '
+                             'equal in sizes.')
         # sort the segments by start time
         order = onset.argsort(axis=0)
         self.onset = onset[order]
         self.duration = duration[order]
         self.description = np.array(description)[order]
+
+    def _serialize(self):
+        """Function that serializes the annotation object for saving."""
+        return json.dumps({'onset': list(self.onset),
+                           'duration': list(self.duration),
+                           'description': list(self.description),
+                           'orig_time': self.orig_time})

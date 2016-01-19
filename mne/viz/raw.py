@@ -305,7 +305,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                  event_lines=event_lines,
                                  event_color=event_color)
 
-    if hasattr(raw, 'annotations'):
+    if raw.annotations is not None:
         segments = list()
         segment_colors = dict()
         meas_date = info['meas_date']

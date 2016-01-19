@@ -10,6 +10,7 @@ import copy
 import warnings
 import os
 import os.path as op
+import json
 
 import numpy as np
 
@@ -23,6 +24,7 @@ from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 from ..utils import _mult_cal_one
 
+from ...annotations import Annotations
 from ...utils import check_fname, logger, verbose
 
 
@@ -118,7 +120,7 @@ class Raw(_BaseRaw):
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
             copy.deepcopy(raws[0].comp), raws[0]._orig_comp_grade,
-            raws[0].orig_format, None, verbose=verbose)
+            raws[0].orig_format, raws[0].annotations, None, verbose=verbose)
 
         # combine information from each raw file to construct self
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
@@ -210,11 +212,19 @@ class Raw(_BaseRaw):
             raw_extras = list()
             nskip = 0
             orig_format = None
+            annotations = None
             for k in range(first, nent):
                 ent = directory[k]
                 if ent.kind == FIFF.FIFF_DATA_SKIP:
                     tag = read_tag(fid, ent.pos)
                     nskip = int(tag.data)
+                elif ent.kind == FIFF.FIFF_MNE_ANNOTATIONS:
+                    tag = read_tag(fid, ent.pos)
+                    annot_data = json.loads(tag.data)
+                    annotations = Annotations(annot_data['onset'],
+                                              annot_data['duration'],
+                                              annot_data['description'],
+                                              annot_data['orig_time'])
                 elif ent.kind == FIFF.FIFF_DATA_BUFFER:
                     #   Figure out the number of samples in this buffer
                     if ent.type == FIFF.FIFFT_DAU_PACK16:
@@ -274,6 +284,7 @@ class Raw(_BaseRaw):
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
+        raw.annotations = annotations
 
         #   Add the calibration factors
         cals = np.zeros(info['nchan'])

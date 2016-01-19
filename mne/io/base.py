@@ -229,9 +229,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
                  filenames=(None,), raw_extras=(None,),
-                 comp=None, orig_comp_grade=None,
-                 orig_format='double', dtype=np.float64,
-                 verbose=None):
+                 comp=None, orig_comp_grade=None, orig_format='double',
+                 annotations=None, dtype=np.float64, verbose=None):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -275,6 +274,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
+        self.annotations = annotations
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)
@@ -1941,6 +1941,10 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
     first_samp = raw.first_samp + start
     if first_samp != 0:
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
+
+    if raw.annotations is not None:
+        annotations = raw.annotations._serialize()
+        write_string(fid, FIFF.FIFF_MNE_ANNOTATIONS, annotations)
 
     # previous file name and id
     if part_idx > 0 and prev_fname is not None:
