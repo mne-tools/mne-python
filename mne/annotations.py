@@ -32,7 +32,7 @@ class Annotations(object):
                 orig_time = time.mktime(orig_time.timetuple())
             elif not np.isscalar(orig_time):
                 orig_time = orig_time[0]
-        self.orig_time = orig_time
+        self.orig_time = int(orig_time)
 
         onset = np.array(onset)
         if onset.ndim != 1:
