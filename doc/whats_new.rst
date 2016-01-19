@@ -12,6 +12,8 @@ Changelog
 
     - Add `overlay_times` parameter to :func:`mne.viz.plot_epochs_image` to be able to display for example reaction times on top of the images, by `Alex Gramfort`_
 
+    - Animation for evoked topomap in :func:`mne.Evoked.animate` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
@@ -64,8 +66,6 @@ Changelog
     - Added methods :func:`mne.Epochs.add_eeg_average_proj`, :func:`mne.io.Raw.add_eeg_average_proj`, and :func:`mne.Evoked.add_eeg_average_proj` to add an average EEG reference.
 
     - Add reader for EEGLAB data in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Mainak Jas`_
-
-    - Animation for evoked topomap in :func:`mne.Evoked.animate` by `Jaakko Leppakangas`_
 
 BUG
 ~~~
