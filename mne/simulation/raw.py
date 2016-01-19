@@ -26,6 +26,7 @@ from ..transforms import _get_trans, transform_surface_to
 from ..source_space import _ensure_src, _points_outside_surface
 from ..source_estimate import _BaseSourceEstimate
 from ..utils import logger, verbose, check_random_state
+from ..parallel import check_n_jobs
 from ..externals.six import string_types
 
 
@@ -175,6 +176,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         raise ValueError('stc must have at least three time points')
 
     stim = False if len(pick_types(info, meg=False, stim=True)) == 0 else True
+    n_jobs = check_n_jobs(n_jobs)
 
     rng = check_random_state(random_state)
     if interp not in ('cos2', 'linear', 'zero'):
@@ -458,7 +460,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
             fwd, fwd_blink, fwd_ecg, fwd_chpi
     assert used.all()
-    raw = RawArray(raw_data, info, verbose=False)
+    raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     raw.verbose = raw_verbose
     logger.info('Done')
     return raw

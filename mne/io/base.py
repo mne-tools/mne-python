@@ -242,7 +242,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 raise ValueError('preload and dtype must match')
             self._data = preload
             self.preload = True
-            last_samps = [self._data.shape[1] - 1]
+            assert len(first_samps) == 1
+            last_samps = [first_samps[0] + self._data.shape[1] - 1]
             load_from_disk = False
         else:
             if last_samps is None:
