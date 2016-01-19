@@ -97,16 +97,15 @@ topo_kwargs = dict(times=[0, 0.1, 0.2], ch_type='mag', vmin=-500, vmax=500)
 
 # 0. Take average of stationary data (bilateral auditory patterns)
 evoked_stat = mne.Epochs(raw_stat, events, 1, -0.2, 0.8).average()
-evoked_stat.plot_topomap(title='stationary', **topo_kwargs)
+evoked_stat.plot_topomap(title='Stationary', **topo_kwargs)
 
 # 1. Take a naive average (smears activity)
 evoked = mne.Epochs(raw, events, 1, -0.2, 0.8).average()
 assert evoked.nave == len(pos)
-evoked.plot_topomap(title='naive average', **topo_kwargs)
+evoked.plot_topomap(title='Moving: naive average', **topo_kwargs)
 
 # 2. Use raw movement compensation (works well)
-raw_sss = maxwell_filter(raw, pos=pos, regularize=None, bad_condition='ignore',
-                         verbose=True)
+raw_sss = maxwell_filter(raw, pos=pos)
 evoked_raw_mc = mne.Epochs(raw_sss, events, 1, -0.2, 0.8).average()
 assert evoked_raw_mc.nave == len(pos)
-evoked_raw_mc.plot_topomap(title='raw movement compensation', **topo_kwargs)
+evoked_raw_mc.plot_topomap(title='Moving: movement compensated', **topo_kwargs)
