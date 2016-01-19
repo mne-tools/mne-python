@@ -780,7 +780,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            topomap_args=topomap_args)
 
     def animate_topomap(self, ch_type='mag', times=None, frame_rate=None,
-                        butterfly=False, blit=True):
+                        butterfly=False, blit=True, show=True):
         """Make animation of evoked data as topomap timeseries. Animation can
         be paused/resumed with left mouse button. Left and right arrow keys can
         be used to move backward or forward in time
@@ -789,7 +789,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         ch_type : str | None
             Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
-            If None, first available channel type from ['mag', 'grad', 'eeg']
+            If None, first available channel type from ('mag', 'grad', 'eeg')
             is used. Defaults to None.
         times : array of floats | None
             The time points to plot. If None, 10 evenly spaced samples are
@@ -805,6 +805,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             recommended to use blit in combination with ``show=True``. If you
             intend to save the animation it is better to disable blit.
             Defaults to True.
+        show : bool
+            Whether to show the animation.
 
         Returns
         -------
@@ -819,7 +821,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         return animate_evoked_topomap(self, ch_type=ch_type, times=times,
                                       frame_rate=frame_rate,
-                                      butterfly=butterfly, blit=blit)
+                                      butterfly=butterfly, blit=blit,
+                                      show=show)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields in mag/grad
