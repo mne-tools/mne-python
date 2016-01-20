@@ -829,8 +829,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
                           bgcolor=(1, 1, 1), opacity=0.3,
-                          brain_color=(0.7, 0.7, 0.7), mesh_color=(1, 1, 0),
-                          fig_name=None, fig_size=(600, 600), mode='cone',
+                          brain_color=(1, 1, 0), fig_name=None,
+                          fig_size=(600, 600), mode='cone',
                           scale_factor=0.1e-1, colors=None, verbose=None):
     """Plot dipole locations
 
@@ -855,8 +855,6 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
         Opacity of brain mesh.
     brain_color : tuple of length 3
         Brain color.
-    mesh_color : tuple of length 3
-        Mesh color.
     fig_name : str
         Mayavi figure name.
     fig_size : tuple of length 2
@@ -904,7 +902,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
     with warnings.catch_warnings(record=True):  # FutureWarning in traits
         mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                             faces, color=mesh_color, opacity=opacity)
+                             faces, color=brain_color, opacity=opacity)
 
     for dip, color in zip(dipoles, colors):
         rgb_color = color_converter.to_rgb(color)
