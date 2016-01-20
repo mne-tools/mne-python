@@ -324,7 +324,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                 if np.isscalar(info['meas_date']):
                     orig_time = raw.info['meas_date']
                 else:
-                    orig_time = raw.info['meas_date'][0]
+                    orig_time = (raw.info['meas_date'][0] +
+                                 raw.info['meas_date'][1] / 1000000.)
             else:
                 orig_time = raw.annotations.orig_time
             annot_start = (orig_time - meas_date + onset -
