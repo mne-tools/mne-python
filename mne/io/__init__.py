@@ -39,8 +39,8 @@ from .nicolet import read_raw_nicolet
 from .eeglab import read_raw_eeglab, read_epochs_eeglab
 
 # for backward compatibility
-from .fiff import RawFIF
-from .fiff import RawFIF as Raw
+from .fiff import Raw
+from .fiff import Raw as RawFIF
 from .base import concatenate_raws
 from .reference import (set_eeg_reference, set_bipolar_reference,
                         add_reference_channels)

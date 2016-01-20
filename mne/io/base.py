@@ -1124,7 +1124,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('tmax must be less than or equal to the max raw '
                              'time (%0.4f sec)' % max_time)
 
-        smin, smax = np.where(_time_mask(self.times, tmin, tmax))[0][[0, -1]]
+        smin, smax = np.where(_time_mask(self.times, tmin, tmax,
+                                         sfreq=self.info['sfreq']))[0][[0, -1]]
         cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths,
                                                    dtype='int')))
         cumul_lens = np.cumsum(cumul_lens)
@@ -1682,7 +1683,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             None, preload=True or False is inferred using the preload status
             of the raw files passed in.
         """
-        from .fiff.raw import RawFIF
+        from .fiff.raw import Raw
         from .kit.kit import RawKIT
         from .edf.edf import RawEDF
 
@@ -1702,7 +1703,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 preload = False
 
-        if not preload and not isinstance(self, (RawFIF, RawKIT, RawEDF)):
+        if not preload and not isinstance(self, (Raw, RawKIT, RawEDF)):
             raise RuntimeError('preload must be True to concatenate '
                                'files unless they are FIF, KIT, or EDF')
         if preload is False:

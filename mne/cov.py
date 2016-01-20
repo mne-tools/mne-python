@@ -52,7 +52,7 @@ def _check_covs_algebra(cov1, cov2):
 def _get_tslice(epochs, tmin, tmax):
     """get the slice."""
     tstart, tend = None, None
-    mask = _time_mask(epochs.times, tmin, tmax)
+    mask = _time_mask(epochs.times, tmin, tmax, sfreq=epochs.info['sfreq'])
     tstart = np.where(mask)[0][0] if tmin is not None else None
     tend = np.where(mask)[0][-1] + 1 if tmax is not None else None
     tslice = slice(tstart, tend, None)

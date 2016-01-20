@@ -1827,13 +1827,17 @@ def create_slices(start, stop, step=None, length=1):
     return slices
 
 
-def _time_mask(times, tmin=None, tmax=None, strict=False):
+def _time_mask(times, tmin=None, tmax=None, strict=False, sfreq=None):
     """Helper to safely find sample boundaries"""
     tmin = -np.inf if tmin is None else tmin
     tmax = np.inf if tmax is None else tmax
     mask = (times >= tmin)
     mask &= (times <= tmax)
     if not strict:
+        if sfreq is not None:
+            # Push to nearest sample first
+            tmin = round(tmin * sfreq) / sfreq
+            tmax = round(tmax * sfreq) / sfreq
         mask |= isclose(times, tmin)
         mask |= isclose(times, tmax)
     return mask

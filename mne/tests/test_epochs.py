@@ -1036,6 +1036,15 @@ def test_crop():
         epochs.decimate(10)
     assert_allclose(last_time, epochs.times[-1])
 
+    epochs = Epochs(raw, events[:5], event_id, -1, 1,
+                    picks=picks, baseline=(None, 0), preload=True,
+                    reject=reject, flat=flat)
+    # We include nearest sample, so actually a bit beyound our bounds here
+    assert_allclose(epochs.tmin, -1.0006410259015925, rtol=1e-12)
+    assert_allclose(epochs.tmax, 1.0006410259015925, rtol=1e-12)
+    epochs_crop = epochs.crop(-1, 1, copy=True)
+    assert_allclose(epochs.times, epochs_crop.times, rtol=1e-12)
+
 
 def test_resample():
     """Test of resample of epochs

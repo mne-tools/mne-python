@@ -316,7 +316,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If False epochs is cropped in place.
         """
         inst = self if not copy else self.copy()
-        mask = _time_mask(inst.times, tmin, tmax)
+        mask = _time_mask(inst.times, tmin, tmax, sfreq=self.info['sfreq'])
         inst.times = inst.times[mask]
         inst.first = int(inst.times[0] * inst.info['sfreq'])
         inst.last = len(inst.times) + inst.first - 1

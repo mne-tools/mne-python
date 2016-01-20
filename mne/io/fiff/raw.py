@@ -26,8 +26,8 @@ from ..utils import _mult_cal_one
 from ...utils import check_fname, logger, verbose
 
 
-class RawFIF(_BaseRaw):
-    """Raw data
+class Raw(_BaseRaw):
+    """Raw FIF data
 
     Parameters
     ----------
@@ -113,7 +113,7 @@ class RawFIF(_BaseRaw):
 
         _check_raw_compatibility(raws)
 
-        super(RawFIF, self).__init__(
+        super(Raw, self).__init__(
             copy.deepcopy(raws[0].info), False,
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
@@ -466,13 +466,13 @@ def read_raw_fif(fnames, allow_maxshield=False, preload=False,
 
     Returns
     -------
-    raw : Instance of RawFIF
+    raw : instance of Raw
         A Raw object containing FIF data.
 
     Notes
     -----
     .. versionadded:: 0.9.0
     """
-    return RawFIF(fnames=fnames, allow_maxshield=allow_maxshield,
-                  preload=preload, proj=proj, compensation=compensation,
-                  add_eeg_ref=add_eeg_ref, verbose=verbose)
+    return Raw(fnames=fnames, allow_maxshield=allow_maxshield,
+               preload=preload, proj=proj, compensation=compensation,
+               add_eeg_ref=add_eeg_ref, verbose=verbose)

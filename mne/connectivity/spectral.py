@@ -779,7 +779,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                                        endpoint=False)
 
             n_times_in = len(times_in)
-            mask = _time_mask(times_in, tmin, tmax)
+            mask = _time_mask(times_in, tmin, tmax, sfreq=sfreq)
             tmin_idx, tmax_idx = np.where(mask)[0][[0, -1]]
             tmax_idx += 1
             tmin_true = times_in[tmin_idx]
