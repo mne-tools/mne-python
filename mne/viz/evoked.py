@@ -23,7 +23,7 @@ from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
-                      _prepare_topomap, topomap_animation)
+                      _prepare_topomap, _topomap_animation)
 from ..channels import find_layout
 
 
@@ -536,8 +536,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              font_color=font_color, show=show)
 
 
-def animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
-                           butterfly=False, blit=True, show=True):
+def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
+                            butterfly=False, blit=True, show=True):
     """Make animation of evoked data as topomap timeseries. Animation can be
     paused/resumed with left mouse button. Left and right arrow keys can be
     used to move backward or forward in time
@@ -577,9 +577,9 @@ def animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
     -----
     .. versionadded:: 0.12.0
     """
-    return topomap_animation(evoked, ch_type=ch_type, times=times,
-                             frame_rate=frame_rate, butterfly=butterfly,
-                             blit=blit, show=show)
+    return _topomap_animation(evoked, ch_type=ch_type, times=times,
+                              frame_rate=frame_rate, butterfly=butterfly,
+                              blit=blit, show=show)
 
 
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
