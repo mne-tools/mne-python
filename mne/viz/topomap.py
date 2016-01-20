@@ -1713,9 +1713,9 @@ def _animate(frame, ax, ax_line, params):
         all_times = params['all_times']
         line = params['line']
         line.remove()
-        params['line'], = ax_line.plot([all_times[time_idx],
-                                        all_times[time_idx]],
-                                       ax_line.get_ylim(), color='r')
+        params['line'] = ax_line.plot([all_times[time_idx],
+                                       all_times[time_idx]],
+                                      ax_line.get_ylim(), color='r')[0]
         items.append(params['line'])
     params['frame'] = frame
     return tuple(items) + tuple(cont.collections)
@@ -1723,7 +1723,7 @@ def _animate(frame, ax, ax_line, params):
 
 def _pause_anim(event, params):
     """Function for pausing and continuing the animation on mouse click"""
-    params['pause'] ^= True
+    params['pause'] = not params['pause']
 
 
 def _key_press(event, params):
@@ -1736,8 +1736,8 @@ def _key_press(event, params):
         params['frame'] = min(params['frame'] + 1, len(params['frames']) - 1)
 
 
-def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
-                      butterfly=False, blit=True, show=True):
+def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
+                       butterfly=False, blit=True, show=True):
     """Make animation of evoked data as topomap timeseries. Animation can be
     paused/resumed with left mouse button. Left and right arrow keys can be
     used to move backward or forward in time.
@@ -1778,8 +1778,7 @@ def topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     -----
     .. versionadded:: 0.12.0
     """
-    import matplotlib.pyplot as plt
-    from matplotlib import animation
+    from matplotlib import pyplot as plt, animation
     if ch_type is None:
         ch_type = _picks_by_type(evoked.info)[0][0]
     if ch_type not in ('mag', 'grad', 'eeg'):

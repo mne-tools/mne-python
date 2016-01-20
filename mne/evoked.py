@@ -19,7 +19,8 @@ from .fixes import in1d
 from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
-from .viz.evoked import _plot_evoked_white, _joint_plot, animate_evoked_topomap
+from .viz.evoked import (_plot_evoked_white, _joint_plot,
+                         _animate_evoked_topomap)
 
 from .externals.six import string_types
 
@@ -819,10 +820,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         .. versionadded:: 0.12.0
         """
-        return animate_evoked_topomap(self, ch_type=ch_type, times=times,
-                                      frame_rate=frame_rate,
-                                      butterfly=butterfly, blit=blit,
-                                      show=show)
+        return _animate_evoked_topomap(self, ch_type=ch_type, times=times,
+                                       frame_rate=frame_rate,
+                                       butterfly=butterfly, blit=blit,
+                                       show=show)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields in mag/grad
