@@ -67,11 +67,9 @@ class OpenBCIClient(object):
         self._recv_callbacks = list()
 
     def __enter__(self):
-        # instantiate Fieldtrip client and connect
+        # instantiate OpenBCI client and connect
         self.client = OpenBCIBoard(port=self.port, log=self.verbose)
 
-        # connect to FieldTrip buffer
-        logger.info("OpenBCIClient: Waiting for server to start")
         start_time, current_time = time.time(), time.time()
         success = False
         while current_time < (start_time + self.wait_max):
@@ -115,7 +113,8 @@ class OpenBCIClient(object):
             # modify info attributes according to the OpenBCIBoard object
             n_eeg = self.client.getNbEEGChannels()
             n_aux = self.client.getNbAUXChannels()
-            info['nchan'] = n_eeg + n_aux
+            # EEG + Auxiliary + 1 Stim channel
+            info['nchan'] = n_eeg + n_aux + 1
             info['sfreq'] = self.client.getSampleRate()
 
             # NEED TO BE CHECKED
@@ -123,6 +122,8 @@ class OpenBCIClient(object):
             ch_names = ['EEG%i' % i for i in range(1, n_eeg + 1)]
             # adding auxiliary channels
             ch_names += ['MISC%i' % i for i in range(1, n_aux + 1)]
+            # adding stimulation channel (for compatibility with RtEpochs)
+            ch_names += ['STIM0']
             info['ch_names'] = ch_names
 
             info['comps'] = list()
@@ -245,9 +246,11 @@ class OpenBCIClient(object):
                     # as the channel samples themselves have been averaged by the board
                     avg_aux_data = list((np.array(sample.aux_data) + np.array(self.client.last_odd_sample.aux_data))/2)
                     sample = OpenBCISample(sample.id, sample.channel_data + self.client.last_odd_sample.channel_data, avg_aux_data)
-
+            # EEG data
             data[:n_eeg, i] = sample.channel_data
-            data[n_eeg:, i] = sample.aux_data
+            # Auxiliary data
+            data[n_eeg:-1, i] = sample.aux_data
+            # TODO: Stimulation data (i.e. triggers)
 
         events = np.expand_dims(np.array([0, 1, 1]), axis=0)
         # create epoch from data
@@ -339,4 +342,4 @@ class OpenBCIClient(object):
                 avg_aux_data = list((np.array(sample.aux_data) + np.array(self.client.last_odd_sample.aux_data))/2)
                 sample = OpenBCISample(sample.id, sample.channel_data + self.client.last_odd_sample.channel_data, avg_aux_data)
 
-        yield sample
+        return sample
