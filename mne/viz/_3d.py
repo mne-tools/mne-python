@@ -829,7 +829,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
                           bgcolor=(1, 1, 1), opacity=0.3,
-                          brain_color=(1, 1, 0), fig_name=None, 
+                          brain_color=(1, 1, 0), fig_name=None,
                           fig_size=(600, 600), mode='cone',
                           scale_factor=0.1e-1, colors=None, verbose=None):
     """Plot dipole locations
