@@ -118,8 +118,8 @@ class Dipole(object):
     @verbose
     def plot_locations(self, trans, subject, subjects_dir=None,
                        bgcolor=(1, 1, 1), opacity=0.3,
-                       brain_color=(0.7, 0.7, 0.7), mesh_color=(1, 1, 0),
-                       fig_name=None, fig_size=(600, 600), mode='cone',
+                       brain_color=(1, 1, 0), fig_name=None,
+                       fig_size=(600, 600), mode='cone',
                        scale_factor=0.1e-1, colors=None, verbose=None):
         """Plot dipole locations as arrows
 
@@ -140,8 +140,6 @@ class Dipole(object):
             Opacity of brain mesh.
         brain_color : tuple of length 3
             Brain color.
-        mesh_color : tuple of length 3
-            Mesh color.
         fig_name : tuple of length 2
             Mayavi figure name.
         fig_size : tuple of length 2
@@ -168,7 +166,7 @@ class Dipole(object):
             dipoles[-1].crop(t, t)
         return plot_dipole_locations(
             dipoles, trans, subject, subjects_dir, bgcolor, opacity,
-            brain_color, mesh_color, fig_name, fig_size, mode, scale_factor,
+            brain_color, fig_name, fig_size, mode, scale_factor,
             colors)
 
     def plot_amplitudes(self, color='k', show=True):
