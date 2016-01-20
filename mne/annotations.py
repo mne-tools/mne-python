@@ -19,20 +19,21 @@ class Annotations(object):
         Durations of the annotations.
     description: array of str, shape (n_annotations,)
         Array of strings containing description for each annotation.
-    orig_time: int | instance of datetime | None
-        Timestamp or a datetime determining the starting time of annotation
-        acquisition. If None (default), starting time is determined from
-        beginning of raw data.
+    orig_time: float | int | instance of datetime | array of int | None
+        A POSIX Timestamp, datetime or an array containing the timestamp as the
+        first element and microseconds as the second element. Determines the
+        starting time of annotation acquisition. If None (default),
+        starting time is determined from beginning of raw data.
     """
 
     def __init__(self, onset, duration, description, orig_time=None):
 
         if orig_time is not None:
             if isinstance(orig_time, datetime):
-                orig_time = time.mktime(orig_time.timetuple())
+                orig_time = float(time.mktime(orig_time.timetuple()))
             elif not np.isscalar(orig_time):
-                orig_time = orig_time[0]
-        self.orig_time = int(orig_time)
+                orig_time = orig_time[0] + orig_time[1] / 1000000.
+        self.orig_time = orig_time
 
         onset = np.array(onset)
         if onset.ndim != 1:
@@ -51,7 +52,7 @@ class Annotations(object):
 
     def _serialize(self):
         """Function that serializes the annotation object for saving."""
-        return json.dumps({'onset': list(self.onset),
-                           'duration': list(self.duration),
-                           'description': list(self.description),
+        return json.dumps({'onset': self.onset.tolist(),
+                           'duration': self.duration.tolist(),
+                           'description': self.description.tolist(),
                            'orig_time': self.orig_time})
