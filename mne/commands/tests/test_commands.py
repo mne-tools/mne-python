@@ -209,7 +209,7 @@ def test_watershed_bem():
         mne_watershed_bem.run()
 
 
-@slow_test
+@ultra_slow_test
 @requires_mne
 @requires_freesurfer
 @sample.requires_sample_data
