@@ -122,7 +122,7 @@ class OpenBCIClient(object):
             # ch_names = ['Time']
             ch_names = ['EEG%i' % i for i in range(1, n_eeg + 1)]
             # adding auxiliary channels
-            ch_names += ['Aux%i' % i for i in range(1, n_aux + 1)]
+            ch_names += ['MISC%i' % i for i in range(1, n_aux + 1)]
             info['ch_names'] = ch_names
 
             info['comps'] = list()
