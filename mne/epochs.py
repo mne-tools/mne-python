@@ -1601,7 +1601,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # deal with hierarchical tags
         ids = epochs.event_id
-        orig_ids = event_ids.copy()
+        orig_ids = list(event_ids)
         tagging = False
         if "/" in "".join(ids):
             # make string inputs a list of length 1
