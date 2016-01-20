@@ -42,6 +42,7 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
+from ..annotations import _combine_annotations
 
 
 class ToDataFrameMixin(object):
@@ -1754,6 +1755,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
+            self.annotations = _combine_annotations((self.annotations,
+                                                     r.annotations),
+                                                    self._last_samps,
+                                                    self.info['sfreq'])
+
         self._update_times()
 
         if not (len(self._first_samps) == len(self._last_samps) ==

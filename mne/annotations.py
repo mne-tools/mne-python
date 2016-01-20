@@ -56,3 +56,21 @@ class Annotations(object):
                            'duration': self.duration.tolist(),
                            'description': self.description.tolist(),
                            'orig_time': self.orig_time})
+
+
+def _combine_annotations(annotations, last_samps, sfreq):
+    """Helper for combining a tuple of annotations."""
+    if not all(annotations):
+        return None
+    elif annotations[0] is None:
+        return annotations[1]
+    elif annotations[1] is None:
+        return annotations[0]
+
+    if annotations[1].orig_time is None:
+        annotations[1].onset = (annotations[1].onset +
+                                sum(last_samps[:-1]) / sfreq)
+    onset = np.r_[annotations[0].onset, annotations[1].onset]
+    duration = np.r_[annotations[0].duration, annotations[1].duration]
+    description = np.r_[annotations[0].description, annotations[1].description]
+    return Annotations(onset, duration, description, annotations[0].orig_time)
