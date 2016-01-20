@@ -42,4 +42,4 @@ To explicitly reject artifacts with ``preload=False``, use the function :func:`m
 
 Loading data explicitly
 =======================
-To load the data if ``preload=False`` was initially selected, use the functions :func:`mne.Raw.load_data` and :func:`mne.Epochs.load_data`.
+To load the data if ``preload=False`` was initially selected, use the functions :func:`mne.io.Raw.load_data` and :func:`mne.Epochs.load_data`.

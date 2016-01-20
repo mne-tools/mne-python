@@ -33,6 +33,8 @@ class Annotations(object):
                 orig_time = float(time.mktime(orig_time.timetuple()))
             elif not np.isscalar(orig_time):
                 orig_time = orig_time[0] + orig_time[1] / 1000000.
+            else:  # isscalar
+                orig_time = float(orig_time)  # np.int not serializable
         self.orig_time = orig_time
 
         onset = np.array(onset)
@@ -68,9 +70,10 @@ def _combine_annotations(annotations, last_samps, sfreq):
         return annotations[0]
 
     if annotations[1].orig_time is None:
-        annotations[1].onset = (annotations[1].onset +
-                                sum(last_samps[:-1]) / sfreq)
-    onset = np.r_[annotations[0].onset, annotations[1].onset]
+        onset = (annotations[1].onset + sum(last_samps[:-1]) / sfreq)
+    else:
+        onset = annotations[1]
+    onset = np.r_[annotations[0].onset, onset]
     duration = np.r_[annotations[0].duration, annotations[1].duration]
     description = np.r_[annotations[0].description, annotations[1].description]
     return Annotations(onset, duration, description, annotations[0].orig_time)
