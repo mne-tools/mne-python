@@ -1621,8 +1621,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                          for id_ in event_ids]
             for ii, id_ in enumerate(event_ids):
                 if len(id_) == 0:
-                    err = "'{}' not found in the epoch object's event_id."
-                    raise ValueError(err.format(orig_ids[ii]))
+                    raise ValueError(orig_ids[ii] + "not found in the "
+                                     "epoch object's event_id.")
                 elif len(set([sub_id in ids for sub_id in id_])) != 1:
                     err = ("Don't mix hierarchical and regular event_ids"
                            " like in \'%s\'." % ", ".join(id_))
