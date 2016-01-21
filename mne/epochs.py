@@ -1317,11 +1317,21 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @property
     def tmin(self):
-        return self.times[0]
+        self._tmin = self.times[0]
+        return self._tmin
+
+    @tmin.setter
+    def tmin(self, val):
+        self._tmin = val
 
     @property
     def tmax(self):
-        return self.times[-1]
+        self._tmax = self.times[-1]
+        return self._tmax
+
+    @tmax.setter
+    def tmax(self, val):
+        self._tmax = val
 
     def __repr__(self):
         """ Build string representation
