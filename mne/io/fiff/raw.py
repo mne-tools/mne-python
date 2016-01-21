@@ -224,9 +224,10 @@ class Raw(_BaseRaw):
                     if kind == FIFF.FIFF_MNE_BASELINE_MIN:
                         onset = tag.data
                     elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
-                        duration = tag.data
+                        duration = tag.data - onset
                     elif kind == FIFF.FIFF_COMMENT:
-                        description = tag.data.split(';')
+                        description = tag.data.replace.split(':')
+                        description = description.replace(';', ':')
                     elif kind == FIFF.FIFF_MEAS_DATE:
                         orig_time = float(tag.data)
                 annotations = Annotations(onset, duration, description,

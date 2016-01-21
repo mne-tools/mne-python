@@ -2015,10 +2015,12 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
     if raw.annotations is not None:
         start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
-        write_int(fid, FIFF.FIFF_MNE_BASELINE_MIN, raw.annotations.onset)
-        write_int(fid, FIFF.FIFF_MNE_BASELINE_MAX, raw.annotations.duration)
-        write_name_list(fid, FIFF.FIFF_COMMENT, raw.annotations.description,
-                        separator=';')
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, raw.annotations.onset)
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
+                    raw.annotations.duration + raw.annotations.onset)
+        # To allow : in description, they need to be replaced for serialization
+        write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
+                                                 raw.annotations.description])
         if raw.annotations.orig_time is not None:
             write_double(fid, FIFF.FIFF_MEAS_DATE, raw.annotations.orig_time)
         end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)

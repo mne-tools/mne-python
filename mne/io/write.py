@@ -105,14 +105,14 @@ def write_string(fid, kind, data):
     _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, my_dtype)
 
 
-def write_name_list(fid, kind, data, separator=':'):
+def write_name_list(fid, kind, data):
     """Writes a colon-separated list of names
 
     Parameters
     ----------
     data : list of strings
     """
-    write_string(fid, kind, separator.join(data))
+    write_string(fid, kind, ':'.join(data))
 
 
 def write_float_matrix(fid, kind, mat):

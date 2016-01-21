@@ -309,7 +309,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         segments = list()
         segment_colors = dict()
         meas_date = info['meas_date']
-        color_keys = set(raw.annotations.description)
+        # sort the segments by start time
+        order = raw.annotations.onset.argsort(axis=0)
+        descriptions = raw.annotations.description[order]
+        color_keys = set(descriptions)
         color_vals = np.linspace(0, 1, len(color_keys))
         for idx, key in enumerate(color_keys):
             if key.lower().startswith('bad'):
@@ -319,7 +322,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         params['segment_colors'] = segment_colors
         if not np.isscalar(meas_date):
             meas_date = meas_date[0]
-        for idx, onset in enumerate(raw.annotations.onset):
+        for idx, onset in enumerate(raw.annotations.onset[order]):
             if raw.annotations.orig_time is None:
                 if np.isscalar(info['meas_date']):
                     orig_time = raw.info['meas_date']
@@ -330,14 +333,15 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                 orig_time = raw.annotations.orig_time
             annot_start = (orig_time - meas_date + onset -
                            raw.first_samp / info['sfreq'])
-            annot_end = annot_start + raw.annotations.duration[idx]
+            annot_end = annot_start + raw.annotations.duration[order][idx]
             segments.append([annot_start, annot_end])
             ylim = params['ax_hscroll'].get_ylim()
-            dscr = raw.annotations.description[idx]
+            dscr = descriptions[idx]
             params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
                                                alpha=0.3,
                                                color=segment_colors[dscr])
         params['segments'] = np.array(segments)
+        params['annot_description'] = descriptions
 
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
@@ -718,7 +722,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
                 continue
             start = segment[0]
             end = segment[1]
-            dscr = params['raw'].annotations.description[idx]
+            dscr = params['annot_description'][idx]
             segment_color = params['segment_colors'][dscr]
             params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
                                        alpha=0.3)

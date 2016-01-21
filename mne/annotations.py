@@ -29,8 +29,7 @@ class Annotations(object):
         same time.
 
     Note: annotations are synced to sample 0. ``raw.first_samp`` is taken
-    into account in the same way as with events. Annotations will be sorted so
-    that onsets are in ascending order.
+    into account in the same way as with events.
     """
 
     def __init__(self, onset, duration, description, orig_time=None):
@@ -55,11 +54,10 @@ class Annotations(object):
                              'equal in sizes.')
         if any([';' in desc for desc in description]):
             raise ValueError('Semicolons in descriptions not supported.')
-        # sort the segments by start time
-        order = onset.argsort(axis=0)
-        self.onset = onset[order]
-        self.duration = duration[order]
-        self.description = np.array(description)[order]
+
+        self.onset = onset
+        self.duration = duration
+        self.description = np.array(description)
 
 
 def _combine_annotations(annotations, last_samps, first_samps, sfreq):
