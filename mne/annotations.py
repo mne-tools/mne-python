@@ -27,8 +27,10 @@ class Annotations(object):
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
         the annotations with raw data if their acquisiton is started at the
         same time.
-        Note: annotations are synced to sample 0. ``raw.first_samp`` is taken
-        into account in the same way as with events.
+
+    Note: annotations are synced to sample 0. ``raw.first_samp`` is taken
+    into account in the same way as with events. Annotations will be sorted so
+    that onsets are in ascending order.
     """
 
     def __init__(self, onset, duration, description, orig_time=None):
