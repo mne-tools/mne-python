@@ -2,11 +2,12 @@
 #
 # License: BSD 3 clause
 
-import numpy as np
 from datetime import datetime
 from nose.tools import assert_raises
 from numpy.testing import assert_array_equal
 import os.path as op
+
+import numpy as np
 
 from mne.io import Raw
 from mne.annotations import Annotations, _combine_annotations
@@ -16,6 +17,7 @@ data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 
 
+@testing.requires_testing_data
 def test_annotations():
     """Test annotation class."""
     raw = Raw(fif_fname)
@@ -27,7 +29,6 @@ def test_annotations():
     # Test time shifts.
     for orig_time in [None, dt, meas_date[0], meas_date]:
         annot = Annotations(onset, duration, description, orig_time)
-        annot._serialize()
 
     assert_raises(ValueError, Annotations, onset, duration, description[:9])
     assert_raises(ValueError, Annotations, [onset, 1], duration, description)

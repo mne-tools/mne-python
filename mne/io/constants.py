@@ -811,4 +811,4 @@ FIFF.FIFFB_MNE_EPOCHS_SELECTION    = 3800  # the epochs selection
 FIFF.FIFFB_MNE_EPOCHS_DROP_LOG     = 3801  # the drop log
 
 # MNE annotations
-FIFF.FIFF_MNE_ANNOTATIONS          = 3810  # annotations
+FIFF.FIFFB_MNE_ANNOTATIONS          = 3810  # annotations

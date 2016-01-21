@@ -1058,7 +1058,10 @@ def test_save():
     raw.save(op.join(tempdir, new_fname), overwrite=True)
     new_raw = Raw(op.join(tempdir, new_fname), preload=False)
     assert_raises(ValueError, new_raw.save, new_fname)
-    assert_equal(annot._serialize(), new_raw.annotations._serialize())
+    assert_array_equal(annot.onset, new_raw.annotations.onset)
+    assert_array_equal(annot.duration, new_raw.annotations.duration)
+    assert_array_equal(annot.description, new_raw.annotations.description)
+    assert_equal(annot.orig_time, new_raw.annotations.orig_time)
     # make sure we can overwrite the file we loaded when preload=True
     new_raw = Raw(op.join(tempdir, new_fname), preload=True)
     new_raw.save(op.join(tempdir, new_fname), overwrite=True)

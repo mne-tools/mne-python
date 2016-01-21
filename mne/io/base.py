@@ -27,7 +27,7 @@ from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id, write_string, _get_split_size)
+                    write_id, write_string, write_name_list, _get_split_size)
 
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample,
@@ -1758,6 +1758,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self.annotations = _combine_annotations((self.annotations,
                                                      r.annotations),
                                                     self._last_samps,
+                                                    self._first_samps,
                                                     self.info['sfreq'])
 
         self._update_times()
@@ -1948,10 +1949,6 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
     if first_samp != 0:
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
 
-    if raw.annotations is not None:
-        annotations = raw.annotations._serialize()
-        write_string(fid, FIFF.FIFF_MNE_ANNOTATIONS, annotations)
-
     # previous file name and id
     if part_idx > 0 and prev_fname is not None:
         start_block(fid, FIFF.FIFFB_REF)
@@ -2015,6 +2012,16 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             break
 
         pos_prev = pos
+
+    if raw.annotations is not None:
+        start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
+        write_int(fid, FIFF.FIFF_MNE_BASELINE_MIN, raw.annotations.onset)
+        write_int(fid, FIFF.FIFF_MNE_BASELINE_MAX, raw.annotations.duration)
+        write_name_list(fid, FIFF.FIFF_COMMENT, raw.annotations.description,
+                        separator=';')
+        if raw.annotations.orig_time is not None:
+            write_double(fid, FIFF.FIFF_MEAS_DATE, raw.annotations.orig_time)
+        end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
     logger.info('Closing %s [done]' % use_fname)
     if info.get('maxshield', False):

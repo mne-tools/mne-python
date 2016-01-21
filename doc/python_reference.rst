@@ -25,6 +25,7 @@ Classes
 
    io.Raw
    io.RawFIF
+   Annotations
    Epochs
    Evoked
    SourceSpaces

@@ -10,7 +10,6 @@ import copy
 import warnings
 import os
 import os.path as op
-import json
 
 import numpy as np
 
@@ -213,18 +212,32 @@ class Raw(_BaseRaw):
             nskip = 0
             orig_format = None
             annotations = None
+
+            annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
+            if len(annot_data) > 0:
+                annot_data = annot_data[0]
+                for k in range(annot_data['nent']):
+                    kind = annot_data['directory'][k].kind
+                    pos = annot_data['directory'][k].pos
+                    orig_time = None
+                    tag = read_tag(fid, pos)
+                    if kind == FIFF.FIFF_MNE_BASELINE_MIN:
+                        onset = tag.data
+                    elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
+                        duration = tag.data
+                    elif kind == FIFF.FIFF_COMMENT:
+                        description = tag.data.split(';')
+                    elif kind == FIFF.FIFF_MEAS_DATE:
+                        orig_time = float(tag.data)
+                annotations = Annotations(onset, duration, description,
+                                          orig_time)
+            raw.annotations = annotations
+
             for k in range(first, nent):
                 ent = directory[k]
                 if ent.kind == FIFF.FIFF_DATA_SKIP:
                     tag = read_tag(fid, ent.pos)
                     nskip = int(tag.data)
-                elif ent.kind == FIFF.FIFF_MNE_ANNOTATIONS:
-                    tag = read_tag(fid, ent.pos)
-                    annot_data = json.loads(tag.data)
-                    annotations = Annotations(annot_data['onset'],
-                                              annot_data['duration'],
-                                              annot_data['description'],
-                                              annot_data['orig_time'])
                 elif ent.kind == FIFF.FIFF_DATA_BUFFER:
                     #   Figure out the number of samples in this buffer
                     if ent.type == FIFF.FIFFT_DAU_PACK16:
@@ -284,7 +297,6 @@ class Raw(_BaseRaw):
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
-        raw.annotations = annotations
 
         #   Add the calibration factors
         cals = np.zeros(info['nchan'])

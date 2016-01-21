@@ -2,10 +2,10 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
 from datetime import datetime
 import time
-import json
+
+import numpy as np
 
 
 class Annotations(object):
@@ -23,7 +23,12 @@ class Annotations(object):
         A POSIX Timestamp, datetime or an array containing the timestamp as the
         first element and microseconds as the second element. Determines the
         starting time of annotation acquisition. If None (default),
-        starting time is determined from beginning of raw data.
+        starting time is determined from beginning of raw data acquisition.
+        In general, ``raw.info['meas_date']`` (or None) can be used for syncing
+        the annotations with raw data if their acquisiton is started at the
+        same time.
+        Note: annotations are synced to sample 0. ``raw.first_samp`` is taken
+        into account in the same way as with events.
     """
 
     def __init__(self, onset, duration, description, orig_time=None):
@@ -46,34 +51,38 @@ class Annotations(object):
         if not (len(onset) == len(duration) == len(description)):
             raise ValueError('Onset, duration and description must be '
                              'equal in sizes.')
+        if any([';' in desc for desc in description]):
+            raise ValueError('Semicolons in descriptions not supported.')
         # sort the segments by start time
         order = onset.argsort(axis=0)
         self.onset = onset[order]
         self.duration = duration[order]
         self.description = np.array(description)[order]
 
-    def _serialize(self):
-        """Function that serializes the annotation object for saving."""
-        return json.dumps({'onset': self.onset.tolist(),
-                           'duration': self.duration.tolist(),
-                           'description': self.description.tolist(),
-                           'orig_time': self.orig_time})
 
-
-def _combine_annotations(annotations, last_samps, sfreq):
+def _combine_annotations(annotations, last_samps, first_samps, sfreq):
     """Helper for combining a tuple of annotations."""
-    if not all(annotations):
+    if not any(annotations):
         return None
-    elif annotations[0] is None:
-        return annotations[1]
     elif annotations[1] is None:
         return annotations[0]
+    elif annotations[0] is None:
+        old_onset = list()
+        old_duration = list()
+        old_description = list()
+        old_orig_time = None
+    else:
+        old_onset = annotations[0].onset
+        old_duration = annotations[0].duration
+        old_description = annotations[0].description
+        old_orig_time = annotations[0].orig_time
 
     if annotations[1].orig_time is None:
-        onset = (annotations[1].onset + sum(last_samps[:-1]) / sfreq)
+        onset = (annotations[1].onset + sum(last_samps[:-1]) / sfreq -
+                 sum(first_samps[:-1]) / sfreq)
     else:
         onset = annotations[1]
-    onset = np.r_[annotations[0].onset, onset]
-    duration = np.r_[annotations[0].duration, annotations[1].duration]
-    description = np.r_[annotations[0].description, annotations[1].description]
-    return Annotations(onset, duration, description, annotations[0].orig_time)
+    onset = np.r_[old_onset, onset]
+    duration = np.r_[old_duration, annotations[1].duration]
+    description = np.r_[old_description, annotations[1].description]
+    return Annotations(onset, duration, description, old_orig_time)
