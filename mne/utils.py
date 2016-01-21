@@ -1836,8 +1836,10 @@ def _time_mask(times, tmin=None, tmax=None, strict=False, sfreq=None):
     if not strict:
         if sfreq is not None:
             # Push to nearest sample first
-            tmin = round(tmin * sfreq) / sfreq
-            tmax = round(tmax * sfreq) / sfreq
+            if np.isfinite(tmin):
+                tmin = round(tmin * sfreq) / sfreq
+            if np.isfinite(tmax):
+                tmax = round(tmax * sfreq) / sfreq
         mask |= isclose(times, tmin)
         mask |= isclose(times, tmax)
     return mask
