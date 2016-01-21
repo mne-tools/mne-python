@@ -124,7 +124,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
         raise ValueError('epochs must be an instance of Epochs, Raw, or'
                          'Evoked. Got type {0}'.format(type(inst)))
 
-    time_mask = _time_mask(inst.times, tmin, tmax)
+    time_mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info['sfreq'])
     if picks is None:
         picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
@@ -404,7 +404,8 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
     n_fft, n_overlap = _check_nfft(len(epochs.times), n_fft, n_overlap)
 
     if tmin is not None or tmax is not None:
-        time_mask = _time_mask(epochs.times, tmin, tmax)
+        time_mask = _time_mask(epochs.times, tmin, tmax,
+                               sfreq=epochs.info['sfreq'])
     else:
         time_mask = slice(None)
     if proj:

@@ -101,7 +101,10 @@ class Dipole(object):
         tmax : float | None
             End time of selection in seconds.
         """
-        mask = _time_mask(self.times, tmin, tmax)
+        sfreq = None
+        if len(self.times) > 1:
+            sfreq = 1. / np.median(np.diff(self.times))
+        mask = _time_mask(self.times, tmin, tmax, sfreq=sfreq)
         for attr in ('times', 'pos', 'gof', 'amplitude', 'ori'):
             setattr(self, attr, getattr(self, attr)[mask])
 

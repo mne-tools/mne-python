@@ -41,7 +41,7 @@ def test_mxne_inverse():
     evoked.crop(tmin=-0.05, tmax=0.2)
 
     evoked_l21 = evoked.copy()
-    evoked_l21.crop(tmin=0.08, tmax=0.1)
+    evoked_l21.crop(tmin=0.081, tmax=0.1)
     label = read_label(fname_label)
 
     forward = read_forward_solution(fname_fwd, force_fixed=False,

@@ -103,11 +103,12 @@ def _test_concat(reader, *args):
         data = raw[:, :][0]
         for preloads in ((True, True), (True, False), (False, False)):
             for last_preload in (True, False):
-                print(first_preload, preloads, last_preload)
-                raw1 = raw.crop(0, 0.4999)
+                t_crops = raw.times[np.argmin(np.abs(raw.times - 0.5)) +
+                                    [0, 1]]
+                raw1 = raw.crop(0, t_crops[0])
                 if preloads[0]:
                     raw1.load_data()
-                raw2 = raw.crop(0.5, None)
+                raw2 = raw.crop(t_crops[1], None)
                 if preloads[1]:
                     raw2.load_data()
                 raw1.append(raw2)

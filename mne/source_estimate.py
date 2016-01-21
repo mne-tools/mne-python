@@ -470,6 +470,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         self._update_times()
         self.subject = _check_subject(None, subject, False)
 
+    @property
+    def sfreq(self):
+        """Sample rate of the data"""
+        return 1. / self.tstep
+
     def _remove_kernel_sens_data_(self):
         """Remove kernel and sensor space data and compute self._data
         """
@@ -489,7 +494,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         tmax : float | None
             The last time point in seconds. If None the last present is used.
         """
-        mask = _time_mask(self.times, tmin, tmax)
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.sfreq)
         self.tmin = self.times[np.where(mask)[0][0]]
         if self._kernel is not None and self._sens_data is not None:
             self._sens_data = self._sens_data[:, mask]
@@ -852,7 +857,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
 
         # min and max data indices to include
         times = np.round(1000 * self.times)
-        t_idx = np.where(_time_mask(times, tmin, tmax))[0]
+        t_idx = np.where(_time_mask(times, tmin, tmax, sfreq=self.sfreq))[0]
         if tmin is None:
             tmin_idx = None
         else:
