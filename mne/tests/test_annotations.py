@@ -9,8 +9,9 @@ import os.path as op
 
 import numpy as np
 
-from mne.io import Raw
-from mne.annotations import Annotations, _combine_annotations
+from mne.utils import run_tests_if_main
+from mne.io import Raw, concatenate_raws
+from mne.annotations import Annotations
 from mne.datasets import testing
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
@@ -21,8 +22,8 @@ fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 def test_annotations():
     """Test annotation class."""
     raw = Raw(fif_fname)
-    onset = list(range(10))
-    duration = np.ones(10)
+    onset = np.array(range(10))
+    duration = np.ones(10) + raw.first_samp
     description = np.repeat('test', 10)
     dt = datetime.utcnow()
     meas_date = raw.info['meas_date']
@@ -34,12 +35,24 @@ def test_annotations():
     assert_raises(ValueError, Annotations, [onset, 1], duration, description)
     assert_raises(ValueError, Annotations, onset, [duration, 1], description)
 
-    # Test combining annotations
-    annot1 = Annotations(onset, duration, description, dt)
-    annot2 = Annotations(onset, duration * 5, description, None)
-    last_samps = np.repeat(raw.last_samp, 2)
+    # Test combining annotations with concatenate_raws
+    annot = Annotations(onset, duration, description, dt)
     sfreq = raw.info['sfreq']
-    annot = _combine_annotations(np.array([annot1, annot2]), last_samps, sfreq)
-    assert_array_equal(annot1.onset, annot.onset[:10])
-    assert_array_equal(annot2.duration, annot.duration[10:])
-    assert_array_equal(annot2.onset + raw.last_samp / sfreq, annot.onset[10:])
+    raw2 = raw.copy()
+    raw2.annotations = annot
+    concatenate_raws([raw, raw2])
+    assert_array_equal(annot.onset, raw.annotations.onset)
+    assert_array_equal(annot.duration, raw.annotations.duration)
+
+    raw2.annotations = Annotations(onset, duration * 2, description, None)
+    last_samp = raw.last_samp - 1
+    concatenate_raws([raw, raw2])
+    onsets = np.concatenate([onset,
+                             onset + (last_samp - raw.first_samp) / sfreq])
+    assert_array_equal(raw.annotations.onset, onsets)
+    assert_array_equal(raw.annotations.onset[:10], onset)
+    assert_array_equal(raw.annotations.duration[:10], duration)
+    assert_array_equal(raw.annotations.duration[10:], duration * 2)
+    assert_array_equal(raw.annotations.description, np.repeat('test', 20))
+
+run_tests_if_main()

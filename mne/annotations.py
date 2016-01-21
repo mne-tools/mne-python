@@ -78,11 +78,11 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
         old_orig_time = annotations[0].orig_time
 
     if annotations[1].orig_time is None:
-        onset = (annotations[1].onset + sum(last_samps[:-1]) / sfreq -
-                 sum(first_samps[:-1]) / sfreq)
+        onset = (annotations[1].onset +
+                 (sum(last_samps[:-1]) - sum(first_samps[:-1])) / sfreq)
     else:
-        onset = annotations[1]
-    onset = np.r_[old_onset, onset]
-    duration = np.r_[old_duration, annotations[1].duration]
-    description = np.r_[old_description, annotations[1].description]
+        onset = annotations[1].onset
+    onset = np.concatenate([old_onset, onset])
+    duration = np.concatenate([old_duration, annotations[1].duration])
+    description = np.concatenate([old_description, annotations[1].description])
     return Annotations(onset, duration, description, old_orig_time)
