@@ -275,7 +275,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
-        #self.annotations = annotations
+        self.annotations = None
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)
