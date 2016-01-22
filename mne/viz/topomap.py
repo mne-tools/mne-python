@@ -1775,7 +1775,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         the animation it is better to disable blit. For MacOSX blit is always
         disabled. Defaults to True.
     show : bool
-        Whether to show the animation.
+        Whether to show the animation. Defaults to True.
 
     Returns
     -------
