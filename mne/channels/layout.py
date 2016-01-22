@@ -419,9 +419,9 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
         layout_name = 'CTF-275'
-    elif n_kit_grads == 157:
+    elif n_kit_grads <= 157:
         layout_name = 'KIT-157'
-    elif n_kit_grads == 208:
+    elif n_kit_grads > 157:
         layout_name = 'KIT-AD'
     else:
         return None
