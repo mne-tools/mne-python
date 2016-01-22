@@ -14,6 +14,8 @@ Changelog
 
     - Animation for evoked topomap in :func:`mne.Evoked.animate_topomap` by `Jaakko Leppakangas`_
 
+    - Make :func:`mne.find_layout` more robust for KIT systems in the presence of bad or missing channels by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
