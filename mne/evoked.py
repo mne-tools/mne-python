@@ -807,7 +807,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             intend to save the animation it is better to disable blit.
             Defaults to True.
         show : bool
-            Whether to show the animation.
+            Whether to show the animation. Defaults to True.
 
         Returns
         -------

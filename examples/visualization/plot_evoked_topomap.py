@@ -40,7 +40,7 @@ evoked.plot_topomap(times, ch_type='mag', average=0.05)
 evoked.plot_topomap(times, ch_type='grad')
 
 # plot magnetometer data as an animation
-evoked.animate(ch_type='mag', times=times, frame_rate=10)
+evoked.animate_topomap(ch_type='mag', times=times, frame_rate=10)
 
 # plot magnetometer data as topomap at 1 time point : 100 ms
 # and add channel labels and title

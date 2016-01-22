@@ -564,7 +564,7 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
         to use blit in combination with ``show=True``. If you intend to save
         the animation it is better to disable blit. Defaults to True.
     show : bool
-        Whether to show the animation.
+        Whether to show the animation. Defaults to True.
 
     Returns
     -------
