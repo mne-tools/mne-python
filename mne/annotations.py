@@ -28,7 +28,9 @@ class Annotations(object):
         the annotations with raw data if their acquisiton is started at the
         same time.
 
-    Note: annotations are synced to sample 0. ``raw.first_samp`` is taken
+    Notes
+    -----
+    Annotations are synced to sample 0. ``raw.first_samp`` is taken
     into account in the same way as with events.
     """
 

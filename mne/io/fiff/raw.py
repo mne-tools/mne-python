@@ -226,8 +226,9 @@ class Raw(_BaseRaw):
                     elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
                         duration = tag.data - onset
                     elif kind == FIFF.FIFF_COMMENT:
-                        description = tag.data.replace.split(':')
-                        description = description.replace(';', ':')
+                        description = tag.data.split(':')
+                        description = [d.replace(';', ':') for d in
+                                       description]
                     elif kind == FIFF.FIFF_MEAS_DATE:
                         orig_time = float(tag.data)
                 annotations = Annotations(onset, duration, description,
