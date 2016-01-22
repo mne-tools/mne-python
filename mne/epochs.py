@@ -1601,6 +1601,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # deal with hierarchical tags
         ids = epochs.event_id
+        orig_ids = list(event_ids)
         tagging = False
         if "/" in "".join(ids):
             # make string inputs a list of length 1
@@ -1618,8 +1619,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                          if all(id__ not in ids for id__ in id_)
                          else id_  # straight pass for non-tag inputs
                          for id_ in event_ids]
-            for id_ in event_ids:
-                if len(set([sub_id in ids for sub_id in id_])) != 1:
+            for ii, id_ in enumerate(event_ids):
+                if len(id_) == 0:
+                    raise KeyError(orig_ids[ii] + "not found in the "
+                                   "epoch object's event_id.")
+                elif len(set([sub_id in ids for sub_id in id_])) != 1:
                     err = ("Don't mix hierarchical and regular event_ids"
                            " like in \'%s\'." % ", ".join(id_))
                     raise ValueError(err)
