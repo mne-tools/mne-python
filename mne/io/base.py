@@ -231,7 +231,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  first_samps=(0,), last_samps=None,
                  filenames=(None,), raw_extras=(None,),
                  comp=None, orig_comp_grade=None, orig_format='double',
-                 annotations=None, dtype=np.float64, verbose=None):
+                 dtype=np.float64, verbose=None):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -275,7 +275,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
-        self.annotations = annotations
+        #self.annotations = annotations
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)

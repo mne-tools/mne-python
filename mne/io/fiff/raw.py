@@ -23,7 +23,7 @@ from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 from ..utils import _mult_cal_one
 
-from ...annotations import Annotations
+from ...annotations import Annotations, _combine_annotations
 from ...utils import check_fname, logger, verbose
 
 
@@ -119,13 +119,26 @@ class Raw(_BaseRaw):
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
             copy.deepcopy(raws[0].comp), raws[0]._orig_comp_grade,
-            raws[0].orig_format, raws[0].annotations, None, verbose=verbose)
+            raws[0].orig_format, None, verbose=verbose)
 
         # combine information from each raw file to construct self
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
             eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
             self.add_proj(eeg_ref)
 
+        # combine annotations
+        self.annotations = None
+        if any([r.annotations for r in raws]):
+            first_samps = list()
+            last_samps = list()
+            for r in raws:
+                first_samps = np.r_[first_samps, r.first_samp]
+                last_samps = np.r_[last_samps, r.last_samp]
+                self.annotations = _combine_annotations((self.annotations,
+                                                         r.annotations),
+                                                        last_samps,
+                                                        first_samps,
+                                                        r.info['sfreq'])
         if preload:
             self._preload_data(preload)
         else:
