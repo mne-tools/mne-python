@@ -19,7 +19,9 @@ from .fixes import in1d
 from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
-from .viz.evoked import _plot_evoked_white, _joint_plot
+from .viz.evoked import (_plot_evoked_white, _joint_plot,
+                         _animate_evoked_topomap)
+
 from .externals.six import string_types
 
 from .io.constants import FIFF
@@ -777,6 +779,51 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return _joint_plot(self, times=times, title=title, picks=picks,
                            exclude=exclude, show=show, ts_args=ts_args,
                            topomap_args=topomap_args)
+
+    def animate_topomap(self, ch_type='mag', times=None, frame_rate=None,
+                        butterfly=False, blit=True, show=True):
+        """Make animation of evoked data as topomap timeseries. Animation can
+        be paused/resumed with left mouse button. Left and right arrow keys can
+        be used to move backward or forward in time
+
+        Parameters
+        ----------
+        ch_type : str | None
+            Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
+            If None, first available channel type from ('mag', 'grad', 'eeg')
+            is used. Defaults to None.
+        times : array of floats | None
+            The time points to plot. If None, 10 evenly spaced samples are
+            calculated over the evoked time series. Defaults to None.
+        frame_rate : int | None
+            Frame rate for the animation in Hz. If None,
+            frame rate = sfreq / 10. Defaults to None.
+        butterfly : bool
+            Whether to plot the data as butterfly plot under the topomap.
+            Defaults to False.
+        blit : bool
+            Whether to use blit to optimize drawing. In general, it is
+            recommended to use blit in combination with ``show=True``. If you
+            intend to save the animation it is better to disable blit.
+            Defaults to True.
+        show : bool
+            Whether to show the animation. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            The figure.
+        anim : instance of matplotlib FuncAnimation
+            Animation of the topomap.
+
+        Notes
+        -----
+        .. versionadded:: 0.12.0
+        """
+        return _animate_evoked_topomap(self, ch_type=ch_type, times=times,
+                                       frame_rate=frame_rate,
+                                       butterfly=butterfly, blit=blit,
+                                       show=show)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields in mag/grad

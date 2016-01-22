@@ -12,6 +12,8 @@ Changelog
 
     - Add `overlay_times` parameter to :func:`mne.viz.plot_epochs_image` to be able to display for example reaction times on top of the images, by `Alex Gramfort`_
 
+    - Animation for evoked topomap in :func:`mne.Evoked.animate` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 

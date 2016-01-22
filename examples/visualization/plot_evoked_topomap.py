@@ -39,6 +39,9 @@ evoked.plot_topomap(times, ch_type='mag', average=0.05)
 # plot gradiometer data (plots the RMS for each pair of gradiometers)
 evoked.plot_topomap(times, ch_type='grad')
 
+# plot magnetometer data as an animation
+evoked.animate_topomap(ch_type='mag', times=times, frame_rate=10)
+
 # plot magnetometer data as topomap at 1 time point : 100 ms
 # and add channel labels and title
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
