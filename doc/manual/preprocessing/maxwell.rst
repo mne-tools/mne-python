@@ -58,7 +58,7 @@ Each of these requires time-varying estimates of head positions, which can
 currently be obtained from MaxFilter using the ``-headpos`` and ``-hp``
 arguments (see the MaxFilter manual for details). The resulting
 MaxFilter-style head position information can be read using
-:func:`mne.chpi.read_head_quats` and passed to mne-python's movement
+:func:`mne.chpi.read_head_pos` and passed to mne-python's movement
 compensation algorithms.
 
 References

@@ -16,7 +16,7 @@ from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, _BaseRaw
-from ..chpi import read_head_quats, head_quats_to_trans_rot_t, _get_hpi_info
+from ..chpi import read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info
 from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
@@ -87,8 +87,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         be the time points and entries should be 4x4 ``dev_head_t``
         matrices. If None, the original head position (from
         ``info['dev_head_t']``) will be used. If tuple, should have the
-        same format as data returned by `head_quats_to_trans_rot_t`.
-        If array, should be of the form returned by `read_head_quats`.
+        same format as data returned by `head_pos_to_trans_rot_t`.
+        If array, should be of the form returned by `read_head_pos`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -113,7 +113,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     See Also
     --------
-    read_head_quats
+    read_head_pos
 
     Notes
     -----
@@ -189,9 +189,9 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     # Use position data to simulate head movement
     else:
         if isinstance(head_pos, string_types):
-            head_pos = read_head_quats(head_pos)
+            head_pos = read_head_pos(head_pos)
         if isinstance(head_pos, np.ndarray):
-            head_pos = head_quats_to_trans_rot_t(head_pos)
+            head_pos = head_pos_to_trans_rot_t(head_pos)
         if isinstance(head_pos, tuple):  # can be an already-loaded pos file
             transs, rots, ts = head_pos
             ts -= first_samp / info['sfreq']  # MF files need reref

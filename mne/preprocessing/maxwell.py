@@ -41,7 +41,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,
                    st_correlation=0.98, coord_frame='head', destination=None,
                    regularize='in', ignore_ref=False, bad_condition='error',
-                   pos=None, st_fixed=True, verbose=None):
+                   head_pos=None, st_fixed=True, verbose=None):
     """Apply Maxwell filter to data using multipole moments
 
     .. warning:: Automatic bad channel detection is not currently implemented.
@@ -109,10 +109,10 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     bad_condition : str
         How to deal with ill-conditioned SSS matrices. Can be "error"
         (default), "warning", or "ignore".
-    pos : array | None
+    head_pos : array | None
         If array, movement compensation will be performed.
         The array should be of shape (N, 10), holding the position
-        parameters as returned by e.g. `read_head_quats`.
+        parameters as returned by e.g. `read_head_pos`.
 
         .. versionadded:: 0.12
 
@@ -131,7 +131,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     See Also
     --------
     mne.epochs.average_movements
-    mne.chpi.read_head_quats
+    mne.chpi.read_head_pos
 
     Notes
     -----
@@ -247,13 +247,13 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                            'info["dev_head_t"] is None; if this is an '
                            'empty room recording, consider using '
                            'coord_frame="meg"')
-    pos = _check_pos(pos, head_frame, raw, st_fixed)
+    head_pos = _check_pos(head_pos, head_frame, raw, st_fixed)
 
     # Now we can actually get moving
 
     logger.info('Maxwell filtering raw data')
     raw_sss, pos_picks = _copy_preload_add_channels(
-        raw, add_channels=pos[0] is not None)
+        raw, add_channels=head_pos[0] is not None)
     del raw
     info, times = raw_sss.info, raw_sss.times
     meg_picks, mag_picks, grad_picks, good_picks, coil_scale, mag_or_fine = \
@@ -340,9 +340,10 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     #
 
     # Figure out which transforms we need for each tSSS block
-    pos[1] = raw_sss.time_as_index(pos[1], use_rounding=True)  # transform to t
+    # (and transform pos[1] to times)
+    head_pos[1] = raw_sss.time_as_index(head_pos[1], use_rounding=True)
     # Compute the first bit of pos_data for cHPI reporting
-    if raw_sss.info['dev_head_t'] is not None and pos[0] is not None:
+    if raw_sss.info['dev_head_t'] is not None and head_pos[0] is not None:
         this_pos_quat = np.concatenate([
             rot_to_quat(info['dev_head_t']['trans'][:3, :3]),
             info['dev_head_t']['trans'][:3, 3],
@@ -374,7 +375,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         out_pos_data = np.empty((len(pos_picks), stop - start))
 
         # Figure out which positions to use
-        t_s_s_q_a = _trans_starts_stops_quats(pos, start, stop, this_pos_quat)
+        t_s_s_q_a = _trans_starts_stops_quats(head_pos, start, stop,
+                                              this_pos_quat)
         n_positions = len(t_s_s_q_a[0])
 
         # Set up post-tSSS or do pre-tSSS

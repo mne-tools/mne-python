@@ -17,8 +17,6 @@ details:
 
 from os import path as op
 
-import numpy as np
-
 import mne
 from mne.preprocessing import maxwell_filter
 
@@ -26,7 +24,7 @@ print(__doc__)
 
 data_path = op.join(mne.datasets.misc.data_path(verbose=True), 'movement')
 
-pos = mne.chpi.read_head_quats(op.join(data_path, 'simulated_quats.pos'))
+pos = mne.chpi.read_head_pos(op.join(data_path, 'simulated_quats.pos'))
 raw = mne.io.Raw(op.join(data_path, 'simulated_movement_raw.fif'))
 raw_stat = mne.io.Raw(op.join(data_path, 'simulated_stationary_raw.fif'))
 
@@ -35,8 +33,6 @@ raw_stat = mne.io.Raw(op.join(data_path, 'simulated_stationary_raw.fif'))
 
 # extract our resulting events
 events = mne.find_events(raw, stim_channel='STI 014')
-assert len(events) == len(pos)  # make sure we did this right
-assert np.array_equal(events[:, 2], np.arange(len(pos)) + 1)
 events[:, 2] = 1
 raw.plot(events=events)
 
@@ -48,11 +44,9 @@ evoked_stat.plot_topomap(title='Stationary', **topo_kwargs)
 
 # 1. Take a naive average (smears activity)
 evoked = mne.Epochs(raw, events, 1, -0.2, 0.8).average()
-assert evoked.nave == len(pos)
 evoked.plot_topomap(title='Moving: naive average', **topo_kwargs)
 
 # 2. Use raw movement compensation (restores pattern)
-raw_sss = maxwell_filter(raw, pos=pos)
+raw_sss = maxwell_filter(raw, head_pos=pos)
 evoked_raw_mc = mne.Epochs(raw_sss, events, 1, -0.2, 0.8).average()
-assert evoked_raw_mc.nave == len(pos)
 evoked_raw_mc.plot_topomap(title='Moving: movement compensated', **topo_kwargs)

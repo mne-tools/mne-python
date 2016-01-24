@@ -462,9 +462,9 @@ Head position estimation:
    :template: function.rst
 
    filter_chpi
-   head_quats_to_trans_rot_t
-   read_head_quats
-   write_head_quats
+   head_pos_to_trans_rot_t
+   read_head_pos
+   write_head_pos
 
 .. currentmodule:: mne.transforms
 

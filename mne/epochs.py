@@ -2655,21 +2655,21 @@ def concatenate_epochs(epochs_list):
 
 
 @verbose
-def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
-                      weight_all=True, int_order=8, ext_order=3,
+def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
+                      origin='auto', weight_all=True, int_order=8, ext_order=3,
                       destination=None, ignore_ref=False, return_mapping=False,
-                      verbose=None):
+                      pos=None, verbose=None):
     """Average data using Maxwell filtering, transforming using head positions
 
     Parameters
     ----------
     epochs : instance of Epochs
         The epochs to operate on.
-    pos : array | tuple | None
+    head_pos : array | tuple | None
         The array should be of shape ``(N, 10)``, holding the position
-        parameters as returned by e.g. `read_head_quats`. For backward
+        parameters as returned by e.g. `read_head_pos`. For backward
         compatibility, this can also be a tuple of ``(trans, rot t)``
-        as returned by `head_quats_to_trans_rot_t`.
+        as returned by `head_pos_to_trans_rot_t`.
     orig_sfreq : float | None
         The original sample frequency of the data (that matches the
         event sample numbers in ``epochs.events``). Can be ``None``
@@ -2721,7 +2721,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     See Also
     --------
     mne.preprocessing.maxwell_filter
-    mne.chpi.read_head_quats
+    mne.chpi.read_head_pos
 
     Notes
     -----
@@ -2750,16 +2750,22 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
                                         _check_usable, _col_norm_pinv,
                                         _get_n_moments, _get_mf_picks,
                                         _prep_mf_coils, _check_destination)
-    from .chpi import head_quats_to_trans_rot_t
+    if pos is not None:
+        head_pos = pos
+        warnings.warn('pos has been replaced by head_pos and will be removed '
+                      'in 0.13', DeprecationWarning)
+    if head_pos is None:
+        raise TypeError('head_pos must be provided and cannot be None')
+    from .chpi import head_pos_to_trans_rot_t
     if not isinstance(epochs, _BaseEpochs):
         raise TypeError('epochs must be an instance of Epochs, not %s'
                         % (type(epochs),))
     orig_sfreq = epochs.info['sfreq'] if orig_sfreq is None else orig_sfreq
     orig_sfreq = float(orig_sfreq)
-    if isinstance(pos, np.ndarray):
-        pos = head_quats_to_trans_rot_t(pos)
-    trn, rot, t = pos
-    del pos
+    if isinstance(head_pos, np.ndarray):
+        head_pos = head_pos_to_trans_rot_t(head_pos)
+    trn, rot, t = head_pos
+    del head_pos
     _check_usable(epochs)
     origin = _check_origin(origin, epochs.info, 'head')
     recon_trans = _check_destination(destination, epochs.info, True)

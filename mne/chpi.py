@@ -94,14 +94,14 @@ def get_chpi_positions(raw, t_step=None, return_quat=False, verbose=None):
             raise TypeError('raw must be an instance of Raw or string')
         if t_step is not None:
             raise ValueError('t_step must be None if processing a log')
-        data = read_head_quats(raw)
-    out = head_quats_to_trans_rot_t(data)
+        data = read_head_pos(raw)
+    out = head_pos_to_trans_rot_t(data)
     if return_quat:
         out = out + (data[:, 1:4],)
     return out
 
 
-def read_head_quats(fname):
+def read_head_pos(fname):
     """Read MaxFilter-formatted head position parameters
 
     Parameters
@@ -117,8 +117,8 @@ def read_head_quats(fname):
 
     See Also
     --------
-    write_head_quats
-    head_quats_to_trans_rot_t
+    write_head_pos
+    head_pos_to_trans_rot_t
 
     Notes
     -----
@@ -130,7 +130,7 @@ def read_head_quats(fname):
     return data
 
 
-def write_head_quats(fname, pos):
+def write_head_pos(fname, pos):
     """Write MaxFilter-formatted head position parameters
 
     Parameters
@@ -142,8 +142,8 @@ def write_head_quats(fname, pos):
 
     See Also
     --------
-    read_head_quats
-    head_quats_to_trans_rot_t
+    read_head_pos
+    head_pos_to_trans_rot_t
 
     Notes
     -----
@@ -162,7 +162,7 @@ def write_head_quats(fname, pos):
                        % tuple(p)).encode('ASCII'))
 
 
-def head_quats_to_trans_rot_t(quats):
+def head_pos_to_trans_rot_t(quats):
     """Convert Maxfilter-formatted head position quaternions
 
     Parameters
@@ -397,8 +397,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
     See Also
     --------
-    read_head_quats
-    write_head_quats
+    read_head_pos
+    write_head_pos
     """
     from scipy.spatial.distance import cdist
     hpi, last = _setup_chpi_fits(raw.info, t_window, t_step_min)

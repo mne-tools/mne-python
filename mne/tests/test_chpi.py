@@ -11,8 +11,8 @@ import warnings
 from mne.io import Raw
 from mne.io.constants import FIFF
 from mne.chpi import (get_chpi_positions, _calculate_chpi_positions,
-                      head_quats_to_trans_rot_t, read_head_quats,
-                      write_head_quats, filter_chpi)
+                      head_pos_to_trans_rot_t, read_head_pos,
+                      write_head_pos, filter_chpi)
 from mne.transforms import rot_to_quat, quat_to_rot, _angle_between_quats
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, catch_logging,
                        requires_version)
@@ -35,24 +35,24 @@ warnings.simplefilter('always')
 
 
 @testing.requires_testing_data
-def test_read_write_head_quats():
+def test_read_write_head_pos():
     """Test reading and writing head position quaternion parameters"""
     tempdir = _TempDir()
     temp_name = op.join(tempdir, 'temp.pos')
     # This isn't a 100% valid quat matrix but it should be okay for tests
-    pos_rand = np.random.RandomState(0).randn(20, 10)
+    head_pos_rand = np.random.RandomState(0).randn(20, 10)
     # This one is valid
-    pos_read = read_head_quats(pos_fname)
-    for pos_orig in (pos_rand, pos_read):
-        write_head_quats(temp_name, pos_orig)
-        pos = read_head_quats(temp_name)
-        assert_allclose(pos_orig, pos, atol=1e-3)
+    head_pos_read = read_head_pos(pos_fname)
+    for head_pos_orig in (head_pos_rand, head_pos_read):
+        write_head_pos(temp_name, head_pos_orig)
+        head_pos = read_head_pos(temp_name)
+        assert_allclose(head_pos_orig, head_pos, atol=1e-3)
     # Degenerate cases
-    assert_raises(TypeError, write_head_quats, 0, pos_read)  # not filename
-    assert_raises(ValueError, write_head_quats, temp_name, 'foo')  # not array
-    assert_raises(ValueError, write_head_quats, temp_name, pos_read[:, :9])
-    assert_raises(TypeError, read_head_quats, 0)
-    assert_raises(IOError, read_head_quats, temp_name + 'foo')
+    assert_raises(TypeError, write_head_pos, 0, head_pos_read)  # not filename
+    assert_raises(ValueError, write_head_pos, temp_name, 'foo')  # not array
+    assert_raises(ValueError, write_head_pos, temp_name, head_pos_read[:, :9])
+    assert_raises(TypeError, read_head_pos, 0)
+    assert_raises(IOError, read_head_pos, temp_name + 'foo')
 
 
 def test_get_chpi():
@@ -138,12 +138,12 @@ def _compare_positions(a, b, max_dist=0.003, max_angle=5.):
 def test_calculate_chpi_positions():
     """Test calculation of cHPI positions
     """
-    trans, rot, t = head_quats_to_trans_rot_t(read_head_quats(pos_fname))
+    trans, rot, t = head_pos_to_trans_rot_t(read_head_pos(pos_fname))
     with warnings.catch_warnings(record=True):
         raw = Raw(chpi_fif_fname, allow_maxshield=True, preload=True)
     t -= raw.first_samp / raw.info['sfreq']
     quats = _calculate_chpi_positions(raw, verbose='debug')
-    trans_est, rot_est, t_est = head_quats_to_trans_rot_t(quats)
+    trans_est, rot_est, t_est = head_pos_to_trans_rot_t(quats)
     _compare_positions((trans, rot, t), (trans_est, rot_est, t_est), 0.003)
 
     # degenerate conditions

@@ -13,7 +13,7 @@ from nose.plugins.skip import SkipTest
 from distutils.version import LooseVersion
 
 from mne import compute_raw_covariance, pick_types
-from mne.chpi import read_head_quats, filter_chpi
+from mne.chpi import read_head_pos, filter_chpi
 from mne.forward import _prep_meg_channels
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
@@ -101,17 +101,17 @@ def _assert_n_free(raw_sss, lower, upper=None):
 
 @slow_test
 @testing.requires_testing_data
-def test_aamovement_compensation():
+def test_movement_compensation():
     """Test movement compensation"""
     lims = (0, 8)
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True, preload=True).crop(*lims)
-    pos = read_head_quats(pos_fname)
+    head_pos = read_head_pos(pos_fname)
 
     #
     # Movement compensation, no regularization, no tSSS
     #
-    raw_sss = maxwell_filter(raw, pos=pos, origin=mf_head_origin,
+    raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin,
                              regularize=None, bad_condition='ignore')
     assert_meg_snr(raw_sss, Raw(sss_movecomp_fname).crop(*lims),
                    4.6, 12.4, chpi_med_tol=58)
@@ -119,7 +119,7 @@ def test_aamovement_compensation():
     #
     # Movement compensation,    regularization, no tSSS
     #
-    raw_sss = maxwell_filter(raw, pos=pos, origin=mf_head_origin)
+    raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin)
     assert_meg_snr(raw_sss, Raw(sss_movecomp_reg_in_fname).crop(*lims),
                    0.7, 1.9, chpi_med_tol=121)
 
@@ -128,8 +128,9 @@ def test_aamovement_compensation():
     #
     raw_nohpi = filter_chpi(raw.copy())
     with warnings.catch_warnings(record=True) as w:  # untested feature
-        raw_sss_mv = maxwell_filter(raw_nohpi, pos=pos, st_duration=4.,
-                                    origin=mf_head_origin, st_fixed=False)
+        raw_sss_mv = maxwell_filter(raw_nohpi, head_pos=head_pos,
+                                    st_duration=4., origin=mf_head_origin,
+                                    st_fixed=False)
     assert_equal(len(w), 1)
     assert_true('is untested' in str(w[0].message))
     # Neither match is particularly good because our algorithm actually differs
@@ -144,7 +145,7 @@ def test_aamovement_compensation():
     #
     # Movement compensation,    regularization,    tSSS at the beginning
     #
-    raw_sss_mc = maxwell_filter(raw_nohpi, pos=pos, st_duration=4.,
+    raw_sss_mc = maxwell_filter(raw_nohpi, head_pos=head_pos, st_duration=4.,
                                 origin=mf_head_origin)
     assert_meg_snr(raw_sss_mc, Raw(tSSS_fname).crop(*lims),
                    0.6, 1.0, chpi_med_tol=None)
@@ -154,16 +155,19 @@ def test_aamovement_compensation():
     with warnings.catch_warnings(record=True):  # maxshield
         raw_erm = Raw(erm_fname, allow_maxshield=True)
     assert_raises(ValueError, maxwell_filter, raw_erm, coord_frame='meg',
-                  pos=pos)  # can't do ERM file
-    pos_bad = pos[:, :9]
-    assert_raises(ValueError, maxwell_filter, raw, pos=pos_bad)  # bad shape
-    pos_bad = 'foo'
-    assert_raises(TypeError, maxwell_filter, raw, pos=pos_bad)  # bad type
-    pos_bad = pos[::-1]
-    assert_raises(ValueError, maxwell_filter, raw, pos=pos_bad)
-    pos_bad = pos.copy()
-    pos_bad[0, 0] = 1.  # bad time given the first_samp...
-    assert_raises(ValueError, maxwell_filter, raw, pos=pos_bad)
+                  head_pos=head_pos)  # can't do ERM file
+    head_pos_bad = head_pos[:, :9]
+    assert_raises(ValueError, maxwell_filter, raw,
+                  head_pos=head_pos_bad)  # bad shape
+    head_pos_bad = 'foo'
+    assert_raises(TypeError, maxwell_filter, raw,
+                  head_pos=head_pos_bad)  # bad type
+    head_pos_bad = head_pos[::-1]
+    assert_raises(ValueError, maxwell_filter, raw,
+                  head_pos=head_pos_bad)
+    head_pos_bad = head_pos.copy()
+    head_pos_bad[0, 0] = 1.  # bad time given the first_samp...
+    assert_raises(ValueError, maxwell_filter, raw, head_pos=head_pos_bad)
 
 
 @slow_test

@@ -27,7 +27,7 @@ from mne.epochs import (
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_version)
-from mne.chpi import read_head_quats, head_quats_to_trans_rot_t
+from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, Raw
 from mne.io.proj import _has_eeg_average_ref_proj
@@ -99,19 +99,23 @@ def test_average_movements():
                              picks=picks, proj=False)
     evoked_sss_stat = epochs_sss_stat.average()
     del raw_sss_stat, epochs_sss_stat
-    pos = read_head_quats(fname_raw_move_pos)
+    head_pos = read_head_pos(fname_raw_move_pos)
     trans = epochs.info['dev_head_t']['trans']
-    pos_stat = (np.array([trans[:3, 3]]),
-                np.array([trans[:3, :3]]),
-                np.array([0.]))
+    head_pos_stat = (np.array([trans[:3, 3]]),
+                     np.array([trans[:3, :3]]),
+                     np.array([0.]))
 
     # SSS-based
-    evoked_move_non = average_movements(epochs, pos=pos, weight_all=False,
-                                        origin=origin)
-    evoked_move_all = average_movements(epochs, pos=pos, weight_all=True,
-                                        origin=origin)
-    evoked_stat_all = average_movements(epochs, pos=pos_stat, weight_all=True,
-                                        origin=origin)
+    assert_raises(TypeError, average_movements, epochs, None)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')  # deprecated param, pos -> head_pos
+        evoked_move_non = average_movements(epochs, pos=head_pos,
+                                            weight_all=False, origin=origin)
+    assert_equal(len(w), 1)
+    evoked_move_all = average_movements(epochs, head_pos=head_pos,
+                                        weight_all=True, origin=origin)
+    evoked_stat_all = average_movements(epochs, head_pos=head_pos_stat,
+                                        weight_all=True, origin=origin)
     evoked_std = epochs.average()
     for ev in (evoked_move_non, evoked_move_all, evoked_stat_all):
         assert_equal(ev.nave, evoked_std.nave)
@@ -145,21 +149,22 @@ def test_average_movements():
 
     # pos[0] > epochs.events[0] uses dev_head_t, so make it equivalent
     destination = deepcopy(epochs.info['dev_head_t'])
-    x = head_quats_to_trans_rot_t(pos[1])
+    x = head_pos_to_trans_rot_t(head_pos[1])
     epochs.info['dev_head_t']['trans'][:3, :3] = x[1]
     epochs.info['dev_head_t']['trans'][:3, 3] = x[0]
-    evoked_miss = average_movements(epochs, pos=pos[2:], origin=origin,
-                                    destination=destination)
+    evoked_miss = average_movements(epochs, head_pos=head_pos[2:],
+                                    origin=origin, destination=destination)
     assert_allclose(evoked_miss.data, evoked_move_all.data)
 
     # degenerate cases
     destination['to'] = destination['from']  # bad dest
-    assert_raises(RuntimeError, average_movements, epochs, pos, origin=origin,
-                  destination=destination)
-    assert_raises(TypeError, average_movements, 'foo', pos=pos)
-    assert_raises(RuntimeError, average_movements, epochs_proj, pos=pos)  # prj
+    assert_raises(RuntimeError, average_movements, epochs, head_pos,
+                  origin=origin, destination=destination)
+    assert_raises(TypeError, average_movements, 'foo', head_pos=head_pos)
+    assert_raises(RuntimeError, average_movements, epochs_proj,
+                  head_pos=head_pos)  # prj
     epochs.info['comps'].append([0])
-    assert_raises(RuntimeError, average_movements, epochs, pos=pos)
+    assert_raises(RuntimeError, average_movements, epochs, head_pos=head_pos)
     epochs.info['comps'].pop()
 
 
