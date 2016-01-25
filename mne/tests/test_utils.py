@@ -313,6 +313,7 @@ def test_config():
     assert_true(get_config(key) == value)
     del os.environ[key]
     # catch the warning about it being a non-standard config key
+    assert_true(len(set_config(None, None)) > 10)  # tuple of valid keys
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         set_config(key, None, home_dir=tempdir)

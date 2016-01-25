@@ -1065,30 +1065,31 @@ def set_memmap_min_size(memmap_min_size):
 
 
 # List the known configuration values
-known_config_types = [
+known_config_types = (
     'MNE_BROWSE_RAW_SIZE',
+    'MNE_CACHE_DIR',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',
+    'MNE_DATASETS_BRAINSTORM_PATH',
+    'MNE_DATASETS_EEGBCI_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
+    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
     'MNE_DATASETS_SPM_FACE_PATH',
-    'MNE_DATASETS_EEGBCI_PATH',
-    'MNE_DATASETS_BRAINSTORM_PATH',
     'MNE_DATASETS_TESTING_PATH',
     'MNE_LOGGING_LEVEL',
-    'MNE_USE_CUDA',
-    'SUBJECTS_DIR',
-    'MNE_CACHE_DIR',
     'MNE_MEMMAP_MIN_SIZE',
     'MNE_SKIP_TESTING_DATASET_TESTS',
-    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
-]
+    'MNE_STIM_CHANNEL',
+    'MNE_USE_CUDA',
+    'SUBJECTS_DIR',
+)
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
-known_config_wildcards = [
+known_config_wildcards = (
     'MNE_STIM_CHANNEL',
-]
+)
 
 
 def get_config(key=None, default=None, raise_error=False, home_dir=None):
@@ -1158,8 +1159,9 @@ def set_config(key, value, home_dir=None):
 
     Parameters
     ----------
-    key : str
-        The preference key to set.
+    key : str | None
+        The preference key to set. If None, a tuple of the valid
+        keys is returned, and ``value`` and ``home_dir`` are ignored.
     value : str |  None
         The value to assign to the preference key. If None, the key is
         deleted.
@@ -1171,6 +1173,8 @@ def set_config(key, value, home_dir=None):
     --------
     get_config
     """
+    if key is None:
+        return known_config_types
     if not isinstance(key, string_types):
         raise TypeError('key must be a string')
     # While JSON allow non-string types, we allow users to override config
