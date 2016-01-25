@@ -299,10 +299,50 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # plot event_line first so it's in the back
     event_lines = [params['ax'].plot([np.nan], color=event_color[ev_num])[0]
                    for ev_num in sorted(event_color.keys())]
+
     params['plot_fun'] = partial(_plot_raw_traces, params=params, inds=inds,
                                  color=color, bad_color=bad_color,
                                  event_lines=event_lines,
                                  event_color=event_color)
+
+    if raw.annotations is not None:
+        segments = list()
+        segment_colors = dict()
+        meas_date = info['meas_date']
+        # sort the segments by start time
+        order = raw.annotations.onset.argsort(axis=0)
+        descriptions = raw.annotations.description[order]
+        color_keys = set(descriptions)
+        color_vals = np.linspace(0, 1, len(color_keys))
+        for idx, key in enumerate(color_keys):
+            if key.lower().startswith('bad'):
+                segment_colors[key] = 'red'
+            else:
+                segment_colors[key] = plt.cm.summer(color_vals[idx])
+        params['segment_colors'] = segment_colors
+        if not np.isscalar(meas_date):
+            meas_date = meas_date[0]
+        for idx, onset in enumerate(raw.annotations.onset[order]):
+            if raw.annotations.orig_time is None:
+                if np.isscalar(info['meas_date']):
+                    orig_time = raw.info['meas_date']
+                else:
+                    orig_time = (raw.info['meas_date'][0] +
+                                 raw.info['meas_date'][1] / 1000000.)
+            else:
+                orig_time = raw.annotations.orig_time
+            annot_start = (orig_time - meas_date + onset -
+                           raw.first_samp / info['sfreq'])
+            annot_end = annot_start + raw.annotations.duration[order][idx]
+            segments.append([annot_start, annot_end])
+            ylim = params['ax_hscroll'].get_ylim()
+            dscr = descriptions[idx]
+            params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
+                                               alpha=0.3,
+                                               color=segment_colors[dscr])
+        params['segments'] = np.array(segments)
+        params['annot_description'] = descriptions
+
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
@@ -668,6 +708,25 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
             else:
                 line.set_xdata([])
                 line.set_ydata([])
+
+    if 'segments' in params:
+        while len(params['ax'].collections) > 0:
+            params['ax'].collections.pop(0)
+        segments = params['segments']
+        times = params['times']
+        ylim = params['ax'].get_ylim()
+        for idx, segment in enumerate(segments):
+            if segment[0] > times[-1]:
+                break  # Since the segments are sorted by t_start
+            if segment[1] < times[0]:
+                continue
+            start = segment[0]
+            end = segment[1]
+            dscr = params['annot_description'][idx]
+            segment_color = params['segment_colors'][dscr]
+            params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
+                                       alpha=0.3)
+
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
                           params['times'][0] + params['duration'], False)

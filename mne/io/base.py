@@ -27,7 +27,7 @@ from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id, write_string, _get_split_size)
+                    write_id, write_string, write_name_list, _get_split_size)
 
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample,
@@ -42,6 +42,7 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
+from ..annotations import _combine_annotations
 
 
 class ToDataFrameMixin(object):
@@ -229,9 +230,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
                  filenames=(None,), raw_extras=(None,),
-                 comp=None, orig_comp_grade=None,
-                 orig_format='double', dtype=np.float64,
-                 verbose=None):
+                 comp=None, orig_comp_grade=None, orig_format='double',
+                 dtype=np.float64, verbose=None):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -275,6 +275,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
+        self.annotations = None
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)
@@ -1754,6 +1755,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
+            self.annotations = _combine_annotations((self.annotations,
+                                                     r.annotations),
+                                                    self._last_samps,
+                                                    self._first_samps,
+                                                    self.info['sfreq'])
+
         self._update_times()
 
         if not (len(self._first_samps) == len(self._last_samps) ==
@@ -2005,6 +2012,18 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             break
 
         pos_prev = pos
+
+    if raw.annotations is not None:
+        start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, raw.annotations.onset)
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
+                    raw.annotations.duration + raw.annotations.onset)
+        # To allow : in description, they need to be replaced for serialization
+        write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
+                                                 raw.annotations.description])
+        if raw.annotations.orig_time is not None:
+            write_double(fid, FIFF.FIFF_MEAS_DATE, raw.annotations.orig_time)
+        end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
     logger.info('Closing %s [done]' % use_fname)
     if info.get('maxshield', False):

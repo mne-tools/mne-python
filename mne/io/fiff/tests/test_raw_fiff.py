@@ -26,6 +26,7 @@ from mne.utils import (_TempDir, requires_pandas, slow_test,
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import _picks_by_type
+from mne.annotations import Annotations
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -1050,11 +1051,17 @@ def test_save():
     # can't overwrite file without overwrite=True
     assert_raises(IOError, raw.save, fif_fname)
 
-    # test abspath support
+    # test abspath support and annotations
+    annot = Annotations([10], [10], ['test'], raw.info['meas_date'])
+    raw.annotations = annot
     new_fname = op.join(op.abspath(op.curdir), 'break-raw.fif')
     raw.save(op.join(tempdir, new_fname), overwrite=True)
     new_raw = Raw(op.join(tempdir, new_fname), preload=False)
     assert_raises(ValueError, new_raw.save, new_fname)
+    assert_array_equal(annot.onset, new_raw.annotations.onset)
+    assert_array_equal(annot.duration, new_raw.annotations.duration)
+    assert_array_equal(annot.description, new_raw.annotations.description)
+    assert_equal(annot.orig_time, new_raw.annotations.orig_time)
     # make sure we can overwrite the file we loaded when preload=True
     new_raw = Raw(op.join(tempdir, new_fname), preload=True)
     new_raw.save(op.join(tempdir, new_fname), overwrite=True)

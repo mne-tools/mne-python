@@ -23,6 +23,7 @@ from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 from ..utils import _mult_cal_one
 
+from ...annotations import Annotations, _combine_annotations
 from ...utils import check_fname, logger, verbose
 
 
@@ -125,6 +126,19 @@ class Raw(_BaseRaw):
             eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
             self.add_proj(eeg_ref)
 
+        # combine annotations
+        self.annotations = raws[0].annotations
+        if any([r.annotations for r in raws[1:]]):
+            first_samps = list()
+            last_samps = list()
+            for r in raws:
+                first_samps = np.r_[first_samps, r.first_samp]
+                last_samps = np.r_[last_samps, r.last_samp]
+                self.annotations = _combine_annotations((self.annotations,
+                                                         r.annotations),
+                                                        last_samps,
+                                                        first_samps,
+                                                        r.info['sfreq'])
         if preload:
             self._preload_data(preload)
         else:
@@ -210,6 +224,30 @@ class Raw(_BaseRaw):
             raw_extras = list()
             nskip = 0
             orig_format = None
+            annotations = None
+
+            annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
+            if len(annot_data) > 0:
+                annot_data = annot_data[0]
+                for k in range(annot_data['nent']):
+                    kind = annot_data['directory'][k].kind
+                    pos = annot_data['directory'][k].pos
+                    orig_time = None
+                    tag = read_tag(fid, pos)
+                    if kind == FIFF.FIFF_MNE_BASELINE_MIN:
+                        onset = tag.data
+                    elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
+                        duration = tag.data - onset
+                    elif kind == FIFF.FIFF_COMMENT:
+                        description = tag.data.split(':')
+                        description = [d.replace(';', ':') for d in
+                                       description]
+                    elif kind == FIFF.FIFF_MEAS_DATE:
+                        orig_time = float(tag.data)
+                annotations = Annotations(onset, duration, description,
+                                          orig_time)
+            raw.annotations = annotations
+
             for k in range(first, nent):
                 ent = directory[k]
                 if ent.kind == FIFF.FIFF_DATA_SKIP:

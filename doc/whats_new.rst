@@ -18,6 +18,8 @@ Changelog
 
     - Add raw movement compensation to :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
+    - Add :class:`mne.Annotations` for for annotating segments of raw data by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
