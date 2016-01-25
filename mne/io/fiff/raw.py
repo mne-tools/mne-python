@@ -127,7 +127,8 @@ class Raw(_BaseRaw):
             self.add_proj(eeg_ref)
 
         # combine annotations
-        if any([r.annotations for r in raws]):
+        self.annotations = raws[0].annotations
+        if any([r.annotations for r in raws[1:]]):
             first_samps = list()
             last_samps = list()
             for r in raws:
