@@ -30,6 +30,7 @@ tmp-*.w
 tmtags
 auto_examples
 MNE-eegbci-data*
+MNE-misc-data*
 MNE-sample-data*
 MNE-somato-data*
 MNE-spm-face*
