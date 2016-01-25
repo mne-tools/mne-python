@@ -1804,15 +1804,6 @@ def md5sum(fname, block_size=1048576):  # 2 ** 20
     return md5.hexdigest()
 
 
-def _sphere_to_cartesian(theta, phi, r):
-    """Transform spherical coordinates to cartesian"""
-    z = r * np.sin(phi)
-    rcos_phi = r * np.cos(phi)
-    x = rcos_phi * np.cos(theta)
-    y = rcos_phi * np.sin(theta)
-    return x, y, z
-
-
 def create_slices(start, stop, step=None, length=1):
     """ Generate slices of time indexes
 
