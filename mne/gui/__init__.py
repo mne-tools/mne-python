@@ -1,4 +1,8 @@
-"""Convenience functions for opening GUIs."""
+"""Convenience functions for opening GUIs.
+
+Uses lazy import for all functions that would lead to initializing a GUI
+library.
+"""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -15,6 +19,8 @@ def combine_kit_markers():
     The functionality in this GUI is also part of :func:`kit2fiff`.
     """
     _check_mayavi_version()
+    from ._backend import _check_backend
+    _check_backend()
     from ._marker_gui import CombineMarkersFrame
     gui = CombineMarkersFrame()
     gui.configure_traits()
@@ -24,6 +30,11 @@ def combine_kit_markers():
 def coregistration(tabbed=False, split=True, scene_width=0o1, inst=None,
                    subject=None, subjects_dir=None):
     """Coregister an MRI with a subject's head shape
+
+    The recommended way to use the GUI is through the shell/terminal with::
+
+        $ mne coreg
+
 
     Parameters
     ----------
@@ -46,7 +57,6 @@ def coregistration(tabbed=False, split=True, scene_width=0o1, inst=None,
 
     Notes
     -----
-    All parameters are optional, since they can be set through the GUI.
     Step by step instructions for the coregistrations can be accessed as
     slides, `for subjects with structural MRI
     <http://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
@@ -54,6 +64,8 @@ def coregistration(tabbed=False, split=True, scene_width=0o1, inst=None,
     <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
     _check_mayavi_version()
+    from ._backend import _check_backend
+    _check_backend()
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width)
     gui = CoregFrame(inst, subject, subjects_dir)
@@ -80,6 +92,8 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
     The functionality in this GUI is also part of :func:`coregistration`.
     """
     _check_mayavi_version()
+    from ._backend import _check_backend
+    _check_backend()
     from ._fiducials_gui import FiducialsFrame
     gui = FiducialsFrame(subject, subjects_dir, fid_file=fid_file)
     gui.configure_traits()
@@ -88,8 +102,15 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
 
 def kit2fiff():
     """Convert KIT files to the fiff format
+
+    The recommended way to use the GUI is through the shell/terminal with::
+
+        $ mne kit2fiff
+
     """
     _check_mayavi_version()
+    from ._backend import _check_backend
+    _check_backend()
     from ._kit2fiff_gui import Kit2FiffFrame
     gui = Kit2FiffFrame()
     gui.configure_traits()
