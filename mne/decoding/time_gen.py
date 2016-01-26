@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+import warnings
 import numpy as np
 import copy
 
@@ -142,6 +143,8 @@ class _GeneralizationAcrossTime(object):
             cv = StratifiedKFold(y, cv)
         cv = check_cv(cv, X, y, classifier=True)
         self.cv_ = cv  # update CV
+        if not np.all([len(train) for train, _ in self.cv_]):
+            raise ValueError('Some folds do not have any train epochs.')
 
         self.y_train_ = y
 
@@ -209,6 +212,9 @@ class _GeneralizationAcrossTime(object):
         n_jobs = self.n_jobs
 
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
+
+        if not np.all([len(test) for train, test in self.cv_]):
+            warnings.warn('Some folds do not have any test epochs.')
 
         # Define testing sliding window
         if self.test_times == 'diagonal':
@@ -460,6 +466,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode,
         elif predict_mode == 'cross-validation':
             # Predict with the estimator trained on the separate training set.
             for k, (train, test) in enumerate(cv):
+                if test.size == 0:
+                    continue
                 # Single trial predictions
                 X_pred_t = X_pred[test_epochs_slices[k]]
                 # If is_single_time_sample, we are predicting each time sample
