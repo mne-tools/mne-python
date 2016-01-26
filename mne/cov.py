@@ -787,7 +787,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     """docstring for _compute_covariance_auto."""
     try:
         from sklearn.model_selection import GridSearchCV
-    except: # XXX support sklearn < 0.18
+    except:  # XXX support sklearn < 0.18
         from sklearn.grid_search import GridSearchCV
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
                                     EmpiricalCovariance)
