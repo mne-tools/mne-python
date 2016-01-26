@@ -15,6 +15,13 @@ from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger
 
 
+def _iter_cv(cv, X, y, labels=None):  # XXX support sklearn < 0.18
+    if hasattr(cv, 'split'):
+        return cv.split(X, y, labels)
+    else:
+        return cv
+
+
 class _DecodingTime(dict):
     """A dictionary to configure the training times that has the following keys:
 
@@ -144,7 +151,7 @@ class _GeneralizationAcrossTime(object):
         cv = self.cv
         cv = check_cv(cv, y=y, classifier=True)
         self.cv_ = cv  # update CV
-        if not np.all([len(train) for train, _ in self.cv_]):
+        if not np.all([len(train) for train, _ in _iter_cv(self.cv_, X, y)]):
             raise ValueError('Some folds do not have any train epochs.')
 
         self.y_train_ = y
@@ -214,7 +221,7 @@ class _GeneralizationAcrossTime(object):
 
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
-        if not np.all([len(test) for train, test in self.cv_]):
+        if not np.all([len(test) for _, test in _iter_cv(self.cv_, X, y)]):
             warnings.warn('Some folds do not have any test epochs.')
 
         # Define testing sliding window
