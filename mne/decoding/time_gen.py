@@ -15,13 +15,6 @@ from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger
 
 
-def _iter_cv(cv, X, y, labels=None):  # XXX support sklearn < 0.18
-    if hasattr(cv, 'split'):
-        return cv.split(X, y, labels)
-    else:
-        return cv
-
-
 class _DecodingTime(dict):
     """A dictionary to configure the training times that has the following keys:
 
@@ -131,10 +124,7 @@ class _GeneralizationAcrossTime(object):
         matrices as input.
         """
         from sklearn.base import clone
-        try:
-            from sklearn.model_selection import check_cv
-        except:  # XXX support sklearn < 0.18
-            from sklearn.cross_validation import check_cv
+        from sklearn.cross_validation import check_cv, StratifiedKFold
 
         # clean attributes
         for att in ['picks_', 'ch_names', 'y_train_', 'cv_', 'train_times_',
@@ -149,9 +139,11 @@ class _GeneralizationAcrossTime(object):
         self.ch_names = [epochs.ch_names[p] for p in self.picks_]
 
         cv = self.cv
-        cv = check_cv(cv, y=y, classifier=True)
+        if isinstance(cv, (int, np.int)):
+            cv = StratifiedKFold(y, cv)
+        cv = check_cv(cv, X, y, classifier=True)
         self.cv_ = cv  # update CV
-        if not np.all([len(train) for train, _ in _iter_cv(self.cv_, X, y)]):
+        if not np.all([len(train) for train, _ in self.cv_]):
             raise ValueError('Some folds do not have any train epochs.')
 
         self.y_train_ = y
@@ -221,7 +213,7 @@ class _GeneralizationAcrossTime(object):
 
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
-        if not np.all([len(test) for _, test in _iter_cv(self.cv_, X, y)]):
+        if not np.all([len(test) for train, test in self.cv_]):
             warnings.warn('Some folds do not have any test epochs.')
 
         # Define testing sliding window
@@ -423,15 +415,7 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode,
     if predict_mode == 'cross-validation':
         # Subselect to-be-predicted epochs so as to manipulate a contiguous
         # array X by using slices rather than indices.
-
-        # XXX support sklearn < 0.18
-        if hasattr(cv, 'split'):
-            iter_cv = cv.split(X)
-            # XXX broken ...
-        else:
-            iter_cv = cv
-
-        all_test = np.concatenate(list(zip(*iter_cv))[-1])
+        all_test = np.concatenate(list(zip(*cv))[-1])
         test_epochs_slices = []
         start = 0
         for _, test in cv:
@@ -614,14 +598,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
         X = X.reshape(n_epochs, np.prod(X.shape[1:]))
         # Loop across folds
         estimators_ = list()
-
-        # XXX support sklearn < 0.18
-        if hasattr(cv, 'split'):
-            iter_cv = cv.split(X, y)
-        else:
-            iter_cv = cv
-
-        for fold, (train, test) in enumerate(iter_cv):
+        for fold, (train, test) in enumerate(cv):
             # Fit classifier
             clf_ = clone(clf)
             clf_.fit(X[train, :], y[train])

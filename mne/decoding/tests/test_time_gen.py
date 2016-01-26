@@ -49,12 +49,7 @@ def test_generalization_across_time():
     from sklearn.linear_model import RANSACRegressor, LinearRegression
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import mean_squared_error
-    try:
-        from sklearn.model_selection import LeaveOneLabelOut
-        use_new_cv = True
-    except:  # XXX support sklearn < 0.18
-        from sklearn.cross_validation import LeaveOneLabelOut
-        use_new_cv = True
+    from sklearn.cross_validation import LeaveOneLabelOut
 
     epochs = make_epochs()
 
@@ -163,12 +158,7 @@ def test_generalization_across_time():
 
     # Test start stop training & test cv without n_fold params
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
-    if use_new_cv:
-        cv = LeaveOneLabelOut()
-    else:
-        cv = LeaveOneLabelOut(y_4classes)
-
-    gat = GeneralizationAcrossTime(cv=cv,
+    gat = GeneralizationAcrossTime(cv=LeaveOneLabelOut(y_4classes),
                                    train_times={'start': 0.090, 'stop': 0.250})
     # predict without fit
     assert_raises(RuntimeError, gat.predict, epochs)
