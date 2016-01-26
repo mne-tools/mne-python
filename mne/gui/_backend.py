@@ -2,14 +2,15 @@
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
-from ..utils import _check_pyface_backend
-try:
-    from pyface.api import warning
-except ImportError:
-    warning = None
 
 
 def _check_backend():
+    from ..utils import _check_pyface_backend
+    try:
+        from pyface.api import warning
+    except ImportError:
+        warning = None
+
     backend, status = _check_pyface_backend()
     if status == 0:
         return
