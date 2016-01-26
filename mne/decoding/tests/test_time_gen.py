@@ -258,8 +258,7 @@ def test_generalization_across_time():
     # Make CV with some empty train and test folds:
     # --- empty test fold(s) should warn when gat.predict()
     gat.cv_.test_folds[gat.cv_.test_folds == 1] = 0
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with warnings.catch_warnings(record=True):
         gat.predict(epochs)
         # FIXME assert_true('Some folds do not have any test epochs.' in w)
     # --- empty train fold(s) should raise when gat.fit()
