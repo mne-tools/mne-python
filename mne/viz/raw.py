@@ -702,6 +702,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
     if 'segments' in params:
         while len(params['ax'].collections) > 0:
             params['ax'].collections.pop(0)
+            params['ax'].texts.pop(0)
         segments = params['segments']
         times = params['times']
         ylim = params['ax'].get_ylim()
@@ -716,6 +717,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
             segment_color = params['segment_colors'][dscr]
             params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
                                        alpha=0.3)
+            params['ax'].text((start + end) / 2., ylim[0], dscr, ha='center')
 
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
