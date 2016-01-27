@@ -79,8 +79,12 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     if alpha is not None:
         G_from.flat[::len(G_from) + 1] += alpha
 
-    C_inv = linalg.pinv(G_from)
-    interpolation = G_to_from.dot(C_inv)
+    C = np.r_[np.c_[G_from, np.ones((G_from.shape[0], 1))],
+              np.c_[np.ones((1, G_from.shape[1])), 0]]
+    C_inv = linalg.pinv(C)
+
+    interpolation = np.c_[G_to_from,
+                          np.ones((G_to_from.shape[0], 1))].dot(C_inv[:, :-1])
     return interpolation
 
 
