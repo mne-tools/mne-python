@@ -441,6 +441,23 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         raise NotImplementedError
 
+    def _is_bad_segment(self, start, stop, picks):
+        """Function for checking the data segment."""
+        if start < 0:
+            return None
+        if self.annotations is not None:
+            annot = self.annotations
+            sfreq = self.info['sfreq']
+            for onset_idx, onset in enumerate(annot.onset):
+                if stop / sfreq < onset:
+                    continue
+                elif start / sfreq > onset + annot.duration[onset_idx]:
+                    continue
+                elif annot.description[onset_idx].lower().startswith('bad'):
+                    descr = annot.description[onset_idx]
+                    return descr
+        return self[picks, start:stop][0]
+
     @verbose
     def load_data(self, verbose=None):
         """Load raw data

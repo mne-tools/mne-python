@@ -1351,6 +1351,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                         epoch = self._data[idx]
                 else:  # from disk
                     epoch_noproj = self._get_epoch_from_raw(idx)
+                    if epoch_noproj is None:  # Dropped due to bad segment
+                        continue
                     epoch_noproj = self._detrend_offset_decim(epoch_noproj)
                     epoch = self._project_epoch(epoch_noproj)
                 epoch_out = epoch_noproj if self._do_delayed_proj else epoch
@@ -2033,7 +2035,13 @@ class Epochs(_BaseEpochs):
         first_samp = self._raw.first_samp
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self._raw_times)
-        return None if start < 0 else self._raw[self.picks, start:stop][0]
+        data = self._raw._is_bad_segment(start, stop, self.picks)
+        if isinstance(data, string_types):
+            logger.info('   Rejecting epoch based on bad segment: %s' % data)
+            self.drop_log[idx].append(data)
+            return None
+        else:
+            return data
 
 
 class EpochsArray(_BaseEpochs):
