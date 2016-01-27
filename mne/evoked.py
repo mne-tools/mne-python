@@ -377,7 +377,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         show : bool
             Call pyplot.show() at the end or not.
         ylim : dict
-            ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e-6])
+            ylim for plots. e.g. ylim = dict(eeg=[-200, 200])
             Valid keys are eeg, mag, grad
         xlim : 'tight' | tuple | None
             xlim for plots.
