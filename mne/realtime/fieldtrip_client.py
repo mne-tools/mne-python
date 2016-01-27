@@ -336,7 +336,6 @@ class FieldTripClient(object):
                                self.tmax_samp, self.buffer_size))
 
         for ii, (start, stop) in enumerate(iter_times):
-            print start, stop
             # wait for correct number of samples to be available
             self.ft_client.wait(stop, np.iinfo(np.uint32).max,
                                 np.iinfo(np.uint32).max)

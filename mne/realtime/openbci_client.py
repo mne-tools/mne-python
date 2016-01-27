@@ -328,18 +328,19 @@ class OpenBCIClient(object):
             Generator for iteration over OpenBCI samples.
         """
 
-        # get the samples
-        sample = self.client._read_serial_binary()
-        if self.client.daisy:
-            # odd sample: daisy sample, save for later
-            if ~sample.id % 2:
-                self.client.last_odd_sample = sample
-                # even sample: concatenate and send if last sample was
-                # the fist part, otherwise drop the packet
-            elif sample.id - 1 == self.client.last_odd_sample.id:
-                # the aux data will be the average between the two samples,
-                # as the channel samples themselves have been averaged by the board
-                avg_aux_data = list((np.array(sample.aux_data) + np.array(self.client.last_odd_sample.aux_data))/2)
-                sample = OpenBCISample(sample.id, sample.channel_data + self.client.last_odd_sample.channel_data, avg_aux_data)
+        while True:
+            # get the samples
+            sample = self.client._read_serial_binary()
+            if self.client.daisy:
+                # odd sample: daisy sample, save for later
+                if ~sample.id % 2:
+                    self.client.last_odd_sample = sample
+                    # even sample: concatenate and send if last sample was
+                    # the fist part, otherwise drop the packet
+                elif sample.id - 1 == self.client.last_odd_sample.id:
+                    # the aux data will be the average between the two samples,
+                    # as the channel samples themselves have been averaged by the board
+                    avg_aux_data = list((np.array(sample.aux_data) + np.array(self.client.last_odd_sample.aux_data))/2)
+                    sample = OpenBCISample(sample.id, sample.channel_data + self.client.last_odd_sample.channel_data, avg_aux_data)
 
-        return sample
+            yield sample
