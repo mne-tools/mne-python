@@ -42,7 +42,7 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
-from ..annotations import _combine_annotations
+from ..annotations import _combine_annotations, _onset_to_seconds
 
 
 class ToDataFrameMixin(object):
@@ -441,14 +441,26 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         raise NotImplementedError
 
-    def _check_bad_segment(self, start, stop, picks):
+    def _check_bad_segment(self, start, stop, picks, segment_reject=False):
         """Function for checking the data segment. If the slice is good,
-        returns the data in desired range. Otherwise (desccription starts with
-         'bad') returns description of the bad segment."""
-        from mne.annotations import _onset_to_seconds
+        returns the data in desired range. If rejected based on
+        annotation, returns description of the bad segment.
+
+        Parameters
+        ----------
+        start : int
+            First sample of the slice.
+        stop : int
+            End of the slice.
+        picks : array of int
+            Channel picks.
+        segment_reject : bool
+            Whether to perform rejection based on annotations.
+            False by default.
+        """
         if start < 0:
             return None
-        if self.annotations is not None:
+        if segment_reject and self.annotations is not None:
             annot = self.annotations
             sfreq = self.info['sfreq']
             for onset_idx, onset in enumerate(annot.onset):

@@ -568,25 +568,13 @@ def _plot_raw_onkey(event, params):
         params['plot_fun']()
     elif event.key == 'pageup':
         n_channels = params['n_channels'] + 1
-        ylim = [n_channels * 2 + 1, 0]
-        offset = ylim[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        params['ax'].set_yticks(params['offsets'])
-        params['ax'].set_ylim(ylim)
-        params['vsel_patch'].set_height(n_channels)
+        _setup_browser_offsets(params, n_channels)
         _channels_changed(params, len(params['info']['ch_names']))
     elif event.key == 'pagedown':
         n_channels = params['n_channels'] - 1
         if n_channels == 0:
             return
-        ylim = [n_channels * 2 + 1, 0]
-        offset = ylim[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        params['ax'].set_yticks(params['offsets'])
-        params['ax'].set_ylim(ylim)
-        params['vsel_patch'].set_height(n_channels)
+        _setup_browser_offsets(params, n_channels)
         if len(params['lines']) > n_channels:  # remove line from view
             params['lines'][n_channels].set_xdata([])
             params['lines'][n_channels].set_ydata([])
@@ -709,6 +697,17 @@ def _onclick_help(event, params):
         fig_help.show(warn=False)
     except Exception:
         pass
+
+
+def _setup_browser_offsets(params, n_channels):
+    """Aux function for computing viewport height and adjusting offsets."""
+    ylim = [n_channels * 2 + 1, 0]
+    offset = ylim[0] / n_channels
+    params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+    params['n_channels'] = n_channels
+    params['ax'].set_yticks(params['offsets'])
+    params['ax'].set_ylim(ylim)
+    params['vsel_patch'].set_height(n_channels)
 
 
 class ClickableImage(object):

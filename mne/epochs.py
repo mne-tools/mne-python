@@ -1930,6 +1930,10 @@ class Epochs(_BaseEpochs):
         warn, if 'ignore' it will proceed silently. Note.
         If none of the event ids are found in the data, an error will be
         automatically generated irrespective of this parameter.
+    segment_reject : bool
+        Whether to reject based on annotations. If True (default), epochs
+        overlapping with segments whose description begins with ``'bad'`` are
+        rejected. If False, no rejection based on annotations is performed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -2004,7 +2008,7 @@ class Epochs(_BaseEpochs):
                  baseline=(None, 0), picks=None, name='Unknown', preload=False,
                  reject=None, flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=True,
-                 on_missing='error', verbose=None):
+                 on_missing='error', segment_reject=True, verbose=None):
         if not isinstance(raw, _BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
@@ -2020,6 +2024,7 @@ class Epochs(_BaseEpochs):
             decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
             detrend=detrend, add_eeg_ref=add_eeg_ref, proj=proj,
             on_missing=on_missing, preload_at_end=preload, verbose=verbose)
+        self._segment_reject = segment_reject
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -2035,7 +2040,8 @@ class Epochs(_BaseEpochs):
         first_samp = self._raw.first_samp
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self._raw_times)
-        data = self._raw._check_bad_segment(start, stop, self.picks)
+        data = self._raw._check_bad_segment(start, stop, self.picks,
+                                            self._segment_reject)
         if isinstance(data, string_types):
             logger.info('   Rejecting epoch based on bad segment: %s' % data)
             self.drop_log[idx].append(data)

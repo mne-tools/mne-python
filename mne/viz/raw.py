@@ -21,7 +21,8 @@ from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar,
                     _plot_raw_onscroll, _mouse_click, plt_show,
-                    _helper_raw_resize, _select_bads, _onclick_help)
+                    _helper_raw_resize, _select_bads, _onclick_help,
+                    _setup_browser_offsets)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
 
@@ -590,22 +591,16 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax_vscroll.set_title('Ch.')
 
     # make shells for plotting traces
-    ylim = [n_channels * 2 + 1, 0]
-    offset = ylim[0] / n_channels
-    offsets = np.arange(n_channels) * offset + (offset / 2.)
-    ax.set_yticks(offsets)
-    ax.set_ylim(ylim)
+    _setup_browser_offsets(params, n_channels)
     ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
                 False)
 
-    params['offsets'] = offsets
-    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5,
-                               zorder=1)[0]
+    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     vertline_color = (0., 0.75, 0.)
-    params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
-                                    zorder=0)[0]
+    params['ax_vertline'] = ax.plot([0, 0], ax.get_ylim(),
+                                    color=vertline_color, zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
     params['vertline_t'] = ax_hscroll.text(0, 1, '', color=vertline_color,
                                            va='bottom', ha='right')

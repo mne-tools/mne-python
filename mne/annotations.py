@@ -91,7 +91,8 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
 
 
 def _onset_to_seconds(raw, onset):
-    """"""
+    """Helper function for adjusting annotation onsets in relation to raw data.
+    """
     meas_date = raw.info['meas_date']
     if not np.isscalar(meas_date):
         meas_date = meas_date[0] + meas_date[1] / 1000000.
