@@ -2017,6 +2017,7 @@ class Epochs(_BaseEpochs):
         # proj is on when applied in Raw
         proj = proj or raw.proj
 
+        self._segment_reject = segment_reject
         # call _BaseEpochs constructor
         super(Epochs, self).__init__(
             info, None, events, event_id, tmin, tmax, baseline=baseline,
@@ -2024,7 +2025,6 @@ class Epochs(_BaseEpochs):
             decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
             detrend=detrend, add_eeg_ref=add_eeg_ref, proj=proj,
             on_missing=on_missing, preload_at_end=preload, verbose=verbose)
-        self._segment_reject = segment_reject
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
