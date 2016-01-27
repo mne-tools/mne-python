@@ -2035,7 +2035,7 @@ class Epochs(_BaseEpochs):
         first_samp = self._raw.first_samp
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self._raw_times)
-        data = self._raw._is_bad_segment(start, stop, self.picks)
+        data = self._raw._check_bad_segment(start, stop, self.picks)
         if isinstance(data, string_types):
             logger.info('   Rejecting epoch based on bad segment: %s' % data)
             self.drop_log[idx].append(data)

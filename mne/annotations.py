@@ -88,3 +88,18 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
     duration = np.concatenate([old_duration, annotations[1].duration])
     description = np.concatenate([old_description, annotations[1].description])
     return Annotations(onset, duration, description, old_orig_time)
+
+
+def _onset_to_seconds(raw, onset):
+    """"""
+    meas_date = raw.info['meas_date']
+    if not np.isscalar(meas_date):
+        meas_date = meas_date[0] + meas_date[1] / 1000000.
+    if raw.annotations.orig_time is None:
+        orig_time = meas_date
+    else:
+        orig_time = raw.annotations.orig_time
+
+    annot_start = (orig_time - meas_date + onset -
+                   raw.first_samp / raw.info['sfreq'])
+    return annot_start

@@ -17,7 +17,7 @@ import warnings
 from scipy import fftpack
 import matplotlib
 
-from mne import (Epochs, read_events, pick_events, read_epochs,
+from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
                  write_evokeds, create_info, make_fixed_length_events)
 from mne.preprocessing import maxwell_filter
@@ -264,6 +264,15 @@ def test_reject():
             epochs.drop_bad_epochs(reject=reject)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
+
+            # rejection on annotations
+            raw.annotations = Annotations([events[0][0] / raw.info['sfreq']],
+                                          [1], ['BAD'])
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=[0],
+                            reject=None, preload=preload)
+            epochs.drop_bad_epochs()
+            assert_equal(len(events) - 1, len(epochs.events))
+            raw.annotations = None
 
 
 def test_decim():

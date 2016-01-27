@@ -23,6 +23,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _plot_raw_onscroll, _mouse_click, plt_show,
                     _helper_raw_resize, _select_bads, _onclick_help)
 from ..defaults import _handle_default
+from ..annotations import _onset_to_seconds
 
 
 def _plot_update_raw_proj(params, bools):
@@ -297,7 +298,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if raw.annotations is not None:
         segments = list()
         segment_colors = dict()
-        meas_date = info['meas_date']
         # sort the segments by start time
         order = raw.annotations.onset.argsort(axis=0)
         descriptions = raw.annotations.description[order]
@@ -309,19 +309,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             else:
                 segment_colors[key] = plt.cm.summer(color_vals[idx])
         params['segment_colors'] = segment_colors
-        if not np.isscalar(meas_date):
-            meas_date = meas_date[0]
         for idx, onset in enumerate(raw.annotations.onset[order]):
-            if raw.annotations.orig_time is None:
-                if np.isscalar(info['meas_date']):
-                    orig_time = raw.info['meas_date']
-                else:
-                    orig_time = (raw.info['meas_date'][0] +
-                                 raw.info['meas_date'][1] / 1000000.)
-            else:
-                orig_time = raw.annotations.orig_time
-            annot_start = (orig_time - meas_date + onset -
-                           raw.first_samp / info['sfreq'])
+            annot_start = _onset_to_seconds(raw, onset)
             annot_end = annot_start + raw.annotations.duration[order][idx]
             segments.append([annot_start, annot_end])
             ylim = params['ax_hscroll'].get_ylim()
