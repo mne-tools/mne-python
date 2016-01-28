@@ -908,4 +908,4 @@ def _isclose(a, b, rtol=1.e-5, atol=1.e-8, equal_nan=False):
 if LooseVersion(np.__version__) < LooseVersion('1.7'):
     isclose = _isclose
 else:
-    isclose = np.isclose
+    isclose = partial(np.isclose, rtol=0)
