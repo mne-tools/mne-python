@@ -1133,7 +1133,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('tmax must be less than or equal to the max raw '
                              'time (%0.4f sec)' % max_time)
 
-        smin, smax = np.where(_time_mask(self.times, tmin, tmax,
+        smin, smax = np.where(_time_mask(self.times, tmin, tmax, strict=True,
                                          sfreq=self.info['sfreq']))[0][[0, -1]]
         cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths,
                                                    dtype='int')))

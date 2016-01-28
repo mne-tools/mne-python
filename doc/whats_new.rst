@@ -35,6 +35,8 @@ BUG
 
     - MEG projectors are removed after Maxwell filtering by `Eric Larson`_
 
+    - Time cropping functions no longer use relative tolerances when determining the boundaries by `Jaakko Leppakangas`_
+
 API
 ~~~
 
