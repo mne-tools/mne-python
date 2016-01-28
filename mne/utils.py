@@ -1881,8 +1881,8 @@ def _time_mask(times, tmin=None, tmax=None, strict=False, sfreq=None):
                 tmin = round(tmin * sfreq) / sfreq
             if np.isfinite(tmax):
                 tmax = round(tmax * sfreq) / sfreq
-        mask |= isclose(times, tmin)
-        mask |= isclose(times, tmax)
+        mask |= isclose(times, tmin, rtol=0)
+        mask |= isclose(times, tmax, rtol=0)
     return mask
 
 
