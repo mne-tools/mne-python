@@ -423,7 +423,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     show : bool
         Show figure if True.
     ylim : dict | None
-        ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
+        ylim for plots (after scaling has been applied). e.g.
+        ylim = dict(eeg=[-20, 20])
         Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
         for each channel equals the pyplot default.
     xlim : 'tight' | tuple | None
@@ -494,10 +495,11 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     border : str
         matplotlib borders style to be used for each sensor plot.
     ylim : dict | None
-        ylim for plots. The value determines the upper and lower subplot
-        limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
-        mag, grad, misc. If None, the ylim parameter for each channel is
-        determined by the maximum absolute peak.
+        ylim for plots (after scaling has been applied). The value
+        determines the upper and lower subplot limits. e.g.
+        ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad, misc.
+        If None, the ylim parameter for each channel is determined by
+        the maximum absolute peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
@@ -601,7 +603,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
     show : bool
         Show figure if True.
     clim : dict | None
-        clim for plots. e.g. clim = dict(eeg=[-200e-6, 200e6])
+        clim for plots (after scaling has been applied). e.g.
+        clim = dict(eeg=[-20, 20])
         Valid keys are eeg, mag, grad, misc. If None, the clim parameter
         for each channel equals the pyplot default.
     xlim : 'tight' | tuple | None
