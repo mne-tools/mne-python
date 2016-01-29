@@ -1883,8 +1883,10 @@ def _time_mask(times, tmin=None, tmax=None, strict=False, sfreq=None):
                 tmax = round(tmax * sfreq) / sfreq
             else:
                 tmax = times[-1]
-        tmax = times.flat[np.abs(times - tmax).argmin()]  # find nearest time
-        tmin = times.flat[np.abs(times - tmin).argmin()]
+        deltas = np.abs(times - tmax)  # Find nearest times
+        tmax = times.flat[np.where(deltas == deltas.min())[0]][-1]
+        deltas = np.abs(times - tmin)
+        tmin = times.flat[np.where(deltas == deltas.min())[0]][-1]
     mask = (times >= tmin)
     mask &= (times <= tmax)
     return mask

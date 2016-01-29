@@ -857,7 +857,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         """
 
         # min and max data indices to include
-        times = np.round(1000 * self.times)
+        times = 1000. * self.times
         t_idx = np.where(_time_mask(times, tmin, tmax, sfreq=self.sfreq))[0]
         if tmin is None:
             tmin_idx = None
