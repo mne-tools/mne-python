@@ -68,7 +68,7 @@ def test_plot_topomap():
 
     ev_bad = evoked.pick_types(meg=False, eeg=True, copy=True)
     ev_bad.pick_channels(ev_bad.ch_names[:2])
-    ev_bad.plot_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, should plot EEG
+    ev_bad.plot_topomap(times=ev_bad.times[1:3] - 1e-6)  # auto, plots EEG
     assert_raises(ValueError, ev_bad.plot_topomap, ch_type='mag')
     assert_raises(TypeError, ev_bad.plot_topomap, head_pos='foo')
     assert_raises(KeyError, ev_bad.plot_topomap, head_pos=dict(foo='bar'))
