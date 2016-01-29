@@ -1877,8 +1877,12 @@ def _time_mask(times, tmin=None, tmax=None, strict=False, sfreq=None):
             # Push to nearest sample first
             if np.isfinite(tmin):
                 tmin = round(tmin * sfreq) / sfreq
+            else:
+                tmin = times[0]
             if np.isfinite(tmax):
                 tmax = round(tmax * sfreq) / sfreq
+            else:
+                tmax = times[-1]
         tmax = times.flat[np.abs(times - tmax).argmin()]  # find nearest time
         tmin = times.flat[np.abs(times - tmin).argmin()]
     mask = (times >= tmin)
