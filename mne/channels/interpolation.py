@@ -79,8 +79,9 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     if alpha is not None:
         G_from.flat[::len(G_from) + 1] += alpha
 
-    C = np.r_[np.c_[G_from, np.ones((G_from.shape[0], 1))],
-              np.c_[np.ones((1, G_from.shape[1])), 0]]
+    n_channels = G_from.shape[0]  # G_from should be square matrix
+    C = np.r_[np.c_[G_from, np.ones((n_channels, 1))],
+              np.c_[np.ones((1, n_channels)), 0]]
     C_inv = linalg.pinv(C)
 
     interpolation = np.c_[G_to_from,
