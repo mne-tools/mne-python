@@ -354,8 +354,11 @@ def test_basic():
     assert_equal(_get_n_moments([int_order, ext_order]).sum(), nbases)
 
     # Test SSS computation at the standard head origin
+    assert_equal(len(raw.info['projs']), 12)  # 11 MEG projs + 1 AVG EEG
     raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None,
                              bad_condition='ignore')
+    assert_equal(len(raw_sss.info['projs']), 1)  # avg EEG
+    assert_equal(raw_sss.info['projs'][0]['desc'], 'Average EEG reference')
     assert_meg_snr(raw_sss, Raw(sss_std_fname), 200., 1000.)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert_equal(len(py_cal), 0)
