@@ -33,6 +33,8 @@ BUG
 
     - Fix EEG spherical spline interpolation code to account for average reference by `Mainak Jas`_ (`#2758 <https://github.com/mne-tools/mne-python/pull/2758>`_)
 
+    - MEG projectors are removed after Maxwell filtering by `Eric Larson`_
+
 API
 ~~~
 

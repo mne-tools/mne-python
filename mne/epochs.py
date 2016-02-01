@@ -2749,7 +2749,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     from .preprocessing.maxwell import (_trans_sss_basis, _reset_meg_bads,
                                         _check_usable, _col_norm_pinv,
                                         _get_n_moments, _get_mf_picks,
-                                        _prep_mf_coils, _check_destination)
+                                        _prep_mf_coils, _check_destination,
+                                        _remove_meg_projs)
     if pos is not None:
         head_pos = pos
         warnings.warn('pos has been replaced by head_pos and will be removed '
@@ -2856,5 +2857,6 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         data[meg_picks] = np.dot(mapping, data[good_picks])
     evoked = epochs._evoked_from_epoch_data(
         data, info_to, picks, count, 'average')
+    _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked

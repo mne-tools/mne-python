@@ -255,6 +255,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     raw_sss, pos_picks = _copy_preload_add_channels(
         raw, add_channels=head_pos[0] is not None)
     del raw
+    _remove_meg_projs(raw_sss)  # remove MEG projectors, they won't apply now
     info, times = raw_sss.info, raw_sss.times
     meg_picks, mag_picks, grad_picks, good_picks, coil_scale, mag_or_fine = \
         _get_mf_picks(info, int_order, ext_order, ignore_ref, mag_scale=100.)
@@ -452,6 +453,17 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0)
     logger.info('[done]')
     return raw_sss
+
+
+def _remove_meg_projs(inst):
+    """Helper to remove inplace existing MEG projectors (assumes inactive)"""
+    meg_picks = pick_types(inst.info, meg=True, exclude=[])
+    meg_channels = [inst.ch_names[pi] for pi in meg_picks]
+    non_meg_proj = list()
+    for proj in inst.info['projs']:
+        if not any(c in meg_channels for c in proj['data']['col_names']):
+            non_meg_proj.append(proj)
+    inst.add_proj(non_meg_proj, remove_existing=True)
 
 
 def _check_destination(destination, info, head_frame):
