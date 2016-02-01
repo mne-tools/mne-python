@@ -1868,25 +1868,24 @@ def create_slices(start, stop, step=None, length=1):
     return slices
 
 
-def _time_mask(times, tmin=None, tmax=None, strict=False, sfreq=None):
+def _time_mask(times, tmin=None, tmax=None, sfreq=None):
     """Helper to safely find sample boundaries"""
     tmin = -np.inf if tmin is None else tmin
     tmax = np.inf if tmax is None else tmax
-    if not strict:
-        if sfreq is not None:
-            # Push to nearest sample first
-            if np.isfinite(tmin):
-                tmin = round(tmin * sfreq) / sfreq
-            else:
-                tmin = times[0]
-            if np.isfinite(tmax):
-                tmax = round(tmax * sfreq) / sfreq
-            else:
-                tmax = times[-1]
-        deltas = np.abs(times - tmax)  # Find nearest times
-        tmax = times[np.where(deltas == deltas.min())[0]][-1]
-        deltas = np.abs(times - tmin)
-        tmin = times[np.where(deltas == deltas.min())[0]][-1]
+    if sfreq is not None:
+        # Push to nearest sample first
+        if np.isfinite(tmin):
+            tmin = round(tmin * sfreq) / sfreq
+        else:
+            tmin = times[0]
+        if np.isfinite(tmax):
+            tmax = round(tmax * sfreq) / sfreq
+        else:
+            tmax = times[-1]
+    deltas = np.abs(times - tmax)  # Find nearest times
+    tmax = times[np.where(deltas == deltas.min())[0]][-1]
+    deltas = np.abs(times - tmin)
+    tmin = times[np.where(deltas == deltas.min())[0]][-1]
     mask = (times >= tmin)
     mask &= (times <= tmax)
     return mask
