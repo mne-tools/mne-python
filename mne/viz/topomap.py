@@ -1126,7 +1126,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         times = _process_times(evoked, times, n_peaks=len(axes))
     else:
         times = _process_times(evoked, times, n_peaks=None)
-    if max(times) > evoked.times[-1] or min(times) < evoked.times[0]:
+    space = 1 / (2. * evoked.info['sfreq'])
+    if (max(times) > max(evoked.times) + space or
+            min(times) < min(evoked.times) - space):
         raise ValueError('Times should be between {0:0.3f} and '
                          '{1:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
     n_times = len(times)
@@ -1147,7 +1149,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                        'or turn it off with colorbar=False.')
     if len(axes) != n_times:
         raise RuntimeError('Axes and times must be equal in sizes.')
-    tmin, tmax = evoked.times[[0, -1]]
 
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         evoked, ch_type, layout)

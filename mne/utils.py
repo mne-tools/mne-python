@@ -1884,9 +1884,9 @@ def _time_mask(times, tmin=None, tmax=None, strict=False, sfreq=None):
             else:
                 tmax = times[-1]
         deltas = np.abs(times - tmax)  # Find nearest times
-        tmax = times.flat[np.where(deltas == deltas.min())[0]][-1]
+        tmax = times[np.where(deltas == deltas.min())[0]][-1]
         deltas = np.abs(times - tmin)
-        tmin = times.flat[np.where(deltas == deltas.min())[0]][-1]
+        tmin = times[np.where(deltas == deltas.min())[0]][-1]
     mask = (times >= tmin)
     mask &= (times <= tmax)
     return mask

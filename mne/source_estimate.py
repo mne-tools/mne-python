@@ -494,8 +494,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         tmax : float | None
             The last time point in seconds. If None the last present is used.
         """
-        mask = _time_mask(self.times, tmin, tmax, strict=True,
-                          sfreq=self.sfreq)
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.sfreq)
         self.tmin = self.times[np.where(mask)[0][0]]
         if self._kernel is not None and self._sens_data is not None:
             self._sens_data = self._sens_data[:, mask]

@@ -83,7 +83,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
                                    eeg=0.1, proj=True)
     if data_cov:
         with warnings.catch_warnings(record=True):
-            data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+            data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.145)
     else:
         data_cov = None
 
