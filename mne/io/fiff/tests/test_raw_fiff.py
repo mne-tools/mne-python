@@ -801,11 +801,11 @@ def test_crop():
 
     # test shape consistency of cropped raw
     data = np.zeros((1, 1002001))
-    info = create_info(['1'], 1000)
+    info = create_info(1, 1000)
     raw = RawArray(data, info)
-    for tmin in np.arange(0, 1001, 100):
+    for tmin in range(0, 1001, 100):
         raw1 = raw.crop(tmin=tmin, tmax=tmin + 2, copy=True)
-        assert_equal(raw1._data.shape, (1, 2001))
+        assert_equal(raw1[:][0].shape, (1, 2001))
 
 
 @testing.requires_testing_data
