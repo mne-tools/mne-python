@@ -1417,7 +1417,7 @@ def _check_raw(raw):
         for msg, key in (('SSS', 'sss_info'),
                          ('tSSS', 'max_st'),
                          ('fine calibration', 'sss_cal'),
-                         ('cross-talk cancellation',  'sss_ctc')):
+                         ('cross-talk cancellation', 'sss_ctc')):
             if len(ent['max_info'][key]) > 0:
                 raise RuntimeError('Maxwell filtering %s step has already '
                                    'been applied' % msg)
@@ -1471,9 +1471,11 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
 
 def _reset_meg_bads(info):
     """Helper to reset MEG bads"""
-    meg_picks = pick_types(info, meg=True, exclude=[])
-    info['bads'] = [bad for bad in info['bads']
-                    if info['ch_names'].index(bad) not in meg_picks]
+    meg_picks = set(pick_types(info, meg=True, exclude=[]))
+    bad_idx = pick_channels(info['ch_names'], info['bads'], order='include',
+                            strict=True)
+    info['bads'] = [bad for bad, bad_i in zip(info['bads'], bad_idx)
+                    if bad_i not in meg_picks]
 
 
 check_disable = dict()  # not available on really old versions of SciPy

@@ -677,7 +677,8 @@ class ICA(ContainsMixin):
         out = epochs.copy()
         sources = self._transform_epochs(epochs, concatenate)
         if add_channels is not None:
-            picks = [epochs.ch_names.index(k) for k in add_channels]
+            picks = pick_channels(epochs.ch_names, add_channels,
+                                  order='include', strict=True)
         else:
             picks = []
         out._data = np.concatenate([sources, epochs.get_data()[:, picks]],
@@ -694,7 +695,8 @@ class ICA(ContainsMixin):
         """Aux method
         """
         if add_channels is not None:
-            picks = [evoked.ch_names.index(k) for k in add_channels]
+            picks = pick_channels(evoked.ch_names, add_channels,
+                                  order='include', strict=True)
         else:
             picks = []
 

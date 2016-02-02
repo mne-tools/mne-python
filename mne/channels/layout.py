@@ -16,7 +16,7 @@ import os.path as op
 import numpy as np
 
 from ..transforms import _polar_to_cartesian, _cartesian_to_sphere
-from ..io.pick import pick_types
+from ..io.pick import pick_types, pick_channels
 from ..io.constants import FIFF
 from ..utils import _clean_names
 from ..externals.six.moves import map
@@ -689,7 +689,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     # find the picks corresponding to the grad channels
     grad_chs = sum(pairs, [])
     ch_names = info['ch_names']
-    picks = [ch_names.index(c['ch_name']) for c in grad_chs]
+    picks = pick_channels(ch_names, grad_chs, order='include', strict=True)
 
     if topomap_coords:
         shape = (len(pairs), 2, -1)

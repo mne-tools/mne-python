@@ -13,7 +13,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from ..io.pick import channel_type, pick_types, _picks_by_type
+from ..io.pick import channel_type, pick_types, _picks_by_type, pick_channels
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -189,14 +189,14 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     if picks is None:
         picks = list(range(info['nchan']))
 
-    bad_ch_idx = [info['ch_names'].index(ch) for ch in info['bads']
-                  if ch in info['ch_names']]
+    bad_ch_idx = pick_channels(info['ch_names'], info['bads'], order='include')
     if len(exclude) > 0:
         if isinstance(exclude, string_types) and exclude == 'bads':
             exclude = bad_ch_idx
         elif (isinstance(exclude, list) and
               all(isinstance(ch, string_types) for ch in exclude)):
-            exclude = [info['ch_names'].index(ch) for ch in exclude]
+            exclude = pick_channels(info['ch_names'], exclude, order='include',
+                                    strict=True)
         else:
             raise ValueError('exclude has to be a list of channel names or '
                              '"bads"')
@@ -1006,8 +1006,9 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
         pick_names = [evoked.info['ch_names'][pick] for pick in picks]
         evoked.pick_channels(pick_names)
     if exclude == 'bads':
+        ch_names_set = set(evoked.info['ch_names'])
         exclude = [ch for ch in evoked.info['bads']
-                   if ch in evoked.info['ch_names']]
+                   if ch in ch_names_set]
     if exclude is not None:
         evoked.drop_channels(exclude)
 

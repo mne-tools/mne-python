@@ -1174,7 +1174,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
+    C_ch_idx = pick_channels(noise_cov.ch_names, ch_names, order='include',
+                             strict=True)
     if noise_cov['diag'] is False:
         C = noise_cov.data[np.ix_(C_ch_idx, C_ch_idx)]
     else:
@@ -1317,9 +1318,9 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                           exclude=exclude)
 
     info_ch_names = info['ch_names']
-    ch_names_eeg = [info_ch_names[i] for i in sel_eeg]
-    ch_names_mag = [info_ch_names[i] for i in sel_mag]
-    ch_names_grad = [info_ch_names[i] for i in sel_grad]
+    ch_names_eeg = set([info_ch_names[i] for i in sel_eeg])
+    ch_names_mag = set([info_ch_names[i] for i in sel_mag])
+    ch_names_grad = set([info_ch_names[i] for i in sel_grad])
 
     # This actually removes bad channels from the cov, which is not backward
     # compatible, so let's leave all channels in

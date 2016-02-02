@@ -186,10 +186,6 @@ def test_picks_by_channels():
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
     raw = RawArray(test_data, info)
 
-    # Make sure checks for list input work.
-    assert_raises(ValueError, pick_channels, ch_names, 'MEG 001')
-    assert_raises(ValueError, pick_channels, ch_names, ['MEG 001'], 'hi')
-
     pick_list = _picks_by_type(raw.info)
     assert_equal(len(pick_list), 1)
     assert_equal(pick_list[0][0], 'mag')
@@ -243,5 +239,62 @@ def test_clean_info_bads():
     info._check_consistency()
     info['nchan'] += 1
     assert_raises(RuntimeError, info._check_consistency)
+
+
+def test_pick_channels():
+    """Test the pick_channels function"""
+    ch_names = ['foo', 'bar', 'a', 'b', 'c']
+
+    # Select all channels
+    assert_array_equal(pick_channels(ch_names, []), np.arange(len(ch_names)))
+    assert_array_equal(pick_channels(ch_names, ch_names),
+                       np.arange(len(ch_names)))
+
+    # Exclude channels
+    assert_array_equal(pick_channels(ch_names, [], ['foo', 'a']), [1, 3, 4])
+    assert_array_equal(pick_channels(ch_names, ch_names, ['foo', 'a']),
+                       [1, 3, 4])
+    assert_array_equal(pick_channels(ch_names, ['foo', 'bar'],
+                                     ['a', 'b', 'c']),
+                       [0, 1])
+
+    # order='ch_names'
+    assert_array_equal(pick_channels(ch_names, ['bar', 'b']), [1, 3])
+    assert_array_equal(pick_channels(ch_names, ['b', 'bar']), [1, 3])
+
+    # order='include'
+    assert_array_equal(pick_channels(ch_names, ['bar', 'b'], order='include'),
+                       [1, 3])
+    assert_array_equal(pick_channels(ch_names, ['b', 'bar'], order='include'),
+                       [3, 1])
+
+    # strict=False
+    assert_array_equal(pick_channels(ch_names, ['foo', 'bar', 'x']), [0, 1])
+    assert_array_equal(pick_channels(ch_names, ['x', 'foo', 'bar']), [0, 1])
+    assert_array_equal(pick_channels(ch_names, ['bar', 'foo', 'x'],
+                                     order='include'),
+                       [1, 0])
+    assert_array_equal(pick_channels(ch_names, ['x', 'bar', 'foo'],
+                                     order='include'),
+                       [1, 0])
+
+    # strict=True
+    assert_raises(ValueError, pick_channels, ch_names, ['x'], strict=True)
+    assert_raises(ValueError, pick_channels, ch_names, ['bar', 'x'],
+                  strict=True)
+    assert_raises(ValueError, pick_channels, ch_names, ['x'], order='include',
+                  strict=True)
+    assert_raises(ValueError, pick_channels, ch_names, ['bar', 'x'],
+                  order='include', strict=True)
+    # Don't give errors for missing channels that are explicitly mentioned in
+    # exclude
+    assert_array_equal(pick_channels(ch_names, ['bar', 'x'], ['x'],
+                                     strict=True),
+                       [1])
+
+    # Make sure checks for list input work.
+    assert_raises(ValueError, pick_channels, ch_names, 'foo')
+    assert_raises(ValueError, pick_channels, ch_names, ['foo'], 'bar')
+
 
 run_tests_if_main()

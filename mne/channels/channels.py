@@ -17,7 +17,7 @@ from ..externals.six import string_types
 
 from ..utils import verbose, logger
 from ..io.pick import (channel_type, pick_info, pick_types,
-                       _check_excludes_includes)
+                       _check_excludes_includes, pick_channels)
 from ..io.constants import FIFF
 
 
@@ -241,8 +241,9 @@ class SetChannelsMixin(object):
             msg = ('Channel positions must have the shape (n_points, 3) '
                    'not %s.' % (pos.shape,))
             raise ValueError(msg)
+        ch_names_set = set(self.ch_names)
         for name, p in zip(names, pos):
-            if name in self.ch_names:
+            if name in ch_names_set:
                 idx = self.ch_names.index(name)
                 self.info['chs'][idx]['loc'][:3] = p
             else:
@@ -421,7 +422,8 @@ class UpdateChannelsMixin(object):
         inst = self.copy() if copy else self
         _check_excludes_includes(ch_names)
 
-        idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
+        idx = pick_channels(inst.ch_names, ch_names, order='include',
+                            strict=False)
         inst._pick_drop_channels(idx)
 
         return inst
@@ -446,10 +448,7 @@ class UpdateChannelsMixin(object):
         .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
-
-        bad_idx = [inst.ch_names.index(c) for c in ch_names
-                   if c in inst.ch_names]
-        idx = np.setdiff1d(np.arange(len(inst.ch_names)), bad_idx)
+        idx = pick_channels(inst.ch_names, include=[], exclude=ch_names)
         inst._pick_drop_channels(idx)
 
         return inst
@@ -752,7 +751,9 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
     ch_connectivity = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
-        ch_connectivity[ii, [ch_names.index(i) for i in neigbs]] = True
+        neighbs_idx = pick_channels(ch_names, neigbs, order='include',
+                                    strict=True)
+        ch_connectivity[ii, neighbs_idx] = True
 
     ch_connectivity = sparse.csr_matrix(ch_connectivity)
     return ch_connectivity

@@ -617,7 +617,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if len(picks) < len(self.ch_names):
             sel_ch = [evoked.ch_names[ii] for ii in picks]
             diff_ch = list(set(self.ch_names).difference(sel_ch))
-            diff_idx = [self.ch_names.index(ch) for ch in diff_ch]
+            diff_idx = pick_channels(self.ch_names, diff_ch, order='include',
+                                     strict=True)
             diff_types = [channel_type(self.info, idx) for idx in diff_idx]
             bad_idx = [diff_types.index(t) for t in diff_types if t in
                        ['grad', 'mag', 'eeg', 'seeg']]
@@ -641,7 +642,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             evoked = evoked.copy().apply_proj()
 
         # find the indices of the channels to use in Epochs
-        ep_picks = [self.ch_names.index(evoked.ch_names[ii]) for ii in picks]
+        ep_picks = pick_channels(self.ch_names,
+                                 [evoked.ch_names[ii] for ii in picks],
+                                 order='include', strict=True)
 
         # do the subtraction
         if self.preload:

@@ -22,7 +22,7 @@ from .topomap import _prepare_topo_plot, plot_topomap
 from ..utils import logger
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
-from ..io.pick import pick_types
+from ..io.pick import pick_types, pick_channels
 from ..externals.six import string_types
 
 
@@ -461,7 +461,8 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     if title is None:
         title = 'Signals before (red) and after (black) cleaning'
     if picks is None:
-        picks = [inst.ch_names.index(k) for k in ica.ch_names]
+        picks = pick_channels(inst.ch_names, ica.ch_names, order='include',
+                              strict=True)
     if exclude is None:
         exclude = ica.exclude
     if isinstance(inst, _BaseRaw):
@@ -771,8 +772,9 @@ def _update_epoch_data(params):
 def _close_epochs_event(events, params):
     """Function for excluding the selected components on close."""
     info = params['info']
-    exclude = [info['ch_names'].index(x) for x in info['bads']
-               if x.startswith('ICA')]
+    exclude = pick_channels(info['ch_names'],
+                            [x for x in info['bads'] if x.startswith('ICA')],
+                            order='include', strict=True)
     params['ica'].exclude = exclude
 
 

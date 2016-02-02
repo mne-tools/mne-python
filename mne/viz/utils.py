@@ -642,6 +642,7 @@ def _select_bads(event, params, bads):
     # however for clean data don't click on peaks but on flat segments
     def f(x, y):
         return y(np.mean(x), x.std() * 2)
+    ch_names_set = set(params['info']['ch_names'])
     lines = event.inaxes.lines
     for line in lines:
         ydata = line.get_ydata()
@@ -649,7 +650,7 @@ def _select_bads(event, params, bads):
             ymin, ymax = f(ydata, np.subtract), f(ydata, np.add)
             if ymin <= event.ydata <= ymax:
                 this_chan = vars(line)['ch_name']
-                if this_chan in params['info']['ch_names']:
+                if this_chan in ch_names_set:
                     ch_idx = params['ch_start'] + lines.index(line)
                     if this_chan not in bads:
                         bads.append(this_chan)

@@ -22,7 +22,7 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
                         write_coord_trans, write_string)
 
-from ..io.pick import channel_type, pick_info, pick_types
+from ..io.pick import channel_type, pick_info, pick_types, pick_channels
 from ..cov import prepare_noise_cov, _read_cov, _write_cov, Covariance
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
@@ -1143,12 +1143,14 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
     gain = forward['sol']['data']
 
     # This actually reorders the gain matrix to conform to the info ch order
-    fwd_idx = [fwd_sol_ch_names.index(name) for name in ch_names]
+    fwd_idx = pick_channels(fwd_sol_ch_names, ch_names, order='include',
+                            strict=True)
     gain = gain[fwd_idx]
     # Any function calling this helper will be using the returned fwd_info
     # dict, so fwd['sol']['row_names'] becomes obsolete and is NOT re-ordered
 
-    info_idx = [info['ch_names'].index(name) for name in ch_names]
+    info_idx = pick_channels(info['ch_names'], ch_names, order='include',
+                             strict=True)
     fwd_info = pick_info(info, info_idx)
 
     logger.info('Total rank is %d' % n_nzero)

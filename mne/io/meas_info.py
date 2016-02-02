@@ -12,7 +12,7 @@ import os.path as op
 import numpy as np
 from scipy import linalg
 
-from .pick import channel_type
+from .pick import channel_type, pick_channels
 from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find
@@ -211,7 +211,8 @@ class Info(dict):
 
     def _check_consistency(self):
         """Do some self-consistency checks and datatype tweaks"""
-        missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
+        missing = pick_channels(self['bads'], include=[],
+                                exclude=self['ch_names'])
         if len(missing) > 0:
             raise RuntimeError('bad channel(s) %s marked do not exist in info'
                                % (missing,))
@@ -225,6 +226,10 @@ class Info(dict):
         for key in ('sfreq', 'highpass', 'lowpass'):
             if self.get(key) is not None:
                 self[key] = float(self[key])
+        # bads should be a plain list
+        if type(self['bads']) != list:
+            raise RuntimeError('bad channel list should be a plain list, not '
+                               '%s.' % type(self['bads']))
 
 
 def read_fiducials(fname):
@@ -389,7 +394,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         if lpa.shape == (3,):
             dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
             msg = ('LPA should have the shape (3,) instead of %s'
                    % (lpa.shape,))
@@ -399,7 +404,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         if nasion.shape == (3,):
             dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
             msg = ('Nasion should have the shape (3,) instead of %s'
                    % (nasion.shape,))
@@ -409,7 +414,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         if rpa.shape == (3,):
             dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
             msg = ('RPA should have the shape (3,) instead of %s'
                    % (rpa.shape,))
@@ -889,7 +894,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['dig'] = dig
     info['bads'] = bads
     if clean_bads:
-        info['bads'] = [b for b in bads if b in info['ch_names']]
+        ch_names_set = set(info['ch_names'])
+        info['bads'] = [b for b in bads if b in ch_names_set]
     info['projs'] = projs
     info['comps'] = comps
     info['acq_pars'] = acq_pars

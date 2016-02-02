@@ -13,8 +13,8 @@ from scipy import linalg
 
 from ..io.constants import FIFF
 from ..io.proj import make_projector
-from ..io.pick import (
-    pick_types, pick_channels_forward, pick_channels_cov, pick_info)
+from ..io.pick import (pick_types, pick_channels_forward, pick_channels_cov,
+                       pick_info, pick_channels)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
@@ -47,8 +47,8 @@ def _setup_picks(picks, info, forward, noise_cov=None):
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
     ch_names = [c for c in ch_names if c in ok_ch_names]
 
-    picks = [info['ch_names'].index(k) for k in ch_names if k in
-             info['ch_names']]
+    picks = pick_channels(info['ch_names'], include=ch_names, order='include',
+                          strict=False)
     return picks
 
 
@@ -577,8 +577,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
     # Handle whitening
     info = pick_info(
-        info, [info['ch_names'].index(k) for k in ch_names
-               if k in info['ch_names']])
+        info,
+        pick_channels(info['ch_names'], ch_names, order='include'))
     whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
 
     # whiten the leadfield
@@ -730,7 +730,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     ch_names = [epochs.ch_names[k] for k in picks]
 
     # Use picks from epochs for picking channels in the raw object
-    raw_picks = [raw.ch_names.index(c) for c in ch_names]
+    raw_picks = pick_channels(raw.ch_names, ch_names, order='include',
+                              strict=True)
 
     # Make sure epochs.events contains only good events:
     epochs.drop_bad_epochs()
