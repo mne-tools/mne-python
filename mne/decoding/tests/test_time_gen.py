@@ -310,6 +310,8 @@ def test_generalization_across_time():
 def test_decoding_time():
     """Test TimeDecoding
     """
+    from sklearn.svm import SVR
+    from sklearn.cross_validation import KFold
     epochs = make_epochs()
     tg = TimeDecoding()
     assert_equal("<TimeDecoding | no fit, no prediction, no score>", '%s' % tg)
@@ -333,5 +335,11 @@ def test_decoding_time():
     assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
                  "(s), predicted 14 epochs,\n scored (accuracy_score)>",
                  '%s' % tg)
+    # Test with regressor
+    clf = SVR()
+    cv = KFold(len(epochs))
+    y = np.random.rand(len(epochs))
+    tg = TimeDecoding(clf=clf, cv=cv)
+    tg.fit(epochs, y=y)
 
 run_tests_if_main()
