@@ -500,7 +500,6 @@ def test_time_mask():
     x = np.arange(N).astype(float)
     assert_equal(_time_mask(x, 0, N - 1).sum(), N)
     assert_equal(_time_mask(x - 1e-10, 0, N - 1).sum(), N)
-    assert_equal(_time_mask(x - 1e-10, 0, N - 1, strict=True).sum(), N - 1)
 
 
 def test_random_permutation():

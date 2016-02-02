@@ -799,6 +799,14 @@ def test_crop():
         assert_equal(raw.last_samp, ar.last_samp)
         assert_array_equal(raw[:, :][0], ar[:, :][0])
 
+    # test shape consistency of cropped raw
+    data = np.zeros((1, 1002001))
+    info = create_info(1, 1000)
+    raw = RawArray(data, info)
+    for tmin in range(0, 1001, 100):
+        raw1 = raw.crop(tmin=tmin, tmax=tmin + 2, copy=True)
+        assert_equal(raw1[:][0].shape, (1, 2001))
+
 
 @testing.requires_testing_data
 def test_resample():

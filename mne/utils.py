@@ -34,7 +34,7 @@ from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
-from .fixes import isclose, _get_args
+from .fixes import _get_args
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -1868,21 +1868,26 @@ def create_slices(start, stop, step=None, length=1):
     return slices
 
 
-def _time_mask(times, tmin=None, tmax=None, strict=False, sfreq=None):
+def _time_mask(times, tmin=None, tmax=None, sfreq=None):
     """Helper to safely find sample boundaries"""
     tmin = -np.inf if tmin is None else tmin
     tmax = np.inf if tmax is None else tmax
+    if sfreq is not None:
+        # Push to nearest sample first
+        if np.isfinite(tmin):
+            tmin = round(tmin * sfreq) / sfreq
+        else:
+            tmin = times[0]
+        if np.isfinite(tmax):
+            tmax = round(tmax * sfreq) / sfreq
+        else:
+            tmax = times[-1]
+    deltas = np.abs(times - tmax)  # Find nearest times
+    tmax = times[np.where(deltas == deltas.min())[0]][-1]
+    deltas = np.abs(times - tmin)
+    tmin = times[np.where(deltas == deltas.min())[0]][-1]
     mask = (times >= tmin)
     mask &= (times <= tmax)
-    if not strict:
-        if sfreq is not None:
-            # Push to nearest sample first
-            if np.isfinite(tmin):
-                tmin = round(tmin * sfreq) / sfreq
-            if np.isfinite(tmax):
-                tmax = round(tmax * sfreq) / sfreq
-        mask |= isclose(times, tmin)
-        mask |= isclose(times, tmax)
     return mask
 
 
