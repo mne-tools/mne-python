@@ -69,10 +69,11 @@ def channel_type(info, idx):
     raise Exception('Unknown channel type')
 
 
-def pick_channels(ch_names, include, exclude=[]):
+def pick_channels(ch_names, include, exclude=[], order='ch_names',
+                  strict=False):
     """Pick channels by names
 
-    Returns the indices of the good channels in ch_names.
+    Returns the indices of the selected channels in ch_names.
 
     Parameters
     ----------
@@ -83,6 +84,14 @@ def pick_channels(ch_names, include, exclude=[]):
     exclude : list of string
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
+    order : 'ch_names' | 'include'
+        Whether to return the channels in the order they are listed in the
+        `ch_names` parameter or the `include` parameter. Defaults to
+        'ch_names'. See also the notes section.
+    strict : bool
+        Whether to raise an error if some channels specified in the `include`
+        parameter are not present in the `ch_names` parameter. Defaults to
+        False.
 
     See Also
     --------
@@ -92,15 +101,60 @@ def pick_channels(ch_names, include, exclude=[]):
     -------
     sel : array of int
         Indices of good channels.
+
+    Notes
+    -----
+    When the `order` parameter is set to 'include', `pick_channels` behaves
+    like NumPy fancy indexing. Any channels that are listed more than once in
+    the include list are also returned more than once.
     """
     if len(np.unique(ch_names)) != len(ch_names):
         raise RuntimeError('ch_names is not a unique list, picking is unsafe')
     _check_excludes_includes(include)
     _check_excludes_includes(exclude)
+
+    # Shortcut for trivial case: selecting all channels
+    if len(include) == 0 and len(exclude) == 0:
+        return np.arange(len(ch_names))
+
+    exclude = set(exclude)
+
     sel = []
-    for k, name in enumerate(ch_names):
-        if (len(include) == 0 or name in include) and name not in exclude:
-            sel.append(k)
+
+    # The order determines whether it is more efficient to loop over `ch_names`
+    # or `include`
+    if order == 'ch_names':
+        if len(include) == 0:
+            include = ch_names
+        include = set(include)
+
+        for k, name in enumerate(ch_names):
+            if name in include and name not in exclude:
+                sel.append(k)
+                if len(include) > 0:
+                    include.remove(name)
+
+        if strict and len(include - exclude) > 0:
+            raise ValueError('The following channels were not found in the '
+                             'supplied list of channel names: %s' % include)
+
+    elif order == 'include':
+        # Construct a lookup table to channel indices for quick access
+        ch_name_to_index = dict()
+        for index, name in enumerate(ch_names):
+            if name not in exclude:
+                ch_name_to_index[name] = index
+
+        for name in include:
+            if name in ch_name_to_index:
+                sel.append(ch_name_to_index[name])
+            elif strict and name not in exclude:
+                raise ValueError('Channel %s was not found in the supplied '
+                                 'list of channel names.' % name)
+    else:
+        raise ValueError("The 'include' parameter should be either 'ch_names' "
+                         "or 'include'")
+
     return np.array(sel, int)
 
 
@@ -236,9 +290,10 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     elif exclude == 'bads':
         exclude = info.get('bads', [])
     elif not isinstance(exclude, (list, tuple)):
-        raise ValueError('exclude must either be "bads" or a list of strings.'
-                         ' If only one channel is to be excluded, use '
-                         '[ch_name] instead of passing ch_name.')
+        raise ValueError('exclude must either be "bads" or a list of strings. '
+                         'You provided %s. If only one channel is to be '
+                         'excluded, use [ch_name] instead of passing ch_name.'
+                         % type(exclude))
 
     _check_meg_type(ref_meg, allow_auto=True)
     _check_meg_type(meg)
@@ -330,12 +385,13 @@ def pick_info(info, sel=[], copy=True):
     info['chs'] = [info['chs'][k] for k in sel]
     info['ch_names'] = [info['ch_names'][k] for k in sel]
     info['nchan'] = len(sel)
-    info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
+    ch_names_set = set(info['ch_names'])
+    info['bads'] = [ch for ch in info['bads'] if ch in ch_names_set]
 
     comps = deepcopy(info['comps'])
     for c in comps:
         row_idx = [k for k, n in enumerate(c['data']['row_names'])
-                   if n in info['ch_names']]
+                   if n in ch_names_set]
         row_names = [c['data']['row_names'][i] for i in row_idx]
         rowcals = c['rowcals'][row_idx]
         c['rowcals'] = rowcals
@@ -466,7 +522,8 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     fwd['info']['ch_names'] = [fwd['info']['ch_names'][k] for k in sel_info]
     fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
     fwd['info']['nchan'] = nuse
-    fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]
+    ch_names_set = set(ch_names)
+    fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names_set]
 
     if fwd['sol_grad'] is not None:
         fwd['sol_grad']['data'] = fwd['sol_grad']['data'][sel_sol, :]
@@ -612,8 +669,12 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
     ----------
     chs : any input, should be list, tuple, string
         The channels passed to include or exclude.
+    info : instance of Info | None
+        When allow_bads is set to True, supply an info object here that lists
+        the bad channels. Defaults to None.
     allow_bads : bool
         Allow the user to supply "bads" as a string for auto exclusion.
+        Defaults to False.
 
     Returns
     -------

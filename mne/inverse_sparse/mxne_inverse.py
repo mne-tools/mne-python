@@ -11,7 +11,7 @@ from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..minimum_norm.inverse import _check_reference
 from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
-from ..io.pick import pick_channels_evoked
+from ..io.pick import pick_channels_evoked, pick_channels
 from ..io.proj import deactivate_proj
 from ..utils import logger, verbose
 from ..externals.six.moves import xrange as range
@@ -268,7 +268,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         forward, evoked[0].info, noise_cov, pca, depth, loose, weights,
         weights_min)
 
-    sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
+    sel = pick_channels(all_ch_names, gain_info['ch_names'], order='include',
+                        strict=True)
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
 
     # Whiten data
@@ -483,7 +484,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     if window is not None:
         evoked = _window_evoked(evoked, window)
 
-    sel = [all_ch_names.index(name) for name in gain_info["ch_names"]]
+    sel = pick_channels(all_ch_names, gain_info['ch_names'], order='include',
+                        strict=True)
     M = evoked.data[sel]
 
     # Whiten data

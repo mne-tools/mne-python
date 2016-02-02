@@ -10,6 +10,7 @@ from ..forward import is_fixed_orient, _to_fixed_ori
 
 from ..minimum_norm.inverse import _check_reference
 from ..utils import logger, verbose
+from ..io.pick import pick_channels
 from ..externals.six.moves import xrange as range
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual)
@@ -251,7 +252,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         forward, evoked.info, noise_cov, pca, depth, loose, None, None)
 
     # get the data
-    sel = [evoked.ch_names.index(name) for name in gain_info['ch_names']]
+    sel = pick_channels(evoked.ch_names, gain_info['ch_names'],
+                        order='include', strict=True)
     M = evoked.data[sel]
 
     # whiten the data

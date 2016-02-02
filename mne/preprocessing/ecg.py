@@ -207,7 +207,8 @@ def _get_ecg_channel_index(ch_name, inst):
                              eog=False, ecg=True, emg=False, ref_meg=False,
                              exclude='bads')
     else:
-        if ch_name not in inst.ch_names:
+        ch_names_set = set(inst.ch_names)
+        if ch_name not in ch_names_set:
             raise ValueError('%s not in channel list (%s)' %
                              (ch_name, inst.ch_names))
         ecg_idx = pick_channels(inst.ch_names, include=[ch_name])

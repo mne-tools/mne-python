@@ -349,7 +349,8 @@ def _read_forward_meas_info(tree, fid):
 
     info['bads'] = read_bad_channels(fid, parent_meg)
     # clean up our bad list, old versions could have non-existent bads
-    info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
+    ch_names = set(info['ch_names'])
+    info['bads'] = [bad for bad in info['bads'] if bad in ch_names]
 
     # Check if a custom reference has been applied
     tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_CUSTOM_REF)
@@ -1153,8 +1154,9 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
     # make sure evoked_template contains all channels in fwd
+    ch_names = set(info['ch_names'])
     for ch_name in fwd['sol']['row_names']:
-        if ch_name not in info['ch_names']:
+        if ch_name not in ch_names:
             raise ValueError('Channel %s of forward operator not present in '
                              'evoked_template.' % ch_name)
 
@@ -1213,8 +1215,9 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     apply_forward: Compute sensor space data and return an Evoked object.
     """
     # make sure info contains all channels in fwd
+    ch_names = info['ch_names']
     for ch_name in fwd['sol']['row_names']:
-        if ch_name not in info['ch_names']:
+        if ch_name not in ch_names:
             raise ValueError('Channel %s of forward operator not present in '
                              'info.' % ch_name)
 

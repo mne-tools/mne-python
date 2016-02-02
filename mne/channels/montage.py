@@ -316,6 +316,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = apply_trans(neuromag_trans, pos)
 
     if ch_names is not None:
+        ch_names = set(ch_names)
         sel, ch_names_ = zip(*[(i, e) for i, e in enumerate(ch_names_)
                              if e in ch_names])
         sel = list(sel)

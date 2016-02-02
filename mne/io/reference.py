@@ -8,7 +8,7 @@ import numpy as np
 
 from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
-from .pick import pick_types
+from .pick import pick_types, pick_channels
 from .base import _BaseRaw
 from ..evoked import Evoked
 from ..epochs import _BaseEpochs
@@ -98,8 +98,9 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
                 inst.apply_proj()
             break
 
-    ref_from = [inst.ch_names.index(ch) for ch in ref_from]
-    ref_to = [inst.ch_names.index(ch) for ch in ref_to]
+    ref_from = pick_channels(inst.ch_names, ref_from, order='include',
+                             strict=True)
+    ref_to = pick_channels(inst.ch_names, ref_to, order='include', strict=True)
 
     if isinstance(inst, Evoked):
         data = inst.data
@@ -157,8 +158,9 @@ def add_reference_channels(inst, ref_channels, copy=True):
     elif not isinstance(ref_channels, list):
         raise ValueError("`ref_channels` should be either str or list of str. "
                          "%s was provided." % type(ref_channels))
+    ch_names_set = set(inst.info['ch_names'])
     for ch in ref_channels:
-        if ch in inst.info['ch_names']:
+        if ch in ch_names_set:
             raise ValueError("Channel %s already specified in inst." % ch)
 
     if copy:
@@ -343,8 +345,9 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Check for duplicate channel names (it is allowed to give the name of the
     # anode or cathode channel, as they will be replaced).
+    ch_names_set = set(inst.ch_names)
     for ch, a, c in zip(ch_name, anode, cathode):
-        if ch not in [a, c] and ch in inst.ch_names:
+        if ch not in [a, c] and ch in ch_names_set:
             raise ValueError('There is already a channel named "%s", please '
                              'specify a different name for the bipolar '
                              'channel using the ch_name parameter.' % ch)

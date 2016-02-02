@@ -23,7 +23,7 @@ from scipy import linalg
 from ..surface import read_surface
 from ..io.proj import make_projector
 from ..utils import logger, verbose, get_subjects_dir
-from ..io.pick import pick_types
+from ..io.pick import pick_types, pick_channels
 from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
 
 
@@ -63,7 +63,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     if exclude == 'bads':
         exclude = info['bads']
     ch_names = [n for n in cov.ch_names if n not in exclude]
-    ch_idx = [cov.ch_names.index(n) for n in ch_names]
+    ch_idx = pick_channels(cov.ch_names, ch_names, order='include',
+                           strict=True)
     info_ch_names = info['ch_names']
     sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
                          exclude=exclude)
@@ -71,12 +72,9 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
                          exclude=exclude)
     sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
                           exclude=exclude)
-    idx_eeg = [ch_names.index(info_ch_names[c])
-               for c in sel_eeg if info_ch_names[c] in ch_names]
-    idx_mag = [ch_names.index(info_ch_names[c])
-               for c in sel_mag if info_ch_names[c] in ch_names]
-    idx_grad = [ch_names.index(info_ch_names[c])
-                for c in sel_grad if info_ch_names[c] in ch_names]
+    idx_eeg = pick_channels(ch_names, [info_ch_names[c] for c in sel_eeg])
+    idx_mag = pick_channels(ch_names, [info_ch_names[c] for c in sel_mag])
+    idx_grad = pick_channels(ch_names, [info_ch_names[c] for c in sel_grad])
 
     idx_names = [(idx_eeg, 'EEG covariance', 'uV', 1e6),
                  (idx_grad, 'Gradiometers', 'fT/cm', 1e13),

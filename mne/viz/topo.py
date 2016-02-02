@@ -15,7 +15,7 @@ from functools import partial
 
 import numpy as np
 
-from ..io.pick import channel_type, pick_types
+from ..io.pick import channel_type, pick_types, pick_channels
 from ..fixes import normalize_colors
 from ..utils import _clean_names
 
@@ -333,8 +333,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
     chs_in_layout = set(layout.names) & set(ch_names)
-    types_used = set(channel_type(info, ch_names.index(ch))
-                     for ch in chs_in_layout)
+    types_used = set(channel_type(info, ch)
+                     for ch in pick_channels(ch_names, chs_in_layout,
+                                             order='include', strict=True))
     # remove possible reference meg channels
     types_used = set.difference(types_used, set('ref_meg'))
     # one check for all vendors
