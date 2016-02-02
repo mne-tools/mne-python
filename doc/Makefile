@@ -39,7 +39,7 @@ clean:
 	-rm -rf *.nii.gz
 
 html_stable:
-	$(SPHINXBUILD) -D raise_gallery=1 -b html $(ALLSPHINXOPTS) build/html_stable
+	$(SPHINXBUILD) -D raise_gallery=1 -b html $(ALLSPHINXOPTS) _build/html_stable
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html_stable."
 
