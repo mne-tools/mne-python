@@ -37,7 +37,7 @@ BUG
 
     - Time cropping functions no longer use relative tolerances when determining the boundaries by `Jaakko Leppakangas`_
 
-    - Fix :func:`mne.decoding.TimeDecoding` to allow specifying `clf` by `Jean-Remi King`_
+    - Fix :func:`mne.decoding.TimeDecoding` to allow specifying ``clf`` by `Jean-Remi King`_
 
 API
 ~~~
