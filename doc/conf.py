@@ -16,13 +16,10 @@ import sys
 import os
 import os.path as op
 from datetime import date
+import sphinx_gallery as sg
 
-try:
-    import sphinx_gallery as sg
-    sg_extension = 'sphinx_gallery.gen_gallery'
-except ImportError:
-    import sphinxgallery as sg
-    sg_extension = 'sphinxgallery.gen_gallery'
+sg_extension = 'sphinx_gallery.gen_gallery'
+
 import sphinx_bootstrap_theme
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -272,11 +269,11 @@ trim_doctests_flags = True
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://docs.python.org/': None}
 
-sphinxgallery_conf = {
+sphinx_gallery_conf = {
     'filename_pattern': '/plot_',
     'examples_dirs'   : ['../examples', '../tutorials'],
     'gallery_dirs'    : ['auto_examples', 'auto_tutorials'],
-    'doc_module': ('sphinxgallery', 'numpy'),
+    'doc_module': ('sphinx_gallery', 'numpy'),
     'reference_url': {
         'mne': None,
         'matplotlib': 'http://matplotlib.org',
@@ -286,6 +283,3 @@ sphinxgallery_conf = {
     'find_mayavi_figures': True,
     'default_thumb_file': '_static/mne_helmet.png',
     }
-if sg_extension == 'sphinx_gallery.gen_gallery':
-    sphinx_gallery_conf = sphinxgallery_conf
-    del sphinxgallery_conf
