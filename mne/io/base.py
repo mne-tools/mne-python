@@ -1632,8 +1632,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def load_bad_channels(self, bad_file=None, force=False):
         """
-        Mark channels as bad from a text file, in the style
-        (mostly) of the C function mne_mark_bad_channels
+        Mark channels as bad from a text file
+        
+        This function operates mostly in the style of the C function
+        ``mne_mark_bad_channels``.
 
         Parameters
         ----------
@@ -1641,7 +1643,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             File name of the text file containing bad channels
             If bad_file = None, bad channels are cleared, but this
             is more easily done directly as raw.info['bads'] = [].
-
         force : boolean
             Whether or not to force bad channel marking (of those
             that exist) if channels are not found, instead of

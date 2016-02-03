@@ -309,7 +309,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         activate = False if self._do_delayed_proj else proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
-                                                activate=activate)
+                                                activate=activate,
+                                                stacklevel=10)
 
         if preload_at_end:
             assert self._data is None
