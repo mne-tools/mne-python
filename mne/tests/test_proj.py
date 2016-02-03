@@ -40,6 +40,23 @@ sensmap_fname = op.join(sample_path,
 eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
 
 
+def test_bad_proj():
+    """Test dealing with bad projection application
+    """
+    raw = Raw(raw_fname, preload=False)
+    events = read_events(event_fname)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
+    picks = picks[2:9:3]
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        Epochs(raw, events, dict(aud_l=1, vis_l=3),
+               -0.2, 0.5, picks=picks, preload=True, proj=True)
+    assert_equal(len(w), 3)
+    for ww in w:
+        assert_true('dangerous' in str(ww.message))
+
+
 @testing.requires_testing_data
 def test_sensitivity_maps():
     """Test sensitivity map computation"""

@@ -427,7 +427,8 @@ def _write_proj(fid, projs):
 ###############################################################################
 # Utils
 
-def make_projector(projs, ch_names, bads=[], include_active=True):
+def make_projector(projs, ch_names, bads=[], include_active=True,
+                   stacklevel=2):
     """Create an SSP operator from SSP projection vectors
 
     Parameters
@@ -494,15 +495,24 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
                     vecsel.append(p['data']['col_names'].index(name))
 
             # If there is something to pick, pickit
+            nrow = p['data']['nrow']
+            this_vecs = vecs[:, nvec:nvec + nrow]
             if len(sel) > 0:
-                nrow = p['data']['nrow']
-                vecs[sel, nvec:nvec + nrow] = p['data']['data'][:, vecsel].T
+                this_vecs[sel] = p['data']['data'][:, vecsel].T
 
             # Rescale for better detection of small singular values
             for v in range(p['data']['nrow']):
-                psize = sqrt(np.sum(vecs[:, nvec + v] * vecs[:, nvec + v]))
+                psize = sqrt(np.sum(this_vecs[:, v] * this_vecs[:, v]))
                 if psize > 0:
-                    vecs[:, nvec + v] /= psize
+                    orig_n = p['data']['data'].shape[1]
+                    if len(vecsel) < 0.9 * orig_n:
+                        warnings.warn(
+                            'Projection vector "%s" magnitude %0.2f, '
+                            'applying projector with %s/%s of the original '
+                            'channels available may be dangerous'
+                            % (p['desc'], psize, len(vecsel), orig_n),
+                            RuntimeWarning, stacklevel=stacklevel)
+                    this_vecs[:, v] /= psize
                     nonzero += 1
 
             nvec += p['data']['nrow']
@@ -524,7 +534,7 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
     return proj, nproj, U
 
 
-def make_projector_info(info, include_active=True):
+def make_projector_info(info, include_active=True, stacklevel=3):
     """Make an SSP operator using the measurement info
 
     Calls make_projector on good channels.
@@ -535,6 +545,8 @@ def make_projector_info(info, include_active=True):
         Measurement info.
     include_active : bool
         Also include projectors that are already active.
+    stacklevel : int
+        The stack level for warnings.
 
     Returns
     -------
@@ -544,7 +556,8 @@ def make_projector_info(info, include_active=True):
         How many items in the projector.
     """
     proj, nproj, _ = make_projector(info['projs'], info['ch_names'],
-                                    info['bads'], include_active)
+                                    info['bads'], include_active,
+                                    stacklevel=stacklevel)
     return proj, nproj
 
 
@@ -644,7 +657,8 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     if n_eeg == 0:
         raise ValueError('Cannot create EEG average reference projector '
                          '(no EEG data found)')
-    vec = np.ones((1, n_eeg)) / n_eeg
+    vec = np.ones((1, n_eeg))
+    vec /= n_eeg
     explained_var = None
     eeg_proj_data = dict(col_names=eeg_names, row_names=None,
                          data=vec, nrow=1, ncol=n_eeg)
@@ -679,7 +693,7 @@ def _needs_eeg_average_ref_proj(info):
 
 @verbose
 def setup_proj(info, add_eeg_ref=True, activate=True,
-               verbose=None):
+               stacklevel=4, verbose=None):
     """Set up projection for Raw and Epochs
 
     Parameters
@@ -691,6 +705,8 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         already exists).
     activate : bool
         If True projections are activated.
+    stacklevel : int
+        The stack level for warnings.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -707,7 +723,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         info['projs'].append(eeg_proj)
 
     # Create the projector
-    projector, nproj = make_projector_info(info)
+    projector, nproj = make_projector_info(info, stacklevel=stacklevel)
     if nproj == 0:
         if verbose:
             logger.info('The projection vectors do not apply to these '
