@@ -300,7 +300,7 @@ class Info(collections.MutableMapping):
             The value associated with the key
         """
         if key in Info._read_only_fields:
-            raise ValueError('The field ' + key + ' is read only.')
+            raise ValueError('The field %s is read only.' % key)
         else:
             self._store[key] = value
 
@@ -313,7 +313,7 @@ class Info(collections.MutableMapping):
             The key associated with the value to remove
         """
         if key in Info._read_only_fields:
-            raise ValueError('The field ' + key + ' is read only.')
+            raise ValueError('The field %s is read only.' % key)
         else:
             del self._store[key]
 
