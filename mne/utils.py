@@ -7,7 +7,6 @@ from __future__ import print_function
 # License: BSD (3-clause)
 
 import warnings
-import importlib
 import logging
 import time
 import platform
@@ -2068,7 +2067,7 @@ def sys_info(fid=None, show_paths=False):
             continue
         out += ('%s:' % mod_name).ljust(ljust)
         try:
-            mod = importlib.import_module(mod_name)
+            mod = __import__(mod_name)
         except Exception:
             out += 'Not found\n'
         else:
