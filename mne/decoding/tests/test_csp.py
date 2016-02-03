@@ -74,9 +74,9 @@ def test_csp():
     csp_epochs = CSP(cov_est="epoch")
     csp_epochs.fit(epochs_data, y)
     for attr in ('filters_', 'patterns_'):
-        assert_true(np.corrcoef(
-            getattr(csp, attr).ravel(),
-            getattr(csp_epochs, attr).ravel())[0, 1] > 0.95)
+        corr = np.corrcoef(getattr(csp, attr).ravel(),
+                           getattr(csp_epochs, attr).ravel())[0, 1]
+        assert_true(corr > 0.95, msg='%s < 0.95' % corr)
 
     # make sure error is raised for undefined estimation method
     csp_fail = CSP(cov_est="undefined")
