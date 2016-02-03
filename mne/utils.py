@@ -2052,12 +2052,25 @@ def sys_info(fid=None, show_paths=False):
     show_paths : bool
         If True, print paths for each module.
     """
-    from numpy.distutils import misc_util
     ljust = 15
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
     out += 'Executable:'.ljust(ljust) + sys.executable + '\n\n'
-    bld = misc_util.get_build_architecture()
+    old_stdout = sys.stdout
+    capture = StringIO()
+    try:
+        sys.stdout = capture
+        np.show_config()
+    finally:
+        sys.stdout = old_stdout
+    lines = capture.getvalue().split('\n')
+    libs = []
+    for li, line in enumerate(lines):
+        for key in ('lapack', 'blas'):
+            if line.startswith('%s_opt_info' % key):
+                libs += ['%s=' % key +
+                         lines[li + 1].split('[')[1].split("'")[1]]
+    libs = ', '.join(libs)
     version_texts = dict(pycuda='VERSION_TEXT')
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
                      'sklearn', 'nibabel', 'nitime', 'mayavi', 'nose',
@@ -2074,6 +2087,6 @@ def sys_info(fid=None, show_paths=False):
             version = getattr(mod, version_texts.get(mod_name, '__version__'))
             extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
             if mod_name == 'numpy':
-                extra = ' (%s)%s' % (bld, extra)
+                extra = ' {%s}%s' % (libs, extra)
             out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)
