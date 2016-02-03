@@ -713,7 +713,7 @@ class ICA(ContainsMixin):
         """Aux method
         """
         # set channel names and info
-        ch_names = info['ch_names'] = []
+        ch_names = []
         ch_info = info['chs'] = []
         for ii in range(self.n_components_):
             this_source = 'ICA %03d' % (ii + 1)
@@ -732,10 +732,6 @@ class ICA(ContainsMixin):
             # re-append additionally picked ch_info
             ch_info += [k for k in container.info['chs'] if k['ch_name'] in
                         add_channels]
-            # update number of channels
-        info['nchan'] = self.n_components_
-        if add_channels is not None:
-            info['nchan'] += len(add_channels)
         info['bads'] = [ch_names[k] for k in self.exclude]
         info['projs'] = []  # make sure projections are removed.
 

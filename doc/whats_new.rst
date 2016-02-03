@@ -47,6 +47,8 @@ API
 
     - Deprecated function :func:`mne.time_frequency.multitaper_psd` and replaced by :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
+    - The `'ch_names'` and `'nchan'` fields of the :class:`mne.io.Info` class are now read-only and are automatically updated to accommodate changes in the `'chs'` field, by `Marijn van Vliet`_
+
 .. _changes_0_11:
 
 Version 0.11

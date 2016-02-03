@@ -651,7 +651,6 @@ def rename_channels(info, mapping):
 
     # do the reampping in info
     info['bads'] = bads
-    info['ch_names'] = ch_names
     for ch, ch_name in zip(info['chs'], ch_names):
         ch['ch_name'] = ch_name
     info._check_consistency()

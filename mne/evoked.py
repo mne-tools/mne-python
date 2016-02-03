@@ -198,7 +198,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                      'channel definitions are different')
 
                 info['chs'] = chs
-                info['nchan'] = nchan
                 logger.info('    Found channel information in evoked data. '
                             'nchan = %d' % nchan)
                 if sfreq > 0:

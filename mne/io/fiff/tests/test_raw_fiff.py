@@ -1019,8 +1019,10 @@ def test_add_channels():
     raw_meg = raw.pick_types(meg=True, eeg=False, copy=True)
     raw_stim = raw.pick_types(meg=False, eeg=False, stim=True, copy=True)
     raw_new = raw_meg.add_channels([raw_eeg, raw_stim], copy=True)
-    assert_true(all(ch in raw_new.ch_names
-                    for ch in raw_stim.ch_names + raw_meg.ch_names))
+    assert_true(
+        all(ch in raw_new.ch_names
+            for ch in list(raw_stim.ch_names) + list(raw_meg.ch_names))
+    )
     raw_new = raw_meg.add_channels([raw_eeg], copy=True)
 
     assert_true(ch in raw_new.ch_names for ch in raw.ch_names)

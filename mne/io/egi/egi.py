@@ -255,8 +255,7 @@ class RawEGI(_BaseRaw):
         ch_names.extend(list(egi_info['event_codes']))
         if self._new_trigger is not None:
             ch_names.append('STI 014')  # our new_trigger
-        info['nchan'] = nchan = len(ch_names)
-        info['ch_names'] = ch_names
+        nchan = len(ch_names)
         for ii, ch_name in enumerate(ch_names):
             ch_info = {
                 'cal': cal, 'logno': ii + 1, 'scanno': ii + 1, 'range': 1.0,

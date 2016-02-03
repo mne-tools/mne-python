@@ -38,9 +38,9 @@ def _prepare_topo_plot(inst, ch_type, layout):
     elif layout == 'auto':
         layout = None
 
-    info['ch_names'] = _clean_names(info['ch_names'])
+    clean_ch_names = _clean_names(info['ch_names'])
     for ii, this_ch in enumerate(info['chs']):
-        this_ch['ch_name'] = info['ch_names'][ii]
+        this_ch['ch_name'] = clean_ch_names[ii]
 
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in

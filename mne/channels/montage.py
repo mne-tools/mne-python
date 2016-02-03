@@ -619,7 +619,6 @@ def _set_montage(info, montage, update_ch_names=False):
     """
     if isinstance(montage, Montage):
         if update_ch_names:
-            info['ch_names'] = montage.ch_names
             info['chs'] = list()
             for ii, ch_name in enumerate(montage.ch_names):
                 ch_info = {'cal': 1., 'logno': ii + 1, 'scanno': ii + 1,
@@ -638,7 +637,6 @@ def _set_montage(info, montage, update_ch_names=False):
                 continue
 
             ch_idx = info['ch_names'].index(ch_name)
-            info['ch_names'][ch_idx] = ch_name
             info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
             sensors_found.append(ch_idx)
 

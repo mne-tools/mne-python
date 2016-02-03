@@ -142,9 +142,6 @@ class FieldTripClient(object):
             info = _empty_info(self.ft_header.fSample)  # create info
 
             # modify info attributes according to the FieldTrip Header object
-            info['nchan'] = self.ft_header.nChannels
-            info['ch_names'] = self.ft_header.labels
-
             info['comps'] = list()
             info['projs'] = list()
             info['bads'] = list()
@@ -152,7 +149,7 @@ class FieldTripClient(object):
             # channel dictionary list
             info['chs'] = []
 
-            for idx, ch in enumerate(info['ch_names']):
+            for idx, ch in enumerate(self.ft_header.labels):
                 this_info = dict()
 
                 this_info['scanno'] = idx
