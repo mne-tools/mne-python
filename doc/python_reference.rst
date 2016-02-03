@@ -68,6 +68,7 @@ Logging and Configuration
    set_log_level
    set_log_file
    set_config
+   sys_info
 
 :py:mod:`mne.cuda`:
 
