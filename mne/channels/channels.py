@@ -178,6 +178,8 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'stim': FIFF.FIFF_UNIT_NONE,
                'syst': FIFF.FIFF_UNIT_NONE}
 _unit2human = {FIFF.FIFF_UNIT_V: 'V',
+               FIFF.FIFF_UNIT_T: 'T',
+               FIFF.FIFF_UNIT_T_M: 'T/m',
                FIFF.FIFF_UNIT_NONE: 'NA'}
 
 
@@ -286,7 +288,7 @@ class SetChannelsMixin(object):
             unit_old = self.info['chs'][c_ind]['unit']
             unit_new = _human2unit[ch_type]
             if unit_old != _human2unit[ch_type]:
-                warnings.warn("The unit for Channel %s has changed "
+                warnings.warn("The unit for channel %s has changed "
                               "from %s to %s." % (ch_name,
                                                   _unit2human[unit_old],
                                                   _unit2human[unit_new]))
