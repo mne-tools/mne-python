@@ -603,5 +603,4 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
     return _psd_multitaper(x=x, sfreq=sfreq, fmin=fmin, fmax=fmax,
                            bandwidth=bandwidth, adaptive=adaptive,
                            low_bias=low_bias,
-                           normalization=normalization, n_jobs=n_jobs,
-                           verbose=verbose)
+                           normalization=normalization, n_jobs=n_jobs)
