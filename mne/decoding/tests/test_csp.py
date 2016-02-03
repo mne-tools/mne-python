@@ -31,9 +31,9 @@ def test_csp():
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
-    picks = picks[2:9:3]
+    picks = picks[2:9:3]  # subselect channels -> disable proj!
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True, proj=False)
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
 
@@ -76,7 +76,7 @@ def test_csp():
     for attr in ('filters_', 'patterns_'):
         corr = np.corrcoef(getattr(csp, attr).ravel(),
                            getattr(csp_epochs, attr).ravel())[0, 1]
-        assert_true(corr > 0.95, msg='%s < 0.95' % corr)
+        assert_true(corr >= 0.95, msg='%s < 0.95' % corr)
 
     # make sure error is raised for undefined estimation method
     csp_fail = CSP(cov_est="undefined")
