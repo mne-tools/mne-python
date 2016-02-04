@@ -95,9 +95,10 @@ def test_plot_evoked_field():
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
     for t in ['meg', None]:
-        maps = make_field_map(evoked, trans_fname, subject='sample',
-                              subjects_dir=subjects_dir, n_jobs=1, ch_type=t)
-
+        with warnings.catch_warnings(record=True):  # bad proj
+            maps = make_field_map(evoked, trans_fname, subject='sample',
+                                  subjects_dir=subjects_dir, n_jobs=1,
+                                  ch_type=t)
         evoked.plot_field(maps, time=0.1)
 
 

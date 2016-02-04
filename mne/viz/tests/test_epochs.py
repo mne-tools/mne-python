@@ -57,8 +57,9 @@ def _get_epochs():
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
-    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0))
+    with warnings.catch_warnings(record=True):  # bad proj
+        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
     return epochs
 
 
@@ -77,12 +78,15 @@ def test_plot_epochs():
     """Test epoch plotting"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    epochs.plot(scalings=None, title='Epochs')
+    with warnings.catch_warnings(record=True):  # bad proj
+        epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
-    fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
+    with warnings.catch_warnings(record=True):  # bad proj
+        fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')
     plt.close('all')
-    fig = epochs.plot()
+    with warnings.catch_warnings(record=True):  # bad proj
+        fig = epochs.plot()
     fig.canvas.key_press_event('left')
     fig.canvas.key_press_event('right')
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down

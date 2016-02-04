@@ -59,8 +59,9 @@ def test_ica_full_data_recovery():
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
-    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+    with warnings.catch_warnings(record=True):  # bad proj
+        epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0), preload=True)
     evoked = epochs.average()
     n_channels = 5
     data = raw._data[:n_channels].copy()

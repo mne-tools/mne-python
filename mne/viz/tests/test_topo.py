@@ -54,8 +54,9 @@ def _get_epochs():
     raw = _get_raw()
     events = _get_events()
     picks = _get_picks(raw)
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0))
+    with warnings.catch_warnings(record=True):  # bad proj
+        epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
     return epochs
 
 
