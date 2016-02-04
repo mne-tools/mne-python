@@ -157,7 +157,8 @@ class Raw(_BaseRaw):
         if do_check_fname:
             check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif',
                                        'raw_tsss.fif', 'raw.fif.gz',
-                                       'raw_sss.fif.gz', 'raw_tsss.fif.gz'))
+                                       'raw_sss.fif.gz', 'raw_tsss.fif.gz'),
+                        stacklevel=8)
 
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         ext = os.path.splitext(fname)[1].lower()
@@ -183,7 +184,7 @@ class Raw(_BaseRaw):
                         raise ValueError('No raw data in %s' % fname)
                     elif allow_maxshield:
                         info['maxshield'] = True
-                        warnings.warn(msg)
+                        warnings.warn(msg, stacklevel=7)
                     else:
                         msg += (' Use allow_maxshield=True if you are sure you'
                                 ' want to load the data despite this warning.')

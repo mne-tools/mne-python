@@ -23,6 +23,7 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  pick_channels_cov, pick_channels, pick_types, pick_info,
                  make_ad_hoc_cov)
 from mne.io import Raw
+from mne.tests.common import assert_naming
 from mne.utils import (_TempDir, slow_test, requires_sklearn_0_15,
                        run_tests_if_main)
 from mne.io.proc_history import _get_sss_rank
@@ -90,7 +91,7 @@ def test_io_cov():
         cov_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_cov(cov_badname, cov)
         read_cov(cov_badname)
-    assert_true(len(w) == 2)
+    assert_naming(w, 'test_cov.py', 2)
 
 
 def test_cov_estimation_on_raw_segment():

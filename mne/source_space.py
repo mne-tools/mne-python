@@ -498,7 +498,8 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     # be more permissive on read than write (fwd/inv can contain src)
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
                                         '-fwd.fif', '-fwd.fif.gz',
-                                        '-inv.fif', '-inv.fif.gz'))
+                                        '-inv.fif', '-inv.fif.gz'),
+                stacklevel=5)
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
@@ -885,7 +886,8 @@ def write_source_spaces(fname, src, verbose=None):
     --------
     read_source_spaces
     """
-    check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
+    check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'),
+                stacklevel=5)
 
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)

@@ -36,7 +36,7 @@ from mne.io.constants import FIFF
 from mne.externals.six import text_type
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.datasets import testing
-from mne.tests.common import assert_meg_snr
+from mne.tests.common import assert_meg_snr, assert_naming
 
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -651,7 +651,7 @@ def test_read_write_epochs():
             epochs_badname = op.join(tempdir, 'test-bad-name.fif.gz')
             epochs.save(epochs_badname)
             read_epochs(epochs_badname, preload=preload)
-        assert_true(len(w) == 2)
+        assert_naming(w, 'test_epochs.py', 2)
 
         # test loading epochs with missing events
         epochs = Epochs(raw, events, dict(foo=1, bar=999), tmin, tmax,

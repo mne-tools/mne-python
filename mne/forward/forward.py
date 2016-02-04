@@ -431,7 +431,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     --------
     write_forward_solution, make_forward_solution
     """
-    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
+    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'),
+                stacklevel=5)
 
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
@@ -700,7 +701,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     --------
     read_forward_solution
     """
-    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
+    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'), stacklevel=5)
 
     # check for file existence
     _check_fname(fname, overwrite)

@@ -1221,7 +1221,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
-                                   'raw_tsss.fif.gz'))
+                                   'raw_tsss.fif.gz'), stacklevel=5)
 
         split_size = _get_split_size(split_size)
 

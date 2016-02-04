@@ -433,7 +433,7 @@ def write_trans(fname, trans):
     --------
     read_trans
     """
-    check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'))
+    check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'), stacklevel=3)
     fid = start_file(fname)
     write_coord_trans(fid, trans)
     end_file(fid)

@@ -18,6 +18,7 @@ from mne.io.proj import (make_projector, activate_proj,
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
+from mne.tests.common import assert_naming
 from mne.utils import (_TempDir, run_tests_if_main, clean_warning_registry,
                        slow_test)
 
@@ -159,8 +160,7 @@ def test_compute_proj_epochs():
         proj_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_proj(proj_badname, projs)
         read_proj(proj_badname)
-        print([ww.message for ww in w])
-    assert_equal(len(w), 2)
+    assert_naming(w, 'test_proj.py', 2)
 
 
 @slow_test

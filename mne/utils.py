@@ -252,7 +252,7 @@ def sum_squared(X):
     return np.dot(X_flat, X_flat)
 
 
-def check_fname(fname, filetype, endings):
+def check_fname(fname, filetype, endings, stacklevel=1):
     """Enforce MNE filename conventions
 
     Parameters
@@ -263,12 +263,15 @@ def check_fname(fname, filetype, endings):
         Type of file. e.g., ICA, Epochs etc.
     endings : tuple
         Acceptable endings for the filename.
+    stacklevel : int
+        The stack level to use for warnings.
     """
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
         warnings.warn('This filename (%s) does not conform to MNE naming '
                       'conventions. All %s files should end with '
-                      '%s' % (fname, filetype, print_endings))
+                      '%s' % (fname, filetype, print_endings),
+                      RuntimeWarning, stacklevel=stacklevel)
 
 
 class WrapStdOut(object):

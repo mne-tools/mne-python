@@ -1262,7 +1262,7 @@ class ICA(ContainsMixin):
         if self.current_fit == 'unfitted':
             raise RuntimeError('No fit available. Please first fit ICA')
 
-        check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz'))
+        check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz'), stacklevel=5)
 
         logger.info('Writing ica solution to %s...' % fname)
         fid = start_file(fname)
@@ -1871,7 +1871,7 @@ def read_ica(fname):
     ica : instance of ICA
         The ICA estimator.
     """
-    check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz'))
+    check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz'), stacklevel=5)
 
     logger.info('Reading %s ...' % fname)
     fid, tree, _ = fiff_open(fname)
