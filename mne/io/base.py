@@ -1633,7 +1633,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def load_bad_channels(self, bad_file=None, force=False):
         """
         Mark channels as bad from a text file
-        
+
         This function operates mostly in the style of the C function
         ``mne_mark_bad_channels``.
 
