@@ -421,10 +421,11 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     picks = _setup_picks(picks, info, forward, noise_cov)
 
     data = epochs.get_data()[:, picks, :]
+    stacklevel = 12 if not return_generator else 9
     stcs = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, noise_cov=noise_cov,
         data_cov=data_cov, reg=reg, label=label, picks=picks, rank=rank,
-        pick_ori=pick_ori, stacklevel=9)
+        pick_ori=pick_ori, stacklevel=stacklevel)
 
     if not return_generator:
         stcs = [s for s in stcs]
