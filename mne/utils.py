@@ -9,6 +9,7 @@ from __future__ import print_function
 import warnings
 import logging
 import time
+import platform
 from distutils.version import LooseVersion
 import os
 import os.path as op
@@ -2038,3 +2039,54 @@ def _get_root_dir():
             op.isdir(op.join(up_dir, x)) for x in ('mne', 'examples', 'doc')):
         root_dir = op.abspath(up_dir)
     return root_dir
+
+
+def sys_info(fid=None, show_paths=False):
+    """Print the system information for debugging
+
+    Parameters
+    ----------
+    fid : file-like | None
+        The file to write to. Will be passed to :func:`print()`.
+        Can be None to use ``sys.stdout``.
+    show_paths : bool
+        If True, print paths for each module.
+    """
+    ljust = 15
+    out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
+    out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
+    out += 'Executable:'.ljust(ljust) + sys.executable + '\n\n'
+    old_stdout = sys.stdout
+    capture = StringIO()
+    try:
+        sys.stdout = capture
+        np.show_config()
+    finally:
+        sys.stdout = old_stdout
+    lines = capture.getvalue().split('\n')
+    libs = []
+    for li, line in enumerate(lines):
+        for key in ('lapack', 'blas'):
+            if line.startswith('%s_opt_info' % key):
+                libs += ['%s=' % key +
+                         lines[li + 1].split('[')[1].split("'")[1]]
+    libs = ', '.join(libs)
+    version_texts = dict(pycuda='VERSION_TEXT')
+    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
+                     'sklearn', 'nibabel', 'nitime', 'mayavi', 'nose',
+                     'pandas', 'pycuda', 'skcuda'):
+        if mod_name == '':
+            out += '\n'
+            continue
+        out += ('%s:' % mod_name).ljust(ljust)
+        try:
+            mod = __import__(mod_name)
+        except Exception:
+            out += 'Not found\n'
+        else:
+            version = getattr(mod, version_texts.get(mod_name, '__version__'))
+            extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
+            if mod_name == 'numpy':
+                extra = ' {%s}%s' % (libs, extra)
+            out += '%s%s\n' % (version, extra)
+    print(out, end='', file=fid)

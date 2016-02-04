@@ -22,6 +22,8 @@ Changelog
 
     - Add reading of .fif file montages by `Eric Larson`_
 
+    - Add system config utility :func:`mne.sys_info` by `Eric Larson`_
+
 BUG
 ~~~
 
