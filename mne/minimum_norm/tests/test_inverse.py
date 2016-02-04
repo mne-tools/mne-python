@@ -23,6 +23,7 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
+from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.externals import six
 
@@ -444,7 +445,7 @@ def test_io_inverse_operator():
         inv_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_inverse_operator(inv_badname, inverse_operator)
         read_inverse_operator(inv_badname)
-    assert_true(len(w) == 2)
+    assert_naming(w, 'test_inverse.py', 2)
 
     # make sure we can write and read
     inv_fname = op.join(tempdir, 'test-inv.fif')
