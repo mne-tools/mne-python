@@ -1,5 +1,7 @@
-import numpy as np
 from os import path as op
+import warnings
+
+import numpy as np
 from numpy.polynomial import legendre
 from numpy.testing import (assert_allclose, assert_array_equal, assert_equal,
                            assert_array_almost_equal)
@@ -28,6 +30,8 @@ data_path = testing.data_path(download=False)
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 subjects_dir = op.join(data_path, 'subjects')
+
+warnings.simplefilter('always')
 
 
 def test_legendre_val():
@@ -151,8 +155,9 @@ def test_make_field_map_meg():
 
     # now do it with make_field_map
     evoked.pick_types(meg=True, eeg=False)
-    fmd = make_field_map(evoked, None,
-                         subject='sample', subjects_dir=subjects_dir)
+    with warnings.catch_warnings(record=True):  # bad proj
+        fmd = make_field_map(evoked, None,
+                             subject='sample', subjects_dir=subjects_dir)
     assert_true(len(fmd) == 1)
     assert_array_equal(fmd[0]['data'].shape, (304, 106))  # maps data onto surf
     assert_true(len(fmd[0]['ch_names']), 106)
@@ -161,8 +166,9 @@ def test_make_field_map_meg():
 
     # now test the make_field_map on head surf for MEG
     evoked.pick_types(meg=True, eeg=False)
-    fmd = make_field_map(evoked, trans_fname, meg_surf='head',
-                         subject='sample', subjects_dir=subjects_dir)
+    with warnings.catch_warnings(record=True):  # bad proj
+        fmd = make_field_map(evoked, trans_fname, meg_surf='head',
+                             subject='sample', subjects_dir=subjects_dir)
     assert_true(len(fmd) == 1)
     assert_array_equal(fmd[0]['data'].shape, (642, 106))  # maps data onto surf
     assert_true(len(fmd[0]['ch_names']), 106)
@@ -178,8 +184,9 @@ def test_make_field_map_meeg():
     picks = pick_types(evoked.info, meg=True, eeg=True)
     picks = picks[::10]
     evoked.pick_channels([evoked.ch_names[p] for p in picks])
-    maps = make_field_map(evoked, trans_fname, subject='sample',
-                          subjects_dir=subjects_dir, n_jobs=1)
+    with warnings.catch_warnings(record=True):  # bad proj
+        maps = make_field_map(evoked, trans_fname, subject='sample',
+                              subjects_dir=subjects_dir, n_jobs=1)
     assert_equal(maps[0]['data'].shape, (642, 6))  # EEG->Head
     assert_equal(maps[1]['data'].shape, (304, 31))  # MEG->Helmet
     # reasonable ranges
@@ -215,8 +222,9 @@ def test_as_meg_type_evoked():
 
     # channel names
     ch_names = evoked.info['ch_names']
-    virt_evoked = evoked.pick_channels(ch_names=ch_names[:10:1],
-                                       copy=True).as_type('mag')
+    with warnings.catch_warnings(record=True):  # bad proj
+        virt_evoked = evoked.pick_channels(
+            ch_names=ch_names[:10:1], copy=True).as_type('mag')
     assert_true(all('_virtual' in ch for ch in virt_evoked.info['ch_names']))
 
     # pick from and to channels

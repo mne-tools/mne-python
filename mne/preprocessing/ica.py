@@ -434,7 +434,8 @@ class ICA(ContainsMixin):
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
         elif not has_pre_whitener and self.noise_cov is not None:
-            pre_whitener, _ = compute_whitener(self.noise_cov, info, picks)
+            pre_whitener, _ = compute_whitener(self.noise_cov, info, picks,
+                                               stacklevel=13)
             assert data.shape[0] == pre_whitener.shape[1]
             data = fast_dot(pre_whitener, data)
         elif has_pre_whitener and self.noise_cov is None:

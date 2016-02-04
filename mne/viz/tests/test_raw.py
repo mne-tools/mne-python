@@ -106,9 +106,10 @@ def test_plot_raw_filtered():
     assert_raises(ValueError, raw.plot, lowpass=1, highpass=1)
     assert_raises(ValueError, raw.plot, lowpass=1, filtorder=0)
     assert_raises(ValueError, raw.plot, clipping='foo')
-    raw.plot(lowpass=1, clipping='transparent')
-    raw.plot(highpass=1, clipping='clamp')
-    raw.plot(highpass=1, lowpass=2)
+    with warnings.catch_warnings(record=True):  # bad proj
+        raw.plot(lowpass=1, clipping='transparent')
+        raw.plot(highpass=1, clipping='clamp')
+        raw.plot(highpass=1, lowpass=2)
 
 
 @requires_version('scipy', '0.12')

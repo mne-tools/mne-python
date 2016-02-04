@@ -62,7 +62,7 @@ def _compute_mapping_matrix(fmd, info):
     # assemble a projector and apply it to the data
     ch_names = fmd['ch_names']
     projs = info.get('projs', list())
-    proj_op = make_projector(projs, ch_names)[0]
+    proj_op = make_projector(projs, ch_names, stacklevel=9)[0]
     proj_dots = np.dot(proj_op.T, np.dot(fmd['self_dots'], proj_op))
 
     noise_cov = fmd['noise']
