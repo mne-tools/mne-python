@@ -474,8 +474,6 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    stacklevel : int
-        The stack level for warnings.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
