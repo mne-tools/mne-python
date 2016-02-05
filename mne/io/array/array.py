@@ -20,6 +20,11 @@ class RawArray(_BaseRaw):
     info : instance of Info
         Info dictionary. Consider using `create_info` to populate
         this structure. This may be modified in place by the class.
+    first_samp : int
+        First sample offset used during recording (default 0).
+
+        .. versionadded:: 0.12
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -28,7 +33,7 @@ class RawArray(_BaseRaw):
     EpochsArray, EvokedArray, create_info
     """
     @verbose
-    def __init__(self, data, info, verbose=None):
+    def __init__(self, data, info, first_samp=0, verbose=None):
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
@@ -44,7 +49,9 @@ class RawArray(_BaseRaw):
         assert len(info['ch_names']) == info['nchan']
         if info.get('buffer_size_sec', None) is None:
             info['buffer_size_sec'] = 1.  # reasonable default
-        super(RawArray, self).__init__(info, data, verbose=verbose)
+        super(RawArray, self).__init__(info, data,
+                                       first_samps=(int(first_samp),),
+                                       verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     self.first_samp, self.last_samp,
                     float(self.first_samp) / info['sfreq'],

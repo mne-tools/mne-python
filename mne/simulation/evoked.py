@@ -138,7 +138,7 @@ def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
         An instance of evoked corrupted by noise
     """
     evoked = copy.deepcopy(evoked)
-    tmask = _time_mask(evoked.times, tmin, tmax)
+    tmask = _time_mask(evoked.times, tmin, tmax, sfreq=evoked.info['sfreq'])
     tmp = 10 * np.log10(np.mean((evoked.data[:, tmask] ** 2).ravel()) /
                         np.mean((noise.data ** 2).ravel()))
     noise.data = 10 ** ((tmp - float(snr)) / 20) * noise.data

@@ -107,8 +107,8 @@ def equalize_channels(candidates, verbose=None):
     ----------
     candidates : list
         list Raw | Epochs | Evoked | AverageTFR
-    verbose : None | bool
-        whether to be verbose or not.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Notes
     -----
@@ -178,6 +178,8 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'stim': FIFF.FIFF_UNIT_NONE,
                'syst': FIFF.FIFF_UNIT_NONE}
 _unit2human = {FIFF.FIFF_UNIT_V: 'V',
+               FIFF.FIFF_UNIT_T: 'T',
+               FIFF.FIFF_UNIT_T_M: 'T/m',
                FIFF.FIFF_UNIT_NONE: 'NA'}
 
 
@@ -286,7 +288,7 @@ class SetChannelsMixin(object):
             unit_old = self.info['chs'][c_ind]['unit']
             unit_new = _human2unit[ch_type]
             if unit_old != _human2unit[ch_type]:
-                warnings.warn("The unit for Channel %s has changed "
+                warnings.warn("The unit for channel %s has changed "
                               "from %s to %s." % (ch_name,
                                                   _unit2human[unit_old],
                                                   _unit2human[unit_new]))
@@ -312,12 +314,16 @@ class SetChannelsMixin(object):
         """
         rename_channels(self.info, mapping)
 
-    def set_montage(self, montage):
+    @verbose
+    def set_montage(self, montage, verbose=None):
         """Set EEG sensor configuration
 
         Parameters
         ----------
         montage : instance of Montage or DigMontage
+            The montage to use.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
 
         Notes
         -----
@@ -647,7 +653,6 @@ def rename_channels(info, mapping):
 
     # do the reampping in info
     info['bads'] = bads
-    info['ch_names'] = ch_names
     for ch, ch_name in zip(info['chs'], ch_names):
         ch['ch_name'] = ch_name
     info._check_consistency()

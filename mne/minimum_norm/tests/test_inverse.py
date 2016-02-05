@@ -16,7 +16,7 @@ from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution,
                  convert_forward_solution, Covariance)
-from mne.io import Raw
+from mne.io import Raw, Info
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
@@ -81,8 +81,8 @@ def _compare(a, b):
     skip_types = ['whitener', 'proj', 'reginv', 'noisenorm', 'nchan',
                   'command_line', 'working_dir', 'mri_file', 'mri_id']
     try:
-        if isinstance(a, dict):
-            assert_true(isinstance(b, dict))
+        if isinstance(a, (dict, Info)):
+            assert_true(isinstance(b, (dict, Info)))
             for k, v in six.iteritems(a):
                 if k not in b and k not in skip_types:
                     raise ValueError('First one had one second one didn\'t:\n'
@@ -225,7 +225,6 @@ def test_inverse_operator_channel_ordering():
     randomiser = np.random.RandomState(42)
     randomiser.shuffle(new_order)
     evoked.data = evoked.data[new_order]
-    evoked.info['ch_names'] = [evoked.info['ch_names'][n] for n in new_order]
     evoked.info['chs'] = [evoked.info['chs'][n] for n in new_order]
 
     cov_ch_reorder = [c for c in evoked.info['ch_names']

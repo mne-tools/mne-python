@@ -18,7 +18,7 @@ from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
-from ..utils import _mult_cal_one
+from ..utils import _read_segments_file
 
 from ...externals.six import StringIO
 from ...externals.six.moves import configparser
@@ -94,23 +94,11 @@ class RawBrainVision(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
         # read data
+        dtype = _fmt_dtype_dict[self.orig_format]
         n_data_ch = len(self.ch_names) - 1
-        n_times = stop - start
-        pointer = start * n_data_ch * _fmt_byte_dict[self.orig_format]
-        with open(self._filenames[fi], 'rb') as f:
-            f.seek(pointer)
-            # extract data
-            data_buffer = np.fromfile(
-                f, dtype=_fmt_dtype_dict[self.orig_format],
-                count=n_times * n_data_ch)
-        data_buffer = data_buffer.reshape((n_data_ch, n_times),
-                                          order=self._order)
-
-        data_ = np.empty((n_data_ch + 1, n_times), dtype=np.float64)
-        data_[:-1] = data_buffer  # cast to float64
-        del data_buffer
-        data_[-1] = self._event_ch[start:stop]
-        _mult_cal_one(data, data_, idx, cals, mult)
+        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
+                            dtype=dtype, n_channels=n_data_ch,
+                            trigger_ch=self._event_ch)
 
     def get_brainvision_events(self):
         """Retrieve the events associated with the Brain Vision Raw object
@@ -263,7 +251,7 @@ _orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
 _fmt_dict = dict(INT_16='short', INT_32='int', IEEE_FLOAT_32='single')
 _fmt_byte_dict = dict(short=2, int=4, single=4)
 _fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
-_unit_dict = {'V': 1., u'µV': 1e-6}
+_unit_dict = {'V': 1., u'µV': 1e-6, 'uV': 1e-6}
 
 
 def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
@@ -340,10 +328,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     fmt = _fmt_dict[fmt]
 
     # load channel labels
-    info['nchan'] = cfg.getint('Common Infos', 'NumberOfChannels') + 1
-    ch_names = [''] * info['nchan']
-    cals = np.empty(info['nchan'])
-    ranges = np.empty(info['nchan'])
+    nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
+    ch_names = [''] * nchan
+    cals = np.empty(nchan)
+    ranges = np.empty(nchan)
     cals.fill(np.nan)
     ch_dict = dict()
     for chan, props in cfg.items('Channel Infos'):
@@ -449,13 +437,12 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
-    info['ch_names'] = ch_names
     for idx, ch_name in enumerate(ch_names):
-        if ch_name in eog or idx in eog or idx - info['nchan'] in eog:
+        if ch_name in eog or idx in eog or idx - nchan in eog:
             kind = FIFF.FIFFV_EOG_CH
             coil_type = FIFF.FIFFV_COIL_NONE
             unit = FIFF.FIFF_UNIT_V
-        elif ch_name in misc or idx in misc or idx - info['nchan'] in misc:
+        elif ch_name in misc or idx in misc or idx - nchan in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
             unit = FIFF.FIFF_UNIT_V

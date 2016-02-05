@@ -18,16 +18,14 @@ from scipy import linalg
 
 from ..baseline import rescale
 from ..io.constants import FIFF
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _picks_by_type
 from ..utils import _clean_names, _time_mask, verbose, logger
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
-                    plt_show)
-from ..time_frequency import compute_epochs_psd
+                    plt_show, _process_times)
+from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
-from ..fixes import _get_argrelmax
-from ..externals.six import string_types
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -40,9 +38,9 @@ def _prepare_topo_plot(inst, ch_type, layout):
     elif layout == 'auto':
         layout = None
 
-    info['ch_names'] = _clean_names(info['ch_names'])
+    clean_ch_names = _clean_names(info['ch_names'])
     for ii, this_ch in enumerate(info['chs']):
-        this_ch['ch_name'] = info['ch_names'][ii]
+        this_ch['ch_name'] = clean_ch_names[ii]
 
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
@@ -795,9 +793,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             cbar.ax.tick_params(labelsize=12)
             cbar.set_ticks((vmin_, vmax_))
             cbar.ax.set_title('AU', fontsize=10)
-        ax.set_yticks([])
-        ax.set_xticks([])
-        ax.set_frame_on(False)
+        _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
@@ -964,9 +960,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         fig = axes.figure
         ax = axes
 
-    ax.set_yticks([])
-    ax.set_xticks([])
-    ax.set_frame_on(False)
+    _hide_frame(ax)
 
     if title is not None:
         ax.set_title(title)
@@ -1126,30 +1120,17 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
 
-    if isinstance(axes, plt.Axes):
-        axes = [axes]
-
-    if isinstance(times, string_types):
-        if times == "peaks":
-            npeaks = 10 if axes is None else len(axes)
-            times = _find_peaks(evoked, npeaks)
-        elif times == "auto":
-            if axes is None:
-                times = np.linspace(evoked.times[0], evoked.times[-1], 10)
-            else:
-                times = np.linspace(evoked.times[0], evoked.times[-1],
-                                    len(axes))
-    elif np.isscalar(times):
-        times = [times]
-
-    times = np.array(times)
-
-    if times.ndim != 1:
-        raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
-    if len(times) > 20:
-        raise RuntimeError('Too many plots requested. Please pass fewer '
-                           'than 20 time instants.')
-
+    if axes is not None:
+        if isinstance(axes, plt.Axes):
+            axes = [axes]
+        times = _process_times(evoked, times, n_peaks=len(axes))
+    else:
+        times = _process_times(evoked, times, n_peaks=None)
+    space = 1 / (2. * evoked.info['sfreq'])
+    if (max(times) > max(evoked.times) + space or
+            min(times) < min(evoked.times) - space):
+        raise ValueError('Times should be between {0:0.3f} and '
+                         '{1:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
     n_times = len(times)
     nax = n_times + bool(colorbar)
     width = size * nax
@@ -1168,13 +1149,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                        'or turn it off with colorbar=False.')
     if len(axes) != n_times:
         raise RuntimeError('Axes and times must be equal in sizes.')
-    tmin, tmax = evoked.times[[0, -1]]
-    _time_comp = _time_mask(times=times, tmin=tmin,  tmax=tmax)
-    if not np.all(_time_comp):
-        raise ValueError('Times should be between {0:0.3f} and {1:0.3f}. (Got '
-                         '{2}).'.format(tmin, tmax,
-                                        ['%03.f' % t
-                                         for t in times[_time_comp]]))
 
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         evoked, ch_type, layout)
@@ -1293,9 +1267,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    ax.set_yticks([])
-    ax.set_xticks([])
-    ax.set_frame_on(False)
+    _hide_frame(ax)
     vmin = np.min(data) if vmin is None else vmin
     vmax = np.max(data) if vmax is None else vmax
 
@@ -1317,9 +1289,9 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
 
 @verbose
 def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
-                            tmin=None, tmax=None,
-                            proj=False, n_fft=256, ch_type=None,
-                            n_overlap=0, layout=None,
+                            tmin=None, tmax=None, proj=False,
+                            bandwidth=None, adaptive=False, low_bias=True,
+                            normalization='length', ch_type=None, layout=None,
                             cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
                             normalize=False, cbar_fmt='%0.3f',
                             outlines='head', show=True, verbose=None):
@@ -1350,14 +1322,23 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         End time to consider.
     proj : bool
         Apply projection.
-    n_fft : int
-        Number of points to use in Welch FFT calculations.
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz. The default
+        value is a window half-bandwidth of 4 Hz.
+    adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth.
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.
         If None, then channels are chosen in the order given above.
-    n_overlap : int
-        The number of points of overlap between blocks.
     layout : None | Layout
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout
@@ -1408,10 +1389,11 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         epochs, ch_type, layout)
 
-    psds, freqs = compute_epochs_psd(epochs, picks=picks, n_fft=n_fft,
-                                     tmin=tmin, tmax=tmax,
-                                     n_overlap=n_overlap, proj=proj,
-                                     n_jobs=n_jobs)
+    psds, freqs = psd_multitaper(epochs, tmin=tmin, tmax=tmax,
+                                 bandwidth=bandwidth, adaptive=adaptive,
+                                 low_bias=low_bias,
+                                 normalization=normalization, picks=picks,
+                                 proj=proj, n_jobs=n_jobs)
     psds = np.mean(psds, axis=0)
 
     if merge_grads:
@@ -1593,34 +1575,274 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     plt_show(True)
 
 
-def _find_peaks(evoked, npeaks):
-    """Helper function for finding peaks from evoked data
-    Returns ``npeaks`` biggest peaks as a list of time points.
-    """
-    argrelmax = _get_argrelmax()
-    gfp = evoked.data.std(axis=0)
-    order = len(evoked.times) // 30
-    if order < 1:
-        order = 1
-    peaks = argrelmax(gfp, order=order, axis=0)[0]
-    if len(peaks) > npeaks:
-        max_indices = np.argsort(gfp[peaks])[-npeaks:]
-        peaks = np.sort(peaks[max_indices])
-    times = evoked.times[peaks]
-    if len(times) == 0:
-        times = [evoked.times[gfp.argmax()]]
-    return times
-
-
 def _prepare_topomap(pos, ax):
     """Helper for preparing the topomap."""
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
-
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_frame_on(False)
+    _hide_frame(ax)
     if any([not pos_y.any(), not pos_x.any()]):
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
     return pos_x, pos_y
+
+
+def _hide_frame(ax):
+    """Helper to hide axis frame for topomaps."""
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_frame_on(False)
+
+
+def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
+    """Initialize animated topomap."""
+    from matplotlib import pyplot as plt, patches
+    logger.info('Initializing animation...')
+    data = params['data']
+    items = list()
+    if params['butterfly']:
+        all_times = params['all_times']
+        for idx in range(len(data)):
+            ax_line.plot(all_times, data[idx], color='k')
+        vmin, vmax = _setup_vmin_vmax(data, None, None)
+        ax_line.set_yticks(np.around(np.linspace(vmin, vmax, 5), -1))
+        params['line'], = ax_line.plot([all_times[0], all_times[0]],
+                                       ax_line.get_ylim(), color='r')
+        items.append(params['line'])
+    if merge_grads:
+        from mne.channels.layout import _merge_grad_data
+        data = _merge_grad_data(data)
+    norm = True if np.min(data) > 0 else False
+    cmap = 'Reds' if norm else 'RdBu_r'
+
+    vmin, vmax = _setup_vmin_vmax(data, None, None, norm)
+
+    pos, outlines = _check_outlines(params['pos'], 'head', None)
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+
+    _hide_frame(ax)
+    xlim = np.inf, -np.inf,
+    ylim = np.inf, -np.inf,
+    mask_ = np.c_[outlines['mask_pos']]
+    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
+                  np.max(np.r_[xlim[1], mask_[:, 0]]))
+    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
+                  np.max(np.r_[ylim[1], mask_[:, 1]]))
+
+    res = 64
+    xi = np.linspace(xmin, xmax, res)
+    yi = np.linspace(ymin, ymax, res)
+    Xi, Yi = np.meshgrid(xi, yi)
+    params['Zis'] = list()
+
+    for frame in params['frames']:
+        Zi = _griddata(pos_x, pos_y, data[:, frame], Xi, Yi)
+        params['Zis'].append(Zi)
+    Zi = params['Zis'][0]
+    zi_min = np.min(params['Zis'])
+    zi_max = np.max(params['Zis'])
+    cont_lims = np.linspace(zi_min, zi_max, 7, endpoint=False)[1:]
+    _, pos = _make_image_mask(outlines, pos, res)
+    params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
+                   'extent': (xmin, xmax, ymin, ymax), 'cmap': cmap,
+                   'cont_lims': cont_lims})
+    # plot map and countour
+    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
+                   aspect='equal', extent=(xmin, xmax, ymin, ymax),
+                   interpolation='bilinear')
+    plt.colorbar(im, cax=ax_cbar, cmap=cmap)
+    cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
+
+    patch_ = patches.Ellipse((0, 0),
+                             2 * outlines['clip_radius'][0],
+                             2 * outlines['clip_radius'][1],
+                             clip_on=True,
+                             transform=ax.transData)
+    im.set_clip_path(patch_)
+    text = ax.text(0.55, 0.95, '', transform=ax.transAxes, va='center',
+                   ha='right')
+    params['text'] = text
+    items.append(im)
+    items.append(text)
+    for col in cont.collections:
+        col.set_clip_path(patch_)
+
+    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                      ['patch', 'autoshrink']])
+    for k, (x, y) in outlines_.items():
+        if 'mask' in k:
+            continue
+        ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+    params.update({'patch': patch_, 'outlines': outlines_})
+    return tuple(items) + tuple(cont.collections)
+
+
+def _animate(frame, ax, ax_line, params):
+    """Updates animated topomap."""
+    if params['pause']:
+        frame = params['frame']
+    time_idx = params['frames'][frame]
+
+    title = '%6.0f ms' % (params['times'][frame] * 1e3)
+    if params['blit']:
+        text = params['text']
+    else:
+        ax.cla()  # Clear old contours.
+        text = ax.text(0.45, 1.15, '', transform=ax.transAxes)
+        for k, (x, y) in params['outlines'].items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+
+    _hide_frame(ax)
+    text.set_text(title)
+
+    vmin = params['vmin']
+    vmax = params['vmax']
+    Xi = params['Xi']
+    Yi = params['Yi']
+    Zi = params['Zis'][frame]
+    extent = params['extent']
+    cmap = params['cmap']
+    patch = params['patch']
+
+    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
+                   aspect='equal', extent=extent, interpolation='bilinear')
+    cont_lims = params['cont_lims']
+    cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
+
+    im.set_clip_path(patch)
+    items = [im, text]
+    for col in cont.collections:
+        col.set_clip_path(patch)
+
+    if params['butterfly']:
+        all_times = params['all_times']
+        line = params['line']
+        line.remove()
+        params['line'] = ax_line.plot([all_times[time_idx],
+                                       all_times[time_idx]],
+                                      ax_line.get_ylim(), color='r')[0]
+        items.append(params['line'])
+    params['frame'] = frame
+    return tuple(items) + tuple(cont.collections)
+
+
+def _pause_anim(event, params):
+    """Function for pausing and continuing the animation on mouse click"""
+    params['pause'] = not params['pause']
+
+
+def _key_press(event, params):
+    """Function for handling key presses for the animation."""
+    if event.key == 'left':
+        params['pause'] = True
+        params['frame'] = max(params['frame'] - 1, 0)
+    elif event.key == 'right':
+        params['pause'] = True
+        params['frame'] = min(params['frame'] + 1, len(params['frames']) - 1)
+
+
+def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
+                       butterfly=False, blit=True, show=True):
+    """Make animation of evoked data as topomap timeseries. Animation can be
+    paused/resumed with left mouse button. Left and right arrow keys can be
+    used to move backward or forward in time.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked data.
+    ch_type : str | None
+        Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
+        If None, first available channel type from ('mag', 'grad', 'eeg') is
+        used. Defaults to None.
+    times : array of floats | None
+        The time points to plot. If None, 10 evenly spaced samples are
+        calculated over the evoked time series. Defaults to None.
+    frame_rate : int | None
+        Frame rate for the animation in Hz. If None, frame rate = sfreq / 10.
+        Defaults to None.
+    butterfly : bool
+        Whether to plot the data as butterfly plot under the topomap.
+        Defaults to False.
+    blit : bool
+        Whether to use blit to optimize drawing. In general, it is recommended
+        to use blit in combination with ``show=True``. If you intend to save
+        the animation it is better to disable blit. For MacOSX blit is always
+        disabled. Defaults to True.
+    show : bool
+        Whether to show the animation. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        The figure.
+    anim : instance of matplotlib FuncAnimation
+        Animation of the topomap.
+
+    Notes
+    -----
+    .. versionadded:: 0.12.0
+    """
+    from matplotlib import pyplot as plt, animation
+    if ch_type is None:
+        ch_type = _picks_by_type(evoked.info)[0][0]
+    if ch_type not in ('mag', 'grad', 'eeg'):
+        raise ValueError("Channel type not supported. Supported channel "
+                         "types include 'mag', 'grad' and 'eeg'.")
+    if times is None:
+        times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+    times = np.array(times)
+
+    if times.ndim != 1:
+        raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
+    if max(times) > evoked.times[-1] or min(times) < evoked.times[0]:
+        raise ValueError('All times must be inside the evoked time series.')
+    frames = [np.abs(evoked.times - time).argmin() for time in times]
+
+    blit = False if plt.get_backend() == 'MacOSX' else True
+    picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
+                                                             ch_type=ch_type,
+                                                             layout=None)
+    data = evoked.data[picks, :]
+    data *= _handle_default('scalings')[ch_type]
+
+    fig = plt.figure()
+    offset = 0. if blit else 0.4  # XXX: blit changes the sizes for some reason
+    ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
+                   1. - offset], xlim=(-1, 1), ylim=(-1, 1))
+    if butterfly:
+        ax_line = plt.axes([0.2, 0.05, 0.6, 0.1], xlim=(evoked.times[0],
+                                                        evoked.times[-1]))
+    else:
+        ax_line = None
+    if isinstance(frames, int):
+        frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
+    ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
+    ax_cbar.set_title(_handle_default('units')[ch_type], fontsize=10)
+
+    params = {'data': data, 'pos': pos, 'all_times': evoked.times, 'frame': 0,
+              'frames': frames, 'butterfly': butterfly, 'blit': blit,
+              'pause': False, 'times': times}
+    init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
+                        params=params, merge_grads=merge_grads)
+    animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
+    pause_func = partial(_pause_anim, params=params)
+    fig.canvas.mpl_connect('button_press_event', pause_func)
+    key_press_func = partial(_key_press, params=params)
+    fig.canvas.mpl_connect('key_press_event', key_press_func)
+    if frame_rate is None:
+        frame_rate = evoked.info['sfreq'] / 10.
+    interval = 1000 / frame_rate  # interval is in ms
+    anim = animation.FuncAnimation(fig, animate_func, init_func=init_func,
+                                   frames=len(frames), interval=interval,
+                                   blit=blit)
+    fig.mne_animation = anim  # to make sure anim is not garbage collected
+    if show:
+        plt.show()
+    if 'line' in params:
+        # Finally remove the vertical line so it does not appear in saved fig.
+        params['line'].remove()
+
+    return fig, anim

@@ -55,7 +55,7 @@ def test_array_raw():
     # use real types
     info = create_info(ch_names, sfreq, types)
     raw2 = _test_raw_reader(RawArray, test_preloading=False,
-                            data=data, info=info)
+                            data=data, info=info, first_samp=2 * data.shape[1])
     data2, times2 = raw2[:, :]
     assert_allclose(data, data2)
     assert_allclose(times, times2)
@@ -99,6 +99,7 @@ def test_array_raw():
     epochs.plot()
     evoked = epochs.average()
     evoked.plot()
+    assert_equal(evoked.nave, len(events) - 1)
     plt.close('all')
 
 run_tests_if_main()

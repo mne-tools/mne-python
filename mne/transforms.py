@@ -570,3 +570,130 @@ def _topo_to_sphere(theta, radius):
     sph_phi = (0.5 - radius) * 180
     sph_theta = -theta
     return sph_phi, sph_theta
+
+
+def quat_to_rot(quat):
+    """Convert a set of quaternions to rotations
+
+    Parameters
+    ----------
+    quat : array, shape (..., 3)
+        q1, q2, and q3 (x, y, z) parameters of a unit quaternion.
+
+    Returns
+    -------
+    rot : array, shape (..., 3, 3)
+        The corresponding rotation matrices.
+
+    See Also
+    --------
+    rot_to_quat
+    """
+    # z = a + bi + cj + dk
+    b, c, d = quat[..., 0], quat[..., 1], quat[..., 2]
+    bb, cc, dd = b * b, c * c, d * d
+    # use max() here to be safe in case roundoff errs put us over
+    aa = np.maximum(1. - bb - cc - dd, 0.)
+    a = np.sqrt(aa)
+    ab_2 = 2 * a * b
+    ac_2 = 2 * a * c
+    ad_2 = 2 * a * d
+    bc_2 = 2 * b * c
+    bd_2 = 2 * b * d
+    cd_2 = 2 * c * d
+    rotation = np.array([(aa + bb - cc - dd, bc_2 - ad_2, bd_2 + ac_2),
+                         (bc_2 + ad_2, aa + cc - bb - dd, cd_2 - ab_2),
+                         (bd_2 - ac_2, cd_2 + ab_2, aa + dd - bb - cc),
+                         ])
+    if quat.ndim > 1:
+        rotation = np.rollaxis(np.rollaxis(rotation, 1, quat.ndim + 1),
+                               0, quat.ndim)
+    return rotation
+
+
+def _one_rot_to_quat(rot):
+    """Convert a rotation matrix to quaternions"""
+    # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/
+    #                 conversions/matrixToQuaternion/
+    t = 1. + rot[0] + rot[4] + rot[8]
+    if t > np.finfo(rot.dtype).eps:
+        s = np.sqrt(t) * 2.
+        qx = (rot[7] - rot[5]) / s
+        qy = (rot[2] - rot[6]) / s
+        qz = (rot[3] - rot[1]) / s
+        # qw = 0.25 * s
+    elif rot[0] > rot[4] and rot[0] > rot[8]:
+        s = np.sqrt(1. + rot[0] - rot[4] - rot[8]) * 2.
+        qx = 0.25 * s
+        qy = (rot[1] + rot[3]) / s
+        qz = (rot[2] + rot[6]) / s
+        # qw = (rot[7] - rot[5]) / s
+    elif rot[4] > rot[8]:
+        s = np.sqrt(1. - rot[0] + rot[4] - rot[8]) * 2
+        qx = (rot[1] + rot[3]) / s
+        qy = 0.25 * s
+        qz = (rot[5] + rot[7]) / s
+        # qw = (rot[2] - rot[6]) / s
+    else:
+        s = np.sqrt(1. - rot[0] - rot[4] + rot[8]) * 2.
+        qx = (rot[2] + rot[6]) / s
+        qy = (rot[5] + rot[7]) / s
+        qz = 0.25 * s
+        # qw = (rot[3] - rot[1]) / s
+    return qx, qy, qz
+
+
+def rot_to_quat(rot):
+    """Convert a set of rotations to quaternions
+
+    Parameters
+    ----------
+    rot : array, shape (..., 3, 3)
+        The rotation matrices to convert.
+
+    Returns
+    -------
+    quat : array, shape (..., 3)
+        The q1, q2, and q3 (x, y, z) parameters of the corresponding
+        unit quaternions.
+
+    See Also
+    --------
+    quat_to_rot
+    """
+    rot = rot.reshape(rot.shape[:-2] + (9,))
+    return np.apply_along_axis(_one_rot_to_quat, -1, rot)
+
+
+def _angle_between_quats(x, y):
+    """Compute the angle between two quaternions w/3-element representations"""
+    # convert to complete quaternion representation
+    # use max() here to be safe in case roundoff errs put us over
+    x0 = np.sqrt(np.maximum(1. - x[..., 0] ** 2 -
+                            x[..., 1] ** 2 - x[..., 2] ** 2, 0.))
+    y0 = np.sqrt(np.maximum(1. - y[..., 0] ** 2 -
+                            y[..., 1] ** 2 - y[..., 2] ** 2, 0.))
+    # the difference z = x * conj(y), and theta = np.arccos(z0)
+    z0 = np.maximum(np.minimum(y0 * x0 + (x * y).sum(axis=-1), 1.), -1)
+    return 2 * np.arccos(z0)
+
+
+def _skew_symmetric_cross(a):
+    """The skew-symmetric cross product of a vector"""
+    return np.array([[0., -a[2], a[1]], [a[2], 0., -a[0]], [-a[1], a[0], 0.]])
+
+
+def _find_vector_rotation(a, b):
+    """Find the rotation matrix that maps unit vector a to b"""
+    # Rodrigues' rotation formula:
+    #   https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
+    #   http://math.stackexchange.com/a/476311
+    R = np.eye(3)
+    v = np.cross(a, b)
+    if np.allclose(v, 0.):  # identical
+        return R
+    s = np.dot(v, v)  # sine of the angle between them
+    c = np.dot(a, b)  # cosine of the angle between them
+    vx = _skew_symmetric_cross(v)
+    R += vx + np.dot(vx, vx) * (1 - c) / s
+    return R

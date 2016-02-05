@@ -9,6 +9,7 @@ from __future__ import print_function
 import warnings
 import logging
 import time
+import platform
 from distutils.version import LooseVersion
 import os
 import os.path as op
@@ -34,7 +35,7 @@ from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
-from .fixes import isclose, _get_args
+from .fixes import _get_args
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -101,15 +102,12 @@ def object_hash(x, h=None):
     """
     if h is None:
         h = hashlib.md5()
-    if isinstance(x, dict):
+    if hasattr(x, 'keys'):
+        # dict-like types
         keys = _sort_keys(x)
         for key in keys:
             object_hash(key, h)
             object_hash(x[key], h)
-    elif isinstance(x, (list, tuple)):
-        h.update(str(type(x)).encode('utf-8'))
-        for xx in x:
-            object_hash(xx, h)
     elif isinstance(x, bytes):
         # must come before "str" below
         h.update(x)
@@ -121,6 +119,11 @@ def object_hash(x, h=None):
         h.update(str(x.shape).encode('utf-8'))
         h.update(str(x.dtype).encode('utf-8'))
         h.update(x.tostring())
+    elif hasattr(x, '__len__'):
+        # all other list-like types
+        h.update(str(type(x)).encode('utf-8'))
+        for xx in x:
+            object_hash(xx, h)
     else:
         raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
     return int(h.hexdigest(), 16)
@@ -542,13 +545,28 @@ def verbose(function, *args, **kwargs):
     verbose_level = default_level if verbose_level is None else verbose_level
 
     if verbose_level is not None:
-        old_level = set_log_level(verbose_level, True)
         # set it back if we get an exception
-        try:
+        with use_log_level(verbose_level):
             return function(*args, **kwargs)
-        finally:
-            set_log_level(old_level)
     return function(*args, **kwargs)
+
+
+class use_log_level(object):
+    """Context handler for logging level
+
+    Parameters
+    ----------
+    level : int
+        The level to use.
+    """
+    def __init__(self, level):
+        self.level = level
+
+    def __enter__(self):
+        self.old_level = set_log_level(self.level, True)
+
+    def __exit__(self, *args):
+        set_log_level(self.old_level)
 
 
 @nottest
@@ -750,6 +768,35 @@ def _check_mayavi_version(min_version='4.3.0'):
     """Helper for mayavi"""
     if not check_version('mayavi', min_version):
         raise RuntimeError("Need mayavi >= %s" % min_version)
+
+
+def _check_pyface_backend():
+    """Check the currently selected Pyface backend
+
+    Returns
+    -------
+    backend : str
+        Name of the backend.
+    result : 0 | 1 | 2
+        0: the backend has been tested and works.
+        1: the backend has not been tested.
+        2: the backend not been tested.
+
+    Notes
+    -----
+    See also: http://docs.enthought.com/pyface/
+    """
+    try:
+        from traits.trait_base import ETSConfig
+    except ImportError:
+        return None, 2
+
+    backend = ETSConfig.toolkit
+    if backend == 'qt4':
+        status = 0
+    else:
+        status = 1
+    return backend, status
 
 
 @verbose
@@ -1050,30 +1097,32 @@ def set_memmap_min_size(memmap_min_size):
 
 
 # List the known configuration values
-known_config_types = [
+known_config_types = (
     'MNE_BROWSE_RAW_SIZE',
+    'MNE_CACHE_DIR',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',
+    'MNE_DATASETS_BRAINSTORM_PATH',
+    'MNE_DATASETS_EEGBCI_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
+    'MNE_DATASETS_MISC_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
+    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
     'MNE_DATASETS_SPM_FACE_PATH',
-    'MNE_DATASETS_EEGBCI_PATH',
-    'MNE_DATASETS_BRAINSTORM_PATH',
     'MNE_DATASETS_TESTING_PATH',
     'MNE_LOGGING_LEVEL',
-    'MNE_USE_CUDA',
-    'SUBJECTS_DIR',
-    'MNE_CACHE_DIR',
     'MNE_MEMMAP_MIN_SIZE',
     'MNE_SKIP_TESTING_DATASET_TESTS',
-    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
-]
+    'MNE_STIM_CHANNEL',
+    'MNE_USE_CUDA',
+    'SUBJECTS_DIR',
+)
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
-known_config_wildcards = [
+known_config_wildcards = (
     'MNE_STIM_CHANNEL',
-]
+)
 
 
 def get_config(key=None, default=None, raise_error=False, home_dir=None):
@@ -1143,8 +1192,9 @@ def set_config(key, value, home_dir=None):
 
     Parameters
     ----------
-    key : str
-        The preference key to set.
+    key : str | None
+        The preference key to set. If None, a tuple of the valid
+        keys is returned, and ``value`` and ``home_dir`` are ignored.
     value : str |  None
         The value to assign to the preference key. If None, the key is
         deleted.
@@ -1156,6 +1206,8 @@ def set_config(key, value, home_dir=None):
     --------
     get_config
     """
+    if key is None:
+        return known_config_types
     if not isinstance(key, string_types):
         raise TypeError('key must be a string')
     # While JSON allow non-string types, we allow users to override config
@@ -1458,7 +1510,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         else:
             initial_size = 0
         # This should never happen if our functions work properly
-        if initial_size >= file_size:
+        if initial_size > file_size:
             raise RuntimeError('Local file (%s) is larger than remote '
                                'file (%s), cannot resume download'
                                % (sizeof_fmt(initial_size),
@@ -1565,10 +1617,12 @@ def _get_stim_channel(stim_channel, info):
                      "manually using the 'stim_channel' parameter.")
 
 
-def _check_fname(fname, overwrite):
+def _check_fname(fname, overwrite=False, must_exist=False):
     """Helper to check for file existence"""
     if not isinstance(fname, string_types):
         raise TypeError('file name is not a string')
+    if must_exist and not op.isfile(fname):
+        raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
         if not overwrite:
             raise IOError('Destination file exists. Please use option '
@@ -1787,15 +1841,6 @@ def md5sum(fname, block_size=1048576):  # 2 ** 20
     return md5.hexdigest()
 
 
-def _sphere_to_cartesian(theta, phi, r):
-    """Transform spherical coordinates to cartesian"""
-    z = r * np.sin(phi)
-    rcos_phi = r * np.cos(phi)
-    x = rcos_phi * np.cos(theta)
-    y = rcos_phi * np.sin(theta)
-    return x, y, z
-
-
 def create_slices(start, stop, step=None, length=1):
     """ Generate slices of time indexes
 
@@ -1827,15 +1872,26 @@ def create_slices(start, stop, step=None, length=1):
     return slices
 
 
-def _time_mask(times, tmin=None, tmax=None, strict=False):
+def _time_mask(times, tmin=None, tmax=None, sfreq=None):
     """Helper to safely find sample boundaries"""
     tmin = -np.inf if tmin is None else tmin
     tmax = np.inf if tmax is None else tmax
+    if sfreq is not None:
+        # Push to nearest sample first
+        if np.isfinite(tmin):
+            tmin = round(tmin * sfreq) / sfreq
+        else:
+            tmin = times[0]
+        if np.isfinite(tmax):
+            tmax = round(tmax * sfreq) / sfreq
+        else:
+            tmax = times[-1]
+    deltas = np.abs(times - tmax)  # Find nearest times
+    tmax = times[np.where(deltas == deltas.min())[0]][-1]
+    deltas = np.abs(times - tmin)
+    tmin = times[np.where(deltas == deltas.min())[0]][-1]
     mask = (times >= tmin)
     mask &= (times <= tmax)
-    if not strict:
-        mask |= isclose(times, tmin)
-        mask |= isclose(times, tmax)
     return mask
 
 
@@ -1983,3 +2039,54 @@ def _get_root_dir():
             op.isdir(op.join(up_dir, x)) for x in ('mne', 'examples', 'doc')):
         root_dir = op.abspath(up_dir)
     return root_dir
+
+
+def sys_info(fid=None, show_paths=False):
+    """Print the system information for debugging
+
+    Parameters
+    ----------
+    fid : file-like | None
+        The file to write to. Will be passed to :func:`print()`.
+        Can be None to use ``sys.stdout``.
+    show_paths : bool
+        If True, print paths for each module.
+    """
+    ljust = 15
+    out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
+    out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
+    out += 'Executable:'.ljust(ljust) + sys.executable + '\n\n'
+    old_stdout = sys.stdout
+    capture = StringIO()
+    try:
+        sys.stdout = capture
+        np.show_config()
+    finally:
+        sys.stdout = old_stdout
+    lines = capture.getvalue().split('\n')
+    libs = []
+    for li, line in enumerate(lines):
+        for key in ('lapack', 'blas'):
+            if line.startswith('%s_opt_info' % key):
+                libs += ['%s=' % key +
+                         lines[li + 1].split('[')[1].split("'")[1]]
+    libs = ', '.join(libs)
+    version_texts = dict(pycuda='VERSION_TEXT')
+    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
+                     'sklearn', 'nibabel', 'nitime', 'mayavi', 'nose',
+                     'pandas', 'pycuda', 'skcuda'):
+        if mod_name == '':
+            out += '\n'
+            continue
+        out += ('%s:' % mod_name).ljust(ljust)
+        try:
+            mod = __import__(mod_name)
+        except Exception:
+            out += 'Not found\n'
+        else:
+            version = getattr(mod, version_texts.get(mod_name, '__version__'))
+            extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
+            if mod_name == 'numpy':
+                extra = ' {%s}%s' % (libs, extra)
+            out += '%s%s\n' % (version, extra)
+    print(out, end='', file=fid)

@@ -11,6 +11,7 @@
 
 from functools import partial
 import copy
+import warnings
 
 import numpy as np
 
@@ -18,7 +19,7 @@ from ..utils import verbose, get_config, set_config, logger
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
-from ..time_frequency import compute_epochs_psd
+from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show)
@@ -27,7 +28,8 @@ from ..defaults import _handle_default
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap='RdBu_r', fig=None):
+                      units=None, scalings=None, cmap='RdBu_r',
+                      fig=None, overlay_times=None):
     """Plot Event Related Potential / Fields image
 
     Parameters
@@ -69,6 +71,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
+    overlay_times : array-like, shape (n_epochs,) | None
+        If not None the parameter is interpreted as time instants in seconds
+        and is added to the image. It is typically useful to display reaction
+        times. Note that it is defined with respect to the order
+        of epochs such that overlay_times[0] corresponds to epochs[0].
 
     Returns
     -------
@@ -96,6 +103,20 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     scale_vmax = True if vmax is None else False
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
+    if overlay_times is not None and len(overlay_times) != len(data):
+        raise ValueError('size of overlay_times parameter (%s) do not '
+                         'match the number of epochs (%s).'
+                         % (len(overlay_times), len(data)))
+
+    if overlay_times is not None:
+        overlay_times = np.array(overlay_times)
+        times_min = np.min(overlay_times)
+        times_max = np.max(overlay_times)
+        if ((times_min < epochs.tmin) or (times_max > epochs.tmax)):
+            warnings.warn('Some values in overlay_times fall outside of '
+                          'the epochs time interval (between %s s and %s s)' %
+                          (epochs.tmin, epochs.tmax))
+
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
         if fig is None:
@@ -114,8 +135,20 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if callable(order):
             this_order = order(epochs.times, this_data)
 
+        if this_order is not None and (len(this_order) != len(this_data)):
+            raise ValueError('size of order parameter (%s) does not '
+                             'match the number of epochs (%s).'
+                             % (len(this_order), len(this_data)))
+
+        this_overlay_times = None
+        if overlay_times is not None:
+            this_overlay_times = overlay_times
+
         if this_order is not None:
+            this_order = np.asarray(this_order)
             this_data = this_data[this_order]
+            if this_overlay_times is not None:
+                this_overlay_times = this_overlay_times[this_order]
 
         if sigma > 0.:
             this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
@@ -131,6 +164,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                                 0, len(data)],
                         aspect='auto', origin='lower', interpolation='nearest',
                         vmin=vmin, vmax=vmax, cmap=cmap)
+        if this_overlay_times is not None:
+            plt.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
+                     'k', linewidth=2)
         ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
         if colorbar:
             ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
@@ -391,10 +427,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
 @verbose
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
-                    proj=False, n_fft=256,
-                    picks=None, ax=None, color='black', area_mode='std',
-                    area_alpha=0.33, n_overlap=0,
-                    dB=True, n_jobs=1, show=True, verbose=None):
+                    proj=False, bandwidth=None, adaptive=False, low_bias=True,
+                    normalization='length', picks=None, ax=None, color='black',
+                    area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
+                    show=True, verbose=None):
     """Plot the power spectral density across epochs
 
     Parameters
@@ -411,8 +447,19 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         End time to consider.
     proj : bool
         Apply projection.
-    n_fft : int
-        Number of points to use in Welch FFT calculations.
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz. The default
+        value is a window half-bandwidth of 4.
+    adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth.
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
     picks : array-like of int | None
         List of channels to use.
     ax : instance of matplotlib Axes | None
@@ -426,8 +473,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         If None, no area will be plotted.
     area_alpha : float
         Alpha for the area.
-    n_overlap : int
-        The number of points of overlap between blocks.
     dB : bool
         If True, transform data to decibels.
     n_jobs : int
@@ -448,11 +493,12 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
-        psds, freqs = compute_epochs_psd(epochs, picks=picks, fmin=fmin,
-                                         fmax=fmax, tmin=tmin, tmax=tmax,
-                                         n_fft=n_fft,
-                                         n_overlap=n_overlap, proj=proj,
-                                         n_jobs=n_jobs)
+        psds, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
+                                     fmax=fmax, tmin=tmin, tmax=tmax,
+                                     bandwidth=bandwidth, adaptive=adaptive,
+                                     low_bias=low_bias,
+                                     normalization=normalization, proj=proj,
+                                     n_jobs=n_jobs)
 
         # Convert PSDs to dB
         if dB:

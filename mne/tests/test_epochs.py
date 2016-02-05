@@ -19,8 +19,7 @@ import matplotlib
 
 from mne import (Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
-                 write_evokeds, create_info, make_fixed_length_events,
-                 get_chpi_positions)
+                 write_evokeds, create_info, make_fixed_length_events)
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
@@ -28,6 +27,7 @@ from mne.epochs import (
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_version)
+from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, Raw
 from mne.io.proj import _has_eeg_average_ref_proj
@@ -99,20 +99,23 @@ def test_average_movements():
                              picks=picks, proj=False)
     evoked_sss_stat = epochs_sss_stat.average()
     del raw_sss_stat, epochs_sss_stat
-    pos = get_chpi_positions(fname_raw_move_pos)
-    ts = pos[2]
+    head_pos = read_head_pos(fname_raw_move_pos)
     trans = epochs.info['dev_head_t']['trans']
-    pos_stat = (np.array([trans[:3, 3]]),
-                np.array([trans[:3, :3]]),
-                np.array([0.]))
+    head_pos_stat = (np.array([trans[:3, 3]]),
+                     np.array([trans[:3, :3]]),
+                     np.array([0.]))
 
     # SSS-based
-    evoked_move_non = average_movements(epochs, pos=pos, weight_all=False,
-                                        origin=origin)
-    evoked_move_all = average_movements(epochs, pos=pos, weight_all=True,
-                                        origin=origin)
-    evoked_stat_all = average_movements(epochs, pos=pos_stat, weight_all=True,
-                                        origin=origin)
+    assert_raises(TypeError, average_movements, epochs, None)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')  # deprecated param, pos -> head_pos
+        evoked_move_non = average_movements(epochs, pos=head_pos,
+                                            weight_all=False, origin=origin)
+    assert_equal(len(w), 1)
+    evoked_move_all = average_movements(epochs, head_pos=head_pos,
+                                        weight_all=True, origin=origin)
+    evoked_stat_all = average_movements(epochs, head_pos=head_pos_stat,
+                                        weight_all=True, origin=origin)
     evoked_std = epochs.average()
     for ev in (evoked_move_non, evoked_move_all, evoked_stat_all):
         assert_equal(ev.nave, evoked_std.nave)
@@ -144,14 +147,25 @@ def test_average_movements():
     # these should be close to numerical precision
     assert_allclose(evoked_sss_stat.data, evoked_stat_all.data, atol=1e-20)
 
+    # pos[0] > epochs.events[0] uses dev_head_t, so make it equivalent
+    destination = deepcopy(epochs.info['dev_head_t'])
+    x = head_pos_to_trans_rot_t(head_pos[1])
+    epochs.info['dev_head_t']['trans'][:3, :3] = x[1]
+    epochs.info['dev_head_t']['trans'][:3, 3] = x[0]
+    evoked_miss = average_movements(epochs, head_pos=head_pos[2:],
+                                    origin=origin, destination=destination)
+    assert_allclose(evoked_miss.data, evoked_move_all.data)
+
     # degenerate cases
-    ts += 10.
-    assert_raises(RuntimeError, average_movements, epochs, pos=pos)  # bad pos
-    ts -= 10.
-    assert_raises(TypeError, average_movements, 'foo', pos=pos)
-    assert_raises(RuntimeError, average_movements, epochs_proj, pos=pos)  # prj
+    destination['to'] = destination['from']  # bad dest
+    assert_raises(RuntimeError, average_movements, epochs, head_pos,
+                  origin=origin, destination=destination)
+    assert_raises(TypeError, average_movements, 'foo', head_pos=head_pos)
+    assert_raises(RuntimeError, average_movements, epochs_proj,
+                  head_pos=head_pos)  # prj
     epochs.info['comps'].append([0])
-    assert_raises(RuntimeError, average_movements, epochs, pos=pos)
+    assert_raises(RuntimeError, average_movements, epochs, head_pos=head_pos)
+    epochs.info['comps'].pop()
 
 
 def test_reject():
@@ -1036,6 +1050,15 @@ def test_crop():
         epochs.decimate(10)
     assert_allclose(last_time, epochs.times[-1])
 
+    epochs = Epochs(raw, events[:5], event_id, -1, 1,
+                    picks=picks, baseline=(None, 0), preload=True,
+                    reject=reject, flat=flat)
+    # We include nearest sample, so actually a bit beyound our bounds here
+    assert_allclose(epochs.tmin, -1.0006410259015925, rtol=1e-12)
+    assert_allclose(epochs.tmax, 1.0006410259015925, rtol=1e-12)
+    epochs_crop = epochs.crop(-1, 1, copy=True)
+    assert_allclose(epochs.times, epochs_crop.times, rtol=1e-12)
+
 
 def test_resample():
     """Test of resample of epochs
@@ -1302,6 +1325,8 @@ def test_epoch_eq():
     cond1, cond2 = ['a', ['b', 'b/y']], [['a/x', 'a/y'], 'x']
     for c in (cond1, cond2):  # error b/c tag and id mix/non-orthogonal tags
         assert_raises(ValueError, epochs.equalize_event_counts, c)
+    assert_raises(KeyError, epochs.equalize_event_counts,
+                  ["a/no_match", "b"])
 
 
 def test_access_by_name():
@@ -1727,8 +1752,6 @@ def test_add_channels_epochs():
                   [epochs_meg, epochs_eeg[:2]])
 
     epochs_meg.info['chs'].pop(0)
-    epochs_meg.info['ch_names'].pop(0)
-    epochs_meg.info['nchan'] -= 1
     assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg, epochs_eeg])
 
@@ -1743,9 +1766,8 @@ def test_add_channels_epochs():
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['ch_names'][1] = epochs_meg2.info['ch_names'][0]
-    epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][1]
-    assert_raises(ValueError, add_channels_epochs,
+    epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
+    assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()

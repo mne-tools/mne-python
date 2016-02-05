@@ -37,10 +37,10 @@ def _dup_coil_set(coils, coord_frame, t):
     if t is not None:
         coord_frame = t['to']
         for coil in coils:
+            for key in ('ex', 'ey', 'ez'):
+                if key in coil:
+                    coil[key] = apply_trans(t['trans'], coil[key], False)
             coil['r0'] = apply_trans(t['trans'], coil['r0'])
-            coil['ex'] = apply_trans(t['trans'], coil['ex'], False)
-            coil['ey'] = apply_trans(t['trans'], coil['ey'], False)
-            coil['ez'] = apply_trans(t['trans'], coil['ez'], False)
             coil['rmag'] = apply_trans(t['trans'], coil['rmag'])
             coil['cosmag'] = apply_trans(t['trans'], coil['cosmag'], False)
             coil['coord_frame'] = t['to']

@@ -70,7 +70,19 @@ def test_generalization_across_time():
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), no "
                  "prediction, no score>", '%s' % gat)
     assert_equal(gat.ch_names, epochs.ch_names)
+    # test different predict function:
+    gat = GeneralizationAcrossTime(predict_method='decision_function')
+    gat.fit(epochs)
     gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
+    gat.predict_method = 'predict_proba'
+    gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 2))
+    gat.predict_method = 'foo'
+    assert_raises(NotImplementedError, gat.predict, epochs)
+    gat.predict_method = 'predict'
+    gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
                  "predicted 14 epochs, no score>",
                  "%s" % gat)
@@ -173,8 +185,10 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
     with warnings.catch_warnings(record=True):
         gat.fit(epochs[0:6])
-    gat.predict(epochs[7:])
-    gat.score(epochs[7:])
+    with warnings.catch_warnings(record=True):
+        # There are some empty test folds because of n_trials
+        gat.predict(epochs[7:])
+        gat.score(epochs[7:])
 
     # Test training time parameters
     gat_ = copy.deepcopy(gat)
@@ -241,6 +255,16 @@ def test_generalization_across_time():
 
     # TODO JRK: test GAT with non-exhaustive CV (eg. train on 80%, test on 10%)
 
+    # Make CV with some empty train and test folds:
+    # --- empty test fold(s) should warn when gat.predict()
+    gat.cv_.test_folds[gat.cv_.test_folds == 1] = 0
+    with warnings.catch_warnings(record=True):
+        gat.predict(epochs)
+        # FIXME assert_true('Some folds do not have any test epochs.' in w)
+    # --- empty train fold(s) should raise when gat.fit()
+    gat = GeneralizationAcrossTime(cv=[([0], [1]), ([], [0])])
+    assert_raises(ValueError, gat.fit, epochs[:2])
+
     # Check that still works with classifier that output y_pred with
     # shape = (n_trials, 1) instead of (n_trials,)
     gat = GeneralizationAcrossTime(clf=RANSACRegressor(LinearRegression()),
@@ -272,18 +296,22 @@ def test_generalization_across_time():
     for clf, scorer in zip(clfs, scorers):
         for y in ys:
             for n_class in n_classes:
-                y_ = y % n_class
-                with warnings.catch_warnings(record=True):
-                    gat = GeneralizationAcrossTime(cv=2, clf=clf,
-                                                   scorer=scorer)
-                    gat.fit(epochs, y=y_)
-                    gat.score(epochs, y=y_)
+                for predict_mode in ['cross-validation', 'mean-prediction']:
+                    y_ = y % n_class
+                    with warnings.catch_warnings(record=True):
+                        gat = GeneralizationAcrossTime(
+                            cv=2, clf=clf, scorer=scorer,
+                            predict_mode=predict_mode)
+                        gat.fit(epochs, y=y_)
+                        gat.score(epochs, y=y_)
 
 
 @requires_sklearn
 def test_decoding_time():
     """Test TimeDecoding
     """
+    from sklearn.svm import SVR
+    from sklearn.cross_validation import KFold
     epochs = make_epochs()
     tg = TimeDecoding()
     assert_equal("<TimeDecoding | no fit, no prediction, no score>", '%s' % tg)
@@ -307,5 +335,11 @@ def test_decoding_time():
     assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
                  "(s), predicted 14 epochs,\n scored (accuracy_score)>",
                  '%s' % tg)
+    # Test with regressor
+    clf = SVR()
+    cv = KFold(len(epochs))
+    y = np.random.rand(len(epochs))
+    tg = TimeDecoding(clf=clf, cv=cv)
+    tg.fit(epochs, y=y)
 
 run_tests_if_main()

@@ -151,59 +151,67 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                archive_name=None):
     """Aux function
     """
-    key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
-           'spm': 'MNE_DATASETS_SPM_FACE_PATH',
-           'somato': 'MNE_DATASETS_SOMATO_PATH',
-           'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
-           'testing': 'MNE_DATASETS_TESTING_PATH',
-           'fake': 'MNE_DATASETS_FAKE_PATH',
-           }[name]
+    key = {
+        'fake': 'MNE_DATASETS_FAKE_PATH',
+        'misc': 'MNE_DATASETS_MISC_PATH',
+        'sample': 'MNE_DATASETS_SAMPLE_PATH',
+        'spm': 'MNE_DATASETS_SPM_FACE_PATH',
+        'somato': 'MNE_DATASETS_SOMATO_PATH',
+        'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
+        'testing': 'MNE_DATASETS_TESTING_PATH',
+    }[name]
 
     path = _get_path(path, key, name)
-    # To update the testing dataset, push commits, then make a new release
-    # on GitHub. Then update the "testing_release" variable:
-    testing_release = '0.11'
+    # To update the testing or misc dataset, push commits, then make a new
+    # release on GitHub. Then update the "releases" variable:
+    releases = dict(testing='0.13', misc='0.1')
     # And also update the "hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the hash.
     archive_names = dict(
+        misc='mne-misc-data-%s.tar.gz' % releases['misc'],
         sample='MNE-sample-data-processed.tar.gz',
-        spm='MNE-spm-face.tar.bz2',
         somato='MNE-somato-data.tar.gz',
-        testing='mne-testing-data-%s.tar.gz' % testing_release,
+        spm='MNE-spm-face.tar.bz2',
+        testing='mne-testing-data-%s.tar.gz' % releases['testing'],
         fake='foo.tgz',
     )
     if archive_name is not None:
         archive_names.update(archive_name)
     folder_names = dict(
-        sample='MNE-sample-data',
-        spm='MNE-spm-face',
-        somato='MNE-somato-data',
         brainstorm='MNE-brainstorm-data',
-        testing='MNE-testing-data',
         fake='foo',
+        misc='MNE-misc-data',
+        sample='MNE-sample-data',
+        somato='MNE-somato-data',
+        spm='MNE-spm-face',
+        testing='MNE-testing-data',
     )
     urls = dict(
-        sample="https://s3.amazonaws.com/mne-python/datasets/%s",
-        spm='https://s3.amazonaws.com/mne-python/datasets/%s',
-        somato='https://s3.amazonaws.com/mne-python/datasets/%s',
         brainstorm='https://copy.com/ZTHXXFcuIZycvRoA/brainstorm/%s',
-        testing='https://codeload.github.com/mne-tools/mne-testing-data/'
-                'tar.gz/%s' % testing_release,
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/%s',
+        misc='https://codeload.github.com/mne-tools/mne-misc-data/'
+             'tar.gz/%s' % releases['misc'],
+        sample="https://s3.amazonaws.com/mne-python/datasets/%s",
+        somato='https://s3.amazonaws.com/mne-python/datasets/%s',
+        spm='https://s3.amazonaws.com/mne-python/datasets/%s',
+        testing='https://codeload.github.com/mne-tools/mne-testing-data/'
+                'tar.gz/%s' % releases['testing'],
     )
     hashes = dict(
-        sample='ccf5cbc41a3727ed02821330a07abb13',
-        spm='3e9e83c642136e5b720e2ecc5dcc3244',
-        somato='f3e3a8441477bb5bacae1d0c6e0964fb',
         brainstorm=None,
-        testing='d1753ce154e0e6af12f1b82b21e975ce',
         fake='3194e9f7b46039bb050a74f3e1ae9908',
+        misc='f0708d8914cf2692fee7b6c9f105e71c',
+        sample='ccf5cbc41a3727ed02821330a07abb13',
+        somato='f3e3a8441477bb5bacae1d0c6e0964fb',
+        spm='3e9e83c642136e5b720e2ecc5dcc3244',
+        testing='4e53682e06aa8e24b77c893109545a29',
     )
     folder_origs = dict(  # not listed means None
-        testing='mne-testing-data-%s' % testing_release,
+        misc='mne-misc-data-%s' % releases['misc'],
+        testing='mne-testing-data-%s' % releases['testing'],
     )
     folder_name = folder_names[name]
     archive_name = archive_names[name]
@@ -321,13 +329,15 @@ def _get_version(name):
 
 def has_dataset(name):
     """Helper for dataset presence"""
-    endswith = {'sample': 'MNE-sample-data',
-                'spm': 'MNE-spm-face',
-                'somato': 'MNE-somato-data',
-                'testing': 'MNE-testing-data',
-                'fake': 'foo',
-                'brainstorm': 'MNE_brainstorm-data',
-                }[name]
+    endswith = {
+        'brainstorm': 'MNE_brainstorm-data',
+        'fake': 'foo',
+        'misc': 'MNE-misc-data',
+        'sample': 'MNE-sample-data',
+        'somato': 'MNE-somato-data',
+        'spm': 'MNE-spm-face',
+        'testing': 'MNE-testing-data',
+    }[name]
     archive_name = None
     if name == 'brainstorm':
         archive_name = dict(brainstorm='bst_raw')

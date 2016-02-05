@@ -1,14 +1,14 @@
 import os.path as op
 import inspect
 
-from nose.tools import assert_equal, assert_raises
+from nose.tools import assert_equal, assert_raises, assert_true
 from numpy.testing import assert_array_equal
 import numpy as np
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
                  pick_info, pick_channels, __file__, create_info)
-from mne.io import Raw, RawArray, read_raw_bti, read_raw_kit
+from mne.io import Raw, RawArray, read_raw_bti, read_raw_kit, read_info
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type)
 from mne.io.constants import FIFF
@@ -108,6 +108,17 @@ def test_pick_seeg():
     e_seeg = evoked.pick_types(meg=False, seeg=True, copy=True)
     for l, r in zip(e_seeg.ch_names, names[4:]):
         assert_equal(l, r)
+
+
+def test_pick_chpi():
+    """Test picking cHPI
+    """
+    # Make sure we don't mis-classify cHPI channels
+    info = read_info(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
+    channel_types = set([channel_type(info, idx)
+                         for idx in range(info['nchan'])])
+    assert_true('chpi' in channel_types)
+    assert_true('seeg' not in channel_types)
 
 
 def _check_fwd_n_chan_consistent(fwd, n_expected):
@@ -234,14 +245,6 @@ def test_clean_info_bads():
     info = pick_info(raw.info, picks_meg)
     info._check_consistency()
     info['bads'] += ['EEG 053']
-    assert_raises(RuntimeError, info._check_consistency)
-    info = pick_info(raw.info, picks_meg)
-    info._check_consistency()
-    info['ch_names'][0] += 'f'
-    assert_raises(RuntimeError, info._check_consistency)
-    info = pick_info(raw.info, picks_meg)
-    info._check_consistency()
-    info['nchan'] += 1
     assert_raises(RuntimeError, info._check_consistency)
 
 run_tests_if_main()

@@ -68,6 +68,7 @@ if __name__ == "__main__":
                     'mne.datasets.eegbci',
                     'mne.datasets._fake',
                     'mne.datasets.megsim',
+                    'mne.datasets.misc',
                     'mne.datasets.sample',
                     'mne.datasets.somato',
                     'mne.datasets.spm_face',

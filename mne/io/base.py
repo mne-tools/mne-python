@@ -27,7 +27,7 @@ from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id, write_string, _get_split_size)
+                    write_id, write_string, write_name_list, _get_split_size)
 
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample,
@@ -42,6 +42,7 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
+from ..annotations import _combine_annotations
 
 
 class ToDataFrameMixin(object):
@@ -229,9 +230,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
                  filenames=(None,), raw_extras=(None,),
-                 comp=None, orig_comp_grade=None,
-                 orig_format='double', dtype=np.float64,
-                 verbose=None):
+                 comp=None, orig_comp_grade=None, orig_format='double',
+                 dtype=np.float64, verbose=None):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -242,7 +242,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 raise ValueError('preload and dtype must match')
             self._data = preload
             self.preload = True
-            last_samps = [self._data.shape[1] - 1]
+            assert len(first_samps) == 1
+            last_samps = [first_samps[0] + self._data.shape[1] - 1]
             load_from_disk = False
         else:
             if last_samps is None:
@@ -274,6 +275,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
+        self.annotations = None
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)
@@ -336,7 +338,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         dtype = self._dtype
         if isinstance(data_buffer, np.ndarray):
             if data_buffer.shape != data_shape:
-                raise ValueError('data_buffer has incorrect shape')
+                raise ValueError('data_buffer has incorrect shape: %s != %s'
+                                 % (data_buffer.shape, data_shape))
             data = data_buffer
         elif isinstance(data_buffer, string_types):
             # use a memmap
@@ -438,9 +441,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._preload_data(True)
         return self
 
-    def _preload_data(self, preload):
+    @verbose
+    def _preload_data(self, preload, verbose=False):
         """This function actually preloads the data"""
-        data_buffer = preload if isinstance(preload, string_types) else None
+        data_buffer = preload if isinstance(preload, (string_types,
+                                                      np.ndarray)) else None
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info['nchan']
         self.preload = True
@@ -504,6 +509,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if isinstance(item[0], slice):
             start = item[0].start if item[0].start is not None else 0
             nchan = self.info['nchan']
+            if start < 0:
+                start += nchan
+                if start < 0:
+                    raise ValueError('start must be >= -%s' % nchan)
             stop = item[0].stop if item[0].stop is not None else nchan
             step = item[0].step if item[0].step is not None else 1
             sel = list(range(start, stop, step))
@@ -1124,7 +1133,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('tmax must be less than or equal to the max raw '
                              'time (%0.4f sec)' % max_time)
 
-        smin, smax = np.where(_time_mask(self.times, tmin, tmax))[0][[0, -1]]
+        smin, smax = np.where(_time_mask(self.times, tmin, tmax,
+                                         sfreq=self.info['sfreq']))[0][[0, -1]]
         cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths,
                                                    dtype='int')))
         cumul_lens = np.cumsum(cumul_lens)
@@ -1682,7 +1692,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             None, preload=True or False is inferred using the preload status
             of the raw files passed in.
         """
-        from .fiff.raw import RawFIF
+        from .fiff.raw import Raw
         from .kit.kit import RawKIT
         from .edf.edf import RawEDF
 
@@ -1702,7 +1712,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 preload = False
 
-        if not preload and not isinstance(self, (RawFIF, RawKIT, RawEDF)):
+        if not preload and not isinstance(self, (Raw, RawKIT, RawEDF)):
             raise RuntimeError('preload must be True to concatenate '
                                'files unless they are FIF, KIT, or EDF')
         if preload is False:
@@ -1745,6 +1755,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
+            self.annotations = _combine_annotations((self.annotations,
+                                                     r.annotations),
+                                                    self._last_samps,
+                                                    self._first_samps,
+                                                    self.info['sfreq'])
+
         self._update_times()
 
         if not (len(self._first_samps) == len(self._last_samps) ==
@@ -1996,6 +2012,18 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             break
 
         pos_prev = pos
+
+    if raw.annotations is not None:
+        start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, raw.annotations.onset)
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
+                    raw.annotations.duration + raw.annotations.onset)
+        # To allow : in description, they need to be replaced for serialization
+        write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
+                                                 raw.annotations.description])
+        if raw.annotations.orig_time is not None:
+            write_double(fid, FIFF.FIFF_MEAS_DATE, raw.annotations.orig_time)
+        end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
     logger.info('Closing %s [done]' % use_fname)
     if info.get('maxshield', False):

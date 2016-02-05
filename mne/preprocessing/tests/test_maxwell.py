@@ -13,16 +13,15 @@ from nose.plugins.skip import SkipTest
 from distutils.version import LooseVersion
 
 from mne import compute_raw_covariance, pick_types
+from mne.chpi import read_head_pos, filter_chpi
 from mne.forward import _prep_meg_channels
 from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.io import Raw, proc_history, read_info, read_raw_bti, read_raw_kit
-from mne.preprocessing.maxwell import (maxwell_filter, _get_n_moments,
-                                       _sss_basis_basic, _sh_complex_to_real,
-                                       _sh_real_to_complex, _sh_negate,
-                                       _bases_complex_to_real, _sss_basis,
-                                       _bases_real_to_complex, _sph_harm,
-                                       _get_coil_scale)
+from mne.preprocessing.maxwell import (
+    maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
+    _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
+    _bases_real_to_complex, _sph_harm, _prep_mf_coils)
 from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, slow_test, catch_logging,
                        requires_version, object_diff)
@@ -46,6 +45,9 @@ sss_st1FineCalCrossTalkRegIn_fname = \
     pre + 'st1FineCalCrossTalkRegIn_raw_sss.fif'
 sss_st1FineCalCrossTalkRegInTransSample_fname = \
     pre + 'st1FineCalCrossTalkRegInTransSample_raw_sss.fif'
+sss_movecomp_fname = pre + 'movecomp_raw_sss.fif'
+sss_movecomp_reg_in_fname = pre + 'movecomp_regIn_raw_sss.fif'
+sss_movecomp_reg_in_st4s_fname = pre + 'movecomp_regIn_st4s_raw_sss.fif'
 
 erm_fname = pre + 'erm_raw.fif'
 sss_erm_std_fname = pre + 'erm_devOrigin_raw_sss.fif'
@@ -61,6 +63,8 @@ sample_fname = op.join(data_path, 'MEG', 'sample_audvis_trunc_raw.fif')
 sss_samp_reg_in_fname = op.join(data_path, 'SSS',
                                 'sample_audvis_trunc_regIn_raw_sss.fif')
 sss_samp_fname = op.join(data_path, 'SSS', 'sample_audvis_trunc_raw_sss.fif')
+
+pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 
 bases_fname = op.join(sss_path, 'sss_data.mat')
 fine_cal_fname = op.join(sss_path, 'sss_cal_3053.dat')
@@ -96,6 +100,77 @@ def _assert_n_free(raw_sss, lower, upper=None):
 
 
 @slow_test
+@testing.requires_testing_data
+def test_movement_compensation():
+    """Test movement compensation"""
+    lims = (0, 8)
+    with warnings.catch_warnings(record=True):  # maxshield
+        raw = Raw(raw_fname, allow_maxshield=True, preload=True).crop(*lims)
+    head_pos = read_head_pos(pos_fname)
+
+    #
+    # Movement compensation, no regularization, no tSSS
+    #
+    raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin,
+                             regularize=None, bad_condition='ignore')
+    assert_meg_snr(raw_sss, Raw(sss_movecomp_fname).crop(*lims),
+                   4.6, 12.4, chpi_med_tol=58)
+
+    #
+    # Movement compensation,    regularization, no tSSS
+    #
+    raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin)
+    assert_meg_snr(raw_sss, Raw(sss_movecomp_reg_in_fname).crop(*lims),
+                   0.7, 1.9, chpi_med_tol=121)
+
+    #
+    # Movement compensation,    regularization,    tSSS at the end
+    #
+    raw_nohpi = filter_chpi(raw.copy())
+    with warnings.catch_warnings(record=True) as w:  # untested feature
+        raw_sss_mv = maxwell_filter(raw_nohpi, head_pos=head_pos,
+                                    st_duration=4., origin=mf_head_origin,
+                                    st_fixed=False)
+    assert_equal(len(w), 1)
+    assert_true('is untested' in str(w[0].message))
+    # Neither match is particularly good because our algorithm actually differs
+    assert_meg_snr(raw_sss_mv, Raw(sss_movecomp_reg_in_st4s_fname).crop(*lims),
+                   0.6, 1.3)
+    tSSS_fname = op.join(sss_path, 'test_move_anon_st4s_raw_sss.fif')
+    assert_meg_snr(raw_sss_mv, Raw(tSSS_fname).crop(*lims),
+                   0.6, 1.0, chpi_med_tol=None)
+    assert_meg_snr(Raw(sss_movecomp_reg_in_st4s_fname), Raw(tSSS_fname),
+                   0.8, 1.0, chpi_med_tol=None)
+
+    #
+    # Movement compensation,    regularization,    tSSS at the beginning
+    #
+    raw_sss_mc = maxwell_filter(raw_nohpi, head_pos=head_pos, st_duration=4.,
+                                origin=mf_head_origin)
+    assert_meg_snr(raw_sss_mc, Raw(tSSS_fname).crop(*lims),
+                   0.6, 1.0, chpi_med_tol=None)
+    assert_meg_snr(raw_sss_mc, raw_sss_mv, 0.6, 1.4)
+
+    # some degenerate cases
+    with warnings.catch_warnings(record=True):  # maxshield
+        raw_erm = Raw(erm_fname, allow_maxshield=True)
+    assert_raises(ValueError, maxwell_filter, raw_erm, coord_frame='meg',
+                  head_pos=head_pos)  # can't do ERM file
+    head_pos_bad = head_pos[:, :9]
+    assert_raises(ValueError, maxwell_filter, raw,
+                  head_pos=head_pos_bad)  # bad shape
+    head_pos_bad = 'foo'
+    assert_raises(TypeError, maxwell_filter, raw,
+                  head_pos=head_pos_bad)  # bad type
+    head_pos_bad = head_pos[::-1]
+    assert_raises(ValueError, maxwell_filter, raw,
+                  head_pos=head_pos_bad)
+    head_pos_bad = head_pos.copy()
+    head_pos_bad[0, 0] = 1.  # bad time given the first_samp...
+    assert_raises(ValueError, maxwell_filter, raw, head_pos=head_pos_bad)
+
+
+@slow_test
 def test_other_systems():
     """Test Maxwell filtering on KIT, BTI, and CTF files
     """
@@ -110,7 +185,7 @@ def test_other_systems():
     raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
     assert_raises(RuntimeError, maxwell_filter, raw_kit)
     raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04), ignore_ref=True)
-    _assert_n_free(raw_sss, 65)
+    _assert_n_free(raw_sss, 65, 65)
     # XXX this KIT origin fit is terrible! Eventually we should get a
     # corrected HSP file with proper coverage
     with catch_logging() as log_file:
@@ -122,7 +197,8 @@ def test_other_systems():
     log_file = log_file.getvalue()
     assert_true('badly conditioned' in log_file)
     assert_true('more than 20 mm from' in log_file)
-    _assert_n_free(raw_sss, 28, 32)  # bad origin == brutal reg
+    # fits can differ slightly based on scipy version, so be lenient here
+    _assert_n_free(raw_sss, 28, 34)  # bad origin == brutal reg
     # Let's set the origin
     with catch_logging() as log_file:
         raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
@@ -204,14 +280,15 @@ def test_multipolar_bases():
     from scipy.io import loadmat
     # Test our basis calculations
     info = read_info(raw_fname)
-    coils = _prep_meg_channels(info, accurate=True, elekta_defs=True)[0]
+    coils = _prep_meg_channels(info, accurate=True, elekta_defs=True,
+                               do_es=True)[0]
     # Check against a known benchmark
     sss_data = loadmat(bases_fname)
+    exp = dict(int_order=int_order, ext_order=ext_order)
     for origin in ((0, 0, 0.04), (0, 0.02, 0.02)):
         o_str = ''.join('%d' % (1000 * n) for n in origin)
-
-        S_tot = _sss_basis_basic(origin, coils, int_order, ext_order,
-                                 method='alternative')
+        exp.update(origin=origin)
+        S_tot = _sss_basis_basic(exp, coils, method='alternative')
         # Test our real<->complex conversion functions
         S_tot_complex = _bases_real_to_complex(S_tot, int_order, ext_order)
         S_tot_round = _bases_complex_to_real(S_tot_complex,
@@ -244,9 +321,9 @@ def test_multipolar_bases():
         assert_allclose(S_tot_complex, S_tot_mat, rtol=1e-4, atol=1e-8)
 
         # Now test our optimized version
-        S_tot = _sss_basis_basic(origin, coils, int_order, ext_order)
-        S_tot_fast = _sss_basis(origin, coils, int_order, ext_order)
-        S_tot_fast *= _get_coil_scale(coils)
+        S_tot = _sss_basis_basic(exp, coils)
+        S_tot_fast = _trans_sss_basis(
+            exp, all_coils=_prep_mf_coils(info), trans=info['dev_head_t'])
         # there are some sign differences for columns (order/degrees)
         # in here, likely due to Condon-Shortley. Here we use a
         # Magnetometer channel to figure out the flips because the
@@ -277,8 +354,11 @@ def test_basic():
     assert_equal(_get_n_moments([int_order, ext_order]).sum(), nbases)
 
     # Test SSS computation at the standard head origin
+    assert_equal(len(raw.info['projs']), 12)  # 11 MEG projs + 1 AVG EEG
     raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None,
                              bad_condition='ignore')
+    assert_equal(len(raw_sss.info['projs']), 1)  # avg EEG
+    assert_equal(raw_sss.info['projs'][0]['desc'], 'Average EEG reference')
     assert_meg_snr(raw_sss, Raw(sss_std_fname), 200., 1000.)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert_equal(len(py_cal), 0)
@@ -414,7 +494,12 @@ def test_spatiotemporal_maxwell():
         else:
             raw_tsss = maxwell_filter(raw, st_duration=st_duration,
                                       origin=mf_head_origin, regularize=None,
-                                      bad_condition='ignore')
+                                      bad_condition='ignore', verbose=True)
+            raw_tsss_2 = maxwell_filter(raw, st_duration=st_duration,
+                                        origin=mf_head_origin, regularize=None,
+                                        bad_condition='ignore', st_fixed=False,
+                                        verbose=True)
+            assert_meg_snr(raw_tsss, raw_tsss_2, 100., 1000.)
         assert_meg_snr(raw_tsss, tsss_bench, tol)
         py_st = raw_tsss.info['proc_history'][0]['max_info']['max_st']
         assert_true(len(py_st) > 0)
@@ -427,7 +512,7 @@ def test_spatiotemporal_maxwell():
 
 
 @testing.requires_testing_data
-def test_maxwell_filter_fine_calibration():
+def test_fine_calibration():
     """Test Maxwell filter fine calibration"""
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
@@ -439,7 +524,7 @@ def test_maxwell_filter_fine_calibration():
     raw_sss = maxwell_filter(raw, calibration=fine_cal_fname,
                              origin=mf_head_origin, regularize=None,
                              bad_condition='ignore')
-    assert_meg_snr(raw_sss, sss_fine_cal, 70, 500)
+    assert_meg_snr(raw_sss, sss_fine_cal, 82, 611)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert_true(py_cal is not None)
     assert_true(len(py_cal) > 0)
@@ -460,7 +545,7 @@ def test_maxwell_filter_fine_calibration():
 
 @slow_test
 @testing.requires_testing_data
-def test_maxwell_filter_regularization():
+def test_regularization():
     """Test Maxwell filter regularization"""
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     min_tols = (100., 2.6, 1.0)

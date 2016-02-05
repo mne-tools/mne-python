@@ -500,7 +500,7 @@ def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
 
 def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
-                 baseline, vmin, vmax, dB):
+                 baseline, vmin, vmax, dB, sfreq):
     """Aux Function to prepare tfr computation"""
     from ..viz.utils import _setup_vmin_vmax
 
@@ -511,7 +511,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
     # crop time
     itmin, itmax = None, None
-    idx = np.where(_time_mask(times, tmin, tmax))[0]
+    idx = np.where(_time_mask(times, tmin, tmax, sfreq=sfreq))[0]
     if tmin is not None:
         itmin = idx[0]
     if tmax is not None:
@@ -521,7 +521,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
     # crop freqs
     ifmin, ifmax = None, None
-    idx = np.where(_time_mask(freqs, fmin, fmax))[0]
+    idx = np.where(_time_mask(freqs, fmin, fmax, sfreq=sfreq))[0]
     if fmin is not None:
         ifmin = idx[0]
     if fmax is not None:
@@ -612,7 +612,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             If False epochs is cropped in place.
         """
         inst = self if not copy else self.copy()
-        mask = _time_mask(inst.times, tmin, tmax)
+        mask = _time_mask(inst.times, tmin, tmax, sfreq=self.info['sfreq'])
         inst.times = inst.times[mask]
         inst.data = inst.data[..., mask]
         return inst
@@ -699,7 +699,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
-                         baseline, vmin, vmax, dB)
+                         baseline, vmin, vmax, dB, info['sfreq'])
 
         tmin, tmax = times[0], times[-1]
         if isinstance(axes, plt.Axes):
@@ -852,7 +852,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax,
-                         mode, baseline, vmin, vmax, dB)
+                         mode, baseline, vmin, vmax, dB, info['sfreq'])
 
         if layout is None:
             from mne import find_layout
@@ -1065,8 +1065,9 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
 def _prepare_write_tfr(tfr, condition):
     """Aux function"""
     return (condition, dict(times=tfr.times, freqs=tfr.freqs,
-                            data=tfr.data, info=tfr.info, nave=tfr.nave,
-                            comment=tfr.comment, method=tfr.method))
+                            data=tfr.data, info=tfr.info.to_dict(),
+                            nave=tfr.nave, comment=tfr.comment,
+                            method=tfr.method))
 
 
 def write_tfrs(fname, tfr, overwrite=False):

@@ -16,16 +16,17 @@ from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, _BaseRaw
-from ..chpi import get_chpi_positions, _get_hpi_info
+from ..chpi import read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info
 from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
-                       _prepare_for_forward, _prep_meg_channels,
+                       _prepare_for_forward, _transform_orig_meg_coils,
                        _compute_forwards, _to_forward_dict)
 from ..transforms import _get_trans, transform_surface_to
 from ..source_space import _ensure_src, _points_outside_surface
 from ..source_estimate import _BaseSourceEstimate
 from ..utils import logger, verbose, check_random_state
+from ..parallel import check_n_jobs
 from ..externals.six import string_types
 
 
@@ -80,16 +81,14 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         If true, simulate continuous head position indicator information.
         Valid cHPI information must encoded in ``raw.info['hpi_meas']``
         to use this option.
-
-        .. warning:: This feature is currently experimental.
-
-    head_pos : None | str | dict | tuple
+    head_pos : None | str | dict | tuple | array
         Name of the position estimates file. Should be in the format of
         the files produced by maxfilter. If dict, keys should
         be the time points and entries should be 4x4 ``dev_head_t``
         matrices. If None, the original head position (from
         ``info['dev_head_t']``) will be used. If tuple, should have the
-        same format as data returned by `get_chpi_positions`.
+        same format as data returned by `head_pos_to_trans_rot_t`.
+        If array, should be of the form returned by `read_head_pos`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -111,6 +110,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     -------
     raw : instance of Raw
         The simulated raw file.
+
+    See Also
+    --------
+    read_head_pos
 
     Notes
     -----
@@ -173,6 +176,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         raise ValueError('stc must have at least three time points')
 
     stim = False if len(pick_types(info, meg=False, stim=True)) == 0 else True
+    n_jobs = check_n_jobs(n_jobs)
 
     rng = check_random_state(random_state)
     if interp not in ('cos2', 'linear', 'zero'):
@@ -185,7 +189,9 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     # Use position data to simulate head movement
     else:
         if isinstance(head_pos, string_types):
-            head_pos = get_chpi_positions(head_pos, verbose=False)
+            head_pos = read_head_pos(head_pos)
+        if isinstance(head_pos, np.ndarray):
+            head_pos = head_pos_to_trans_rot_t(head_pos)
         if isinstance(head_pos, tuple):  # can be an already-loaded pos file
             transs, rots, ts = head_pos
             ts -= first_samp / info['sfreq']  # MF files need reref
@@ -260,11 +266,11 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     ecg = ecg and len(meg_picks) > 0
     chpi = chpi and len(meg_picks) > 0
     if chpi:
-        hpi_freqs, hpi_rrs, hpi_pick, hpi_on = _get_hpi_info(info)[:4]
+        hpi_freqs, hpi_rrs, hpi_pick, hpi_ons = _get_hpi_info(info)[:4]
         hpi_nns = hpi_rrs / np.sqrt(np.sum(hpi_rrs * hpi_rrs,
                                            axis=1))[:, np.newaxis]
         # turn on cHPI in file
-        raw_data[hpi_pick, :] = hpi_on
+        raw_data[hpi_pick, :] = hpi_ons.sum()
         _log_ch('cHPI status bits enbled and', info, hpi_pick)
     if blink or ecg:
         exg_bem = make_sphere_model(r0, head_radius=R,
@@ -454,7 +460,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
             fwd, fwd_blink, fwd_ecg, fwd_chpi
     assert used.all()
-    raw = RawArray(raw_data, info, verbose=False)
+    raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     raw.verbose = raw_verbose
     logger.info('Done')
     return raw
@@ -498,10 +504,8 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         # but the cost here is tiny compared to actual fwd calculation
         logger.info('Computing gain matrix for transform #%s/%s'
                     % (ti + 1, len(dev_head_ts)))
-        info = deepcopy(info)
-        info['dev_head_t'] = dev_head_t
-        megcoils, compcoils, megnames, meg_info = \
-            _prep_meg_channels(info, True, [], False, verbose=False)
+        _transform_orig_meg_coils(megcoils, dev_head_t)
+        _transform_orig_meg_coils(compcoils, dev_head_t)
 
         # Make sure our sensors are all outside our BEM
         coil_rr = [coil['r0'] for coil in megcoils]

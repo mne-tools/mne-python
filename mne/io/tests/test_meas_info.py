@@ -11,7 +11,8 @@ from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     _loc_to_coil_trans, Raw, read_info, write_info)
 from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, _write_dig_points,
-                              _read_dig_points, _make_dig_points)
+                              _read_dig_points, _make_dig_points, _merge_info,
+                              RAW_INFO_FIELDS)
 from mne.utils import _TempDir, run_tests_if_main
 from mne.channels.montage import read_montage, read_dig_montage
 
@@ -41,6 +42,8 @@ def test_make_info():
     """
     n_ch = 1
     info = create_info(n_ch, 1000., 'eeg')
+    assert_equal(sorted(info.keys()), sorted(RAW_INFO_FIELDS))
+
     coil_types = set([ch['coil_type'] for ch in info['chs']])
     assert_true(FIFF.FIFFV_COIL_EEG in coil_types)
 
@@ -126,12 +129,60 @@ def test_info():
     info[42] = 'foo'
     assert_true(info[42] == 'foo')
 
-    # test info attribute in API objects
+    # Test info attribute in API objects
     for obj in [raw, epochs, evoked]:
         assert_true(isinstance(obj.info, Info))
         info_str = '%s' % obj.info
-        assert_equal(len(info_str.split('\n')), (len(obj.info.keys()) + 2))
+        assert_equal(len(info_str.split('\n')), len(obj.info.keys()) + 2)
         assert_true(all(k in info_str for k in obj.info.keys()))
+
+    # Test read-only fields
+    info = raw.info.copy()
+    nchan = len(info['chs'])
+    ch_names = [ch['ch_name'] for ch in info['chs']]
+    assert_equal(info['nchan'], nchan)
+    assert_equal(list(info['ch_names']), ch_names)
+
+    def _assignment_to_nchan(info):
+        info['nchan'] = 42
+    assert_raises(ValueError, _assignment_to_nchan, info)
+
+    def _assignment_to_ch_names(info):
+        info['ch_names'] = ['foo', 'bar']
+    assert_raises(ValueError, _assignment_to_ch_names, info)
+
+    def _del_nchan(info):
+        del info['nchan']
+    assert_raises(ValueError, _del_nchan, info)
+
+    def _del_ch_names(info):
+        del info['ch_names']
+    assert_raises(ValueError, _del_ch_names, info)
+
+    # Deleting of regular fields should work
+    info['foo'] = 'bar'
+    del info['foo']
+
+    # Passing read only fields to the constructor
+    assert_raises(ValueError, Info, nchan=42)
+    assert_raises(ValueError, Info, ch_names=['foo', 'bar'])
+
+    # Test automatic updating of read-only fields
+    del info['chs'][-1]
+    assert_equal(info['nchan'], nchan - 1)
+    assert_equal(list(info['ch_names']), ch_names[:-1])
+
+    info['chs'][0]['ch_name'] = 'foo'
+    assert_equal(info['ch_names'][0], 'foo')
+
+    # Test casting to and from a dict
+    info_dict = dict(info)
+    info2 = Info(info_dict)
+    assert_equal(info, info2)
+
+    info_dict = info.to_dict()
+    info2 = Info(info_dict)
+    assert_equal(info, info2)
 
 
 def test_read_write_info():
@@ -207,5 +258,104 @@ def test_make_dig_points():
                   dig_points[:, :2])
     assert_raises(ValueError, _make_dig_points, None, None, None, None,
                   dig_points[:, :2])
+
+
+def test_channel_name_list():
+    """Test the _ChannelNamesList object"""
+    # Indexing
+    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
+    assert_equal(info['ch_names'][0], 'a')
+    assert_equal(info['ch_names'][1], 'b')
+    assert_equal(info['ch_names'][2], 'c')
+
+    # Equality
+    assert_equal(info['ch_names'], info['ch_names'])
+    assert_equal(info['ch_names'], ['a', 'b', 'c'])
+
+    # No channels in info
+    info = create_info(ch_names=[], sfreq=1000., ch_types=None)
+    assert_equal(info['ch_names'], [])
+
+    # List should be read-only
+    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
+
+    def _test_assignment():
+        info['ch_names'][0] = 'foo'
+    assert_raises(RuntimeError, _test_assignment)
+
+    def _test_concatenation():
+        info['ch_names'] += ['foo']
+    assert_raises(RuntimeError, _test_concatenation)
+
+    def _test_appending():
+        info['ch_names'].append('foo')
+    assert_raises(RuntimeError, _test_appending)
+
+    def _test_removal():
+        del info['ch_names'][0]
+    assert_raises(AttributeError, _test_removal)
+
+    # Concatenation
+    assert_equal(info['ch_names'] + ['d'], ['a', 'b', 'c', 'd'])
+
+    # Representation
+    assert_equal(repr(info['ch_names']),
+                 "<ChannelNameList | 3 channels | a, b, c>")
+
+
+def test_merge_info():
+    """Test merging of multiple Info objects"""
+    info_a = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
+    info_b = create_info(ch_names=['d', 'e', 'f'], sfreq=1000., ch_types=None)
+    info_merged = _merge_info([info_a, info_b])
+    assert_equal(info_merged['nchan'], 6)
+    assert_equal(info_merged['ch_names'], ['a', 'b', 'c', 'd', 'e', 'f'])
+    assert_raises(ValueError, _merge_info, [info_a, info_a])
+
+
+def test_check_consistency():
+    """Test consistency check of Info objects"""
+    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000.)
+
+    # This should pass
+    info._check_consistency()
+
+    # Info without any channels
+    info_empty = create_info(ch_names=[], sfreq=1000.)
+    info_empty._check_consistency()
+
+    # Bad channels that are not in the info object
+    info2 = info.copy()
+    info2['bads'] = ['b', 'foo', 'bar']
+    assert_raises(RuntimeError, info2._check_consistency)
+
+    # Bad data types
+    info2 = info.copy()
+    info2['sfreq'] = 'foo'
+    assert_raises(ValueError, info2._check_consistency)
+
+    info2 = info.copy()
+    info2['highpass'] = 'foo'
+    assert_raises(ValueError, info2._check_consistency)
+
+    info2 = info.copy()
+    info2['lowpass'] = 'foo'
+    assert_raises(ValueError, info2._check_consistency)
+
+    # Silent type conversion to float
+    info2 = info.copy()
+    info2['sfreq'] = 1
+    info2['highpass'] = 2
+    info2['lowpass'] = 2
+    info2._check_consistency()
+    assert_true(isinstance(info2['sfreq'], float))
+    assert_true(isinstance(info2['highpass'], float))
+    assert_true(isinstance(info2['lowpass'], float))
+
+    # Duplicate channel names
+    info2 = info.copy()
+    info2['chs'][2]['ch_name'] = 'b'
+    assert_raises(RuntimeError, info2._check_consistency)
+
 
 run_tests_if_main()

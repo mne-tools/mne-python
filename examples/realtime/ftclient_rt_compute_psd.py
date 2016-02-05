@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.realtime import FieldTripClient
-from mne.time_frequency import compute_epochs_psd
+from mne.time_frequency import psd_welch
 
 print(__doc__)
 
@@ -43,7 +43,7 @@ with FieldTripClient(host='localhost', port=1972,
     n_samples = 2048  # time window on which to compute FFT
     for ii in range(20):
         epoch = rt_client.get_data_as_epoch(n_samples=n_samples, picks=picks)
-        psd, freqs = compute_epochs_psd(epoch, fmin=2, fmax=200, n_fft=n_fft)
+        psd, freqs = psd_welch(epoch, fmin=2, fmax=200, n_fft=n_fft)
 
         cmap = 'RdBu_r'
         freq_mask = freqs < 150

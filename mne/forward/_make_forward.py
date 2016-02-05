@@ -111,12 +111,9 @@ def _read_coil_def_file(fname):
     return coils
 
 
-def _create_meg_coil(coilset, ch, acc, t):
+def _create_meg_coil(coilset, ch, acc, do_es):
     """Create a coil definition using templates, transform if necessary"""
     # Also change the coordinate frame if so desired
-    if t is None:
-        t = Transform('meg', 'meg', np.eye(4))  # identity, no change
-
     if ch['kind'] not in [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH]:
         raise RuntimeError('%s is not a MEG channel' % ch['ch_name'])
 
@@ -130,18 +127,22 @@ def _create_meg_coil(coilset, ch, acc, t):
                            '(type = %d acc = %d)' % (ch['coil_type'], acc))
 
     # Apply a coordinate transformation if so desired
-    coil_trans = np.dot(t['trans'], _loc_to_coil_trans(ch['loc']))
+    coil_trans = _loc_to_coil_trans(ch['loc'])
 
     # Create the result
     res = dict(chname=ch['ch_name'], coil_class=coil['coil_class'],
                accuracy=coil['accuracy'], base=coil['base'], size=coil['size'],
                type=ch['coil_type'], w=coil['w'], desc=coil['desc'],
-               coord_frame=t['to'], rmag=apply_trans(coil_trans, coil['rmag']),
+               coord_frame=FIFF.FIFFV_COORD_DEVICE, rmag_orig=coil['rmag'],
+               cosmag_orig=coil['cosmag'], coil_trans_orig=coil_trans,
+               r0=coil_trans[:3, 3],
+               rmag=apply_trans(coil_trans, coil['rmag']),
                cosmag=apply_trans(coil_trans, coil['cosmag'], False))
-    r0_exey = (np.dot(coil['rmag'][:, :2], coil_trans[:3, :2].T) +
-               coil_trans[:3, 3])
-    res.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
-               ez=coil_trans[:3, 2], r0=coil_trans[:3, 3], r0_exey=r0_exey)
+    if do_es:
+        r0_exey = (np.dot(coil['rmag'][:, :2], coil_trans[:3, :2].T) +
+                   coil_trans[:3, 3])
+        res.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
+                   ez=coil_trans[:3, 2], r0_exey=r0_exey)
     return res
 
 
@@ -173,12 +174,30 @@ def _create_eeg_el(ch, t=None):
     return res
 
 
-def _create_meg_coils(chs, acc=None, t=None, coilset=None):
+def _create_meg_coils(chs, acc, t=None, coilset=None, do_es=False):
     """Create a set of MEG coils in the head coordinate frame"""
     acc = _accuracy_dict[acc] if isinstance(acc, string_types) else acc
     coilset = _read_coil_defs(verbose=False) if coilset is None else coilset
-    coils = [_create_meg_coil(coilset, ch, acc, t) for ch in chs]
+    coils = [_create_meg_coil(coilset, ch, acc, do_es) for ch in chs]
+    _transform_orig_meg_coils(coils, t, do_es=do_es)
     return coils
+
+
+def _transform_orig_meg_coils(coils, t, do_es=True):
+    """Helper to transform original (device) MEG coil positions"""
+    if t is None:
+        return
+    for coil in coils:
+        coil_trans = np.dot(t['trans'], coil['coil_trans_orig'])
+        coil.update(
+            coord_frame=t['to'], r0=coil_trans[:3, 3],
+            rmag=apply_trans(coil_trans, coil['rmag_orig']),
+            cosmag=apply_trans(coil_trans, coil['cosmag_orig'], False))
+        if do_es:
+            r0_exey = (np.dot(coil['rmag_orig'][:, :2],
+                              coil_trans[:3, :2].T) + coil_trans[:3, 3])
+            coil.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
+                        ez=coil_trans[:3, 2], r0_exey=r0_exey)
 
 
 def _create_eeg_els(chs):
@@ -216,7 +235,8 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
 
 @verbose
 def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
-                       elekta_defs=False, head_frame=True, verbose=None):
+                       elekta_defs=False, head_frame=True, do_es=False,
+                       verbose=None):
     """Prepare MEG coil definitions for forward calculation
 
     Parameters
@@ -236,6 +256,8 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         point geometry. False by default.
     head_frame : bool
         If True (default), use head frame coords. Otherwise, use device frame.
+    do_es : bool
+        If True, compute and store ex, ey, ez, and r0_exey.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -304,12 +326,14 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     else:
         transform = None
 
-    megcoils = _create_meg_coils(megchs, accuracy, transform, templates)
+    megcoils = _create_meg_coils(megchs, accuracy, transform, templates,
+                                 do_es=do_es)
 
     if ncomp > 0:
         logger.info('%d compensation data sets in %s' % (ncomp_data,
                                                          info_extra))
-        compcoils = _create_meg_coils(compchs, 'normal', transform, templates)
+        compcoils = _create_meg_coils(compchs, 'normal', transform, templates,
+                                      do_es=do_es)
 
     # Check that coordinate frame is correct and log it
     if head_frame:
@@ -399,10 +423,9 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                 mindist, overwrite, n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
-    info = Info(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
-                ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
-                mri_file=trans, mri_id=mri_id, meas_file=info_extra,
-                meas_id=None, working_dir=os.getcwd(),
+    info = Info(chs=info['chs'], comps=info['comps'],
+                dev_head_t=info['dev_head_t'], mri_file=trans, mri_id=mri_id,
+                meas_file=info_extra, meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'], mri_head_t=mri_head_t)
     logger.info('')
 
@@ -525,13 +548,13 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'
                       % fname)
-    if not isinstance(info, (dict, string_types)):
-        raise TypeError('info should be a dict or string')
+    if not isinstance(info, (Info, string_types)):
+        raise TypeError('info should be an instance of Info or string')
     if isinstance(info, string_types):
         info_extra = op.split(info)[1]
         info = read_info(info, verbose=False)
     else:
-        info_extra = 'info dict'
+        info_extra = 'instance of Info'
 
     # Report the setup
     logger.info('Source space                 : %s' % src)

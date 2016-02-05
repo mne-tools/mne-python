@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 
 from ..base import _BaseRaw, _check_update_montage
-from ..utils import _mult_cal_one
+from ..utils import _read_segments_file
 from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...utils import verbose, logger
@@ -255,8 +255,7 @@ class RawEGI(_BaseRaw):
         ch_names.extend(list(egi_info['event_codes']))
         if self._new_trigger is not None:
             ch_names.append('STI 014')  # our new_trigger
-        info['nchan'] = nchan = len(ch_names)
-        info['ch_names'] = ch_names
+        nchan = len(ch_names)
         for ii, ch_name in enumerate(ch_names):
             ch_info = {
                 'cal': cal, 'logno': ii + 1, 'scanno': ii + 1, 'range': 1.0,
@@ -285,18 +284,9 @@ class RawEGI(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file"""
         egi_info = self._raw_extras[fi]
+        dtype = egi_info['dtype']
         n_chan_read = egi_info['n_channels'] + egi_info['n_events']
-        data_start = (36 + egi_info['n_events'] * 4 +
-                      start * n_chan_read * egi_info['dtype'].itemsize)
-        n_chan_out = n_chan_read + (1 if self._new_trigger is not None else 0)
-        one = np.empty((n_chan_out, stop - start))
-        with open(self._filenames[fi], 'rb') as fid:
-            fid.seek(data_start, 0)  # skip header
-            final_shape = (stop - start, n_chan_read)
-            one_ = np.fromfile(fid, egi_info['dtype'], np.prod(final_shape))
-            one_.shape = final_shape
-            one[:n_chan_read] = one_.T
-        # reads events as well
-        if self._new_trigger is not None:
-            one[-1] = self._new_trigger[start:stop]
-        _mult_cal_one(data, one, idx, cals, mult)
+        offset = 36 + egi_info['n_events'] * 4
+        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
+                            dtype=dtype, n_channels=n_chan_read, offset=offset,
+                            trigger_ch=self._new_trigger)

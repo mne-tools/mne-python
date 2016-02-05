@@ -26,6 +26,7 @@ from mne.utils import (_TempDir, requires_pandas, slow_test,
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import _picks_by_type
+from mne.annotations import Annotations
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -575,6 +576,10 @@ def test_getitem():
         data1, times1 = raw[[0, 1]]
         assert_array_equal(data, data1)
         assert_array_equal(times, times1)
+        assert_array_equal(raw[-10:, :][0],
+                           raw[len(raw.ch_names) - 10:, :][0])
+        assert_raises(ValueError, raw.__getitem__,
+                      (slice(-len(raw.ch_names) - 1), slice(None)))
 
 
 @testing.requires_testing_data
@@ -794,6 +799,14 @@ def test_crop():
         assert_equal(raw.last_samp, ar.last_samp)
         assert_array_equal(raw[:, :][0], ar[:, :][0])
 
+    # test shape consistency of cropped raw
+    data = np.zeros((1, 1002001))
+    info = create_info(1, 1000)
+    raw = RawArray(data, info)
+    for tmin in range(0, 1001, 100):
+        raw1 = raw.crop(tmin=tmin, tmax=tmin + 2, copy=True)
+        assert_equal(raw1[:][0].shape, (1, 2001))
+
 
 @testing.requires_testing_data
 def test_resample():
@@ -1006,8 +1019,10 @@ def test_add_channels():
     raw_meg = raw.pick_types(meg=True, eeg=False, copy=True)
     raw_stim = raw.pick_types(meg=False, eeg=False, stim=True, copy=True)
     raw_new = raw_meg.add_channels([raw_eeg, raw_stim], copy=True)
-    assert_true(all(ch in raw_new.ch_names
-                    for ch in raw_stim.ch_names + raw_meg.ch_names))
+    assert_true(
+        all(ch in raw_new.ch_names
+            for ch in list(raw_stim.ch_names) + list(raw_meg.ch_names))
+    )
     raw_new = raw_meg.add_channels([raw_eeg], copy=True)
 
     assert_true(ch in raw_new.ch_names for ch in raw.ch_names)
@@ -1046,11 +1061,17 @@ def test_save():
     # can't overwrite file without overwrite=True
     assert_raises(IOError, raw.save, fif_fname)
 
-    # test abspath support
+    # test abspath support and annotations
+    annot = Annotations([10], [10], ['test'], raw.info['meas_date'])
+    raw.annotations = annot
     new_fname = op.join(op.abspath(op.curdir), 'break-raw.fif')
     raw.save(op.join(tempdir, new_fname), overwrite=True)
     new_raw = Raw(op.join(tempdir, new_fname), preload=False)
     assert_raises(ValueError, new_raw.save, new_fname)
+    assert_array_equal(annot.onset, new_raw.annotations.onset)
+    assert_array_equal(annot.duration, new_raw.annotations.duration)
+    assert_array_equal(annot.description, new_raw.annotations.description)
+    assert_equal(annot.orig_time, new_raw.annotations.orig_time)
     # make sure we can overwrite the file we loaded when preload=True
     new_raw = Raw(op.join(tempdir, new_fname), preload=True)
     new_raw.save(op.join(tempdir, new_fname), overwrite=True)

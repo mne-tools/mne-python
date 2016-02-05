@@ -389,13 +389,11 @@ def _compose_meas_info(res4, coils, trans, eeg):
         if trans['t_ctf_head_head'] is not None:
             info['ctf_head_t'] = trans['t_ctf_head_head']
     info['chs'] = _convert_channel_info(res4, trans, eeg is None)
-    info['nchan'] = len(info['chs'])
     info['comps'] = _convert_comp_data(res4)
     if eeg is None:
         # Pick EEG locations from chan info if not read from a separate file
         eeg = _pick_eeg_pos(info)
     _add_eeg_pos(eeg, trans, info)
-    info['ch_names'] = [ch['ch_name'] for ch in info['chs']]
     logger.info('    Measurement info composed.')
     info._check_consistency()
     return info

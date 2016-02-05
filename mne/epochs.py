@@ -828,10 +828,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, show=show, block=block)
 
-    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
+    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, bandwidth=None,
+                 adaptive=False, low_bias=True, normalization='length',
                  picks=None, ax=None, color='black', area_mode='std',
-                 area_alpha=0.33, n_overlap=0, dB=True,
-                 n_jobs=1, verbose=None, show=True):
+                 area_alpha=0.33, dB=True, n_jobs=1, verbose=None, show=True):
         """Plot the power spectral density across epochs
 
         Parameters
@@ -842,8 +842,19 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             End frequency to consider.
         proj : bool
             Apply projection.
-        n_fft : int
-            Number of points to use in Welch FFT calculations.
+        bandwidth : float
+            The bandwidth of the multi taper windowing function in Hz.
+            The default value is a window half-bandwidth of 4.
+        adaptive : bool
+            Use adaptive weights to combine the tapered spectra into PSD
+            (slow, use n_jobs >> 1 to speed up computation).
+        low_bias : bool
+            Only use tapers with more than 90% spectral concentration within
+            bandwidth.
+        normalization : str
+            Either "full" or "length" (default). If "full", the PSD will
+            be normalized by the sampling rate as well as the length of
+            the signal (as in nitime).
         picks : array-like of int | None
             List of channels to use.
         ax : instance of matplotlib Axes | None
@@ -857,8 +868,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             these calculations. If None, no area will be plotted.
         area_alpha : float
             Alpha for the area.
-        n_overlap : int
-            The number of points of overlap between blocks.
         dB : bool
             If True, transform data to decibels.
         n_jobs : int
@@ -874,18 +883,18 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Figure distributing one image per channel across sensor topography.
         """
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, proj=proj,
-                               n_fft=n_fft, picks=picks, ax=ax,
-                               color=color, area_mode=area_mode,
-                               area_alpha=area_alpha,
-                               n_overlap=n_overlap, dB=dB, n_jobs=n_jobs,
-                               verbose=None, show=show)
+                               bandwidth=bandwidth, adaptive=adaptive,
+                               low_bias=low_bias, normalization=normalization,
+                               picks=picks, ax=ax, color=color,
+                               area_mode=area_mode, area_alpha=area_alpha,
+                               dB=dB, n_jobs=n_jobs, verbose=None, show=show)
 
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
-                         n_fft=256, ch_type=None,
-                         n_overlap=0, layout=None, cmap='RdBu_r',
-                         agg_fun=None, dB=True, n_jobs=1, normalize=False,
-                         cbar_fmt='%0.3f', outlines='head', show=True,
-                         verbose=None):
+                         bandwidth=None, adaptive=False, low_bias=True,
+                         normalization='length', ch_type=None,
+                         layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
+                         n_jobs=1, normalize=False, cbar_fmt='%0.3f',
+                         outlines='head', show=True, verbose=None):
         """Plot the topomap of the power spectral density across epochs
 
         Parameters
@@ -907,16 +916,25 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             output equals vmax(data). Defaults to None.
         proj : bool
             Apply projection.
-        n_fft : int
-            Number of points to use in Welch FFT calculations.
+        bandwidth : float
+            The bandwidth of the multi taper windowing function in Hz.
+            The default value is a window half-bandwidth of 4 Hz.
+        adaptive : bool
+            Use adaptive weights to combine the tapered spectra into PSD
+            (slow, use n_jobs >> 1 to speed up computation).
+        low_bias : bool
+            Only use tapers with more than 90% spectral concentration within
+            bandwidth.
+        normalization : str
+            Either "full" or "length" (default). If "full", the PSD will
+            be normalized by the sampling rate as well as the length of
+            the signal (as in nitime).
         ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
             The channel type to plot. For 'grad', the gradiometers are
             collected in
             pairs and the RMS for each pair is plotted. If None, defaults to
             'mag' if MEG data are present and to 'eeg' if only EEG data are
             present.
-        n_overlap : int
-            The number of points of overlap between blocks.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct layout
@@ -962,8 +980,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Figure distributing one image per channel across sensor topography.
         """
         return plot_epochs_psd_topomap(
-            self, bands=bands, vmin=vmin, vmax=vmax, proj=proj, n_fft=n_fft,
-            ch_type=ch_type, n_overlap=n_overlap, layout=layout, cmap=cmap,
+            self, bands=bands, vmin=vmin, vmax=vmax, proj=proj,
+            bandwidth=bandwidth, adaptive=adaptive,
+            low_bias=low_bias, normalization=normalization,
+            ch_type=ch_type, layout=layout, cmap=cmap,
             agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
             cbar_fmt=cbar_fmt, outlines=outlines, show=show, verbose=None)
 
@@ -1412,7 +1432,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                           "tmax is set to epochs.tmax")
             tmax = self.tmax
 
-        tmask = _time_mask(self.times, tmin, tmax)
+        tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
         this_epochs = self if not copy else self.copy()
         this_epochs.times = this_epochs.times[tmask]
         this_epochs._raw_times = this_epochs._raw_times[tmask]
@@ -1581,6 +1601,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # deal with hierarchical tags
         ids = epochs.event_id
+        orig_ids = list(event_ids)
         tagging = False
         if "/" in "".join(ids):
             # make string inputs a list of length 1
@@ -1598,8 +1619,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                          if all(id__ not in ids for id__ in id_)
                          else id_  # straight pass for non-tag inputs
                          for id_ in event_ids]
-            for id_ in event_ids:
-                if len(set([sub_id in ids for sub_id in id_])) != 1:
+            for ii, id_ in enumerate(event_ids):
+                if len(id_) == 0:
+                    raise KeyError(orig_ids[ii] + "not found in the "
+                                   "epoch object's event_id.")
+                elif len(set([sub_id in ids for sub_id in id_])) != 1:
                     err = ("Don't mix hierarchical and regular event_ids"
                            " like in \'%s\'." % ", ".join(id_))
                     raise ValueError(err)
@@ -2631,19 +2655,21 @@ def concatenate_epochs(epochs_list):
 
 
 @verbose
-def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
-                      weight_all=True, int_order=8, ext_order=3,
-                      ignore_ref=False, return_mapping=False, verbose=None):
+def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
+                      origin='auto', weight_all=True, int_order=8, ext_order=3,
+                      destination=None, ignore_ref=False, return_mapping=False,
+                      pos=None, verbose=None):
     """Average data using Maxwell filtering, transforming using head positions
 
     Parameters
     ----------
     epochs : instance of Epochs
         The epochs to operate on.
-    pos : tuple
-        Tuple of position information as ``(trans, rot, t)`` like that
-        returned by `get_chpi_positions`. The positions will be matched
-        based on the last given position before the onset of the epoch.
+    head_pos : array | tuple | None
+        The array should be of shape ``(N, 10)``, holding the position
+        parameters as returned by e.g. `read_head_pos`. For backward
+        compatibility, this can also be a tuple of ``(trans, rot t)``
+        as returned by `head_pos_to_trans_rot_t`.
     orig_sfreq : float | None
         The original sample frequency of the data (that matches the
         event sample numbers in ``epochs.events``). Can be ``None``
@@ -2667,6 +2693,17 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         Basis regularization type, must be "in" or None.
         See :func:`mne.preprocessing.maxwell_filter` for details.
         Regularization is chosen based only on the destination position.
+    destination : str | array-like, shape (3,) | None
+        The destination location for the head. Can be ``None``, which
+        will not change the head position, or a string path to a FIF file
+        containing a MEG device<->head transformation, or a 3-element array
+        giving the coordinates to translate to (with no rotations).
+        For example, ``destination=(0, 0, 0.04)`` would translate the bases
+        as ``--trans default`` would in MaxFilter™ (i.e., to the default
+        head location).
+
+        .. versionadded:: 0.12
+
     ignore_ref : bool
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since Maxwell filtering
@@ -2684,6 +2721,7 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     See Also
     --------
     mne.preprocessing.maxwell_filter
+    mne.chpi.read_head_pos
 
     Notes
     -----
@@ -2708,21 +2746,35 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
            of children in MEG: Quantification, effects on source
            estimation, and compensation. NeuroImage 40:541–550, 2008.
     """
-    from .preprocessing.maxwell import (_info_sss_basis, _reset_meg_bads,
+    from .preprocessing.maxwell import (_trans_sss_basis, _reset_meg_bads,
                                         _check_usable, _col_norm_pinv,
-                                        _get_n_moments, _get_mf_picks)
+                                        _get_n_moments, _get_mf_picks,
+                                        _prep_mf_coils, _check_destination,
+                                        _remove_meg_projs)
+    if pos is not None:
+        head_pos = pos
+        warnings.warn('pos has been replaced by head_pos and will be removed '
+                      'in 0.13', DeprecationWarning)
+    if head_pos is None:
+        raise TypeError('head_pos must be provided and cannot be None')
+    from .chpi import head_pos_to_trans_rot_t
     if not isinstance(epochs, _BaseEpochs):
         raise TypeError('epochs must be an instance of Epochs, not %s'
                         % (type(epochs),))
     orig_sfreq = epochs.info['sfreq'] if orig_sfreq is None else orig_sfreq
     orig_sfreq = float(orig_sfreq)
-    trn, rot, t = pos
-    del pos
+    if isinstance(head_pos, np.ndarray):
+        head_pos = head_pos_to_trans_rot_t(head_pos)
+    trn, rot, t = head_pos
+    del head_pos
     _check_usable(epochs)
     origin = _check_origin(origin, epochs.info, 'head')
+    recon_trans = _check_destination(destination, epochs.info, True)
 
     logger.info('Aligning and averaging up to %s epochs'
                 % (len(epochs.events)))
+    if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):
+        raise RuntimeError('Epochs must have monotonically increasing events')
     meg_picks, _, _, good_picks, coil_scale, _ = \
         _get_mf_picks(epochs.info, int_order, ext_order, ignore_ref)
     n_channels, n_times = len(epochs.ch_names), len(epochs.times)
@@ -2731,6 +2783,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     count = 0
     # keep only MEG w/bad channels marked in "info_from"
     info_from = pick_info(epochs.info, good_picks, copy=True)
+    all_coils_recon = _prep_mf_coils(epochs.info, ignore_ref=ignore_ref)
+    all_coils = _prep_mf_coils(info_from, ignore_ref=ignore_ref)
     # remove MEG bads in "to" info
     info_to = deepcopy(epochs.info)
     _reset_meg_bads(info_to)
@@ -2740,16 +2794,17 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
     S_decomp = 0.  # this will end up being a weighted average
     last_trans = None
     decomp_coil_scale = coil_scale[good_picks]
+    exp = dict(int_order=int_order, ext_order=ext_order, head_frame=True,
+               origin=origin)
     for ei, epoch in enumerate(epochs):
         event_time = epochs.events[epochs._current - 1, 0] / orig_sfreq
         use_idx = np.where(t <= event_time)[0]
         if len(use_idx) == 0:
-            raise RuntimeError('Event time %0.3f occurs before first '
-                               'position time %0.3f' % (event_time, t[0]))
-        use_idx = use_idx[-1]
-        trans = np.row_stack([np.column_stack([rot[use_idx],
-                                               trn[[use_idx]].T]),
-                              [[0., 0., 0., 1.]]])
+            trans = epochs.info['dev_head_t']['trans']
+        else:
+            use_idx = use_idx[-1]
+            trans = np.vstack([np.hstack([rot[use_idx], trn[[use_idx]].T]),
+                               [[0., 0., 0., 1.]]])
         loc_str = ', '.join('%0.1f' % tr for tr in (trans[:3, 3] * 1000))
         if last_trans is None or not np.allclose(last_trans, trans):
             logger.info('    Processing epoch %s (device location: %s mm)'
@@ -2762,9 +2817,8 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
             reuse = True
         epoch = epoch.copy()  # because we operate inplace
         if not reuse:
-            S = _info_sss_basis(info_from, trans, origin,
-                                int_order, ext_order, True,
-                                coil_scale=decomp_coil_scale)
+            S = _trans_sss_basis(exp, all_coils, trans,
+                                 coil_scale=decomp_coil_scale)
             # Get the weight from the un-regularized version
             weight = np.sqrt(np.sum(S * S))  # frobenius norm (eq. 44)
             # XXX Eventually we could do cross-talk and fine-cal here
@@ -2785,8 +2839,9 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         S_decomp /= w_sum
         # Get recon matrix
         # (We would need to include external here for regularization to work)
-        S_recon = _info_sss_basis(epochs.info, None, origin,
-                                  int_order, 0, True)
+        exp['ext_order'] = 0
+        S_recon = _trans_sss_basis(exp, all_coils_recon, recon_trans)
+        exp['ext_order'] = ext_order
         # We could determine regularization on basis of destination basis
         # matrix, restricted to good channels, as regularizing individual
         # matrices within the loop above does not seem to work. But in
@@ -2802,5 +2857,6 @@ def average_movements(epochs, pos, orig_sfreq=None, picks=None, origin='auto',
         data[meg_picks] = np.dot(mapping, data[good_picks])
     evoked = epochs._evoked_from_epoch_data(
         data, info_to, picks, count, 'average')
+    _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked

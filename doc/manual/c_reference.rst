@@ -2782,7 +2782,7 @@ mne_process_raw
 mne_redo_file
 =============
 
-Usage: /home/larsoner/custombuilds/mne/current/bin/mne_redo_file file-to-redo
+Usage: ``mne_redo_file file-to-redo``
 
 
 .. _mne_redo_file_nocwd:
@@ -2790,7 +2790,7 @@ Usage: /home/larsoner/custombuilds/mne/current/bin/mne_redo_file file-to-redo
 mne_redo_file_nocwd
 ===================
 
-Usage: /home/larsoner/custombuilds/mne/current/bin/mne_redo_file_nocwd file-to-redo
+Usage: ``mne_redo_file_nocwd file-to-redo``
 
 
 .. _mne_setup_forward_model:
@@ -2971,7 +2971,7 @@ mne_setup_source_space
 mne_show_environment
 ====================
 
-Usage: /home/larsoner/custombuilds/mne/current/bin/mne_show_environment files
+Usage: ``mne_show_environment files``
 
 
 Utility command-line arguments

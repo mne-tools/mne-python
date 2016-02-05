@@ -10,18 +10,50 @@ Current
 Changelog
 ~~~~~~~~~
 
-    -
+    - Add `overlay_times` parameter to :func:`mne.viz.plot_epochs_image` to be able to display for example reaction times on top of the images, by `Alex Gramfort`_
+
+    - Animation for evoked topomap in :func:`mne.Evoked.animate_topomap` by `Jaakko Leppakangas`_
+
+    - Make :func:`mne.find_layout` more robust for KIT systems in the presence of bad or missing channels by `Jaakko Leppakangas`_
+
+    - Add raw movement compensation to :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
+
+    - Add :class:`mne.Annotations` for for annotating segments of raw data by `Jaakko Leppakangas`_
+
+    - Add reading of .fif file montages by `Eric Larson`_
+
+    - Add system config utility :func:`mne.sys_info` by `Eric Larson`_
 
 BUG
 ~~~
 
-    -
+    - :func:`compute_raw_psd`, :func:`compute_epochs_psd`, :func:`psd_multitaper`, and :func:`psd_welch` no longer remove rows/columns of the SSP matrix before applying SSP projectors when picks are provided by `Chris Holdgraf`_.
+
+    - :func:`mne.Epochs.plot_psd` no longer calls a Welch PSD, and instead uses a Multitaper method which is more appropriate for epochs. Flags for this function are passed to :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
+
+    - Time-cropping functions (e.g., :func:`mne.Epochs.crop`, :func:`mne.Evoked.crop`, :func:`mne.io.Raw.crop`, :func:`mne.SourceEstimate.crop`) made consistent with behavior of ``tmin`` and ``tmax`` of :class:`mne.Epochs`, where nearest sample is kept. For example, for MGH data acquired with ``sfreq=600.614990234``, constructing ``Epochs(..., tmin=-1, tmax=1)`` has bounds ``+/-1.00064103``, and now ``epochs.crop(-1, 1)`` will also have these bounds (previously they would have been ``+/-0.99897607``). This also has minor effects on functions that use cropping under the hood, such as :func:`mne.compute_covariance` and :func:`mne.connectivity.spectral_connectivity`.
+
+    - Fix EEG spherical spline interpolation code to account for average reference by `Mainak Jas`_ (`#2758 <https://github.com/mne-tools/mne-python/pull/2758>`_)
+
+    - MEG projectors are removed after Maxwell filtering by `Eric Larson`_
+
+    - Time cropping functions no longer use relative tolerances when determining the boundaries by `Jaakko Leppakangas`_
+
+    - Fix :func:`mne.decoding.TimeDecoding` to allow specifying ``clf`` by `Jean-Remi King`_
+
+    - Fix bug with units (uV) in 'Brain Vision Data Exchange Header File Version 1.0' by `Federico Raimondo`_
 
 API
 ~~~
 
     - The default `picks=None` in :func:`mne.viz.plot_epochs_image` now only plots the first 5 channels, not all channels, by `Jona Sassenhagen`_
+    - The `mesh_color` parameter in :func:`mne.viz.plot_dipole_locations` has been removed (use `brain_color` instead), by `Marijn van Vliet`_
 
+    - Deprecated functions :func:`mne.time_frequency.compute_raw_psd` and :func:`mne.time_frequency.compute_epochs_psd`, replaced by :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
+
+    - Deprecated function :func:`mne.time_frequency.multitaper_psd` and replaced by :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
+
+    - The `'ch_names'` and `'nchan'` fields of the :class:`mne.io.Info` class are now read-only and are automatically updated to accommodate changes in the `'chs'` field, by `Marijn van Vliet`_
 
 .. _changes_0_11:
 
@@ -56,7 +88,7 @@ Changelog
     - Add reader for CTF data in :func:`mne.io.read_raw_ctf` by `Eric Larson`_
 
     - Add support for Brainvision v2 in :func:`mne.io.read_raw_brainvision` by `Teon Brooks`_
-    
+
     - Improve speed of generalization across time :class:`mne.decoding.GeneralizationAcrossTime` decoding up to a factor of seven by `Jean-Remi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
 
     - Add the explained variance for each principal component, ``explained_var``, key to the :class:`mne.io.Projection` by `Teon Brooks`_

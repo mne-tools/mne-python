@@ -44,7 +44,9 @@ Dealing with artifacts and noise sources in data.
    :maxdepth: 2
 
    preprocessing/ica
+   preprocessing/maxwell
    preprocessing/ssp
+   channel_interpolation
 
 Source localization
 -------------------

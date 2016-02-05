@@ -25,6 +25,7 @@ Classes
 
    io.Raw
    io.RawFIF
+   Annotations
    Epochs
    Evoked
    SourceSpaces
@@ -67,6 +68,7 @@ Logging and Configuration
    set_log_level
    set_log_file
    set_config
+   sys_info
 
 :py:mod:`mne.cuda`:
 
@@ -451,7 +453,29 @@ EEG referencing:
    construct_iir_filter
    high_pass_filter
    low_pass_filter
+   notch_filter
 
+Head position estimation:
+
+.. currentmodule:: mne.chpi
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   filter_chpi
+   head_pos_to_trans_rot_t
+   read_head_pos
+   write_head_pos
+
+.. currentmodule:: mne.transforms
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   quat_to_rot
+   rot_to_quat
 
 Events
 ======
@@ -505,7 +529,6 @@ Sensor Space Data
    concatenate_raws
    equalize_channels
    grand_average
-   get_chpi_positions
    pick_channels
    pick_channels_cov
    pick_channels_forward
@@ -774,8 +797,8 @@ Functions that operate on mne-python objects:
    :template: function.rst
 
    compute_epochs_csd
-   compute_epochs_psd
-   compute_raw_psd
+   psd_welch
+   psd_multitaper
    fit_iir_model_raw
    tfr_morlet
    tfr_multitaper

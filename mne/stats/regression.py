@@ -230,7 +230,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
         matrix b; or a string (for now, only 'pinv'), in which case the
-        solver used is dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T.
+        solver used is `dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T`.
 
     Returns
     -------
@@ -266,9 +266,20 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     data, times = raw[:]
     data = data[picks, ::decim]
     times = times[::decim]
+    if len(set(events[:, 0])) < len(events[:, 0]):
+        raise ValueError("`events` contains duplicate time points. Make "
+                         "sure all entries in the first column of `events` "
+                         "are unique.")
+
     events = events.copy()
     events[:, 0] -= raw.first_samp
     events[:, 0] //= decim
+    if len(set(events[:, 0])) < len(events[:, 0]):
+        raise ValueError("After decimating, `events` contains duplicate time "
+                         "points. This means some events are too closely "
+                         "spaced for the requested decimation factor. Choose "
+                         "different events, drop close events, or choose a "
+                         "different decimation factor.")
 
     conds = list(event_id)
     if covariates is not None:

@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+import warnings
 import numpy as np
 import copy
 
@@ -64,8 +65,8 @@ class _GeneralizationAcrossTime(object):
     """ see GeneralizationAcrossTime
     """  # noqa
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
-                 test_times=None, predict_mode='cross-validation', scorer=None,
-                 n_jobs=1):
+                 test_times=None, predict_method='predict',
+                 predict_mode='cross-validation', scorer=None, n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
         from sklearn.linear_model import LogisticRegression
@@ -93,6 +94,7 @@ class _GeneralizationAcrossTime(object):
         self.predict_mode = predict_mode
         self.scorer = scorer
         self.picks = picks
+        self.predict_method = predict_method
         self.n_jobs = n_jobs
 
     def fit(self, epochs, y=None):
@@ -141,6 +143,8 @@ class _GeneralizationAcrossTime(object):
             cv = StratifiedKFold(y, cv)
         cv = check_cv(cv, X, y, classifier=True)
         self.cv_ = cv  # update CV
+        if not np.all([len(train) for train, _ in self.cv_]):
+            raise ValueError('Some folds do not have any train epochs.')
 
         self.y_train_ = y
 
@@ -170,7 +174,7 @@ class _GeneralizationAcrossTime(object):
         return self
 
     def predict(self, epochs):
-        """ Test each classifier on each specified testing time slice.
+        """ Classifiers' predictions on each specified testing time slice.
 
         .. note:: This function sets the ``y_pred_`` and ``test_times_``
                   attributes.
@@ -190,6 +194,12 @@ class _GeneralizationAcrossTime(object):
             ``np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs)``.
         """  # noqa
 
+        # Check that classifier has predict_method (e.g. predict_proba is not
+        # always available):
+        if not hasattr(self.clf, self.predict_method):
+            raise NotImplementedError('%s does not have `%s`' % (
+                self.clf, self.predict_method))
+
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
             raise RuntimeError('Please fit models before trying to predict')
@@ -202,6 +212,9 @@ class _GeneralizationAcrossTime(object):
         n_jobs = self.n_jobs
 
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
+
+        if not np.all([len(test) for train, test in self.cv_]):
+            warnings.warn('Some folds do not have any test epochs.')
 
         # Define testing sliding window
         if self.test_times == 'diagonal':
@@ -255,7 +268,7 @@ class _GeneralizationAcrossTime(object):
             slices_ = np.array(slices) - start
             X_ = X[:, :, start:stop]
             return (X_, self.estimators_, self.cv_, slices_.tolist(),
-                    self.predict_mode)
+                    self.predict_mode, self.predict_method)
 
         y_pred = parallel(p_time_gen(*chunk_X(X, slices))
                           for slices in splits)
@@ -354,21 +367,22 @@ class _GeneralizationAcrossTime(object):
         return self.scores_
 
 
-def _predict_slices(X, estimators, cv, slices, predict_mode):
+def _predict_slices(X, estimators, cv, slices, predict_mode, predict_method):
     """Aux function of GeneralizationAcrossTime that loops across chunks of
     testing slices.
     """
     out = list()
     for this_estimator, this_slice in zip(estimators, slices):
         out.append(_predict_time_loop(X, this_estimator, cv, this_slice,
-                                      predict_mode))
+                                      predict_mode, predict_method))
     return out
 
 
 _warn_once = dict()
 
 
-def _predict_time_loop(X, estimators, cv, slices, predict_mode):
+def _predict_time_loop(X, estimators, cv, slices, predict_mode,
+                       predict_method):
     """Aux function of GeneralizationAcrossTime
 
     Run classifiers predictions loop across time samples.
@@ -382,6 +396,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     slices : list
         List of slices selecting data from X from which is prediction is
         generated.
+    predict_method : str
+        Specifies prediction method for the estimator.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -445,16 +461,20 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
         if predict_mode == 'mean-prediction':
             # Predict with each fold's estimator and average predictions.
             y_pred.append(_predict(X_pred, estimators,
-                          is_single_time_sample=is_single_time_sample))
+                          is_single_time_sample=is_single_time_sample,
+                          predict_method=predict_method))
         elif predict_mode == 'cross-validation':
             # Predict with the estimator trained on the separate training set.
             for k, (train, test) in enumerate(cv):
+                if test.size == 0:
+                    continue
                 # Single trial predictions
                 X_pred_t = X_pred[test_epochs_slices[k]]
                 # If is_single_time_sample, we are predicting each time sample
                 # as if it was a different epoch (vectoring)
                 y_pred_ = _predict(X_pred_t, estimators[k:k + 1],
-                                   is_single_time_sample=is_single_time_sample)
+                                   is_single_time_sample=is_single_time_sample,
+                                   predict_method=predict_method)
                 # XXX I didn't manage to initialize correctly this array, as
                 # its size depends on the the type of predictor and the
                 # number of class.
@@ -665,7 +685,7 @@ def _sliding_window(times, window_params, sfreq):
     return window_params
 
 
-def _predict(X, estimators, is_single_time_sample):
+def _predict(X, estimators, is_single_time_sample, predict_method):
     """Aux function of GeneralizationAcrossTime
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -702,7 +722,7 @@ def _predict(X, estimators, is_single_time_sample):
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
     for fold, clf in enumerate(estimators):
-        _y_pred = clf.predict(X)
+        _y_pred = getattr(clf, predict_method)(X)
         # See inconsistency in dimensionality: scikit-learn/scikit-learn#5058
         if _y_pred.ndim == 1:
             _y_pred = _y_pred[:, None]
@@ -715,7 +735,7 @@ def _predict(X, estimators, is_single_time_sample):
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:
         # XXX need API to identify how multiple predictions can be combined?
-        if is_classifier(clf):
+        if is_classifier(clf) and (predict_method == 'predict'):
             y_pred, _ = stats.mode(y_pred, axis=2)
         else:
             y_pred = np.mean(y_pred, axis=2)
@@ -783,6 +803,11 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
                 If not given, computed from 'start', 'stop', 'length', 'step'.
 
         If None, empty dict.
+    predict_method : str
+        Name of the method used to make predictions from the estimator. For
+        example, both `predict_proba` and `predict` are supported for
+        sklearn.linear_model.LogisticRegression. Note that the scorer must be
+        adapted to the prediction outputs of the method. Defaults to 'predict'.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -860,12 +885,12 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     .. versionadded:: 0.9.0
     """  # noqa
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
-                 test_times=None, predict_mode='cross-validation', scorer=None,
-                 n_jobs=1):
+                 test_times=None, predict_method='predict',
+                 predict_mode='cross-validation', scorer=None, n_jobs=1):
         super(GeneralizationAcrossTime, self).__init__(
             picks=picks, cv=cv, clf=clf, train_times=train_times,
-            test_times=test_times, predict_mode=predict_mode, scorer=scorer,
-            n_jobs=n_jobs)
+            test_times=test_times, predict_method=predict_method,
+            predict_mode=predict_mode, scorer=scorer, n_jobs=n_jobs)
 
     def __repr__(self):
         s = ''
@@ -1076,6 +1101,11 @@ class TimeDecoding(_GeneralizationAcrossTime):
                 one time sample.
 
         If None, empty dict.
+    predict_method : str
+        Name of the method used to make predictions from the estimator. For
+        example, both `predict_proba` and `predict` are supported for
+        sklearn.linear_model.LogisticRegression. Note that the scorer must be
+        adapted to the prediction outputs of the method. Defaults to 'predict'.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -1135,10 +1165,12 @@ class TimeDecoding(_GeneralizationAcrossTime):
     """
 
     def __init__(self, picks=None, cv=5, clf=None, times=None,
-                 predict_mode='cross-validation', scorer=None, n_jobs=1):
-        super(TimeDecoding, self).__init__(picks=picks, cv=cv, clf=None,
+                 predict_method='predict', predict_mode='cross-validation',
+                 scorer=None, n_jobs=1):
+        super(TimeDecoding, self).__init__(picks=picks, cv=cv, clf=clf,
                                            train_times=times,
                                            test_times='diagonal',
+                                           predict_method=predict_method,
                                            predict_mode=predict_mode,
                                            scorer=scorer, n_jobs=n_jobs)
         self._clean_times()

@@ -139,13 +139,15 @@ def _blk_read_lims(start, stop, buf_len):
 
 
 def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
-                        dtype='<i2'):
+                        dtype='<i2', n_channels=None, offset=0,
+                        trigger_ch=None):
     """Read a chunk of raw data"""
-    n_channels = raw.info['nchan']
+    if n_channels is None:
+        n_channels = raw.info['nchan']
     n_bytes = np.dtype(dtype).itemsize
     # data_offset and data_left count data samples (channels x time points),
     # not bytes.
-    data_offset = n_channels * start * n_bytes
+    data_offset = n_channels * start * n_bytes + offset
     data_left = (stop - start) * n_channels
 
     # Read up to 100 MB of data at a time, block_size is in data samples
@@ -155,11 +157,13 @@ def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
         fid.seek(data_offset)
         # extract data in chunks
         for sample_start in np.arange(0, data_left, block_size) // n_channels:
-
             count = min(block_size, data_left - sample_start * n_channels)
             block = np.fromfile(fid, dtype, count)
             block = block.reshape(n_channels, -1, order='F')
             n_samples = block.shape[1]  # = count // n_channels
             sample_stop = sample_start + n_samples
+            if trigger_ch is not None:
+                stim_ch = trigger_ch[start:stop][sample_start:sample_stop]
+                block = np.vstack((block, stim_ch))
             data_view = data[:, sample_start:sample_stop]
             _mult_cal_one(data_view, block, idx, cals, mult)
