@@ -59,7 +59,7 @@ def channel_type(info, idx):
         return 'ias'
     elif kind == FIFF.FIFFV_SYST_CH:
         return 'syst'
-    elif kind in [FIFF.FIFFV_SEEG_CH, 702]:  # 702 was used before v0.11
+    elif kind == FIFF.FIFFV_SEEG_CH:
         return 'seeg'
     elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
                   FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
