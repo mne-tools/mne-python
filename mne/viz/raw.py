@@ -239,17 +239,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
               'misc', 'chpi', 'syst', 'ias', 'exci']:
         pick_kwargs[t] = True
         inds += [pick_types(raw.info, **pick_kwargs)]
-        if t == 'seeg' and len(inds[-1]) > 0:
-            # XXX hack to work around fiff mess
-            new_picks = [ind for ind in inds[-1] if
-                         not raw.ch_names[ind].startswith('CHPI')]
-            if len(new_picks) != len(inds[-1]):
-                inds[-1] = new_picks
-            else:
-                logger.warning('Conflicting FIFF constants detected. SEEG '
-                               'FIFF data saved before mne version 0.11 will '
-                               'not work with mne version 0.12! Save the raw '
-                               'files again to fix the FIFF tags!')
         types += [t] * len(inds[-1])
         pick_kwargs[t] = False
     inds = np.concatenate(inds).astype(int)
