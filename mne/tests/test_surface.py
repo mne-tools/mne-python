@@ -102,7 +102,8 @@ def test_make_morph_maps():
                      op.join(tempdir, *args))
 
     # this should trigger the creation of morph-maps dir and create the map
-    mmap = read_morph_map('fsaverage_ds', 'sample_ds', tempdir)
+    with warnings.catch_warnings(record=True):
+        mmap = read_morph_map('fsaverage_ds', 'sample_ds', tempdir)
     mmap2 = read_morph_map('fsaverage_ds', 'sample_ds', subjects_dir)
     assert_equal(len(mmap), len(mmap2))
     for m1, m2 in zip(mmap, mmap2):
@@ -111,7 +112,8 @@ def test_make_morph_maps():
         assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
     # This will also trigger creation, but it's trivial
-    mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
+    with warnings.catch_warnings(record=True):
+        mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
     for mm in mmap:
         assert_true((mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0)
 

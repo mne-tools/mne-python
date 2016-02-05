@@ -708,7 +708,8 @@ def test_morph():
                   subjects_dir, 2)
     assert_raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
                   subjects_dir, 2)
-    label.smooth(subjects_dir=subjects_dir)  # make sure this runs
+    with warnings.catch_warnings(record=True):  # morph map could be missing
+        label.smooth(subjects_dir=subjects_dir)  # make sure this runs
 
 
 @testing.requires_testing_data
