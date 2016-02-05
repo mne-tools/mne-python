@@ -62,9 +62,10 @@ def test_cache_dir():
             # ensure that non-independence yields warning
             stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
             assert_true('independently' not in log_file.getvalue())
-            permutation_cluster_1samp_test(
-                X, buffer_size=10, n_jobs=2, n_permutations=1,
-                seed=0, stat_fun=stat_fun, verbose=False)
+            with warnings.catch_warnings(record=True):  # independently
+                permutation_cluster_1samp_test(
+                    X, buffer_size=10, n_jobs=2, n_permutations=1,
+                    seed=0, stat_fun=stat_fun, verbose=False)
             assert_true('independently' in log_file.getvalue())
     finally:
         if orig_dir is not None:
@@ -173,12 +174,12 @@ def test_cluster_permutation_t_test():
 
             # test with 2 jobs and buffer_size enabled
             buffer_size = condition1.shape[1] // 10
-            T_obs_neg_buff, _, cluster_p_values_neg_buff, _ = \
-                permutation_cluster_1samp_test(-condition1, n_permutations=100,
-                                               tail=-1, threshold=-1.67,
-                                               seed=1, n_jobs=2,
-                                               stat_fun=stat_fun,
-                                               buffer_size=buffer_size)
+            with warnings.catch_warnings(record=True):  # independently
+                T_obs_neg_buff, _, cluster_p_values_neg_buff, _ = \
+                    permutation_cluster_1samp_test(
+                        -condition1, n_permutations=100, tail=-1,
+                        threshold=-1.67, seed=1, n_jobs=2, stat_fun=stat_fun,
+                        buffer_size=buffer_size)
 
             assert_array_equal(T_obs_neg, T_obs_neg_buff)
             assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)

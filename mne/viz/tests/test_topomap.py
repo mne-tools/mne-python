@@ -226,7 +226,8 @@ def test_plot_topomap():
 
     # Test peak finder
     axes = [plt.subplot(131), plt.subplot(132)]
-    evoked.plot_topomap(times='peaks', axes=axes)
+    with warnings.catch_warnings(record=True):  # rightmost column
+        evoked.plot_topomap(times='peaks', axes=axes)
     plt.close('all')
     evoked.data = np.zeros(evoked.data.shape)
     evoked.data[50][1] = 1

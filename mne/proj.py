@@ -60,8 +60,7 @@ def write_proj(fname, projs):
     --------
     read_proj
     """
-    check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'),
-                stacklevel=3)
+    check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
 
     fid = io.write.start_file(fname)
     io.proj._write_proj(fid, projs)

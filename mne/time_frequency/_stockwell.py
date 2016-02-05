@@ -33,7 +33,7 @@ def _check_input_st(x_in, n_fft):
     if n_times < n_fft:
         _traverse_warn(
             'The input signal is shorter ({0}) than "n_fft" ({1}). '
-            'Applying zero padding.').format(x_in.shape[-1], n_fft)
+            'Applying zero padding.'.format(x_in.shape[-1], n_fft))
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)
         x_in = np.concatenate((x_in, pad_array), axis=-1)

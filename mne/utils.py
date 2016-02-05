@@ -252,11 +252,12 @@ def sum_squared(X):
     return np.dot(X_flat, X_flat)
 
 
-def _traverse_warn(message, category=UserWarning):
+def _traverse_warn(message, category=RuntimeWarning):
     """Elicit a warning outside the mne namespace
 
     This function takes arguments like warnings.warn, and sends messages
-    using both warnings.warn and logger.warn.
+    using both warnings.warn and logger.warn. It also uses a default type
+    of RuntimeWarning.
     """
     import mne
     root_dir = op.dirname(mne.__file__)
@@ -269,9 +270,9 @@ def _traverse_warn(message, category=UserWarning):
         if frame == '<string>' and last_file == 'utils.py':  # in verbose dec
             last_file = frame
             continue
-        if not frame.startswith(root_dir) or (  # treat tests as scripts
-                op.basename(frame).startswith('test_') and
-                op.basename(op.dirname(frame)) == 'tests'):
+        # treat tests as scripts
+        if not frame.startswith(root_dir) or \
+                op.basename(op.dirname(frame)) == 'tests':
             stacklevel = fi + 1
             break
         last_file = op.basename(frame)
@@ -969,10 +970,13 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         logger.removeHandler(h)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
-            _traverse_warn('Log entries will be appended to the file. Use '
-                           'overwrite=False to avoid this message in the '
-                           'future.')
-        mode = 'w' if overwrite is True else 'a'
+            # Don't use _traverse_warn here because we just want to
+            # emit a warnings.warn here (not logger.warn)
+            warnings.warn('Log entries will be appended to the file. Use '
+                          'overwrite=False to avoid this message in the '
+                          'future.', RuntimeWarning, stacklevel=2)
+            overwrite = False
+        mode = 'w' if overwrite else 'a'
         lh = logging.FileHandler(fname, mode=mode)
     else:
         """ we should just be able to do:

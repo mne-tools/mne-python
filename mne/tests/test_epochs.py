@@ -751,7 +751,7 @@ def test_epochs_proj():
                     baseline=(None, 0), preload=True, add_eeg_ref=False)
     epochs.pick_channels(['EEG 001', 'EEG 002'])
     assert_equal(len(epochs), 7)  # sufficient for testing
-    temp_fname = 'test.fif'
+    temp_fname = 'test-epo.fif'
     epochs.save(temp_fname)
     for preload in (True, False):
         epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=True,

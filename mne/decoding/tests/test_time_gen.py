@@ -142,7 +142,8 @@ def test_generalization_across_time():
     assert_true(gat is gat2)  # return self
     assert_true(hasattr(gat2, 'cv_'))
     assert_true(gat2.cv_ != gat.cv)
-    scores = gat.score(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        scores = gat.score(epochs)
     assert_true(isinstance(scores, list))  # type check
     assert_equal(len(scores[0]), len(scores))  # shape check
 
@@ -171,16 +172,18 @@ def test_generalization_across_time():
 
     # Test score without passing epochs & Test diagonal decoding
     gat = GeneralizationAcrossTime(test_times='diagonal')
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True):  # not vectorizing
         gat.fit(epochs)
     assert_raises(RuntimeError, gat.score)
-    gat.predict(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        gat.predict(epochs)
     scores = gat.score()
     assert_true(scores is gat.scores_)
     assert_equal(np.shape(gat.scores_), (15, 1))
     assert_array_equal([tim for ttime in gat.test_times_['times']
                         for tim in ttime], gat.train_times_['times'])
-
+    from mne.utils import set_log_level
+    set_log_level('error')
     # Test generalization across conditions
     gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
     with warnings.catch_warnings(record=True):
@@ -208,7 +211,8 @@ def test_generalization_across_time():
     # Test testing time parameters
     # --- outside time range
     gat.test_times = dict(start=-999.)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no epochs in fold
+        assert_raises(ValueError, gat.predict, epochs)
     gat.test_times = dict(start=999.)
     assert_raises(ValueError, gat.predict, epochs)
     # --- impossible slices
@@ -220,7 +224,8 @@ def test_generalization_across_time():
     assert_raises(ValueError, gat_.predict, epochs)
     # --- test time region of interest
     gat.test_times = dict(step=.150)
-    gat.predict(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        gat.predict(epochs)
     assert_array_equal(np.shape(gat.y_pred_), (15, 5, 14, 1))
     # --- silly value
     gat.test_times = 'foo'
@@ -324,12 +329,14 @@ def test_decoding_time():
     assert_true(not hasattr(tg, 'train_times_'))
     assert_true(not hasattr(tg, 'test_times_'))
     assert_raises(RuntimeError, tg.score, epochs=None)
-    tg.predict(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        tg.predict(epochs)
     assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
                  "(s), predicted 14 epochs, no score>",
                  '%s' % tg)
     assert_array_equal(np.shape(tg.y_pred_), [15, 14, 1])
-    tg.score(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        tg.score(epochs)
     tg.score()
     assert_array_equal(np.shape(tg.scores_), [15])
     assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
