@@ -285,7 +285,7 @@ def warn(message, category=RuntimeWarning):
         last_file = op.basename(frame)
     del frame, stack
     warnings.warn(message, category, stacklevel=stacklevel)
-    logger.warn(message)
+    logger.warning(message)
 
 
 def check_fname(fname, filetype, endings):
