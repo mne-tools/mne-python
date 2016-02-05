@@ -18,7 +18,7 @@ dependencies:
     - sudo pip install mayavi
     - sudo pip install pysurfer
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
-    - sudo pip install scikit-learn
+    - sudo pip install scikit-learn nilearn
     - sudo python setup.py install
     - sudo make sample_data
     - sudo make testing_data
