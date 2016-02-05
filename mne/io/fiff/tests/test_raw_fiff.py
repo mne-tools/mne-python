@@ -27,11 +27,14 @@ from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import _picks_by_type
 from mne.annotations import Annotations
+from mne.tests.common import assert_naming
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
+testing_path = testing.data_path(download=False)
+data_dir = op.join(testing_path, 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
+ms_fname = op.join(testing_path, 'SSS', 'test_move_anon_raw.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 test_fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -100,6 +103,17 @@ def test_hash_raw():
 
     raw_2._data[0, 0] -= 1
     assert_not_equal(hash(raw), hash(raw_2))
+
+
+@testing.requires_testing_data
+def test_maxshield():
+    """Test maxshield warning
+    """
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        Raw(ms_fname, allow_maxshield=True)
+    assert_equal(len(w), 1)
+    assert_true('test_raw_fiff.py' in w[0].filename)
 
 
 @testing.requires_testing_data
@@ -516,7 +530,7 @@ def test_io_raw():
         raw_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         raw.save(raw_badname)
         Raw(raw_badname)
-    assert_true(len(w) > 0)  # len(w) should be 2 but Travis sometimes has more
+    assert_naming(w, 'test_raw_fiff.py', 2)
 
 
 @testing.requires_testing_data

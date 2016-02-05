@@ -230,7 +230,7 @@ def read_events(filename, include=None, exclude=None, mask=0):
     decimation.
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
-                                     '-eve.lst', '-eve.txt'))
+                                     '-eve.lst', '-eve.txt'), stacklevel=3)
 
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
@@ -287,7 +287,7 @@ def write_events(filename, event_list):
     read_events
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
-                                     '-eve.lst', '-eve.txt'))
+                                     '-eve.lst', '-eve.txt'), stacklevel=3)
 
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':

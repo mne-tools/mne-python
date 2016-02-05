@@ -108,7 +108,8 @@ def read_inverse_operator(fname, verbose=None):
     --------
     write_inverse_operator, make_inverse_operator
     """
-    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
+    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'),
+                stacklevel=5)
 
     #
     #   Open the file, create directory
@@ -326,7 +327,8 @@ def write_inverse_operator(fname, inv, verbose=None):
     --------
     read_inverse_operator
     """
-    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
+    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'),
+                stacklevel=5)
 
     #
     #   Open the file, create directory

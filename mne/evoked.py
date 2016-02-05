@@ -1256,7 +1256,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     --------
     write_evokeds
     """
-    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
+    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'), stacklevel=5)
 
     return_list = True
     if condition is None:
@@ -1288,7 +1288,7 @@ def write_evokeds(fname, evoked):
     --------
     read_evokeds
     """
-    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
+    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'), stacklevel=3)
 
     if not isinstance(evoked, list):
         evoked = [evoked]
