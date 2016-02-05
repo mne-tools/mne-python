@@ -59,12 +59,8 @@ def channel_type(info, idx):
         return 'ias'
     elif kind == FIFF.FIFFV_SYST_CH:
         return 'syst'
-    elif kind in [FIFF.FIFFV_SEEG_CH, 702]:  # 702 was used before v0.11
-        # need to do smarter triaging based on units b/c of constant overlap
-        if info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_NONE:
-            return 'chpi'
-        else:
-            return 'seeg'
+    elif kind == FIFF.FIFFV_SEEG_CH:
+        return 'seeg'
     elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
                   FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
                   FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
