@@ -14,12 +14,11 @@ import math
 from functools import partial
 import difflib
 import webbrowser
-from warnings import warn
 import tempfile
 import numpy as np
 
 from ..io import show_fiff
-from ..utils import verbose, set_config
+from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..fixes import _get_argrelmax
 
@@ -88,7 +87,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
         try:
             fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
         except Exception:
-            warn('Matplotlib function \'tight_layout\' is not supported.'
+            warn('Matplotlib function "tight_layout" is not supported.'
                  ' Skipping subplot adjustment.')
 
 

@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import collections
-from warnings import warn
 from copy import deepcopy
 from datetime import datetime as dt
 import os.path as op
@@ -26,7 +25,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..utils import logger, verbose, object_hash
+from ..utils import logger, verbose, object_hash, warn
 from ..fixes import Counter
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type

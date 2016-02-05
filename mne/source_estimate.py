@@ -22,7 +22,7 @@ from .surface import (read_surface, _get_ico_surface, read_morph_map,
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
-                    _time_mask, warn)
+                    _time_mask, warn as warn_)
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
 from .io.base import ToDataFrameMixin
@@ -775,8 +775,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
 
         if self._kernel is None and self._sens_data is None:
             if self._kernel_removed:
-                warn('Performance can be improved by not accessing the data '
-                     'attribute before calling this method.')
+                warn_('Performance can be improved by not accessing the data '
+                      'attribute before calling this method.')
 
             # transform source space data directly
             data_t = func(self.data[idx, tmin_idx:tmax_idx])
@@ -1954,9 +1954,9 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     else:
         data[idx_use, :] /= data_sum[idx_use][:, None]
     if len(idx_use) != len(data_sum) and warn:
-        warn('%s/%s vertices not included in smoothing, consider increasing '
-             'the number of steps'
-             % (len(data_sum) - len(idx_use), len(data_sum)))
+        warn_('%s/%s vertices not included in smoothing, consider increasing '
+              'the number of steps'
+              % (len(data_sum) - len(idx_use), len(data_sum)))
 
     logger.info('    %d smooth iterations done.' % (k + 1))
     data_morphed = maps[nearest, :] * data
@@ -2364,10 +2364,10 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         masks = np.concatenate(masks)
         missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
         if missing:
-            warn('%0.1f%% of original source space vertices have been'
-                 ' omitted, tri-based connectivity will have holes.\n'
-                 'Consider using distance-based connectivity or '
-                 'morphing data to all source space vertices.' % missing)
+            warn_('%0.1f%% of original source space vertices have been'
+                  ' omitted, tri-based connectivity will have holes.\n'
+                  'Consider using distance-based connectivity or '
+                  'morphing data to all source space vertices.' % missing)
             masks = np.tile(masks, n_times)
             masks = np.where(masks)[0]
             connectivity = connectivity.tocsr()
@@ -2745,7 +2745,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
             if not allow_empty:
                 raise ValueError(msg)
             else:
-                warn(msg + '. Assigning all-zero time series to label.')
+                warn_(msg + '. Assigning all-zero time series to label.')
             this_vertidx = None  # to later check if label is empty
 
         label_vertidx.append(this_vertidx)
