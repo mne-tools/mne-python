@@ -8,7 +8,6 @@
 
 from math import factorial
 from os import path as op
-import warnings
 
 import numpy as np
 from scipy import linalg
@@ -25,7 +24,7 @@ from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
-from ..utils import verbose, logger, _clean_names
+from ..utils import verbose, logger, _clean_names, _traverse_warn
 from ..fixes import _get_args, partial
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
@@ -306,7 +305,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                        recon_trans['trans'][:3, 3])
         dist = np.sqrt(np.sum(_sq(diff)))
         if dist > 25.:
-            logger.warning('Head position change is over 25 mm (%s) = %0.1f mm'
+            _traverse_warn('Head position change is over 25 mm (%s) = %0.1f mm'
                            % (', '.join('%0.1f' % x for x in diff), dist))
 
     # Reconstruct raw file object with spatiotemporal processed data
@@ -639,8 +638,8 @@ def _check_pos(pos, head_frame, raw, st_fixed):
     if not head_frame:
         raise ValueError('positions can only be used if coord_frame="head"')
     if not st_fixed:
-        warnings.warn('st_fixed=False is untested, use with caution!',
-                      category=RuntimeWarning, stacklevel=5)
+        _traverse_warn('st_fixed=False is untested, use with caution!',
+                       category=RuntimeWarning)
     if not isinstance(pos, np.ndarray):
         raise TypeError('pos must be an ndarray')
     if pos.ndim != 2 or pos.shape[1] != 10:
@@ -695,7 +694,7 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
         if bad_condition == 'error':
             raise RuntimeError(msg)
         else:  # condition == 'warning':
-            logger.warning(msg)
+            _traverse_warn(msg)
 
     # Build in our data scaling here
     pS_decomp *= coil_scale[good_picks].T
@@ -735,7 +734,7 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info)
     if len(mag_inds_T1T2) > 0:
-        logger.warning('%d T1/T2 magnetometer channel types found. If using '
+        _traverse_warn('%d T1/T2 magnetometer channel types found. If using '
                        ' SSS, it is advised to replace coil types using '
                        ' `fix_mag_coil_types`.' % len(mag_inds_T1T2))
     # Get indices of channels to use in multipolar moment calculation

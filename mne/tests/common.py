@@ -94,13 +94,23 @@ def assert_dig_allclose(info_py, info_bin):
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-3)  # mm
 
 
-def assert_naming(w, fname, n_warn):
-    """Assert we had a naming failure in a specific file"""
+def assert_naming(warns, fname, n_warn):
+    """Assert we had a naming failure in a specific file
+
+    Parameters
+    ----------
+    warns : list
+        List of warnings from ``warnings.catch_warnings(record=True)``.
+    fname : str
+        Filename that should appear in the warning message.
+    n_warn : int
+        Number of warnings that should have naming convention errors.
+    """
     from nose.tools import assert_true
     assert_true(sum('naming conventions' in str(ww.message)
-                    for ww in w) == n_warn)
+                    for ww in warns) == n_warn)
     # check proper stacklevel reporting
-    for ww in w:
+    for ww in warns:
         if 'naming conventions' in str(ww.message):
             assert_true(fname in ww.filename,
                         msg='"%s" not in "%s"' % (fname, ww.filename))

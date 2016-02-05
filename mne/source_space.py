@@ -26,7 +26,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _triangle_neighbors)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
-                    check_version, _get_call_line)
+                    check_version, _get_call_line, _traverse_warn)
 from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
@@ -316,7 +316,7 @@ class SourceSpaces(list):
                                        iz_orig != iz_clip)).any(0).sum()
                     # generate use warnings for clipping
                     if n_diff > 0:
-                        logger.warning('%s surface vertices lay outside '
+                        _traverse_warn('%s surface vertices lay outside '
                                        'of volume space. Consider using a '
                                        'larger volume space.' % n_diff)
                     # get surface id or use default value
@@ -344,7 +344,7 @@ class SourceSpaces(list):
                                        iz_orig != iz_clip)).any(0).sum()
                     # generate use warnings for clipping
                     if n_diff > 0:
-                        logger.warning('%s discrete vertices lay outside '
+                        _traverse_warn('%s discrete vertices lay outside '
                                        'of volume space. Consider using a '
                                        'larger volume space.' % n_diff)
                     # set default value
@@ -498,8 +498,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     # be more permissive on read than write (fwd/inv can contain src)
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
                                         '-fwd.fif', '-fwd.fif.gz',
-                                        '-inv.fif', '-inv.fif.gz'),
-                stacklevel=5)
+                                        '-inv.fif', '-inv.fif.gz'))
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
@@ -886,8 +885,7 @@ def write_source_spaces(fname, src, verbose=None):
     --------
     read_source_spaces
     """
-    check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'),
-                stacklevel=5)
+    check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
 
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)

@@ -19,7 +19,7 @@ from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from .topomap import _prepare_topo_plot, plot_topomap
-from ..utils import logger
+from ..utils import _traverse_warn
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types
@@ -804,7 +804,7 @@ def _label_clicked(pos, params):
                                                                     ch_type,
                                                                     None)
         except Exception as exc:
-            logger.warning(exc)
+            _traverse_warn(exc)
             plt.close(fig)
             return
         this_data = data[:, data_picks]

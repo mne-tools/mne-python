@@ -36,8 +36,7 @@ def read_proj(fname):
     --------
     write_proj
     """
-    check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'),
-                stacklevel=3)
+    check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
 
     ff, tree, _ = io.fiff_open(fname)
     with ff as fid:

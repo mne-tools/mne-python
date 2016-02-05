@@ -2,18 +2,18 @@
 #
 # License: BSD (3-clause)
 
-import re
 import copy
-import time
+import re
 import threading
-import warnings
+import time
+
 import numpy as np
 
 from ..io import _empty_info
 from ..io.pick import pick_info
 from ..io.constants import FIFF
 from ..epochs import EpochsArray
-from ..utils import logger
+from ..utils import logger, _traverse_warn
 from ..externals.FieldTrip import Client as FtClient
 
 
@@ -136,8 +136,8 @@ class FieldTripClient(object):
 
         if self.info is None:
 
-            warnings.warn('Info dictionary not provided. Trying to guess it '
-                          'from FieldTrip Header object')
+            _traverse_warn('Info dictionary not provided. Trying to guess it '
+                           'from FieldTrip Header object')
 
             info = _empty_info(self.ft_header.fSample)  # create info
 

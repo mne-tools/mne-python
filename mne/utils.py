@@ -252,7 +252,35 @@ def sum_squared(X):
     return np.dot(X_flat, X_flat)
 
 
-def check_fname(fname, filetype, endings, stacklevel=1):
+def _traverse_warn(message, category=UserWarning):
+    """Elicit a warning outside the mne namespace
+
+    This function takes arguments like warnings.warn, and sends messages
+    using both warnings.warn and logger.warn.
+    """
+    import mne
+    root_dir = op.dirname(mne.__file__)
+    stacklevel = 1
+    frame = None
+    stack = inspect.stack()
+    last_file = ''
+    for fi, frame in enumerate(stack):
+        frame = frame[1]
+        if frame == '<string>' and last_file == 'utils.py':  # in verbose dec
+            last_file = frame
+            continue
+        if not frame.startswith(root_dir) or (  # treat tests as scripts
+                op.basename(frame).startswith('test_') and
+                op.basename(op.dirname(frame)) == 'tests'):
+            stacklevel = fi + 1
+            break
+        last_file = op.basename(frame)
+    del frame, stack
+    warnings.warn(message, category, stacklevel=stacklevel)
+    logger.warn(message)
+
+
+def check_fname(fname, filetype, endings):
     """Enforce MNE filename conventions
 
     Parameters
@@ -263,15 +291,13 @@ def check_fname(fname, filetype, endings, stacklevel=1):
         Type of file. e.g., ICA, Epochs etc.
     endings : tuple
         Acceptable endings for the filename.
-    stacklevel : int
-        The stack level to use for warnings.
     """
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
-        warnings.warn('This filename (%s) does not conform to MNE naming '
-                      'conventions. All %s files should end with '
-                      '%s' % (fname, filetype, print_endings),
-                      RuntimeWarning, stacklevel=stacklevel)
+        _traverse_warn('This filename (%s) does not conform to MNE naming '
+                       'conventions. All %s files should end with '
+                       '%s' % (fname, filetype, print_endings),
+                       RuntimeWarning)
 
 
 class WrapStdOut(object):
@@ -847,7 +873,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
                "starting with a tilde ('~') character. Such paths are not "
                "interpreted correctly from within Python. It is recommended "
                "that you use '$HOME' instead of '~'.")
-        warnings.warn(msg)
+        _traverse_warn(msg)
 
     logger.info("Running subprocess: %s" % ' '.join(command))
     try:
@@ -943,9 +969,9 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         logger.removeHandler(h)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
-            warnings.warn('Log entries will be appended to the file. Use '
-                          'overwrite=False to avoid this message in the '
-                          'future.')
+            _traverse_warn('Log entries will be appended to the file. Use '
+                           'overwrite=False to avoid this message in the '
+                           'future.')
         mode = 'w' if overwrite is True else 'a'
         lh = logging.FileHandler(fname, mode=mode)
     else:
@@ -1219,7 +1245,7 @@ def set_config(key, value, home_dir=None):
         raise TypeError('value must be a string or None')
     if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
-        warnings.warn('Setting non-standard config type: "%s"' % key)
+        _traverse_warn('Setting non-standard config type: "%s"' % key)
 
     # Read all previous values
     config_path = get_config_path(home_dir=home_dir)

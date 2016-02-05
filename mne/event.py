@@ -11,7 +11,8 @@
 import numpy as np
 from os.path import splitext
 
-from .utils import check_fname, logger, verbose, _get_stim_channel
+from .utils import (check_fname, logger, verbose, _get_stim_channel,
+                    _traverse_warn)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -230,7 +231,7 @@ def read_events(filename, include=None, exclude=None, mask=0):
     decimation.
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
-                                     '-eve.lst', '-eve.txt'), stacklevel=3)
+                                     '-eve.lst', '-eve.txt'))
 
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
@@ -287,7 +288,7 @@ def write_events(filename, event_list):
     read_events
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
-                                     '-eve.lst', '-eve.txt'), stacklevel=3)
+                                     '-eve.lst', '-eve.txt'))
 
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
@@ -398,7 +399,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
         raise ValueError('No stim channel found to extract event triggers.')
     data, _ = raw[picks, :]
     if np.any(data < 0):
-        logger.warning('Trigger channel contains negative values. '
+        _traverse_warn('Trigger channel contains negative values. '
                        'Taking absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
@@ -419,7 +420,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         merge = 0
 
     if np.any(data < 0):
-        logger.warning('Trigger channel contains negative values. '
+        _traverse_warn('Trigger channel contains negative values. '
                        'Taking absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)

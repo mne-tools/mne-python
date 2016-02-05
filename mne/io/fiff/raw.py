@@ -7,7 +7,6 @@
 # License: BSD (3-clause)
 
 import copy
-import warnings
 import os
 import os.path as op
 
@@ -24,7 +23,7 @@ from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 from ..utils import _mult_cal_one
 
 from ...annotations import Annotations, _combine_annotations
-from ...utils import check_fname, logger, verbose
+from ...utils import check_fname, logger, verbose, _traverse_warn
 
 
 class Raw(_BaseRaw):
@@ -97,7 +96,7 @@ class Raw(_BaseRaw):
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
-                    logger.warning('Split raw file detected but next file %s '
+                    _traverse_warn('Split raw file detected but next file %s '
                                    'does not exist.' % next_fname)
                     continue
                 if next_fname in fnames:
@@ -157,8 +156,7 @@ class Raw(_BaseRaw):
         if do_check_fname:
             check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif',
                                        'raw_tsss.fif', 'raw.fif.gz',
-                                       'raw_sss.fif.gz', 'raw_tsss.fif.gz'),
-                        stacklevel=8)
+                                       'raw_sss.fif.gz', 'raw_tsss.fif.gz'))
 
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         ext = os.path.splitext(fname)[1].lower()
@@ -184,7 +182,7 @@ class Raw(_BaseRaw):
                         raise ValueError('No raw data in %s' % fname)
                     elif allow_maxshield:
                         info['maxshield'] = True
-                        warnings.warn(msg, stacklevel=7)
+                        _traverse_warn(msg)
                     else:
                         msg += (' Use allow_maxshield=True if you are sure you'
                                 ' want to load the data despite this warning.')

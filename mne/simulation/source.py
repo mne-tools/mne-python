@@ -8,7 +8,7 @@ import numpy as np
 
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
-from ..utils import check_random_state, logger
+from ..utils import check_random_state, _traverse_warn
 from ..externals.six.moves import zip
 
 
@@ -100,7 +100,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
         datas = data
     else:
         if n_dipoles != len(labels):
-            logger.warning('The number of labels is different from the number '
+            _traverse_warn('The number of labels is different from the number '
                            'of dipoles. %s dipole(s) will be generated.'
                            % min(n_dipoles, len(labels)))
         labels = labels[:n_dipoles] if n_dipoles < len(labels) else labels

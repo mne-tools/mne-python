@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
 from copy import deepcopy
 from math import sqrt
 import numpy as np
@@ -32,7 +31,7 @@ from ..source_space import (_read_source_spaces_from_tree,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc
-from ..utils import check_fname, logger, verbose
+from ..utils import check_fname, logger, verbose, _traverse_warn
 from functools import reduce
 
 
@@ -108,8 +107,7 @@ def read_inverse_operator(fname, verbose=None):
     --------
     write_inverse_operator, make_inverse_operator
     """
-    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'),
-                stacklevel=5)
+    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 
     #
     #   Open the file, create directory
@@ -327,8 +325,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     --------
     read_inverse_operator
     """
-    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'),
-                stacklevel=5)
+    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 
     #
     #   Open the file, create directory
@@ -1237,8 +1234,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     is_fixed_ori = is_fixed_orient(forward)
 
     if fixed and loose is not None:
-        warnings.warn("When invoking make_inverse_operator with fixed=True, "
-                      "the loose parameter is ignored.")
+        _traverse_warn("When invoking make_inverse_operator with fixed=True, "
+                       "the loose parameter is ignored.")
         loose = None
 
     if is_fixed_ori and not fixed:
@@ -1572,7 +1569,7 @@ def estimate_snr(evoked, inv, verbose=None):
             break
         lambda2_est[remaining] *= lambda_mult
     else:
-        warnings.warn('SNR estimation did not converge')
+        _traverse_warn('SNR estimation did not converge')
     snr_est = 1.0 / np.sqrt(lambda2_est)
     snr = np.sqrt(snr)
     return snr, snr_est

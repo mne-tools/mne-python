@@ -10,7 +10,7 @@ from calendar import timegm
 
 import numpy as np
 
-from ...utils import logger
+from ...utils import logger, _traverse_warn
 from ...transforms import (apply_trans, _coord_frame_name, invert_transform,
                            combine_transforms)
 
@@ -194,7 +194,7 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 pos['r0'][:] = cch['coil']['pos'][0]
                 if not _at_origin(pos['r0']):
                     if t['t_ctf_head_head'] is None:
-                        logger.warning('EEG electrode (%s) location omitted '
+                        _traverse_warn('EEG electrode (%s) location omitted '
                                        'because of missing HPI information'
                                        % (ch['ch_name']))
                         pos['r0'][:] = np.zeros(3)

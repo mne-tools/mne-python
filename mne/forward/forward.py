@@ -4,9 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
 from time import time
-import warnings
 from copy import deepcopy
 import re
 
@@ -18,6 +16,7 @@ import os
 from os import path as op
 import tempfile
 
+from ..externals.six import string_types
 from ..fixes import sparse_block_diag
 from ..io import RawArray, Info
 from ..io.constants import FIFF
@@ -41,7 +40,7 @@ from ..source_space import (_read_source_spaces_from_tree,
 from ..source_estimate import VolSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
-from ..utils import (_check_fname, get_subjects_dir, has_mne_c,
+from ..utils import (_check_fname, get_subjects_dir, has_mne_c, _traverse_warn,
                      run_subprocess, check_fname, logger, verbose)
 
 
@@ -431,8 +430,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     --------
     write_forward_solution, make_forward_solution
     """
-    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'),
-                stacklevel=5)
+    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
@@ -701,7 +699,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     --------
     read_forward_solution
     """
-    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'), stacklevel=5)
+    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
     # check for file existence
     _check_fname(fname, overwrite)
@@ -930,8 +928,8 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
                              'not %s.' % loose)
 
         if is_fixed_ori:
-            warnings.warn('Ignoring loose parameter with forward operator '
-                          'with fixed orientation.')
+            _traverse_warn('Ignoring loose parameter with forward operator '
+                           'with fixed orientation.')
 
     orient_prior = np.ones(n_sources, dtype=np.float)
     if (not is_fixed_ori) and (loose is not None) and (loose < 1):
@@ -964,7 +962,7 @@ def _restrict_gain_matrix(G, info):
                 G = G[sel]
                 logger.info('    %d EEG channels' % len(sel))
             else:
-                logger.warning('Could not find MEG or EEG channels')
+                _traverse_warn('Could not find MEG or EEG channels')
     return G
 
 
@@ -1079,16 +1077,16 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
                          'supported.')
 
     if np.all(stc.data > 0):
-        warnings.warn('Source estimate only contains currents with positive '
-                      'values. Use pick_ori="normal" when computing the '
-                      'inverse to compute currents not current magnitudes.')
+        _traverse_warn('Source estimate only contains currents with positive '
+                       'values. Use pick_ori="normal" when computing the '
+                       'inverse to compute currents not current magnitudes.')
 
     max_cur = np.max(np.abs(stc.data))
     if max_cur > 1e-7:  # 100 nAm threshold for warning
-        warnings.warn('The maximum current magnitude is %0.1f nAm, which is '
-                      'very large. Are you trying to apply the forward model '
-                      'to dSPM values? The result will only be correct if '
-                      'currents are used.' % (1e9 * max_cur))
+        _traverse_warn('The maximum current magnitude is %0.1f nAm, which is '
+                       'very large. Are you trying to apply the forward model '
+                       'to dSPM values? The result will only be correct if '
+                       'currents are used.' % (1e9 * max_cur))
 
     src_sel = _stc_src_sel(fwd['src'], stc)
     if isinstance(stc, VolSourceEstimate):

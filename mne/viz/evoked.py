@@ -18,7 +18,7 @@ from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times)
-from ..utils import logger, _clean_names
+from ..utils import logger, _clean_names, _traverse_warn
 from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
@@ -289,7 +289,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                             if name in layout.names])
                         name_idx = [layout.names.index(name) for name in names]
                         if len(name_idx) < len(chs):
-                            logger.warning('Could not find layout for '
+                            _traverse_warn('Could not find layout for '
                                            'all the channels. Legend for '
                                            'spatial colors not drawn.')
                         else:

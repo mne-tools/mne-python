@@ -14,7 +14,7 @@ from .cov import make_ad_hoc_cov, _get_whitener_data
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import (verbose, logger, check_version, use_log_level, deprecated,
-                    _check_fname)
+                    _check_fname, _traverse_warn)
 from .fixes import partial
 from .externals.six import string_types
 
@@ -490,7 +490,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                 use_mask[exclude] = False
         good = use_mask.sum() >= 3
         if not good:
-            logger.warning(_time_prefix(fit_time) + '%s/%s good HPI fits, '
+            _traverse_warn(_time_prefix(fit_time) + '%s/%s good HPI fits, '
                            'cannot determine the transformation!'
                            % (use_mask.sum(), n_freqs))
             continue

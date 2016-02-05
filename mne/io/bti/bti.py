@@ -12,7 +12,7 @@ from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose, sum_squared
+from ...utils import logger, verbose, sum_squared, _traverse_warn
 from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
@@ -1261,7 +1261,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                        colcals=np.ones(mat.shape[1], dtype='>f4'),
                        save_calibrated=0)]
     else:
-        logger.warning('Warning. Currently direct inclusion of 4D weight t'
+        _traverse_warn('Warning. Currently direct inclusion of 4D weight t'
                        'ables is not supported. For critical use cases '
                        '\nplease take into account the MNE command '
                        '\'mne_create_comp_data\' to include weights as '

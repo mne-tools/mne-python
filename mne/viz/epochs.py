@@ -11,11 +11,10 @@
 
 from functools import partial
 import copy
-import warnings
 
 import numpy as np
 
-from ..utils import verbose, get_config, set_config, logger
+from ..utils import verbose, get_config, set_config, logger, _traverse_warn
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
@@ -113,9 +112,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         times_min = np.min(overlay_times)
         times_max = np.max(overlay_times)
         if ((times_min < epochs.tmin) or (times_max > epochs.tmax)):
-            warnings.warn('Some values in overlay_times fall outside of '
-                          'the epochs time interval (between %s s and %s s)' %
-                          (epochs.tmin, epochs.tmax))
+            _traverse_warn('Some values in overlay_times fall outside of '
+                           'the epochs time interval (between %s s and %s s)' %
+                           (epochs.tmin, epochs.tmax))
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):

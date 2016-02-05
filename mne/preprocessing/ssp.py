@@ -5,11 +5,11 @@
 # License: BSD (3-clause)
 
 import copy as cp
-from warnings import warn
+
 import numpy as np
 
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _traverse_warn
 from .. import pick_types
 from ..io import make_eeg_average_ref_proj
 from .ecg import find_ecg_events
@@ -141,7 +141,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     # Check to make sure we actually got at least one useable event
     if events.shape[0] < 1:
-        warn('No %s events found, returning None for projs' % mode)
+        _traverse_warn('No %s events found, returning None for projs' % mode)
         return None, events
 
     logger.info('Computing projector')
@@ -187,7 +187,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     epochs.drop_bad_epochs()
     if epochs.events.shape[0] < 1:
-        warn('No good epochs found, returning None for projs')
+        _traverse_warn('No good epochs found, returning None for projs')
         return None, events
 
     if average:

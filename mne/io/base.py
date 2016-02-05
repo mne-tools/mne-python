@@ -9,7 +9,6 @@
 
 import copy
 from copy import deepcopy
-import warnings
 import os
 import os.path as op
 
@@ -37,7 +36,7 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose, _time_mask)
+                     logger, verbose, _time_mask, _traverse_warn)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -1077,7 +1076,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 # Did we loose events?
                 resampled_events = find_events(inst)
                 if len(resampled_events) != len(original_events):
-                    warnings.warn(
+                    _traverse_warn(
                         'Resampling of the stim channels caused event '
                         'information to become unreliable. Consider finding '
                         'events on the original data and passing the event '
@@ -1221,7 +1220,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
-                                   'raw_tsss.fif.gz'), stacklevel=5)
+                                   'raw_tsss.fif.gz'))
 
         split_size = _get_split_size(split_size)
 
@@ -1232,8 +1231,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if self.preload:
             if np.iscomplexobj(self._data):
-                warnings.warn('Saving raw file with complex data. Loading '
-                              'with command-line MNE tools will not work.')
+                _traverse_warn('Saving raw file with complex data. Loading '
+                               'with command-line MNE tools will not work.')
 
         type_dict = dict(short=FIFF.FIFFT_DAU_PACK16,
                          int=FIFF.FIFFT_INT,
@@ -1668,9 +1667,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                      'in:\n%s' % (bad_file,
                                                   self._filenames[0]))
                 else:
-                    warnings.warn('%d bad channels from:\n%s\nnot found '
-                                  'in:\n%s' % (count_diff, bad_file,
-                                               self._filenames[0]))
+                    _traverse_warn('%d bad channels from:\n%s\nnot found '
+                                   'in:\n%s' % (count_diff, bad_file,
+                                                self._filenames[0]))
             self.info['bads'] = names_there
         else:
             self.info['bads'] = []
@@ -1992,7 +1991,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                              'size: decrease "buffer_size_sec" or increase'
                              '"split_size".')
         if pos > split_size:
-            raise logger.warning('file is larger than "split_size"')
+            _traverse_warn('file is larger than "split_size"')
 
         # Split files if necessary, leave some space for next file info
         if pos >= split_size - this_buff_size_bytes - 2 ** 20:
@@ -2200,9 +2199,9 @@ def _check_raw_compatibility(raw):
                    zip(raw[0].info['projs'], raw[ri].info['projs'])):
             raise ValueError('SSP projectors in raw files must be the same')
     if not all(r.orig_format == raw[0].orig_format for r in raw):
-        warnings.warn('raw files do not all have the same data format, '
-                      'could result in precision mismatch. Setting '
-                      'raw.orig_format="unknown"')
+        _traverse_warn('raw files do not all have the same data format, '
+                       'could result in precision mismatch. Setting '
+                       'raw.orig_format="unknown"')
         raw[0].orig_format = 'unknown'
 
 

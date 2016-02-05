@@ -18,7 +18,7 @@ from scipy import linalg
 
 from ..pick import pick_types
 from ...coreg import fit_matched_points, _decimate_points
-from ...utils import verbose, logger
+from ...utils import verbose, logger, _traverse_warn
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans, Transform)
 from ..base import _BaseRaw
@@ -491,7 +491,7 @@ def _set_dig_kit(mrk, elp, hsp):
                "downsampled to {n_new} points. The preferred way to "
                "downsample is using FastScan."
                ).format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
-        logger.warning(msg)
+        _traverse_warn(msg)
 
     if isinstance(elp, string_types):
         elp_points = _read_dig_points(elp)

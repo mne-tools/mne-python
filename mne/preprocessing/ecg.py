@@ -4,12 +4,11 @@
 #
 # License: BSD (3-clause)
 
-import warnings
-from ..externals.six import string_types
 import numpy as np
 
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose, sum_squared
+from ..externals.six import string_types
+from ..utils import logger, verbose, sum_squared, _traverse_warn
 from ..filter import band_pass_filter
 from ..epochs import Epochs, _BaseEpochs
 from ..io.base import _BaseRaw
@@ -218,8 +217,8 @@ def _get_ecg_channel_index(ch_name, inst):
         #                    'parameter e.g. MEG 1531')
 
     if len(ecg_idx) > 1:
-        warnings.warn('More than one ECG channel found. Using only %s.'
-                      % inst.ch_names[ecg_idx[0]])
+        _traverse_warn('More than one ECG channel found. Using only %s.'
+                       % inst.ch_names[ecg_idx[0]])
 
     return ecg_idx[0]
 
