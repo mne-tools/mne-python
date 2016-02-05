@@ -14,7 +14,7 @@ import re
 
 import numpy as np
 
-from ...utils import verbose, logger, _traverse_warn
+from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
 from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
@@ -79,8 +79,8 @@ class RawEDF(_BaseRaw):
         _check_update_montage(info, montage)
 
         if bool(annot) != bool(annotmap):
-            _traverse_warn("Stimulus Channel will not be annotated. "
-                           "Both 'annot' and 'annotmap' must be specified.")
+            warn("Stimulus Channel will not be annotated. Both 'annot' and "
+                 "'annotmap' must be specified.")
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
@@ -166,8 +166,8 @@ class RawEDF(_BaseRaw):
                                 # because it gets overwritten later on.
                                 ch_data = np.zeros(n_buf_samp)
                             else:
-                                _traverse_warn('Interpolating stim channel.'
-                                               ' Events may jitter.')
+                                warn('Interpolating stim channel. Events may '
+                                     'jitter.')
                                 oldrange = np.linspace(0, 1, n_samp + 1, True)
                                 newrange = np.linspace(0, 1, buf_len, False)
                                 newrange = newrange[r_sidx:r_eidx]
@@ -309,8 +309,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         record_length = float(fid.read(8).decode())
         if record_length == 0:
             edf_info['record_length'] = record_length = 1.
-            _traverse_warn('Header information is incorrect for record length.'
-                           ' Default record length set to 1.')
+            warn('Header information is incorrect for record length. Default '
+                 'record length set to 1.')
         else:
             edf_info['record_length'] = record_length
         nchan = int(fid.read(4).decode())
@@ -442,8 +442,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
             info['highpass'] = float(highpass[0])
     else:
         info['highpass'] = float(np.min(highpass))
-        _traverse_warn('Channels contain different highpass filters. '
-                       'Highest filter setting will be stored.')
+        warn('Channels contain different highpass filters. Highest filter '
+             'setting will be stored.')
 
     if lowpass.size == 0:
         pass
@@ -454,8 +454,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
             info['lowpass'] = float(lowpass[0])
     else:
         info['lowpass'] = float(np.min(lowpass))
-        _traverse_warn('Channels contain different lowpass filters.'
-                       ' Lowest filter setting will be stored.')
+        warn('Channels contain different lowpass filters. Lowest filter '
+             'setting will be stored.')
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None

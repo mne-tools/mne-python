@@ -25,7 +25,7 @@ from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
 from ..transforms import _get_trans, transform_surface_to
 from ..source_space import _ensure_src, _points_outside_surface
 from ..source_estimate import _BaseSourceEstimate
-from ..utils import logger, verbose, check_random_state, _traverse_warn
+from ..utils import logger, verbose, check_random_state, warn
 from ..parallel import check_n_jobs
 from ..externals.six import string_types
 
@@ -384,8 +384,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
             verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
             diff_ = sum([len(v) for v in verts]) - len(src_sel)
             if diff_ != 0:
-                _traverse_warn('%s STC vertices omitted due to fwd calculation'
-                               % (diff_,))
+                warn('%s STC vertices omitted due to fwd calculation' % diff_)
         if last_fwd is None:
             last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
                 fwd, fwd_blink, fwd_ecg, fwd_chpi

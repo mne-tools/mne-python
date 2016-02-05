@@ -252,12 +252,19 @@ def sum_squared(X):
     return np.dot(X_flat, X_flat)
 
 
-def _traverse_warn(message, category=RuntimeWarning):
-    """Elicit a warning outside the mne namespace
+def warn(message, category=RuntimeWarning):
+    """Emit a warning with trace outside the mne namespace
 
     This function takes arguments like warnings.warn, and sends messages
     using both warnings.warn and logger.warn. It also uses a default type
     of RuntimeWarning.
+
+    Parameters
+    ----------
+    message : str
+        Warning message.
+    category : instance of Warning
+        The warning class.
     """
     import mne
     root_dir = op.dirname(mne.__file__)
@@ -295,10 +302,9 @@ def check_fname(fname, filetype, endings):
     """
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
-        _traverse_warn('This filename (%s) does not conform to MNE naming '
-                       'conventions. All %s files should end with '
-                       '%s' % (fname, filetype, print_endings),
-                       RuntimeWarning)
+        warn('This filename (%s) does not conform to MNE naming conventions. '
+             'All %s files should end with %s'
+             % (fname, filetype, print_endings))
 
 
 class WrapStdOut(object):
@@ -870,11 +876,10 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     # frequently this should be refactored so as to only check the path once.
     env = kwargs.get('env', os.environ)
     if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
-        msg = ("Your PATH environment variable contains at least one path "
-               "starting with a tilde ('~') character. Such paths are not "
-               "interpreted correctly from within Python. It is recommended "
-               "that you use '$HOME' instead of '~'.")
-        _traverse_warn(msg)
+        warn('Your PATH environment variable contains at least one path '
+             'starting with a tilde ("~") character. Such paths are not '
+             'interpreted correctly from within Python. It is recommended '
+             'that you use "$HOME" instead of "~".')
 
     logger.info("Running subprocess: %s" % ' '.join(command))
     try:
@@ -970,7 +975,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         logger.removeHandler(h)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
-            # Don't use _traverse_warn here because we just want to
+            # Don't use warn() here because we just want to
             # emit a warnings.warn here (not logger.warn)
             warnings.warn('Log entries will be appended to the file. Use '
                           'overwrite=False to avoid this message in the '
@@ -1249,7 +1254,7 @@ def set_config(key, value, home_dir=None):
         raise TypeError('value must be a string or None')
     if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
-        _traverse_warn('Setting non-standard config type: "%s"' % key)
+        warn('Setting non-standard config type: "%s"' % key)
 
     # Read all previous values
     config_path = get_config_path(home_dir=home_dir)

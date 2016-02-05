@@ -11,7 +11,7 @@ from __future__ import print_function
 import numpy as np
 
 from .utils import plt_show
-from ..utils import _traverse_warn
+from ..utils import warn
 
 
 def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
@@ -231,6 +231,6 @@ def _get_chance_level(scorer, y_train):
         chance = 0.5
     else:
         chance = np.nan
-        _traverse_warn('Cannot find chance level from %s, specify chance'
-                       ' level' % scorer.func_name)
+        warn('Cannot find chance level from %s, specify chance level'
+             % scorer.func_name)
     return chance

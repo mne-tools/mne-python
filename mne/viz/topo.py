@@ -16,7 +16,7 @@ import numpy as np
 
 from ..io.pick import channel_type, pick_types
 from ..fixes import normalize_colors
-from ..utils import _clean_names, _traverse_warn
+from ..utils import _clean_names, warn
 
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
@@ -311,8 +311,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                 else slice(len(colors)))
         color = cycle(colors[stop])
         if len(evoked) > len(colors):
-            _traverse_warn('More evoked objects than colors available.'
-                           'You should pass a list of unique colors.')
+            warn('More evoked objects than colors available. You should pass '
+                 'a list of unique colors.')
     else:
         color = cycle([color])
 

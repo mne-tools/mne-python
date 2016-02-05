@@ -18,7 +18,7 @@ from ..minimum_norm.inverse import _get_vertno, combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, verbose, _traverse_warn
+from ..utils import logger, verbose, warn
 from .. import Epochs
 from ..externals import six
 
@@ -765,8 +765,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             # be calculated for an additional time window
             if i_time == n_time_steps - 1 and win_tmax - tstep < tmax and\
                win_tmax >= tmax + (epochs.times[-1] - epochs.times[-2]):
-                _traverse_warn('Adding a time window to cover last time '
-                               'points')
+                warn('Adding a time window to cover last time points')
                 win_tmin = tmax - win_length
                 win_tmax = tmax
 

@@ -13,7 +13,7 @@ from ..io import _empty_info
 from ..io.pick import pick_info
 from ..io.constants import FIFF
 from ..epochs import EpochsArray
-from ..utils import logger, _traverse_warn
+from ..utils import logger, warn
 from ..externals.FieldTrip import Client as FtClient
 
 
@@ -133,11 +133,9 @@ class FieldTripClient(object):
         Creates a minimal Info dictionary required for epoching, averaging
         et al.
         """
-
         if self.info is None:
-
-            _traverse_warn('Info dictionary not provided. Trying to guess it '
-                           'from FieldTrip Header object')
+            warn('Info dictionary not provided. Trying to guess it from '
+                 'FieldTrip Header object')
 
             info = _empty_info(self.ft_header.fSample)  # create info
 

@@ -8,7 +8,7 @@ import numpy as np
 from scipy.fftpack import fftfreq
 
 from ..io.pick import pick_types
-from ..utils import logger, verbose, _traverse_warn
+from ..utils import logger, verbose, warn
 from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
 
@@ -119,8 +119,8 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         if tmax < tmin:
             raise ValueError('tmax must be larger than tmin')
     if epochs.baseline is None:
-        _traverse_warn('Epochs are not baseline corrected, cross-spectral '
-                       'density may be inaccurate')
+        warn('Epochs are not baseline corrected, cross-spectral density may '
+             'be inaccurate')
 
     if projs is None:
         projs = cp.deepcopy(epochs.info['projs'])
@@ -171,8 +171,8 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
                     'windows' % n_tapers)
 
         if mt_adaptive and len(eigvals) < 3:
-            _traverse_warn('Not adaptively combining the spectral estimators '
-                           'due to a low number of tapers.')
+            warn('Not adaptively combining the spectral estimators due to a '
+                 'low number of tapers.')
             mt_adaptive = False
     elif mode == 'fourier':
         logger.info('    using FFT with a Hanning window to estimate spectra')

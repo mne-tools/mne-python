@@ -11,7 +11,7 @@ from .externals.six import string_types, integer_types
 from .fixes import get_firwin2, get_filtfilt
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
-from .utils import logger, verbose, sum_squared, check_version, _traverse_warn
+from .utils import logger, verbose, sum_squared, check_version, warn
 
 
 def is_power2(num):
@@ -117,7 +117,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
                          "len(h) if zero_phase == False")
 
     if not is_power2(n_fft):
-        _traverse_warn("FFT length is not a power of 2. Can be slower.")
+        warn("FFT length is not a power of 2. Can be slower.")
 
     # Filter in frequency domain
     h_fft = fft(np.concatenate([h, np.zeros(n_fft - n_h, dtype=h.dtype)]))
@@ -329,8 +329,8 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
         att_db, att_freq = _filter_attenuation(h, freq, gain)
         if att_db < min_att_db:
             att_freq *= Fs / 2
-            _traverse_warn('Attenuation at stop frequency %0.1fHz is only '
-                           '%0.1fdB.' % (att_freq, att_db))
+            warn('Attenuation at stop frequency %0.1fHz is only %0.1fdB.'
+                 % (att_freq, att_db))
 
         # Make zero-phase filter function
         B = np.abs(fft(h)).ravel()
@@ -363,9 +363,9 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
         att_db += 6  # the filter is applied twice (zero phase)
         if att_db < min_att_db:
             att_freq *= Fs / 2
-            _traverse_warn('Attenuation at stop frequency %0.1fHz is only '
-                           '%0.1fdB. Increase filter_length for higher '
-                           'attenuation.' % (att_freq, att_db))
+            warn('Attenuation at stop frequency %0.1fHz is only %0.1fdB. '
+                 'Increase filter_length for higher attenuation.'
+                 % (att_freq, att_db))
 
         # reconstruct filter, this time with appropriate gain for fwd-bkwd
         gain = np.sqrt(gain)
@@ -1315,8 +1315,7 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     orig_shape = x.shape
     x_len = orig_shape[-1]
     if x_len == 0:
-        _traverse_warn('x has zero length along last axis, returning a copy '
-                       'of x')
+        warn('x has zero length along last axis, returning a copy of x')
         return x.copy()
 
     # prep for resampling now
@@ -1491,9 +1490,9 @@ def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
         # only need to check min_length if the filter is shorter than len_x
         elif filter_length < min_length:
             filter_length = min_length
-            _traverse_warn('filter_length was too short, using filter of '
-                           'length %d samples ("%0.1fs")'
-                           % (filter_length, filter_length / float(sfreq)))
+            warn('filter_length was too short, using filter of length %d '
+                 'samples ("%0.1fs")'
+                 % (filter_length, filter_length / float(sfreq)))
 
     if filter_length is not None:
         if not isinstance(filter_length, integer_types):

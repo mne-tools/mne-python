@@ -3,8 +3,6 @@
 #
 # License: BSD (3-clause)
 
-from warnings import warn
-
 import numpy as np
 from scipy import linalg, fftpack
 
@@ -18,7 +16,7 @@ from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _traverse_warn
+from ..utils import logger, verbose, warn
 from ..externals import six
 
 
@@ -519,7 +517,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     # compute standardized half-bandwidth
     half_nbw = float(bandwidth) * n_times / (2 * sfreq)
     if half_nbw < 0.5:
-        _traverse_warn('Bandwidth too small, using minimum (normalized 0.5)')
+        warn('Bandwidth too small, using minimum (normalized 0.5)')
         half_nbw = 0.5
     n_tapers_max = int(2 * half_nbw)
 

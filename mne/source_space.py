@@ -26,7 +26,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _triangle_neighbors)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
-                    check_version, _get_call_line, _traverse_warn)
+                    check_version, _get_call_line, warn)
 from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
@@ -316,9 +316,8 @@ class SourceSpaces(list):
                                        iz_orig != iz_clip)).any(0).sum()
                     # generate use warnings for clipping
                     if n_diff > 0:
-                        _traverse_warn('%s surface vertices lay outside '
-                                       'of volume space. Consider using a '
-                                       'larger volume space.' % n_diff)
+                        warn('%s surface vertices lay outside of volume space.'
+                             ' Consider using a larger volume space.' % n_diff)
                     # get surface id or use default value
                     i = _get_lut_id(lut, surf_names[i], use_lut)
                     # update image to include surface voxels
@@ -344,9 +343,9 @@ class SourceSpaces(list):
                                        iz_orig != iz_clip)).any(0).sum()
                     # generate use warnings for clipping
                     if n_diff > 0:
-                        _traverse_warn('%s discrete vertices lay outside '
-                                       'of volume space. Consider using a '
-                                       'larger volume space.' % n_diff)
+                        warn('%s discrete vertices lay outside of volume '
+                             'space. Consider using a larger volume space.'
+                             % n_diff)
                     # set default value
                     img[ix_clip, iy_clip, iz_clip] = 1
                     if use_lut:

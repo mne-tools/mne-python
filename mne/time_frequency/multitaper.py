@@ -7,7 +7,7 @@ import numpy as np
 from scipy import fftpack, linalg
 
 from ..parallel import parallel_func
-from ..utils import verbose, sum_squared, deprecated, _traverse_warn
+from ..utils import verbose, sum_squared, deprecated, warn
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -240,8 +240,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     if low_bias:
         idx = (eigvals > 0.9)
         if not idx.any():
-            _traverse_warn('Could not properly use low_bias, '
-                           'keeping lowest-bias taper')
+            warn('Could not properly use low_bias, keeping lowest-bias taper')
             idx = [np.argmax(eigvals)]
         dpss, eigvals = dpss[idx], eigvals[idx]
     assert len(dpss) > 0  # should never happen
@@ -348,8 +347,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
             err = d_k
 
         if n == max_iter - 1:
-            _traverse_warn('Iterative multi-taper PSD computation did not '
-                           'converge.', RuntimeWarning)
+            warn('Iterative multi-taper PSD computation did not converge.')
 
         psd[i, :] = psd_iter
 
@@ -523,8 +521,8 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     # combine the tapered spectra
     if adaptive and len(eigvals) < 3:
-        _traverse_warn('Not adaptively combining the spectral estimators '
-                       'due to a low number of tapers.')
+        warn('Not adaptively combining the spectral estimators due to a low '
+             'number of tapers.')
         adaptive = False
 
     if not adaptive:

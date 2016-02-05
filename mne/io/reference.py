@@ -12,7 +12,7 @@ from .pick import pick_types
 from .base import _BaseRaw
 from ..evoked import Evoked
 from ..epochs import _BaseEpochs
-from ..utils import logger, _traverse_warn
+from ..utils import logger, warn
 
 
 def _apply_reference(inst, ref_from, ref_to=None, copy=True):
@@ -252,8 +252,8 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
     if ref_channels is None:
         # CAR requested
         if _has_eeg_average_ref_proj(inst.info['projs']):
-            _traverse_warn('An average reference projection was already '
-                           'added. The data has been left untouched.')
+            warn('An average reference projection was already added. The data '
+                 'has been left untouched.')
             return inst, None
         else:
             inst.info['custom_ref_applied'] = False

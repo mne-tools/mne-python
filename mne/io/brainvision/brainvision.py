@@ -13,7 +13,7 @@ import time
 
 import numpy as np
 
-from ...utils import verbose, logger, _traverse_warn
+from ...utils import verbose, logger, warn
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
@@ -404,9 +404,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 info['highpass'] = float(highpass[0])
         else:
             info['highpass'] = np.min(np.array(highpass, dtype=np.float))
-            _traverse_warn('Channels contain different highpass '
-                           'filters. Highest filter setting will '
-                           'be stored.')
+            warn('Channels contain different highpass filters. Highest filter '
+                 'setting will be stored.')
         if len(lowpass) == 0:
             pass
         elif all(lowpass):
@@ -416,8 +415,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 info['lowpass'] = float(lowpass[0])
         else:
             info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
-            _traverse_warn('Channels contain different lowpass filters.'
-                           '. Lowest filter setting will be stored.')
+            warn('Channels contain different lowpass filters. Lowest filter '
+                 'setting will be stored.')
 
         # Post process highpass and lowpass to take into account units
         header = settings[idx].split('  ')

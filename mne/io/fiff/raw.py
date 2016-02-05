@@ -23,7 +23,7 @@ from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 from ..utils import _mult_cal_one
 
 from ...annotations import Annotations, _combine_annotations
-from ...utils import check_fname, logger, verbose, _traverse_warn
+from ...utils import check_fname, logger, verbose, warn
 
 
 class Raw(_BaseRaw):
@@ -96,8 +96,8 @@ class Raw(_BaseRaw):
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
-                    _traverse_warn('Split raw file detected but next file %s '
-                                   'does not exist.' % next_fname)
+                    warn('Split raw file detected but next file %s does not '
+                         'exist.' % next_fname)
                     continue
                 if next_fname in fnames:
                     # the user manually specified the split files
@@ -182,7 +182,7 @@ class Raw(_BaseRaw):
                         raise ValueError('No raw data in %s' % fname)
                     elif allow_maxshield:
                         info['maxshield'] = True
-                        _traverse_warn(msg)
+                        warn(msg)
                     else:
                         msg += (' Use allow_maxshield=True if you are sure you'
                                 ' want to load the data despite this warning.')

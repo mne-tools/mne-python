@@ -16,7 +16,7 @@ from .write import (start_block, end_block, write_int, write_float,
 from .tag import find_tag
 from .constants import FIFF
 from ..externals.six import text_type, string_types
-from ..utils import _traverse_warn
+from ..utils import warn
 
 
 _proc_keys = ['parent_file_id', 'block_id', 'parent_block_id',
@@ -95,7 +95,7 @@ def _read_proc_history(fid, tree, info):
                         record[key] = cast(tag.data)
                         break
                 else:
-                    _traverse_warn('Unknown processing history item %s' % kind)
+                    warn('Unknown processing history item %s' % kind)
             record['max_info'] = _read_maxfilter_record(fid, proc_record)
             smartshields = dir_tree_find(proc_record,
                                          FIFF.FIFFB_SMARTSHIELD)

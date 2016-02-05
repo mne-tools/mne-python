@@ -11,8 +11,7 @@
 import numpy as np
 from os.path import splitext
 
-from .utils import (check_fname, logger, verbose, _get_stim_channel,
-                    _traverse_warn)
+from .utils import check_fname, logger, verbose, _get_stim_channel, warn
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -399,8 +398,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
         raise ValueError('No stim channel found to extract event triggers.')
     data, _ = raw[picks, :]
     if np.any(data < 0):
-        _traverse_warn('Trigger channel contains negative values. '
-                       'Taking absolute value.')
+        warn('Trigger channel contains negative values, using absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
 
@@ -420,8 +418,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         merge = 0
 
     if np.any(data < 0):
-        _traverse_warn('Trigger channel contains negative values. '
-                       'Taking absolute value.')
+        warn('Trigger channel contains negative values, using absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
 

@@ -14,7 +14,7 @@ from scipy import sparse
 
 from ..externals.six import string_types
 
-from ..utils import verbose, logger, _traverse_warn
+from ..utils import verbose, logger, warn
 from ..io.pick import (channel_type, pick_info, pick_types,
                        _check_excludes_includes)
 from ..io.constants import FIFF
@@ -287,10 +287,8 @@ class SetChannelsMixin(object):
             unit_old = self.info['chs'][c_ind]['unit']
             unit_new = _human2unit[ch_type]
             if unit_old != _human2unit[ch_type]:
-                _traverse_warn("The unit for channel %s has changed "
-                               "from %s to %s." % (ch_name,
-                                                   _unit2human[unit_old],
-                                                   _unit2human[unit_new]))
+                warn("The unit for channel %s has changed from %s to %s."
+                     % (ch_name, _unit2human[unit_old], _unit2human[unit_new]))
             self.info['chs'][c_ind]['unit'] = _human2unit[ch_type]
             if ch_type in ['eeg', 'seeg']:
                 self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG

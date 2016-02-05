@@ -31,8 +31,7 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
 from .defaults import _handle_default
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, check_version, _time_mask,
-                    _traverse_warn)
+                    _compute_row_norms, check_version, _time_mask, warn)
 
 from .externals.six.moves import zip
 from .externals.six import string_types
@@ -341,9 +340,8 @@ def _check_n_samples(n_samples, n_chan):
     if n_samples <= 0:
         raise ValueError('No samples found to compute the covariance matrix')
     if n_samples < n_samples_min:
-        text = ('Too few samples (required : %d got : %d), covariance '
-                'estimate may be unreliable' % (n_samples_min, n_samples))
-        _traverse_warn(text)
+        warn('Too few samples (required : %d got : %d), covariance '
+             'estimate may be unreliable' % (n_samples_min, n_samples))
 
 
 @verbose
@@ -630,8 +628,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     # check for baseline correction
     for epochs_t in epochs:
         if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5:
-            _traverse_warn('Epochs are not baseline corrected, covariance '
-                           'matrix may be inaccurate')
+            warn('Epochs are not baseline corrected, covariance '
+                 'matrix may be inaccurate')
 
     for epoch in epochs:
         epoch.info._check_consistency()
@@ -944,8 +942,8 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
     # make sure we don't empty the thing if it's a generator
     max_n = max(list(cp.deepcopy(iter_n_components)))
     if max_n > data.shape[1]:
-        _traverse_warn('You are trying to estimate %i components on matrix '
-                       'with %i features.' % (max_n, data.shape[1]))
+        warn('You are trying to estimate %i components on matrix '
+             'with %i features.' % (max_n, data.shape[1]))
 
     for ii, n in enumerate(iter_n_components):
         est.n_components = n
@@ -1229,10 +1227,9 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         C_eeg_eig, C_eeg_eigvec = _get_ch_whitener(C_eeg, False, 'EEG',
                                                    rank_eeg)
     if _needs_eeg_average_ref_proj(info):
-        _traverse_warn('No average EEG reference present in info["projs"], '
-                       'covariance may be adversely affected. Consider '
-                       'recomputing covariance using a raw file with an '
-                       'average eeg reference projector added.')
+        warn('No average EEG reference present in info["projs"], covariance '
+             'may be adversely affected. Consider recomputing covariance using'
+             ' a raw file with an average eeg reference projector added.')
 
     n_chan = len(ch_names)
     eigvec = np.zeros((n_chan, n_chan), dtype=np.float)

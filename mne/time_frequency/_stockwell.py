@@ -10,7 +10,7 @@ from scipy import fftpack
 # XXX explore cuda optimazation at some point.
 
 from ..io.pick import pick_types, pick_info
-from ..utils import verbose, _traverse_warn
+from ..utils import verbose, warn
 from ..parallel import parallel_func, check_n_jobs
 from .tfr import AverageTFR, _get_data
 
@@ -31,9 +31,8 @@ def _check_input_st(x_in, n_fft):
                          "Got %s < %s." % (n_fft, n_times))
     zero_pad = None
     if n_times < n_fft:
-        _traverse_warn(
-            'The input signal is shorter ({0}) than "n_fft" ({1}). '
-            'Applying zero padding.'.format(x_in.shape[-1], n_fft))
+        warn('The input signal is shorter ({0}) than "n_fft" ({1}). '
+             'Applying zero padding.'.format(x_in.shape[-1], n_fft))
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)
         x_in = np.concatenate((x_in, pad_array), axis=-1)

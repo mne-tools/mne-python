@@ -28,7 +28,7 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .fixes import partial
-from .utils import logger, verbose, _time_mask, _traverse_warn
+from .utils import logger, verbose, _time_mask, warn
 
 
 class Dipole(object):
@@ -488,7 +488,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
     # Find a good starting point (find_best_guess in C)
     B2 = np.dot(B, B)
     if B2 == 0:
-        _traverse_warn('Zero field found for time %s' % t)
+        warn('Zero field found for time %s' % t)
         return np.zeros(3), 0, np.zeros(3), 0
 
     idx = np.argmin([_fit_eval(guess_rrs[[fi], :], B, B2, fwd_svd)

@@ -15,8 +15,7 @@ import numpy as np
 from scipy import linalg
 
 from .fixes import partial
-from .utils import (verbose, logger, run_subprocess, get_subjects_dir,
-                    _traverse_warn)
+from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
 from .transforms import _ensure_trans, apply_trans
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
@@ -854,12 +853,12 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     # i.e. 108mm "radius", so let's go with 110mm
     # en.wikipedia.org/wiki/Human_head#/media/File:HeadAnthropometry.JPG
     if radius > 110.:
-        _traverse_warn('Estimated head size (%0.1f mm) exceeded 99th '
-                       'percentile for adult head size' % (radius,))
+        warn('Estimated head size (%0.1f mm) exceeded 99th '
+             'percentile for adult head size' % (radius,))
     # > 2 cm away from head center in X or Y is strange
     if np.sqrt(np.sum(origin_head[:2] ** 2)) > 20:
-        _traverse_warn('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '
-                       'head frame origin' % tuple(origin_head[:2]))
+        warn('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '
+             'head frame origin' % tuple(origin_head[:2]))
     logger.info('Origin head coordinates:'.ljust(30) +
                 '%0.1f %0.1f %0.1f mm' % tuple(origin_head))
     logger.info('Origin device coordinates:'.ljust(30) +

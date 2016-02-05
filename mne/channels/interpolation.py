@@ -6,7 +6,7 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy import linalg
 
-from ..utils import logger, _traverse_warn
+from ..utils import logger, warn
 from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
 from ..bem import _fit_sphere
@@ -145,8 +145,8 @@ def _interpolate_bads_eeg(inst):
     distance = np.sqrt(np.sum((pos_good - center) ** 2, 1))
     distance = np.mean(distance / radius)
     if np.abs(1. - distance) > 0.1:
-        _traverse_warn('Your spherical fit is poor, interpolation results are '
-                       'likely to be inaccurate.')
+        warn('Your spherical fit is poor, interpolation results are '
+             'likely to be inaccurate.')
 
     logger.info('Computing interpolation matrix from {0} sensor '
                 'positions'.format(len(pos_good)))
