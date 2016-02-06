@@ -48,7 +48,7 @@ def test_generalization_across_time():
     """Test time generalization decoding
     """
     from sklearn.svm import SVC
-    from sklearn.linear_model import RANSACRegressor, LinearRegression
+    from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import mean_squared_error
     from sklearn.cross_validation import LeaveOneLabelOut
@@ -269,8 +269,21 @@ def test_generalization_across_time():
 
     # Make CV with some empty train and test folds:
     # --- empty test fold(s) should warn when gat.predict()
-    gat.cv_.test_folds[gat.cv_.test_folds == 1] = 0
-    with warnings.catch_warnings(record=True) as w:
+
+    class adhoc_cv():
+        def __init__(self):
+            self.folds = [(train, test) for train, test in
+                          gat.cv_.split(range(len(epochs)))]
+            self.folds[-1] = (train, np.empty(0))  # empty test fold
+
+        def split(self, X, y=None):
+            return self.folds
+
+        def get_n_splits(self):
+            return 5
+
+    gat.cv_ = adhoc_cv()
+    with warnings.catch_warnings(record=True):
         gat.predict(epochs)
         assert_true(len(w) > 0)
         assert_true(any('do not have any test epochs' in str(ww.message)
@@ -281,8 +294,7 @@ def test_generalization_across_time():
 
     # Check that still works with classifier that output y_pred with
     # shape = (n_trials, 1) instead of (n_trials,)
-    gat = GeneralizationAcrossTime(clf=RANSACRegressor(LinearRegression()),
-                                   cv=2)
+    gat = GeneralizationAcrossTime(clf=KernelRidge(), cv=2)
     epochs.crop(None, epochs.times[2])
     gat.fit(epochs)
     gat.predict(epochs)

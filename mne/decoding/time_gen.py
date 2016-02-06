@@ -122,8 +122,13 @@ class _GeneralizationAcrossTime(object):
         If X is a dense array, then the other methods will not support sparse
         matrices as input.
         """
-        from sklearn.base import clone
-        from sklearn.cross_validation import check_cv, StratifiedKFold
+        from sklearn.base import clone, is_classifier
+        try:
+            from sklearn.model_selection import (check_cv, StratifiedKFold,
+                                                 KFold)
+        except Exception:  # XXX support sklearn < 0.18
+            from sklearn.cross_validation import (check_cv, StratifiedKFold,
+                                                  KFold)
 
         # clean attributes
         for att in ['picks_', 'ch_names', 'y_train_', 'cv_', 'train_times_',
@@ -138,11 +143,24 @@ class _GeneralizationAcrossTime(object):
         self.ch_names = [epochs.ch_names[p] for p in self.picks_]
 
         cv = self.cv
+        XFold = KFold
+        if is_classifier(self.clf) and issubclass(y.dtype.type, np.int):
+            XFold = StratifiedKFold
+
         if isinstance(cv, (int, np.int)):
-            cv = StratifiedKFold(y, cv)
-        cv = check_cv(cv, X, y, classifier=True)
-        self.cv_ = cv  # update CV
-        if not np.all([len(train) for train, _ in self.cv_]):
+            cv = XFold(n_folds=cv)
+        try:
+            cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(self.clf))
+        except TypeError:
+            # XXX sklearn issue #6300
+            cv = check_cv(cv=cv, y=y, classifier=is_classifier(self.clf))
+
+        # Fixed random state aso as to call cv multiple times XXX OK?
+        if not hasattr(cv, 'random_state') or cv.random_state is None:
+            cv.random_state = 0
+        self.cv_ = cv
+
+        if not np.all([len(train) for train, _ in _iter_cv(self.cv_, y)]):
             raise ValueError('Some folds do not have any train epochs.')
 
         self.y_train_ = y
@@ -211,8 +229,12 @@ class _GeneralizationAcrossTime(object):
         # Check that training cv and predicting cv match
         if self.predict_mode == 'cross-validation':
             n_est_cv = [len(estimator) for estimator in self.estimators_]
-            if ((len(set(n_est_cv)) != 1) or (n_est_cv[0] != len(self.cv_)) or
-                    (self.cv_.n != len(epochs))):
+            if hasattr(self.cv_, 'get_n_splits'):
+                n_split = self.cv_.get_n_splits()
+            else:
+                n_split = self.cv_.n
+            if ((len(set(n_est_cv)) != 1) or (n_est_cv[0] != n_split) or
+                    len(self.y_train_) != len(epochs)):
                 raise ValueError(
                     'When `predict_mode = "cross-validation"`, the training '
                     'and predicting cv schemes must be identical.')
@@ -224,8 +246,9 @@ class _GeneralizationAcrossTime(object):
 
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
-        if not np.all([len(test) for train, test in self.cv_]):
-            warn('Some folds do not have any test epochs.')
+        cv = [(train, test) for train, test in _iter_cv(self.cv_, y)]
+        if not np.all([len(test) for train, test in cv]):
+            warnings.warn('Some folds do not have any test epochs.')
 
         # Define testing sliding window
         if self.test_times == 'diagonal':
@@ -266,9 +289,9 @@ class _GeneralizationAcrossTime(object):
         # contiguous array X by using slices rather than indices.
         test_epochs_slices = []
         if self.predict_mode == 'cross-validation':
-            all_test = np.concatenate(list(zip(*self.cv_))[-1])
+            all_test = [ii for train, test in cv for ii in test]
             start = 0
-            for _, test in self.cv_:
+            for _, test in cv:
                 n_test_epochs = len(test)
                 stop = start + n_test_epochs
                 test_epochs_slices.append(slice(start, stop, 1))
@@ -294,7 +317,7 @@ class _GeneralizationAcrossTime(object):
             stop = np.max(slices) + 1
             slices_ = np.array(slices) - start
             X_ = X[:, :, start:stop]
-            return (X_, self.estimators_, self.cv_, slices_.tolist(),
+            return (X_, self.estimators_, cv, slices_.tolist(),
                     self.predict_mode, self.predict_method, n_orig_epochs,
                     test_epochs_slices)
 
@@ -617,7 +640,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
         X = X.reshape(n_epochs, np.prod(X.shape[1:]))
         # Loop across folds
         estimators_ = list()
-        for fold, (train, test) in enumerate(cv):
+        for fold, (train, test) in enumerate(_iter_cv(cv, y)):
             # Fit classifier
             clf_ = clone(clf)
             clf_.fit(X[train, :], y[train])
@@ -1401,3 +1424,13 @@ class TimeDecoding(_GeneralizationAcrossTime):
             self.y_pred_ = [y_pred[0] for y_pred in self.y_pred_]
         if hasattr(self, 'scores_'):
             self.scores_ = [score[0] for score in self.scores_]
+
+
+def _iter_cv(cv, y):
+    # XXX support sklearn < 0.18
+    if hasattr(cv, 'split'):
+        folds = [(train, test) for train, test in
+                 cv.split(X=np.zeros_like(y), y=y)]
+    else:
+        folds = [(train, test) for train, test in cv(y=y)]
+    return folds
