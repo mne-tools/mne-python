@@ -148,7 +148,10 @@ class _GeneralizationAcrossTime(object):
             XFold = StratifiedKFold
 
         if isinstance(cv, (int, np.int)):
-            cv = XFold(n_folds=cv)
+            try:
+                cv = XFold(n_folds=cv)
+            except TypeError:  # XXX sklearn < 0.18
+                cv = XFold(n=cv)
         try:
             cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(self.clf))
         except TypeError:
