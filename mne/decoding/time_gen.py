@@ -813,7 +813,9 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
         scikit-learn.cross_validation module for the list of possible objects.
-        The `cv.random_state` is set to 0 by default. Defaults to 5.
+        The `cv.random_state` is set to 0 by default.
+        If clf is a classifier, defaults to KFold(n_folds=5), else defaults to
+        StratifiedKFold(n_folds=5).
     clf : object | None
         An estimator compliant with the scikit-learn API (fit & predict).
         If None the classifier will be a standard pipeline including
@@ -1124,7 +1126,9 @@ class TimeDecoding(_GeneralizationAcrossTime):
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
         scikit-learn.cross_validation module for the list of possible objects.
-        The `cv.random_state` is set to 0 by default. Defaults to 5.
+        The `cv.random_state` is set to 0 by default.
+        If clf is a classifier, defaults to KFold(n_folds=5), else defaults to
+        StratifiedKFold(n_folds=5).
     clf : object | None
         An estimator compliant with the scikit-learn API (fit & predict).
         If None the classifier will be a standard pipeline including

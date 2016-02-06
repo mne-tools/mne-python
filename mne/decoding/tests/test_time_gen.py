@@ -52,7 +52,7 @@ def test_generalization_across_time():
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import mean_squared_error
     from sklearn.cross_validation import LeaveOneLabelOut
-    from sklearn.model_selection import ShuffleSplit
+    from sklearn.model_selection import KFold, StratifiedKFold, ShuffleSplit
 
     epochs = make_epochs()
 
@@ -76,6 +76,8 @@ def test_generalization_across_time():
     # test different predict function:
     gat = GeneralizationAcrossTime(predict_method='decision_function')
     gat.fit(epochs)
+    # With classifier, the default cv is StratifiedKFold
+    assert_true(gat.cv_.__name__ == StratifiedKFold)
     gat.predict(epochs)
     assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
     gat.predict_method = 'predict_proba'
@@ -300,6 +302,8 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime(clf=KernelRidge(), cv=2)
     epochs.crop(None, epochs.times[2])
     gat.fit(epochs)
+    # Xith regression the default cv is KFold and not StratifiedKFold
+    assert_true(gat.cv_.__name__ == KFold)
     gat.predict(epochs)
 
     # Test combinations of complex scenarios
