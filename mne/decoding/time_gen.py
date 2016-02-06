@@ -217,8 +217,7 @@ class _GeneralizationAcrossTime(object):
                     'When `predict_mode = "cross-validation"`, the training '
                     'and predicting cv schemes must be identical.')
 
-
-        # clean attributes
+        # Clean attributes
         for att in ['y_pred_', 'test_times_', 'scores_', 'scorer_', 'y_true_']:
             if hasattr(self, att):
                 delattr(self, att)
@@ -443,8 +442,7 @@ def _predict_slices(X, estimators, cv, train_t_slices, predict_mode,
         # can't know whether it is a a categorical output or a set of
         # probabilistic estimates.
         # If all train time points have the same number of testing time
-        # points, then y_pred is a matrix. Else it is an array of
-        # arrays.
+        # points, then y_pred is a matrix. Else it is an array of arrays.
         n_train = len(estimators)
         n_test = [len(test_time_slices) for test_time_slices in train_t_slices]
         if len(set(n_test)) == 1:
