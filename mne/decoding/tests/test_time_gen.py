@@ -52,6 +52,7 @@ def test_generalization_across_time():
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import mean_squared_error
     from sklearn.cross_validation import LeaveOneLabelOut
+    from sklearn.model_selection import ShuffleSplit
 
     epochs = make_epochs()
 
@@ -258,6 +259,8 @@ def test_generalization_across_time():
 
     # Test that gets error if train on one dataset, test on another, and don't
     # specify appropriate cv:
+    gat = GeneralizationAcrossTime(cv=ShuffleSplit())
+    gat.fit(epochs)
     gat = GeneralizationAcrossTime()
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
