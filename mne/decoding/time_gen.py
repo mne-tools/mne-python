@@ -144,7 +144,7 @@ class _GeneralizationAcrossTime(object):
 
         cv = self.cv
         XFold = KFold
-        if is_classifier(self.clf) and issubclass(y.dtype.type, np.int):
+        if is_classifier(self.clf):
             XFold = StratifiedKFold
 
         if isinstance(cv, (int, np.int)):
@@ -157,13 +157,17 @@ class _GeneralizationAcrossTime(object):
         except TypeError:
             # XXX sklearn issue #6300
             cv = check_cv(cv=cv, y=y, classifier=is_classifier(self.clf))
-
-        # Fixed random state aso as to call cv multiple times XXX OK?
-        if not hasattr(cv, 'random_state') or cv.random_state is None:
-            cv.random_state = 0
         self.cv_ = cv
 
-        if not np.all([len(train) for train, _ in _iter_cv(self.cv_, y)]):
+        # keep splits to retrieve them at predict()
+        if hasattr(cv, 'split'):
+            self._splits = [(train, test) for train, test in
+                            cv.split(X=np.zeros_like(y), y=y)]
+        else:
+            # XXX support sklearn < 0.18
+            self._splits = [(train, test) for train, test in cv(y=y)]
+
+        if not np.all([len(train) for train, _ in self._splits]):
             raise ValueError('Some folds do not have any train epochs.')
 
         self.y_train_ = y
@@ -187,7 +191,7 @@ class _GeneralizationAcrossTime(object):
 
         out = parallel(p_fit_slices(clone(self.clf),
                                     X[..., f(train_slices_chunk)],
-                                    y, train_slices_chunk, cv)
+                                    y, train_slices_chunk, self._splits)
                        for train_slices_chunk in splits)
         # Unpack estimators into time slices X folds list of lists.
         self.estimators_ = sum(out, list())
@@ -249,8 +253,7 @@ class _GeneralizationAcrossTime(object):
 
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
-        cv = [(train, test) for train, test in _iter_cv(self.cv_, y)]
-        if not np.all([len(test) for train, test in cv]):
+        if not np.all([len(test) for train, test in self._splits]):
             warnings.warn('Some folds do not have any test epochs.')
 
         # Define testing sliding window
@@ -292,9 +295,9 @@ class _GeneralizationAcrossTime(object):
         # contiguous array X by using slices rather than indices.
         test_epochs_slices = []
         if self.predict_mode == 'cross-validation':
-            all_test = [ii for train, test in cv for ii in test]
+            all_test = [ii for train, test in self._splits for ii in test]
             start = 0
-            for _, test in cv:
+            for _, test in self._splits:
                 n_test_epochs = len(test)
                 stop = start + n_test_epochs
                 test_epochs_slices.append(slice(start, stop, 1))
@@ -320,7 +323,7 @@ class _GeneralizationAcrossTime(object):
             stop = np.max(slices) + 1
             slices_ = np.array(slices) - start
             X_ = X[:, :, start:stop]
-            return (X_, self.estimators_, cv, slices_.tolist(),
+            return (X_, self.estimators_, self._splits, slices_.tolist(),
                     self.predict_mode, self.predict_method, n_orig_epochs,
                     test_epochs_slices)
 
@@ -427,7 +430,7 @@ class _GeneralizationAcrossTime(object):
 _warn_once = dict()
 
 
-def _predict_slices(X, estimators, cv, train_t_slices, predict_mode,
+def _predict_slices(X, estimators, splits, train_t_slices, predict_mode,
                     predict_method, n_orig_epochs, test_epochs_slices):
     """Aux function of GeneralizationAcrossTime
 
@@ -439,7 +442,9 @@ def _predict_slices(X, estimators, cv, train_t_slices, predict_mode,
         To-be-fitted data.
     estimators : list of array-like, shape (n_times, n_folds)
         List of array of scikit-learn classifiers fitted in cross-validation.
-    slices : list
+    splits : list of tuples
+        List of tuples of train and test array generated from cv.
+    train_t_slices : list
         List of list of slices selecting data from X from which is prediction
         is generated.
     predict_method : str
@@ -521,7 +526,7 @@ def _predict_slices(X, estimators, cv, train_t_slices, predict_mode,
             elif predict_mode == 'cross-validation':
                 # Predict using cv estimator_cv
                 for (_, test), test_epochs_slice, estimator in zip(
-                        cv, test_epochs_slices, estimator_cv):
+                        splits, test_epochs_slices, estimator_cv):
                     if test.size == 0:
                         continue
                     y_pred_ = _predict(X_pred[test_epochs_slice], [estimator],
@@ -600,7 +605,7 @@ def _check_epochs_input(epochs, y, picks=None):
     return X, y, picks
 
 
-def _fit_slices(clf, x_chunk, y, slices, cv):
+def _fit_slices(clf, x_chunk, y, slices, splits):
     """Aux function of GeneralizationAcrossTime
 
     Fit each classifier.
@@ -615,8 +620,8 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
         To-be-fitted model.
     slices : list | array, shape (n_training_slice,)
         List of training slices, indicating time sample relative to X
-    cv : scikit-learn cross-validation generator
-        A cross-validation generator to use.
+    splits : list of tuples
+        List of (train, test) tuples generated from cv.split()
 
     Returns
     -------
@@ -643,7 +648,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
         X = X.reshape(n_epochs, np.prod(X.shape[1:]))
         # Loop across folds
         estimators_ = list()
-        for fold, (train, test) in enumerate(_iter_cv(cv, y)):
+        for fold, (train, test) in enumerate(splits):
             # Fit classifier
             clf_ = clone(clf)
             clf_.fit(X[train, :], y[train])
@@ -816,7 +821,6 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
         scikit-learn.cross_validation module for the list of possible objects.
-        The `cv.random_state` is set to 0 by default.
         If clf is a classifier, defaults to KFold(n_folds=5), else defaults to
         StratifiedKFold(n_folds=5).
     clf : object | None
@@ -1129,7 +1133,6 @@ class TimeDecoding(_GeneralizationAcrossTime):
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
         scikit-learn.cross_validation module for the list of possible objects.
-        The `cv.random_state` is set to 0 by default.
         If clf is a classifier, defaults to KFold(n_folds=5), else defaults to
         StratifiedKFold(n_folds=5).
     clf : object | None
@@ -1431,13 +1434,3 @@ class TimeDecoding(_GeneralizationAcrossTime):
             self.y_pred_ = [y_pred[0] for y_pred in self.y_pred_]
         if hasattr(self, 'scores_'):
             self.scores_ = [score[0] for score in self.scores_]
-
-
-def _iter_cv(cv, y):
-    # XXX support sklearn < 0.18
-    if hasattr(cv, 'split'):
-        folds = [(train, test) for train, test in
-                 cv.split(X=np.zeros_like(y), y=y)]
-    else:
-        folds = [(train, test) for train, test in cv(y=y)]
-    return folds

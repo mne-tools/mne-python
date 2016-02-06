@@ -77,7 +77,7 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime(predict_method='decision_function')
     gat.fit(epochs)
     # With classifier, the default cv is StratifiedKFold
-    assert_true(gat.cv_.__name__ == StratifiedKFold)
+    assert_true(gat.cv_.__class__ == StratifiedKFold)
     gat.predict(epochs)
     assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
     gat.predict_method = 'predict_proba'
@@ -274,20 +274,7 @@ def test_generalization_across_time():
 
     # Make CV with some empty train and test folds:
     # --- empty test fold(s) should warn when gat.predict()
-
-    class adhoc_cv():
-        def __init__(self):
-            self.folds = [(train, test) for train, test in
-                          gat.cv_.split(range(len(epochs)))]
-            self.folds[-1] = (train, np.empty(0))  # empty test fold
-
-        def split(self, X, y=None):
-            return self.folds
-
-        def get_n_splits(self):
-            return 5
-
-    gat.cv_ = adhoc_cv()
+    gat._splits[0] = [gat._splits[0][0], np.empty(0)]
     with warnings.catch_warnings(record=True):
         gat.predict(epochs)
         assert_true(len(w) > 0)
@@ -303,7 +290,7 @@ def test_generalization_across_time():
     epochs.crop(None, epochs.times[2])
     gat.fit(epochs)
     # Xith regression the default cv is KFold and not StratifiedKFold
-    assert_true(gat.cv_.__name__ == KFold)
+    assert_true(gat.cv_.__class__ == KFold)
     gat.predict(epochs)
 
     # Test combinations of complex scenarios
