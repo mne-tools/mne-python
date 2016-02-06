@@ -263,7 +263,7 @@ def test_generalization_across_time():
         gat.fit(epochs)
 
     gat.predict(epochs)
-    assert_raises(IndexError, gat.predict, epochs[:10])
+    assert_raises(ValueError, gat.predict, epochs[:10])
 
     # TODO JRK: test GAT with non-exhaustive CV (eg. train on 80%, test on 10%)
 
