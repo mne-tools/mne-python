@@ -126,7 +126,7 @@ class _GeneralizationAcrossTime(object):
         try:
             from sklearn.model_selection import (check_cv, StratifiedKFold,
                                                  KFold)
-        except Exception:  # XXX support sklearn < 0.18
+        except ImportError:  # XXX support sklearn < 0.18
             from sklearn.cross_validation import (check_cv, StratifiedKFold,
                                                   KFold)
 
@@ -149,9 +149,9 @@ class _GeneralizationAcrossTime(object):
                 cv = XFold(n_folds=cv)
             except TypeError:  # XXX sklearn < 0.18
                 if is_classifier(self.clf):
-                    cv = KFold(n=len(y), n_folds=cv)
-                else:
                     cv = StratifiedKFold(y=y, n_folds=cv)
+                else:
+                    cv = KFold(n=len(y), n_folds=cv)
         try:
             cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(self.clf))
         except TypeError:

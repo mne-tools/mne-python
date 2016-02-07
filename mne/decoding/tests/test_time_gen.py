@@ -53,8 +53,14 @@ def test_generalization_across_time():
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import mean_squared_error
-    from sklearn.cross_validation import LeaveOneLabelOut
-    from sklearn.model_selection import KFold, StratifiedKFold, ShuffleSplit
+    try:
+        from sklearn.model_selection import (KFold, StratifiedKFold,
+                                             ShuffleSplit, LeaveOneLabelOut)
+        sklearn_version = 'new'
+    except ImportError:  # XXX sklearn < 0.18
+        from sklearn.cross_validation import (KFold, StratifiedKFold,
+                                              ShuffleSplit, LeaveOneLabelOut)
+        sklearn_version = 'old'
 
     epochs = make_epochs()
 
@@ -166,8 +172,13 @@ def test_generalization_across_time():
 
     # Test start stop training & test cv without n_fold params
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
-    gat = GeneralizationAcrossTime(cv=LeaveOneLabelOut(y_4classes),
-                                   train_times={'start': 0.090, 'stop': 0.250})
+    train_times = dict(start=0.090, stop=0.250)
+    if sklearn_version == 'new':
+        # cv = LeaveOneLabelOut()  # XXX wait for sklearn issue #6304
+        cv = None
+    else:
+        cv = LeaveOneLabelOut(y_4classes)
+    gat = GeneralizationAcrossTime(cv=cv, train_times=train_times)
     # predict without fit
     assert_raises(RuntimeError, gat.predict, epochs)
     with warnings.catch_warnings(record=True):
@@ -262,7 +273,11 @@ def test_generalization_across_time():
 
     # Test that gets error if train on one dataset, test on another, and don't
     # specify appropriate cv:
-    gat = GeneralizationAcrossTime(cv=ShuffleSplit())
+    if sklearn_version == 'new':
+        cv = ShuffleSplit()
+    else:  # XXX sklearn < 0.18
+        cv = ShuffleSplit(len(epochs))
+    gat = GeneralizationAcrossTime(cv=cv)
     gat.fit(epochs)
     gat = GeneralizationAcrossTime()
     with warnings.catch_warnings(record=True):
