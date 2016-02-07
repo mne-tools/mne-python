@@ -331,13 +331,7 @@ class _GeneralizationAcrossTime(object):
                           for slices in splits)
 
         # Concatenate chunks across test time dimension.
-        n_test_times = [len(ii) for ii in test_times['slices']]
-        if len(set(n_test_times)) == 1:
-            self.y_pred_ = np.concatenate(y_pred, axis=1)
-        else:
-            self.y_pred_ = [[test for chunk in train for test in chunk]
-                            for train in map(list, zip(*y_pred))]
-
+        self.y_pred_ = np.concatenate(y_pred, axis=1)
         _warn_once.clear()  # reset self-baked warning tracker
         return self.y_pred_
 

@@ -242,9 +242,8 @@ def test_generalization_across_time():
     assert_raises(RuntimeError, gat.score)
     # --- unmatched length between training and testing time
     gat.test_times = dict(length=.150)
-    with warnings.catch_warnings(record=True):  # no test epochs
-        assert_raises(ValueError, gat.predict, epochs)
-
+    assert_raises(ValueError, gat.predict, epochs)
+    # --- XXX irregular length training times: this got lost in the API!
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
     with warnings.catch_warnings(record=True):
