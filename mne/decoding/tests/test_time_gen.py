@@ -52,7 +52,7 @@ def test_generalization_across_time():
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import mean_squared_error
+    from sklearn.metrics import accuracy_score, mean_squared_error
     try:
         from sklearn.model_selection import (KFold, StratifiedKFold,
                                              ShuffleSplit, LeaveOneLabelOut)
@@ -100,6 +100,14 @@ def test_generalization_across_time():
                  "predicted 14 epochs, no score>",
                  "%s" % gat)
     gat.score(epochs)
+    assert_true(gat.scorer_.__name__ == 'accuracy_score')
+    # check clf / predict_method combinations for which the scoring metrics
+    # cannot be inferred.
+    gat.scorer = None
+    gat.predict_method = 'decision_function'
+    assert_raises(ValueError, gat.score, epochs)
+    # Check specifying y manually
+    gat.predict_method = 'predict'
     gat.score(epochs, y=epochs.events[:, 2])
     gat.score(epochs, y=epochs.events[:, 2].tolist())
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
@@ -307,7 +315,9 @@ def test_generalization_across_time():
     gat.fit(epochs)
     # With regression the default cv is KFold and not StratifiedKFold
     assert_true(gat.cv_.__class__ == KFold)
-    gat.predict(epochs)
+    gat.score(epochs)
+    # with regression the default scoring metrics is mean squared error
+    assert_true(gat.scorer_.__name__ == 'mean_squared_error')
 
     # Test combinations of complex scenarios
     # 2 or more distinct classes

@@ -360,7 +360,8 @@ class _GeneralizationAcrossTime(object):
             number of testing times per training time need not be regular;
             else, np.shape(scores) = (n_train_time, n_test_time).
         """
-        from sklearn.metrics import accuracy_score
+        from sklearn.base import is_classifier, is_regressor
+        from sklearn.metrics import accuracy_score, mean_squared_error
 
         # Run predictions if not already done
         if epochs is not None:
@@ -370,14 +371,18 @@ class _GeneralizationAcrossTime(object):
                 raise RuntimeError('Please predict() epochs first or pass '
                                    'epochs to score()')
 
-        # Clean attributes
-        for att in ['scores_', 'scorer_', 'y_true_']:
-            if hasattr(self, att):
-                delattr(self, att)
-
         # Check scorer
-        # XXX Need API to identify proper scorer from the clf
-        self.scorer_ = accuracy_score if self.scorer is None else self.scorer
+        if self.scorer is not None:
+            self.scorer_ = self.scorer
+        else:
+            if is_classifier(self.clf) and self.predict_method == 'predict':
+                self.scorer_ = accuracy_score
+            elif is_regressor(self.clf) and self.predict_method == 'predict':
+                self.scorer_ = mean_squared_error
+            else:
+                raise ValueError('Could not find a scoring metrics for '
+                                 '`clf=%s` and `predict_method=%s`. Manually'
+                                 ' define scorer. ' % (self.clf, self.scorer))
 
         # If no regressor is passed, use default epochs events
         if y is None:
@@ -397,6 +402,12 @@ class _GeneralizationAcrossTime(object):
                                  'for scoring.')
         elif isinstance(y, list):
             y = np.array(y)
+
+        # Clean attributes
+        for att in ['scores_', 'y_true_']:
+            if hasattr(self, att):
+                delattr(self, att)
+
         self.y_true_ = y  # to be compared with y_pred for scoring
 
         # Preprocessing for parallelization
