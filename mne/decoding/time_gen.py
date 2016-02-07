@@ -453,22 +453,8 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
 
     # Check inputs
     n_epochs, __, n_times = X.shape
-
-    def initialize_y_pred(y_dim):
-        # y_pred can only be initialized after the first prediction, because we
-        # can't know whether it is a a categorical output or a set of
-        # probabilistic estimates.
-        # If all train time points have the same number of testing time
-        # points, then y_pred is a matrix. Else it is an array of arrays.
-        n_train = len(estimators)
-        n_test = [len(test_times) for test_times in train_times]
-        if len(set(n_test)) == 1:
-            y_pred = np.empty((n_train, n_test[0], n_orig_epochs, y_dim))
-
-        else:
-            y_pred = np.array([np.empty(this_n, n_orig_epochs, y_dim)
-                               for this_n in n_test])
-        return y_pred
+    n_train = len(estimators)
+    n_test = [len(test_times) for test_times in train_times]
 
     # Loop across training times (i.e. estimators)
     y_pred = None
@@ -503,7 +489,8 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
                                    one_tsample=one_tsample,
                                    predict_method=predict_method)
                 if y_pred is None:
-                    y_pred = initialize_y_pred(y_pred_.shape[-1])
+                    n_dim = y_pred_.shape[-1]
+                    y_pred = _init_ypred(n_train, n_test, n_orig_epochs, n_dim)
                 if one_tsample:
                     y_pred[train_idx][test_time] = y_pred_
                 else:
@@ -518,12 +505,46 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
                                        one_tsample=one_tsample,
                                        predict_method=predict_method)
                     if y_pred is None:
-                        y_pred = initialize_y_pred(y_pred_.shape[-1])
+                        n_dim = y_pred_.shape[-1]
+                        y_pred = _init_ypred(n_train, n_test, n_orig_epochs,
+                                             n_dim)
                     if one_tsample:
                         y_pred[train_idx][test_time, test, ...] = y_pred_
                     else:
                         y_pred[train_idx][test_idx, test, ...] = y_pred_
 
+    return y_pred
+
+
+def _init_ypred(n_train, n_test, n_orig_epochs, n_dim):
+    """
+    y_pred can only be initialized after the first prediction, because we
+    can't know whether it is a a categorical output or a set of
+    probabilistic estimates.
+    If all train time points have the same number of testing time
+    points, then y_pred is a matrix. Else it is an array of arrays.
+
+    Parameters
+    ----------
+    n_train : int
+        Number of training time point (i.e. estimators)
+    n_test : list of int
+        List of number of testing time points for each estimator.
+    n_orig_epochs : int
+        Number of epochs passed to gat.predict()
+    n_dim : int
+        Number of dimensionality of y_pred. See np.shape(clf.predict(X))
+
+    Returns
+    -------
+    y_pred : np.array, shape(n_train, n_test, n_orig_epochs, n_dim)
+        Empty array.
+    """
+    if len(set(n_test)) == 1:
+        y_pred = np.empty((n_train, n_test[0], n_orig_epochs, n_dim))
+    else:
+        y_pred = np.array([np.empty(this_n, n_orig_epochs, n_dim)
+                           for this_n in n_test])
     return y_pred
 
 

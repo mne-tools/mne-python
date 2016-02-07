@@ -48,6 +48,8 @@ def test_generalization_across_time():
     """Test time generalization decoding
     """
     from sklearn.svm import SVC
+    # KernelRidge is used for testing 1) regression analyses 2) n-dimensional
+    # predictions.
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import mean_squared_error
@@ -288,7 +290,7 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime(clf=KernelRidge(), cv=2)
     epochs.crop(None, epochs.times[2])
     gat.fit(epochs)
-    # Xith regression the default cv is KFold and not StratifiedKFold
+    # With regression the default cv is KFold and not StratifiedKFold
     assert_true(gat.cv_.__class__ == KFold)
     gat.predict(epochs)
 
