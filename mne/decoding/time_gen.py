@@ -311,19 +311,9 @@ class _GeneralizationAcrossTime(object):
                   for slices in self.test_times_['slices']]
         chunks = map(list, zip(*chunks))
 
-        def chunk_X(X, slices):
-            """Smart chunking to avoid memory overload"""
-            # from object array to list
-            slices = [sl for sl in slices if len(sl)]
-            start = np.min(slices)
-            stop = np.max(slices) + 1
-            slices_ = np.array(slices) - start
-            X_ = X[:, :, start:stop]
-            return (X_, self.estimators_, self._splits, slices_.tolist(),
-                    self.predict_mode, self.predict_method, n_orig_epochs,
-                    test_epochs)
-
-        y_pred = parallel(p_func(*chunk_X(X, slices)) for slices in chunks)
+        # To minimize memory during parallelization, we apply a some chunking
+        y_pred = parallel(p_func(*_chunk_X(
+            X, slices, self, n_orig_epochs, test_epochs)) for slices in chunks)
 
         # Concatenate chunks across test time dimension.
         self.y_pred_ = np.concatenate(y_pred, axis=1)
@@ -1456,3 +1446,16 @@ class TimeDecoding(_GeneralizationAcrossTime):
             self.y_pred_ = [y_pred[0] for y_pred in self.y_pred_]
         if hasattr(self, 'scores_'):
             self.scores_ = [score[0] for score in self.scores_]
+
+
+def _chunk_X(X, slices, gat, n_orig_epochs, test_epochs):
+    """Smart chunking to avoid memory overload"""
+    # from object array to list
+    slices = [sl for sl in slices if len(sl)]
+    start = np.min(slices)
+    stop = np.max(slices) + 1
+    slices_ = np.array(slices) - start
+    X_ = X[:, :, start:stop]
+    return (X_, gat.estimators_, gat._splits, slices_.tolist(),
+            gat.predict_mode, gat.predict_method, n_orig_epochs,
+            test_epochs)
