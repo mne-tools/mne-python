@@ -143,19 +143,19 @@ class _GeneralizationAcrossTime(object):
         self.ch_names = [epochs.ch_names[p] for p in self.picks_]
 
         cv = self.cv
-        XFold = KFold
-        if is_classifier(self.clf):
-            XFold = StratifiedKFold
-
         if isinstance(cv, (int, np.int)):
             try:
+                XFold = StratifiedKFold if is_classifier(self.clf) else KFold
                 cv = XFold(n_folds=cv)
             except TypeError:  # XXX sklearn < 0.18
-                cv = XFold(n=cv)
+                if is_classifier(self.clf):
+                    cv = KFold(n=len(y), n_folds=cv)
+                else:
+                    cv = StratifiedKFold(y=y, n_folds=cv)
         try:
             cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(self.clf))
         except TypeError:
-            # XXX sklearn issue #6300
+            # XXX sklearn API change from 0.18: see sklearn issue #6300
             cv = check_cv(cv=cv, y=y, classifier=is_classifier(self.clf))
         self.cv_ = cv
 
@@ -165,7 +165,7 @@ class _GeneralizationAcrossTime(object):
                             cv.split(X=np.zeros_like(y), y=y)]
         else:
             # XXX support sklearn < 0.18
-            self._splits = [(train, test) for train, test in cv(y=y)]
+            self._splits = [(train, test) for train, test in cv]
 
         if not np.all([len(train) for train, __ in self._splits]):
             raise ValueError('Some folds do not have any train epochs.')
@@ -233,12 +233,8 @@ class _GeneralizationAcrossTime(object):
         # Check that training cv and predicting cv match
         if self.predict_mode == 'cross-validation':
             n_est_cv = [len(estimator) for estimator in self.estimators_]
-            if hasattr(self.cv_, 'get_n_splits'):
-                n_split = self.cv_.get_n_splits()
-            else:
-                n_split = self.cv_.n
             inconsistent_splits = len(set(n_est_cv)) != 1
-            mismatching_splits = n_est_cv[0] != n_split
+            mismatching_splits = n_est_cv[0] != len(self._splits)
             mismatching_y = len(self.y_train_) != len(epochs)
             if inconsistent_splits or mismatching_splits or mismatching_y:
                 raise ValueError(
