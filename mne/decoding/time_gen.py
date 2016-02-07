@@ -142,8 +142,10 @@ class _GeneralizationAcrossTime(object):
         X, y, self.picks_ = _check_epochs_input(epochs, y, self.picks)
         self.ch_names = [epochs.ch_names[p] for p in self.picks_]
 
+        # Prepare cross-validation
         cv = self.cv
         if isinstance(cv, (int, np.int)):
+            # Automatically chose StratifiedKFold if classification else KFold
             try:
                 XFold = StratifiedKFold if is_classifier(self.clf) else KFold
                 cv = XFold(n_folds=cv)
@@ -305,9 +307,9 @@ class _GeneralizationAcrossTime(object):
         n_test_slice = max(len(sl) for sl in self.train_times_['slices'])
         # Loop across estimators (i.e. training times)
         n_chunks = min(n_test_slice, n_jobs)
-        splits = [np.array_split(slices, n_chunks)
+        chunks = [np.array_split(slices, n_chunks)
                   for slices in self.test_times_['slices']]
-        splits = map(list, zip(*splits))
+        chunks = map(list, zip(*chunks))
 
         def chunk_X(X, slices):
             """Smart chunking to avoid memory overload"""
@@ -321,8 +323,7 @@ class _GeneralizationAcrossTime(object):
                     self.predict_mode, self.predict_method, n_orig_epochs,
                     test_epochs)
 
-        y_pred = parallel(p_func(*chunk_X(X, slices))
-                          for slices in splits)
+        y_pred = parallel(p_func(*chunk_X(X, slices)) for slices in chunks)
 
         # Concatenate chunks across test time dimension.
         self.y_pred_ = np.concatenate(y_pred, axis=1)
@@ -369,7 +370,7 @@ class _GeneralizationAcrossTime(object):
                 raise RuntimeError('Please predict() epochs first or pass '
                                    'epochs to score()')
 
-        # clean gat.score() attributes
+        # Clean attributes
         for att in ['scores_', 'scorer_', 'y_true_']:
             if hasattr(self, att):
                 delattr(self, att)
@@ -488,15 +489,18 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
                 y_pred_ = _predict(X_pred, estimator_cv,
                                    one_tsample=one_tsample,
                                    predict_method=predict_method)
+                # Initialize y_pred now we know its dimensionality
                 if y_pred is None:
                     n_dim = y_pred_.shape[-1]
                     y_pred = _init_ypred(n_train, n_test, n_orig_epochs, n_dim)
                 if one_tsample:
+                    # Output predictions in different test_time columns
                     y_pred[train_idx][test_time] = y_pred_
                 else:
+                    # Output predictions in a single test_time column
                     y_pred[train_idx][test_idx] = y_pred_
             elif predict_mode == 'cross-validation':
-                # Predict using cv estimator_cv
+                # Predict using the estimator corresponding to each fold
                 for (_, test), test_epoch, estimator in zip(
                         splits, test_epochs, estimator_cv):
                     if test.size == 0:
@@ -504,13 +508,16 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
                     y_pred_ = _predict(X_pred[test_epoch], [estimator],
                                        one_tsample=one_tsample,
                                        predict_method=predict_method)
+                    # Initialize y_pred now we know its dimensionality
                     if y_pred is None:
                         n_dim = y_pred_.shape[-1]
                         y_pred = _init_ypred(n_train, n_test, n_orig_epochs,
                                              n_dim)
                     if one_tsample:
+                        # Output predictions in different test_time columns
                         y_pred[train_idx][test_time, test, ...] = y_pred_
                     else:
+                        # Output predictions in a single test_time column
                         y_pred[train_idx][test_idx, test, ...] = y_pred_
 
     return y_pred
