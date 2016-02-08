@@ -1129,6 +1129,12 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     """"Get whitener params for a set of channels."""
     # whitening operator
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
+
+    # Clean up our eigenvalues (can be e.g. -1e-26 or 1e-26 for MEG data)
+    eps = np.finfo(float).eps
+    tol = np.max(A.shape) * np.amax(eig) * eps
+    eig[np.abs(eig) < tol] = 0
+
     eigvec = eigvec.T
     eig[:-rank] = 0.0
 
