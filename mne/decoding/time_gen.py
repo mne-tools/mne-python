@@ -473,9 +473,11 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
         # time-sample, ranging across the entire times. In this case, we will
         # be able to vectorize the testing times samples.
         expected_start = np.arange(n_times)
-        one_tsample = np.array_equal(
-            [ii for sl in test_times for ii in sl], expected_start)
-        if one_tsample:
+        contiguous_start = np.array_equal([sl[0] for sl in test_times],
+                                          expected_start)
+        window_lengths = np.unique([len(sl) for sel in test_times])
+        vectorize_times = (window_lengths == 1) and contiguous_start
+        if vectorize_times:
             # In vectorize mode, we avoid iterating over time test_times.
             test_times = [slice(expected_start[0], expected_start[-1] + 1, 1)]
         elif _warn_once.get('vectorization', True):
@@ -483,25 +485,25 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
                            'using a time window with length > 1')
             _warn_once['vectorization'] = False
 
-        # Iterate over testing times. If one_tsample: 1 iteration.
+        # Iterate over testing times. If vectorize_times: 1 iteration.
         for test_idx, test_time in enumerate(test_times):
             # Vectoring chan_times features in case of multiple time samples
             # given to the estimators.
             X_pred = X
-            if not one_tsample:
+            if not vectorize_times:
                 X_pred = X[:, :, test_time].reshape(n_epochs, -1)
 
             if predict_mode == 'mean-prediction':
                 # Bagging: predict with each fold's estimator and combine
                 # predictions.
                 y_pred_ = _predict(X_pred, estimator_cv,
-                                   one_tsample=one_tsample,
+                                   vectorize_times=vectorize_times,
                                    predict_method=predict_method)
                 # Initialize y_pred now we know its dimensionality
                 if y_pred is None:
                     n_dim = y_pred_.shape[-1]
                     y_pred = _init_ypred(n_train, n_test, n_orig_epochs, n_dim)
-                if one_tsample:
+                if vectorize_times:
                     # Output predictions in different test_time columns
                     y_pred[train_idx][test_time] = y_pred_
                 else:
@@ -514,14 +516,14 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
                     if test.size == 0:
                         continue
                     y_pred_ = _predict(X_pred[test_epoch], [estimator],
-                                       one_tsample=one_tsample,
+                                       vectorize_times=vectorize_times,
                                        predict_method=predict_method)
                     # Initialize y_pred now we know its dimensionality
                     if y_pred is None:
                         n_dim = y_pred_.shape[-1]
                         y_pred = _init_ypred(n_train, n_test, n_orig_epochs,
                                              n_dim)
-                    if one_tsample:
+                    if vectorize_times:
                         # Output predictions in different test_time columns
                         y_pred[train_idx][test_time, test, ...] = y_pred_
                     else:
@@ -655,17 +657,14 @@ def _fit_slices(clf, x_chunk, y, slices, splits):
     n_epochs = len(x_chunk)
     estimators = list()
     # Identify the time samples of X_chunck corresponding to X
-    values = np.unique(np.concatenate(slices))
-    indices = range(len(values))
+    values = np.unique([val for sl in slices for val in sl])
     # Loop across time slices
     for t_slice in slices:
         # Translate absolute time samples into time sample relative to x_chunk
-        for ii in indices:
-            t_slice[t_slice == values[ii]] = indices[ii]
+        t_slice = np.array([np.where(ii == values)[0][0] for ii in t_slice])
         # Select slice
         X = x_chunk[..., t_slice]
-        # Reshape data matrix to flatten features in case of multiple time
-        # samples.
+        # Reshape data matrix to flatten features if multiple time samples.
         X = X.reshape(n_epochs, np.prod(X.shape[1:]))
         # Loop across folds
         estimators_ = list()
@@ -755,7 +754,7 @@ def _sliding_window(times, window, sfreq):
     return window
 
 
-def _predict(X, estimators, one_tsample, predict_method):
+def _predict(X, estimators, vectorize_times, predict_method):
     """Aux function of GeneralizationAcrossTime
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -768,7 +767,7 @@ def _predict(X, estimators, one_tsample, predict_method):
         Array of scikit-learn classifiers to predict data.
     X : ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
-    one_tsample : bool
+    vectorize_times : bool
         If True, X can be vectorized to predict all times points at once
     predict_method : str
         Name of the method used to make predictions from the estimator. For
@@ -793,7 +792,7 @@ def _predict(X, estimators, one_tsample, predict_method):
 
     # in simple case, we are predicting each time sample as if it
     # was a different epoch
-    if one_tsample:  # treat times as trials for optimization
+    if vectorize_times:  # treat times as trials for optimization
         X = np.hstack(X).T  # XXX JRK: still 17% of cpu time
     n_epochs_tmp = len(X)
 
@@ -819,7 +818,7 @@ def _predict(X, estimators, one_tsample, predict_method):
             y_pred = np.mean(y_pred, axis=2, keepdims=True)
     y_pred = y_pred[:, :, 0]
     # Format shape
-    if one_tsample:
+    if vectorize_times:
         shape = [n_epochs, n_times, y_pred.shape[-1]]
         y_pred = y_pred.reshape(shape).transpose([1, 0, 2])
     return y_pred

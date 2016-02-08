@@ -265,11 +265,8 @@ def test_generalization_across_time():
     gat.test_times = dict(length=.150)
     assert_raises(ValueError, gat.predict, epochs)
     # --- irregular length training and testing times TODO XXX
-    # gat.train_times = dict(slices=[[0], [1, 2]])
-    # gat.test_times = dict(slices=[[[0], [1]], [[0, 1], [1, 2], [2, 3]]])
-    # --- each training time is used to predict different testing times
-    gat = GeneralizationAcrossTime(train_times=dict(slices=[[0], [1]]),
-                                   test_times=dict(slices=[[[0]], [[0], [1]]]))
+    gat = GeneralizationAcrossTime(train_times=dict(slices=[[0, 1], [1]]),
+                                   test_times=dict(slices=[[[0, 1]], [[0], [1]]]))
     gat.fit(epochs)
     gat.score(epochs)
     assert_array_equal(np.shape(gat.y_pred_[0]), [1, len(epochs), 1])
