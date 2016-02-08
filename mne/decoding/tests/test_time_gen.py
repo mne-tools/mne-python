@@ -264,9 +264,11 @@ def test_generalization_across_time():
     # --- unmatched length between training and testing time
     gat.test_times = dict(length=.150)
     assert_raises(ValueError, gat.predict, epochs)
-    # --- irregular length training and testing times TODO XXX
-    gat = GeneralizationAcrossTime(train_times=dict(slices=[[0, 1], [1]]),
-                                   test_times=dict(slices=[[[0, 1]], [[0], [1]]]))
+    # --- irregular length training and testing times
+    train_times = dict(slices=[[0, 1], [1]])
+    test_times = dict(slices=[[[0, 1]], [[0], [1]]])
+    gat = GeneralizationAcrossTime(train_times=train_times,
+                                   test_times=test_times)
     gat.fit(epochs)
     gat.score(epochs)
     assert_array_equal(np.shape(gat.y_pred_[0]), [1, len(epochs), 1])
@@ -303,7 +305,7 @@ def test_generalization_across_time():
 
     # Make CV with some empty train and test folds:
     # --- empty test fold(s) should warn when gat.predict()
-    gat._splits[0] = [gat._splits[0][0], np.empty(0)]
+    gat._cv_splits[0] = [gat._cv_splits[0][0], np.empty(0)]
     with warnings.catch_warnings(record=True):
         gat.predict(epochs)
         assert_true(len(w) > 0)

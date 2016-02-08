@@ -163,13 +163,13 @@ class _GeneralizationAcrossTime(object):
 
         # Keep cv splits to retrieve them at predict()
         if hasattr(cv, 'split'):
-            self._splits = [(train, test) for train, test in
-                            cv.split(X=np.zeros_like(y), y=y)]
+            self._cv_splits = [(train, test) for train, test in
+                               cv.split(X=np.zeros_like(y), y=y)]
         else:
             # XXX support sklearn < 0.18
-            self._splits = [(train, test) for train, test in cv]
+            self._cv_splits = [(train, test) for train, test in cv]
 
-        if not np.all([len(train) for train, __ in self._splits]):
+        if not np.all([len(train) for train, __ in self._cv_splits]):
             raise ValueError('Some folds do not have any train epochs.')
 
         self.y_train_ = y
@@ -182,13 +182,12 @@ class _GeneralizationAcrossTime(object):
         # TODO: JRK: Chunking times points needs to be simplified
         parallel, p_func, n_jobs = parallel_func(_fit_slices, n_jobs)
         n_chunks = min(len(self.train_times_['slices']), n_jobs)
-        splits = np.array_split(self.train_times_['slices'], n_chunks)
+        time_chunks = np.array_split(self.train_times_['slices'], n_chunks)
 
-        out = parallel(p_func(
-            clone(self.clf),
-            X[..., np.unique(np.concatenate(train_slices_chunk))],
-            y, train_slices_chunk, self._splits)
-            for train_slices_chunk in splits)
+        out = parallel(p_func(clone(self.clf),
+                              X[..., np.unique(np.concatenate(time_chunk))],
+                              y, time_chunk, self._cv_splits)
+                       for time_chunk in time_chunks)
 
         # Unpack estimators into time slices X folds list of lists.
         self.estimators_ = sum(out, list())
@@ -234,7 +233,7 @@ class _GeneralizationAcrossTime(object):
         if self.predict_mode == 'cross-validation':
             n_est_cv = [len(estimator) for estimator in self.estimators_]
             inconsistent_splits = len(set(n_est_cv)) != 1
-            mismatching_splits = n_est_cv[0] != len(self._splits)
+            mismatching_splits = n_est_cv[0] != len(self._cv_splits)
             mismatching_y = len(self.y_train_) != len(epochs)
             if inconsistent_splits or mismatching_splits or mismatching_y:
                 raise ValueError(
@@ -249,7 +248,7 @@ class _GeneralizationAcrossTime(object):
 
         X, y, __ = _check_epochs_input(epochs, None, self.picks_)
 
-        if not np.all([len(test) for train, test in self._splits]):
+        if not np.all([len(test) for train, test in self._cv_splits]):
             warnings.warn('Some folds do not have any test epochs.')
 
         # Define testing sliding window
@@ -291,9 +290,9 @@ class _GeneralizationAcrossTime(object):
         # contiguous array X by using slices rather than indices.
         test_epochs = []
         if self.predict_mode == 'cross-validation':
-            all_test = [ii for train, test in self._splits for ii in test]
+            all_test = [ii for train, test in self._cv_splits for ii in test]
             start = 0
-            for __, test in self._splits:
+            for __, test in self._cv_splits:
                 n_test_epochs = len(test)
                 stop = start + n_test_epochs
                 test_epochs.append(slice(start, stop, 1))
@@ -628,7 +627,7 @@ def _check_epochs_input(epochs, y, picks=None):
     return X, y, picks
 
 
-def _fit_slices(clf, x_chunk, y, slices, splits):
+def _fit_slices(clf, x_chunk, y, slices, cv_splits):
     """Aux function of GeneralizationAcrossTime
 
     Fit each classifier.
@@ -643,7 +642,7 @@ def _fit_slices(clf, x_chunk, y, slices, splits):
         To-be-fitted model.
     slices : list | array, shape (n_training_slice,)
         List of training slices, indicating time sample relative to X
-    splits : list of tuples
+    cv_splits : list of tuples
         List of (train, test) tuples generated from cv.split()
 
     Returns
@@ -668,7 +667,7 @@ def _fit_slices(clf, x_chunk, y, slices, splits):
         X = X.reshape(n_epochs, np.prod(X.shape[1:]))
         # Loop across folds
         estimators_ = list()
-        for fold, (train, test) in enumerate(splits):
+        for fold, (train, test) in enumerate(cv_splits):
             # Fit classifier
             clf_ = clone(clf)
             clf_.fit(X[train, :], y[train])
@@ -1465,6 +1464,6 @@ def _chunk_X(X, slices, gat, n_orig_epochs, test_epochs):
     stop = np.max(selected_times) + 1
     slices_ = np.array(slices) - start
     X_ = X[:, :, start:stop]
-    return (X_, gat.estimators_, gat._splits, slices_.tolist(),
+    return (X_, gat.estimators_, gat._cv_splits, slices_.tolist(),
             gat.predict_mode, gat.predict_method, n_orig_epochs,
             test_epochs)
