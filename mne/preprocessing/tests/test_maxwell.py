@@ -619,6 +619,9 @@ def test_head_translation():
                                  bad_condition='ignore', verbose='warning')
     assert_true('over 25 mm' in log.getvalue())
     assert_meg_snr(raw_sss, Raw(sss_trans_default_fname), 125.)
+    destination = np.eye(4)
+    destination[2, 3] = 0.04
+    assert_allclose(raw_sss.info['dev_head_t']['trans'], destination)
     # Now to sample's head pos
     with catch_logging() as log:
         raw_sss = maxwell_filter(raw, destination=sample_fname,
@@ -626,6 +629,8 @@ def test_head_translation():
                                  bad_condition='ignore', verbose='warning')
     assert_true('= 25.6 mm' in log.getvalue())
     assert_meg_snr(raw_sss, Raw(sss_trans_sample_fname), 350.)
+    assert_allclose(raw_sss.info['dev_head_t']['trans'],
+                    read_info(sample_fname)['dev_head_t']['trans'])
     # Degenerate cases
     assert_raises(RuntimeError, maxwell_filter, raw,
                   destination=mf_head_origin, coord_frame='meg')
@@ -649,7 +654,7 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
 @slow_test
 @requires_svd_convergence
 @testing.requires_testing_data
-def test_noise_rejection():
+def test_shielding_factor():
     """Test Maxwell filter shielding factor using empty room"""
     with warnings.catch_warnings(record=True):  # maxshield
         raw_erm = Raw(erm_fname, allow_maxshield=True, preload=True)

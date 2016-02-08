@@ -64,7 +64,8 @@ class ProjMixin(object):
         return (len(self.info['projs']) > 0 and
                 all(p['active'] for p in self.info['projs']))
 
-    def add_proj(self, projs, remove_existing=False):
+    @verbose
+    def add_proj(self, projs, remove_existing=False, verbose=None):
         """Add SSP projection vectors
 
         Parameters
@@ -73,6 +74,8 @@ class ProjMixin(object):
             List with projection vectors.
         remove_existing : bool
             Remove the projection vectors currently in the file.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
 
         Returns
         -------

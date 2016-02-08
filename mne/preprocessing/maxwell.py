@@ -449,6 +449,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         raw_sss._data[pos_picks, start:stop] = out_pos_data
 
     # Update info
+    info['dev_head_t'] = recon_trans  # set the reconstruction transform
     _update_sss_info(raw_sss, origin, int_order, ext_order, len(good_picks),
                      coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0)
     logger.info('[done]')
@@ -463,7 +464,7 @@ def _remove_meg_projs(inst):
     for proj in inst.info['projs']:
         if not any(c in meg_channels for c in proj['data']['col_names']):
             non_meg_proj.append(proj)
-    inst.add_proj(non_meg_proj, remove_existing=True)
+    inst.add_proj(non_meg_proj, remove_existing=True, verbose=False)
 
 
 def _check_destination(destination, info, head_frame):
@@ -1516,10 +1517,12 @@ def _overlap_projector(data_int, data_res, corr):
     # Normalize data, then compute orth to get temporal bases. Matrices
     # must have shape (n_samps x effective_rank) when passed into svd
     # computation
-    n = np.sqrt(np.sum(data_int * data_int))
+
+    # we use np.linalg.norm instead of sp.linalg.norm here: ~2x faster!
+    n = np.linalg.norm(data_int)
     Q_int = linalg.qr(_orth_overwrite((data_int / n).T),
                       overwrite_a=True, mode='economic', **check_disable)[0].T
-    n = np.sqrt(np.sum(data_res * data_res))
+    n = np.linalg.norm(data_res)
     Q_res = linalg.qr(_orth_overwrite((data_res / n).T),
                       overwrite_a=True, mode='economic', **check_disable)[0]
     assert data_int.shape[1] > 0

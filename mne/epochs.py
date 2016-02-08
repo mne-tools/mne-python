@@ -2855,6 +2855,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         mapping = np.dot(S_recon, pS_ave)
         # Apply mapping
         data[meg_picks] = np.dot(mapping, data[good_picks])
+    info_to['dev_head_t'] = recon_trans  # set the reconstruction transform
     evoked = epochs._evoked_from_epoch_data(
         data, info_to, picks, count, 'average')
     _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
