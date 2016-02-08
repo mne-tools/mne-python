@@ -149,11 +149,13 @@ def test_dipole_fitting():
                                                      axis=1)))]
         amp_errs += [np.sqrt(np.mean((amp - d.amplitude) ** 2))]
         gofs += [np.mean(d.gof)]
-    assert_true(dists[0] >= dists[1], 'dists: %s' % dists)
-    assert_true(corrs[0] <= corrs[1], 'corrs: %s' % corrs)
-    assert_true(gc_dists[0] >= gc_dists[1], 'gc-dists (ori): %s' % gc_dists)
-    assert_true(amp_errs[0] >= amp_errs[1], 'amplitude errors: %s' % amp_errs)
-    assert_true(gofs[0] <= gofs[1], 'gof: %s' % gofs)
+    assert_true(dists[0] >= dists[1] * factor, 'dists: %s' % dists)
+    assert_true(corrs[0] <= corrs[1] / factor, 'corrs: %s' % corrs)
+    assert_true(gc_dists[0] >= gc_dists[1] * factor,
+                'gc-dists (ori): %s' % gc_dists)
+    assert_true(amp_errs[0] >= amp_errs[1] * factor,
+                'amplitude errors: %s' % amp_errs)
+    assert_true(gofs[0] <= gofs[1] / factor, 'gof: %s' % gofs)
 
 
 @testing.requires_testing_data
