@@ -122,11 +122,12 @@ class _GeneralizationAcrossTime(object):
         If X is a dense array, then the other methods will not support sparse
         matrices as input.
         """
+        from mne.utils import check_version
         from sklearn.base import clone, is_classifier
-        try:
+        if check_version('sklearn', '0.18'):
             from sklearn.model_selection import (check_cv, StratifiedKFold,
                                                  KFold)
-        except ImportError:  # XXX support sklearn < 0.18
+        else:
             from sklearn.cross_validation import (check_cv, StratifiedKFold,
                                                   KFold)
 
@@ -146,19 +147,19 @@ class _GeneralizationAcrossTime(object):
         cv = self.cv
         if isinstance(cv, (int, np.int)):
             # Automatically chose StratifiedKFold if classification else KFold
-            try:
+            if check_version('sklearn', '0.18'):
                 XFold = StratifiedKFold if is_classifier(self.clf) else KFold
                 cv = XFold(n_folds=cv)
-            except TypeError:  # XXX sklearn < 0.18
+            else:
                 if is_classifier(self.clf):
                     cv = StratifiedKFold(y=y, n_folds=cv)
                 else:
                     cv = KFold(n=len(y), n_folds=cv)
-        try:
-            cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(self.clf))
-        except TypeError:
-            # XXX sklearn API change from 0.18: see sklearn issue #6300
+        if check_version('sklearn', '0.18'):
             cv = check_cv(cv=cv, y=y, classifier=is_classifier(self.clf))
+        else:
+            # XXX sklearn API change from 0.18: see sklearn issue #6300
+            cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(self.clf))
         self.cv_ = cv
 
         # Keep cv splits to retrieve them at predict()
