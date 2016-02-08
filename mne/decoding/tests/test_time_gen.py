@@ -52,7 +52,7 @@ def test_generalization_across_time():
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import accuracy_score, mean_squared_error
+    from sklearn.metrics import mean_squared_error
     try:
         from sklearn.model_selection import (KFold, StratifiedKFold,
                                              ShuffleSplit, LeaveOneLabelOut)
@@ -264,7 +264,17 @@ def test_generalization_across_time():
     # --- unmatched length between training and testing time
     gat.test_times = dict(length=.150)
     assert_raises(ValueError, gat.predict, epochs)
-    # --- XXX irregular length training times: this got lost in the API!
+    # --- irregular length training and testing times TODO XXX
+    # gat.train_times = dict(slices=[[0], [1, 2]])
+    # gat.test_times = dict(slices=[[[0], [1]], [[0, 1], [1, 2], [2, 3]]])
+    # --- each training time is used to predict different testing times
+    gat = GeneralizationAcrossTime(train_times=dict(slices=[[0], [1]]),
+                                   test_times=dict(slices=[[[0]], [[0], [1]]]))
+    gat.fit(epochs)
+    gat.score(epochs)
+    assert_array_equal(np.shape(gat.y_pred_[0]), [1, len(epochs), 1])
+    assert_array_equal(np.shape(gat.y_pred_[1]), [2, len(epochs), 1])
+
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
     with warnings.catch_warnings(record=True):
@@ -293,8 +303,6 @@ def test_generalization_across_time():
 
     gat.predict(epochs)
     assert_raises(ValueError, gat.predict, epochs[:10])
-
-    # TODO JRK: test GAT with non-exhaustive CV (eg. train on 80%, test on 10%)
 
     # Make CV with some empty train and test folds:
     # --- empty test fold(s) should warn when gat.predict()

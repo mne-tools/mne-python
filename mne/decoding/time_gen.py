@@ -175,10 +175,8 @@ class _GeneralizationAcrossTime(object):
         self.y_train_ = y
 
         # Get train slices of times
-        self.train_times_ = copy.deepcopy(self.train_times)
-        if 'slices' not in self.train_times_:
-            self.train_times_ = _sliding_window(epochs.times, self.train_times,
-                                                epochs.info['sfreq'])
+        self.train_times_ = _sliding_window(epochs.times, self.train_times,
+                                            epochs.info['sfreq'])
 
         # Parallel across training time
         # TODO: JRK: Chunking times points needs to be simplified
@@ -266,8 +264,8 @@ class _GeneralizationAcrossTime(object):
         if 'slices' not in test_times:
             # Check that same number of time sample in testing than in training
             # (otherwise it won 't be the same number of features')
-            if 'length' not in test_times:
-                test_times['length'] = self.train_times_['length']
+            test_times['length'] = test_times.get('length',
+                                                  self.train_times_['length'])
             if test_times['length'] != self.train_times_['length']:
                 raise ValueError('`train_times` and `test_times` must have '
                                  'identical `length` keys')
@@ -304,7 +302,7 @@ class _GeneralizationAcrossTime(object):
         # Prepare parallel predictions across testing time points
         # FIXME Note that this means that TimeDecoding.predict isn't parallel
         parallel, p_func, n_jobs = parallel_func(_predict_slices, self.n_jobs)
-        n_test_slice = max(len(sl) for sl in self.train_times_['slices'])
+        n_test_slice = max(len(sl) for sl in self.test_times_['slices'])
         # Loop across estimators (i.e. training times)
         n_chunks = min(n_test_slice, n_jobs)
         chunks = [np.array_split(slices, n_chunks)
@@ -316,7 +314,16 @@ class _GeneralizationAcrossTime(object):
             X, slices, self, n_orig_epochs, test_epochs)) for slices in chunks)
 
         # Concatenate chunks across test time dimension.
-        self.y_pred_ = np.concatenate(y_pred, axis=1)
+        n_tests = [len(sl) for sl in self.test_times_['slices']]
+        is_matrix = len(set(n_tests)) == 1
+        if is_matrix:
+            self.y_pred_ = np.concatenate(y_pred, axis=1)
+        else:
+            # Non regular testing times, y_pred is an array of arrays with
+            # different lengths.
+            # FIXME: should do this with numpy operators only
+            self.y_pred_ = [[test for chunk in train for test in chunk]
+                            for train in map(list, zip(*y_pred))]
         _warn_once.clear()  # reset self-baked warning tracker
         return self.y_pred_
 
@@ -551,7 +558,7 @@ def _init_ypred(n_train, n_test, n_orig_epochs, n_dim):
     if len(set(n_test)) == 1:
         y_pred = np.empty((n_train, n_test[0], n_orig_epochs, n_dim))
     else:
-        y_pred = np.array([np.empty(this_n, n_orig_epochs, n_dim)
+        y_pred = np.array([np.empty((this_n, n_orig_epochs, n_dim))
                            for this_n in n_test])
     return y_pred
 
@@ -690,15 +697,18 @@ def _sliding_window(times, window, sfreq):
         List of training slices, indicating for each classifier the time
         sample (in indices of times) to be fitted on.
     """
+    import copy
 
-    window = _DecodingTime(window)
+    window = _DecodingTime(copy.deepcopy(window))
 
     # Default values
     has_slice = 'slices' in window
-    has_params = all(k in window for k in
-                     ('start', 'stop', 'step', 'length'))
-    if has_slice and has_params:
+    if has_slice:
         time_pick = window['slices']
+        window['start'] = window.get('start', None)
+        window['stop'] = window.get('stop', None)
+        window['step'] = window.get('step', None)
+        window['length'] = window.get('length', None)
     else:
         window['start'] = window.get('start', times[0])
         window['stop'] = window.get('stop', times[-1])
@@ -710,8 +720,7 @@ def _sliding_window(times, window, sfreq):
             raise ValueError(
                 '`start` (%.2f s) outside time range [%.2f, %.2f].' % (
                     window['start'], times[0], times[-1]))
-        if (window['stop'] < times[0] or
-                window['stop'] > times[-1]):
+        if (window['stop'] < times[0] or window['stop'] > times[-1]):
             raise ValueError(
                 '`stop` (%.2f s) outside time range [%.2f, %.2f].' % (
                     window['stop'], times[0], times[-1]))
@@ -1452,8 +1461,9 @@ def _chunk_X(X, slices, gat, n_orig_epochs, test_epochs):
     """Smart chunking to avoid memory overload"""
     # from object array to list
     slices = [sl for sl in slices if len(sl)]
-    start = np.min(slices)
-    stop = np.max(slices) + 1
+    selected_times = np.hstack([np.ravel(sl) for sl in slices])
+    start = np.min(selected_times)
+    stop = np.max(selected_times) + 1
     slices_ = np.array(slices) - start
     X_ = X[:, :, start:stop]
     return (X_, gat.estimators_, gat._splits, slices_.tolist(),
