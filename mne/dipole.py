@@ -11,10 +11,12 @@ import re
 from .cov import read_cov, _get_whitener_data
 from .io.pick import pick_types, channel_type
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
+from .io.constants import FIFF
 from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform, Transform)
 
+from .forward import (make_forward_solution, convert_forward_solution)
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
@@ -25,9 +27,11 @@ from .surface import (transform_surface_to, _normalize_vectors,
                       _get_ico_surface, _compute_nearest)
 from .bem import _bem_find_surface, _bem_explain_surface
 from .source_space import (_make_volume_source_space, SourceSpaces,
-                           _points_outside_surface)
+                           _points_outside_surface,
+                           _make_discrete_source_space)
+from .source_estimate import VolSourceEstimate
 from .parallel import parallel_func
-from .fixes import partial
+from .fixes import partial, in1d
 from .utils import logger, verbose, _time_mask, warn
 
 
@@ -36,14 +40,15 @@ class Dipole(object):
 
     Used to store positions, orientations, amplitudes, times, goodness of fit
     of dipoles, typically obtained with Neuromag/xfit, mne_dipole_fit
-    or certain inverse solvers.
+    or certain inverse solvers. Note that dipole position vectors are given in
+    the head coordinate frame.
 
     Parameters
     ----------
     times : array, shape (n_dipoles,)
         The time instants at which each dipole was fitted (sec).
     pos : array, shape (n_dipoles, 3)
-        The dipoles positions (m).
+        The dipoles positions (m) in head coordinates.
     amplitude : array, shape (n_dipoles,)
         The amplitude of the dipoles (nAm).
     ori : array, shape (n_dipoles, 3)
@@ -76,6 +81,7 @@ class Dipole(object):
             The name of the .dip file.
         """
         fmt = "  %7.1f %7.1f %8.2f %8.2f %8.2f %8.3f %8.3f %8.3f %8.3f %6.1f"
+        # NB CoordinateSystem is hard-coded as Head here
         with open(fname, 'wb') as fid:
             fid.write('# CoordinateSystem "Head"\n'.encode('utf-8'))
             fid.write('#   begin     end   X (mm)   Y (mm)   Z (mm)'
@@ -211,6 +217,127 @@ class Dipole(object):
         """Handle len function"""
         return self.pos.shape[0]
 
+    def prep_forward_simulation(self, info, bem, trans=None, min_dist=5.0,
+                                model_meg=True, model_eeg=True,
+                                n_job=1, verbose=None):
+        """Convert Dipole(s) to (Volume)SourceEstimate & associated forward op
+
+        Prepare to project dipoles to sensor-space by creating a discrete
+        source space corresponding to the position of each dipole, and
+        calculate a forward operator.
+
+        ADD MORE INFORMATION HERE, and/or MOVE TO simulation.py
+
+        Parameters
+        ----------
+        info : dict
+            Sensor-info etc., e.g., from real evoked file.
+        bem : str | dict
+            The BEM filename (str) or a loaded sphere model (dict).
+        trans : str | None
+            The head<->MRI transform filename. Must be provided unless BEM
+            is a sphere model.
+        min_dist : float
+            Minimum distance (in milimeters) from the dipole to the inner skull.
+        model_meg : bool
+            Include MEG channels (with or without compensation) in model.
+        model_eeg : bool
+            Include EEG channels in model.
+        n_jobs : int
+            Number of jobs to run in parallel (used in field computation
+            and fitting).
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        stc : instance of VolSourceEstimate
+            The dipoles converted to a discrete set of points and associated
+            time courses.
+        fwd : instance of Forward
+            The forward solution.
+
+        See Also
+        --------
+        mne.simulation.simulate_evoked
+
+        Notes
+        -----
+        .. versionadded:: 0.12.0
+        """
+        # Make copies to avoid mangling original dipole
+        tims = self.times.copy()
+        poss = self.pos.copy()
+        amps = self.amplitude.copy()
+        oris = self.ori.copy()
+
+        # Convert positions to discrete source space (allows duplicate rr & nn)
+        # NB information about dipole orientation enters here, then no more
+        sources = dict(rr=poss, nn=oris)
+        # Dipole objects must be in the head frame
+        sp = _make_discrete_source_space(sources, coord_frame='head')
+        src = SourceSpaces([sp])  # dict with working_dir, command_line not nec
+
+        # Combining BEM and coil info takes time, even for tiny src-space
+        # To make an interactive tool possible (like BESA Simulator),
+        # should separate those long calcs from the source space, using
+        # something like _prep_field_computation, and cache the prepped fwd
+        fwd = make_forward_solution(info, trans, src, bem, fname=None,
+                                    meg=model_meg, eeg=model_eeg,
+                                    mindist=min_dist, ignore_ref=False,
+                                    overwrite=False, n_jobs=1, verbose=None)
+        # Convert from free orientations to fixed (in-place)
+        convert_forward_solution(fwd, surf_ori=False, force_fixed=True,
+                                 copy=False, verbose=None)
+
+        # Check for omissions due to mindist in only source space (0)
+        # NB arguably might be better simply to raise an error, rather than
+        # continuing with just a warning
+        if fwd['src'][0]['nuse'] != len(poss):
+            inuse = fwd['src'][0]['inuse'].astype(np.bool)
+            head = ('The following dipoles were omitted due to proximity to '
+                    'the inner skull (limit: {:.1f} mm):'.format(min_dist))
+            msg = len(head)*'#' + '\n' + head + '\n'
+            for (t, pos) in zip(tims[np.logical_not(inuse)],
+                                poss[np.logical_not(inuse)]):
+                msg += '    t={:.0f} ms, pos=({:.0f}, {:.0f}, {:.0f}) mm\n'.\
+                    format(t*1000., pos[0]*1000., pos[1]*1000., pos[2]*1000.)
+            msg += len(head)*'#'
+            logger.warning(msg)
+            tims = tims[inuse]
+            amps = amps[inuse]
+
+        # multiple dipoles (rr and nn) per time instant allowed
+        timepoints = np.unique(tims)
+        if len(timepoints) > 1:
+            tdiff = np.diff(timepoints)
+            if not np.allclose(tdiff, tdiff[0]):
+                raise ValueError('Unique time points must be evenly spaced '
+                                 '(corresponding to a fixed sampling rate)')
+            else:
+                tstep = tdiff[0]
+        elif len(timepoints) == 1:
+            tstep = 1.0
+        else:
+            raise ValueError('No valid dipoles found (check min_dist)')
+
+        # Build the data matrix, essentially a block-diagonal with
+        # n_rows: number of dipoles in total (self.amplitudes)
+        # n_cols: number of unique time points in self.times
+        # amps with identical value of times go together in one col (others=0)
+        data = np.zeros((len(amps), len(timepoints)))  # (n_d, n_t)
+        row = 0
+        for tpind, tp in enumerate(timepoints):
+            amp = amps[in1d(tims, tp)]
+            data[row:row+len(amp), tpind] = amp
+            row += len(amp)
+
+        # NB if there were omissions, get remaining vertices from fwd
+        stc = VolSourceEstimate(data, vertices=fwd['src'][0]['vertno'],
+                                tmin=timepoints[0],
+                                tstep=tstep, subject=None)
+
+        return stc, fwd
 
 # #############################################################################
 # IO
@@ -609,6 +736,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         inner_skull = _bem_find_surface(bem, 'inner_skull')
         inner_skull = inner_skull.copy()
         R, r0 = _fit_sphere(inner_skull['rr'], disp=False)
+        # r0 back to head frame for logging
         r0 = apply_trans(mri_head_t['trans'], r0[np.newaxis, :])[0]
         logger.info('Grid origin      : '
                     '%6.1f %6.1f %6.1f mm rad = %6.1f mm.'
@@ -621,7 +749,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
             R = bem['layers'][0]['rad']
         else:
             R = np.inf
-        inner_skull = [R, r0]
+        inner_skull = [R, r0]  # NB sphere model defined in head frame
     r0_mri = apply_trans(invert_transform(mri_head_t)['trans'],
                          r0[np.newaxis, :])[0]
 
@@ -687,6 +815,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     guess_src = _make_guesses(inner_skull, r0_mri,
                               guess_grid, guess_exclude, guess_mindist,
                               n_jobs=n_jobs)[0]
+
+    # inner_skull and grid coordinates go from mri to head frame
     if isinstance(inner_skull, dict):
         transform_surface_to(inner_skull, 'head', mri_head_t)
     transform_surface_to(guess_src, 'head', mri_head_t)
@@ -696,6 +826,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     fwd_data = dict(coils_list=[megcoils, eegels], infos=[meg_info, None],
                     ccoils_list=[compcoils, None], coil_types=['meg', 'eeg'],
                     inner_skull=inner_skull)
+    # fwd_data['inner_skull'] in head frame, bem in mri, confusing...
     _prep_field_computation(guess_src['rr'], bem, fwd_data, n_jobs,
                             verbose=False)
     guess_fwd = _dipole_forwards(fwd_data, whitener, guess_src['rr'],
