@@ -262,13 +262,12 @@ class _GeneralizationAcrossTime(object):
             raise ValueError('`test_times` must be a dict or "diagonal"')
 
         if 'slices' not in test_times:
+            if 'length' not in self.train_times_.keys():
+                ValueError('Need test_times["slices"] with adhoc train_times.')
             # Check that same number of time sample in testing than in training
             # (otherwise it won 't be the same number of features')
             test_times['length'] = test_times.get('length',
                                                   self.train_times_['length'])
-            if test_times['length'] != self.train_times_['length']:
-                raise ValueError('`train_times` and `test_times` must have '
-                                 'identical `length` keys')
             # Make a sliding window for each training time.
             slices_list = list()
             times_list = list()
@@ -280,6 +279,15 @@ class _GeneralizationAcrossTime(object):
             test_times = test_times_
             test_times['slices'] = slices_list
             test_times['times'] = times_list
+
+        for train, tests in zip(self.train_times_['slices'],
+                                test_times['slices']):
+            # The user may define irregular timing. We thus need to ensure
+            # that the dimensionality of each estimator (i.e. training
+            # time) corresponds to the dimensionality of each testing time)
+            if not np.all([len(test) == len(train) for test in tests]):
+                raise ValueError('`train_times` and `test_times` must '
+                                 'have identical lengths')
 
         # Store all testing times parameters
         self.test_times_ = test_times
@@ -703,10 +711,6 @@ def _sliding_window(times, window, sfreq):
     has_slice = 'slices' in window
     if has_slice:
         time_pick = window['slices']
-        window['start'] = window.get('start', None)
-        window['stop'] = window.get('stop', None)
-        window['step'] = window.get('step', None)
-        window['length'] = window.get('length', None)
     else:
         window['start'] = window.get('start', times[0])
         window['stop'] = window.get('stop', times[-1])
@@ -971,7 +975,8 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         s = ''
         if hasattr(self, "estimators_"):
             s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
-                self.train_times_['start'], self.train_times_['stop'])
+                self.train_times_.get('start', np.nan),
+                self.train_times_.get('stop', np.nan))
         else:
             s += 'no fit'
         if hasattr(self, 'y_pred_'):
@@ -1256,7 +1261,8 @@ class TimeDecoding(_GeneralizationAcrossTime):
         s = ''
         if hasattr(self, "estimators_"):
             s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
-                self.times_['start'], self.times_['stop'])
+                self.times_.gat('start', np.nan),
+                self.times_.gat('stop', np.nan))
         else:
             s += 'no fit'
         if hasattr(self, 'y_pred_'):
@@ -1462,8 +1468,8 @@ def _chunk_X(X, slices, gat, n_orig_epochs, test_epochs):
     selected_times = np.hstack([np.ravel(sl) for sl in slices])
     start = np.min(selected_times)
     stop = np.max(selected_times) + 1
-    slices_ = np.array(slices) - start
+    slices_ = [sl - start for sl in slices]
     X_ = X[:, :, start:stop]
-    return (X_, gat.estimators_, gat._cv_splits, slices_.tolist(),
+    return (X_, gat.estimators_, gat._cv_splits, slices_,
             gat.predict_mode, gat.predict_method, n_orig_epochs,
             test_epochs)

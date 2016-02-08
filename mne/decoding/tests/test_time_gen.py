@@ -273,6 +273,9 @@ def test_generalization_across_time():
     gat.score(epochs)
     assert_array_equal(np.shape(gat.y_pred_[0]), [1, len(epochs), 1])
     assert_array_equal(np.shape(gat.y_pred_[1]), [2, len(epochs), 1])
+    # check cannot Automatically infer testing times for adhoc training times
+    gat.test_times = None
+    assert_raises(ValueError, gat.predict, epochs)
 
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
