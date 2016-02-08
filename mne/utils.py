@@ -271,19 +271,20 @@ def warn(message, category=RuntimeWarning):
     stacklevel = 1
     frame = None
     stack = inspect.stack()
-    last_file = ''
+    last_fname = ''
     for fi, frame in enumerate(stack):
-        frame = frame[1]
-        if frame == '<string>' and last_file == 'utils.py':  # in verbose dec
-            last_file = frame
+        fname = frame[1]
+        del frame
+        if fname == '<string>' and last_fname == 'utils.py':  # in verbose dec
+            last_fname = fname
             continue
         # treat tests as scripts
-        if not frame.startswith(root_dir) or \
-                op.basename(op.dirname(frame)) == 'tests':
+        if not fname.startswith(root_dir) or \
+                op.basename(op.dirname(fname)) == 'tests':
             stacklevel = fi + 1
             break
-        last_file = op.basename(frame)
-    del frame, stack
+        last_fname = op.basename(fname)
+    del stack
     warnings.warn(message, category, stacklevel=stacklevel)
     logger.warning(message)
 

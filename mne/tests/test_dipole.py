@@ -118,13 +118,13 @@ def test_dipole_fitting():
     data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))
     resi_rms = np.sqrt(np.sum(residuals ** 2, axis=0))
     factor = 1.
-    # weird, inexplicable differenc for 3.5 build we'll assume is due to
+    # XXX weird, inexplicable differenc for 3.5 build we'll assume is due to
     # Anaconda bug for now...
     if os.getenv('TRAVIS', 'false') == 'true' and \
-            sys.version.startswith == '3.5':
+            sys.version.startswith('3.5'):
         factor = 0.8
     assert_true((data_rms > factor * resi_rms).all(),
-                (data_rms / resi_rms).min())
+                msg='%s (factor: %s)' % ((data_rms / resi_rms).min(), factor))
 
     # Compare to original points
     transform_surface_to(fwd['src'][0], 'head', fwd['mri_head_t'])
