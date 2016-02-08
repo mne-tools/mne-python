@@ -24,6 +24,10 @@ Changelog
 
     - Add system config utility :func:`mne.sys_info` by `Eric Larson`_
 
+    - Automatic cross-validation and scoring metrics in :func:`mne.decoding.GeneralizationAcrossTime`, by `Jean-Remi King`_
+
+    - :func:`mne.decoding.GeneralizationAcrossTime` accepts non-deterministic cross-validations, by `Jean-Remi King`_
+
 BUG
 ~~~
 
@@ -47,6 +51,9 @@ BUG
 
     - Fix bug in rank calculation of :func:`mne.utils.estimate_rank`, :func:`mne.io.Raw.estimate_rank`, and covariance functions where the tolerance was set to slightly too small a value, new 'auto' mode uses values from ``scipy.linalg.orth`` by `Eric Larson`_.
 
+    - Fix bug when specifying irregular ``train_times['slices']`` in :func:`mne.decoding.GeneralizationAcrossTime`, by `Jean-Remi King`_
+
+
 API
 ~~~
 
@@ -58,6 +65,8 @@ API
     - Deprecated function :func:`mne.time_frequency.multitaper_psd` and replaced by :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
     - The `'ch_names'` and `'nchan'` fields of the :class:`mne.io.Info` class are now read-only and are automatically updated to accommodate changes in the `'chs'` field, by `Marijn van Vliet`_
+
+    - The ``y_pred`` attribute in :func:`mne.decoding.GeneralizationAcrossTime` and :func:`mne.decoding.TimeDecoding` is now a numpy array, by `Jean-Remi King`_
 
 .. _changes_0_11:
 
