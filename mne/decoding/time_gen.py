@@ -270,15 +270,14 @@ class _GeneralizationAcrossTime(object):
                                                   self.train_times_['length'])
             # Make a sliding window for each training time.
             slices_list = list()
-            times_list = list()
             for __ in range(0, len(self.train_times_['slices'])):
                 test_times_ = _sliding_window(epochs.times, test_times,
                                               epochs.info['sfreq'])
-                times_list += [test_times_['times']]
                 slices_list += [test_times_['slices']]
             test_times = test_times_
             test_times['slices'] = slices_list
-            test_times['times'] = times_list
+        test_times['times'] = [_set_window_time(test, epochs.times)
+                               for test in test_times['slices']]
 
         for train, tests in zip(self.train_times_['slices'],
                                 test_times['slices']):
@@ -749,12 +748,14 @@ def _sliding_window(times, window, sfreq):
             start = time_pick[-1][0] + step
             time_pick.append(range(start, start + length))
         window['slices'] = time_pick
-
-    # Keep last training times in milliseconds
-    t_inds_ = [t[-1] for t in window['slices']]
-    window['times'] = times[t_inds_]
-
+    window['times'] = _set_window_time(window['slices'], times)
     return window
+
+
+def _set_window_time(slices, times):
+    """Defines time as the last training time point"""
+    t_inds_ = [t[-1] for t in slices]
+    return times[t_inds_]
 
 
 def _predict(X, estimators, vectorize_times, predict_method):
