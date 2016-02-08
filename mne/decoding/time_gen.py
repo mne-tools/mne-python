@@ -1133,11 +1133,12 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             The figure.
         """
         not_float = not isinstance(train_time, float)
-        not_array = not (isinstance(train_time, (list, np.ndarray)))
-        all_float = np.all([isinstance(time, float) for time in train_time])
-        if (not_float and not_array and all_float):
-            raise ValueError('train_time must be float | list or array of '
-                             'floats. Got %s.' % type(train_time))
+        if not_float:
+            # Check that train_time is an array of floats
+            if not (isinstance(train_time, (list, np.ndarray)) and
+                    np.all([isinstance(ii, float) for ii in train_time])):
+                raise ValueError('train_time must be float | list or array of '
+                                 'floats. Got %s.' % type(train_time))
 
         return plot_gat_times(self, train_time=train_time, title=title,
                               xmin=xmin, xmax=xmax,
