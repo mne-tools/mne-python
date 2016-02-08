@@ -47,17 +47,18 @@ def make_epochs():
 def test_generalization_across_time():
     """Test time generalization decoding
     """
+    from mne.utils import check_version
     from sklearn.svm import SVC
     # KernelRidge is used for testing 1) regression analyses 2) n-dimensional
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
     from sklearn.metrics import mean_squared_error
-    try:
+    if check_version('sklearn', '0.18'):
         from sklearn.model_selection import (KFold, StratifiedKFold,
                                              ShuffleSplit, LeaveOneLabelOut)
         sklearn_version = 'new'
-    except ImportError:  # XXX sklearn < 0.18
+    else:
         from sklearn.cross_validation import (KFold, StratifiedKFold,
                                               ShuffleSplit, LeaveOneLabelOut)
         sklearn_version = 'old'
