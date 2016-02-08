@@ -245,6 +245,7 @@ class _GeneralizationAcrossTime(object):
         for att in ['y_pred_', 'test_times_', 'scores_', 'scorer_', 'y_true_']:
             if hasattr(self, att):
                 delattr(self, att)
+        _warn_once.clear()  # reset self-baked warning tracker
 
         X, y, __ = _check_epochs_input(epochs, None, self.picks_)
 
@@ -272,7 +273,7 @@ class _GeneralizationAcrossTime(object):
             # Make a sliding window for each training time.
             slices_list = list()
             times_list = list()
-            for t in range(0, len(self.train_times_['slices'])):
+            for __ in range(0, len(self.train_times_['slices'])):
                 test_times_ = _sliding_window(epochs.times, test_times,
                                               epochs.info['sfreq'])
                 times_list += [test_times_['times']]
@@ -324,7 +325,6 @@ class _GeneralizationAcrossTime(object):
             # FIXME: should do this with numpy operators only
             self.y_pred_ = [[test for chunk in train for test in chunk]
                             for train in map(list, zip(*y_pred))]
-        _warn_once.clear()  # reset self-baked warning tracker
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
@@ -412,12 +412,12 @@ class _GeneralizationAcrossTime(object):
         parallel, p_func, n_jobs = parallel_func(_score_slices, n_jobs)
         n_estimators = len(self.train_times_['slices'])
         n_chunks = min(n_estimators, n_jobs)
-        splits = np.array_split(range(len(self.train_times_['slices'])),
+        chunks = np.array_split(range(len(self.train_times_['slices'])),
                                 n_chunks)
         scores = parallel(p_func(
-            self.y_true_, [self.y_pred_[train] for train in split],
-            self.scorer_) for split in splits)
-        # TODO: np.array JRK
+            self.y_true_, [self.y_pred_[train] for train in chunk],
+            self.scorer_) for chunk in chunks)
+        # TODO: np.array scores JRK
         self.scores_ = [score for chunk in scores for score in chunk]
         return self.scores_
 
