@@ -12,7 +12,7 @@ from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import (requires_sklearn, requires_sklearn_0_15, slow_test,
-                       run_tests_if_main)
+                       run_tests_if_main, check_version)
 from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
 
@@ -47,7 +47,6 @@ def make_epochs():
 def test_generalization_across_time():
     """Test time generalization decoding
     """
-    from mne.utils import check_version
     from sklearn.svm import SVC
     # KernelRidge is used for testing 1) regression analyses 2) n-dimensional
     # predictions.
@@ -57,11 +56,9 @@ def test_generalization_across_time():
     if check_version('sklearn', '0.18'):
         from sklearn.model_selection import (KFold, StratifiedKFold,
                                              ShuffleSplit, LeaveOneLabelOut)
-        sklearn_version = 'new'
     else:
         from sklearn.cross_validation import (KFold, StratifiedKFold,
                                               ShuffleSplit, LeaveOneLabelOut)
-        sklearn_version = 'old'
 
     epochs = make_epochs()
 
@@ -182,7 +179,7 @@ def test_generalization_across_time():
     # Test start stop training & test cv without n_fold params
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
     train_times = dict(start=0.090, stop=0.250)
-    if sklearn_version == 'new':
+    if check_version('sklearn', '0.18'):
         # cv = LeaveOneLabelOut()  # XXX wait for sklearn issue #6304
         cv = None
     else:
@@ -294,7 +291,7 @@ def test_generalization_across_time():
 
     # Test that gets error if train on one dataset, test on another, and don't
     # specify appropriate cv:
-    if sklearn_version == 'new':
+    if check_version('sklearn', '0.18'):
         cv = ShuffleSplit()
     else:  # XXX sklearn < 0.18
         cv = ShuffleSplit(len(epochs))
