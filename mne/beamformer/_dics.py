@@ -351,9 +351,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         for i in range(len(frequencies) - 1):
             fstep.append(frequencies[i + 1] - frequencies[i])
         if not np.allclose(fstep, np.mean(fstep), 1e-5):
-            warn('Uneven frequency spacing in CSD object, '
-                 'frequencies in the resulting stc file will be '
-                 'inaccurate.')
+            warn('Uneven frequency spacing in CSD object, frequencies in the '
+                 'resulting stc file will be inaccurate.')
         fstep = fstep[0]
     elif len(frequencies) > 1:
         fstep = frequencies[1] - frequencies[0]

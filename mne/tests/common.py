@@ -95,7 +95,7 @@ def assert_dig_allclose(info_py, info_bin):
 
 
 def assert_naming(warns, fname, n_warn):
-    """Assert we had a naming failure in a specific file
+    """Assert a non-standard naming scheme was used while saving or loading
 
     Parameters
     ----------

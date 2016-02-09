@@ -256,15 +256,17 @@ def warn(message, category=RuntimeWarning):
     """Emit a warning with trace outside the mne namespace
 
     This function takes arguments like warnings.warn, and sends messages
-    using both warnings.warn and logger.warn. It also uses a default type
-    of RuntimeWarning.
+    using both ``warnings.warn`` and ``logger.warn``. Warnings can be
+    generated deep within nested function calls. In order to provide a
+    more helpful warning, this function traverses the stack until it
+    reaches a frame outside the ``mne`` namespace that caused the error.
 
     Parameters
     ----------
     message : str
         Warning message.
     category : instance of Warning
-        The warning class.
+        The warning class. Defaults to ``RuntimeWarning``.
     """
     import mne
     root_dir = op.dirname(mne.__file__)

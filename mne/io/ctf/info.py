@@ -195,7 +195,7 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 if not _at_origin(pos['r0']):
                     if t['t_ctf_head_head'] is None:
                         warn('EEG electrode (%s) location omitted because of '
-                             'missing HPI information' % (ch['ch_name']))
+                             'missing HPI information' % ch['ch_name'])
                         pos['r0'][:] = np.zeros(3)
                         coord_frame = FIFF.FIFFV_COORD_CTF_HEAD
                     else:
