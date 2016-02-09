@@ -19,7 +19,7 @@
    <div class="col-md-8">
    <br>
 
-MNE is a community-driven software package designed for for **processing
+MNE is a community-driven software package designed for **processing
 electroencephalography (EEG) and magnetoencephalography (MEG) data**
 providing comprehensive tools and workflows for:
 
