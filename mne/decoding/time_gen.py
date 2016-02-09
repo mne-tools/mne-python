@@ -482,7 +482,7 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
         expected_start = np.arange(n_times)
         contiguous_start = np.array_equal([sl[0] for sl in test_times],
                                           expected_start)
-        window_lengths = np.unique([len(sl) for sel in test_times])
+        window_lengths = np.unique([len(sl) for sl in test_times])
         vectorize_times = (window_lengths == 1) and contiguous_start
         if vectorize_times:
             # In vectorize mode, we avoid iterating over time test_times.
