@@ -152,9 +152,14 @@ def test_average_movements():
     x = head_pos_to_trans_rot_t(head_pos[1])
     epochs.info['dev_head_t']['trans'][:3, :3] = x[1]
     epochs.info['dev_head_t']['trans'][:3, 3] = x[0]
+    assert_raises(AssertionError, assert_allclose,
+                  epochs.info['dev_head_t']['trans'],
+                  destination['trans'])
     evoked_miss = average_movements(epochs, head_pos=head_pos[2:],
                                     origin=origin, destination=destination)
     assert_allclose(evoked_miss.data, evoked_move_all.data)
+    assert_allclose(evoked_miss.info['dev_head_t']['trans'],
+                    destination['trans'])
 
     # degenerate cases
     destination['to'] = destination['from']  # bad dest

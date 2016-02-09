@@ -43,6 +43,8 @@ BUG
 
     - Fix bug with units (uV) in 'Brain Vision Data Exchange Header File Version 1.0' by `Federico Raimondo`_
 
+    - Fix bug where :func:`mne.preprocessing.maxwell_filter` ``destination`` parameter did not properly set device-to-head transform by `Eric Larson`_
+
 API
 ~~~
 
