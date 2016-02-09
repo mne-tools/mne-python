@@ -921,7 +921,7 @@ def _plot_update_epochs_proj(params, bools=None):
                                    for ii in inds]
         params['proj_bools'] = bools
     params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
-                                        stacklevel=11, verbose=False)
+                                        verbose=False)
 
     start = int(params['t_start'] / len(params['epochs'].times))
     n_epochs = params['n_epochs']

@@ -53,7 +53,7 @@ def _setup_picks(picks, info, forward, noise_cov=None):
 @verbose
 def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 label=None, picks=None, pick_ori=None, rank=None,
-                stacklevel=10, verbose=None):
+                verbose=None):
     """ LCMV beamformer for evoked data, single epochs, and raw data
 
     Parameters
@@ -88,8 +88,6 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    stacklevel : int
-        The stack level for warnings.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -98,14 +96,11 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     stc : SourceEstimate | VolSourceEstimate (or list of thereof)
         Source time courses.
     """
-    is_free_ori, ch_names, proj, vertno, G = (
-        _prepare_beamformer_input(
-            info, forward, label, picks, pick_ori,
-            stacklevel=stacklevel - 5))
+    is_free_ori, ch_names, proj, vertno, G = \
+        _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     # Handle whitening + data covariance
-    whitener = compute_whitener(noise_cov, info, picks, rank=rank,
-                                stacklevel=stacklevel)[0]
+    whitener = compute_whitener(noise_cov, info, picks, rank=rank)[0]
 
     # whiten the leadfield
     G = np.dot(whitener, G)
@@ -219,8 +214,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     logger.info('[done]')
 
 
-def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
-                              stacklevel=7):
+def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
     """Input preparation common for all beamformer functions.
 
     Check input values, prepare channel list and gain matrix. For documentation
@@ -261,8 +255,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
         G = forward['sol']['data']
 
     # Apply SSPs
-    proj, ncomp, _ = make_projector(info['projs'], ch_names,
-                                    stacklevel=stacklevel)
+    proj, ncomp, _ = make_projector(info['projs'], ch_names)
     if info['projs']:
         G = np.dot(proj, G)
 
@@ -343,7 +336,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     stc = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, noise_cov=noise_cov,
         data_cov=data_cov, reg=reg, label=label, picks=picks, rank=rank,
-        pick_ori=pick_ori, stacklevel=12)
+        pick_ori=pick_ori)
 
     return six.advance_iterator(stc)
 
@@ -421,11 +414,10 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     picks = _setup_picks(picks, info, forward, noise_cov)
 
     data = epochs.get_data()[:, picks, :]
-    stacklevel = 12 if not return_generator else 9
     stcs = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, noise_cov=noise_cov,
         data_cov=data_cov, reg=reg, label=label, picks=picks, rank=rank,
-        pick_ori=pick_ori, stacklevel=stacklevel)
+        pick_ori=pick_ori)
 
     if not return_generator:
         stcs = [s for s in stcs]
@@ -511,7 +503,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     stc = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, noise_cov=noise_cov,
         data_cov=data_cov, reg=reg, label=label, picks=picks, rank=rank,
-        pick_ori=pick_ori, stacklevel=12)
+        pick_ori=pick_ori)
 
     return six.advance_iterator(stc)
 
@@ -519,7 +511,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
 @verbose
 def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
                        label=None, picks=None, pick_ori=None,
-                       rank=None, stacklevel=11, verbose=None):
+                       rank=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Calculate source power in a time window based on the provided data
@@ -577,14 +569,13 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
     is_free_ori, ch_names, proj, vertno, G =\
         _prepare_beamformer_input(
-            info, forward, label, picks, pick_ori, stacklevel=stacklevel - 5)
+            info, forward, label, picks, pick_ori)
 
     # Handle whitening
     info = pick_info(
         info, [info['ch_names'].index(k) for k in ch_names
                if k in info['ch_names']])
-    whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank,
-                                   stacklevel=stacklevel)
+    whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
 
     # whiten the leadfield
     G = np.dot(whitener, G)
@@ -795,8 +786,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
 
                 stc = _lcmv_source_power(epochs_band.info, forward, noise_cov,
                                          data_cov, reg=reg, label=label,
-                                         pick_ori=pick_ori, stacklevel=15,
-                                         verbose=verbose)
+                                         pick_ori=pick_ori, verbose=verbose)
                 sol_single.append(stc.data[:, 0])
 
             # Average over all time windows that contain the current time
