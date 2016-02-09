@@ -116,12 +116,12 @@ def _get_legen_lut_fast(x, lut, block=None):
     idx = np.round(mm).astype(int)
     if block is None:
         vals = lut[idx]
-    else:  # read only one block to minimize memory consumption
+    else:  # read only one block at a time to minimize memory consumption
         vals = lut[idx, :, block]
     return vals
 
 
-def _get_legen_lut_accurate(x, lut):
+def _get_legen_lut_accurate(x, lut, block=None):
     """Return Legendre coefficients for given x values in -1<=x<=1"""
     # map into table vals (works for both vals and deriv tables)
     n_interp = (lut.shape[0] - 1.0)
@@ -131,8 +131,12 @@ def _get_legen_lut_accurate(x, lut):
     mm = np.minimum(mm, n_interp - 0.0000000001)
     idx = np.floor(mm).astype(int)
     w2 = mm - idx
-    w2.shape += tuple([1] * (lut.ndim - w2.ndim))  # expand to correct size
-    vals = (1 - w2) * lut[idx] + w2 * lut[idx + 1]
+    if block is None:
+        w2.shape += tuple([1] * (lut.ndim - w2.ndim))  # expand to correct size
+        vals = (1 - w2) * lut[idx] + w2 * lut[idx + 1]
+    else:  # read only one block at a time to minimize memory consumption
+        w2.shape += tuple([1] * (lut[:, :, block].ndim - w2.ndim))
+        vals = (1 - w2) * lut[idx, :, block] + w2 * lut[idx + 1, :, block]
     return vals
 
 
