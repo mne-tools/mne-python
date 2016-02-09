@@ -252,6 +252,45 @@ def sum_squared(X):
     return np.dot(X_flat, X_flat)
 
 
+def warn(message, category=RuntimeWarning):
+    """Emit a warning with trace outside the mne namespace
+
+    This function takes arguments like warnings.warn, and sends messages
+    using both ``warnings.warn`` and ``logger.warn``. Warnings can be
+    generated deep within nested function calls. In order to provide a
+    more helpful warning, this function traverses the stack until it
+    reaches a frame outside the ``mne`` namespace that caused the error.
+
+    Parameters
+    ----------
+    message : str
+        Warning message.
+    category : instance of Warning
+        The warning class. Defaults to ``RuntimeWarning``.
+    """
+    import mne
+    root_dir = op.dirname(mne.__file__)
+    stacklevel = 1
+    frame = None
+    stack = inspect.stack()
+    last_fname = ''
+    for fi, frame in enumerate(stack):
+        fname = frame[1]
+        del frame
+        if fname == '<string>' and last_fname == 'utils.py':  # in verbose dec
+            last_fname = fname
+            continue
+        # treat tests as scripts
+        if not fname.startswith(root_dir) or \
+                op.basename(op.dirname(fname)) == 'tests':
+            stacklevel = fi + 1
+            break
+        last_fname = op.basename(fname)
+    del stack
+    warnings.warn(message, category, stacklevel=stacklevel)
+    logger.warning(message)
+
+
 def check_fname(fname, filetype, endings):
     """Enforce MNE filename conventions
 
@@ -266,9 +305,9 @@ def check_fname(fname, filetype, endings):
     """
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
-        warnings.warn('This filename (%s) does not conform to MNE naming '
-                      'conventions. All %s files should end with '
-                      '%s' % (fname, filetype, print_endings))
+        warn('This filename (%s) does not conform to MNE naming conventions. '
+             'All %s files should end with %s'
+             % (fname, filetype, print_endings))
 
 
 class WrapStdOut(object):
@@ -840,11 +879,10 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     # frequently this should be refactored so as to only check the path once.
     env = kwargs.get('env', os.environ)
     if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
-        msg = ("Your PATH environment variable contains at least one path "
-               "starting with a tilde ('~') character. Such paths are not "
-               "interpreted correctly from within Python. It is recommended "
-               "that you use '$HOME' instead of '~'.")
-        warnings.warn(msg)
+        warn('Your PATH environment variable contains at least one path '
+             'starting with a tilde ("~") character. Such paths are not '
+             'interpreted correctly from within Python. It is recommended '
+             'that you use "$HOME" instead of "~".')
 
     logger.info("Running subprocess: %s" % ' '.join(command))
     try:
@@ -940,10 +978,13 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         logger.removeHandler(h)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
+            # Don't use warn() here because we just want to
+            # emit a warnings.warn here (not logger.warn)
             warnings.warn('Log entries will be appended to the file. Use '
                           'overwrite=False to avoid this message in the '
-                          'future.')
-        mode = 'w' if overwrite is True else 'a'
+                          'future.', RuntimeWarning, stacklevel=2)
+            overwrite = False
+        mode = 'w' if overwrite else 'a'
         lh = logging.FileHandler(fname, mode=mode)
     else:
         """ we should just be able to do:
@@ -1216,7 +1257,7 @@ def set_config(key, value, home_dir=None):
         raise TypeError('value must be a string or None')
     if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
-        warnings.warn('Setting non-standard config type: "%s"' % key)
+        warn('Setting non-standard config type: "%s"' % key)
 
     # Read all previous values
     config_path = get_config_path(home_dir=home_dir)

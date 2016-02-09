@@ -3,14 +3,14 @@
 # License: BSD (3-clause)
 
 import os.path as op
+
 import numpy as np
-import warnings
 
 from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import _BaseRaw, _check_update_montage
-from ...utils import logger, verbose, check_version
+from ...utils import logger, verbose, check_version, warn
 from ...channels.montage import Montage
 from ...epochs import _BaseEpochs
 from ...event import read_events
@@ -269,9 +269,9 @@ class RawEEGLAB(_BaseRaw):
                 orig_format='double', verbose=verbose)
         else:
             if preload is False or isinstance(preload, string_types):
-                warnings.warn('Data will be preloaded. preload=False or a'
-                              ' string preload is not supported when the data'
-                              ' is stored in the .set file')
+                warn('Data will be preloaded. preload=False or a string '
+                     'preload is not supported when the data is stored in the '
+                     '.set file')
             # can't be done in standard way with preload=True because of
             # different reading path (.set file)
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
@@ -385,9 +385,8 @@ class EpochsEEGLAB(_BaseEpochs):
                     # store latency of only first event
                     event_latencies.append(eeg.event[ev_idx].latency)
                     ev_idx += len(ep.eventtype)
-                    warnings.warn('An epoch has multiple events. '
-                                  'Only the latency of first event will be '
-                                  'retained.')
+                    warn('An epoch has multiple events. Only the latency of '
+                         'first event will be retained.')
                 else:
                     event_type = ep.eventtype
                     event_name.append(ep.eventtype)

@@ -6,11 +6,11 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+from itertools import count
 from math import sqrt
+
 import numpy as np
 from scipy import linalg
-from itertools import count
-import warnings
 
 from .tree import dir_tree_find
 from .tag import find_tag
@@ -18,7 +18,7 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..externals.six import string_types
 
 
@@ -242,8 +242,7 @@ class ProjMixin(object):
                     if ch in self:
                         layout.append(find_layout(self.info, ch, exclude=[]))
                     else:
-                        err = 'Channel type %s is not found in info.' % ch
-                        warnings.warn(err)
+                        warn('Channel type %s is not found in info.' % ch)
             fig = plot_projs_topomap(self.info['projs'], layout, axes=axes)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")

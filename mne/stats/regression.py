@@ -6,18 +6,17 @@
 #
 # License: BSD (3-clause)
 
-from collections import namedtuple
 from inspect import isgenerator
-import warnings
-from ..externals.six import string_types
+from collections import namedtuple
 
 import numpy as np
 from scipy import linalg, sparse
 
+from ..externals.six import string_types
 from ..source_estimate import SourceEstimate
 from ..epochs import _BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger, _reject_data_segments, _get_fast_dot
+from ..utils import logger, _reject_data_segments, _get_fast_dot, warn
 from ..io.pick import pick_types, pick_info
 from ..fixes import in1d
 
@@ -67,8 +66,8 @@ def linear_regression(inst, design_matrix, names=None):
                            stim=False, eog=False, ecg=False,
                            emg=False, exclude=['bads'])
         if [inst.ch_names[p] for p in picks] != inst.ch_names:
-            warnings.warn('Fitting linear model to non-data or bad '
-                          'channels. Check picking', UserWarning)
+            warn('Fitting linear model to non-data or bad channels. '
+                 'Check picking')
         msg = 'Fitting linear model to epochs'
         data = inst.get_data()
         out = EvokedArray(np.zeros(data.shape[1:]), inst.info, inst.tmin)

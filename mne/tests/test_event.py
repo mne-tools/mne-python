@@ -8,6 +8,7 @@ import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, io, pick_channels)
+from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
 from mne.event import define_target_events, merge_events
 
@@ -126,7 +127,7 @@ def test_io_events():
         fname2 = op.join(tempdir, 'test-bad-name.fif')
         write_events(fname2, events)
         read_events(fname2)
-    assert_true(len(w) == 2)
+    assert_naming(w, 'test_event.py', 2)
 
 
 def test_find_events():

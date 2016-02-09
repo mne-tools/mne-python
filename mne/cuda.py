@@ -5,7 +5,7 @@
 import numpy as np
 from scipy.fftpack import fft, ifft
 
-from .utils import sizeof_fmt, logger, get_config
+from .utils import sizeof_fmt, logger, get_config, warn
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
@@ -34,7 +34,7 @@ def get_cuda_memory():
         The amount of available memory as a human-readable string.
     """
     if not _cuda_capable:
-        logger.warning('CUDA not enabled, returning zero for memory')
+        warn('CUDA not enabled, returning zero for memory')
         mem = 0
     else:
         from pycuda.driver import mem_get_info
@@ -67,20 +67,19 @@ def init_cuda(ignore_config=False):
         from pycuda import gpuarray, driver  # noqa
         from pycuda.elementwise import ElementwiseKernel
     except ImportError:
-        logger.warning('module pycuda not found, CUDA not enabled')
+        warn('module pycuda not found, CUDA not enabled')
         return
     try:
         # Initialize CUDA; happens with importing autoinit
         import pycuda.autoinit  # noqa
     except ImportError:
-        logger.warning('pycuda.autoinit could not be imported, likely '
-                       'a hardware error, CUDA not enabled')
+        warn('pycuda.autoinit could not be imported, likely a hardware error, '
+             'CUDA not enabled')
         return
     # Make sure scikit-cuda is installed
     cudafft = _get_cudafft()
     if cudafft is None:
-        logger.warning('module scikit-cuda not found, CUDA not '
-                       'enabled')
+        warn('module scikit-cuda not found, CUDA not enabled')
         return
 
     # let's construct our own CUDA multiply in-place function
@@ -96,8 +95,7 @@ def init_cuda(ignore_config=False):
     try:
         cudafft.Plan(16, np.float64, np.complex128)  # will get auto-GC'ed
     except:
-        logger.warning('Device does not support 64-bit FFTs, '
-                       'CUDA not enabled')
+        warn('Device does not support 64-bit FFTs, CUDA not enabled')
         return
     _cuda_capable = True
     # Figure out limit for CUDA FFT calculations

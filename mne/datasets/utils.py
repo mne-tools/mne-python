@@ -8,11 +8,10 @@ import os
 import os.path as op
 import shutil
 import tarfile
-from warnings import warn
 import stat
 
 from .. import __version__ as mne_version
-from ..utils import get_config, set_config, _fetch_file, logger
+from ..utils import get_config, set_config, _fetch_file, logger, warn
 from ..externals.six import string_types
 from ..externals.six.moves import input
 
@@ -307,7 +306,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     try:
         from distutils.version import LooseVersion as LV
     except:
-        warn('Could not determine %s dataset version; dataset could\n'
+        warn('Could not determine %s dataset version; dataset could '
              'be out of date. Please install the "distutils" package.'
              % name)
     else:  # 0.7 < 0.7.git shoud be False, therefore strip

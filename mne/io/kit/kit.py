@@ -11,14 +11,13 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 from os import SEEK_CUR, path as op
 from struct import unpack
 import time
-from warnings import warn
 
 import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
 from ...coreg import fit_matched_points, _decimate_points
-from ...utils import verbose, logger
+from ...utils import verbose, logger, warn
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans, Transform)
 from ..base import _BaseRaw
@@ -486,12 +485,11 @@ def _set_dig_kit(mrk, elp, hsp):
     if n_pts > KIT.DIG_POINTS:
         hsp = _decimate_points(hsp, res=5)
         n_new = len(hsp)
-        msg = ("The selected head shape contained {n_in} points, which is "
-               "more than recommended ({n_rec}), and was automatically "
-               "downsampled to {n_new} points. The preferred way to "
-               "downsample is using FastScan."
-               ).format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
-        logger.warning(msg)
+        warn("The selected head shape contained {n_in} points, which is "
+             "more than recommended ({n_rec}), and was automatically "
+             "downsampled to {n_new} points. The preferred way to "
+             "downsample is using FastScan.".format(
+                 n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new))
 
     if isinstance(elp, string_types):
         elp_points = _read_dig_points(elp)

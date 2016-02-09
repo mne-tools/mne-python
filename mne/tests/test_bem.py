@@ -2,8 +2,9 @@
 #
 # License: BSD 3 clause
 
-import os.path as op
 from copy import deepcopy
+import os.path as op
+import warnings
 
 import numpy as np
 from nose.tools import assert_raises, assert_true
@@ -269,9 +270,10 @@ def test_fit_sphere_to_headshape():
         d['r'] -= center / 1000.
         d['r'] *= big_rad / rad
         d['r'] += center / 1000.
-    with catch_logging() as log_file:
-        r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds,
-                                            verbose='warning')
+    with warnings.catch_warnings(record=True):  # fit
+        with catch_logging() as log_file:
+            r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds,
+                                                verbose='warning')
     log_file = log_file.getvalue().strip()
     assert_equal(len(log_file.split('\n')), 1)
     assert_true(log_file.startswith('Estimated head size'))
@@ -286,9 +288,10 @@ def test_fit_sphere_to_headshape():
     for d in info_shift['dig']:
         d['r'] -= center / 1000.
         d['r'] += shift_center / 1000.
-    with catch_logging() as log_file:
-        r, oh, od = fit_sphere_to_headshape(info_shift, dig_kinds=dig_kinds,
-                                            verbose='warning')
+    with warnings.catch_warnings(record=True):
+        with catch_logging() as log_file:
+            r, oh, od = fit_sphere_to_headshape(
+                info_shift, dig_kinds=dig_kinds, verbose='warning')
     log_file = log_file.getvalue().strip()
     assert_equal(len(log_file.split('\n')), 1)
     assert_true('from head frame origin' in log_file)

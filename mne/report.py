@@ -14,7 +14,6 @@ import re
 import codecs
 import time
 from glob import glob
-import warnings
 import base64
 from datetime import datetime as dt
 
@@ -22,7 +21,7 @@ import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import Raw, read_info
-from .utils import _TempDir, logger, verbose, get_subjects_dir
+from .utils import _TempDir, logger, verbose, get_subjects_dir, warn
 from .viz import plot_events, plot_trans, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -59,9 +58,9 @@ def _fig_to_img(function=None, fig=None, image_format='png',
             from mayavi import mlab  # noqa, mlab imported
             import mayavi
         except:  # on some systems importing Mayavi raises SystemExit (!)
-            warnings.warn('Could not import mayavi. Trying to render '
-                          '`mayavi.core.scene.Scene` figure instances'
-                          ' will throw an error.')
+            warn('Could not import mayavi. Trying to render'
+                 '`mayavi.core.scene.Scene` figure instances'
+                 ' will throw an error.')
         tempdir = _TempDir()
         temp_fname = op.join(tempdir, 'test')
         if fig.scene is not None:
@@ -298,7 +297,7 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error):
                 report_sectionlabel = None
         except Exception as e:
             if on_error == 'warn':
-                logger.warning('Failed to process file %s:\n"%s"' % (fname, e))
+                warn('Failed to process file %s:\n"%s"' % (fname, e))
             elif on_error == 'raise':
                 raise
             html = None
@@ -1231,8 +1230,8 @@ class Report(object):
             info = read_info(self.info_fname)
             sfreq = info['sfreq']
         else:
-            warnings.warn('`info_fname` not provided. Cannot render'
-                          '-cov.fif(.gz) and -trans.fif(.gz) files.')
+            warn('`info_fname` not provided. Cannot render -cov.fif(.gz) and '
+                 '-trans.fif(.gz) files.')
             info, sfreq = None, None
 
         cov = None
@@ -1269,8 +1268,8 @@ class Report(object):
             self.fnames.append('bem')
             self._sectionlabels.append('mri')
         else:
-            warnings.warn('`subjects_dir` and `subject` not provided.'
-                          ' Cannot render MRI and -trans.fif(.gz) files.')
+            warn('`subjects_dir` and `subject` not provided. Cannot render '
+                 'MRI and -trans.fif(.gz) files.')
 
     def save(self, fname=None, open_browser=True, overwrite=False):
         """Save html report and open it in browser.
@@ -1288,8 +1287,8 @@ class Report(object):
         if fname is None:
             if not hasattr(self, 'data_path'):
                 self.data_path = op.dirname(__file__)
-                warnings.warn('`data_path` not provided. Using %s instead'
-                              % self.data_path)
+                warn('`data_path` not provided. Using %s instead'
+                     % self.data_path)
             fname = op.realpath(op.join(self.data_path, 'report.html'))
         else:
             fname = op.realpath(fname)
@@ -1731,14 +1730,13 @@ class Report(object):
         # Get the MRI filename
         mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
         if not op.isfile(mri_fname):
-            warnings.warn('MRI file "%s" does not exist' % mri_fname)
+            warn('MRI file "%s" does not exist' % mri_fname)
 
         # Get the BEM surface filenames
         bem_path = op.join(subjects_dir, subject, 'bem')
 
         if not op.isdir(bem_path):
-            warnings.warn('Subject bem directory "%s" does not exist' %
-                          bem_path)
+            warn('Subject bem directory "%s" does not exist' % bem_path)
             return self._render_image(mri_fname, cmap='gray', n_jobs=n_jobs)
 
         surf_fnames = []
@@ -1747,10 +1745,10 @@ class Report(object):
             if len(surf_fname) > 0:
                 surf_fnames.append(surf_fname[0])
             else:
-                warnings.warn('No surface found for %s.' % surf_name)
+                warn('No surface found for %s.' % surf_name)
                 continue
         if len(surf_fnames) == 0:
-            warnings.warn('No surfaces found at all, rendering empty MRI')
+            warn('No surfaces found at all, rendering empty MRI')
             return self._render_image(mri_fname, cmap='gray')
         # XXX : find a better way to get max range of slices
         nim = nib.load(mri_fname)

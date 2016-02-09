@@ -11,7 +11,6 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
-import warnings
 import json
 import os.path as op
 from distutils.version import LooseVersion
@@ -41,7 +40,7 @@ from .event import _read_events_fif
 from .fixes import in1d, _get_args
 from .viz import plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, check_random_state, object_hash)
+                    _time_mask, check_random_state, object_hash, warn)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
@@ -193,8 +192,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     if on_missing == 'error':
                         raise ValueError(msg)
                     elif on_missing == 'warning':
-                        logger.warning(msg)
-                        warnings.warn(msg)
+                        warn(msg)
                     else:  # on_missing == 'ignore':
                         pass
 
@@ -213,9 +211,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             n_events = len(events)
             if n_events > 1:
                 if np.diff(events.astype(np.int64)[:, 0]).min() <= 0:
-                    warnings.warn('The events passed to the Epochs '
-                                  'constructor are not chronologically '
-                                  'ordered.', RuntimeWarning)
+                    warn('The events passed to the Epochs constructor are not '
+                         'chronologically ordered.', RuntimeWarning)
 
             if n_events > 0:
                 logger.info('%d matching events found' % n_events)
@@ -381,17 +378,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         new_sfreq = epochs.info['sfreq'] / float(decim)
         lowpass = epochs.info['lowpass']
         if decim > 1 and lowpass is None:
-            warnings.warn('The measurement information indicates data is not '
-                          'low-pass filtered. The decim=%i parameter will '
-                          'result in a sampling frequency of %g Hz, which can '
-                          'cause aliasing artifacts.'
-                          % (decim, new_sfreq))
+            warn('The measurement information indicates data is not low-pass '
+                 'filtered. The decim=%i parameter will result in a sampling '
+                 'frequency of %g Hz, which can cause aliasing artifacts.'
+                 % (decim, new_sfreq))
         elif decim > 1 and new_sfreq < 2.5 * lowpass:
-            warnings.warn('The measurement information indicates a low-pass '
-                          'frequency of %g Hz. The decim=%i parameter will '
-                          'result in a sampling frequency of %g Hz, which can '
-                          'cause aliasing artifacts.'
-                          % (lowpass, decim, new_sfreq))  # > 50% nyquist limit
+            warn('The measurement information indicates a low-pass frequency '
+                 'of %g Hz. The decim=%i parameter will result in a sampling '
+                 'frequency of %g Hz, which can cause aliasing artifacts.'
+                 % (lowpass, decim, new_sfreq))  # > 50% nyquist lim
 
         epochs._decim *= decim
         start_idx = int(round(epochs._raw_times[0] * (epochs.info['sfreq'] *
@@ -636,7 +631,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # handle SSPs
         if not self.proj and evoked.proj:
-            warnings.warn('Evoked has SSP applied while Epochs has not.')
+            warn('Evoked has SSP applied while Epochs has not.')
         if self.proj and not evoked.proj:
             evoked = evoked.copy().apply_proj()
 
@@ -760,8 +755,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('No data channel found when averaging.')
 
         if evoked.nave < 1:
-            warnings.warn('evoked object is empty (based on less '
-                          'than 1 epoch)', RuntimeWarning)
+            warn('evoked object is empty (based on less than 1 epoch)')
 
         return evoked
 
@@ -1421,15 +1415,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if tmin is None:
             tmin = self.tmin
         elif tmin < self.tmin:
-            warnings.warn("tmin is not in epochs' time interval."
-                          "tmin is set to epochs.tmin")
+            warn('tmin is not in epochs time interval. tmin is set to '
+                 'epochs.tmin')
             tmin = self.tmin
 
         if tmax is None:
             tmax = self.tmax
         elif tmax > self.tmax:
-            warnings.warn("tmax is not in epochs' time interval."
-                          "tmax is set to epochs.tmax")
+            warn('tmax is not in epochs time interval. tmax is set to '
+                 'epochs.tmax')
             tmax = self.tmax
 
         tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
@@ -2753,8 +2747,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                                         _remove_meg_projs)
     if pos is not None:
         head_pos = pos
-        warnings.warn('pos has been replaced by head_pos and will be removed '
-                      'in 0.13', DeprecationWarning)
+        warn('pos has been replaced by head_pos and will be removed in 0.13',
+             DeprecationWarning)
     if head_pos is None:
         raise TypeError('head_pos must be provided and cannot be None')
     from .chpi import head_pos_to_trans_rot_t

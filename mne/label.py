@@ -15,7 +15,7 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .fixes import digitize, in1d
-from .utils import get_subjects_dir, _check_subject, logger, verbose
+from .utils import get_subjects_dir, _check_subject, logger, verbose, warn
 from .source_estimate import (morph_data, SourceEstimate,
                               spatial_src_connectivity)
 from .source_space import add_source_space_distances
@@ -427,10 +427,10 @@ class Label(object):
 
         nearest = hemi_src['nearest']
         if nearest is None:
-            logger.warn("Computing patch info for source space, this can take "
-                        "a while. In order to avoid this in the future, run "
-                        "mne.add_source_space_distances() on the source space "
-                        "and save it.")
+            warn("Computing patch info for source space, this can take "
+                 "a while. In order to avoid this in the future, run "
+                 "mne.add_source_space_distances() on the source space "
+                 "and save it.")
             add_source_space_distances(src)
             nearest = hemi_src['nearest']
 
@@ -1822,10 +1822,9 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                 if color == (0, 0, 0):
                     # we cannot have an all-zero color, otherw. e.g. tksurfer
                     # refuses to read the parcellation
-                    msg = ('At least one label contains a color with, "r=0, '
-                           'g=0, b=0" value. Some FreeSurfer tools may fail '
-                           'to read the parcellation')
-                    logger.warning(msg)
+                    warn('At least one label contains a color with, "r=0, '
+                         'g=0, b=0" value. Some FreeSurfer tools may fail '
+                         'to read the parcellation')
 
                 if any(i > 255 for i in color):
                     msg = ("%s: %s (%s)" % (color, ', '.join(names), hemi))
@@ -1863,10 +1862,9 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                 n_vertices = max_vert + 1
             else:
                 n_vertices = 1
-            msg = ('    Number of vertices in the surface could not be '
-                   'verified because the surface file could not be found; '
-                   'specify subject and subjects_dir parameters.')
-            logger.warning(msg)
+            warn('Number of vertices in the surface could not be '
+                 'verified because the surface file could not be found; '
+                 'specify subject and subjects_dir parameters.')
 
         # Create annot and color table array to write
         annot = np.empty(n_vertices, dtype=np.int)

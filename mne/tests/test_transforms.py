@@ -11,6 +11,7 @@ from mne.datasets import testing
 from mne import read_trans, write_trans
 from mne.io import read_info
 from mne.utils import _TempDir, run_tests_if_main
+from mne.tests.common import assert_naming
 from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
@@ -69,7 +70,7 @@ def test_io_trans():
     with warnings.catch_warnings(record=True) as w:
         fname2 = op.join(tempdir, 'trans-test-bad-name.fif')
         write_trans(fname2, trans0)
-    assert_true(len(w) >= 1)
+    assert_naming(w, 'test_transforms.py', 1)
 
 
 def test_get_ras_to_neuromag_trans():

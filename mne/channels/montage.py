@@ -11,7 +11,6 @@
 
 import os
 import os.path as op
-import warnings
 
 import numpy as np
 
@@ -24,7 +23,7 @@ from ..io.meas_info import _make_dig_points, _read_dig_points, _read_dig_fif
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
-from ..utils import logger, _check_fname
+from ..utils import _check_fname, warn
 
 from ..externals.six import string_types
 from ..externals.six.moves import map
@@ -650,10 +649,10 @@ def _set_montage(info, montage, update_ch_names=False):
         not_found = np.setdiff1d(eeg_sensors, sensors_found)
         if len(not_found) > 0:
             not_found_names = [info['ch_names'][ch] for ch in not_found]
-            warnings.warn('The following EEG sensors did not have a position '
-                          'specified in the selected montage: ' +
-                          str(not_found_names) + '. Their position has been '
-                          'left untouched.')
+            warn('The following EEG sensors did not have a position '
+                 'specified in the selected montage: ' +
+                 str(not_found_names) + '. Their position has been '
+                 'left untouched.')
 
     elif isinstance(montage, DigMontage):
         dig = _make_dig_points(nasion=montage.nasion, lpa=montage.lpa,
@@ -680,8 +679,8 @@ def _set_montage(info, montage, update_ch_names=False):
             did_not_set = [info['chs'][ii]['ch_name']
                            for ii in np.where(is_eeg & ~did_set)[0]]
             if len(did_not_set) > 0:
-                logger.warning('Did not set %s channel positions:\n%s'
-                               % (len(did_not_set), ', '.join(did_not_set)))
+                warn('Did not set %s channel positions:\n%s'
+                     % (len(did_not_set), ', '.join(did_not_set)))
     else:
         raise TypeError("Montage must be a 'Montage' or 'DigMontage' "
                         "instead of '%s'." % type(montage))
