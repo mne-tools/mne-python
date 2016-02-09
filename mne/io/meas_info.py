@@ -744,7 +744,6 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     proj_name = None
     line_freq = None
     custom_ref_applied = False
-    p = 0
     for k in range(meas_info['nent']):
         kind = meas_info['directory'][k].kind
         pos = meas_info['directory'][k].pos
@@ -757,7 +756,6 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind == FIFF.FIFF_CH_INFO:
             tag = read_tag(fid, pos)
             chs.append(tag.data)
-            p += 1
         elif kind == FIFF.FIFF_LOWPASS:
             tag = read_tag(fid, pos)
             lowpass = float(tag.data)

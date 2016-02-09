@@ -2170,7 +2170,6 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
             return False, bad_list
 
 
-@verbose
 def _read_one_epoch_file(f, tree, fname, preload):
     """Helper to read a single FIF file"""
 
