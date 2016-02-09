@@ -1189,7 +1189,7 @@ def _get_ch_whitener(A, pca, ch_type, rank):
 
 @verbose
 def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
-                      scalings=None, stacklevel=5, verbose=None):
+                      scalings=None, verbose=None):
     """Prepare noise covariance matrix.
 
     Parameters
@@ -1211,8 +1211,6 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
-    stacklevel : int
-        The stack level for warnings.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
@@ -1225,8 +1223,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     scalings = _handle_default('scalings_cov_rank', scalings)
 
     # Create the projection operator
-    proj, ncomp, _ = make_projector(info['projs'], ch_names,
-                                    stacklevel=stacklevel)
+    proj, ncomp, _ = make_projector(info['projs'], ch_names)
     if ncomp > 0:
         logger.info('    Created an SSP operator (subspace dimension = %d)'
                     % ncomp)
@@ -1398,7 +1395,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         this_C = C[np.ix_(idx, idx)]
         if proj:
             this_ch_names = [ch_names[k] for k in idx]
-            P, ncomp, _ = make_projector(projs, this_ch_names, stacklevel=3)
+            P, ncomp, _ = make_projector(projs, this_ch_names)
             U = linalg.svd(P)[0][:, :-ncomp]
             if ncomp > 0:
                 logger.info('    Created an SSP operator for %s '
@@ -1494,7 +1491,7 @@ def _regularized_covariance(data, reg=None):
 
 @verbose
 def compute_whitener(noise_cov, info, picks=None, rank=None,
-                     scalings=None, stacklevel=8, verbose=None):
+                     scalings=None, verbose=None):
     """Compute whitening matrix.
 
     Parameters
@@ -1514,8 +1511,6 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     scalings : dict | None
         The rescaling method to be applied. See documentation of
         ``prepare_noise_cov`` for details.
-    stacklevel : int
-        The stack level for warnings.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1534,8 +1529,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
 
     noise_cov = cp.deepcopy(noise_cov)
     noise_cov = prepare_noise_cov(noise_cov, info, ch_names,
-                                  rank=rank, scalings=scalings,
-                                  stacklevel=stacklevel)
+                                  rank=rank, scalings=scalings)
     n_chan = len(ch_names)
 
     W = np.zeros((n_chan, n_chan), dtype=np.float)
