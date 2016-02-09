@@ -111,9 +111,11 @@ def _get_legen_lut_fast(x, lut, block=None):
     # map into table vals (works for both vals and deriv tables)
     n_interp = (lut.shape[0] - 1.0)
     # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
-    mm = x * (n_interp / 2.0) + 0.5 * n_interp
+    mm = x * (n_interp / 2.0)
+    mm += 0.5 * n_interp
     # nearest-neighbor version (could be decent enough...)
-    idx = np.round(mm).astype(int)
+    mm = np.round(mm, 0, mm)  # round inplace
+    idx = mm.astype(int)
     if block is None:
         vals = lut[idx]
     else:  # read only one block at a time to minimize memory consumption
@@ -126,10 +128,12 @@ def _get_legen_lut_accurate(x, lut, block=None):
     # map into table vals (works for both vals and deriv tables)
     n_interp = (lut.shape[0] - 1.0)
     # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
-    mm = x * (n_interp / 2.0) + 0.5 * n_interp
+    mm = x * (n_interp / 2.0)
+    mm += 0.5 * n_interp
     # slower, more accurate interpolation version
-    mm = np.minimum(mm, n_interp - 0.0000000001)
-    idx = np.floor(mm).astype(int)
+    mm = np.minimum(mm, n_interp - 0.0000000001, mm)
+    mm = np.floor(mm, mm)  # floor inplace
+    idx = mm.astype(int)
     w2 = mm - idx
     if block is None:
         w2.shape += tuple([1] * (lut.ndim - w2.ndim))  # expand to correct size
@@ -146,8 +150,8 @@ def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
     # The result is
     #   sums[:]    (2n+1)^2/n beta^n P_n
     coeffs = lut_fun(ctheta)
-    betans = np.cumprod(np.tile(beta[:, np.newaxis], (1, n_fact.shape[0])),
-                        axis=1)
+    betans = np.tile(beta[:, np.newaxis], (1, n_fact.shape[0]))
+    betans = np.cumprod(betans, axis=1, out=betans)  # run inplace
     coeffs *= betans
     s0 = np.dot(coeffs, n_fact)  # == weighted sum across cols
     return s0
@@ -181,8 +185,8 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     #  * sums[:, 1]    n/(2n+1) beta^(n+1) P_n'
     #  * sums[:, 2]    n/((2n+1)(n+1)) beta^(n+1) P_n'
     #  * sums[:, 3]    n/((2n+1)(n+1)) beta^(n+1) P_n''
-    bbeta = np.cumprod(np.tile(beta[np.newaxis], (n_fact.shape[0], 1)),
-                       axis=0)
+    bbeta = np.tile(beta[np.newaxis], (n_fact.shape[0], 1))
+    bbeta = np.cumprod(bbeta, axis=0, out=bbeta)  # run inplace
     bbeta *= beta
     # This is equivalent, but slower:
     # sums = np.sum(bbeta[:, :, np.newaxis].T * n_fact * coeffs, axis=1)
