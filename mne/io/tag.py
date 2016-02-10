@@ -138,10 +138,9 @@ def read_big(fid, size=None):
 def read_tag_info(fid):
     """Read Tag info (or header)
     """
-    s = fid.read(4 * 4)
-    if len(s) == 0:
+    tag = _read_tag_header(fid)
+    if tag is None:
         return None
-    tag = Tag(*np.fromstring(s, '>i4'))
     if tag.next == 0:
         fid.seek(tag.size, 1)
     elif tag.next > 0:
@@ -219,7 +218,17 @@ _matrix_coding_RCS = 16416      # 4020
 _data_type = 65535      # ffff
 
 
+def _read_tag_header(fid):
+    """Read only the header of a Tag"""
+    s = fid.read(4 * 4)
+    if len(s) == 0:
+        return None
+    # struct.unpack faster than np.fromstring, saves ~10% of time some places
+    return Tag(*struct.unpack('>iIii', s))
+
+
 def _read_matrix(fid, tag, shape, rlims, matrix_coding):
+    """Read a matrix (dense or sparse) tag"""
     matrix_coding = matrix_coding >> 16
 
     # This should be easy to implement (see _fromstring_rows)
@@ -317,17 +326,20 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
 
 
 def _read_simple(fid, tag, shape, rlims, dtype):
+    """Read simple datatypes from tag (typically used with partial)"""
     return _fromstring_rows(fid, tag.size, dtype=dtype, shape=shape,
                             rlims=rlims)
 
 
 def _read_string(fid, tag, shape, rlims):
+    """Read a string tag"""
     # Always decode to unicode.
     d = _fromstring_rows(fid, tag.size, dtype='>c', shape=shape, rlims=rlims)
     return text_type(d.tostring().decode('utf-8', 'ignore'))
 
 
 def _read_complex_float(fid, tag, shape, rlims):
+    """Read complex float tag"""
     # data gets stored twice as large
     if shape is not None:
         shape = (shape[0], shape[1] * 2)
@@ -337,6 +349,7 @@ def _read_complex_float(fid, tag, shape, rlims):
 
 
 def _read_complex_double(fid, tag, shape, rlims):
+    """Read complex double tag"""
     # data gets stored twice as large
     if shape is not None:
         shape = (shape[0], shape[1] * 2)
@@ -346,24 +359,25 @@ def _read_complex_double(fid, tag, shape, rlims):
 
 
 def _read_id_struct(fid, tag, shape, rlims):
-    data = dict()
-    data['version'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    data['machid'] = np.fromstring(fid.read(8), dtype=">i4")
-    data['secs'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    data['usecs'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    return data
+    """Read ID struct tag"""
+    return dict(
+        version=int(np.fromstring(fid.read(4), dtype=">i4")),
+        machid=np.fromstring(fid.read(8), dtype=">i4"),
+        secs=int(np.fromstring(fid.read(4), dtype=">i4")),
+        usecs=int(np.fromstring(fid.read(4), dtype=">i4")))
 
 
 def _read_dig_point_struct(fid, tag, shape, rlims):
-    data = dict()
-    data['kind'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    data['ident'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    data['r'] = np.fromstring(fid.read(12), dtype=">f4")
-    data['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
-    return data
+    """Read dig point struct tag"""
+    return dict(
+        kind=int(np.fromstring(fid.read(4), dtype=">i4")),
+        ident=int(np.fromstring(fid.read(4), dtype=">i4")),
+        r=np.fromstring(fid.read(12), dtype=">f4"),
+        coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
 
 
 def _read_coord_trans_struct(fid, tag, shape, rlims):
+    """Read coord trans struct tag"""
     from ..transforms import Transform
     fro = int(np.fromstring(fid.read(4), dtype=">i4"))
     to = int(np.fromstring(fid.read(4), dtype=">i4"))
@@ -376,54 +390,54 @@ def _read_coord_trans_struct(fid, tag, shape, rlims):
     return data
 
 
+_coord_dict = {
+    FIFF.FIFFV_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
+    FIFF.FIFFV_REF_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
+    FIFF.FIFFV_EEG_CH: FIFF.FIFFV_COORD_HEAD,
+}
+
+
 def _read_ch_info_struct(fid, tag, shape, rlims):
-    d = dict()
-    d['scanno'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    d['logno'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    d['kind'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    d['range'] = float(np.fromstring(fid.read(4), dtype=">f4"))
-    d['cal'] = float(np.fromstring(fid.read(4), dtype=">f4"))
-    d['coil_type'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    #
-    #   Read the coil coordinate system definition
-    #
-    # deal with nasty OSX Anaconda bug by casting to float64
-    d['loc'] = np.fromstring(fid.read(48), dtype=">f4").astype(np.float64)
-    kind = d['kind']
-    if kind in [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH]:
-        d['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-    elif d['kind'] == FIFF.FIFFV_EEG_CH:
-        d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-    else:
-        d['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
-    #
-    #   Unit and exponent
-    #
-    d['unit'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    d['unit_mul'] = int(np.fromstring(fid.read(4), dtype=">i4"))
-    #
-    #   Handle the channel name
-    #
+    """Read channel info struct tag"""
+    d = dict(
+        scanno=int(np.fromstring(fid.read(4), dtype=">i4")),
+        logno=int(np.fromstring(fid.read(4), dtype=">i4")),
+        kind=int(np.fromstring(fid.read(4), dtype=">i4")),
+        range=float(np.fromstring(fid.read(4), dtype=">f4")),
+        cal=float(np.fromstring(fid.read(4), dtype=">f4")),
+        coil_type=int(np.fromstring(fid.read(4), dtype=">i4")),
+        # deal with really old OSX Anaconda bug by casting to float64
+        loc=np.fromstring(fid.read(48), dtype=">f4").astype(np.float64),
+        # unit and exponent
+        unit=int(np.fromstring(fid.read(4), dtype=">i4")),
+        unit_mul=int(np.fromstring(fid.read(4), dtype=">i4")),
+    )
+    # channel name
     ch_name = np.fromstring(fid.read(16), dtype=">c")
     ch_name = ch_name[:np.argmax(ch_name == b'')].tostring()
     d['ch_name'] = ch_name.decode()
+    # coil coordinate system definition
+    d['coord_frame'] = _coord_dict.get(d['kind'], FIFF.FIFFV_COORD_UNKNOWN)
     return d
 
 
 def _read_old_pack(fid, tag, shape, rlims):
+    """Read old pack tag"""
     offset = float(np.fromstring(fid.read(4), dtype=">f4"))
     scale = float(np.fromstring(fid.read(4), dtype=">f4"))
     data = np.fromstring(fid.read(tag.size - 8), dtype=">h2")
-    data = scale * data + offset
+    data = data * scale  # to float64
+    data += offset
     return data
 
 
 def _read_dir_entry_struct(fid, tag, shape, rlims):
-    return [Tag(*struct.unpack('>iIii', fid.read(4 * 4)))
-            for _ in range(tag.size // 16 - 1)]
+    """Read dir entry struct tag"""
+    return [_read_tag_header(fid) for _ in range(tag.size // 16 - 1)]
 
 
 def _read_julian(fid, tag, shape, rlims):
+    """Read julian tag"""
     return jd2jcal(int(np.fromstring(fid.read(4), dtype=">i4")))
 
 # Read types call dict
@@ -480,13 +494,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
     """
     if pos is not None:
         fid.seek(pos, 0)
-
-    s = fid.read(4 * 4)
-    # This is faster than np.fromstring, saves ~10% of time in some places (!)
-    s = struct.unpack('>iIii', s)
-    # s = np.fromstring(s, dtype='>i4,>u4,>i4,>i4')[0]
-    tag = Tag(*s)
-
+    tag = _read_tag_header(fid)
     if tag.size > 0:
         matrix_coding = _is_matrix & tag.type
         if matrix_coding != 0:
