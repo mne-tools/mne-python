@@ -317,14 +317,15 @@ def test_generalization_across_time():
 
     # Check that still works with classifier that output y_pred with
     # shape = (n_trials, 1) instead of (n_trials,)
-    gat = GeneralizationAcrossTime(clf=KernelRidge(), cv=2)
-    epochs.crop(None, epochs.times[2])
-    gat.fit(epochs)
-    # With regression the default cv is KFold and not StratifiedKFold
-    assert_true(gat.cv_.__class__ == KFold)
-    gat.score(epochs)
-    # with regression the default scoring metrics is mean squared error
-    assert_true(gat.scorer_.__name__ == 'mean_squared_error')
+    if check_version('sklearn', '0.17'):  # no is_regressor before v0.17
+        gat = GeneralizationAcrossTime(clf=KernelRidge(), cv=2)
+        epochs.crop(None, epochs.times[2])
+        gat.fit(epochs)
+        # With regression the default cv is KFold and not StratifiedKFold
+        assert_true(gat.cv_.__class__ == KFold)
+        gat.score(epochs)
+        # with regression the default scoring metrics is mean squared error
+        assert_true(gat.scorer_.__name__ == 'mean_squared_error')
 
     # Test combinations of complex scenarios
     # 2 or more distinct classes

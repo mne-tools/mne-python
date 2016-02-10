@@ -11,7 +11,7 @@ import copy
 from ..io.pick import pick_types
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import warn
+from ..utils import warn, check_version
 
 
 class _DecodingTime(dict):
@@ -122,7 +122,6 @@ class _GeneralizationAcrossTime(object):
         If X is a dense array, then the other methods will not support sparse
         matrices as input.
         """
-        from mne.utils import check_version
         from sklearn.base import clone, is_classifier
         if check_version('sklearn', '0.18'):
             from sklearn.model_selection import (check_cv, StratifiedKFold,
@@ -364,7 +363,12 @@ class _GeneralizationAcrossTime(object):
             number of testing times per training time need not be regular;
             else, np.shape(scores) = (n_train_time, n_test_time).
         """
-        from sklearn.base import is_classifier, is_regressor
+        from sklearn.base import is_classifier
+        if check_version('sklearn', '0.17'):
+            from sklearn.base import is_regressor
+        else:
+            def is_regressor(clf):
+                return False
         from sklearn.metrics import accuracy_score, mean_squared_error
 
         # Run predictions if not already done
