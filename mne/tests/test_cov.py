@@ -23,7 +23,7 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  pick_channels_cov, pick_channels, pick_types, pick_info,
                  make_ad_hoc_cov)
 from mne.io import Raw
-from mne.tests.common import assert_naming
+from mne.tests.common import assert_naming, assert_snr
 from mne.utils import (_TempDir, slow_test, requires_sklearn_0_15,
                        run_tests_if_main)
 from mne.io.proc_history import _get_sss_rank
@@ -101,9 +101,9 @@ def test_cov_estimation_on_raw_segment():
     raw = Raw(raw_fname, preload=False)
     cov = compute_raw_covariance(raw)
     cov_mne = read_cov(erm_cov_fname)
-    assert_true(cov_mne.ch_names == cov.ch_names)
-    assert_true(linalg.norm(cov.data - cov_mne.data, ord='fro') /
-                linalg.norm(cov.data, ord='fro') < 1e-4)
+    assert_equal(cov_mne.ch_names, cov.ch_names)
+    assert_equal(cov_mne.nfree, cov.nfree)
+    assert_snr(cov.data, cov_mne.data, 100)
 
     # test IO when computation done in Python
     cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
@@ -116,14 +116,17 @@ def test_cov_estimation_on_raw_segment():
     picks = pick_channels(raw.ch_names, include=raw.ch_names[:5])
     cov = compute_raw_covariance(raw, picks=picks)
     assert_true(cov_mne.ch_names[:5] == cov.ch_names)
-    assert_true(linalg.norm(cov.data - cov_mne.data[picks][:, picks],
-                ord='fro') / linalg.norm(cov.data, ord='fro') < 1e-4)
+    assert_snr(cov.data, cov_mne.data[picks][:, picks], 100)
     # make sure we get a warning with too short a segment
     raw_2 = raw.crop(0, 1)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         cov = compute_raw_covariance(raw_2)
-    assert_true(len(w) == 1)
+    assert_true(any('Too few samples' in str(ww.message) for ww in w))
+    # try regularized version
+    cov = compute_raw_covariance(raw, keep_sample_mean=True, tstep=1.,
+                                 method='shrunk', verbose=True)
+    assert_snr(cov.data, cov_mne.data, 4)
 
 
 @slow_test

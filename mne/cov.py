@@ -18,8 +18,8 @@ from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _needs_eeg_average_ref_proj)
 from .io import fiff_open
-from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
-                      pick_channels, pick_info, _picks_by_type)
+from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
+                      _picks_by_type)
 
 from .io.constants import FIFF
 from .io.meas_info import read_bad_channels
@@ -29,7 +29,8 @@ from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
 from .defaults import _handle_default
-from .epochs import _is_good
+from .epochs import Epochs
+from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask, warn)
 
@@ -345,8 +346,10 @@ def _check_n_samples(n_samples, n_chan):
 
 
 @verbose
-def compute_raw_covariance(raw, tmin=None, tmax=None, tstep=0.2,
-                           reject=None, flat=None, picks=None,
+def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
+                           flat=None, picks=None, keep_sample_mean=False,
+                           method='empirical', method_params=None, cv=3,
+                           scalings=None, n_jobs=1, return_estimators=False,
                            verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
@@ -354,14 +357,14 @@ def compute_raw_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     from empty room data or time intervals before starting
     the stimulation.
 
-    Note: To speed up the computation you should consider preloading raw data
-    by setting preload=True when reading the Raw data.
+    .. note:: To speed up the computation you should consider preloading
+              raw data by using ``raw.load_data()`` or ``preload=True``.
 
     Parameters
     ----------
     raw : instance of Raw
         Raw data
-    tmin : float | None (default None)
+    tmin : float
         Beginning of time interval in seconds
     tmax : float | None (default None)
         End of time interval in seconds
@@ -386,66 +389,90 @@ def compute_raw_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     picks : array-like of int | None (default None)
         Indices of channels to include (if None, all channels
         except bad channels are used).
+    keep_sample_mean : bool (default False)
+        If False, the average response over epochs is computed for
+        each event type and subtracted during the covariance
+        computation. This is useful if the evoked response from a
+        previous stimulus extends into the baseline period of the next.
+        Note. This option is only implemented for method='empirical'.
+        If True, the epochs will only be baseline corrected.
+
+        .. versionadded:: 0.12
+
+    method : str | list | None (default 'empirical')
+        The method used for covariance estimation.
+        See :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.12
+
+    method_params : dict | None (default None)
+        Additional parameters to the estimation procedure.
+        See :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.12
+
+    cv : int | sklearn cross_validation object (default 3)
+        The cross validation method. Defaults to 3, which will
+        internally trigger a default 3-fold shuffle split.
+
+        .. versionadded:: 0.12
+
+    scalings : dict | None (default None)
+        Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
+        These defaults will scale magnetometers and gradiometers
+        at the same unit.
+
+        .. versionadded:: 0.12
+
+    n_jobs : int (default 1)
+        Number of jobs to run in parallel.
+
+        .. versionadded:: 0.12
+
+    return_estimators : bool (default False)
+        Whether to return all estimators or the best. Only considered if
+        method equals 'auto' or is a list of str. Defaults to False
+
+        .. versionadded:: 0.12
+
     verbose : bool | str | int | None (default None)
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    cov : instance of Covariance
-        Noise covariance matrix.
+    cov : instance of Covariance | list
+        The computed covariance. If method equals 'auto' or is a list of str
+        and return_estimators equals True, a list of covariance estimators is
+        returned (sorted by log-likelihood, from high to low, i.e. from best
+        to worst).
 
     See Also
     --------
     compute_covariance : Estimate noise covariance matrix from epochs
     """
     sfreq = raw.info['sfreq']
-
-    # Convert to samples
-    start = 0 if tmin is None else int(floor(tmin * sfreq))
-    if tmax is None:
-        stop = int(raw.last_samp - raw.first_samp)
-    else:
-        stop = int(ceil(tmax * sfreq))
-    step = int(ceil(tstep * raw.info['sfreq']))
+    tmin = 0 if tmin is None else int(floor(tmin * sfreq)) / sfreq
+    if tmax is not None:
+        tmax = int(ceil(tmax * sfreq)) / sfreq
+    step = int(ceil(tstep * raw.info['sfreq']))  # samples
+    step_m1 = step - 1  # samples: non-overlapping segs (inclusive in Epochs)
+    step = step / raw.info['sfreq']  # time
+    step_m1 = step_m1 / raw.info['sfreq']  # time
+    events = make_fixed_length_events(raw, 1, tmin, tmax, step)
+    logger.info('Using up to %s segments' % len(events))
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
                            ref_meg=False, exclude=[])
-
-    data = 0
-    n_samples = 0
-    mu = 0
-
-    info = pick_info(raw.info, picks)
-    idx_by_type = channel_indices_by_type(info)
-
-    # Read data in chunks
-    for first in range(start, stop, step):
-        last = first + step
-        if last >= stop:
-            last = stop
-        raw_segment, times = raw[picks, first:last]
-        if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat,
-                    ignore_chs=info['bads']):
-            mu += raw_segment.sum(axis=1)
-            data += np.dot(raw_segment, raw_segment.T)
-            n_samples += raw_segment.shape[1]
-        else:
-            logger.info("Artefact detected in [%d, %d]" % (first, last))
-
-    _check_n_samples(n_samples, len(picks))
-    mu /= n_samples
-    data -= n_samples * mu[:, None] * mu[None, :]
-    data /= (n_samples - 1.0)
-    logger.info("Number of samples used : %d" % n_samples)
-    logger.info('[done]')
-
-    ch_names = [raw.info['ch_names'][k] for k in picks]
-    bads = [b for b in raw.info['bads'] if b in ch_names]
-    projs = cp.deepcopy(raw.info['projs'])
-    # XXX : do not compute eig and eigvec now (think it's better...)
-    return Covariance(data, ch_names, bads, projs, nfree=n_samples)
+    baseline = (None, None) if keep_sample_mean else None
+    epochs = Epochs(raw, events, 1, 0, step_m1, baseline=baseline,
+                    picks=picks, reject=reject, flat=flat, verbose=False,
+                    preload=True, proj=False)
+    return compute_covariance(epochs, keep_sample_mean, method=method,
+                              method_params=method_params, cv=cv,
+                              scalings=scalings, n_jobs=n_jobs,
+                              return_estimators=return_estimators)
 
 
 @verbose
@@ -484,7 +511,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     ----------
     epochs : instance of Epochs, or a list of Epochs objects
         The epochs.
-    keep_sample_mean : bool (default true)
+    keep_sample_mean : bool (default True)
         If False, the average response over epochs is computed for
         each event type and subtracted during the covariance
         computation. This is useful if the evoked response from a
@@ -627,7 +654,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     # check for baseline correction
     for epochs_t in epochs:
-        if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5:
+        if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5 and \
+               keep_sample_mean:
             warn('Epochs are not baseline corrected, covariance '
                  'matrix may be inaccurate')
 
@@ -680,7 +708,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                                  ' if `keep_sample_mean` is False')
         # prepare mean covs
         n_epoch_types = len(epochs)
-        data_mean = list(np.zeros(n_epoch_types))
+        data_mean = [0] * n_epoch_types
         n_samples = np.zeros(n_epoch_types, dtype=np.int)
         n_epochs = np.zeros(n_epoch_types, dtype=np.int)
 
