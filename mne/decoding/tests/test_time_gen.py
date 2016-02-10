@@ -165,13 +165,11 @@ def test_generalization_across_time():
         scores = gat.score(epochs)
     assert_true(isinstance(scores, list))  # type check
     assert_equal(len(scores[0]), len(scores))  # shape check
-
     assert_equal(len(gat.test_times_['slices'][0][0]), 2)
     # Decim training steps
     gat = GeneralizationAcrossTime(train_times={'step': .100})
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
-
     gat.score(epochs)
     assert_true(len(gat.scores_) == len(gat.estimators_) == 8)  # training time
     assert_equal(len(gat.scores_[0]), 15)  # testing time
@@ -268,7 +266,8 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime(train_times=train_times,
                                    test_times=test_times)
     gat.fit(epochs)
-    gat.score(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        gat.score(epochs)
     assert_array_equal(np.shape(gat.y_pred_[0]), [1, len(epochs), 1])
     assert_array_equal(np.shape(gat.y_pred_[1]), [2, len(epochs), 1])
     # check cannot Automatically infer testing times for adhoc training times

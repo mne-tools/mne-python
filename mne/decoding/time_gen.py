@@ -11,7 +11,7 @@ import copy
 from ..io.pick import pick_types
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import _traverse_warn
+from ..utils import warn
 
 
 class _DecodingTime(dict):
@@ -250,7 +250,7 @@ class _GeneralizationAcrossTime(object):
         X, y, __ = _check_epochs_input(epochs, None, self.picks_)
 
         if not np.all([len(test) for train, test in self._cv_splits]):
-            _traverse_warn('Some folds do not have any test epochs.')
+            warn('Some folds do not have any test epochs.')
 
         # Define testing sliding window
         if self.test_times == 'diagonal':
@@ -488,8 +488,8 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
             # In vectorize mode, we avoid iterating over time test_times.
             test_times = [slice(expected_start[0], expected_start[-1] + 1, 1)]
         elif _warn_once.get('vectorization', True):
-            _traverse_warn('not vectorizing predictions across testing times, '
-                           'using a time window with length > 1')
+            warn('not vectorizing predictions across testing times, using a '
+                 'time window with length > 1')
             _warn_once['vectorization'] = False
 
         # Iterate over testing times. If vectorize_times: 1 iteration.
