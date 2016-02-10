@@ -114,8 +114,7 @@ def _get_legen_lut_fast(x, lut, block=None):
     mm = x * (n_interp / 2.0)
     mm += 0.5 * n_interp
     # nearest-neighbor version (could be decent enough...)
-    mm = np.round(mm, 0, mm)  # round inplace
-    idx = mm.astype(int)
+    idx = np.round(mm).astype(int)
     if block is None:
         vals = lut[idx]
     else:  # read only one block at a time to minimize memory consumption
@@ -131,9 +130,8 @@ def _get_legen_lut_accurate(x, lut, block=None):
     mm = x * (n_interp / 2.0)
     mm += 0.5 * n_interp
     # slower, more accurate interpolation version
-    mm = np.minimum(mm, n_interp - 0.0000000001, mm)
-    mm = np.floor(mm, mm)  # floor inplace
-    idx = mm.astype(int)
+    mm = np.minimum(mm, n_interp - 0.0000000001)
+    idx = np.floor(mm).astype(int)
     w2 = mm - idx
     if block is None:
         w2.shape += tuple([1] * (lut.ndim - w2.ndim))  # expand to correct size
