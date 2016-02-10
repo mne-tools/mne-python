@@ -464,6 +464,9 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
         logger.info('')
 
     rr = np.concatenate([s['rr'][s['vertno']] for s in src])
+    if len(rr) < 1:
+        raise RuntimeError('No points left in source space after excluding '
+                           'points close to inner skull.')
 
     # deal with free orientations:
     source_nn = np.tile(np.eye(3), (len(rr), 1))
