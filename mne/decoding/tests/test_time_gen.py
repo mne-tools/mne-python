@@ -307,7 +307,7 @@ def test_generalization_across_time():
     # Make CV with some empty train and test folds:
     # --- empty test fold(s) should warn when gat.predict()
     gat._cv_splits[0] = [gat._cv_splits[0][0], np.empty(0)]
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
         gat.predict(epochs)
         assert_true(len(w) > 0)
         assert_true(any('do not have any test epochs' in str(ww.message)
