@@ -1565,15 +1565,11 @@ def _make_discrete_source_space(pos, coord_frame='mri'):
     src : dict
         The source space.
     """
-    # Check that coordinate frame is a valid string type
-    # (copied from transforms.py:transform_surface_to)
-    if isinstance(coord_frame, string_types):
-        if coord_frame not in _str_to_frame:
-            raise KeyError('coord_frame must be one of %s, not "%s"'
-                           % (list(_str_to_frame.keys()), coord_frame))
-        coord_frame = _str_to_frame[coord_frame]  # now an int
-    else:
-        raise ValueError('coord_frame must be a string')
+    # Check that coordinate frame is valid
+    if coord_frame not in _str_to_frame:  # will fail if coord_frame not string
+        raise KeyError('coord_frame must be one of %s, not "%s"'
+                       % (list(_str_to_frame.keys()), coord_frame))
+    coord_frame = _str_to_frame[coord_frame]  # now an int
 
     # process points
     rr = pos['rr'].copy()
