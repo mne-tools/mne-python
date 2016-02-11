@@ -170,3 +170,10 @@ def url_match(condition, data_format, data_type):
                          'data_format="%s", data_type="%s"'
                          % (condition, data_format, data_type))
     return good_urls
+
+
+def _load_all_data():
+    """Helper for downloading all megsim datasets."""
+    from .megsim import data_path
+    for url in urls:
+        data_path(url_root + url)

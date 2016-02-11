@@ -51,7 +51,10 @@ bst_resting_data:
 bst_raw_data:
 	@python -c "import mne; mne.datasets.brainstorm.bst_raw.data_path(verbose=True);"
 
-examples_data: sample_data testing_data spm_data somato_data bst_auditory_data bst_resting_data bst_raw_data
+megsim_data:
+	@python -c "import mne; mne.datasets.megsim.urls._load_all_data();"
+
+examples_data: sample_data testing_data spm_data somato_data bst_auditory_data bst_resting_data bst_raw_data megsim_data
 
 test: in
 	rm -f .coverage
