@@ -169,7 +169,7 @@ class _GeneralizationAcrossTime(object):
             # XXX support sklearn < 0.18
             self._cv_splits = [(train, test) for train, test in cv]
 
-        if not np.all([len(train) for train, __ in self._cv_splits]):
+        if not np.all([len(train) for train, _ in self._cv_splits]):
             raise ValueError('Some folds do not have any train epochs.')
 
         self.y_train_ = y
@@ -246,7 +246,7 @@ class _GeneralizationAcrossTime(object):
                 delattr(self, att)
         _warn_once.clear()  # reset self-baked warning tracker
 
-        X, y, __ = _check_epochs_input(epochs, None, self.picks_)
+        X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
         if not np.all([len(test) for train, test in self._cv_splits]):
             warn('Some folds do not have any test epochs.')
@@ -270,7 +270,7 @@ class _GeneralizationAcrossTime(object):
                                                   self.train_times_['length'])
             # Make a sliding window for each training time.
             slices_list = list()
-            for __ in range(0, len(self.train_times_['slices'])):
+            for _ in range(0, len(self.train_times_['slices'])):
                 test_times_ = _sliding_window(epochs.times, test_times,
                                               epochs.info['sfreq'])
                 slices_list += [test_times_['slices']]
@@ -291,20 +291,20 @@ class _GeneralizationAcrossTime(object):
         # Store all testing times parameters
         self.test_times_ = test_times
 
-        n_orig_epochs, __, n_times = X.shape
+        n_orig_epochs, _, n_times = X.shape
 
         # Subselects the to-be-predicted epochs so as to manipulate a
         # contiguous array X by using slices rather than indices.
         test_epochs = []
         if self.predict_mode == 'cross-validation':
-            all_test = [ii for train, test in self._cv_splits for ii in test]
+            test_idxs = [ii for train, test in self._cv_splits for ii in test]
             start = 0
-            for __, test in self._cv_splits:
+            for _, test in self._cv_splits:
                 n_test_epochs = len(test)
                 stop = start + n_test_epochs
                 test_epochs.append(slice(start, stop, 1))
                 start += n_test_epochs
-            X = X[all_test]
+            X = X[test_idxs]
 
         # Prepare parallel predictions across testing time points
         # FIXME Note that this means that TimeDecoding.predict isn't parallel
@@ -472,7 +472,7 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
     """
 
     # Check inputs
-    n_epochs, __, n_times = X.shape
+    n_epochs, _, n_times = X.shape
     n_train = len(estimators)
     n_test = [len(test_times) for test_times in train_times]
 
@@ -822,7 +822,7 @@ def _predict(X, estimators, vectorize_times, predict_method):
     # XXX need API to identify how multiple predictions can be combined?
     if fold > 0:
         if is_classifier(clf) and (predict_method == 'predict'):
-            y_pred, __ = stats.mode(y_pred, axis=2)
+            y_pred, _ = stats.mode(y_pred, axis=2)
         else:
             y_pred = np.mean(y_pred, axis=2, keepdims=True)
     y_pred = y_pred[:, :, 0]

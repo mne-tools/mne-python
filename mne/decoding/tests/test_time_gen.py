@@ -178,8 +178,11 @@ def test_generalization_across_time():
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
     train_times = dict(start=0.090, stop=0.250)
     if check_version('sklearn', '0.18'):
-        # cv = LeaveOneLabelOut()  # XXX wait for sklearn issue #6304
-        cv = None
+        cv = LeaveOneLabelOut()
+        # XXX we cannot pass any other parameters than X and y to cv.split
+        # so we have to build it before hand
+        cv = [(train, test) for train, test in cv.split(
+            X=y_4classes, y=y_4classes, labels=y_4classes)]
     else:
         cv = LeaveOneLabelOut(y_4classes)
     gat = GeneralizationAcrossTime(cv=cv, train_times=train_times)
@@ -207,7 +210,7 @@ def test_generalization_across_time():
     from mne.utils import set_log_level
     set_log_level('error')
     # Test generalization across conditions
-    gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
+    gat = GeneralizationAcrossTime(predict_mode='mean-prediction', cv=2)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs[0:6])
     with warnings.catch_warnings(record=True):
@@ -296,7 +299,6 @@ def test_generalization_across_time():
         cv = ShuffleSplit(len(epochs))
     gat = GeneralizationAcrossTime(cv=cv)
     gat.fit(epochs)
-    gat = GeneralizationAcrossTime()
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
 
