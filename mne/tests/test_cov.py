@@ -136,8 +136,10 @@ def test_cov_estimation_on_raw_reg():
     cov_mne = read_cov(erm_cov_fname)
     with warnings.catch_warnings(record=True):  # too few samples
         warnings.simplefilter('always')
+        # Don't use "shrunk" here, for some reason it makes Travis 2.7 hang...
+        # "diagonal_fixed" is faster anyway.
         cov = compute_raw_covariance(raw, keep_sample_mean=True, tstep=5.,
-                                     method='shrunk')
+                                     method='diagonal_fixed')
     assert_snr(cov.data, cov_mne.data, 4)
 
 
