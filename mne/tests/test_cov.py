@@ -94,8 +94,8 @@ def test_io_cov():
     assert_naming(w, 'test_cov.py', 2)
 
 
-def test_cov_estimation_on_raw_segment():
-    """Test estimation from raw on continuous recordings (typically empty room)
+def test_cov_estimation_on_raw():
+    """Test estimation from raw (typically empty room)
     """
     tempdir = _TempDir()
     raw = Raw(raw_fname, preload=False)
@@ -123,9 +123,20 @@ def test_cov_estimation_on_raw_segment():
         warnings.simplefilter('always')
         cov = compute_raw_covariance(raw_2)
     assert_true(any('Too few samples' in str(ww.message) for ww in w))
-    # try regularized version
-    cov = compute_raw_covariance(raw, keep_sample_mean=True, tstep=1.,
-                                 method='shrunk', verbose=True)
+
+
+@slow_test
+@requires_sklearn_0_15
+def test_cov_estimation_on_raw_reg():
+    """Test estimation from raw with regularization
+    """
+    raw = Raw(raw_fname, preload=True)
+    raw.resample(10.)  # much faster computation below
+    cov_mne = read_cov(erm_cov_fname)
+    with warnings.catch_warnings(record=True):  # too few samples
+        warnings.simplefilter('always')
+        cov = compute_raw_covariance(raw, keep_sample_mean=True, tstep=5.,
+                                     method='shrunk')
     assert_snr(cov.data, cov_mne.data, 4)
 
 
@@ -432,7 +443,8 @@ def test_auto_low_rank():
 def test_compute_covariance_auto_reg():
     """Test automated regularization"""
 
-    raw = Raw(raw_fname, preload=False)
+    raw = Raw(raw_fname, preload=True)
+    raw.resample(100)  # much faster estimation
     events = find_events(raw, stim_channel='STI 014')
     event_ids = [1, 2, 3, 4]
     reject = dict(mag=4e-12)
