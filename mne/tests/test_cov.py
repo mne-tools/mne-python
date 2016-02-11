@@ -22,7 +22,7 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_channels, pick_types, pick_info,
                  make_ad_hoc_cov)
-from mne.io import Raw
+from mne.io import Raw, RawArray
 from mne.tests.common import assert_naming, assert_snr
 from mne.utils import (_TempDir, slow_test, requires_sklearn_0_15,
                        run_tests_if_main)
@@ -131,7 +131,8 @@ def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization
     """
     raw = Raw(raw_fname, preload=True)
-    raw.resample(10.)  # much faster computation below
+    raw.info['sfreq'] /= 10.
+    raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
     cov_mne = read_cov(erm_cov_fname)
     with warnings.catch_warnings(record=True):  # too few samples
         warnings.simplefilter('always')
