@@ -486,26 +486,28 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     when the stim onset is defined from events.
 
     If the covariance is computed for multiple event types (events
-    with different IDs), the following two options can be used and combined.
-    A) either an Epochs object for each event type is created and
-    a list of Epochs is passed to this function.
-    B) an Epochs object is created for multiple events and passed
-    to this function.
+    with different IDs), the following two options can be used and combined:
 
-    Note: Baseline correction should be used when creating the Epochs.
-          Otherwise the computed covariance matrix will be inaccurate.
+        1. either an Epochs object for each event type is created and
+           a list of Epochs is passed to this function.
+        2. an Epochs object is created for multiple events and passed
+           to this function.
 
-    Note: For multiple event types, it is also possible to create a
-          single Epochs object with events obtained using
-          merge_events(). However, the resulting covariance matrix
-          will only be correct if keep_sample_mean is True.
+    .. note:: Baseline correction should be used when creating the Epochs.
+              Otherwise the computed covariance matrix will be inaccurate.
 
-    Note: The covariance can be unstable if the number of samples is not
-          sufficient. In that case it is common to regularize a covariance
-          estimate. The ``method`` parameter of this function allows to
-          regularize the covariance in an automated way. It also allows
-          to select between different alternative estimation algorithms which
-          themselves achieve regularization. Details are described in [1].
+    .. note:: For multiple event types, it is also possible to create a
+              single Epochs object with events obtained using
+              merge_events(). However, the resulting covariance matrix
+              will only be correct if keep_sample_mean is True.
+
+    .. note:: The covariance can be unstable if the number of samples is
+              not sufficient. In that case it is common to regularize a
+              covariance estimate. The ``method`` parameter of this
+              function allows to regularize the covariance in an
+              automated way. It also allows to select between different
+              alternative estimation algorithms which themselves achieve
+              regularization. Details are described in [1]_.
 
     Parameters
     ----------
@@ -531,22 +533,30 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         set of the different methods.
         If 'auto' or a list of methods, the best estimator will be determined
         based on log-likelihood and cross-validation on unseen data as
-        described in ref. [1]. Valid methods are:
-        'empirical', the empirical or sample covariance,
-        'diagonal_fixed', a diagonal regularization as in mne.cov.regularize
-        (see MNE manual), 'ledoit_wolf', the Ledoit-Wolf estimator (see [2]),
-        'shrunk' like 'ledoit_wolf' with cross-validation for optimal alpha
-        (see scikit-learn documentation on covariance estimation), 'pca',
-        probabilistic PCA with low rank
-        (see [3]), and, 'factor_analysis', Factor Analysis with low rank
-        (see [4]). If 'auto', expands to::
+        described in [1]_. Valid methods are:
+
+            * ``'empirical'``: the empirical or sample covariance
+            * ``'diagonal_fixed'``: a diagonal regularization as in
+              mne.cov.regularize (see MNE manual)
+            * ``'ledoit_wolf'``: the Ledoit-Wolf estimator [2]_
+            * ``'shrunk'``: like 'ledoit_wolf' with cross-validation for
+              optimal alpha (see scikit-learn documentation on covariance
+              estimation)
+            * ``'pca'``: probabilistic PCA with low rank [3]_
+            * ``'factor_analysis'``: Factor Analysis with low rank [4]_
+
+        If ``'auto'``, this expands to::
 
              ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
-        Note. 'ledoit_wolf' and 'pca' are similar to 'shrunk' and
-        'factor_analysis', respectively. They are not included to avoid
-        redundancy. In most cases 'shrunk' and 'factor_analysis' represent
-        more appropriate default choices.
+        .. note:: ``'ledoit_wolf'`` and ``'pca'`` are similar to
+           ``'shrunk'`` and ``'factor_analysis'``, respectively. They are not
+           included to avoid redundancy. In most cases ``'shrunk'`` and
+           ``'factor_analysis'`` represent more appropriate default
+           choices.
+
+        The ``'auto'`` mode is not recommended if there are many
+        segments of data, since computation can take a long time.
 
         .. versionadded:: 0.9.0
 
@@ -594,17 +604,17 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     References
     ----------
-    [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-        covariance estimation and spatial whitening of MEG and EEG signals,
-        vol. 108, 328-342, NeuroImage.
-    [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
-        large-dimensional covariance matrices. Journal of Multivariate
-        Analysis 88 (2), 365 - 411.
-    [3] Tipping, M. E., Bishop, C. M., (1999). Probabilistic principal
-        component analysis. Journal of the Royal Statistical Society: Series
-        B (Statistical Methodology) 61 (3), 611 - 622.
-    [4] Barber, D., (2012). Bayesian reasoning and machine learning.
-        Cambridge University Press., Algorithm 21.1
+    .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+           covariance estimation and spatial whitening of MEG and EEG
+           signals, vol. 108, 328-342, NeuroImage.
+    .. [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
+           large-dimensional covariance matrices. Journal of Multivariate
+           Analysis 88 (2), 365 - 411.
+    .. [3] Tipping, M. E., Bishop, C. M., (1999). Probabilistic principal
+           component analysis. Journal of the Royal Statistical Society:
+           Series B (Statistical Methodology) 61 (3), 611 - 622.
+    .. [4] Barber, D., (2012). Bayesian reasoning and machine learning.
+           Cambridge University Press., Algorithm 21.1
     """
     accepted_methods = ('auto', 'empirical', 'diagonal_fixed', 'ledoit_wolf',
                         'shrunk', 'pca', 'factor_analysis',)
