@@ -294,10 +294,8 @@ def _read_proj(fid, node, verbose=None):
         global_nchan = int(tag.data)
 
     items = dir_tree_find(nodes[0], FIFF.FIFFB_PROJ_ITEM)
-    for i in range(len(items)):
-
+    for item in items:
         #   Find all desired tags in one item
-        item = items[i]
         tag = find_tag(fid, item, FIFF.FIFF_NCHAN)
         if tag is not None:
             nchan = int(tag.data)
