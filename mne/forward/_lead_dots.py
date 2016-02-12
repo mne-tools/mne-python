@@ -191,10 +191,10 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     # sums = np.rollaxis(sums, 2)
     # or
     # sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta)))
-    sums = list()
-    for k in range(len(n_fact[0])):  # lookup in blocks to save memory
-        sums.append(np.einsum('ji,j,ij->i', bbeta, n_fact[:, k],
-                              lut_fun(ctheta, block=k)))
+    sums = np.empty((n_fact.shape[1], len(beta)))
+    for k in range(n_fact.shape[1]):  # lookup in blocks to save memory
+        np.einsum('ji,j,ij->i', bbeta, n_fact[:, k], lut_fun(ctheta, block=k),
+                  out=sums[k])
     return np.array(sums)
 
 
