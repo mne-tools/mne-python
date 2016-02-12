@@ -4,4 +4,4 @@
 #
 # License: BSD (3-clause)
 
-from .nicolet import read_raw_nicolet
+from .nicolet import read_raw_nicolet, read_aws_nicolet
