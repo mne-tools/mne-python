@@ -867,6 +867,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
         """
+        sfreq = float(sfreq)
         o_sfreq = self.info['sfreq']
         self.data = resample(self.data, sfreq, o_sfreq, npad, -1, window)
         # adjust indirectly affected variables

@@ -1808,7 +1808,7 @@ def _check_scaling_inputs(data, picks_list, scalings):
     return scalings_
 
 
-def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
+def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
                                 return_singular=False, copy=True):
     """Estimate rank for M/EEG data.
 
@@ -1826,6 +1826,8 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
 
         If 'norm' data will be scaled by channel-wise norms. If array,
         pre-specified norms will be used. If None, no scaling will be applied.
+    tol : float | str
+        Tolerance. See ``estimate_rank``.
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
@@ -1855,7 +1857,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
     return out
 
 
-def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
+def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
                             return_singular=False, copy=True):
     """Estimate rank for M/EEG data.
 
@@ -1873,6 +1875,8 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
 
         If 'norm' data will be scaled by channel-wise norms. If array,
         pre-specified norms will be used. If None, no scaling will be applied.
+    tol : float | str
+        Tolerance. See ``estimate_rank``.
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.

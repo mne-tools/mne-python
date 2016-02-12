@@ -9,7 +9,7 @@ from scipy import linalg
 from ..forward import is_fixed_orient, _to_fixed_ori
 
 from ..minimum_norm.inverse import _check_reference
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..externals.six.moves import xrange as range
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual)
@@ -107,7 +107,6 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         S = S[np.newaxis, :]
         CM = np.dot(U * S, U.T)
         CMinv = np.dot(U / (S + eps), U.T)
-
         CMinvG = np.dot(CMinv, G)
         A = np.dot(CMinvG.T, M)  # mult. w. Diag(gamma) in gamma update
 
@@ -156,9 +155,9 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
             break
 
     if itno < maxit - 1:
-        print('\nConvergence reached !\n')
+        logger.info('\nConvergence reached !\n')
     else:
-        print('\nConvergence NOT reached !\n')
+        warn('\nConvergence NOT reached !\n')
 
     # undo normalization and compute final posterior mean
     n_const = np.sqrt(M_normalize_constant) / G_normalize_constant

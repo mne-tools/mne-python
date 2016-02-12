@@ -340,7 +340,7 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def estimate_rank(data, tol=1e-4, return_singular=False,
+def estimate_rank(data, tol='auto', return_singular=False,
                   norm=True, copy=True):
     """Helper to estimate the rank of data
 
@@ -352,11 +352,12 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
     ----------
     data : array
         Data to estimate the rank of (should be 2-dimensional).
-    tol : float
+    tol : float | str
         Tolerance for singular values to consider non-zero in
         calculating the rank. The singular values are calculated
         in this method such that independent data are expected to
-        have singular value around one.
+        have singular value around one. Can be 'auto' to use the
+        same thresholding as ``scipy.linalg.orth``.
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
@@ -381,7 +382,13 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
     s = linalg.svd(data, compute_uv=False, overwrite_a=True)
-    rank = np.sum(s >= tol)
+    if isinstance(tol, string_types):
+        if tol != 'auto':
+            raise ValueError('tol must be "auto" or float')
+        eps = np.finfo(float).eps
+        tol = np.max(data.shape) * np.amax(s) * eps
+    tol = float(tol)
+    rank = np.sum(s > tol)
     if return_singular is True:
         return rank, s
     else:

@@ -15,7 +15,7 @@ import itertools as itt
 
 from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
                      _auto_low_rank_model, _apply_scaling_cov,
-                     _undo_scaling_cov)
+                     _undo_scaling_cov, prepare_noise_cov)
 
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
@@ -260,6 +260,17 @@ def test_evoked_whiten():
 @slow_test
 def test_rank():
     """Test cov rank estimation"""
+    # Test that our rank estimation works properly on a simple case
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
+                          proj=False)
+    cov = read_cov(cov_fname)
+    ch_names = [ch for ch in evoked.info['ch_names'] if '053' not in ch and
+                ch.startswith('EEG')]
+    cov = prepare_noise_cov(cov, evoked.info, ch_names, None)
+    assert_equal(cov['eig'][0], 0.)  # avg projector should set this to zero
+    assert_true((cov['eig'][1:] > 0).all())  # all else should be > 0
+
+    # Now do some more comprehensive tests
     raw_sample = Raw(raw_fname)
 
     raw_sss = Raw(hp_fif_fname)
