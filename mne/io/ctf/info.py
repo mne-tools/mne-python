@@ -68,7 +68,11 @@ def _convert_time(date_str, time_str):
         else:
             break
     else:
-        raise RuntimeError("Illegal date: %s" % date)
+        raise RuntimeError("""Illegal date: %s.
+If the language of the date does not correspond to your local machine's
+language try to set the locale to the language of the date string:
+locale.setlocale(locale.LC_ALL, 'en_US')""" % date_str)
+
     for fmt in ('%H:%M:%S', '%H:%M'):
         try:
             time = strptime(time_str, fmt)
@@ -77,7 +81,7 @@ def _convert_time(date_str, time_str):
         else:
             break
     else:
-        raise RuntimeError('Illegal time: %s' % time)
+        raise RuntimeError('Illegal time: %s' % time_str)
     # MNE-C uses mktime which uses local time, but here we instead decouple
     # conversion location from the process, and instead assume that the
     # acquisiton was in GMT. This will be wrong for most sites, but at least
