@@ -68,10 +68,11 @@ def _convert_time(date_str, time_str):
         else:
             break
     else:
-        raise RuntimeError("""Illegal date: %s.
-If the language of the date does not correspond to your local machine's
-language try to set the locale to the language of the date string:
-locale.setlocale(locale.LC_ALL, 'en_US')""" % date_str)
+        raise RuntimeError(
+            'Illegal date: %s.\nIf the language of the date does not '
+            'correspond to your local machine\'s language try to set the '
+            'locale to the language of the date string:\n'
+            'locale.setlocale(locale.LC_ALL, "en_US")' % date_str)
 
     for fmt in ('%H:%M:%S', '%H:%M'):
         try:
