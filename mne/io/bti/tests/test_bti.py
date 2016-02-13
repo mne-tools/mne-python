@@ -149,8 +149,8 @@ def test_raw():
         os.remove(tmp_raw_fname)
 
 
-def test_info_no_rename_no_reorder():
-    """ Test private renaming and reordering option """
+def test_info_no_rename_no_reorder_no_pdf():
+    """ Test private renaming, reordering and partial construction option """
     for pdf, config, hs in zip(pdf_fnames, config_fnames, hs_fnames):
         with warnings.catch_warnings(record=True):  # weight tables
             info, bti_info = _get_bti_info(
@@ -158,12 +158,42 @@ def test_info_no_rename_no_reorder():
                 rotation_x=0.0, translation=(0.0, 0.02, 0.11), convert=False,
                 ecg_ch='E31', eog_ch=('E63', 'E64'),
                 rename_channels=False, sort_by_ch_name=False)
+            info2, bti_info = _get_bti_info(
+                pdf_fname=None, config_fname=config, head_shape_fname=hs,
+                rotation_x=0.0, translation=(0.0, 0.02, 0.11), convert=False,
+                ecg_ch='E31', eog_ch=('E63', 'E64'),
+                rename_channels=False, sort_by_ch_name=False)
+
         assert_equal(info['ch_names'],
                      [ch['ch_name'] for ch in info['chs']])
         assert_equal([n for n in info['ch_names'] if n.startswith('A')][:5],
                      ['A22', 'A2', 'A104', 'A241', 'A138'])
         assert_equal([n for n in info['ch_names'] if n.startswith('A')][-5:],
                      ['A133', 'A158', 'A44', 'A134', 'A216'])
+
+        info = pick_info(info, pick_types(info, meg=True, stim=True,
+                                          resp=True))
+        info2 = pick_info(info2, pick_types(info2, meg=True, stim=True,
+                                            resp=True))
+
+        assert_true(info['sfreq'] is not None)
+        assert_true(info['lowpass'] is not None)
+        assert_true(info['highpass'] is not None)
+        assert_true(info['meas_date'] is not None)
+
+        assert_equal(info2['sfreq'], None)
+        assert_equal(info2['lowpass'], None)
+        assert_equal(info2['highpass'], None)
+        assert_equal(info2['meas_date'], None)
+
+        assert_equal(info['ch_names'], info2['ch_names'])
+        assert_equal(info['ch_names'], info2['ch_names'])
+        for key in ['dev_ctf_t', 'dev_head_t', 'ctf_head_t']:
+            assert_array_equal(info[key]['trans'], info2[key]['trans'])
+
+        assert_array_equal(
+            np.array([ch['loc'] for ch in info['chs']]),
+            np.array([ch['loc'] for ch in info2['chs']]))
 
 
 def test_no_conversion():
