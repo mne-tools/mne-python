@@ -466,7 +466,10 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
                 these predictions into a single estimate per sample.
         Default: 'cross-validation'
     n_orig_epochs : int
-        Original number of predicted epochs before slice definition.
+        Original number of predicted epochs before slice definition. Note
+        that the number of epochs may have been cropped if the cross validation
+        is not deterministic (e.g. with ShuffleSplit, we may only predict a
+        subset of epochs).
     test_epochs : list of slices
         List of slices to select the tested epoched in the cv.
     """
