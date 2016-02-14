@@ -1142,7 +1142,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        if np.array(train_time) == np.dtype('float'):
+        if not np.array(train_time).dtype is np.dtype('float'):
             raise ValueError('train_time must be float | list or array of '
                              'floats. Got %s.' % type(train_time))
 
