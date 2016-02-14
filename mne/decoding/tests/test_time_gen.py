@@ -52,7 +52,7 @@ def test_generalization_across_time():
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import mean_squared_error
+    from sklearn.metrics import mean_squared_error, roc_auc_score
     if check_version('sklearn', '0.18'):
         from sklearn.model_selection import (KFold, StratifiedKFold,
                                              ShuffleSplit, LeaveOneLabelOut)
@@ -337,18 +337,18 @@ def test_generalization_across_time():
     y[len(y) // 2:] += 2
     ys = (y, y + 1000)
     # Univariate and multivariate prediction
-    svc = SVC(C=1, kernel='linear')
+    svc = SVC(C=1, kernel='linear', probability=True)
+    reg = KernelRidge()
 
-    class SVC_proba(SVC):
-        def predict(self, x):
-            probas = super(SVC_proba, self).predict_proba(x)
-            return probas[:, 0]
+    def scorer_proba(y_true, y_pred):
+        roc_auc_score(y_true, y_pred[:, 0])
 
-    svcp = SVC_proba(C=1, kernel='linear', probability=True)
-    clfs = [svc, svcp]
-    scorers = [None, mean_squared_error]
+    # We re testing 3 scenario: default, classifier + predict_proba, regressor
+    scorers = [None, scorer_proba, None]
+    predict_methods = [None, 'predict_proba', None]
+    clfs = [svc, svc, reg]
     # Test all combinations
-    for clf, scorer in zip(clfs, scorers):
+    for clf, predict_method, scorer in zip(clfs, predict_methods, scorers):
         for y in ys:
             for n_class in n_classes:
                 for predict_mode in ['cross-validation', 'mean-prediction']:
