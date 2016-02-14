@@ -322,8 +322,7 @@ class _GeneralizationAcrossTime(object):
 
         # Concatenate chunks across test time dimension.
         n_tests = [len(sl) for sl in self.test_times_['slices']]
-        is_matrix = len(set(n_tests)) == 1
-        if is_matrix:
+        if len(set(n_tests)) == 1:  # does GAT deal with a regular array/matrix
             self.y_pred_ = np.concatenate(y_pred, axis=1)
         else:
             # Non regular testing times, y_pred is an array of arrays with
@@ -1472,7 +1471,13 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
 
 def _chunk_X(X, slices, gat, n_orig_epochs, test_epochs):
-    """Smart chunking to avoid memory overload"""
+    """Smart chunking to avoid memory overload.
+    The parallization is performed across time samples. To avoid overheads, the
+    X data is splitted into large chunks of different time sizes. To avoid
+    duplicating the memory load to each core, we only pass the time samples
+    that are required by each core. The indices of the training times must be
+    adjusted accordingly.
+    """
     # from object array to list
     slices = [sl for sl in slices if len(sl)]
     selected_times = np.hstack([np.ravel(sl) for sl in slices])
