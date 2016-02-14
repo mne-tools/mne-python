@@ -49,11 +49,11 @@ class _DecodingTime(dict):
             depth = [len(ii) for ii in self["slices"]]
             if len(np.unique(depth)) == 1:  # if all slices have same depth
                 if depth[0] == 1:  # if depth is one
-                    s += ", n_t_windows: %s" % (len(depth))
+                    s += ", n_time_windows: %s" % (len(depth))
                 else:
-                    s += ", n_t_windows: %s x %s" % (len(depth), depth[0])
+                    s += ", n_time_windows: %s x %s" % (len(depth), depth[0])
             else:
-                s += (", n_t_windows: %s x [%s, %s]" %
+                s += (", n_time_windows: %s x [%s, %s]" %
                       (len(depth),
                        min([len(ii) for ii in depth]),
                        max(([len(ii) for ii in depth]))))
@@ -719,7 +719,7 @@ def _sliding_window(times, window, sfreq):
     window = _DecodingTime(copy.deepcopy(window))
 
     # Default values
-    time_slices = window.get(['slices'], None)
+    time_slices = window.get('slices', None)
     # If the users hasn't manually defined the time slices, we'll defined
     # them with start, stop, step and length parameters.
     if time_slices is None:
@@ -728,11 +728,11 @@ def _sliding_window(times, window, sfreq):
         window['step'] = window.get('step', 1. / sfreq)
         window['length'] = window.get('length', 1. / sfreq)
 
-        if times[0] < window['start'] < times[-1]:
+        if not(times[0] <= window['start'] <= times[-1]):
             raise ValueError(
                 '`start` (%.2f s) outside time range [%.2f, %.2f].' % (
                     window['start'], times[0], times[-1]))
-        if (window['stop'] < times[0] or window['stop'] > times[-1]):
+        if not(times[0] <= window['stop'] <= times[-1]):
             raise ValueError(
                 '`stop` (%.2f s) outside time range [%.2f, %.2f].' % (
                     window['stop'], times[0], times[-1]))

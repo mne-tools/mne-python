@@ -163,7 +163,7 @@ def test_generalization_across_time():
     assert_true(gat2.cv_ != gat.cv)
     with warnings.catch_warnings(record=True):  # not vectorizing
         scores = gat.score(epochs)
-    assert_true(isinstance(scores, list))  # type check
+    assert_true(isinstance(scores, np.ndarray))  # type check
     assert_equal(len(scores[0]), len(scores))  # shape check
     assert_equal(len(gat.test_times_['slices'][0][0]), 2)
     # Decim training steps
@@ -287,7 +287,6 @@ def test_generalization_across_time():
     # and http://bit.ly/1u7t8UT
     assert_raises(ValueError, gat.score, epochs2)
     gat.score(epochs)
-    scores = sum(scores, [])  # flatten
     assert_true(0.0 <= np.min(scores) <= 1.0)
     assert_true(0.0 <= np.max(scores) <= 1.0)
 
