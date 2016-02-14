@@ -486,15 +486,14 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
         # Checks whether predict is based on contiguous windows of lengths = 1
         # time-sample, ranging across the entire times. In this case, we will
         # be able to vectorize the testing times samples.
-        expected_start = np.arange(n_times)
-        contiguous_start = np.array_equal([sl[0] for sl in test_t_idxs],
-                                          expected_start)
+        # Set expected start time if window length == 1
+        start = np.arange(n_times)
+        contiguous_start = np.array_equal([sl[0] for sl in test_t_idxs], start)
         window_lengths = np.unique([len(sl) for sl in test_t_idxs])
         vectorize_times = (window_lengths == 1) and contiguous_start
         if vectorize_times:
             # In vectorize mode, we avoid iterating over time test time indices
-            test_t_idxs = [slice(expected_start[0],
-                                 expected_start[-1] + 1, 1)]
+            test_t_idxs = [slice(start[0], start[-1] + 1, 1)]
         elif _warn_once.get('vectorization', True):
             warn('not vectorizing predictions across testing times, using a '
                  'time window with length > 1')
