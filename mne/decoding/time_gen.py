@@ -767,8 +767,8 @@ def _sliding_window(times, window, sfreq):
 
 def _set_window_time(slices, times):
     """Defines time as the last training time point"""
-    t_inds_ = [t[-1] for t in slices]
-    return times[t_inds_]
+    t_idx_ = [t[-1] for t in slices]
+    return times[t_idx_]
 
 
 def _predict(X, estimators, vectorize_times, predict_method):
