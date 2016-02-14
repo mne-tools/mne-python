@@ -49,11 +49,11 @@ class _DecodingTime(dict):
             depth = [len(ii) for ii in self["slices"]]
             if len(np.unique(depth)) == 1:  # if all slices have same depth
                 if depth[0] == 1:  # if depth is one
-                    s += ", n_time_windows: %s" % (len(depth))
+                    s += ", n_t_windows: %s" % (len(depth))
                 else:
-                    s += ", n_time_windows: %s x %s" % (len(depth), depth[0])
+                    s += ", n_t_windows: %s x %s" % (len(depth), depth[0])
             else:
-                s += (", n_time_windows: %s x [%s, %s]" %
+                s += (", n_t_windows: %s x [%s, %s]" %
                       (len(depth),
                        min([len(ii) for ii in depth]),
                        max(([len(ii) for ii in depth]))))
@@ -475,35 +475,36 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
     # Check inputs
     n_epochs, _, n_times = X.shape
     n_train = len(estimators)
-    n_test = [len(test_times) for test_times in train_times]
+    n_test = [len(test_t_idxs) for test_t_idxs in train_times]
 
     # Loop across training times (i.e. estimators)
     y_pred = None
-    for train_idx, (estimator_cv, test_times) in enumerate(
+    for train_t_idx, (estimator_cv, test_t_idxs) in enumerate(
             zip(estimators, train_times)):
         # Checks whether predict is based on contiguous windows of lengths = 1
         # time-sample, ranging across the entire times. In this case, we will
         # be able to vectorize the testing times samples.
         expected_start = np.arange(n_times)
-        contiguous_start = np.array_equal([sl[0] for sl in test_times],
+        contiguous_start = np.array_equal([sl[0] for sl in test_t_idxs],
                                           expected_start)
-        window_lengths = np.unique([len(sl) for sl in test_times])
+        window_lengths = np.unique([len(sl) for sl in test_t_idxs])
         vectorize_times = (window_lengths == 1) and contiguous_start
         if vectorize_times:
-            # In vectorize mode, we avoid iterating over time test_times.
-            test_times = [slice(expected_start[0], expected_start[-1] + 1, 1)]
+            # In vectorize mode, we avoid iterating over time test time indices
+            test_t_idxs = [slice(expected_start[0],
+                                 expected_start[-1] + 1, 1)]
         elif _warn_once.get('vectorization', True):
             warn('not vectorizing predictions across testing times, using a '
                  'time window with length > 1')
             _warn_once['vectorization'] = False
 
         # Iterate over testing times. If vectorize_times: 1 iteration.
-        for test_idx, test_time in enumerate(test_times):
+        for ii, test_t_idx in enumerate(test_t_idxs):
             # Vectoring chan_times features in case of multiple time samples
             # given to the estimators.
             X_pred = X
             if not vectorize_times:
-                X_pred = X[:, :, test_time].reshape(n_epochs, -1)
+                X_pred = X[:, :, test_t_idx].reshape(n_epochs, -1)
 
             if predict_mode == 'mean-prediction':
                 # Bagging: predict with each fold's estimator and combine
@@ -516,11 +517,13 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
                     n_dim = y_pred_.shape[-1]
                     y_pred = _init_ypred(n_train, n_test, n_orig_epochs, n_dim)
                 if vectorize_times:
-                    # Output predictions in different test_time columns
-                    y_pred[train_idx][test_time] = y_pred_
+                    # When vectorizing, we predict multiple time points at once
+                    # to gain speed. The utput predictions thus correspond to
+                    # different test time indices.
+                    y_pred[train_t_idx][test_t_idx] = y_pred_
                 else:
-                    # Output predictions in a single test_time column
-                    y_pred[train_idx][test_idx] = y_pred_
+                    # Output predictions in a single test time column
+                    y_pred[train_t_idx][ii] = y_pred_
             elif predict_mode == 'cross-validation':
                 # Predict using the estimator corresponding to each fold
                 for (_, test), test_epoch, estimator in zip(
@@ -536,11 +539,13 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
                         y_pred = _init_ypred(n_train, n_test, n_orig_epochs,
                                              n_dim)
                     if vectorize_times:
-                        # Output predictions in different test_time columns
-                        y_pred[train_idx][test_time, test, ...] = y_pred_
+                        # When vectorizing, we predict multiple time points at
+                        # once to gain speed. The utput predictions thus
+                        # correspond to different test_t_idx columns.
+                        y_pred[train_t_idx][test_t_idx, test, ...] = y_pred_
                     else:
-                        # Output predictions in a single test_time column
-                        y_pred[train_idx][test_idx, test, ...] = y_pred_
+                        # Output predictions in a single test_t_idx column
+                        y_pred[train_t_idx][ii, test, ...] = y_pred_
 
     return y_pred
 
@@ -740,11 +745,11 @@ def _sliding_window(times, window, sfreq):
 
         # Convert seconds to index
 
-        def find_time_idx(t):  # find closest time point
+        def find_t_idx(t):  # find closest time point
             return np.argmin(np.abs(np.asarray(times) - t))
 
-        start = find_time_idx(window['start'])
-        stop = find_time_idx(window['stop'])
+        start = find_t_idx(window['start'])
+        stop = find_t_idx(window['stop'])
         step = int(round(window['step'] * sfreq))
         length = int(round(window['length'] * sfreq))
 
