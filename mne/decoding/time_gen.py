@@ -381,16 +381,15 @@ class _GeneralizationAcrossTime(object):
 
         # Check scorer
         self.scorer_ = self.scorer
-        if self.scorer_ is not None:
-            if is_classifier(self.clf) and self.predict_method == 'predict':
+        if self.predict_method == "predict":
+            if is_classifier(self.clf):
                 self.scorer_ = accuracy_score
-            elif is_regressor(self.clf) and self.predict_method == 'predict':
+            elif is_regressor(self.clf):
                 self.scorer_ = mean_squared_error
-            else:
-                raise ValueError('Could not find a scoring metrics for '
-                                 '`clf=%s` and `predict_method=%s`. Manually'
-                                 ' define scorer. ' % (self.clf,
-                                                       self.predict_method))
+        if not self.scorer_:
+            raise ValueError('Could not find a scoring metrics for `clf=%s` '
+                             ' and `predict_method=%s`. Manually define scorer'
+                             '.' % (self.clf, self.predict_method))
 
         # If no regressor is passed, use default epochs events
         if y is None:
