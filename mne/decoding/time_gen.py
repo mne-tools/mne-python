@@ -61,7 +61,7 @@ class _DecodingTime(dict):
 
 
 class _GeneralizationAcrossTime(object):
-    """ see GeneralizationAcrossTime
+    """see GeneralizationAcrossTime
     """  # noqa
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_method='predict',
@@ -97,7 +97,7 @@ class _GeneralizationAcrossTime(object):
         self.n_jobs = n_jobs
 
     def fit(self, epochs, y=None):
-        """ Train a classifier on each specified time slice.
+        """Train a classifier on each specified time slice.
 
         Note. This function sets the ``picks_``, ``ch_names``, ``cv_``,
         ``y_train``, ``train_times_`` and ``estimators_`` attributes.
@@ -194,7 +194,7 @@ class _GeneralizationAcrossTime(object):
         return self
 
     def predict(self, epochs):
-        """ Classifiers' predictions on each specified testing time slice.
+        """Classifiers' predictions on each specified testing time slice.
 
         .. note:: This function sets the ``y_pred_`` and ``test_times_``
                   attributes.
@@ -270,7 +270,7 @@ class _GeneralizationAcrossTime(object):
                                                   self.train_times_['length'])
             # Make a sliding window for each training time.
             slices_list = list()
-            for _ in range(0, len(self.train_times_['slices'])):
+            for _ in range(len(self.train_times_['slices'])):
                 test_times_ = _sliding_window(epochs.times, test_times,
                                               epochs.info['sfreq'])
                 slices_list += [test_times_['slices']]
@@ -318,7 +318,7 @@ class _GeneralizationAcrossTime(object):
 
         # To minimize memory during parallelization, we apply a some chunking
         y_pred = parallel(p_func(*_chunk_X(
-            X, slices, self, n_orig_epochs, test_epochs)) for slices in chunks)
+            X, chunk, self, n_orig_epochs, test_epochs)) for chunk in chunks)
 
         # Concatenate chunks across test time dimension.
         n_tests = [len(sl) for sl in self.test_times_['slices']]
@@ -364,12 +364,12 @@ class _GeneralizationAcrossTime(object):
             else, np.shape(scores) = (n_train_time, n_test_time).
         """
         from sklearn.base import is_classifier
+        from sklearn.metrics import accuracy_score, mean_squared_error
         if check_version('sklearn', '0.17'):
             from sklearn.base import is_regressor
         else:
             def is_regressor(clf):
                 return False
-        from sklearn.metrics import accuracy_score, mean_squared_error
 
         # Run predictions if not already done
         if epochs is not None:
@@ -380,9 +380,8 @@ class _GeneralizationAcrossTime(object):
                                    'epochs to score()')
 
         # Check scorer
-        if self.scorer is not None:
-            self.scorer_ = self.scorer
-        else:
+        self.scorer_ = self.scorer
+        if self.scorer_ is not None:
             if is_classifier(self.clf) and self.predict_method == 'predict':
                 self.scorer_ = accuracy_score
             elif is_regressor(self.clf) and self.predict_method == 'predict':
@@ -390,7 +389,8 @@ class _GeneralizationAcrossTime(object):
             else:
                 raise ValueError('Could not find a scoring metrics for '
                                  '`clf=%s` and `predict_method=%s`. Manually'
-                                 ' define scorer. ' % (self.clf, self.scorer))
+                                 ' define scorer. ' % (self.clf,
+                                                       self.predict_method))
 
         # If no regressor is passed, use default epochs events
         if y is None:
@@ -418,7 +418,8 @@ class _GeneralizationAcrossTime(object):
 
         self.y_true_ = y  # to be compared with y_pred for scoring
 
-        # Preprocessing for parallelization
+        # Preprocessing for parallelization across training times; to avoid
+        # overheads, we divide them in large chunks.
         n_jobs = min(len(self.y_pred_[0][0]), check_n_jobs(self.n_jobs))
         parallel, p_func, n_jobs = parallel_func(_score_slices, n_jobs)
         n_estimators = len(self.train_times_['slices'])
@@ -428,8 +429,8 @@ class _GeneralizationAcrossTime(object):
         scores = parallel(p_func(
             self.y_true_, [self.y_pred_[train] for train in chunk],
             self.scorer_) for chunk in chunks)
-        # TODO: np.array scores JRK
-        self.scores_ = [score for chunk in scores for score in chunk]
+        # TODO: np.array scores from initialization JRK
+        self.scores_ = np.array([score for chunk in scores for score in chunk])
         return self.scores_
 
 
@@ -545,8 +546,7 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
 
 
 def _init_ypred(n_train, n_test, n_orig_epochs, n_dim):
-    """
-    y_pred can only be initialized after the first prediction, because we
+    """y_pred can only be initialized after the first prediction, because we
     can't know whether it is a a categorical output or a set of
     probabilistic estimates.
     If all train time points have the same number of testing time
@@ -692,7 +692,10 @@ def _fit_slices(clf, x_chunk, y, slices, cv_splits):
 def _sliding_window(times, window, sfreq):
     """Aux function of GeneralizationAcrossTime
 
-    Define the slices on which to train each classifier.
+    Define the slices on which to train each classifier. The user either define
+    the time slices manually in window['slices'] or s/he passes optional params
+    to set them from window['start'], window['stop'], window['step'] and
+    window['length'].
 
     Parameters
     ----------
@@ -703,26 +706,24 @@ def _sliding_window(times, window, sfreq):
 
     Returns
     -------
-    time_pick : list
-        List of training slices, indicating for each classifier the time
-        sample (in indices of times) to be fitted on.
+    window : dict
+        Dictionary to set training and testing times.
     """
     import copy
 
     window = _DecodingTime(copy.deepcopy(window))
 
     # Default values
-    has_slice = 'slices' in window
-    if has_slice:
-        time_pick = window['slices']
-    else:
+    time_slices = window.get(['slices'], None)
+    # If the users hasn't manually defined the time slices, we'll defined
+    # them with start, stop, step and length parameters.
+    if time_slices is None:
         window['start'] = window.get('start', times[0])
         window['stop'] = window.get('stop', times[-1])
         window['step'] = window.get('step', 1. / sfreq)
         window['length'] = window.get('length', 1. / sfreq)
 
-        if (window['start'] < times[0] or
-                window['start'] > times[-1]):
+        if times[0] < window['start'] < times[-1]:
             raise ValueError(
                 '`start` (%.2f s) outside time range [%.2f, %.2f].' % (
                     window['start'], times[0], times[-1]))
@@ -748,11 +749,11 @@ def _sliding_window(times, window, sfreq):
         length = int(round(window['length'] * sfreq))
 
         # For each training slice, give time samples to be included
-        time_pick = [range(start, start + length)]
-        while (time_pick[-1][0] + step) <= (stop - length + 1):
-            start = time_pick[-1][0] + step
-            time_pick.append(range(start, start + length))
-        window['slices'] = time_pick
+        time_slices = [range(start, start + length)]
+        while (time_slices[-1][0] + step) <= (stop - length + 1):
+            start = time_slices[-1][0] + step
+            time_slices.append(range(start, start + length))
+        window['slices'] = time_slices
     window['times'] = _set_window_time(window['slices'], times)
     return window
 
@@ -1136,13 +1137,9 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        not_float = not isinstance(train_time, float)
-        if not_float:
-            # Check that train_time is an array of floats
-            if not (isinstance(train_time, (list, np.ndarray)) and
-                    np.all([isinstance(ii, float) for ii in train_time])):
-                raise ValueError('train_time must be float | list or array of '
-                                 'floats. Got %s.' % type(train_time))
+        if np.array(train_time) == np.dtype('float'):
+            raise ValueError('train_time must be float | list or array of '
+                             'floats. Got %s.' % type(train_time))
 
         return plot_gat_times(self, train_time=train_time, title=title,
                               xmin=xmin, xmax=xmax,
@@ -1290,7 +1287,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         return "<TimeDecoding | %s>" % s
 
     def fit(self, epochs, y=None):
-        """ Train a classifier on each specified time slice.
+        """Train a classifier on each specified time slice.
 
         Note. This function sets the ``picks_``, ``ch_names``, ``cv_``,
         ``y_train``, ``train_times_`` and ``estimators_`` attributes.
@@ -1321,7 +1318,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         return self
 
     def predict(self, epochs):
-        """ Test each classifier on each specified testing time slice.
+        """Test each classifier on each specified testing time slice.
 
         .. note:: This function sets the ``y_pred_`` and ``test_times_``
                   attributes.
