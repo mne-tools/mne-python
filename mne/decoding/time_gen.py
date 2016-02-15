@@ -1477,8 +1477,17 @@ def _set_cv(cv, clf=None, X=None, y=None):
     # or regressor.
     if check_version('sklearn', '0.18'):
         from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
+        if isinstance(cv, (int, np.int)):
+            XFold = StratifiedKFold if is_classifier(clf) else KFold
+            cv = XFold(n_folds=cv)
+        cv = check_cv(cv=cv, y=y, classifier=is_classifier(clf))
     else:
         from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
+        if isinstance(cv, (int, np.int)):
+            if is_classifier(clf):
+                cv = StratifiedKFold(y=y, n_folds=cv)
+            else:
+                cv = KFold(n=len(y), n_folds=cv)
 
     # If cv is only defined in terms of n_folds
     if isinstance(cv, (int, np.int)):
@@ -1491,11 +1500,6 @@ def _set_cv(cv, clf=None, X=None, y=None):
                 cv = StratifiedKFold(y=y, n_folds=cv)
             else:
                 cv = KFold(n=len(y), n_folds=cv)
-
-    # Check CV
-    if check_version('sklearn', '0.18'):  # see sklearn issue #6300
-        cv = check_cv(cv=cv, y=y, classifier=is_classifier(clf))
-    else:
         cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(clf))
 
     # Extract train and test set to retrieve them at predict time
@@ -1503,7 +1507,7 @@ def _set_cv(cv, clf=None, X=None, y=None):
         cv_splits = [(train, test) for train, test in
                      cv.split(X=np.zeros_like(y), y=y)]
     else:
-        # XXX support sklearn < 0.18
+        # XXX support sklearn.cross_validation cv
         cv_splits = [(train, test) for train, test in cv]
 
     if not np.all([len(train) for train, _ in cv_splits]):
