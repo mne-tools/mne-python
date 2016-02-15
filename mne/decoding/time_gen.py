@@ -494,8 +494,9 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
             # In vectorize mode, we avoid iterating over time test time indices
             test_t_idxs = [slice(start[0], start[-1] + 1, 1)]
         elif _warn_once.get('vectorization', True):
-            warn('not vectorizing predictions across testing times, using a '
-                 'time window with length > 1')
+            warn('Due to a time window with length > 1, unable to vectorize '
+                 'across testing times. This leads to slower predictions '
+                 'compared to the length == 1 case.')
             _warn_once['vectorization'] = False
 
         # Iterate over testing times. If vectorize_times: 1 iteration.
@@ -855,8 +856,8 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
         scikit-learn.cross_validation module for the list of possible objects.
-        If clf is a classifier, defaults to KFold(n_folds=5), else defaults to
-        StratifiedKFold(n_folds=5).
+        If clf is a classifier, defaults to StratifiedKFold(n_folds=5), else
+        defaults to KFold(n_folds=5).
     clf : object | None
         An estimator compliant with the scikit-learn API (fit & predict).
         If None the classifier will be a standard pipeline including

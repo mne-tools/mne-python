@@ -52,7 +52,7 @@ def test_generalization_across_time():
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import mean_squared_error, roc_auc_score
+    from sklearn.metrics import roc_auc_score
     if check_version('sklearn', '0.18'):
         from sklearn.model_selection import (KFold, StratifiedKFold,
                                              ShuffleSplit, LeaveOneLabelOut)
