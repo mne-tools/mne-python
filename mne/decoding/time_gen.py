@@ -285,7 +285,7 @@ class _GeneralizationAcrossTime(object):
         chunks = map(list, zip(*chunks))
 
         # To minimize memory during parallelization, we apply a some chunking
-        y_pred = parallel(p_func(*_chunk_X(
+        y_pred = parallel(p_func(*_chunk_data(
             X, chunk, self, n_orig_epochs, test_epochs)) for chunk in chunks)
 
         # Concatenate chunks across test time dimension.
@@ -1448,7 +1448,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
             self.scores_ = [score[0] for score in self.scores_]
 
 
-def _chunk_X(X, slices, gat, n_orig_epochs, test_epochs):
+def _chunk_data(X, slices, gat, n_orig_epochs, test_epochs):
     """Smart chunking to avoid memory overload.
 
     The parallelization is performed across time samples. To avoid overheads,
