@@ -41,8 +41,6 @@ tmin, tmax = 0, 60  # use the first 60s of data
 fmin, fmax = 2, 300  # look at frequencies between 2 and 300Hz
 n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
 
-plt.ion()
-
 # Let's first check out all channel types
 raw.plot_psd(area_mode='range', tmax=10.0)
 
@@ -87,3 +85,4 @@ ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                 color='k', alpha=.5)
 ax.set(title='Multitaper PSD', xlabel='Frequency',
        ylabel='Power Spectral Density (dB)')
+plt.show()

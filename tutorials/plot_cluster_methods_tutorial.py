@@ -165,7 +165,6 @@ ps_tfce_hat = -np.log10(p_values.reshape((width, width)))
 ###############################################################################
 # Visualize results
 
-plt.ion()
 fig = plt.figure(facecolor='w')
 
 x, y = np.mgrid[0:width, 0:width]
@@ -200,3 +199,5 @@ for ax in axs:
     cbar.set_label('-log10(p)')
     cbar.set_ticks(p_lims)
     cbar.set_ticklabels(['%0.1f' % p for p in p_lims])
+
+plt.show()
