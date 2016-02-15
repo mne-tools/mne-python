@@ -61,7 +61,8 @@ class _DecodingTime(dict):
 
 
 class _GeneralizationAcrossTime(object):
-    """see GeneralizationAcrossTime
+    """Generic object to train and test a series of classifiers at and across
+    different time samples.
     """  # noqa
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_method='predict',
@@ -115,7 +116,7 @@ class _GeneralizationAcrossTime(object):
             Returns fitted GeneralizationAcrossTime object.
 
         Notes
-        ------
+        -----
         If X and y are not C-ordered and contiguous arrays of np.float64 and
         X is not a scipy.sparse.csr_matrix, X and/or y may be copied.
 
@@ -519,11 +520,7 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
 
 
 def _init_ypred(n_train, n_test, n_orig_epochs, n_dim):
-    """y_pred can only be initialized after the first prediction, because we
-    can't know whether it is a a categorical output or a set of
-    probabilistic estimates.
-    If all train time points have the same number of testing time
-    points, then y_pred is a matrix. Else it is an array of arrays.
+    """Initialize the predictions for each train/test time points.
 
     Parameters
     ----------
@@ -540,6 +537,14 @@ def _init_ypred(n_train, n_test, n_orig_epochs, n_dim):
     -------
     y_pred : np.array, shape(n_train, n_test, n_orig_epochs, n_dim)
         Empty array.
+
+    Notes
+    -----
+    The ``y_pred`` variable can only be initialized after the first
+    prediction, because we can't know whether it is a a categorical output or a
+    set of probabilistic estimates. If all train time points have the same
+    number of testing time points, then y_pred is a matrix. Else it is an array
+    of arrays.
     """
     if len(set(n_test)) == 1:
         y_pred = np.empty((n_train, n_test[0], n_orig_epochs, n_dim))
@@ -566,7 +571,7 @@ def _score_slices(y_true, list_y_pred, scorer):
 def _check_epochs_input(epochs, y, picks=None):
     """Aux function of GeneralizationAcrossTime
 
-    Format MNE data into scikit-learn X and y
+    Format MNE data into scikit-learn X and y.
 
     Parameters
     ----------
@@ -675,12 +680,17 @@ def _sliding_window(times, window, sfreq):
     times : ndarray, shape (n_times,)
         Array of times from MNE epochs.
     window : dict keys: ('start', 'stop', 'step', 'length')
-        Either train or test times. See GAT documentation.
+        Either train or test times.
 
     Returns
     -------
     window : dict
         Dictionary to set training and testing times.
+
+    See Also
+    --------
+    GeneralizationAcrossTime
+
     """
     import copy
 
@@ -732,7 +742,7 @@ def _sliding_window(times, window, sfreq):
 
 
 def _set_window_time(slices, times):
-    """Defines time as the last training time point"""
+    """Aux function to define time as the last training time point"""
     t_idx_ = [t[-1] for t in slices]
     return times[t_idx_]
 
@@ -1278,7 +1288,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
             Returns fitted TimeDecoding object.
 
         Notes
-        ------
+        -----
         If X and y are not C-ordered and contiguous arrays of np.float64 and
         X is not a scipy.sparse.csr_matrix, X and/or y may be copied.
 
@@ -1440,12 +1450,14 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
 def _chunk_X(X, slices, gat, n_orig_epochs, test_epochs):
     """Smart chunking to avoid memory overload.
-    The parallization is performed across time samples. To avoid overheads, the
-    X data is splitted into large chunks of different time sizes. To avoid
-    duplicating the memory load to each core, we only pass the time samples
-    that are required by each core. The indices of the training times must be
-    adjusted accordingly.
+
+    The parallelization is performed across time samples. To avoid overheads,
+    the X data is splitted into large chunks of different time sizes. To
+    avoid duplicating the memory load to each core, we only pass the time
+    samples that are required by each core. The indices of the training times
+    must be adjusted accordingly.
     """
+
     # from object array to list
     slices = [sl for sl in slices if len(sl)]
     selected_times = np.hstack([np.ravel(sl) for sl in slices])
