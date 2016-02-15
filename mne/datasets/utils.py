@@ -188,14 +188,14 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='MNE-testing-data',
     )
     urls = dict(
-        brainstorm='https://copy.com/ZTHXXFcuIZycvRoA/brainstorm/%s',
+        brainstorm='http://mne-tools.s3.amazonaws.com/datasets/%s',
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/%s',
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
              'tar.gz/%s' % releases['misc'],
-        sample="https://s3.amazonaws.com/mne-python/datasets/%s",
-        somato='https://s3.amazonaws.com/mne-python/datasets/%s',
-        spm='https://s3.amazonaws.com/mne-python/datasets/%s',
+        sample="http://mne-tools.s3.amazonaws.com/datasets/%s",
+        somato='http://mne-tools.s3.amazonaws.com/datasets/%s',
+        spm='http://mne-tools.s3.amazonaws.com/datasets/%s',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
     )
