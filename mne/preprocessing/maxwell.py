@@ -279,8 +279,14 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     if cross_talk is not None:
         sss_ctc = _read_ctc(cross_talk)
         ctc_chs = sss_ctc['proj_items_chs']
-        if set(info['ch_names'][p] for p in meg_picks) != set(ctc_chs):
-            raise RuntimeError('ctc channels and raw channels do not match')
+        meg_ch_names = [info['ch_names'][p] for p in meg_picks]
+        missing = sorted(list(set(meg_ch_names) - set(ctc_chs)))
+        if len(missing) != 0:
+            raise RuntimeError('Missing MEG channels in cross-talk matrix:\n%s'
+                               % missing)
+        missing = sorted(list(set(ctc_chs) - set(meg_ch_names)))
+        if len(missing) > 0:
+            warn('Not all cross-talk channels in raw:\n%s' % missing)
         ctc_picks = pick_channels(ctc_chs,
                                   [info['ch_names'][c] for c in good_picks])
         ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
