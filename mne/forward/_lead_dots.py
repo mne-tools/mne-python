@@ -195,7 +195,7 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     for k in range(n_fact.shape[1]):  # lookup in blocks to save memory
         np.einsum('ji,j,ij->i', bbeta, n_fact[:, k], lut_fun(ctheta, block=k),
                   out=sums[k])
-    return np.array(sums)
+    return sums
 
 
 ###############################################################################
