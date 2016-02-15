@@ -6,10 +6,14 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from os.path import join
+from os import listdir
+import warnings
 
 from ...utils import logger
 from ..constants import FIFF
 from .res4 import _make_ctf_name
+from ...transforms import apply_trans
 
 
 _cardinal_dict = dict(nasion=FIFF.FIFFV_POINT_NASION,
@@ -49,3 +53,41 @@ def _read_eeg(directory):
                     eeg['np'] += 1
     logger.info('    Separate EEG position data file read.')
     return eeg
+
+
+def _read_pos(directory, transformations):
+    """Read the .pos file and return eeg positions as digitizer extra points.
+    """
+    fname = [join(directory, f) for f in listdir(directory) if
+             f.endswith('.pos')]
+    if len(fname) < 1:
+        return list()
+    elif len(fname) > 1:
+        warnings.warn('Found multiple pos files. Extra digitizer points not '
+                      'added.')
+        return list()
+    fname = fname[0]
+    digs = list()
+    i = 1000
+    with open(fname, 'r') as fid:
+        for line in fid:
+            line = line.strip()
+            if len(line) > 0:
+                parts = line.decode('utf-8').split()
+                if len(parts) not in [4, 5]:
+                    continue
+                try:
+                    ident = int(parts[0])
+                except:
+                    ident = i
+                    i += 1
+                dig = dict(kind=FIFF.FIFFV_POINT_EXTRA)
+                dig['ident'] = ident
+                dig['r'] = list()
+                r = np.array([float(p) for p in parts[-3:]]) / 100.
+                if (r * r).sum() > 1e-4:
+                    dig['coord_frame'] = 4
+                    r = apply_trans(transformations['t_ctf_head_head'], r)
+                    dig['r'].append(r)
+                    digs.append(dig)
+    return digs
