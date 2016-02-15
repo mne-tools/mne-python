@@ -314,6 +314,7 @@ Functions:
    plot_events
    plot_evoked
    plot_evoked_image
+   plot_evoked_topo
    plot_evoked_topomap
    plot_evoked_field
    plot_evoked_white
@@ -330,7 +331,6 @@ Functions:
    plot_source_estimates
    plot_sparse_source_estimates
    plot_tfr_topomap
-   plot_topo
    plot_topo_image_epochs
    plot_topomap
    compare_fiff
