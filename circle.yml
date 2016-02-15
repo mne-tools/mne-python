@@ -1,42 +1,51 @@
 machine:
   python:
     version: 2.7.10
+  environment:
+    # We need to set this variable to let Anaconda take precedence
+    PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
 
 dependencies:
   cache_directories:
-    - ../examples/
-
+    - "/home/ubuntu/miniconda"
+    - "/home/ubuntu/.mne"
+    - "/home/ubuntu/examples"
+  # Various dependencies
   pre:
-    - >
-      if [ -n "${RUN_NIGHTLY_BUILD}" ]; then
-        cd .. && sudo mkdir examples
-        sudo pip install --upgrade pip
-        sudo pip install traitlets pexpect pickleshare simplegeneric
-        wget https://pypi.python.org/packages/source/i/ipython/ipython-4.1.1.tar.gz && tar -xzf ipython-4.1.1.tar.gz && cd ipython-4.1.1 && sudo python setup.py install
-        sudo pip install sphinx==1.2.3 pygraphviz matplotlib Pillow neo scipy numpy
-        git clone https://github.com/sphinx-gallery/sphinx-gallery.git && cd sphinx-gallery && sudo pip install -r requirements.txt && sudo python setup.py develop
-        sudo pip install sphinx_bootstrap_theme
-        sudo pip install numpy --upgrade
-        sudo apt-get install libvtk5-dev python-vtk python-configobj
-        sudo pip install mayavi
-        sudo pip install pysurfer
-        sudo pip install nilearn
-        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
-        sudo pip install scikit-learn
-        cd /home/ubuntu/mne-python && sudo python setup.py install
-        sudo make sample_data
-        sudo make testing_data
-        sudo make spm_data
-        sudo make somato_data
-        cd ..
-        sudo chmod -R 777 .mne
-        sudo chmod -R 777 examples
-        cd .mne && sudo chmod 777 mne-python.json && echo '{"MNE_DATASETS_BRAINSTORM_PATH":"/home/ubuntu/examples","MNE_DATASETS_EEGBCI_PATH":"/home/ubuntu/examples","MNE_DATASETS_MEGSIM_PATH":"/home/ubuntu/examples","MNE_DATASETS_SAMPLE_PATH":"/home/ubuntu/examples","MNE_DATASETS_SOMATO_PATH":"/home/ubuntu/examples","MNE_DATASETS_SPM_FACE_PATH":"/home/ubuntu/examples","MNE_DATASETS_TESTING_PATH":"/home/ubuntu/examples"}' > mne-python.json
-        if [[ ! -e ../examples/MNE-brainstorm-data ]]; then cd .. && sudo chmod 777 examples && cd examples && mkdir MNE-brainstorm-data && cd MNE-brainstorm-data && wget https://copy.com/ZTHXXFcuIZycvRoA/brainstorm/bst_raw.tar.bz2 && tar xvf bst_raw.tar.bz2; fi
-      fi
-
+    # Get a running Python
+    - cd ~
+    # Disable pyenv (no cleaner way provided by CircleCI as it prepends pyenv version to PATH)
+    - rm -rf ~/.pyenv
+    - rm -rf ~/virtualenvs
+    # Get Anaconda and conda-based requirements
+    - if [ ! -d "/home/ubuntu/miniconda" ]; then
+        echo "Setting up conda";
+        wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+        chmod +x miniconda.sh;
+        ./miniconda.sh -b -p /home/ubuntu/miniconda;
+        conda update --yes --quiet conda;
+        conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx PIL six IPython;
+        sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
+      else
+        echo "Conda already set up.";
+      fi;
+    - ls -al /home/ubuntu/miniconda
+    - ls -al /home/ubuntu/miniconda/bin
+    - echo $PATH
+    - which python
+    - which pip
+    # Last of the requirements
+    - git clone https://github.com/sphinx-gallery/sphinx-gallery.git
+    - cd sphinx-gallery
+    - pip install -r requirements.txt
+    - python setup.py develop
+    - pip install sphinx-bootstrap-theme PySurfer nilearn neo
   override:
     - cd
+    - python setup.py develop
+    - python -c "import mne; mne.sys_info()"
+    - mkdir -p ~/examples
+    - python -c "import mne, os; print(mne.datasets.sample.data_path(os.path.join(os.environ['HOME'], 'examples'), verbose=True))"
 
 test:
   override:
@@ -46,5 +55,6 @@ test:
         timeout: 1500
 
 general:
+  # Open the doc to the API
   artifacts:
     - "doc/_build/html"
