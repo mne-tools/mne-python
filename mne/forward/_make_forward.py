@@ -18,7 +18,7 @@ from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
 from ..utils import logger, verbose, warn
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, SourceSpaces)
-from source_estimate import VolSourceEstimate
+from ..source_estimate import VolSourceEstimate
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
