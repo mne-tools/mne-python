@@ -6,27 +6,26 @@ from __future__ import print_function
 #
 # License: BSD (3-clause)
 
-import warnings
-import logging
-import time
-import platform
+import atexit
 from distutils.version import LooseVersion
+from functools import wraps
+import hashlib
+import inspect
+import json
+import logging
+from math import log, ceil
 import os
 import os.path as op
-from functools import wraps
-import inspect
+import platform
+import shutil
+from shutil import rmtree
 from string import Formatter
 import subprocess
 import sys
 import tempfile
-import shutil
-from shutil import rmtree
-from math import log, ceil
-import json
+import time
+import warnings
 import ftplib
-import hashlib
-from functools import partial
-import atexit
 
 import numpy as np
 from scipy import linalg, sparse
@@ -35,7 +34,7 @@ from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
-from .fixes import _get_args
+from .fixes import _get_args, partial
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -468,7 +467,7 @@ def trait_wraith(*args, **kwargs):
 # Following deprecated class copied from scikit-learn
 
 # force show of DeprecationWarning even on python 2.7
-warnings.simplefilter('default')
+warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
 class deprecated(object):
