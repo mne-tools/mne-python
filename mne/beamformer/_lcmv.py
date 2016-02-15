@@ -100,7 +100,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     # Handle whitening + data covariance
-    whitener = compute_whitener(noise_cov, info, picks, rank=rank)[0]
+    whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
 
     # whiten the leadfield
     G = np.dot(whitener, G)
