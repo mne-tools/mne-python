@@ -354,7 +354,7 @@ class _GeneralizationAcrossTime(object):
             elif is_regressor(self.clf):
                 self.scorer_ = mean_squared_error
         if not self.scorer_:
-            raise ValueError('Could not find a scoring metrics for `clf=%s` '
+            raise ValueError('Could not find a scoring metric for `clf=%s` '
                              ' and `predict_method=%s`. Manually define scorer'
                              '.' % (self.clf, self.predict_method))
 
@@ -698,19 +698,19 @@ def _sliding_window(times, window, sfreq):
 
     # Default values
     time_slices = window.get('slices', None)
-    # If the users hasn't manually defined the time slices, we'll defined
-    # them with start, stop, step and length parameters.
+    # If the user hasn't manually defined the time slices, we'll define them
+    # with ``start``, ``stop``, ``step`` and ``length`` parameters.
     if time_slices is None:
         window['start'] = window.get('start', times[0])
         window['stop'] = window.get('stop', times[-1])
         window['step'] = window.get('step', 1. / sfreq)
         window['length'] = window.get('length', 1. / sfreq)
 
-        if not(times[0] <= window['start'] <= times[-1]):
+        if not (times[0] <= window['start'] <= times[-1]):
             raise ValueError(
                 '`start` (%.2f s) outside time range [%.2f, %.2f].' % (
                     window['start'], times[0], times[-1]))
-        if not(times[0] <= window['stop'] <= times[-1]):
+        if not (times[0] <= window['stop'] <= times[-1]):
             raise ValueError(
                 '`stop` (%.2f s) outside time range [%.2f, %.2f].' % (
                     window['stop'], times[0], times[-1]))
@@ -1453,8 +1453,8 @@ def _chunk_data(X, slices, gat, n_orig_epochs, test_epochs):
 
     The parallelization is performed across time samples. To avoid overheads,
     the X data is splitted into large chunks of different time sizes. To
-    avoid duplicating the memory load to each core, we only pass the time
-    samples that are required by each core. The indices of the training times
+    avoid duplicating the memory load to each job, we only pass the time
+    samples that are required by each job. The indices of the training times
     must be adjusted accordingly.
     """
 
