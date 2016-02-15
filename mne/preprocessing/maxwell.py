@@ -279,8 +279,14 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     if cross_talk is not None:
         sss_ctc = _read_ctc(cross_talk)
         ctc_chs = sss_ctc['proj_items_chs']
-        if set(info['ch_names'][p] for p in meg_picks) != set(ctc_chs):
-            raise RuntimeError('ctc channels and raw channels do not match')
+        meg_ch_names = [info['ch_names'][p] for p in meg_picks]
+        missing = sorted(list(set(meg_ch_names) - set(ctc_chs)))
+        if len(missing) != 0:
+            raise RuntimeError('Missing MEG channels in cross-talk matrix:\n%s'
+                               % missing)
+        missing = sorted(list(set(ctc_chs) - set(meg_ch_names)))
+        if len(missing) > 0:
+            warn('Not all cross-talk channels in raw:\n%s' % missing)
         ctc_picks = pick_channels(ctc_chs,
                                   [info['ch_names'][c] for c in good_picks])
         ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
@@ -1580,11 +1586,13 @@ def _update_sensor_geometry(info, fine_cal, head_frame, ignore_ref):
     meg_info = pick_info(info, pick_types(info, meg=True, exclude=[]))
     clean_meg_names = _clean_names(meg_info['ch_names'],
                                    remove_whitespace=True)
-    order = pick_channels([c['ch_name'] for c in cal_chs], clean_meg_names)
-    if not (len(cal_chs) == meg_info['nchan'] == len(order)):
-        raise RuntimeError('Number of channels in fine calibration file (%i) '
-                           'does not equal number of channels in info (%i)' %
-                           (len(cal_chs), meg_info['nchan']))
+    cal_names = [c['ch_name'] for c in cal_chs]
+    order = pick_channels(cal_names, clean_meg_names)
+    if meg_info['nchan'] != len(order):
+        raise RuntimeError('Not all MEG channels found in fine calibration '
+                           'file, missing:\n%s'
+                           % sorted(list(set(clean_meg_names) -
+                                         set(cal_names))))
     # ensure they're ordered like our data
     cal_chs = [cal_chs[ii] for ii in order]
 

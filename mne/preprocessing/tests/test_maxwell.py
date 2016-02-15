@@ -76,6 +76,9 @@ ctc_mgh_fname = op.join(sss_path, 'ct_sparse_mgh.fif')
 sample_fname = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc_raw.fif')
 
+io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
+fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+
 int_order, ext_order = 8, 3
 mf_head_origin = (0., 0., 0.04)
 mf_meg_origin = (0., 0.013, -0.006)
@@ -174,8 +177,6 @@ def test_movement_compensation():
 def test_other_systems():
     """Test Maxwell filtering on KIT, BTI, and CTF files
     """
-    io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
-
     # KIT
     kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
     sqd_path = op.join(kit_dir, 'test.sqd')
@@ -230,7 +231,6 @@ def test_other_systems():
     _assert_n_free(raw_sss, 70)
 
     # CTF
-    fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
     raw_ctf = Raw(fname_ctf_raw, compensation=2)
     assert_raises(RuntimeError, maxwell_filter, raw_ctf)  # compensated
     raw_ctf = Raw(fname_ctf_raw)
@@ -546,6 +546,9 @@ def test_fine_calibration():
                                 origin=mf_head_origin, regularize=None,
                                 bad_condition='ignore')
     assert_meg_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.)
+    raw_ctf = Raw(fname_ctf_raw)
+    assert_raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
+                  calibration=fine_cal_fname)
 
 
 @slow_test
@@ -605,6 +608,22 @@ def test_cross_talk():
     mf_ctc = sss_ctc.info['proc_history'][0]['max_info']['sss_ctc']
     del mf_ctc['block_id']  # we don't write this
     assert_equal(object_diff(py_ctc, mf_ctc), '')
+    raw_ctf = Raw(fname_ctf_raw)
+    assert_raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
+    raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))
+    _assert_n_free(raw_sss, 68)
+    raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04), ignore_ref=True)
+    _assert_n_free(raw_sss, 70)
+    raw_missing = raw.crop(0, 0.1, copy=True).load_data().pick_channels(
+        [raw.ch_names[pi] for pi in pick_types(raw.info, meg=True,
+                                               exclude=())[3:]])
+    with warnings.catch_warnings(record=True) as w:
+        maxwell_filter(raw_missing, cross_talk=ctc_fname)
+    assert_equal(len(w), 1)
+    assert_true('Not all cross-talk channels in raw' in str(w[0].message))
+    # MEG channels not in cross-talk
+    assert_raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
+                  cross_talk=ctc_fname)
 
 
 @testing.requires_testing_data
