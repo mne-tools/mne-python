@@ -188,7 +188,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='MNE-testing-data',
     )
     urls = dict(
-        brainstorm='https://copy.com/ZTHXXFcuIZycvRoA/brainstorm/%s',
+        brainstorm='http://mne-tools.s3.amazonaws.com/datasets/%s',
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/%s',
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
