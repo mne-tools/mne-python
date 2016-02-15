@@ -1488,18 +1488,6 @@ def _set_cv(cv, clf=None, X=None, y=None):
                 cv = StratifiedKFold(y=y, n_folds=cv)
             else:
                 cv = KFold(n=len(y), n_folds=cv)
-
-    # If cv is only defined in terms of n_folds
-    if isinstance(cv, (int, np.int)):
-        # Automatically chose StratifiedKFold if classification else KFold
-        if check_version('sklearn', '0.18'):
-            XFold = StratifiedKFold if is_classifier(clf) else KFold
-            cv = XFold(n_folds=cv)
-        else:
-            if is_classifier(clf):
-                cv = StratifiedKFold(y=y, n_folds=cv)
-            else:
-                cv = KFold(n=len(y), n_folds=cv)
         cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(clf))
 
     # Extract train and test set to retrieve them at predict time
