@@ -122,13 +122,7 @@ class _GeneralizationAcrossTime(object):
         If X is a dense array, then the other methods will not support sparse
         matrices as input.
         """
-        from sklearn.base import clone, is_classifier
-        if check_version('sklearn', '0.18'):
-            from sklearn.model_selection import (check_cv, StratifiedKFold,
-                                                 KFold)
-        else:
-            from sklearn.cross_validation import (check_cv, StratifiedKFold,
-                                                  KFold)
+        from sklearn.base import clone
 
         # Clean attributes
         for att in ['picks_', 'ch_names', 'y_train_', 'cv_', 'train_times_',
@@ -143,34 +137,7 @@ class _GeneralizationAcrossTime(object):
         self.ch_names = [epochs.ch_names[p] for p in self.picks_]
 
         # Prepare cross-validation
-        cv = self.cv
-        if isinstance(cv, (int, np.int)):
-            # Automatically chose StratifiedKFold if classification else KFold
-            if check_version('sklearn', '0.18'):
-                XFold = StratifiedKFold if is_classifier(self.clf) else KFold
-                cv = XFold(n_folds=cv)
-            else:
-                if is_classifier(self.clf):
-                    cv = StratifiedKFold(y=y, n_folds=cv)
-                else:
-                    cv = KFold(n=len(y), n_folds=cv)
-        if check_version('sklearn', '0.18'):
-            cv = check_cv(cv=cv, y=y, classifier=is_classifier(self.clf))
-        else:
-            # XXX sklearn API change from 0.18: see sklearn issue #6300
-            cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(self.clf))
-        self.cv_ = cv
-
-        # Keep cv splits to retrieve them at predict()
-        if hasattr(cv, 'split'):
-            self._cv_splits = [(train, test) for train, test in
-                               cv.split(X=np.zeros_like(y), y=y)]
-        else:
-            # XXX support sklearn < 0.18
-            self._cv_splits = [(train, test) for train, test in cv]
-
-        if not np.all([len(train) for train, _ in self._cv_splits]):
-            raise ValueError('Some folds do not have any train epochs.')
+        self.cv_, self._cv_splits = _set_cv(self.cv, clf=self.clf, X=X, y=y)
 
         self.y_train_ = y
 
@@ -1489,3 +1456,45 @@ def _chunk_X(X, slices, gat, n_orig_epochs, test_epochs):
     return (X_, gat.estimators_, gat._cv_splits, slices_,
             gat.predict_mode, gat.predict_method, n_orig_epochs,
             test_epochs)
+
+
+def _set_cv(cv, clf=None, X=None, y=None):
+    from sklearn.base import is_classifier
+
+    # Set the default cross-validation depending on whether clf is classifier
+    # or regressor.
+    if check_version('sklearn', '0.18'):
+        from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
+    else:
+        from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
+
+    # If cv is only defined in terms of n_folds
+    if isinstance(cv, (int, np.int)):
+        # Automatically chose StratifiedKFold if classification else KFold
+        if check_version('sklearn', '0.18'):
+            XFold = StratifiedKFold if is_classifier(clf) else KFold
+            cv = XFold(n_folds=cv)
+        else:
+            if is_classifier(clf):
+                cv = StratifiedKFold(y=y, n_folds=cv)
+            else:
+                cv = KFold(n=len(y), n_folds=cv)
+
+    # Check CV
+    if check_version('sklearn', '0.18'):  # see sklearn issue #6300
+        cv = check_cv(cv=cv, y=y, classifier=is_classifier(clf))
+    else:
+        cv = check_cv(cv=cv, X=X, y=y, classifier=is_classifier(clf))
+
+    # Extract train and test set to retrieve them at predict time
+    if hasattr(cv, 'split'):
+        cv_splits = [(train, test) for train, test in
+                     cv.split(X=np.zeros_like(y), y=y)]
+    else:
+        # XXX support sklearn < 0.18
+        cv_splits = [(train, test) for train, test in cv]
+
+    if not np.all([len(train) for train, _ in cv_splits]):
+        raise ValueError('Some folds do not have any train epochs.')
+
+    return cv, cv_splits
