@@ -546,6 +546,9 @@ def test_fine_calibration():
                                 origin=mf_head_origin, regularize=None,
                                 bad_condition='ignore')
     assert_meg_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.)
+    raw_ctf = Raw(fname_ctf_raw)
+    assert_raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
+                  calibration=fine_cal_fname)
 
 
 @slow_test

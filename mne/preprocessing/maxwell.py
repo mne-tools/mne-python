@@ -1586,11 +1586,13 @@ def _update_sensor_geometry(info, fine_cal, head_frame, ignore_ref):
     meg_info = pick_info(info, pick_types(info, meg=True, exclude=[]))
     clean_meg_names = _clean_names(meg_info['ch_names'],
                                    remove_whitespace=True)
-    order = pick_channels([c['ch_name'] for c in cal_chs], clean_meg_names)
-    if not (len(cal_chs) == meg_info['nchan'] == len(order)):
-        raise RuntimeError('Number of channels in fine calibration file (%i) '
-                           'does not equal number of channels in info (%i)' %
-                           (len(cal_chs), meg_info['nchan']))
+    cal_names = [c['ch_name'] for c in cal_chs]
+    order = pick_channels(cal_names, clean_meg_names)
+    if meg_info['nchan'] != len(order):
+        raise RuntimeError('Not all MEG channels found in fine calibration '
+                           'file, missing:\n%s'
+                           % sorted(list(set(clean_meg_names) -
+                                         set(cal_names))))
     # ensure they're ordered like our data
     cal_chs = [cal_chs[ii] for ii in order]
 
