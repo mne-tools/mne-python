@@ -17,7 +17,6 @@ from math import log, ceil
 import os
 import os.path as op
 import platform
-import re
 import shutil
 from shutil import rmtree
 from string import Formatter
