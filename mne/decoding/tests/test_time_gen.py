@@ -264,7 +264,11 @@ def test_generalization_across_time():
     gat.test_times = dict(length=.150)
     assert_raises(ValueError, gat.predict, epochs)
     # --- irregular length training and testing times
+    # 2 estimators, the first one is trained on two successive time samples
+    # whereas the second one is trained on a single time sample.
     train_times = dict(slices=[[0, 1], [1]])
+    # The first estimator is tested once, the second estimator is tested on
+    # two successive time samples.
     test_times = dict(slices=[[[0, 1]], [[0], [1]]])
     gat = GeneralizationAcrossTime(train_times=train_times,
                                    test_times=test_times)
