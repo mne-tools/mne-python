@@ -509,7 +509,7 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
                                              n_dim)
                     if vectorize_times:
                         # When vectorizing, we predict multiple time points at
-                        # once to gain speed. The utput predictions thus
+                        # once to gain speed. The output predictions thus
                         # correspond to different test_t_idx columns.
                         y_pred[train_t_idx][test_t_idx, test, ...] = y_pred_
                     else:
