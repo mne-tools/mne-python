@@ -52,7 +52,7 @@ def test_generalization_across_time():
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import roc_auc_score
+    from sklearn.metrics import roc_auc_score, mean_squared_error
 
     epochs = make_epochs()
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
@@ -344,7 +344,7 @@ def test_generalization_across_time():
         roc_auc_score(y_true, y_pred[:, 0])
 
     # We re testing 3 scenario: default, classifier + predict_proba, regressor
-    scorers = [None, scorer_proba, None]
+    scorers = [None, scorer_proba, mean_squared_error]
     predict_methods = [None, 'predict_proba', None]
     clfs = [svc, svc, reg]
     # Test all combinations
