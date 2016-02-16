@@ -5,8 +5,9 @@
 
 import os.path as op
 
-from nose.tools import assert_true, assert_equal
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from nose.tools import assert_true
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
 from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
@@ -54,8 +55,7 @@ def test_ad_hoc_cov():
 
 
 def test_io_cov():
-    """Test IO for noise covariance matrices
-    """
+    """Test IO for noise covariance matrices"""
     tempdir = _TempDir()
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
@@ -95,15 +95,19 @@ def test_io_cov():
 
 
 def test_cov_estimation_on_raw():
-    """Test estimation from raw (typically empty room)
-    """
+    """Test estimation from raw (typically empty room)"""
     tempdir = _TempDir()
     raw = Raw(raw_fname, preload=False)
-    cov = compute_raw_covariance(raw)
     cov_mne = read_cov(erm_cov_fname)
-    assert_equal(cov_mne.ch_names, cov.ch_names)
-    assert_equal(cov_mne.nfree, cov.nfree)
-    assert_snr(cov.data, cov_mne.data, 100)
+
+    cov = compute_raw_covariance(raw, tstep=None)
+    assert_equal(cov.ch_names, cov_mne.ch_names)
+    assert_equal(cov.nfree, cov_mne.nfree)
+    assert_snr(cov.data, cov_mne.data, 1e4)
+
+    cov = compute_raw_covariance(raw)  # tstep=0.2 (default)
+    assert_equal(cov.nfree, cov_mne.nfree - 119)  # cutoff some samples
+    assert_snr(cov.data, cov_mne.data, 1e2)
 
     # test IO when computation done in Python
     cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
@@ -114,9 +118,11 @@ def test_cov_estimation_on_raw():
 
     # test with a subset of channels
     picks = pick_channels(raw.ch_names, include=raw.ch_names[:5])
-    cov = compute_raw_covariance(raw, picks=picks)
+    cov = compute_raw_covariance(raw, picks=picks, tstep=None)
     assert_true(cov_mne.ch_names[:5] == cov.ch_names)
-    assert_snr(cov.data, cov_mne.data[picks][:, picks], 100)
+    assert_snr(cov.data, cov_mne.data[picks][:, picks], 1e4)
+    cov = compute_raw_covariance(raw, picks=picks)
+    assert_snr(cov.data, cov_mne.data[picks][:, picks], 90)  # cutoff samps
     # make sure we get a warning with too short a segment
     raw_2 = raw.crop(0, 1)
     with warnings.catch_warnings(record=True) as w:
@@ -128,25 +134,22 @@ def test_cov_estimation_on_raw():
 @slow_test
 @requires_sklearn_0_15
 def test_cov_estimation_on_raw_reg():
-    """Test estimation from raw with regularization
-    """
+    """Test estimation from raw with regularization"""
     raw = Raw(raw_fname, preload=True)
     raw.info['sfreq'] /= 10.
     raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
     cov_mne = read_cov(erm_cov_fname)
     with warnings.catch_warnings(record=True):  # too few samples
         warnings.simplefilter('always')
-        # Don't use "shrunk" here, for some reason it makes Travis 2.7 hang...
-        # "diagonal_fixed" is faster anyway.
-        cov = compute_raw_covariance(raw, keep_sample_mean=True, tstep=5.,
-                                     method='diagonal_fixed')
-    assert_snr(cov.data, cov_mne.data, 4)
+        # XXX don't use "shrunk" here, for some reason it makes Travis 2.7
+        # hang... "diagonal_fixed" is much faster. Use long epochs for speed.
+        cov = compute_raw_covariance(raw, tstep=5., method='diagonal_fixed')
+    assert_snr(cov.data, cov_mne.data, 5)
 
 
 @slow_test
 def test_cov_estimation_with_triggers():
-    """Test estimation from raw with triggers
-    """
+    """Test estimation from raw with triggers"""
     tempdir = _TempDir()
     raw = Raw(raw_fname, preload=False)
     events = find_events(raw, stim_channel='STI 014')
@@ -224,8 +227,7 @@ def test_cov_estimation_with_triggers():
 
 
 def test_arithmetic_cov():
-    """Test arithmetic with noise covariance matrices
-    """
+    """Test arithmetic with noise covariance matrices"""
     cov = read_cov(cov_fname)
     cov_sum = cov + cov
     assert_array_almost_equal(2 * cov.nfree, cov_sum.nfree)
@@ -239,8 +241,7 @@ def test_arithmetic_cov():
 
 
 def test_regularize_cov():
-    """Test cov regularization
-    """
+    """Test cov regularization"""
     raw = Raw(raw_fname, preload=False)
     raw.info['bads'].append(raw.ch_names[0])  # test with bad channels
     noise_cov = read_cov(cov_fname)

@@ -720,7 +720,8 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
         raise ValueError('id must be an integer')
     # Make sure we don't go out the end of the file:
     stop -= int(np.ceil(raw.info['sfreq'] * duration))
-    ts = np.arange(start, stop, raw.info['sfreq'] * duration).astype(int)
+    # This should be inclusive due to how we generally use start and stop...
+    ts = np.arange(start, stop + 1, raw.info['sfreq'] * duration).astype(int)
     n_events = len(ts)
     events = np.c_[ts, np.zeros(n_events, dtype=int),
                    id * np.ones(n_events, dtype=int)]

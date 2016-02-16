@@ -6,7 +6,6 @@
 
 import copy as cp
 import os
-from math import floor, ceil, log
 import itertools as itt
 from copy import deepcopy
 from distutils.version import LooseVersion
@@ -347,18 +346,30 @@ def _check_n_samples(n_samples, n_chan):
 
 @verbose
 def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
-                           flat=None, picks=None, keep_sample_mean=False,
-                           method='empirical', method_params=None, cv=3,
-                           scalings=None, n_jobs=1, return_estimators=False,
-                           verbose=None):
+                           flat=None, picks=None, method='empirical',
+                           method_params=None, cv=3, scalings=None, n_jobs=1,
+                           return_estimators=False, verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
-    It is typically useful to estimate a noise covariance
-    from empty room data or time intervals before starting
-    the stimulation.
+    It is typically useful to estimate a noise covariance from empty room
+    data or time intervals before starting the stimulation.
 
-    .. note:: To speed up the computation you should consider preloading
-              raw data by using ``raw.load_data()`` or ``preload=True``.
+    .. note:: This function will will:
+
+                  1. Partition the data into evenly spaced, equal-length
+                     epochs.
+                  2. Load them into memory.
+                  3. Subtract the mean across all time points and epochs
+                     for each channel.
+                  4. Process the :class:`Epochs` by
+                     :func:`compute_covariance`.
+
+              This will produce a slightly different result compared to
+              using :func:`make_fixed_length_events`, :class:`Epochs`, and
+              :func:`compute_covariance`, since that would (with the
+              recommended baseline correction) subtract the mean across
+              time *for each epoch* (instead of across epochs) for each
+              channel.
 
     Parameters
     ----------
@@ -368,8 +379,12 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         Beginning of time interval in seconds
     tmax : float | None (default None)
         End of time interval in seconds
-    tstep : float (default 0.2)
+    tstep : float
         Length of data chunks for artefact rejection in seconds.
+        Can also be None to use a single epoch of (tmax - tmin)
+        duration. This can use a lot of memory for large ``Raw``
+        instances. The default behavior of MNE-C is equivalent to
+        using ``None`` (i.e., a single long interval).
     reject : dict | None (default None)
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -389,16 +404,6 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     picks : array-like of int | None (default None)
         Indices of channels to include (if None, all channels
         except bad channels are used).
-    keep_sample_mean : bool (default False)
-        If False, the average response over epochs is computed for
-        each event type and subtracted during the covariance
-        computation. This is useful if the evoked response from a
-        previous stimulus extends into the baseline period of the next.
-        Note. This option is only implemented for method='empirical'.
-        If True, the epochs will only be baseline corrected.
-
-        .. versionadded:: 0.12
-
     method : str | list | None (default 'empirical')
         The method used for covariance estimation.
         See :func:`mne.compute_covariance`.
@@ -450,26 +455,27 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     --------
     compute_covariance : Estimate noise covariance matrix from epochs
     """
-    sfreq = raw.info['sfreq']
-    tmin = 0 if tmin is None else int(floor(tmin * sfreq)) / sfreq
-    if tmax is not None:
-        tmax = int(ceil(tmax * sfreq)) / sfreq
-    step = int(ceil(tstep * raw.info['sfreq']))  # samples
-    step_m1 = step - 1  # samples: non-overlapping segs (inclusive in Epochs)
-    step = step / raw.info['sfreq']  # time
-    step_m1 = step_m1 / raw.info['sfreq']  # time
-    events = make_fixed_length_events(raw, 1, tmin, tmax, step)
+    tmin = 0. if tmin is None else float(tmin)
+    tmax = raw.times[-1] if tmax is None else float(tmax)
+    tstep = tmax - tmin if tstep is None else float(tstep)
+    tstep_m1 = tstep - 1. / raw.info['sfreq']  # inclusive!
+    events = make_fixed_length_events(raw, 1, tmin, tmax, tstep)
     logger.info('Using up to %s segments' % len(events))
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
                            ref_meg=False, exclude=[])
-    baseline = (None, None) if keep_sample_mean else None
-    epochs = Epochs(raw, events, 1, 0, step_m1, baseline=baseline,
+    epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
                     preload=True, proj=False)
-    return compute_covariance(epochs, keep_sample_mean, method=method,
+    # This makes it equivalent to what we used to do, treating all epochs
+    # as if they were a single long one...
+    ch_means = epochs._data.mean(axis=0).mean(axis=1)
+    epochs._data -= ch_means[np.newaxis, :, np.newaxis]
+    # fake this value so there are no complaints from compute_covariance...
+    epochs.baseline = (None, None)
+    return compute_covariance(epochs, keep_sample_mean=True, method=method,
                               method_params=method_params, cv=cv,
                               scalings=scalings, n_jobs=n_jobs,
                               return_estimators=return_estimators)
@@ -941,7 +947,7 @@ def _gaussian_loglik_scorer(est, X, y=None):
     n_samples, n_features = X.shape
     log_like = np.zeros(n_samples)
     log_like = -.5 * (X * (np.dot(X, precision))).sum(axis=1)
-    log_like -= .5 * (n_features * log(2. * np.pi) - _logdet(precision))
+    log_like -= .5 * (n_features * np.log(2. * np.pi) - _logdet(precision))
     out = np.mean(log_like)
     return out
 
