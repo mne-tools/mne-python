@@ -12,11 +12,19 @@ from mne.utils import run_tests_if_main
 
 
 data_path = testing.data_path(download=False)
+fname_dip = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
+fname_evo = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-ave.fif')
+fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
+fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
+                    'sample-1280-1280-1280-bem-sol.fif')
+fname_trans = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc-trans.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 label_names = ['Aud-lh', 'Aud-rh', 'Vis-rh']
 
 label_names_single_hemi = ['Aud-rh', 'Vis-rh']
+subjects_dir = op.join(data_path, 'subjects')
 
 
 def read_forward_solution_meg(*args, **kwargs):
