@@ -18,32 +18,39 @@ dependencies:
     - rm -rf ~/.pyenv
     - rm -rf ~/virtualenvs
     # Get Anaconda and conda-based requirements
-    - if [ ! -d "/home/ubuntu/miniconda" ]; then
-        echo "Setting up conda";
-        wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
-        chmod +x ~/miniconda.sh;
-        ~/miniconda.sh -b -p /home/ubuntu/miniconda;
-        conda update --yes --quiet conda;
-        conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx PIL six IPython;
-        sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
-      else
-        echo "Conda already set up.";
+    - >
+      if [ -n "${RUN_NIGHTLY_BUILD}" ]; then
+        if [ ! -d "/home/ubuntu/miniconda" ]; then
+          echo "Setting up conda";
+          wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
+          chmod +x ~/miniconda.sh;
+          ~/miniconda.sh -b -p /home/ubuntu/miniconda;
+          conda update --yes --quiet conda;
+          conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx PIL six IPython;
+          sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
+        else
+          echo "Conda already set up.";
+        fi;
+        ls -al /home/ubuntu/miniconda;
+        ls -al /home/ubuntu/miniconda/bin;
+        echo $PATH;
+        which python;
+        which pip;
+        git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
+        cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
+        pip install sphinx-bootstrap-theme PySurfer nilearn neo;
+        cd /home/ubuntu/mne-python && python setup.py develop;
+        mkdir -p ~/examples;
+        make sample_data;
+        make testing_data;
+        make spm_data;
+        make somato_data;
+        cd /home/ubuntu/.mne && echo '{"MNE_DATASETS_BRAINSTORM_PATH":"/home/ubuntu/examples","MNE_DATASETS_EEGBCI_PATH":"/home/ubuntu/examples","MNE_DATASETS_MEGSIM_PATH":"/home/ubuntu/examples","MNE_DATASETS_SAMPLE_PATH":"/home/ubuntu/examples","MNE_DATASETS_SOMATO_PATH":"/home/ubuntu/examples","MNE_DATASETS_SPM_FACE_PATH":"/home/ubuntu/examples","MNE_DATASETS_TESTING_PATH":"/home/ubuntu/examples"}' > mne-python.json;
+        if [[ ! -e ../examples/MNE-brainstorm-data ]]; then cd ../examples && mkdir MNE-brainstorm-data && cd MNE-brainstorm-data && wget https://copy.com/ZTHXXFcuIZycvRoA/brainstorm/bst_raw.tar.bz2 && tar xvf bst_raw.tar.bz2; fi
+        python -c "import mne; mne.sys_info()";
+        python -c "import mne, os; print(mne.datasets.sample.data_path(os.path.join(os.environ['HOME'], 'examples'), verbose=True))";
+        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       fi;
-    - ls -al /home/ubuntu/miniconda
-    - ls -al /home/ubuntu/miniconda/bin
-    - echo $PATH
-    - which python
-    - which pip
-    # Last of the requirements
-    - git clone https://github.com/sphinx-gallery/sphinx-gallery.git
-    - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop
-    - pip install sphinx-bootstrap-theme PySurfer nilearn neo
-  override:
-    - python setup.py develop
-    - python -c "import mne; mne.sys_info()"
-    - mkdir -p ~/examples
-    - python -c "import mne, os; print(mne.datasets.sample.data_path(os.path.join(os.environ['HOME'], 'examples'), verbose=True))"
-    - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
 
 test:
   override:
