@@ -354,7 +354,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     It is typically useful to estimate a noise covariance from empty room
     data or time intervals before starting the stimulation.
 
-    .. note:: This function will will:
+    .. note:: This function will:
 
                   1. Partition the data into evenly spaced, equal-length
                      epochs.
@@ -366,8 +366,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
               This will produce a slightly different result compared to
               using :func:`make_fixed_length_events`, :class:`Epochs`, and
-              :func:`compute_covariance`, since that would (with the
-              recommended baseline correction) subtract the mean across
+              :func:`compute_covariance` directly, since that would (with
+              the recommended baseline correction) subtract the mean across
               time *for each epoch* (instead of across epochs) for each
               channel.
 
@@ -379,12 +379,11 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         Beginning of time interval in seconds
     tmax : float | None (default None)
         End of time interval in seconds
-    tstep : float
+    tstep : float (default 0.2)
         Length of data chunks for artefact rejection in seconds.
         Can also be None to use a single epoch of (tmax - tmin)
         duration. This can use a lot of memory for large ``Raw``
-        instances. The default behavior of MNE-C is equivalent to
-        using ``None`` (i.e., a single long interval).
+        instances.
     reject : dict | None (default None)
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -460,7 +459,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     tstep = tmax - tmin if tstep is None else float(tstep)
     tstep_m1 = tstep - 1. / raw.info['sfreq']  # inclusive!
     events = make_fixed_length_events(raw, 1, tmin, tmax, tstep)
-    logger.info('Using up to %s segments' % len(events))
+    pl = 's' if len(events) != 1 else ''
+    logger.info('Using up to %s segment%s' % (len(events), pl))
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
