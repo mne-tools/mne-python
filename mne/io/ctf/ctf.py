@@ -114,7 +114,7 @@ class RawCTF(_BaseRaw):
         # Compose a structure which makes fiff writing a piece of cake
         info = _compose_meas_info(res4, coils, coord_trans, eeg)
         if len(digs):
-            info['dig'] = np.concatenate([info['dig'], digs])
+            info['dig'] += info['dig']
 
         # Determine how our data is distributed across files
         fnames = list()
