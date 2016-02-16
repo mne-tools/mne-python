@@ -38,7 +38,7 @@ dependencies:
         which pip;
         git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
         cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
-        pip install sphinx-bootstrap-theme PySurfer nilearn neo;
+        pip install sphinx_bootstrap_theme PySurfer nilearn neo;
         cd /home/ubuntu/mne-python && python setup.py develop;
         mkdir -p ~/examples;
         make sample_data;
