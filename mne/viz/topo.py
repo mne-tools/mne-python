@@ -19,6 +19,7 @@ from ..fixes import normalize_colors
 from ..utils import _clean_names, warn
 
 from ..defaults import _handle_default
+from .topomap import _prepare_topo_plot
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show)
 
@@ -350,9 +351,20 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     scalings = _handle_default('scalings', scalings)
     evoked = [e.copy() for e in evoked]
+
+    # HACK development version...
+    merge_grads = True
+
     for e in evoked:
-        for pick, t in zip(picks, types_used):
-            e.data[pick] = e.data[pick] * scalings[t]
+        for pick, ch_type in zip(picks, types_used):
+            e.data[pick] = e.data[pick] * scalings[ch_type]
+
+            if ch_type == 'grad' and merge_grads:
+                from ..channels.layout import _merge_grad_data
+
+                # HACK replace mag data with grad_norm!
+                # seems to be doing something meaningful?
+                e.data[picks[0]] = _merge_grad_data(e.data[pick])
 
     if proj is True and all(e.proj is not True for e in evoked):
         evoked = [e.apply_proj() for e in evoked]
