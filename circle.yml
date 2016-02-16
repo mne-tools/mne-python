@@ -1,6 +1,4 @@
 machine:
-  python:
-    version: 2.7.10
   environment:
     # We need to set this variable to let Anaconda take precedence
     PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
@@ -31,6 +29,7 @@ dependencies:
         else
           echo "Conda already set up.";
         fi;
+
         ls -al /home/ubuntu/miniconda;
         ls -al /home/ubuntu/miniconda/bin;
         echo $PATH;
@@ -38,6 +37,7 @@ dependencies:
         which pip;
         git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
         cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
+        cd /home/ubuntu && git clone https://github.com/enthought/pyface.git && cd pyface && pip install -r dev_requirements.txt && python setup.py install
         pip install sphinx_bootstrap_theme PySurfer nilearn neo;
         cd /home/ubuntu/mne-python && python setup.py develop;
         mkdir -p ~/examples;
