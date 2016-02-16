@@ -614,7 +614,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         inst = self if not copy else self.copy()
         mask = _time_mask(inst.times, tmin, tmax, sfreq=self.info['sfreq'])
         inst.times = inst.times[mask]
-        inst.data = inst.data[..., mask]
+        inst.data = inst.data[:, :, mask]
         return inst
 
     @verbose
