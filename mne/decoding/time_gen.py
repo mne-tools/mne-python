@@ -284,9 +284,13 @@ class _GeneralizationAcrossTime(object):
                   for slices in self.test_times_['slices']]
         chunks = map(list, zip(*chunks))
 
-        # To minimize memory during parallelization, we apply a some chunking
-        y_pred = parallel(p_func(*_chunk_data(
-            X, chunk, self, n_orig_epochs, test_epochs)) for chunk in chunks)
+        # To minimize memory during parallelization, we apply some chunking
+        y_pred = parallel(p_func(
+            estimators=self.estimators_, cv_splits=self._cv_splits,
+            predict_mode=self.predict_mode, predict_method=self.predict_method,
+            n_orig_epochs=n_orig_epochs, test_epochs=test_epochs,
+            **dict(zip(['X', 'train_times'], _chunk_data(X, chunk))))
+            for chunk in chunks)
 
         # Concatenate chunks across test time dimension.
         n_tests = [len(sl) for sl in self.test_times_['slices']]
@@ -403,7 +407,7 @@ class _GeneralizationAcrossTime(object):
 _warn_once = dict()
 
 
-def _predict_slices(X, estimators, splits, train_times, predict_mode,
+def _predict_slices(X, train_times, estimators, cv_splits, predict_mode,
                     predict_method, n_orig_epochs, test_epochs):
     """Aux function of GeneralizationAcrossTime
 
@@ -415,7 +419,7 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
         To-be-fitted data.
     estimators : list of array-like, shape (n_times, n_folds)
         List of array of scikit-learn classifiers fitted in cross-validation.
-    splits : list of tuples
+    cv_splits : list of tuples
         List of tuples of train and test array generated from cv.
     train_times : list
         List of list of slices selecting data from X from which is prediction
@@ -496,8 +500,8 @@ def _predict_slices(X, estimators, splits, train_times, predict_mode,
             elif predict_mode == 'cross-validation':
                 # Predict using the estimator corresponding to each fold
                 for (_, test), test_epoch, estimator in zip(
-                        splits, test_epochs, estimator_cv):
-                    if test.size == 0:
+                        cv_splits, test_epochs, estimator_cv):
+                    if test.size == 0:  # see issue #2788
                         continue
                     y_pred_ = _predict(X_pred[test_epoch], [estimator],
                                        vectorize_times=vectorize_times,
@@ -1448,7 +1452,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
             self.scores_ = [score[0] for score in self.scores_]
 
 
-def _chunk_data(X, slices, gat, n_orig_epochs, test_epochs):
+def _chunk_data(X, slices):
     """Smart chunking to avoid memory overload.
 
     The parallelization is performed across time samples. To avoid overheads,
@@ -1463,11 +1467,9 @@ def _chunk_data(X, slices, gat, n_orig_epochs, test_epochs):
     selected_times = np.hstack([np.ravel(sl) for sl in slices])
     start = np.min(selected_times)
     stop = np.max(selected_times) + 1
-    slices_ = [sl - start for sl in slices]
-    X_ = X[:, :, start:stop]
-    return (X_, gat.estimators_, gat._cv_splits, slices_,
-            gat.predict_mode, gat.predict_method, n_orig_epochs,
-            test_epochs)
+    slices_chunk = [sl - start for sl in slices]
+    X_chunk = X[:, :, start:stop]
+    return X_chunk, slices_chunk
 
 
 def _set_cv(cv, clf=None, X=None, y=None):
