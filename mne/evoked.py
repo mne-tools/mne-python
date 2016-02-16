@@ -775,8 +775,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         .. versionadded:: 0.12.0
         """
         return plot_joint(self, times=times, title=title, picks=picks,
-                           exclude=exclude, show=show, ts_args=ts_args,
-                           topomap_args=topomap_args)
+                          exclude=exclude, show=show, ts_args=ts_args,
+                          topomap_args=topomap_args)
 
     def animate_topomap(self, ch_type='mag', times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True):

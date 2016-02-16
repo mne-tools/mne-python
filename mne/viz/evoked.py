@@ -947,7 +947,7 @@ def _connection_line(x, fig, sourceax, targetax):
 
 
 def plot_joint(evoked, times="peaks", title='', picks=None, exclude=None,
-                show=True, ts_args=None, topomap_args=None):
+               show=True, ts_args=None, topomap_args=None):
     """Plot evoked data as butterfly plot and add topomaps for selected
     time points.
 
@@ -1032,8 +1032,8 @@ def plot_joint(evoked, times="peaks", title='', picks=None, exclude=None,
                                    'selection problem. This should never '
                                    'happen! Please check your channel types.')
             figs.append(plot_joint(ev_, times=times, title=title, show=show,
-                                    ts_args=ts_args, exclude=list(),
-                                    topomap_args=topomap_args))
+                                   ts_args=ts_args, exclude=list(),
+                                   topomap_args=topomap_args))
         return figs
 
     fig = plt.figure(figsize=(8.0, 4.2))
