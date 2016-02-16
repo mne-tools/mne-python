@@ -946,7 +946,7 @@ def _connection_line(x, fig, sourceax, targetax):
                   linestyle='-', linewidth=1.5, alpha=.66, zorder=-1)
 
 
-def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
+def plot_joint(evoked, times="peaks", title='', picks=None, exclude=None,
                 show=True, ts_args=None, topomap_args=None):
     """Plot evoked data as butterfly plot and add topomaps for selected
     time points.
@@ -1031,7 +1031,7 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
                 raise RuntimeError('Possibly infinite loop due to channel '
                                    'selection problem. This should never '
                                    'happen! Please check your channel types.')
-            figs.append(_joint_plot(ev_, times=times, title=title, show=show,
+            figs.append(plot_joint(ev_, times=times, title=title, show=show,
                                     ts_args=ts_args, exclude=list(),
                                     topomap_args=topomap_args))
         return figs
