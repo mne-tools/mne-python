@@ -1923,16 +1923,14 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None):
     """Helper to safely find sample boundaries"""
     tmin = -np.inf if tmin is None else tmin
     tmax = np.inf if tmax is None else tmax
+    if not np.isfinite(tmin):
+        tmin = times[0]
+    if not np.isfinite(tmax):
+        tmax = times[-1]
     if sfreq is not None:
         # Push to nearest sample first
-        if np.isfinite(tmin):
-            tmin = round(tmin * sfreq) / sfreq
-        else:
-            tmin = times[0]
-        if np.isfinite(tmax):
-            tmax = round(tmax * sfreq) / sfreq
-        else:
-            tmax = times[-1]
+        tmin = round(tmin * sfreq) / sfreq
+        tmax = round(tmax * sfreq) / sfreq
     deltas = np.abs(times - tmax)  # Find nearest times
     tmax = times[np.where(deltas == deltas.min())[0]][-1]
     deltas = np.abs(times - tmin)
