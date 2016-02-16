@@ -16,12 +16,17 @@ from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, read_trans,
                  convert_forward_solution, setup_volume_source_space,
                  read_source_spaces, make_sphere_model,
-                 pick_types_forward, pick_info, pick_types, Transform)
+                 pick_types_forward, pick_info, pick_types, Transform,
+                 read_evokeds, read_cov, read_dipole)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
                        run_tests_if_main, slow_test, run_subprocess)
-from mne.forward._make_forward import _create_meg_coils
+from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
 from mne.forward import Forward
+from mne.proj import make_eeg_average_ref_proj
+from mne.dipole import Dipole, fit_dipole
+from mne.simulation import simulate_evoked
+from mne.source_estimate import VolSourceEstimate
 from mne.source_space import (get_volume_labels_from_aseg,
                               _compare_source_spaces, setup_source_space)
 
@@ -30,8 +35,9 @@ fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
-fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                       'data', 'test-ave.fif')
+fname_evo = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-ave.fif')
+fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
+fname_dip = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
 fname_trans = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
@@ -353,5 +359,108 @@ def test_forward_mixed_source_space():
     assert_raises(ValueError, src_from_fwd.export_volume, fname_img,
                   mri_resolution=True, trans=vox_mri_t)
 
+
+@slow_test
+@testing.requires_testing_data
+def test_make_forward_dipole():
+    """Test forward-projecting dipoles"""
+    rng = np.random.RandomState(0)
+
+    evoked = read_evokeds(fname_evo)[0]
+    info = evoked.info
+    cov = read_cov(fname_cov)
+    dip_c = read_dipole(fname_dip)
+
+    # Make new Dipole object with n_test_dipoles picked from the dipoles
+    # in the test dataset.
+    n_test_dipoles = 5
+    dipsel = np.sort(rng.permutation(range(len(dip_c)))[:n_test_dipoles])
+    dip_test = Dipole(times=dip_c.times[dipsel],
+                      pos=dip_c.pos[dipsel],
+                      amplitude=dip_c.amplitude[dipsel],
+                      ori=dip_c.ori[dipsel],
+                      gof=dip_c.gof[dipsel])
+
+    sphere = make_sphere_model(head_radius=0.1)
+
+    # Warning emitted due to uneven sampling in time
+    with warnings.catch_warnings(record=True) as w:
+        stc, fwd = make_forward_dipole(dip_test, sphere, evoked.info,
+                                       trans=fname_trans)
+        assert issubclass(w[-1].category, RuntimeWarning)
+
+    # stc is list of VolSourceEstimate's
+    assert_true(isinstance(stc, list))
+    for nd in range(n_test_dipoles):
+        assert_true(isinstance(stc[nd], VolSourceEstimate))
+
+    # Now simulate evoked responses for each of the test dipoles,
+    # and fit dipoles to them (sphere model, MEG and EEG)
+    times, pos, amplitude, ori, gof = [], [], [], [], []
+    snr = 20.  # add a tiny amount of noise to the simulated evokeds
+    for s in stc:
+        evo_test = simulate_evoked(fwd, s, evoked.info, cov,
+                                   snr=snr, random_state=rng)
+        evo_test.add_proj(make_eeg_average_ref_proj(evo_test.info))
+        dfit, resid = fit_dipole(evo_test, cov, sphere, None)
+        times += list(dfit.times)
+        pos += list(dfit.pos)
+        amplitude += list(dfit.amplitude)
+        ori += list(dfit.ori)
+        gof += list(dfit.gof)
+
+    # Create a new Dipole object with the dipole fits
+    dip_fit = Dipole(np.array(times), np.array(pos), np.array(amplitude),
+                     np.array(ori), np.array(gof))
+
+    # check that true (test) dipoles and fits are "close"
+    # cf. mne/tests/test_dipole.py
+    diff = dip_test.pos - dip_fit.pos
+    corr = np.corrcoef(dip_test.pos.ravel(), dip_fit.pos.ravel())[0, 1]
+    dist = np.sqrt(np.mean(np.sum(diff * diff, axis=1)))
+    gc_dist = 180 / np.pi * np.mean(np.arccos(
+            np.sum(dip_test.ori * dip_fit.ori, axis=1)))
+    amp_err = np.sqrt(np.mean((dip_test.amplitude - dip_fit.amplitude) ** 2))
+
+    # Make sure each coordinate is within 2 mm from reference
+    # NB tolerance should be set relative to snr of simulated evoked!
+    assert_allclose(dip_fit.pos, dip_test.pos, rtol=0, atol=2e-3,
+                    err_msg='position mismatch')
+    assert_true(dist < 2e-3, 'dist: %s' % dist)  # within 2 mm
+    assert_true(corr > 1 - 2e-3, 'corr: %s' % corr)
+    assert_true(gc_dist < 5, 'gc_dist: %s' % gc_dist)  # less than 5 degrees
+    assert_true(amp_err < 2e-3, 'amp_err: %s' % amp_err)  # within 2 nAm
+
+    # Make sure rejection works with bem: one dipole at z=1m
+    # NB _make_forward.py:_prepare_for_forward will raise a RuntimeError
+    # if no points are left after min_dist exclusions, hence 2 dips here!
+    dip_outside = Dipole(times=np.array([0., 0.001]),
+                         pos=np.array([[0., 0., 1.0], [0., 0., 0.040]]),
+                         amplitude=np.array([100e-9, 100e-9]),
+                         ori=np.array([[1., 0., 0.], [1., 0., 0.]]), gof=1)
+    assert_raises(ValueError, make_forward_dipole, dip_outside, fname_bem,
+                  evoked.info, fname_trans)
+
+    # Now make an evenly sampled set of dipoles, some simultaneous,
+    # should return a VolSourceEstimate regardless
+    times = np.array([0., 0., 0., 0.001, 0.001, 0.002])
+    pos = np.random.rand(6, 3)*0.020 + np.array([0., 0., 0.040])[np.newaxis, :]
+    amplitude = np.random.rand(6,)*100e-9
+    ori = np.eye(6, 3) + np.eye(6, 3, -3)
+    gof = np.arange(len(times))/len(times)  # arbitrary
+
+    dip_even_samp = Dipole(times, pos, amplitude, ori, gof)
+
+    # restrict sensors to EEG using pre-picking
+    picks = pick_types(info, meg=False, eeg=True)
+    eeg_info = pick_info(evoked.info, picks)
+    stc, fwd = make_forward_dipole(dip_even_samp, fname_bem, eeg_info,
+                                   trans=fname_trans)
+
+    assert_true(isinstance, VolSourceEstimate)
+    assert_allclose(stc.times, np.arange(0., 0.003, 0.001))
+    assert_true(fwd['info']['ch_names'][0] == 'EEG 001')
+    assert_true(fwd['info']['ch_names'][-1] == 'EEG 060')
+    # More(/more clever) tests on fwd?
 
 run_tests_if_main()
