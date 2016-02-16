@@ -1232,7 +1232,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         plt.suptitle(title, verticalalignment='top', size='x-large')
 
     if colorbar:
-        n_fig_axes = len(fig.get_axes())  # works when fig axes pre-defined
+        # works both when fig axes pre-defined and when not
+        n_fig_axes = max(nax, len(fig.get_axes()))
         cax = plt.subplot(1, n_fig_axes + 1, n_fig_axes + 1)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
