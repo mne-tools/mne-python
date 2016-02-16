@@ -466,10 +466,12 @@ def _predict_slices(X, train_times, estimators, cv_splits, predict_mode,
             # In vectorize mode, we avoid iterating over time test time indices
             test_t_idxs = [slice(start[0], start[-1] + 1, 1)]
         elif _warn_once.get('vectorization', True):
-            warn('Due to a time window with length > 1, unable to vectorize '
-                 'across testing times. This leads to slower predictions '
-                 'compared to the length == 1 case.')
-            _warn_once['vectorization'] = False
+            # Only warn if multiple testing time
+            if len(test_t_idxs) > 1:
+                warn('Due to a time window with length > 1, unable to '
+                     ' vectorize across testing times. This leads to slower '
+                     'predictions compared to the length == 1 case.')
+                _warn_once['vectorization'] = False
 
         # Iterate over testing times. If vectorize_times: 1 iteration.
         for ii, test_t_idx in enumerate(test_t_idxs):
