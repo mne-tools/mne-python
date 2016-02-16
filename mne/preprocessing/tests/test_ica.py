@@ -22,6 +22,7 @@ from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import get_score_funcs, corrmap
 from mne.io import Raw, Info
+from mne.tests.common import assert_naming
 from mne.utils import (catch_logging, _TempDir, requires_sklearn, slow_test,
                        run_tests_if_main)
 
@@ -324,7 +325,7 @@ def test_ica_additional():
         ica_badname = op.join(op.dirname(tempdir), 'test-bad-name.fif.gz')
         ica.save(ica_badname)
         read_ica(ica_badname)
-    assert_true(len(w) == 2)
+    assert_naming(w, 'test_ica.py', 2)
 
     # test decim
     ica = ICA(n_components=3, max_pca_components=4,

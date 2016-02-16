@@ -24,6 +24,8 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 event_id_gen = dict(aud_l=2, vis_l=4)
 
+warnings.simplefilter('always')
+
 
 def make_epochs():
     raw = io.Raw(raw_fname, preload=False)
@@ -142,7 +144,8 @@ def test_generalization_across_time():
     assert_true(gat is gat2)  # return self
     assert_true(hasattr(gat2, 'cv_'))
     assert_true(gat2.cv_ != gat.cv)
-    scores = gat.score(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        scores = gat.score(epochs)
     assert_true(isinstance(scores, list))  # type check
     assert_equal(len(scores[0]), len(scores))  # shape check
 
@@ -171,16 +174,18 @@ def test_generalization_across_time():
 
     # Test score without passing epochs & Test diagonal decoding
     gat = GeneralizationAcrossTime(test_times='diagonal')
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True):  # not vectorizing
         gat.fit(epochs)
     assert_raises(RuntimeError, gat.score)
-    gat.predict(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        gat.predict(epochs)
     scores = gat.score()
     assert_true(scores is gat.scores_)
     assert_equal(np.shape(gat.scores_), (15, 1))
     assert_array_equal([tim for ttime in gat.test_times_['times']
                         for tim in ttime], gat.train_times_['times'])
-
+    from mne.utils import set_log_level
+    set_log_level('error')
     # Test generalization across conditions
     gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
     with warnings.catch_warnings(record=True):
@@ -208,27 +213,34 @@ def test_generalization_across_time():
     # Test testing time parameters
     # --- outside time range
     gat.test_times = dict(start=-999.)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no epochs in fold
+        assert_raises(ValueError, gat.predict, epochs)
     gat.test_times = dict(start=999.)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no test epochs
+        assert_raises(ValueError, gat.predict, epochs)
     # --- impossible slices
     gat.test_times = dict(step=.000001)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no test epochs
+        assert_raises(ValueError, gat.predict, epochs)
     gat_ = copy.deepcopy(gat)
     gat_.train_times_['length'] = .000001
     gat_.test_times = dict(length=.000001)
-    assert_raises(ValueError, gat_.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no test epochs
+        assert_raises(ValueError, gat_.predict, epochs)
     # --- test time region of interest
     gat.test_times = dict(step=.150)
-    gat.predict(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        gat.predict(epochs)
     assert_array_equal(np.shape(gat.y_pred_), (15, 5, 14, 1))
     # --- silly value
     gat.test_times = 'foo'
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no test epochs
+        assert_raises(ValueError, gat.predict, epochs)
     assert_raises(RuntimeError, gat.score)
     # --- unmatched length between training and testing time
     gat.test_times = dict(length=.150)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no test epochs
+        assert_raises(ValueError, gat.predict, epochs)
 
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
@@ -258,9 +270,11 @@ def test_generalization_across_time():
     # Make CV with some empty train and test folds:
     # --- empty test fold(s) should warn when gat.predict()
     gat.cv_.test_folds[gat.cv_.test_folds == 1] = 0
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
         gat.predict(epochs)
-        # FIXME assert_true('Some folds do not have any test epochs.' in w)
+        assert_true(len(w) > 0)
+        assert_true(any('do not have any test epochs' in str(ww.message)
+                        for ww in w))
     # --- empty train fold(s) should raise when gat.fit()
     gat = GeneralizationAcrossTime(cv=[([0], [1]), ([], [0])])
     assert_raises(ValueError, gat.fit, epochs[:2])
@@ -324,12 +338,14 @@ def test_decoding_time():
     assert_true(not hasattr(tg, 'train_times_'))
     assert_true(not hasattr(tg, 'test_times_'))
     assert_raises(RuntimeError, tg.score, epochs=None)
-    tg.predict(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        tg.predict(epochs)
     assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
                  "(s), predicted 14 epochs, no score>",
                  '%s' % tg)
     assert_array_equal(np.shape(tg.y_pred_), [15, 14, 1])
-    tg.score(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        tg.score(epochs)
     tg.score()
     assert_array_equal(np.shape(tg.scores_), [15])
     assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "

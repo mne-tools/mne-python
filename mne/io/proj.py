@@ -6,11 +6,11 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+from itertools import count
 from math import sqrt
+
 import numpy as np
 from scipy import linalg
-from itertools import count
-import warnings
 
 from .tree import dir_tree_find
 from .tag import find_tag
@@ -18,7 +18,7 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..externals.six import string_types
 
 
@@ -64,7 +64,8 @@ class ProjMixin(object):
         return (len(self.info['projs']) > 0 and
                 all(p['active'] for p in self.info['projs']))
 
-    def add_proj(self, projs, remove_existing=False):
+    @verbose
+    def add_proj(self, projs, remove_existing=False, verbose=None):
         """Add SSP projection vectors
 
         Parameters
@@ -73,6 +74,8 @@ class ProjMixin(object):
             List with projection vectors.
         remove_existing : bool
             Remove the projection vectors currently in the file.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
 
         Returns
         -------
@@ -239,8 +242,7 @@ class ProjMixin(object):
                     if ch in self:
                         layout.append(find_layout(self.info, ch, exclude=[]))
                     else:
-                        err = 'Channel type %s is not found in info.' % ch
-                        warnings.warn(err)
+                        warn('Channel type %s is not found in info.' % ch)
             fig = plot_projs_topomap(self.info['projs'], layout, axes=axes)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
@@ -292,10 +294,8 @@ def _read_proj(fid, node, verbose=None):
         global_nchan = int(tag.data)
 
     items = dir_tree_find(nodes[0], FIFF.FIFFB_PROJ_ITEM)
-    for i in range(len(items)):
-
+    for item in items:
         #   Find all desired tags in one item
-        item = items[i]
         tag = find_tag(fid, item, FIFF.FIFF_NCHAN)
         if tag is not None:
             nchan = int(tag.data)

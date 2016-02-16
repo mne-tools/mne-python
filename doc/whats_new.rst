@@ -43,6 +43,10 @@ BUG
 
     - Fix bug with units (uV) in 'Brain Vision Data Exchange Header File Version 1.0' by `Federico Raimondo`_
 
+    - Fix bug where :func:`mne.preprocessing.maxwell_filter` ``destination`` parameter did not properly set device-to-head transform by `Eric Larson`_
+
+    - Fix bug in rank calculation of :func:`mne.utils.estimate_rank`, :func:`mne.io.Raw.estimate_rank`, and covariance functions where the tolerance was set to slightly too small a value, new 'auto' mode uses values from ``scipy.linalg.orth`` by `Eric Larson`_.
+
 API
 ~~~
 

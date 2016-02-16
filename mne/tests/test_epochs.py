@@ -36,7 +36,7 @@ from mne.io.constants import FIFF
 from mne.externals.six import text_type
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.datasets import testing
-from mne.tests.common import assert_meg_snr
+from mne.tests.common import assert_meg_snr, assert_naming
 
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -152,9 +152,14 @@ def test_average_movements():
     x = head_pos_to_trans_rot_t(head_pos[1])
     epochs.info['dev_head_t']['trans'][:3, :3] = x[1]
     epochs.info['dev_head_t']['trans'][:3, 3] = x[0]
+    assert_raises(AssertionError, assert_allclose,
+                  epochs.info['dev_head_t']['trans'],
+                  destination['trans'])
     evoked_miss = average_movements(epochs, head_pos=head_pos[2:],
                                     origin=origin, destination=destination)
     assert_allclose(evoked_miss.data, evoked_move_all.data)
+    assert_allclose(evoked_miss.info['dev_head_t']['trans'],
+                    destination['trans'])
 
     # degenerate cases
     destination['to'] = destination['from']  # bad dest
@@ -483,7 +488,7 @@ def test_read_epochs_bad_events():
 def test_read_write_epochs():
     """Test epochs from raw files with IO as fif file
     """
-    raw, events, picks = _get_data()
+    raw, events, picks = _get_data(preload=True)
     tempdir = _TempDir()
     temp_fname = op.join(tempdir, 'test-epo.fif')
     temp_fname_no_bl = op.join(tempdir, 'test_no_bl-epo.fif')
@@ -651,7 +656,7 @@ def test_read_write_epochs():
             epochs_badname = op.join(tempdir, 'test-bad-name.fif.gz')
             epochs.save(epochs_badname)
             read_epochs(epochs_badname, preload=preload)
-        assert_true(len(w) == 2)
+        assert_naming(w, 'test_epochs.py', 2)
 
         # test loading epochs with missing events
         epochs = Epochs(raw, events, dict(foo=1, bar=999), tmin, tmax,
@@ -751,7 +756,7 @@ def test_epochs_proj():
                     baseline=(None, 0), preload=True, add_eeg_ref=False)
     epochs.pick_channels(['EEG 001', 'EEG 002'])
     assert_equal(len(epochs), 7)  # sufficient for testing
-    temp_fname = 'test.fif'
+    temp_fname = 'test-epo.fif'
     epochs.save(temp_fname)
     for preload in (True, False):
         epochs = read_epochs(temp_fname, add_eeg_ref=True, proj=True,

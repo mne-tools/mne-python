@@ -11,8 +11,9 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 from mne.datasets import testing
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
-                 convert_forward_solution)
-from mne import SourceEstimate, pick_types_forward, read_evokeds
+                 convert_forward_solution, SourceEstimate, pick_types_forward,
+                 read_evokeds)
+from mne.tests.common import assert_naming
 from mne.label import read_label
 from mne.utils import (requires_mne, run_subprocess, _TempDir,
                        run_tests_if_main, slow_test)
@@ -133,7 +134,7 @@ def test_io_forward():
         fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
         write_forward_solution(fwd_badname, fwd)
         read_forward_solution(fwd_badname)
-    assert_true(len(w) == 2)
+    assert_naming(w, 'test_forward.py', 2)
 
     fwd = read_forward_solution(fname_meeg)
     write_forward_solution(fname_temp, fwd, overwrite=True)

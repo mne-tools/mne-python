@@ -21,6 +21,7 @@ from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
                               _compare_source_spaces)
+from mne.tests.common import assert_naming
 from mne.io.constants import FIFF
 
 warnings.simplefilter('always')
@@ -408,7 +409,7 @@ def test_write_source_space():
         src_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_source_spaces(src_badname, src0)
         read_source_spaces(src_badname)
-    assert_equal(len(w), 2)
+    assert_naming(w, 'test_source_space.py', 2)
 
 
 @testing.requires_testing_data
@@ -551,8 +552,9 @@ def test_combine_source_spaces():
 
     # unrecognized file type
     bad_image_fname = op.join(tempdir, 'temp-image.png')
-    assert_raises(ValueError, src.export_volume, bad_image_fname,
-                  verbose='error')
+    with warnings.catch_warnings(record=True):  # vertices outside vol space
+        assert_raises(ValueError, src.export_volume, bad_image_fname,
+                      verbose='error')
 
     # mixed coordinate frames
     disc3 = disc.copy()

@@ -3,10 +3,12 @@
 #
 # License : BSD 3-clause
 
-import numpy as np
 import os.path as op
-from numpy.testing import assert_array_almost_equal, assert_allclose
+import warnings
+
 from nose.tools import assert_true, assert_equal
+import numpy as np
+from numpy.testing import assert_array_almost_equal, assert_allclose
 
 from scipy import fftpack
 
@@ -77,12 +79,14 @@ def test_stockwell_api():
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
                     event_id, tmin, tmax, picks=[0, 1, 3], baseline=(None, 0))
     for fmin, fmax in [(None, 50), (5, 50), (5, None)]:
-        power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
-                                   return_itc=True)
+        with warnings.catch_warnings(record=True):  # zero papdding
+            power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
+                                       return_itc=True)
         if fmax is not None:
             assert_true(power.freqs.max() <= fmax)
-        power_evoked = tfr_stockwell(epochs.average(), fmin=fmin, fmax=fmax,
-                                     return_itc=False)
+        with warnings.catch_warnings(record=True):  # padding
+            power_evoked = tfr_stockwell(epochs.average(), fmin=fmin,
+                                         fmax=fmax, return_itc=False)
         # for multitaper these don't necessarily match, but they seem to
         # for stockwell... if this fails, this maybe could be changed
         # just to check the shape

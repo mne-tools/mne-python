@@ -19,7 +19,7 @@ from scipy import linalg
 from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import pick_types, _picks_by_type
-from ..utils import _clean_names, _time_mask, verbose, logger
+from ..utils import _clean_names, _time_mask, verbose, logger, warn
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times)
@@ -70,9 +70,8 @@ def _prepare_topo_plot(inst, ch_type, layout):
                 if this_name in names:
                     pos.append(layout.pos[names.index(this_name)])
                 else:
-                    logger.warning('Failed to locate %s channel positions from'
-                                   ' layout. Inferring channel positions from '
-                                   'data.' % ch_type)
+                    warn('Failed to locate %s channel positions from layout. '
+                         'Inferring channel positions from data.' % ch_type)
                     pos = _find_topomap_coords(info, picks)
                     break
 
@@ -1144,9 +1143,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             else:
                 axes.append(plt.subplot(1, n_times, ax_idx + 1))
     elif colorbar:
-        logger.warning('Colorbar is drawn to the rightmost column of the '
-                       'figure.\nBe sure to provide enough space for it '
-                       'or turn it off with colorbar=False.')
+        warn('Colorbar is drawn to the rightmost column of the figure. Be '
+             'sure to provide enough space for it or turn it off with '
+             'colorbar=False.')
     if len(axes) != n_times:
         raise RuntimeError('Axes and times must be equal in sizes.')
 
@@ -1233,12 +1232,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         plt.suptitle(title, verticalalignment='top', size='x-large')
 
     if colorbar:
-        cax = plt.subplot(1, n_times + 1, n_times + 1)
+        # works both when fig axes pre-defined and when not
+        n_fig_axes = max(nax, len(fig.get_axes()))
+        cax = plt.subplot(1, n_fig_axes + 1, n_fig_axes + 1)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         if size <= 1:
-            cpos.x0 = 1 - (.7 + .1 / size) / nax
-        cpos.x1 = cpos.x0 + .1 / nax
+            cpos.x0 = 1 - (.7 + .1 / size) / n_fig_axes
+        cpos.x1 = cpos.x0 + .1 / n_fig_axes
         cpos.y0 = .2
         cpos.y1 = .7
         cax.set_position(cpos)

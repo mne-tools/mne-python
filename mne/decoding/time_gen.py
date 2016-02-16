@@ -5,14 +5,13 @@
 #
 # License: BSD (3-clause)
 
-import warnings
 import numpy as np
 import copy
 
 from ..io.pick import pick_types
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import logger
+from ..utils import warn
 
 
 class _DecodingTime(dict):
@@ -214,7 +213,7 @@ class _GeneralizationAcrossTime(object):
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
         if not np.all([len(test) for train, test in self.cv_]):
-            warnings.warn('Some folds do not have any test epochs.')
+            warn('Some folds do not have any test epochs.')
 
         # Define testing sliding window
         if self.test_times == 'diagonal':
@@ -445,8 +444,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode,
         # In simple mode, we avoid iterating over time slices.
         slices = [slice(expected_start[0], expected_start[-1] + 1, 1)]
     elif _warn_once.get('vectorization', True):
-        logger.warning('not vectorizing predictions across testing times, '
-                       'using a time window with length > 1')
+        warn('not vectorizing predictions across testing times, '
+             'using a time window with length > 1')
         _warn_once['vectorization'] = False
     # Iterate over testing times. If is_single_time_sample, then 1 iteration.
     y_pred = list()

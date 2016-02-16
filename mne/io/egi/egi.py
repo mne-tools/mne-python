@@ -5,7 +5,6 @@
 
 import datetime
 import time
-import warnings
 
 import numpy as np
 
@@ -13,7 +12,7 @@ from ..base import _BaseRaw, _check_update_montage
 from ..utils import _read_segments_file
 from ..meas_info import _empty_info
 from ..constants import FIFF
-from ...utils import verbose, logger
+from ...utils import verbose, logger, warn
 
 
 def _read_header(fid):
@@ -206,8 +205,8 @@ class RawEGI(_BaseRaw):
                         if event.sum() <= 1 and event_codes[ii]:
                             more_excludes.append(ii)
                 if len(exclude_inds) + len(more_excludes) == len(event_codes):
-                    warnings.warn('Did not find any event code with more '
-                                  'than one event.', RuntimeWarning)
+                    warn('Did not find any event code with more than one '
+                         'event.', RuntimeWarning)
                 else:
                     exclude_inds.extend(more_excludes)
 

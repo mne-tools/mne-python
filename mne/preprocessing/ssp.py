@@ -5,11 +5,11 @@
 # License: BSD (3-clause)
 
 import copy as cp
-from warnings import warn
+
 import numpy as np
 
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from .. import pick_types
 from ..io import make_eeg_average_ref_proj
 from .ecg import find_ecg_events

@@ -160,8 +160,9 @@ def test_calculate_chpi_positions():
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['r'] = np.ones(3)
     raw_bad.crop(0, 1., copy=False)
-    with catch_logging() as log_file:
-        _calculate_chpi_positions(raw_bad, verbose=True)
+    with warnings.catch_warnings(record=True):  # bad pos
+        with catch_logging() as log_file:
+            _calculate_chpi_positions(raw_bad, verbose=True)
     # ignore HPI info header and [done] footer
     for line in log_file.getvalue().strip().split('\n')[4:-1]:
         assert_true('0/5 good' in line)

@@ -51,7 +51,7 @@ def test_regression():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         lm = linear_regression(epochs, design_matrix, ['intercept', 'aud'])
-        assert_true(w[0].category == UserWarning)
+        assert_true(w[0].category == RuntimeWarning)
         assert_true('non-data' in '%s' % w[0].message)
 
     for predictor, parameters in lm.items():

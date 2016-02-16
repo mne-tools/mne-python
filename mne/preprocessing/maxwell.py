@@ -8,7 +8,6 @@
 
 from math import factorial
 from os import path as op
-import warnings
 
 import numpy as np
 from scipy import linalg
@@ -25,7 +24,7 @@ from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
-from ..utils import verbose, logger, _clean_names
+from ..utils import verbose, logger, _clean_names, warn
 from ..fixes import _get_args, partial
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
@@ -280,8 +279,14 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     if cross_talk is not None:
         sss_ctc = _read_ctc(cross_talk)
         ctc_chs = sss_ctc['proj_items_chs']
-        if set(info['ch_names'][p] for p in meg_picks) != set(ctc_chs):
-            raise RuntimeError('ctc channels and raw channels do not match')
+        meg_ch_names = [info['ch_names'][p] for p in meg_picks]
+        missing = sorted(list(set(meg_ch_names) - set(ctc_chs)))
+        if len(missing) != 0:
+            raise RuntimeError('Missing MEG channels in cross-talk matrix:\n%s'
+                               % missing)
+        missing = sorted(list(set(ctc_chs) - set(meg_ch_names)))
+        if len(missing) > 0:
+            warn('Not all cross-talk channels in raw:\n%s' % missing)
         ctc_picks = pick_channels(ctc_chs,
                                   [info['ch_names'][c] for c in good_picks])
         ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
@@ -306,8 +311,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                        recon_trans['trans'][:3, 3])
         dist = np.sqrt(np.sum(_sq(diff)))
         if dist > 25.:
-            logger.warning('Head position change is over 25 mm (%s) = %0.1f mm'
-                           % (', '.join('%0.1f' % x for x in diff), dist))
+            warn('Head position change is over 25 mm (%s) = %0.1f mm'
+                 % (', '.join('%0.1f' % x for x in diff), dist))
 
     # Reconstruct raw file object with spatiotemporal processed data
     max_st = dict()
@@ -449,6 +454,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         raw_sss._data[pos_picks, start:stop] = out_pos_data
 
     # Update info
+    info['dev_head_t'] = recon_trans  # set the reconstruction transform
     _update_sss_info(raw_sss, origin, int_order, ext_order, len(good_picks),
                      coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0)
     logger.info('[done]')
@@ -463,7 +469,7 @@ def _remove_meg_projs(inst):
     for proj in inst.info['projs']:
         if not any(c in meg_channels for c in proj['data']['col_names']):
             non_meg_proj.append(proj)
-    inst.add_proj(non_meg_proj, remove_existing=True)
+    inst.add_proj(non_meg_proj, remove_existing=True, verbose=False)
 
 
 def _check_destination(destination, info, head_frame):
@@ -639,8 +645,7 @@ def _check_pos(pos, head_frame, raw, st_fixed):
     if not head_frame:
         raise ValueError('positions can only be used if coord_frame="head"')
     if not st_fixed:
-        warnings.warn('st_fixed=False is untested, use with caution!',
-                      category=RuntimeWarning, stacklevel=5)
+        warn('st_fixed=False is untested, use with caution!')
     if not isinstance(pos, np.ndarray):
         raise TypeError('pos must be an ndarray')
     if pos.ndim != 2 or pos.shape[1] != 10:
@@ -695,7 +700,7 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
         if bad_condition == 'error':
             raise RuntimeError(msg)
         else:  # condition == 'warning':
-            logger.warning(msg)
+            warn(msg)
 
     # Build in our data scaling here
     pS_decomp *= coil_scale[good_picks].T
@@ -735,9 +740,9 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False,
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info)
     if len(mag_inds_T1T2) > 0:
-        logger.warning('%d T1/T2 magnetometer channel types found. If using '
-                       ' SSS, it is advised to replace coil types using '
-                       ' `fix_mag_coil_types`.' % len(mag_inds_T1T2))
+        warn('%d T1/T2 magnetometer channel types found. If using SSS, it is '
+             'advised to replace coil types using "fix_mag_coil_types".'
+             % len(mag_inds_T1T2))
     # Get indices of channels to use in multipolar moment calculation
     ref = not ignore_ref
     meg_picks = pick_types(info, meg=True, ref_meg=ref, exclude=[])
@@ -1516,10 +1521,12 @@ def _overlap_projector(data_int, data_res, corr):
     # Normalize data, then compute orth to get temporal bases. Matrices
     # must have shape (n_samps x effective_rank) when passed into svd
     # computation
-    n = np.sqrt(np.sum(data_int * data_int))
+
+    # we use np.linalg.norm instead of sp.linalg.norm here: ~2x faster!
+    n = np.linalg.norm(data_int)
     Q_int = linalg.qr(_orth_overwrite((data_int / n).T),
                       overwrite_a=True, mode='economic', **check_disable)[0].T
-    n = np.sqrt(np.sum(data_res * data_res))
+    n = np.linalg.norm(data_res)
     Q_res = linalg.qr(_orth_overwrite((data_res / n).T),
                       overwrite_a=True, mode='economic', **check_disable)[0]
     assert data_int.shape[1] > 0
@@ -1579,11 +1586,13 @@ def _update_sensor_geometry(info, fine_cal, head_frame, ignore_ref):
     meg_info = pick_info(info, pick_types(info, meg=True, exclude=[]))
     clean_meg_names = _clean_names(meg_info['ch_names'],
                                    remove_whitespace=True)
-    order = pick_channels([c['ch_name'] for c in cal_chs], clean_meg_names)
-    if not (len(cal_chs) == meg_info['nchan'] == len(order)):
-        raise RuntimeError('Number of channels in fine calibration file (%i) '
-                           'does not equal number of channels in info (%i)' %
-                           (len(cal_chs), meg_info['nchan']))
+    cal_names = [c['ch_name'] for c in cal_chs]
+    order = pick_channels(cal_names, clean_meg_names)
+    if meg_info['nchan'] != len(order):
+        raise RuntimeError('Not all MEG channels found in fine calibration '
+                           'file, missing:\n%s'
+                           % sorted(list(set(clean_meg_names) -
+                                         set(cal_names))))
     # ensure they're ordered like our data
     cal_chs = [cal_chs[ii] for ii in order]
 

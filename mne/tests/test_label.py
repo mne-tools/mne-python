@@ -485,9 +485,10 @@ def test_write_labels_to_annot():
                   'test4', subjects_dir=tempdir)
 
     # write left and right hemi labels with filenames:
-    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
-    for fname in fnames:
-        write_labels_to_annot(labels, annot_fname=fname)
+    fnames = [op.join(tempdir, hemi + '-myparc') for hemi in ['lh', 'rh']]
+    with warnings.catch_warnings(record=True):  # specify subject_dir param
+        for fname in fnames:
+                write_labels_to_annot(labels, annot_fname=fname)
 
     # read it back
     labels2 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
@@ -504,7 +505,8 @@ def test_write_labels_to_annot():
 
     # same with label-internal colors
     for fname in fnames:
-        write_labels_to_annot(labels, annot_fname=fname, overwrite=True)
+        write_labels_to_annot(labels, 'sample', annot_fname=fname,
+                              overwrite=True, subjects_dir=subjects_dir)
     labels3 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
                                      annot_fname=fnames[0])
     labels33 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
@@ -516,35 +518,40 @@ def test_write_labels_to_annot():
         assert_labels_equal(label, labels3[idx])
 
     # make sure we can't overwrite things
-    assert_raises(ValueError, write_labels_to_annot, labels,
-                  annot_fname=fnames[0])
+    assert_raises(ValueError, write_labels_to_annot, labels, 'sample',
+                  annot_fname=fnames[0], subjects_dir=subjects_dir)
 
     # however, this works
-    write_labels_to_annot(labels, annot_fname=fnames[0], overwrite=True)
+    write_labels_to_annot(labels, 'sample', annot_fname=fnames[0],
+                          overwrite=True, subjects_dir=subjects_dir)
 
     # label without color
     labels_ = labels[:]
     labels_[0] = labels_[0].copy()
     labels_[0].color = None
-    write_labels_to_annot(labels_, annot_fname=fnames[0], overwrite=True)
+    write_labels_to_annot(labels_, 'sample', annot_fname=fnames[0],
+                          overwrite=True, subjects_dir=subjects_dir)
 
     # duplicate color
     labels_[0].color = labels_[2].color
-    assert_raises(ValueError, write_labels_to_annot, labels_,
-                  annot_fname=fnames[0], overwrite=True)
+    assert_raises(ValueError, write_labels_to_annot, labels_, 'sample',
+                  annot_fname=fnames[0], overwrite=True,
+                  subjects_dir=subjects_dir)
 
     # invalid color inputs
     labels_[0].color = (1.1, 1., 1., 1.)
-    assert_raises(ValueError, write_labels_to_annot, labels_,
-                  annot_fname=fnames[0], overwrite=True)
+    assert_raises(ValueError, write_labels_to_annot, labels_, 'sample',
+                  annot_fname=fnames[0], overwrite=True,
+                  subjects_dir=subjects_dir)
 
     # overlapping labels
     labels_ = labels[:]
     cuneus_lh = labels[6]
     precuneus_lh = labels[50]
     labels_.append(precuneus_lh + cuneus_lh)
-    assert_raises(ValueError, write_labels_to_annot, labels_,
-                  annot_fname=fnames[0], overwrite=True)
+    assert_raises(ValueError, write_labels_to_annot, labels_, 'sample',
+                  annot_fname=fnames[0], overwrite=True,
+                  subjects_dir=subjects_dir)
 
     # unlabeled vertices
     labels_lh = [label for label in labels if label.name.endswith('lh')]
@@ -701,7 +708,8 @@ def test_morph():
                   subjects_dir, 2)
     assert_raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
                   subjects_dir, 2)
-    label.smooth(subjects_dir=subjects_dir)  # make sure this runs
+    with warnings.catch_warnings(record=True):  # morph map could be missing
+        label.smooth(subjects_dir=subjects_dir)  # make sure this runs
 
 
 @testing.requires_testing_data

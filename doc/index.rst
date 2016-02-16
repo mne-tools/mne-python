@@ -19,7 +19,7 @@
    <div class="col-md-8">
    <br>
 
-MNE is a community-driven software package designed for for **processing
+MNE is a community-driven software package designed for **processing
 electroencephalography (EEG) and magnetoencephalography (MEG) data**
 providing comprehensive tools and workflows for:
 
@@ -72,7 +72,7 @@ grants 5R01EB009048 and P41EB015896 (Center for Functional Neuroimaging Technolo
 NSF awards 0958669 and 1042134. It has been supported by the
 NCRR *Center for Functional Neuroimaging Technologies* P41RR14075-06, the
 NIH grants 1R01EB009048-01, R01 EB006385-A101, 1R01 HD40712-A1, 1R01
-NS44319-01, and 2R01 NS37462-05, ell as by Department of Energy
+NS44319-01, and 2R01 NS37462-05, as well as by Department of Energy
 under Award Number DE-FG02-99ER62764 to The MIND Institute.
 
 .. raw:: html

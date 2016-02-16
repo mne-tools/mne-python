@@ -15,7 +15,7 @@ import numpy as np
 from ..externals.six import string_types
 from ..io.pick import pick_types, _pick_data_channels
 from ..io.proj import setup_proj
-from ..utils import verbose, get_config, logger
+from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
 from .topo import _plot_topo, _plot_timeseries
 from .utils import (_toggle_options, _toggle_proj, tight_layout,

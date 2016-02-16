@@ -137,9 +137,9 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
         start, stop = np.where(time_mask)[0][[0, -1]]
         data, times = inst[picks, start:(stop + 1)]
     elif isinstance(inst, _BaseEpochs):
-        data = inst.get_data()[:, picks][..., time_mask]
+        data = inst.get_data()[:, picks][:, :, time_mask]
     elif isinstance(inst, Evoked):
-        data = inst.data[picks][..., time_mask]
+        data = inst.data[picks][:, time_mask]
 
     return data, sfreq
 
@@ -411,7 +411,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
     if proj:
         # Copy first so it's not modified
         epochs = epochs.copy().apply_proj()
-    data = epochs.get_data()[:, picks][..., time_mask]
+    data = epochs.get_data()[:, picks][:, :, time_mask]
 
     logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
 

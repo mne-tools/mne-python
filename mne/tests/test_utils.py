@@ -235,6 +235,7 @@ def test_estimate_rank():
                        np.ones(10))
     data[0, 0] = 0
     assert_equal(estimate_rank(data), 9)
+    assert_raises(ValueError, estimate_rank, data, 'foo')
 
 
 def test_logging():
@@ -294,9 +295,10 @@ def test_logging():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         set_log_file(test_name, overwrite=False)
-        assert len(w) == 0
+        assert_equal(len(w), 0)
         set_log_file(test_name)
-        assert len(w) == 1
+    assert_equal(len(w), 1)
+    assert_true('test_utils.py' in w[0].filename)
     evoked = Evoked(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())

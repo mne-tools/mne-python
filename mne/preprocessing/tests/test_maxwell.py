@@ -76,6 +76,9 @@ ctc_mgh_fname = op.join(sss_path, 'ct_sparse_mgh.fif')
 sample_fname = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc_raw.fif')
 
+io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
+fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+
 int_order, ext_order = 8, 3
 mf_head_origin = (0., 0., 0.04)
 mf_meg_origin = (0., 0.013, -0.006)
@@ -103,7 +106,7 @@ def _assert_n_free(raw_sss, lower, upper=None):
 @testing.requires_testing_data
 def test_movement_compensation():
     """Test movement compensation"""
-    lims = (0, 8)
+    lims = (0, 4)
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True, preload=True).crop(*lims)
     head_pos = read_head_pos(pos_fname)
@@ -121,7 +124,7 @@ def test_movement_compensation():
     #
     raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin)
     assert_meg_snr(raw_sss, Raw(sss_movecomp_reg_in_fname).crop(*lims),
-                   0.7, 1.9, chpi_med_tol=121)
+                   0.5, 1.9, chpi_med_tol=121)
 
     #
     # Movement compensation,    regularization,    tSSS at the end
@@ -174,8 +177,6 @@ def test_movement_compensation():
 def test_other_systems():
     """Test Maxwell filtering on KIT, BTI, and CTF files
     """
-    io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
-
     # KIT
     kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
     sqd_path = op.join(kit_dir, 'test.sqd')
@@ -183,34 +184,38 @@ def test_other_systems():
     elp_path = op.join(kit_dir, 'test_elp.txt')
     hsp_path = op.join(kit_dir, 'test_hsp.txt')
     raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
-    assert_raises(RuntimeError, maxwell_filter, raw_kit)
+    with warnings.catch_warnings(record=True):  # head fit
+        assert_raises(RuntimeError, maxwell_filter, raw_kit)
     raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04), ignore_ref=True)
     _assert_n_free(raw_sss, 65, 65)
     # XXX this KIT origin fit is terrible! Eventually we should get a
     # corrected HSP file with proper coverage
-    with catch_logging() as log_file:
-        assert_raises(RuntimeError, maxwell_filter, raw_kit,
-                      ignore_ref=True, regularize=None)  # bad condition
-        raw_sss = maxwell_filter(raw_kit, origin='auto',
-                                 ignore_ref=True, bad_condition='warning',
-                                 verbose='warning')
+    with warnings.catch_warnings(record=True):
+        with catch_logging() as log_file:
+            assert_raises(RuntimeError, maxwell_filter, raw_kit,
+                          ignore_ref=True, regularize=None)  # bad condition
+            raw_sss = maxwell_filter(raw_kit, origin='auto',
+                                     ignore_ref=True, bad_condition='warning',
+                                     verbose='warning')
     log_file = log_file.getvalue()
     assert_true('badly conditioned' in log_file)
     assert_true('more than 20 mm from' in log_file)
     # fits can differ slightly based on scipy version, so be lenient here
     _assert_n_free(raw_sss, 28, 34)  # bad origin == brutal reg
     # Let's set the origin
-    with catch_logging() as log_file:
-        raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
-                                 ignore_ref=True, bad_condition='warning',
-                                 regularize=None, verbose='warning')
+    with warnings.catch_warnings(record=True):
+        with catch_logging() as log_file:
+            raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
+                                     ignore_ref=True, bad_condition='warning',
+                                     regularize=None, verbose='warning')
     log_file = log_file.getvalue()
     assert_true('badly conditioned' in log_file)
     _assert_n_free(raw_sss, 80)
     # Now with reg
-    with catch_logging() as log_file:
-        raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
-                                 ignore_ref=True, verbose=True)
+    with warnings.catch_warnings(record=True):
+        with catch_logging() as log_file:
+            raw_sss = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
+                                     ignore_ref=True, verbose=True)
     log_file = log_file.getvalue()
     assert_true('badly conditioned' not in log_file)
     _assert_n_free(raw_sss, 65)
@@ -220,12 +225,12 @@ def test_other_systems():
     bti_pdf = op.join(bti_dir, 'test_pdf_linux')
     bti_config = op.join(bti_dir, 'test_config_linux')
     bti_hs = op.join(bti_dir, 'test_hs_linux')
-    raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
+    with warnings.catch_warnings(record=True):  # weght table
+        raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
     raw_sss = maxwell_filter(raw_bti)
     _assert_n_free(raw_sss, 70)
 
     # CTF
-    fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
     raw_ctf = Raw(fname_ctf_raw, compensation=2)
     assert_raises(RuntimeError, maxwell_filter, raw_ctf)  # compensated
     raw_ctf = Raw(fname_ctf_raw)
@@ -541,6 +546,9 @@ def test_fine_calibration():
                                 origin=mf_head_origin, regularize=None,
                                 bad_condition='ignore')
     assert_meg_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.)
+    raw_ctf = Raw(fname_ctf_raw)
+    assert_raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
+                  calibration=fine_cal_fname)
 
 
 @slow_test
@@ -600,6 +608,22 @@ def test_cross_talk():
     mf_ctc = sss_ctc.info['proc_history'][0]['max_info']['sss_ctc']
     del mf_ctc['block_id']  # we don't write this
     assert_equal(object_diff(py_ctc, mf_ctc), '')
+    raw_ctf = Raw(fname_ctf_raw)
+    assert_raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
+    raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))
+    _assert_n_free(raw_sss, 68)
+    raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04), ignore_ref=True)
+    _assert_n_free(raw_sss, 70)
+    raw_missing = raw.crop(0, 0.1, copy=True).load_data().pick_channels(
+        [raw.ch_names[pi] for pi in pick_types(raw.info, meg=True,
+                                               exclude=())[3:]])
+    with warnings.catch_warnings(record=True) as w:
+        maxwell_filter(raw_missing, cross_talk=ctc_fname)
+    assert_equal(len(w), 1)
+    assert_true('Not all cross-talk channels in raw' in str(w[0].message))
+    # MEG channels not in cross-talk
+    assert_raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
+                  cross_talk=ctc_fname)
 
 
 @testing.requires_testing_data
@@ -613,19 +637,26 @@ def test_head_translation():
                              bad_condition='ignore')
     assert_meg_snr(raw_sss, Raw(sss_std_fname).crop(0., 1., False), 200.)
     # Now with default
-    with catch_logging() as log:
-        raw_sss = maxwell_filter(raw, destination=mf_head_origin,
-                                 origin=mf_head_origin, regularize=None,
-                                 bad_condition='ignore', verbose='warning')
+    with warnings.catch_warnings(record=True):
+        with catch_logging() as log:
+            raw_sss = maxwell_filter(raw, destination=mf_head_origin,
+                                     origin=mf_head_origin, regularize=None,
+                                     bad_condition='ignore', verbose='warning')
     assert_true('over 25 mm' in log.getvalue())
     assert_meg_snr(raw_sss, Raw(sss_trans_default_fname), 125.)
+    destination = np.eye(4)
+    destination[2, 3] = 0.04
+    assert_allclose(raw_sss.info['dev_head_t']['trans'], destination)
     # Now to sample's head pos
-    with catch_logging() as log:
-        raw_sss = maxwell_filter(raw, destination=sample_fname,
-                                 origin=mf_head_origin, regularize=None,
-                                 bad_condition='ignore', verbose='warning')
+    with warnings.catch_warnings(record=True):
+        with catch_logging() as log:
+            raw_sss = maxwell_filter(raw, destination=sample_fname,
+                                     origin=mf_head_origin, regularize=None,
+                                     bad_condition='ignore', verbose='warning')
     assert_true('= 25.6 mm' in log.getvalue())
     assert_meg_snr(raw_sss, Raw(sss_trans_sample_fname), 350.)
+    assert_allclose(raw_sss.info['dev_head_t']['trans'],
+                    read_info(sample_fname)['dev_head_t']['trans'])
     # Degenerate cases
     assert_raises(RuntimeError, maxwell_filter, raw,
                   destination=mf_head_origin, coord_frame='meg')
@@ -649,7 +680,7 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
 @slow_test
 @requires_svd_convergence
 @testing.requires_testing_data
-def test_noise_rejection():
+def test_shielding_factor():
     """Test Maxwell filter shielding factor using empty room"""
     with warnings.catch_warnings(record=True):  # maxshield
         raw_erm = Raw(erm_fname, allow_maxshield=True, preload=True)
@@ -768,11 +799,11 @@ def test_all():
     for ii, rf in enumerate(raw_fnames):
         with warnings.catch_warnings(record=True):  # maxshield
             raw = Raw(rf, allow_maxshield=True).crop(0., 1., copy=False)
-        sss_py = maxwell_filter(raw, calibration=fine_cals[ii],
-                                cross_talk=ctcs[ii], st_duration=st_durs[ii],
-                                coord_frame=coord_frames[ii],
-                                destination=destinations[ii],
-                                origin=origins[ii])
+        with warnings.catch_warnings(record=True):  # head fit off-center
+            sss_py = maxwell_filter(
+                raw, calibration=fine_cals[ii], cross_talk=ctcs[ii],
+                st_duration=st_durs[ii], coord_frame=coord_frames[ii],
+                destination=destinations[ii], origin=origins[ii])
         sss_mf = Raw(sss_fnames[ii])
         assert_meg_snr(sss_py, sss_mf, mins[ii], meds[ii], msg=rf)
 

@@ -12,7 +12,7 @@ from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose, sum_squared
+from ...utils import logger, verbose, sum_squared, warn
 from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
@@ -894,7 +894,8 @@ def _read_bti_header_pdf(pdf_fname):
 def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     """ Read bti PDF header
     """
-    info = _read_bti_header_pdf(pdf_fname)
+
+    info = _read_bti_header_pdf(pdf_fname) if pdf_fname is not None else dict()
     cfg = _read_config(config_fname)
     info['bti_transform'] = cfg['transforms']
 
@@ -926,10 +927,13 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
             ch['loc'] = _coil_trans_to_loc(ch_cfg['dev']['transform'])
         else:
             ch['loc'] = None
-        if info['data_format'] <= 2:  # see DTYPES, implies integer
-            ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
-        else:  # float
-            ch['cal'] = ch['scale'] * ch['gain']
+        if pdf_fname is not None:
+            if info['data_format'] <= 2:  # see DTYPES, implies integer
+                ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
+            else:  # float
+                ch['cal'] = ch['scale'] * ch['gain']
+        else:  # if we are in this mode we don't read data, only channel info.
+            ch['cal'] = ch['scale'] = 1.0  # so we put a trivial default value
 
     if sort_by_ch_name:
         by_index = [(i, d['index']) for i, d in enumerate(chans)]
@@ -1067,11 +1071,27 @@ class RawBTi(_BaseRaw):
 def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                   translation, convert, ecg_ch, eog_ch, rename_channels=True,
                   sort_by_ch_name=True):
-    """Helper to read BTI info"""
+    """Helper to read BTI info
+
+    Note. This helper supports partial construction of infos when `pdf_fname`
+    is None. Some datasets, such as the HCP, are shipped as a large collection
+    of zipped files where it can be more efficient to only read the needed
+    information. In such a situation, some information can neither be accessed
+    directly nor guessed based on the `config`.
+
+    These fields will thus be set to None:
+        - 'lowpass'
+        - 'highpass'
+        - 'sfreq'
+        - 'meas_date'
+
+    """
     if pdf_fname is None:
-        raise ValueError('pdf_fname must be a path, not None')
-    if not isinstance(pdf_fname, six.BytesIO):
-        pdf_fname = op.abspath(pdf_fname)
+        logger.info('No pdf_fname passed, trying to construct partial info '
+                    'from config')
+    if pdf_fname is not None and not isinstance(pdf_fname, six.BytesIO):
+        if not op.isabs(pdf_fname):
+            pdf_fname = op.abspath(pdf_fname)
 
     if not isinstance(config_fname, six.BytesIO):
         if not op.isabs(config_fname):
@@ -1116,12 +1136,23 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         sfreq = 1. / bti_info['sample_period']
     else:
         sfreq = None
-    info = _empty_info(sfreq)
-    info['buffer_size_sec'] = 1.  # reasonable default for writing
-    date = bti_info['processes'][0]['timestamp']
-    info['meas_date'] = [date, 0]
 
+    if pdf_fname is not None:
+        info = _empty_info(sfreq)
+        date = bti_info['processes'][0]['timestamp']
+        info['meas_date'] = [date, 0]
+    else:  # these cannot be guessed from config, see docstring
+        info = _empty_info(1.0)
+        info['sfreq'] = None
+        info['lowpass'] = None
+        info['highpass'] = None
+        info['meas_date'] = None
+        bti_info['processes'] = list()
+
+    info['buffer_size_sec'] = 1.  # reasonable default for writing
     # browse processing info for filter specs.
+    hp, lp = ((0.0, info['sfreq'] * 0.4) if pdf_fname is not None else
+              (None, None))
     hp, lp = info['highpass'], info['lowpass']
     for proc in bti_info['processes']:
         if 'filt' in proc['process_type']:
@@ -1261,11 +1292,10 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                        colcals=np.ones(mat.shape[1], dtype='>f4'),
                        save_calibrated=0)]
     else:
-        logger.warning('Warning. Currently direct inclusion of 4D weight t'
-                       'ables is not supported. For critical use cases '
-                       '\nplease take into account the MNE command '
-                       '\'mne_create_comp_data\' to include weights as '
-                       'printed out \nby the 4D \'print_table\' routine.')
+        warn('Currently direct inclusion of 4D weight tables is not supported.'
+             ' For critical use cases please take into account the MNE command'
+             ' "mne_create_comp_data" to include weights as printed out by '
+             'the 4D "print_table" routine.')
 
     # check that the info is complete
     info._check_consistency()

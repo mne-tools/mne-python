@@ -92,3 +92,25 @@ def assert_dig_allclose(info_py, info_bin):
         assert_allclose(R_py, R_bin, atol=1e-3)  # mm
         assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-3)  # mm
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-3)  # mm
+
+
+def assert_naming(warns, fname, n_warn):
+    """Assert a non-standard naming scheme was used while saving or loading
+
+    Parameters
+    ----------
+    warns : list
+        List of warnings from ``warnings.catch_warnings(record=True)``.
+    fname : str
+        Filename that should appear in the warning message.
+    n_warn : int
+        Number of warnings that should have naming convention errors.
+    """
+    from nose.tools import assert_true
+    assert_true(sum('naming conventions' in str(ww.message)
+                    for ww in warns) == n_warn)
+    # check proper stacklevel reporting
+    for ww in warns:
+        if 'naming conventions' in str(ww.message):
+            assert_true(fname in ww.filename,
+                        msg='"%s" not in "%s"' % (fname, ww.filename))

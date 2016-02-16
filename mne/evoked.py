@@ -8,7 +8,6 @@
 
 from copy import deepcopy
 import numpy as np
-import warnings
 
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -16,7 +15,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
-from .utils import check_fname, logger, verbose, object_hash, _time_mask
+from .utils import check_fname, logger, verbose, object_hash, _time_mask, warn
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import (_plot_evoked_white, _joint_plot,
@@ -868,6 +867,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
         """
+        sfreq = float(sfreq)
         o_sfreq = self.info['sfreq']
         self.data = resample(self.data, sfreq, o_sfreq, npad, -1, window)
         # adjust indirectly affected variables
@@ -918,7 +918,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         this_evoked.data *= -1.
         out = combine_evoked([self, this_evoked])
         if self.comment is None or this_evoked.comment is None:
-            warnings.warn('evoked.comment expects a string but is None')
+            warn('evoked.comment expects a string but is None')
             out.comment = 'unknown'
         else:
             out.comment = self.comment + " - " + this_evoked.comment

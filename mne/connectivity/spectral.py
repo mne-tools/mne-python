@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 from ..externals.six import string_types
-from warnings import warn
 from inspect import getmembers
 
 import numpy as np
@@ -18,7 +17,7 @@ from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, warn
 
 ########################################################################
 # Various connectivity estimators

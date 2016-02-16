@@ -6,12 +6,11 @@
 
 from ..externals.six import string_types
 import os
-from warnings import warn
 
 
 from ..bem import fit_sphere_to_headshape
 from ..io import Raw
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..externals.six.moves import map
 
 

@@ -10,7 +10,7 @@ from calendar import timegm
 
 import numpy as np
 
-from ...utils import logger
+from ...utils import logger, warn
 from ...transforms import (apply_trans, _coord_frame_name, invert_transform,
                            combine_transforms)
 
@@ -68,7 +68,12 @@ def _convert_time(date_str, time_str):
         else:
             break
     else:
-        raise RuntimeError("Illegal date: %s" % date)
+        raise RuntimeError(
+            'Illegal date: %s.\nIf the language of the date does not '
+            'correspond to your local machine\'s language try to set the '
+            'locale to the language of the date string:\n'
+            'locale.setlocale(locale.LC_ALL, "en_US")' % date_str)
+
     for fmt in ('%H:%M:%S', '%H:%M'):
         try:
             time = strptime(time_str, fmt)
@@ -77,7 +82,7 @@ def _convert_time(date_str, time_str):
         else:
             break
     else:
-        raise RuntimeError('Illegal time: %s' % time)
+        raise RuntimeError('Illegal time: %s' % time_str)
     # MNE-C uses mktime which uses local time, but here we instead decouple
     # conversion location from the process, and instead assume that the
     # acquisiton was in GMT. This will be wrong for most sites, but at least
@@ -194,9 +199,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 pos['r0'][:] = cch['coil']['pos'][0]
                 if not _at_origin(pos['r0']):
                     if t['t_ctf_head_head'] is None:
-                        logger.warning('EEG electrode (%s) location omitted '
-                                       'because of missing HPI information'
-                                       % (ch['ch_name']))
+                        warn('EEG electrode (%s) location omitted because of '
+                             'missing HPI information' % ch['ch_name'])
                         pos['r0'][:] = np.zeros(3)
                         coord_frame = FIFF.FIFFV_COORD_CTF_HEAD
                     else:

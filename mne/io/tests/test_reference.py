@@ -129,7 +129,8 @@ def test_set_eeg_reference():
     assert_true(ref_data is None)
 
     # Test setting an average reference when one was already present
-    reref, ref_data = set_eeg_reference(raw, copy=False)
+    with warnings.catch_warnings(record=True):  # weight tables
+        reref, ref_data = set_eeg_reference(raw, copy=False)
     assert_true(ref_data is None)
 
     # Rereference raw data by creating a copy of original data

@@ -86,7 +86,7 @@ def test_set_channel_types():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw2.set_channel_types(mapping)
-    assert_equal(len(w), 2)
+    assert_true(len(w) >= 1, msg=[str(ww.message) for ww in w])
     assert_true(all('The unit for channel' in str(ww.message) for ww in w))
     info = raw2.info
     assert_true(info['chs'][374]['ch_name'] == 'EEG 060')

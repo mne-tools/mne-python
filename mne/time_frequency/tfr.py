@@ -7,9 +7,9 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 #
 # License : BSD (3-clause)
 
-import warnings
-from math import sqrt
 from copy import deepcopy
+from math import sqrt
+
 import numpy as np
 from scipy import linalg
 from scipy.fftpack import fftn, ifftn
@@ -17,7 +17,7 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, warn
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
@@ -614,7 +614,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         inst = self if not copy else self.copy()
         mask = _time_mask(inst.times, tmin, tmax, sfreq=self.info['sfreq'])
         inst.times = inst.times[mask]
-        inst.data = inst.data[..., mask]
+        inst.data = inst.data[:, :, mask]
         return inst
 
     @verbose
@@ -1275,8 +1275,8 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     logger.info('Using %d tapers', n_taps)
     n_times_wavelets = Ws[0][0].shape[0]
     if n_times <= n_times_wavelets:
-        warnings.warn("Time windows are as long or longer than the epoch. "
-                      "Consider reducing n_cycles.")
+        warn('Time windows are as long or longer than the epoch. Consider '
+             'reducing n_cycles.')
     psd = np.zeros((n_channels, n_frequencies, n_times))
     itc = np.zeros((n_channels, n_frequencies, n_times))
     parallel, my_time_frequency, _ = parallel_func(_time_frequency,
