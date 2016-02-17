@@ -213,9 +213,9 @@ class Dipole(object):
         """Handle len function"""
         return self.pos.shape[0]
 
+
 # #############################################################################
 # IO
-
 @verbose
 def read_dipole(fname, verbose=None):
     """Read .dip file from Neuromag/xfit or MNE

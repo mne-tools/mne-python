@@ -622,17 +622,20 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     The source estimate object (with the forward operator) can be projected to
     sensor-space using :func:`mne.simulation.evoked.simulate_evoked`.
 
+    Note that if the (unique) time points of the dipole object are unevenly
+    spaced, the first output will be a list of single-timepoint source
+    estimates.
+
     Parameters
     ----------
-    dipole : Dipole object
-        Instance of Dipole containing position, orientation and amplitude of
-        one or more dipoles. Several dipoles may occur simultaneously, but
-        when more than one time point is defined, the spacing between them
-        (i.e. the sampling rate) must be constant.
+    dipole : instance of Dipole
+        Dipole object containing position, orientation and amplitude of
+        one or more dipoles. Multiple simultaneous dipoles may be defined by
+        assigning them identical times.
     bem : str | dict
         The BEM filename (str) or a loaded sphere model (dict).
-    info : dict
-        Sensor-info etc., e.g., from real evoked file.
+    info : instance of Info
+        Sensor-information etc., e.g., from a real data file.
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
@@ -643,11 +646,12 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
 
     Returns
     -------
-    stc : instance of VolSourceEstimate
+    stc : instance of VolSourceEstimate | list of VolSourceEstimate
         The dipoles converted to a discrete set of points and associated
-        time courses.
+        time courses. If the time points of the dipole are unevenly spaced,
+        a list of single-timepoint source estimates are returned.
     fwd : instance of Forward
-        The forward solution.
+        The forward solution corresponding to the source estimate(s).
 
     See Also
     --------
@@ -683,12 +687,13 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     if fwd['src'][0]['nuse'] != len(pos):
         inuse = fwd['src'][0]['inuse'].astype(np.bool)
         head = ('The following dipoles are outside the inner skull boundary')
-        msg = len(head)*'#' + '\n' + head + '\n'
+        msg = len(head) * '#' + '\n' + head + '\n'
         for (t, pos) in zip(times[np.logical_not(inuse)],
                             pos[np.logical_not(inuse)]):
             msg += '    t={:.0f} ms, pos=({:.0f}, {:.0f}, {:.0f}) mm\n'.\
-                format(t*1000., pos[0]*1000., pos[1]*1000., pos[2]*1000.)
-        msg += len(head)*'#'
+                format(t * 1000., pos[0] * 1000.,
+                       pos[1] * 1000., pos[2] * 1000.)
+        msg += len(head) * '#'
         print(msg)
         raise ValueError('One or more dipoles outside the inner skull')
 
@@ -714,7 +719,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     row = 0
     for tpind, tp in enumerate(timepoints):
         amp = amplitude[in1d(times, tp)]
-        data[row:row+len(amp), tpind] = amp
+        data[row:row + len(amp), tpind] = amp
         row += len(amp)
 
     if tstep > 0:
@@ -728,6 +733,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
                                       vertices=fwd['src'][0]['vertno'],
                                       tmin=tp, tstep=0.001, subject=None)]
     return stc, fwd
+
 
 def _to_forward_dict(fwd, names, fwd_grad=None,
                      coord_frame=FIFF.FIFFV_COORD_HEAD,
