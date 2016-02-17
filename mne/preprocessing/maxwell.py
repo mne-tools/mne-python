@@ -620,7 +620,7 @@ def _copy_preload_add_channels(raw, add_channels):
             dict(ch_name='CHPI%03d' % (ii + 1), logno=ii + 1,
                  scanno=off + ii + 1, unit_mul=-1, range=1., unit=-1,
                  kind=kinds[ii], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-                 cal=1. / 10000., coil_type=FIFF.FWD_COIL_UNKNOWN)
+                 cal=1e-4, coil_type=FIFF.FWD_COIL_UNKNOWN, loc=np.zeros(12))
             for ii in range(len(kinds))]
         raw.info['chs'].extend(chpi_chs)
         raw.info._check_consistency()
