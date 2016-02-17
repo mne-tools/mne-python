@@ -73,7 +73,7 @@ def _read_pos(directory, transformations):
         return list()
     fname = fname[0]
     digs = list()
-    i = 1000
+    i = 2000
     with open(fname, 'r') as fid:
         for line in fid:
             line = line.strip()
@@ -82,7 +82,7 @@ def _read_pos(directory, transformations):
                 if len(parts) not in [4, 5]:
                     continue
                 try:
-                    ident = int(parts[0])
+                    ident = int(parts[0]) + 1000
                 except:
                     ident = i
                     i += 1
