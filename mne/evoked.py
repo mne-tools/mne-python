@@ -374,9 +374,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Scale plot with channel (SI) unit.
         show : bool
             Call pyplot.show() at the end or not.
-        ylim : dict
-            ylim for plots. e.g. ylim = dict(eeg=[-20, 20])
-            Valid keys are eeg, mag, grad
+        ylim : dict | None
+            ylim for plots (after scaling has been applied). The value
+            determines the upper and lower subplot limits. e.g.
+            ylim = dict(eeg=[-20, 20]) Valid keys are eeg, mag, grad. If None,
+            the ylim parameter for each channel is determined by the maximum
+            absolute peak.
         xlim : 'tight' | tuple | None
             xlim for plots.
         proj : bool | 'interactive'
