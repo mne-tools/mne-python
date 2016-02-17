@@ -106,6 +106,7 @@ def _assert_n_free(raw_sss, lower, upper=None):
 @testing.requires_testing_data
 def test_movement_compensation():
     """Test movement compensation"""
+    temp_dir = _TempDir()
     lims = (0, 4)
     with warnings.catch_warnings(record=True):  # maxshield
         raw = Raw(raw_fname, allow_maxshield=True, preload=True).crop(*lims)
@@ -116,6 +117,12 @@ def test_movement_compensation():
     #
     raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin,
                              regularize=None, bad_condition='ignore')
+    assert_meg_snr(raw_sss, Raw(sss_movecomp_fname).crop(*lims),
+                   4.6, 12.4, chpi_med_tol=58)
+    # IO
+    temp_fname = op.join(temp_dir, 'test_raw_sss.fif')
+    raw_sss.save(temp_fname)
+    raw_sss = Raw(temp_fname)
     assert_meg_snr(raw_sss, Raw(sss_movecomp_fname).crop(*lims),
                    4.6, 12.4, chpi_med_tol=58)
 
