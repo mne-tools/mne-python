@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.forward import make_forward_dipole
+from mne.evoked import combine_evoked
 from mne.simulation import simulate_evoked
 
 print(__doc__)
@@ -50,28 +51,28 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 dip.plot_locations(fname_trans, 'sample', subjects_dir)
 
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF
-# and compare to the measured data, highlighting the ipsilateral source
+# and compare to the measured data, highlighting the ipsilateral (right) source
 stc, fwd = make_forward_dipole(dip, fname_bem, evoked.info, fname_trans)
 pred_evoked = simulate_evoked(fwd, stc, evoked.info, None, snr=np.inf)
 
-# FIXME the last dipole happens to have max gof, but plot_topomap fails!
-# removing the last half sample time adjustment exposes the bug
-# PR in the works...
-bestfit_t = dip.times[np.argmax(dip.gof)] - 0.5/evoked.info['sfreq']
+# find time point with highes GOF to plot
+bestfit_t = dip.times[np.argmax(dip.gof)]
 # rememeber to create a subplot for the colorbar
 fig, axes = plt.subplots(nrows=1, ncols=4, figsize=[10., 3.4])
 vmin, vmax = -400, 400  # make sure each plot has same colour range
+
+# first plot the topography at the time of the best fitting (single) dipole
 evoked.plot_topomap(times=bestfit_t, ch_type='mag', outlines='skirt',
                     time_format='Measured field', colorbar=False,
                     vmin=vmin, vmax=vmax, axes=axes[0])
 
+# compare this to the predicted field
 pred_evoked.plot_topomap(times=bestfit_t, ch_type='mag', outlines='skirt',
                          time_format='Predicted field', colorbar=False,
                          vmin=vmin, vmax=vmax, axes=axes[1])
 
-# FIXME why doesn't 'diff = evoked - pred_evoked' work?!? (just returns evoked)
-# diff = evoked - pred_evoked
-diff = mne.evoked.combine_evoked([evoked, pred_evoked], [1, -1])
+# Subtract predicted from measured data (apply equal weights)
+diff = combine_evoked([evoked, pred_evoked], [1, -1])
 diff.plot_topomap(times=bestfit_t, ch_type='mag',
                   outlines='skirt', time_format='Difference', colorbar=True,
                   vmin=vmin, vmax=vmax, axes=axes[2])
