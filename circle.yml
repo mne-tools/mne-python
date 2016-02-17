@@ -16,7 +16,8 @@ dependencies:
     - rm -rf ~/.pyenv
     - rm -rf ~/virtualenvs
     # Get Anaconda and conda-based requirements
-    - if [ -n "${RUN_NIGHTLY_BUILD}" ]; then
+    - >
+      if [ -n "${RUN_NIGHTLY_BUILD}" ]; then
         if [ ! -d "/home/ubuntu/miniconda" ]; then
           echo "Setting up conda";
           wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
