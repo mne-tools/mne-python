@@ -838,7 +838,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
-        scikit-learn.cross_validation module for the list of possible objects.
+        scikit-learn.model_selection module for the list of possible objects.
         If clf is a classifier, defaults to StratifiedKFold(n_folds=5), else
         defaults to KFold(n_folds=5).
     clf : object | None
@@ -1149,7 +1149,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
-        scikit-learn.cross_validation module for the list of possible objects.
+        scikit-learn.model_selection module for the list of possible objects.
         If clf is a classifier, defaults to StratifiedKFold(n_folds=5), else
         defaults to KFold(n_folds=5).
     clf : object | None
