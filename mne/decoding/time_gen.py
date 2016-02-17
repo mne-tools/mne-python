@@ -200,10 +200,10 @@ class _GeneralizationAcrossTime(object):
         # Check that training cv and predicting cv match
         if self.predict_mode == 'cross-validation':
             n_est_cv = [len(estimator) for estimator in self.estimators_]
-            inconsistent_splits = len(set(n_est_cv)) != 1
-            mismatching_splits = n_est_cv[0] != len(self._cv_splits)
-            mismatching_y = len(self.y_train_) != len(epochs)
-            if inconsistent_splits or mismatching_splits or mismatching_y:
+            heterogeneous_cv = len(set(n_est_cv)) != 1
+            mismatch_cv = n_est_cv[0] != len(self._cv_splits)
+            mismatch_y = len(self.y_train_) != len(epochs)
+            if heterogeneous_cv or mismatch_cv or mismatch_y:
                 raise ValueError(
                     'When `predict_mode = "cross-validation"`, the training '
                     'and predicting cv schemes must be identical.')
