@@ -16,8 +16,7 @@ dependencies:
     - rm -rf ~/.pyenv
     - rm -rf ~/virtualenvs
     # Get Anaconda and conda-based requirements
-    - >
-      if [ -n "${RUN_NIGHTLY_BUILD}" ]; then
+    - if [ -n "${RUN_NIGHTLY_BUILD}" ]; then
         if [ ! -d "/home/ubuntu/miniconda" ]; then
           echo "Setting up conda";
           wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
@@ -37,7 +36,7 @@ dependencies:
         which pip;
         git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
         cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
-        cd /home/ubuntu && git clone https://github.com/enthought/pyface.git && cd pyface && pip install -r dev_requirements.txt && python setup.py install
+        cd /home/ubuntu && git clone https://github.com/enthought/pyface.git && cd pyface && pip install -r dev_requirements.txt && python setup.py develop
         pip install sphinx_bootstrap_theme PySurfer nilearn neo;
         cd /home/ubuntu/mne-python && python setup.py develop;
         mkdir -p ~/examples;
