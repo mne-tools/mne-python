@@ -63,8 +63,13 @@ def _read_pos(directory, transformations):
     if len(fname) < 1:
         return list()
     elif len(fname) > 1:
-        warnings.warn('Found multiple pos files. Extra digitizer points not '
-                      'added.')
+        warnings.warn('    Found multiple pos files. Extra digitizer points '
+                      'not added.')
+        return list()
+    logger.info('    Reading digitizer points from %s...' % fname)
+    if transformations['t_ctf_head_head'] is None:
+        warnings.warn('    No transformation found. Extra digitizer ponts not '
+                      'added')
         return list()
     fname = fname[0]
     digs = list()

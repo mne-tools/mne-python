@@ -136,6 +136,8 @@ def test_read_ctf():
             for key in ('loc', 'cal'):
                 assert_allclose(c1[key], c2[key], atol=1e-6, rtol=1e-4,
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
+        if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
+            raw.info['dig'] = raw.info['dig'][:-10]
         assert_dig_allclose(raw.info, raw_c.info)
 
         # check data match
