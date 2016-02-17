@@ -512,6 +512,8 @@ def test_spatiotemporal_maxwell():
                                         bad_condition='ignore', st_fixed=False,
                                         verbose=True)
             assert_meg_snr(raw_tsss, raw_tsss_2, 100., 1000.)
+            assert_equal(raw_tsss.estimate_rank(), 140)
+            assert_equal(raw_tsss_2.estimate_rank(), 140)
         assert_meg_snr(raw_tsss, tsss_bench, tol)
         py_st = raw_tsss.info['proc_history'][0]['max_info']['max_st']
         assert_true(len(py_st) > 0)
@@ -521,6 +523,53 @@ def test_spatiotemporal_maxwell():
     # Degenerate cases
     assert_raises(ValueError, maxwell_filter, raw, st_duration=10.,
                   st_correlation=0.)
+
+
+@requires_svd_convergence
+@testing.requires_testing_data
+def test_spatiotemporal_only():
+    """Test tSSS-only processing"""
+    # Load raw testing data
+    with warnings.catch_warnings(record=True):  # maxshield
+        raw = Raw(raw_fname, allow_maxshield=True).crop(0, 2).load_data()
+    picks = pick_types(raw.info, meg='mag', exclude=())
+    power = np.sqrt(np.sum(raw[picks][0] ** 2))
+    # basics
+    raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True)
+    assert_equal(raw_tsss.estimate_rank(), 366)
+    _assert_shielding(raw_tsss, power, 10)
+    # temporal proj will actually reduce spatial DOF with small windows!
+    raw_tsss = maxwell_filter(raw, st_duration=0.1, st_only=True)
+    assert_true(raw_tsss.estimate_rank() < 350)
+    _assert_shielding(raw_tsss, power, 40)
+    # with movement
+    head_pos = read_head_pos(pos_fname)
+    raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True,
+                              head_pos=head_pos)
+    assert_equal(raw_tsss.estimate_rank(), 366)
+    _assert_shielding(raw_tsss, power, 12)
+    with warnings.catch_warnings(record=True):  # st_fixed False
+        raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True,
+                                  head_pos=head_pos, st_fixed=False)
+    assert_equal(raw_tsss.estimate_rank(), 366)
+    _assert_shielding(raw_tsss, power, 12)
+    # should do nothing
+    raw_tsss = maxwell_filter(raw, st_duration=1., st_correlation=1.,
+                              st_only=True)
+    assert_allclose(raw[:][0], raw_tsss[:][0])
+    # degenerate
+    assert_raises(ValueError, maxwell_filter, raw, st_only=True)  # no ST
+    # two-step process equivalent to single-step process
+    raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True)
+    raw_tsss = maxwell_filter(raw_tsss)
+    raw_tsss_2 = maxwell_filter(raw, st_duration=1.)
+    assert_meg_snr(raw_tsss, raw_tsss_2, 1e5)
+    # now also with head movement
+    raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True,
+                              head_pos=head_pos)
+    raw_tsss = maxwell_filter(raw_tsss, head_pos=head_pos)
+    raw_tsss_2 = maxwell_filter(raw, st_duration=1., head_pos=head_pos)
+    assert_meg_snr(raw_tsss, raw_tsss_2, 1e5)
 
 
 @testing.requires_testing_data
@@ -692,7 +741,7 @@ def test_shielding_factor():
     with warnings.catch_warnings(record=True):  # maxshield
         raw_erm = Raw(erm_fname, allow_maxshield=True, preload=True)
     picks = pick_types(raw_erm.info, meg='mag')
-    erm_power = raw_erm[picks][0].ravel()
+    erm_power = raw_erm[picks][0]
     erm_power = np.sqrt(np.sum(erm_power * erm_power))
 
     # Vanilla SSS (second value would be for meg=True instead of meg='mag')
