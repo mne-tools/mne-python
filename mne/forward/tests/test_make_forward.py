@@ -367,14 +367,18 @@ def test_make_forward_dipole():
     rng = np.random.RandomState(0)
 
     evoked = read_evokeds(fname_evo)[0]
-    info = evoked.info
     cov = read_cov(fname_cov)
     dip_c = read_dipole(fname_dip)
 
+    # Only use magnetometers for speed!
+    picks = pick_types(evoked.info, meg='mag', eeg=False)
+    evoked.pick_channels([evoked.ch_names[p] for p in picks])
+    info = evoked.info
+
     # Make new Dipole object with n_test_dipoles picked from the dipoles
     # in the test dataset.
-    n_test_dipoles = 5
-    dipsel = np.sort(rng.permutation(range(len(dip_c)))[:n_test_dipoles])
+    n_test_dipoles = 3  # minimum 3 needed to get uneven sampling in time
+    dipsel = np.sort(rng.permutation(np.arange(len(dip_c)))[:n_test_dipoles])
     dip_test = Dipole(times=dip_c.times[dipsel],
                       pos=dip_c.pos[dipsel],
                       amplitude=dip_c.amplitude[dipsel],
@@ -385,9 +389,9 @@ def test_make_forward_dipole():
 
     # Warning emitted due to uneven sampling in time
     with warnings.catch_warnings(record=True) as w:
-        stc, fwd = make_forward_dipole(dip_test, sphere, evoked.info,
+        stc, fwd = make_forward_dipole(dip_test, sphere, info,
                                        trans=fname_trans)
-        assert issubclass(w[-1].category, RuntimeWarning)
+        assert_true(issubclass(w[-1].category, RuntimeWarning))
 
     # stc is list of VolSourceEstimate's
     assert_true(isinstance(stc, list))
@@ -399,9 +403,9 @@ def test_make_forward_dipole():
     times, pos, amplitude, ori, gof = [], [], [], [], []
     snr = 20.  # add a tiny amount of noise to the simulated evokeds
     for s in stc:
-        evo_test = simulate_evoked(fwd, s, evoked.info, cov,
+        evo_test = simulate_evoked(fwd, s, info, cov,
                                    snr=snr, random_state=rng)
-        evo_test.add_proj(make_eeg_average_ref_proj(evo_test.info))
+        # evo_test.add_proj(make_eeg_average_ref_proj(evo_test.info))
         dfit, resid = fit_dipole(evo_test, cov, sphere, None)
         times += list(dfit.times)
         pos += list(dfit.pos)
@@ -422,16 +426,16 @@ def test_make_forward_dipole():
             np.sum(dip_test.ori * dip_fit.ori, axis=1)))
     amp_err = np.sqrt(np.mean((dip_test.amplitude - dip_fit.amplitude) ** 2))
 
-    # Make sure each coordinate is within 2 mm from reference
+    # Make sure each coordinate is close to reference
     # NB tolerance should be set relative to snr of simulated evoked!
-    assert_allclose(dip_fit.pos, dip_test.pos, rtol=0, atol=2e-3,
+    assert_allclose(dip_fit.pos, dip_test.pos, rtol=0, atol=1e-2,
                     err_msg='position mismatch')
-    assert_true(dist < 2e-3, 'dist: %s' % dist)  # within 2 mm
-    assert_true(corr > 1 - 2e-3, 'corr: %s' % corr)
-    assert_true(gc_dist < 5, 'gc_dist: %s' % gc_dist)  # less than 5 degrees
-    assert_true(amp_err < 2e-3, 'amp_err: %s' % amp_err)  # within 2 nAm
+    assert_true(dist < 1e-2, 'dist: %s' % dist)  # within 1 cm
+    assert_true(corr > 1 - 1e-2, 'corr: %s' % corr)
+    assert_true(gc_dist < 20, 'gc_dist: %s' % gc_dist)  # less than 20 degrees
+    assert_true(amp_err < 10e-9, 'amp_err: %s' % amp_err)  # within 10 nAm
 
-    # Make sure rejection works with bem: one dipole at z=1m
+    # Make sure rejection works with BEM: one dipole at z=1m
     # NB _make_forward.py:_prepare_for_forward will raise a RuntimeError
     # if no points are left after min_dist exclusions, hence 2 dips here!
     dip_outside = Dipole(times=np.array([0., 0.001]),
@@ -439,7 +443,9 @@ def test_make_forward_dipole():
                          amplitude=np.array([100e-9, 100e-9]),
                          ori=np.array([[1., 0., 0.], [1., 0., 0.]]), gof=1)
     assert_raises(ValueError, make_forward_dipole, dip_outside, fname_bem,
-                  evoked.info, fname_trans)
+                  info, fname_trans)
+    # if we get this far, can safely assume the code works with BEMs too
+    # -> use sphere again below for speed
 
     # Now make an evenly sampled set of dipoles, some simultaneous,
     # should return a VolSourceEstimate regardless
@@ -451,16 +457,9 @@ def test_make_forward_dipole():
 
     dip_even_samp = Dipole(times, pos, amplitude, ori, gof)
 
-    # restrict sensors to EEG using pre-picking
-    picks = pick_types(info, meg=False, eeg=True)
-    eeg_info = pick_info(evoked.info, picks)
-    stc, fwd = make_forward_dipole(dip_even_samp, fname_bem, eeg_info,
+    stc, fwd = make_forward_dipole(dip_even_samp, sphere, info,
                                    trans=fname_trans)
-
     assert_true(isinstance, VolSourceEstimate)
     assert_allclose(stc.times, np.arange(0., 0.003, 0.001))
-    assert_true(fwd['info']['ch_names'][0] == 'EEG 001')
-    assert_true(fwd['info']['ch_names'][-1] == 'EEG 060')
-    # More(/more clever) tests on fwd?
 
 run_tests_if_main()

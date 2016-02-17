@@ -34,6 +34,9 @@ Changelog
 
     - Add command ``mne show_info`` to quickly show the measurement info from a .fif file from the terminal by `Alex Gramfort`_.
 
+    - Add creating forward operator for dipole object :func:`mne.forward.make_forward_dipole` by `Chris Bailey`_
+
+
 BUG
 ~~~
 
