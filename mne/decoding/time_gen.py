@@ -1150,8 +1150,8 @@ class TimeDecoding(_GeneralizationAcrossTime):
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
         scikit-learn.cross_validation module for the list of possible objects.
-        If clf is a classifier, defaults to KFold(n_folds=5), else defaults to
-        StratifiedKFold(n_folds=5).
+        If clf is a classifier, defaults to StratifiedKFold(n_folds=5), else
+        defaults to KFold(n_folds=5).
     clf : object | None
         An estimator compliant with the scikit-learn API (fit & predict).
         If None the classifier will be a standard pipeline including
