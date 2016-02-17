@@ -130,7 +130,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         but the ouptut MEG data will *only* have temporal projections
         performed. Noise reduction from SSS basis multiplication,
         cross-talk cancellation, movement compensation, and so forth
-        will not be applied to the data.
+        will not be applied to the data. This is useful, for example, when
+        evoked movement compensation will be performed with
+        :func:`mne.epochs.average_movements`.
 
         .. versionadded:: 0.12
 
