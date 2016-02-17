@@ -267,7 +267,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         matplotlib borders style to be used for each sensor plot.
     ylim : dict | None
         ylim for plots. The value determines the upper and lower subplot
-        limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
+        limits. e.g. ylim = dict(eeg=[-20, 20]). Valid keys are eeg,
         mag, grad, misc. If None, the ylim parameter for each channel is
         determined by the maximum absolute peak.
     scalings : dict | None

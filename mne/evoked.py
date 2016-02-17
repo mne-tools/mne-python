@@ -375,7 +375,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         show : bool
             Call pyplot.show() at the end or not.
         ylim : dict
-            ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e-6])
+            ylim for plots. e.g. ylim = dict(eeg=[-20, 20])
             Valid keys are eeg, mag, grad
         xlim : 'tight' | tuple | None
             xlim for plots.
@@ -489,7 +489,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             matplotlib borders style to be used for each sensor plot.
         ylim : dict | None
             ylim for plots. The value determines the upper and lower subplot
-            limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
+            limits. e.g. ylim = dict(eeg=[-20, 20]). Valid keys are eeg,
             mag, grad, misc. If None, the ylim parameter for each channel is
             determined by the maximum absolute peak.
         scalings : dict | None
