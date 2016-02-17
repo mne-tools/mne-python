@@ -55,7 +55,7 @@ dependencies:
 test:
   override:
     # Some examples take longer than 10 minutes to run.
-    - if [ -n "${RUN_NIGHTLY_BUILD}" ]; then cd doc && make html_dev fi:
+    - if [ -n "${RUN_NIGHTLY_BUILD}" ]; then cd doc && make html_dev; fi;:
         timeout: 1500
 
 general:
