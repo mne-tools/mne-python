@@ -1169,7 +1169,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0,
                         top=1 - top_frame)
     # find first index that's >= (to rounding error) to each time point
-    time_idx = [np.where(_time_mask(evoked.times, t, None))[0][0]
+    time_idx = [np.where(_time_mask(evoked.times, tmin=t,
+                         tmax=None, sfreq=evoked.info['sfreq']))[0][0]
                 for t in times]
 
     if proj is True and evoked.proj is not True:
