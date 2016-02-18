@@ -23,7 +23,6 @@ from mne.utils import (requires_mne, requires_nibabel, _TempDir,
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
 from mne.forward import Forward
-from mne.proj import make_eeg_average_ref_proj
 from mne.dipole import Dipole, fit_dipole
 from mne.simulation import simulate_evoked
 from mne.source_estimate import VolSourceEstimate
@@ -422,8 +421,8 @@ def test_make_forward_dipole():
     diff = dip_test.pos - dip_fit.pos
     corr = np.corrcoef(dip_test.pos.ravel(), dip_fit.pos.ravel())[0, 1]
     dist = np.sqrt(np.mean(np.sum(diff * diff, axis=1)))
-    gc_dist = 180 / np.pi * np.mean(np.arccos(
-            np.sum(dip_test.ori * dip_fit.ori, axis=1)))
+    gc_dist = 180 / np.pi * \
+        np.mean(np.arccos(np.sum(dip_test.ori * dip_fit.ori, axis=1)))
     amp_err = np.sqrt(np.mean((dip_test.amplitude - dip_fit.amplitude) ** 2))
 
     # Make sure each coordinate is close to reference
@@ -450,10 +449,11 @@ def test_make_forward_dipole():
     # Now make an evenly sampled set of dipoles, some simultaneous,
     # should return a VolSourceEstimate regardless
     times = np.array([0., 0., 0., 0.001, 0.001, 0.002])
-    pos = np.random.rand(6, 3)*0.020 + np.array([0., 0., 0.040])[np.newaxis, :]
-    amplitude = np.random.rand(6,)*100e-9
+    pos = np.random.rand(6, 3) * 0.020 + \
+        np.array([0., 0., 0.040])[np.newaxis, :]
+    amplitude = np.random.rand(6,) * 100e-9
     ori = np.eye(6, 3) + np.eye(6, 3, -3)
-    gof = np.arange(len(times))/len(times)  # arbitrary
+    gof = np.arange(len(times)) / len(times)  # arbitrary
 
     dip_even_samp = Dipole(times, pos, amplitude, ori, gof)
 
