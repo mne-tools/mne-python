@@ -1079,7 +1079,12 @@ def _mouse_click(event, params):
         if event.inaxes == params['ax_vscroll']:
             if params['butterfly']:
                 return
-            ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
+            # Don't let scrollbar go outside vertical scrollbar limits
+            # XXX: floating point exception on some machines if this happens.
+            ch_start = min(
+                max(int(event.ydata) - params['n_channels'] // 2, 0),
+                len(params['ch_names']) - params['n_channels'])
+
             if params['ch_start'] != ch_start:
                 params['ch_start'] = ch_start
                 params['plot_fun']()
