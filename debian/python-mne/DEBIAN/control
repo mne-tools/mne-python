@@ -1,0 +1,16 @@
+Package: python-mne
+Version: 0.10.2+dfsg-1
+Architecture: all
+Maintainer: Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>
+Installed-Size: 8878
+Depends: python (>= 2.7), python (<< 2.8), python-numpy, python-scipy, python-sklearn, python-matplotlib, python-joblib (>= 0.4.5), xvfb, xauth, libgl1-mesa-dri, help2man, libjs-jquery, libjs-jquery-ui
+Recommends: python-nose, mayavi2
+Suggests: python-dap, ipython
+Provides: python2.7-mne
+Section: python
+Priority: optional
+Homepage: http://martinos.org/mne
+Description: Python modules for MEG and EEG data analysis
+ This package is designed for sensor- and source-space analysis of MEG
+ and EEG data, including frequency-domain and time-frequency analyses
+ and non-parametric statistics.

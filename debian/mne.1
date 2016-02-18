@@ -1,0 +1,33 @@
+.TH MNE "1" "November 2013" "MNE 0.7.git" "User Commands"
+.SH NAME
+mne \- MEG and EEG data analysis
+.SH SYNOPSIS
+.B mne
+\fB<command>\fR \fI[options]\fR
+.SH OPTIONS
+Accepted commands :
+.IP
+\- browse_raw
+.IP
+\- bti2fiff
+.IP
+\- clean_eog_ecg
+.IP
+\- compute_proj_ecg
+.IP
+\- compute_proj_eog
+.IP
+\- flash_bem_model
+.IP
+\- kit2fiff
+.IP
+\- make_scalp_surfaces
+.IP
+\- maxfilter
+.IP
+\- surf2bem
+.SH EXAMPLE
+\fBmne\fR \fBbrowse_raw\fR \fI\-\-raw\fR sample_audvis_raw.fif
+.PP
+Getting help example:
+\fBmne\fR \fBcompute_proj_eog\fR \fI\-h\fR
