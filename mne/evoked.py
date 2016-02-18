@@ -377,7 +377,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ylim : dict | None
             ylim for plots (after scaling has been applied). The value
             determines the upper and lower subplot limits. e.g.
-            ylim = dict(eeg=[-20, 20]) Valid keys are eeg, mag, grad. If None,
+            ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad. If None,
             the ylim parameter for each channel is determined by the maximum
             absolute peak.
         xlim : 'tight' | tuple | None
