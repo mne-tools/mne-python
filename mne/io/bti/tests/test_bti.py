@@ -195,6 +195,10 @@ def test_info_no_rename_no_reorder_no_pdf():
             np.array([ch['loc'] for ch in info['chs']]),
             np.array([ch['loc'] for ch in info2['chs']]))
 
+        # just check reading data | corner case
+        read_raw_bti(pdf_fname=pdf, config_fname=config, head_shape_fname=None,
+                     sort_by_ch_name=False, preload=True)
+
 
 def test_no_conversion():
     """ Test bti no-conversion option """
