@@ -22,7 +22,7 @@ from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
 from mne.io import Raw, read_raw_kit, _empty_info
 from mne.io.constants import FIFF
-from mne.preprocessing.maxfilter import fit_sphere_to_headshape
+from mne.bem import fit_sphere_to_headshape
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')
@@ -121,8 +121,7 @@ def test_auto_topomap_coords():
     dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
                  FIFF.FIFFV_POINT_EEG,
                  FIFF.FIFFV_POINT_EXTRA)
-    _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds)
-    origin_head /= 1000.  # to meters
+    _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds, units='m')
     for ch in info['chs']:
         ch['loc'][:3] -= origin_head
 

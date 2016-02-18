@@ -16,6 +16,7 @@ import os.path as op
 import numpy as np
 
 from ..transforms import _polar_to_cartesian, _cartesian_to_sphere
+from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import Info
@@ -621,9 +622,7 @@ def _auto_topomap_coords(info, picks):
         dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
                      FIFF.FIFFV_POINT_EEG,
                      FIFF.FIFFV_POINT_EXTRA)
-        from ..preprocessing.maxfilter import fit_sphere_to_headshape
-        _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds)
-        origin_head /= 1000.  # to meters
+        _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds, units='m')
         locs3d -= origin_head
 
         # Match the digitization points with the requested

@@ -259,9 +259,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     raw_data = np.zeros((len(info['ch_names']), len(times)))
 
     # figure out our cHPI, ECG, and blink dipoles
-    R, r0 = fit_sphere_to_headshape(info, verbose=False)[:2]
-    R /= 1000.
-    r0 /= 1000.
+    R, r0 = fit_sphere_to_headshape(info, units='m', verbose=False)[:2]
     ecg_rr = blink_rrs = exg_bem = hpi_rrs = None
     ecg = ecg and len(meg_picks) > 0
     chpi = chpi and len(meg_picks) > 0
