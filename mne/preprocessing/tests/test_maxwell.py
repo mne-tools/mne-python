@@ -564,11 +564,17 @@ def test_spatiotemporal_only():
     raw_tsss = maxwell_filter(raw_tsss)
     raw_tsss_2 = maxwell_filter(raw, st_duration=1.)
     assert_meg_snr(raw_tsss, raw_tsss_2, 1e5)
-    # now also with head movement
+    # now also with head movement, and a bad MEG channel
+    assert_equal(len(raw.info['bads']), 0)
+    raw.info['bads'] = ['EEG001', 'MEG2623']
     raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True,
                               head_pos=head_pos)
+    assert_equal(raw.info['bads'], ['EEG001', 'MEG2623'])
+    assert_equal(raw_tsss.info['bads'], ['EEG001', 'MEG2623'])  # don't reset
     raw_tsss = maxwell_filter(raw_tsss, head_pos=head_pos)
+    assert_equal(raw_tsss.info['bads'], ['EEG001'])  # do reset MEG bads
     raw_tsss_2 = maxwell_filter(raw, st_duration=1., head_pos=head_pos)
+    assert_equal(raw_tsss_2.info['bads'], ['EEG001'])
     assert_meg_snr(raw_tsss, raw_tsss_2, 1e5)
 
 

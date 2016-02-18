@@ -397,7 +397,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
         # Get original data
         orig_data = raw_sss._data[good_picks, start:stop]
-        out_meg_data = orig_data.copy()
+        # This could just be np.empty if not st_only, but shouldn't be slow
+        # this way so might as well just always take the original data
+        out_meg_data = raw_sss._data[meg_picks, start:stop]
         # Apply cross-talk correction
         if cross_talk is not None:
             orig_data = ctc.dot(orig_data)
@@ -1510,13 +1512,13 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
     else:
         max_info_dict.update(sss_info=sss_info_dict, sss_cal=sss_cal,
                              sss_ctc=sss_ctc)
+        # Reset 'bads' for any MEG channels since they've been reconstructed
+        _reset_meg_bads(raw.info)
     block_id = _generate_meas_id()
     proc_block = dict(max_info=max_info_dict, block_id=block_id,
                       creator='mne-python v%s' % __version__,
                       date=_date_now(), experimentor='')
     raw.info['proc_history'] = [proc_block] + raw.info.get('proc_history', [])
-    # Reset 'bads' for any MEG channels since they've been reconstructed
-    _reset_meg_bads(raw.info)
 
 
 def _reset_meg_bads(info):
