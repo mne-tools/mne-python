@@ -59,7 +59,7 @@ def channel_type(info, idx):
         return 'ias'
     elif kind == FIFF.FIFFV_SYST_CH:
         return 'syst'
-    elif kind in [FIFF.FIFFV_SEEG_CH, 702]:  # 702 was used before v0.11
+    elif kind == FIFF.FIFFV_SEEG_CH:
         return 'seeg'
     elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
                   FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
@@ -101,7 +101,9 @@ def pick_channels(ch_names, include, exclude=[]):
     for k, name in enumerate(ch_names):
         if (len(include) == 0 or name in include) and name not in exclude:
             sel.append(k)
-    return np.array(sel, int)
+    sel = np.unique(sel)
+    np.sort(sel)
+    return sel
 
 
 def pick_channels_regexp(ch_names, regexp):
@@ -138,32 +140,6 @@ def pick_channels_regexp(ch_names, regexp):
     return [k for k, name in enumerate(ch_names) if r.match(name)]
 
 
-def _triage_meg_pick(ch, meg):
-    """Helper to triage an MEG pick type"""
-    if meg is True:
-        return True
-    elif ch['unit'] == FIFF.FIFF_UNIT_T_M:
-        if meg == 'grad':
-            return True
-        elif meg == 'planar1' and ch['ch_name'].endswith('2'):
-            return True
-        elif meg == 'planar2' and ch['ch_name'].endswith('3'):
-            return True
-    elif (meg == 'mag' and ch['unit'] == FIFF.FIFF_UNIT_T):
-        return True
-    return False
-
-
-def _check_meg_type(meg, allow_auto=False):
-    """Helper to ensure a valid meg type"""
-    if isinstance(meg, string_types):
-        allowed_types = ['grad', 'mag', 'planar1', 'planar2']
-        allowed_types += ['auto'] if allow_auto else []
-        if meg not in allowed_types:
-            raise ValueError('meg value must be one of %s or bool, not %s'
-                             % (allowed_types, meg))
-
-
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False,
@@ -191,8 +167,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include EMG channels.
     ref_meg: bool | str
         If True include CTF / 4D reference channels. If 'auto', the reference
-        channels are only included if compensations are present. Can also be
-        the string options from `meg`.
+        channels are only included if compensations are present.
     misc : bool
         If True include miscellaneous analog channels.
     resp : bool
@@ -240,16 +215,28 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                          ' If only one channel is to be excluded, use '
                          '[ch_name] instead of passing ch_name.')
 
-    _check_meg_type(ref_meg, allow_auto=True)
-    _check_meg_type(meg)
-    if isinstance(ref_meg, string_types) and ref_meg == 'auto':
+    if isinstance(ref_meg, string_types):
+        if ref_meg != 'auto':
+            raise ValueError('ref_meg has to be either a bool or \'auto\'')
+
         ref_meg = ('comps' in info and info['comps'] is not None and
                    len(info['comps']) > 0)
 
     for k in range(nchan):
         kind = info['chs'][k]['kind']
         if kind == FIFF.FIFFV_MEG_CH:
-            pick[k] = _triage_meg_pick(info['chs'][k], meg)
+            if meg is True:
+                pick[k] = True
+            elif info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T_M:
+                if meg == 'grad':
+                    pick[k] = True
+                elif meg == 'planar1' and info['ch_names'][k].endswith('2'):
+                    pick[k] = True
+                elif meg == 'planar2' and info['ch_names'][k].endswith('3'):
+                    pick[k] = True
+            elif (meg == 'mag' and
+                  info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T):
+                pick[k] = True
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
             pick[k] = True
         elif kind == FIFF.FIFFV_STIM_CH and stim:
@@ -263,13 +250,12 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         elif kind == FIFF.FIFFV_MISC_CH and misc:
             pick[k] = True
         elif kind == FIFF.FIFFV_REF_MEG_CH and ref_meg:
-            pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
+            pick[k] = True
         elif kind == FIFF.FIFFV_RESP_CH and resp:
             pick[k] = True
         elif kind == FIFF.FIFFV_SYST_CH and syst:
             pick[k] = True
-        elif kind in [FIFF.FIFFV_SEEG_CH, 702] and seeg:
-            # Constant 702 was used before v0.11
+        elif kind == FIFF.FIFFV_SEEG_CH and seeg:
             pick[k] = True
         elif kind == FIFF.FIFFV_IAS_CH and ias:
             pick[k] = True
@@ -295,7 +281,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     myinclude += include
 
     if len(myinclude) == 0:
-        sel = np.array([], int)
+        sel = []
     else:
         sel = pick_channels(info['ch_names'], myinclude, exclude)
 
@@ -635,12 +621,3 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
                 'include/exclude must be list, tuple, ndarray, or "bads". ' +
                 'You provided type {0}'.format(type(chs)))
     return chs
-
-
-def _pick_data_channels(info, exclude='bads'):
-    """Convenience function for picking only data channels."""
-    return pick_types(info, meg=True, eeg=True, stim=False, eog=False,
-                      ecg=False, emg=False, ref_meg=True, misc=False,
-                      resp=False, chpi=False, exci=False, ias=False,
-                      syst=False, seeg=True, include=[], exclude=exclude,
-                      selection=None)

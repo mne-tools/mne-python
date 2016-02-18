@@ -22,14 +22,6 @@ class BunchConst(Bunch):
         super(BunchConst, self).__setattr__(attr, val)
 
 FIFF = BunchConst()
-
-#
-# FIFF version number in use
-#
-FIFF.FIFFC_MAJOR_VERSION = 1
-FIFF.FIFFC_MINOR_VERSION = 3
-FIFF.FIFFC_VERSION = FIFF.FIFFC_MAJOR_VERSION << 16 | FIFF.FIFFC_MINOR_VERSION
-
 #
 # Blocks
 #
@@ -55,6 +47,8 @@ FIFF.FIFFB_REF                = 118
 FIFF.FIFFB_SMSH_RAW_DATA      = 119
 FIFF.FIFFB_SMSH_ASPECT        = 120
 FIFF.FIFFB_HPI_SUBSYSTEM      = 121
+FIFF.FIFFB_EPOCHS             = 122
+FIFF.FIFFB_ICA                = 123
 
 FIFF.FIFFB_SPHERE             = 300   # Concentric sphere model related
 FIFF.FIFFB_BEM                = 310   # Boundary-element method
@@ -72,7 +66,6 @@ FIFF.FIFFB_MRI_SEG_REGION     = 206     # One MRI segmentation region
 FIFF.FIFFB_PROCESSING_HISTORY = 900
 FIFF.FIFFB_PROCESSING_RECORD  = 901
 
-FIFF.FIFFB_DATA_CORRECTION    = 500
 FIFF.FIFFB_CHANNEL_DECOUPLER  = 501
 FIFF.FIFFB_SSS_INFO           = 502
 FIFF.FIFFB_SSS_CAL            = 503
@@ -143,7 +136,7 @@ FIFF.FIFF_NAME           = 233          # Intended to be a short name.
 FIFF.FIFF_DESCRIPTION    = FIFF.FIFF_COMMENT # (Textual) Description of an object
 FIFF.FIFF_DIG_STRING     = 234          # String of digitized points
 FIFF.FIFF_LINE_FREQ      = 235    # Line frequency
-
+FIFF.FIFF_CUSTOM_REF     = 236    # Whether a custom reference was applied to the data (NB: overlaps with HPI const #)
 #
 # HPI fitting program tags
 #
@@ -174,7 +167,7 @@ FIFF.FIFFV_EMG_CH     = 302
 FIFF.FIFFV_ECG_CH     = 402
 FIFF.FIFFV_MISC_CH    = 502
 FIFF.FIFFV_RESP_CH    = 602  # Respiration monitoring
-FIFF.FIFFV_SEEG_CH    = 802  # stereotactic EEG
+FIFF.FIFFV_SEEG_CH    = 702  # stereotactic EEG
 FIFF.FIFFV_SYST_CH    = 900  # some system status information (on Triux systems only)
 FIFF.FIFFV_IAS_CH     = 910  # Internal Active Shielding data (maybe on Triux only)
 FIFF.FIFFV_EXCI_CH    = 920  # flux excitation channel used to be a stimulus channel
@@ -212,7 +205,8 @@ FIFF.FIFF_DATA_BUFFER    = 300    # Buffer containing measurement data
 FIFF.FIFF_DATA_SKIP      = 301    # Data skip in buffers
 FIFF.FIFF_EPOCH          = 302    # Buffer containing one epoch and channel
 FIFF.FIFF_DATA_SKIP_SAMP = 303    # Data skip in samples
-
+FIFF.FIFF_MNE_BASELINE_MIN   = 304    # Time of baseline beginning
+FIFF.FIFF_MNE_BASELINE_MAX   = 305    # Time of baseline end
 #
 # Info on subject
 #
@@ -364,7 +358,7 @@ FIFF.FIFFV_MRI_PIXEL_BYTE_RGB_COLOR     = 6
 FIFF.FIFFV_MRI_PIXEL_BYTE_RLE_RGB_COLOR = 7
 FIFF.FIFFV_MRI_PIXEL_BIT_RLE            = 8
 #
-#   These are the MNE fiff definitions (range 350-390 reserved for MNE)
+#   These are the MNE fiff definitions
 #
 FIFF.FIFFB_MNE                    = 350
 FIFF.FIFFB_MNE_SOURCE_SPACE       = 351
@@ -388,9 +382,6 @@ FIFF.FIFFB_MNE_SURFACE_MAP_GROUP  = 364
 FIFF.FIFFB_MNE_CTF_COMP           = 370
 FIFF.FIFFB_MNE_CTF_COMP_DATA      = 371
 FIFF.FIFFB_MNE_DERIVATIONS        = 372
-
-FIFF.FIFFB_MNE_EPOCHS             = 373
-FIFF.FIFFB_MNE_ICA                = 374
 #
 # Fiff tags associated with MNE computations (3500...)
 #
@@ -493,9 +484,6 @@ FIFF.FIFF_MNE_DATA_SKIP_NOP          = 3563     # A data skip turned off in the 
 FIFF.FIFF_MNE_ORIG_CH_INFO           = 3564     # Channel information before any changes
 FIFF.FIFF_MNE_EVENT_TRIGGER_MASK     = 3565     # Mask applied to the trigger channnel values
 FIFF.FIFF_MNE_EVENT_COMMENTS         = 3566     # Event comments merged into one long string
-FIFF.FIFF_MNE_CUSTOM_REF             = 3567     # Whether a custom reference was applied to the data
-FIFF.FIFF_MNE_BASELINE_MIN           = 3568     # Time of baseline beginning
-FIFF.FIFF_MNE_BASELINE_MAX           = 3569     # Time of baseline end
 #
 # 3570... Morphing maps
 #
@@ -782,10 +770,8 @@ FIFF.FIFFV_COIL_DIPOLE             = 200  # Time-varying dipole definition
 # direction (ex)
 FIFF.FIFFV_COIL_MCG_42             = 1000  # For testing the MCG software
 
-FIFF.FIFFV_COIL_POINT_MAGNETOMETER   = 2000  # Simple point magnetometer
-FIFF.FIFFV_COIL_AXIAL_GRAD_5CM       = 2001  # Generic axial gradiometer
-FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X = 2002  # Simple point magnetometer, x-direction
-FIFF.FIFFV_COIL_POINT_MAGNETOMETER_Y = 2003  # Simple point magnetometer, y-direction
+FIFF.FIFFV_COIL_POINT_MAGNETOMETER = 2000  # Simple point magnetometer
+FIFF.FIFFV_COIL_AXIAL_GRAD_5CM     = 2001  # Generic axial gradiometer
 
 FIFF.FIFFV_COIL_VV_PLANAR_W        = 3011  # VV prototype wirewound planar sensor
 FIFF.FIFFV_COIL_VV_PLANAR_T1       = 3012  # Vectorview SQ20483N planar gradiometer

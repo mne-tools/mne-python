@@ -24,7 +24,7 @@ from ..surface import read_surface
 from ..io.proj import make_projector
 from ..utils import logger, verbose, get_subjects_dir
 from ..io.pick import pick_types
-from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
+from .utils import tight_layout, COLORS, _prepare_trellis
 
 
 @verbose
@@ -124,7 +124,9 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             plt.title(name)
             tight_layout(fig=fig_svd)
 
-    plt_show(show)
+    if show:
+        plt.show()
+
     return fig_cov, fig_svd
 
 
@@ -234,7 +236,9 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
         plt.barh(lower_bound, time_bounds[-1] - time_bounds[0], upper_bound -
                  lower_bound, time_bounds[0], color='#666666')
 
-    plt_show(show)
+    if show:
+        plt.show()
+
     return fig
 
 
@@ -328,7 +332,9 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
     plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
-    plt_show(show)
+    if show:
+        plt.show()
+
     return fig
 
 
@@ -518,7 +524,9 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         fig.canvas.draw()
-    plt_show(show)
+    if show:
+        plt.show()
+
     return fig
 
 
@@ -568,5 +576,5 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     ax.set_xlabel('Time (sec)')
     ax.set_ylabel('Amplitude (nAm)')
     if show:
-        fig.show(warn=False)
+        fig.show()
     return fig

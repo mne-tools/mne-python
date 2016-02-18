@@ -166,9 +166,9 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
     if tmin is not None or tmax is not None:
         time_mask = _time_mask(epochs.times, tmin, tmax)
     else:
-        time_mask = slice(None)
+        time_mask = Ellipsis
 
-    data = epochs.get_data()[:, picks][..., time_mask]
+    data = epochs.get_data()[:, picks][:, :, time_mask]
     if proj:
         proj, _ = make_projector_info(epochs.info)
         if picks is not None:

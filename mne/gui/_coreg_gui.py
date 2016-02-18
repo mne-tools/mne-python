@@ -27,7 +27,7 @@ try:
                               EnumEditor, Handler, Label, TextEditor)
     from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
     from tvtk.pyface.scene_editor import SceneEditor
-except Exception:
+except:
     from ..utils import trait_wraith
     HasTraits = HasPrivateTraits = Handler = object
     cached_property = on_trait_change = MayaviScene = MlabSceneModel =\

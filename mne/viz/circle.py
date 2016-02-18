@@ -14,7 +14,6 @@ from functools import partial
 
 import numpy as np
 
-from .utils import plt_show
 from ..externals.six import string_types
 from ..fixes import tril_indices, normalize_colors
 
@@ -410,5 +409,6 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
         fig.canvas.mpl_connect('button_press_event', callback)
 
-    plt_show(show)
+    if show:
+        plt.show()
     return fig, axes

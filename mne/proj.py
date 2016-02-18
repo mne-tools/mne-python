@@ -97,19 +97,15 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
         if n == 0:
             continue
         data_ind = data[ind][:, ind]
-        # data is the covariance matrix: U * S**2 * Ut
-        U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False,
-                                 overwrite_a=True)
-        U = U[:, :n]
-        exp_var = Sexp2 / Sexp2.sum()
-        exp_var = exp_var[:n]
-        for k, (u, var) in enumerate(zip(U.T, exp_var)):
+        U = linalg.svd(data_ind, full_matrices=False,
+                       overwrite_a=True)[0][:, :n]
+        for k, u in enumerate(U.T):
             proj_data = dict(col_names=names, row_names=None,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
             logger.info("Adding projection: %s" % this_desc)
             proj = Projection(active=False, data=proj_data,
-                              desc=this_desc, kind=1, explained_var=var)
+                              desc=this_desc, kind=1)
             projs.append(proj)
 
     return projs

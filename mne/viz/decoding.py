@@ -11,8 +11,6 @@ from __future__ import print_function
 import numpy as np
 import warnings
 
-from .utils import plt_show
-
 
 def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
                     ax=None, cmap='RdBu_r', show=True, colorbar=True,
@@ -84,7 +82,8 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
     ax.set_ylim(tlim[2:])
     if colorbar is True:
         plt.colorbar(im, ax=ax)
-    plt_show(show)
+    if show is True:
+        plt.show()
     return fig if ax is None else ax.get_figure()
 
 
@@ -183,7 +182,8 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
                       'AUC' if 'roc' in repr(gat.scorer_) else r'%'))
     if legend is True:
         ax.legend(loc='best')
-    plt_show(show)
+    if show is True:
+        plt.show()
     return fig if ax is None else ax.get_figure()
 
 

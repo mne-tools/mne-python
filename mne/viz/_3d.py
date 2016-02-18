@@ -26,12 +26,12 @@ from ..io.constants import FIFF
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
                        transform_surface_to)
 from ..transforms import (read_trans, _find_trans, apply_trans,
-                          combine_transforms, _get_trans, _ensure_trans,
+                          combine_transforms, _get_mri_head_t, _ensure_trans,
                           invert_transform)
 from ..utils import get_subjects_dir, logger, _check_subject, verbose
 from ..fixes import _get_args
 from ..defaults import _handle_default
-from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
+from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
 
 
@@ -262,7 +262,8 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     if show:
         plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                             hspace=0.)
-    plt_show(show)
+        plt.show()
+
     return fig if img_output is None else outs
 
 
@@ -819,7 +820,9 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     if fig_name is not None:
         plt.title(fig_name)
-    plt_show(show)
+
+    if show:
+        plt.show()
 
     surface.actor.property.backface_culling = True
     surface.actor.property.shading = True
@@ -884,7 +887,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     from matplotlib.colors import ColorConverter
     color_converter = ColorConverter()
 
-    trans = _get_trans(trans)[0]
+    trans = _get_mri_head_t(trans)[0]
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     fname = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')

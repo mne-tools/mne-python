@@ -3,11 +3,12 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import os.path as op
 from nose.tools import assert_equal, assert_raises
 
 from mne import create_info
 from mne.io import RawArray
-from mne.utils import logger, catch_logging, slow_test, run_tests_if_main
+from mne.utils import logger, set_log_file, slow_test, _TempDir
 
 
 def bad_1(x):
@@ -43,10 +44,15 @@ def test_apply_function_verbose():
                   None, None, 2)
 
     # check our arguments
-    with catch_logging() as sio:
+    tempdir = _TempDir()
+    test_name = op.join(tempdir, 'test.log')
+    set_log_file(test_name)
+    try:
         raw.apply_function(printer, None, None, 1, verbose=False)
-        assert_equal(len(sio.getvalue()), 0)
+        with open(test_name) as fid:
+            assert_equal(len(fid.readlines()), 0)
         raw.apply_function(printer, None, None, 1, verbose=True)
-        assert_equal(sio.getvalue().count('\n'), n_chan)
-
-run_tests_if_main()
+        with open(test_name) as fid:
+            assert_equal(len(fid.readlines()), n_chan)
+    finally:
+        set_log_file(None)

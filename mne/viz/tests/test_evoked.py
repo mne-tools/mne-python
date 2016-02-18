@@ -81,7 +81,7 @@ def test_plot_evoked():
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     with warnings.catch_warnings(record=True):
-        fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo')
+        fig = evoked.plot(proj=True, hline=[1], exclude=[])
         # Test a click
         ax = fig.get_axes()[0]
         line = ax.lines[0]
@@ -89,9 +89,9 @@ def test_plot_evoked():
                     [line.get_xdata()[0], line.get_ydata()[0]], 'data')
         _fake_click(fig, ax,
                     [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
-        # plot with bad channels excluded & spatial_colors
+        # plot with bad channels excluded
         evoked.plot(exclude='bads')
-        evoked.plot(exclude=evoked.info['bads'], spatial_colors=True, gfp=True)
+        evoked.plot(exclude=evoked.info['bads'])  # does the same thing
 
         # test selective updating of dict keys is working.
         evoked.plot(hline=[1], units=dict(mag='femto foo'))
@@ -107,7 +107,8 @@ def test_plot_evoked():
                       proj='interactive', axes='foo')
         plt.close('all')
 
-        # test GFP only
+        # test GFP plot overlay
+        evoked.plot(gfp=True)
         evoked.plot(gfp='only')
         assert_raises(ValueError, evoked.plot, gfp='foo')
 

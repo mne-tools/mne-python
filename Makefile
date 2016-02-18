@@ -40,10 +40,6 @@ test: in
 	rm -f .coverage
 	$(NOSETESTS) -a '!ultra_slow_test' mne
 
-test-fast: in
-	rm -f .coverage
-	$(NOSETESTS) -a '!slow_test' mne
-
 test-full: in
 	rm -f .coverage
 	$(NOSETESTS) mne
