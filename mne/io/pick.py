@@ -253,6 +253,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
 
     for k in range(nchan):
         kind = info['chs'][k]['kind']
+        # XXX eventually we should de-duplicate this with channel_type!
         if kind == FIFF.FIFFV_MEG_CH:
             pick[k] = _triage_meg_pick(info['chs'][k], meg)
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
@@ -273,8 +274,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
             pick[k] = True
         elif kind == FIFF.FIFFV_SYST_CH and syst:
             pick[k] = True
-        elif kind in [FIFF.FIFFV_SEEG_CH, 702] and seeg:
-            # Constant 702 was used before v0.11
+        elif kind == FIFF.FIFFV_SEEG_CH and seeg:
             pick[k] = True
         elif kind == FIFF.FIFFV_IAS_CH and ias:
             pick[k] = True
