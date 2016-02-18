@@ -6,7 +6,7 @@ Files-Excluded: mne/html/*.min.js
 Comment: File AppEULA.rst refers to code that is documented in this package but not shipped with it.
 
 Files: *
-Copyright: 2010-2016, MNE-Python Developers
+Copyright: 2010-2014, MNE-Python Developers
 License: BSD-3
 
 Files: doc/sphinxext/*
@@ -20,7 +20,7 @@ License: BSD-2
      distribution.
 
 Files: debian/*
-Copyright: 2010-2015, Yaroslav Halchenko <debian@onerussian.com>, Alexandre Gramfort <alexandre.gramfort@m4x.org>
+Copyright: 2010-2013, Yaroslav Halchenko <debian@onerussian.com>, Alexandre Gramfort <alexandre.gramfort@m4x.org>
 License: BSD-3
 
 Files: mne/externals/decorator.py

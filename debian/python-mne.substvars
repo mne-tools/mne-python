@@ -1,0 +1,4 @@
+python:Versions=2.7
+python:Provides=python2.7-mne
+python:Depends=python (>= 2.7), python (<< 2.8), python:any (>= 2.6.6-7~), python:any
+misc:Depends=

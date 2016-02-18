@@ -1,24 +1,9 @@
-python-mne (0.10.1+dfsg-1) unstable; urgency=medium
+python-mne (0.10.2+dfsg-1) UNRELEASED; urgency=medium
 
-  [ Jaakko Leppakangas ]
-  * New upstream version
-  * Removed depedency on mayavi2
+  * NMU
+  * New upstream version 
 
-  [ Yaroslav Halchenko ]
-  * debian/patches
-    - dropped CPed from upstream changeset_9c7ef6d1*
-  * debian/control
-    - added python-vtk | mayavi2 to the build-depends
-
- -- Yaroslav Halchenko <debian@onerussian.com>  Fri, 27 Nov 2015 10:44:11 -0500
-
-python-mne (0.8.6+dfsg-2) unstable; urgency=medium
-
-  * debian/{rules.patches/changeset_b9d4d*}
-    Absorb upstream patch and specify not using HOME directory for generated
-    pre-computed data, but instead use tempdir. (Closes: #768730)
-
- -- Yaroslav Halchenko <debian@onerussian.com>  Thu, 11 Dec 2014 09:33:18 -0500
+ -- Jaakko Leppakangas <jaeilepp@student.jyu.fi>  Thu, 18 Feb 2016 03:39:53 -0500
 
 python-mne (0.8.6+dfsg-1) unstable; urgency=low
 
