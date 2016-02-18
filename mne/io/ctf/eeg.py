@@ -8,9 +8,8 @@
 import numpy as np
 from os.path import join
 from os import listdir
-import warnings
 
-from ...utils import logger
+from ...utils import logger, warn
 from ..constants import FIFF
 from .res4 import _make_ctf_name
 from ...transforms import apply_trans
@@ -63,13 +62,11 @@ def _read_pos(directory, transformations):
     if len(fname) < 1:
         return list()
     elif len(fname) > 1:
-        warnings.warn('    Found multiple pos files. Extra digitizer points '
-                      'not added.')
+        warn('    Found multiple pos files. Extra digitizer points not added.')
         return list()
     logger.info('    Reading digitizer points from %s...' % fname)
     if transformations['t_ctf_head_head'] is None:
-        warnings.warn('    No transformation found. Extra digitizer ponts not '
-                      'added')
+        warn('    No transformation found. Extra digitizer points not added.')
         return list()
     fname = fname[0]
     digs = list()
@@ -79,19 +76,23 @@ def _read_pos(directory, transformations):
             line = line.strip()
             if len(line) > 0:
                 parts = line.decode('utf-8').split()
+                # The lines can have 4 or 5 parts. First part is for the id,
+                # which can be an int or a string. The last three are for xyz
+                # coordinates. The extra part is for additional info
+                # (e.g. 'Pz', 'Cz') which is ignored.
                 if len(parts) not in [4, 5]:
                     continue
                 try:
                     ident = int(parts[0]) + 1000
-                except:
+                except ValueError:  # if id is not an int
                     ident = i
                     i += 1
                 dig = dict(kind=FIFF.FIFFV_POINT_EXTRA)
                 dig['ident'] = ident
                 dig['r'] = list()
-                r = np.array([float(p) for p in parts[-3:]]) / 100.
+                r = np.array([float(p) for p in parts[-3:]]) / 100.  # cm to m
                 if (r * r).sum() > 1e-4:
-                    dig['coord_frame'] = 4
+                    dig['coord_frame'] = FIFF.FIFFV_POINT_EXTRA
                     r = apply_trans(transformations['t_ctf_head_head'], r)
                     dig['r'].append(r)
                     digs.append(dig)
