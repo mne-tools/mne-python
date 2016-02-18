@@ -77,4 +77,4 @@ diff.plot_topomap(times=bestfit_t, ch_type='mag',
                   outlines='skirt', time_format='Difference', colorbar=True,
                   vmin=vmin, vmax=vmax, axes=axes[2])
 plt.suptitle('Comparison of measured and predicted fields '
-             'at {:.0f} ms'.format(bestfit_t*1000.), fontsize=16)
+             'at {:.0f} ms'.format(bestfit_t * 1000.), fontsize=16)
