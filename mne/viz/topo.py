@@ -19,7 +19,6 @@ from ..fixes import normalize_colors
 from ..utils import _clean_names, warn
 
 from ..defaults import _handle_default
-from .topomap import _prepare_topo_plot
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show)
 
@@ -354,7 +353,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     # HACK development version...
     merge_grads = True
-
+    if 'grad' in types_used and merge_grads:
+        types_used = ['grad']
+        picks = [picks[1]]
     for e in evoked:
         for pick, ch_type in zip(picks, types_used):
             e.data[pick] = e.data[pick] * scalings[ch_type]
@@ -362,9 +363,25 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             if ch_type == 'grad' and merge_grads:
                 from ..channels.layout import _merge_grad_data
 
-                # HACK replace mag data with grad_norm!
-                # seems to be doing something meaningful?
-                e.data[picks[0]] = _merge_grad_data(e.data[pick])
+                from ..channels import read_layout
+                from ..channels.layout import _pair_grad_sensors
+                planars = np.sort(_pair_grad_sensors(e.info, layout=layout,
+                                                     exclude=[],
+                                                     topomap_coords=False))
+                layout = read_layout('Vectorview-mag')
+                layout.names = [chn[:-1] + 'x' for chn in layout.names]
+                layout.kind = 'Vectorview-gradnorm'
+                e_gradnorm = e.pick_types(meg='mag', copy=True)
+                for idc, ch in enumerate(e_gradnorm.info['chs']):
+                    ch['ch_name'] = layout.names[idc]
+                    ch['coil_type'] = 3012
+                e_gradnorm.data = _merge_grad_data(e.data[planars])
+
+                # HACK to get rest of code working...
+                evoked = [e_gradnorm]
+                picks = np.arange(len(e_gradnorm.data))
+                info = e_gradnorm.info
+                ylim = dict(grad=(0, 200))
 
     if proj is True and all(e.proj is not True for e in evoked):
         evoked = [e.apply_proj() for e in evoked]
