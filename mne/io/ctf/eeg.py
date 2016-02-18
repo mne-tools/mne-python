@@ -87,12 +87,10 @@ def _read_pos(directory, transformations):
                 except ValueError:  # if id is not an int
                     ident = i
                     i += 1
-                dig = dict(kind=FIFF.FIFFV_POINT_EXTRA)
-                dig['ident'] = ident
-                dig['r'] = list()
+                dig = dict(kind=FIFF.FIFFV_POINT_EXTRA, ident=ident, r=list(),
+                           coord_frame=FIFF.FIFFV_MNE_COORD_CTF_HEAD)
                 r = np.array([float(p) for p in parts[-3:]]) / 100.  # cm to m
                 if (r * r).sum() > 1e-4:
-                    dig['coord_frame'] = FIFF.FIFFV_POINT_EXTRA
                     r = apply_trans(transformations['t_ctf_head_head'], r)
                     dig['r'].append(r)
                     digs.append(dig)
