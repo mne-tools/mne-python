@@ -23,6 +23,7 @@ from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 from ..utils import _mult_cal_one
 
 from ...annotations import Annotations, _combine_annotations
+from ...externals.six import string_types
 from ...utils import check_fname, logger, verbose, warn
 
 
@@ -37,10 +38,11 @@ class Raw(_BaseRaw):
         name of the first file has to be specified. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
         raw_tsss.fif or raw_tsss.fif.gz.
-    allow_maxshield : bool, (default False)
+    allow_maxshield : bool | str (default False)
         allow_maxshield if True, allow loading of data that has been
         processed with Maxshield. Maxshield-processed data should generally
         not be loaded directly, but should be processed using SSS first.
+        Can also be "yes" to load without eliciting a warning.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -182,7 +184,9 @@ class Raw(_BaseRaw):
                         raise ValueError('No raw data in %s' % fname)
                     elif allow_maxshield:
                         info['maxshield'] = True
-                        warn(msg)
+                        if not (isinstance(allow_maxshield, string_types) and
+                                allow_maxshield.startswith('y')):
+                            warn(msg)
                     else:
                         msg += (' Use allow_maxshield=True if you are sure you'
                                 ' want to load the data despite this warning.')
