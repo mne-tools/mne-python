@@ -48,6 +48,7 @@ def test_generalization_across_time():
     """Test time generalization decoding
     """
     from sklearn.svm import SVC
+    from sklearn.base import is_classifier
     # KernelRidge is used for testing 1) regression analyses 2) n-dimensional
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
@@ -344,7 +345,7 @@ def test_generalization_across_time():
         roc_auc_score(y_true, y_pred[:, 0])
 
     # We re testing 3 scenario: default, classifier + predict_proba, regressor
-    scorers = [None, scorer_proba, mean_squared_error]
+    scorers = [None, scorer_proba, None]
     predict_methods = [None, 'predict_proba', None]
     clfs = [svc, svc, reg]
     # Test all combinations
@@ -352,13 +353,29 @@ def test_generalization_across_time():
         for y in ys:
             for n_class in n_classes:
                 for predict_mode in ['cross-validation', 'mean-prediction']:
+                    # Cannot use AUC for n_class > 2
+                    if (predict_method == 'predict_proba' and n_class != 2):
+                        continue
+
                     y_ = y % n_class
+
                     with warnings.catch_warnings(record=True):
                         gat = GeneralizationAcrossTime(
                             cv=2, clf=clf, scorer=scorer,
                             predict_mode=predict_mode)
                         gat.fit(epochs, y=y_)
                         gat.score(epochs, y=y_)
+
+                    # Check that scorer is correctly defined manually and
+                    # automatically.
+                    scorer_name = gat.scorer_.__name__
+                    if scorer is None:
+                        if is_classifier(clf):
+                            assert_equal(scorer_name, 'accuracy_score')
+                        else:
+                            assert_equal(scorer_name, 'mean_squared_error')
+                    else:
+                        assert_equal(scorer_name, scorer.__name__)
 
 
 @requires_sklearn
