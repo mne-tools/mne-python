@@ -53,7 +53,7 @@ def test_generalization_across_time():
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import roc_auc_score, mean_squared_error
+    from sklearn.metrics import roc_auc_score
 
     epochs = make_epochs()
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
