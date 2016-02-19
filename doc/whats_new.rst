@@ -58,7 +58,8 @@ API
 ~~~
 
     - The default `picks=None` in :func:`mne.viz.plot_epochs_image` now only plots the first 5 channels, not all channels, by `Jona Sassenhagen`_
-    - The `mesh_color` parameter in :func:`mne.viz.plot_dipole_locations` has been removed (use `brain_color` instead), by `Marijn van Vliet`_
+
+    - The ``mesh_color`` parameter in :func:`mne.viz.plot_dipole_locations` has been removed (use `brain_color` instead), by `Marijn van Vliet`_
 
     - Deprecated functions :func:`mne.time_frequency.compute_raw_psd` and :func:`mne.time_frequency.compute_epochs_psd`, replaced by :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
 
@@ -67,6 +68,10 @@ API
     - The `'ch_names'` and `'nchan'` fields of the :class:`mne.io.Info` class are now read-only and are automatically updated to accommodate changes in the `'chs'` field, by `Marijn van Vliet`_
 
     - The ``y_pred`` attribute in :func:`mne.decoding.GeneralizationAcrossTime` and :func:`mne.decoding.TimeDecoding` is now a numpy array, by `Jean-Remi King`_
+
+    - The :func:`mne.bem.fit_sphere_to_headshape` function now default to ``dig_kinds='auto'`` which will use extra digitization points, falling back to extra plus eeg digitization points if there not enough extra points are available.
+
+    - The :func:`mne.bem.fit_sphere_to_headshape` now has a ``units`` argument that should be set explicitly. This will default to ``units='mm'`` in 0.12 for backward compatibility but change to ``units='m'`` in 0.13.
 
 .. _changes_0_11:
 

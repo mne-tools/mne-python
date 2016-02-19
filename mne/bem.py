@@ -740,11 +740,11 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
        (isinstance(head_radius, string_types) and head_radius == 'auto'):
         if info is None:
             raise ValueError('Info must not be None for auto mode')
-        head_radius_fit, r0_fit = fit_sphere_to_headshape(info)[:2]
+        head_radius_fit, r0_fit = fit_sphere_to_headshape(info, units='m')[:2]
         if isinstance(r0, string_types):
-            r0 = r0_fit / 1000.
+            r0 = r0_fit
         if isinstance(head_radius, string_types):
-            head_radius = head_radius_fit / 1000.
+            head_radius = head_radius_fit
     sphere = ConductorModel(is_sphere=True, r0=np.array(r0),
                             coord_frame=FIFF.FIFFV_COORD_HEAD)
     sphere['layers'] = list()
@@ -791,43 +791,78 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 # #############################################################################
 # Helpers
 
+_dig_kind_dict = {
+    'cardinal': FIFF.FIFFV_POINT_CARDINAL,
+    'hpi': FIFF.FIFFV_POINT_HPI,
+    'eeg': FIFF.FIFFV_POINT_EEG,
+    'extra': FIFF.FIFFV_POINT_EXTRA,
+}
+_dig_kind_rev = dict((val, key) for key, val in _dig_kind_dict.items())
+_dig_kind_ints = tuple(_dig_kind_dict.values())
+
+
 @verbose
-def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
-                            verbose=None):
+def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
     """Fit a sphere to the headshape points to determine head center
 
     Parameters
     ----------
     info : instance of mne.io.meas_info.Info
         Measurement info.
-    dig_kinds : tuple of int
-        Kind of digitization points to use in the fitting. These can be
-        any kind defined in io.constants.FIFF::
+    dig_kinds : list of str | str
+        Kind of digitization points to use in the fitting. These can be any
+        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
+        be 'auto' (default), which will use only the 'extra' points if
+        enough are available, and if not, uses 'extra' and 'eeg' points.
+    units : str
+        Can be "m" or "mm". The default in 0.12 is "mm" but will be changed
+        to "m" in 0.13.
 
-            FIFFV_POINT_CARDINAL
-            FIFFV_POINT_HPI
-            FIFFV_POINT_EEG
-            FIFFV_POINT_EXTRA
+        .. versionadded:: 0.12
 
-        Defaults to (FIFFV_POINT_EXTRA,).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     radius : float
-        Sphere radius in mm.
+        Sphere radius.
     origin_head: ndarray, shape (3,)
-        Head center in head coordinates (mm).
+        Head center in head coordinates.
     origin_device: ndarray, shape (3,)
-        Head center in device coordinates (mm).
+        Head center in device coordinates.
 
     Notes
     -----
     This function excludes any points that are low and frontal
     (``z < 0 and y > 0``) to improve the fit.
     """
-    # get head digization points of the specified kind
+    if units is None:
+        warn('Please explicitly set the units. In 0.12 units="mm" will '
+             'be used, but this will change to units="m" in 0.13.',
+             DeprecationWarning)
+        units = 'mm'
+    if not isinstance(units, string_types) or units not in ('m', 'mm'):
+        raise ValueError('units must be a "m" or "mm"')
+    if isinstance(dig_kinds, string_types):
+        if dig_kinds == 'auto':
+            # try "extra" first
+            try:
+                return fit_sphere_to_headshape(info, 'extra', units=units)
+            except ValueError:
+                pass
+            return fit_sphere_to_headshape(info, ('extra', 'eeg'), units=units)
+        else:
+            dig_kinds = (dig_kinds,)
+    # convert string args to ints (first make dig_kinds mutable in case tuple)
+    dig_kinds = list(dig_kinds)
+    for di, d in enumerate(dig_kinds):
+        dig_kinds[di] = _dig_kind_dict.get(d, d)
+        if dig_kinds[di] not in _dig_kind_ints:
+            raise ValueError('dig_kinds[#%d] (%s) must be one of %s'
+                             % (di, d, sorted(list(_dig_kind_dict.keys()))))
+
+    # get head digization points of the specified kind(s)
     hsp = [p['r'] for p in info['dig'] if p['kind'] in dig_kinds]
     if any(p['coord_frame'] != FIFF.FIFFV_COORD_HEAD for p in info['dig']):
         raise RuntimeError('Digitization points not in head coordinates, '
@@ -836,9 +871,15 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     # exclude some frontal points (nose etc.)
     hsp = [p for p in hsp if not (p[2] < 0 and p[1] > 0)]
 
-    if len(hsp) == 0:
-        raise ValueError('No head digitization points of the specified '
-                         'kinds (%s) found.' % dig_kinds)
+    if len(hsp) <= 10:
+        kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]
+                               for d in sorted(dig_kinds)])
+        msg = ('Only %s head digitization points of the specified kind%s (%s,)'
+               % (len(hsp), 's' if len(dig_kinds) != 1 else '', kinds_str))
+        if len(hsp) < 4:
+            raise ValueError(msg + ', at least 4 required')
+        else:
+            warn(msg + ', fitting may be inaccurate')
 
     radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
     # compute origin in device coordinates
@@ -863,6 +904,10 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
                 '%0.1f %0.1f %0.1f mm' % tuple(origin_head))
     logger.info('Origin device coordinates:'.ljust(30) +
                 '%0.1f %0.1f %0.1f mm' % tuple(origin_device))
+    if units == 'm':
+        radius /= 1e3
+        origin_head /= 1e3
+        origin_device /= 1e3
 
     return radius, origin_head, origin_device
 
@@ -903,10 +948,10 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
             raise ValueError('origin must be a numerical array, or "auto", '
                              'not %s' % (origin,))
         if coord_frame == 'head':
-            R, origin = fit_sphere_to_headshape(info, verbose=False)[:2]
-            origin /= 1000.
+            R, origin = fit_sphere_to_headshape(info, verbose=False,
+                                                units='m')[:2]
             logger.info('    Automatic origin fit: head of radius %0.1f mm'
-                        % R)
+                        % (R * 1000.,))
             del R
         else:
             origin = (0., 0., 0.)
