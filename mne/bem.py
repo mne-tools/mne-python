@@ -854,7 +854,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
             return fit_sphere_to_headshape(info, ('extra', 'eeg'), units=units)
         else:
             dig_kinds = (dig_kinds,)
-    # convert string args to ints
+    # convert string args to ints (first make dig_kinds mutable in case tuple)
     dig_kinds = list(dig_kinds)
     for di, d in enumerate(dig_kinds):
         dig_kinds[di] = _dig_kind_dict.get(d, d)

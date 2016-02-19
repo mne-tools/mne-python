@@ -177,7 +177,7 @@ def test_fit_sphere_to_headshape():
     # Create points of various kinds
     rad = 0.09
     big_rad = 0.12
-    center = np.array([0.005, -0.01, 0.04])
+    center = np.array([0.0005, -0.01, 0.04])
     dev_trans = np.array([0., -0.005, -0.01])
     dev_center = center - dev_trans
     dig = [
