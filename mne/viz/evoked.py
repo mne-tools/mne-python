@@ -470,7 +470,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
                      proj=False, vline=[0.0], fig_facecolor='k',
                      fig_background=None, axis_facecolor='k', font_color='w',
-                     show=True):
+                     merge_grads=False, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -519,6 +519,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The face color to be used for each sensor plot. Defaults to black.
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to white.
+    merge_grads : bool
+        Whether to use RMS value of gradiometer pairs. Only works for neuromag
+        data. Defaults to False.
     show : bool
         Show figure if True.
 
@@ -534,7 +537,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_facecolor=fig_facecolor,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
-                             font_color=font_color, show=show)
+                             font_color=font_color, merge_grads=merge_grads,
+                             show=show)
 
 
 def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,

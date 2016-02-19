@@ -242,7 +242,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
                       proj=False, vline=[0.0], fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      show=True):
+                      merge_grads=False, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -291,6 +291,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The face color to be used for each sensor plot. Defaults to black.
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to white.
+    merge_grads : bool
+        Whether to use RMS value of gradiometer pairs. Only works for neuromag
+        data. Defaults to False.
     show : bool
         Show figure if True.
 
@@ -352,37 +355,38 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     scalings = _handle_default('scalings', scalings)
     evoked = [e.copy() for e in evoked]
 
-    # HACK development version...
-    merge_grads = True
     if 'grad' in types_used and merge_grads:
+        from ..channels.layout import _pair_grad_sensors
+        picks = _pair_grad_sensors(info, topomap_coords=False)
         types_used = ['grad']
-        picks = [picks[1]]
+
     for e in evoked:
-        for pick, ch_type in zip(picks, types_used):
-            e.data[pick] = e.data[pick] * scalings[ch_type]
-
-            if ch_type == 'grad' and merge_grads:
-                from ..channels.layout import _merge_grad_data
-
-                from ..channels import read_layout
-                from ..channels.layout import _pair_grad_sensors
-                planars = np.sort(_pair_grad_sensors(e.info, layout=layout,
-                                                     exclude=[],
-                                                     topomap_coords=False))
-                layout = read_layout('Vectorview-mag')
-                layout.names = [chn[:-1] + 'x' for chn in layout.names]
-                layout.kind = 'Vectorview-gradnorm'
-                e_gradnorm = e.pick_types(meg='mag', copy=True)
-                for idc, ch in enumerate(e_gradnorm.info['chs']):
-                    ch['ch_name'] = layout.names[idc]
-                    ch['coil_type'] = 3012
-                e_gradnorm.data = _merge_grad_data(e.data[planars])
-
-                # HACK to get rest of code working...
-                evoked = [e_gradnorm]
-                picks = np.arange(len(e_gradnorm.data))
-                info = e_gradnorm.info
-                ylim = dict(grad=(0, 200))
+        if merge_grads:
+            from ..channels.layout import _merge_grad_data
+            data = _merge_grad_data(e.data[picks]) * scalings['grad']
+            e.data = np.zeros(data.shape)
+            ids = list()
+            names = list()
+            pos = list()
+            chs = list()
+            for idx, pick in enumerate(picks[::2]):
+                ids.append(layout.ids[pick])
+                pos.append(layout.pos[pick])
+                ch_name = layout.names[pick][:-1] + 'X'
+                names.append(ch_name)
+                ch = info['chs'][pick]
+                ch['ch_name'] = ch_name
+                chs.append(ch)
+                e.data[idx] = data[idx]
+            picks = [np.arange(len(picks) / 2)]
+            info['chs'] = chs
+            layout.ids = ids
+            layout.names = names
+            layout.pos = np.array(pos)
+            layout.kind = 'Vectorview-custom'
+        else:
+            for pick, ch_type in zip(picks, types_used):
+                e.data[pick] = e.data[pick] * scalings[ch_type]
 
     if proj is True and all(e.proj is not True for e in evoked):
         evoked = [e.apply_proj() for e in evoked]
