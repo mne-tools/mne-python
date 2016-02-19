@@ -87,10 +87,10 @@ def assert_dig_allclose(info_py, info_bin):
                         err_msg='Failure on %s:\n%s\n%s'
                         % (ii, d_py['r'], d_bin['r']))
     if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py):
-        R_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(info_bin,
+        r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(info_bin,
                                                                units='m')
-        R_py, o_head_py, o_dev_py = fit_sphere_to_headshape(info_py, units='m')
-        assert_allclose(R_py, R_bin, atol=1e-6)
+        r_py, o_head_py, o_dev_py = fit_sphere_to_headshape(info_py, units='m')
+        assert_allclose(r_py, r_bin, atol=1e-6)
         assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-6)
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-6)
 

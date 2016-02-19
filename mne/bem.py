@@ -826,11 +826,11 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
     Returns
     -------
     radius : float
-        Sphere radius in mm.
+        Sphere radius.
     origin_head: ndarray, shape (3,)
-        Head center in head coordinates (mm).
+        Head center in head coordinates.
     origin_device: ndarray, shape (3,)
-        Head center in device coordinates (mm).
+        Head center in device coordinates.
 
     Notes
     -----
