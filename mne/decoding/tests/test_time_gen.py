@@ -53,7 +53,7 @@ def test_generalization_across_time():
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import roc_auc_score
+    from sklearn.metrics import roc_auc_score, mean_squared_error
 
     epochs = make_epochs()
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
@@ -66,11 +66,19 @@ def test_generalization_across_time():
         # so we have to build it before hand
         cv_lolo = [(train, test) for train, test in cv.split(
                    X=y_4classes, y=y_4classes, labels=y_4classes)]
+
+        # With sklearn >= 0.17, `clf` can be identified as a regressor, and
+        # the scoring metrics can therefore be automatically assigned.
+        scorer_regress = None
     else:
         from sklearn.cross_validation import (KFold, StratifiedKFold,
                                               ShuffleSplit, LeaveOneLabelOut)
         cv_shuffle = ShuffleSplit(len(epochs))
         cv_lolo = LeaveOneLabelOut(y_4classes)
+
+        # With sklearn < 0.17, `clf` cannot be identified as a regressor, and
+        # therefore the scoring metrics cannot be automatically assigned.
+        scorer_regress = mean_squared_error
     # Test default running
     gat = GeneralizationAcrossTime(picks='foo')
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
@@ -345,7 +353,7 @@ def test_generalization_across_time():
         roc_auc_score(y_true, y_pred[:, 0])
 
     # We re testing 3 scenario: default, classifier + predict_proba, regressor
-    scorers = [None, scorer_proba, None]
+    scorers = [None, scorer_proba, scorer_regress]
     predict_methods = [None, 'predict_proba', None]
     clfs = [svc, svc, reg]
     # Test all combinations
