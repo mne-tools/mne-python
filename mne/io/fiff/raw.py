@@ -185,7 +185,7 @@ class Raw(_BaseRaw):
                     elif allow_maxshield:
                         info['maxshield'] = True
                         if not (isinstance(allow_maxshield, string_types) and
-                                allow_maxshield.startswith('y')):
+                                allow_maxshield == 'yes'):
                             warn(msg)
                     else:
                         msg += (' Use allow_maxshield=True if you are sure you'
