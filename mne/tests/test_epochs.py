@@ -80,8 +80,7 @@ def test_average_movements():
     # usable data
     crop = 0., 10.
     origin = (0., 0., 0.04)
-    with warnings.catch_warnings(record=True):  # MaxShield
-        raw = Raw(fname_raw_move, allow_maxshield=True)
+    raw = Raw(fname_raw_move, allow_maxshield='yes')
     raw.info['bads'] += ['MEG2443']  # mark some bad MEG channel
     raw.crop(*crop, copy=False).load_data()
     raw.filter(None, 20, method='iir')

@@ -161,8 +161,7 @@ def test_movement_compensation():
     assert_meg_snr(raw_sss_mc, raw_sss_mv, 0.6, 1.4)
 
     # some degenerate cases
-    with warnings.catch_warnings(record=True):  # maxshield
-        raw_erm = Raw(erm_fname, allow_maxshield='yes')
+    raw_erm = Raw(erm_fname, allow_maxshield='yes')
     assert_raises(ValueError, maxwell_filter, raw_erm, coord_frame='meg',
                   head_pos=head_pos)  # can't do ERM file
     head_pos_bad = head_pos[:, :9]
@@ -525,8 +524,7 @@ def test_spatiotemporal_maxwell():
 def test_spatiotemporal_only():
     """Test tSSS-only processing"""
     # Load raw testing data
-    with warnings.catch_warnings(record=True):  # maxshield
-        raw = Raw(raw_fname, allow_maxshield=True).crop(0, 2).load_data()
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0, 2).load_data()
     picks = pick_types(raw.info, meg='mag', exclude=())
     power = np.sqrt(np.sum(raw[picks][0] ** 2))
     # basics
