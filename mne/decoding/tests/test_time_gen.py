@@ -48,6 +48,7 @@ def test_generalization_across_time():
     """Test time generalization decoding
     """
     from sklearn.svm import SVC
+    from sklearn.base import is_classifier
     # KernelRidge is used for testing 1) regression analyses 2) n-dimensional
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
@@ -65,11 +66,19 @@ def test_generalization_across_time():
         # so we have to build it before hand
         cv_lolo = [(train, test) for train, test in cv.split(
                    X=y_4classes, y=y_4classes, labels=y_4classes)]
+
+        # With sklearn >= 0.17, `clf` can be identified as a regressor, and
+        # the scoring metrics can therefore be automatically assigned.
+        scorer_regress = None
     else:
         from sklearn.cross_validation import (KFold, StratifiedKFold,
                                               ShuffleSplit, LeaveOneLabelOut)
         cv_shuffle = ShuffleSplit(len(epochs))
         cv_lolo = LeaveOneLabelOut(y_4classes)
+
+        # With sklearn < 0.17, `clf` cannot be identified as a regressor, and
+        # therefore the scoring metrics cannot be automatically assigned.
+        scorer_regress = mean_squared_error
     # Test default running
     gat = GeneralizationAcrossTime(picks='foo')
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
@@ -344,7 +353,7 @@ def test_generalization_across_time():
         roc_auc_score(y_true, y_pred[:, 0])
 
     # We re testing 3 scenario: default, classifier + predict_proba, regressor
-    scorers = [None, scorer_proba, mean_squared_error]
+    scorers = [None, scorer_proba, scorer_regress]
     predict_methods = [None, 'predict_proba', None]
     clfs = [svc, svc, reg]
     # Test all combinations
@@ -352,13 +361,29 @@ def test_generalization_across_time():
         for y in ys:
             for n_class in n_classes:
                 for predict_mode in ['cross-validation', 'mean-prediction']:
+                    # Cannot use AUC for n_class > 2
+                    if (predict_method == 'predict_proba' and n_class != 2):
+                        continue
+
                     y_ = y % n_class
+
                     with warnings.catch_warnings(record=True):
                         gat = GeneralizationAcrossTime(
                             cv=2, clf=clf, scorer=scorer,
                             predict_mode=predict_mode)
                         gat.fit(epochs, y=y_)
                         gat.score(epochs, y=y_)
+
+                    # Check that scorer is correctly defined manually and
+                    # automatically.
+                    scorer_name = gat.scorer_.__name__
+                    if scorer is None:
+                        if is_classifier(clf):
+                            assert_equal(scorer_name, 'accuracy_score')
+                        else:
+                            assert_equal(scorer_name, 'mean_squared_error')
+                    else:
+                        assert_equal(scorer_name, scorer.__name__)
 
 
 @requires_sklearn

@@ -352,11 +352,13 @@ class _GeneralizationAcrossTime(object):
 
         # Check scorer
         self.scorer_ = self.scorer
-        if self.predict_method == "predict":
-            if is_classifier(self.clf):
-                self.scorer_ = accuracy_score
-            elif is_regressor(self.clf):
-                self.scorer_ = mean_squared_error
+        if self.scorer_ is None:
+            # Try to guess which scoring metrics should be used
+            if self.predict_method == "predict":
+                if is_classifier(self.clf):
+                    self.scorer_ = accuracy_score
+                elif is_regressor(self.clf):
+                    self.scorer_ = mean_squared_error
         if not self.scorer_:
             raise ValueError('Could not find a scoring metric for `clf=%s` '
                              ' and `predict_method=%s`. Manually define scorer'
