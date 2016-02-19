@@ -107,7 +107,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, vline=None, font_color='w'):
+               y_label=None, font_color='w'):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
 
@@ -324,75 +324,65 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not all((e.times == times).all() for e in evoked):
         raise ValueError('All evoked.times must be the same')
 
+    evoked = [e.copy() for e in evoked]
     info = evoked[0].info
     ch_names = evoked[0].ch_names
+    scalings = _handle_default('scalings', scalings)
     if not all(e.ch_names == ch_names for e in evoked):
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
+
+    if merge_grads:
+        from ..channels.layout import _merge_grad_data, _pair_grad_sensors
+        picks = _pair_grad_sensors(info, topomap_coords=False)
+        chs = list()
+        for pick in picks[::2]:
+            ch = info['chs'][pick]
+            ch['ch_name'] = ch['ch_name'][:-1] + 'X'
+            chs.append(ch)
+        info['chs'] = chs
+        info['bads'] = []  # bads dropped on pair_grad_sensors
+        new_picks = list()
+        for e in evoked:
+            data = _merge_grad_data(e.data[picks]) * scalings['grad']
+            e.data = data
+            new_picks.append(range(len(data)))
+        picks = new_picks
+        types_used = ['grad']
 
     if layout is None:
         from ..channels.layout import find_layout
         layout = find_layout(info)
 
-    # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
-    chs_in_layout = set(layout.names) & set(ch_names)
-    types_used = set(channel_type(info, ch_names.index(ch))
-                     for ch in chs_in_layout)
-    # remove possible reference meg channels
-    types_used = set.difference(types_used, set('ref_meg'))
-    # one check for all vendors
-    meg_types = set(('mag', 'grad'))
-    is_meg = len(set.intersection(types_used, meg_types)) > 0
-    if is_meg:
-        types_used = list(types_used)[::-1]  # -> restore kwarg order
-        picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
-                 for kk in types_used]
-    else:
-        types_used_kwargs = dict((t, True) for t in types_used)
-        picks = [pick_types(info, meg=False, exclude=[], **types_used_kwargs)]
-    assert isinstance(picks, list) and len(types_used) == len(picks)
-
-    scalings = _handle_default('scalings', scalings)
-    evoked = [e.copy() for e in evoked]
-
-    if 'grad' in types_used and merge_grads:
-        from ..channels.layout import _pair_grad_sensors
-        picks = _pair_grad_sensors(info, topomap_coords=False)
-        types_used = ['grad']
-
-    for e in evoked:
-        if merge_grads:
-            from ..channels.layout import _merge_grad_data
-            data = _merge_grad_data(e.data[picks]) * scalings['grad']
-            e.data = np.zeros(data.shape)
-            ids = list()
-            names = list()
-            pos = list()
-            chs = list()
-            for idx, pick in enumerate(picks[::2]):
-                ids.append(layout.ids[pick])
-                pos.append(layout.pos[pick])
-                ch_name = layout.names[pick][:-1] + 'X'
-                names.append(ch_name)
-                ch = info['chs'][pick]
-                ch['ch_name'] = ch_name
-                chs.append(ch)
-                e.data[idx] = data[idx]
-            picks = [np.arange(len(picks) / 2)]
-            info['chs'] = chs
-            layout.ids = ids
-            layout.names = names
-            layout.pos = np.array(pos)
-            layout.kind = 'Vectorview-custom'
+    if not merge_grads:
+        # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
+        chs_in_layout = set(layout.names) & set(ch_names)
+        types_used = set(channel_type(info, ch_names.index(ch))
+                         for ch in chs_in_layout)
+        # remove possible reference meg channels
+        types_used = set.difference(types_used, set('ref_meg'))
+        # one check for all vendors
+        meg_types = set(('mag', 'grad'))
+        is_meg = len(set.intersection(types_used, meg_types)) > 0
+        if is_meg:
+            types_used = list(types_used)[::-1]  # -> restore kwarg order
+            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
+                     for kk in types_used]
         else:
+            types_used_kwargs = dict((t, True) for t in types_used)
+            picks = [pick_types(info, meg=False, exclude=[],
+                                **types_used_kwargs)]
+        assert isinstance(picks, list) and len(types_used) == len(picks)
+
+        for e in evoked:
             for pick, ch_type in zip(picks, types_used):
                 e.data[pick] = e.data[pick] * scalings[ch_type]
 
-    if proj is True and all(e.proj is not True for e in evoked):
-        evoked = [e.apply_proj() for e in evoked]
-    elif proj == 'interactive':  # let it fail early.
-        for e in evoked:
-            _check_delayed_ssp(e)
+        if proj is True and all(e.proj is not True for e in evoked):
+            evoked = [e.apply_proj() for e in evoked]
+        elif proj == 'interactive':  # let it fail early.
+            for e in evoked:
+                _check_delayed_ssp(e)
 
     if ylim is None:
         def set_ylim(x):
@@ -419,7 +409,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      axis_facecolor=axis_facecolor,
-                     title=title, x_label='Time (s)', vline=vline)
+                     title=title, x_label='Time (s)')
 
     if fig_background is not None:
         add_background_image(fig, fig_background)
