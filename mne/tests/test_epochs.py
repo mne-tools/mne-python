@@ -1275,7 +1275,7 @@ def test_epoch_eq():
                 len(epochs.events))
     drop_log1 = deepcopy(epochs.drop_log)
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
-    epochs.equalize_event_counts(['a', 'b'], copy=False)
+    epochs.equalize_event_counts(['a', 'b'])
     # undo the eq logging
     drop_log2 = [[] if l == ['EQUALIZED_COUNT'] else l for l in
                  epochs.drop_log]
@@ -1289,7 +1289,7 @@ def test_epoch_eq():
     assert_true(new_shapes[3] == new_shapes[3])
     # now with two conditions collapsed
     old_shapes = new_shapes
-    epochs.equalize_event_counts([['a', 'b'], 'c'], copy=False)
+    epochs.equalize_event_counts([['a', 'b'], 'c'])
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(new_shapes[0] + new_shapes[1] == new_shapes[2])
     assert_true(new_shapes[3] == old_shapes[3])
