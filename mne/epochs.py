@@ -1526,7 +1526,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts)
 
-    def equalize_event_counts(self, event_ids, method='mintime', copy=True):
+    def equalize_event_counts(self, event_ids, method='mintime'):
         """Equalize the number of trials in each condition
 
         It tries to make the remaining epochs occurring as close as possible in
@@ -1556,13 +1556,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If 'truncate', events will be truncated from the end of each event
             list. If 'mintime', timing differences between each event list
             will be minimized.
-        copy : bool
-            If True, a copy of epochs will be returned. Otherwise, the
-            function will operate in-place.
 
         Returns
         -------
-        epochs : instance of Epochs
+        self : instance of Epochs
             The modified Epochs instance.
         indices : array of int
             Indices from the original events list that were dropped.
@@ -1582,19 +1579,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         conditions will contribute evenly. E.g., it is possible to end up
         with 70 'Nonspatial' trials, 69 'Left' and 1 'Right'.
         """
-        if copy is True:
-            epochs = self.copy()
-        else:
-            epochs = self
         if len(event_ids) == 0:
             raise ValueError('event_ids must have at least one element')
-        if not epochs._bad_dropped:
-            epochs.drop_bad_epochs()
+        if not self._bad_dropped:
+            self.drop_bad_epochs()
         # figure out how to equalize
         eq_inds = list()
 
         # deal with hierarchical tags
-        ids = epochs.event_id
+        ids = self.event_id
         orig_ids = list(event_ids)
         tagging = False
         if "/" in "".join(ids):
@@ -1624,7 +1617,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             # raise for non-orthogonal tags
             if tagging is True:
-                events_ = [set(epochs[x].events[:, 0]) for x in event_ids]
+                events_ = [set(self[x].events[:, 0]) for x in event_ids]
                 doubles = events_[0].intersection(events_[1])
                 if len(doubles):
                     raise ValueError("The two sets of epochs are "
@@ -1634,18 +1627,18 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         for eq in event_ids:
             eq = np.atleast_1d(eq)
             # eq is now a list of types
-            key_match = np.zeros(epochs.events.shape[0])
+            key_match = np.zeros(self.events.shape[0])
             for key in eq:
-                key_match = np.logical_or(key_match, epochs._key_match(key))
+                key_match = np.logical_or(key_match, self._key_match(key))
             eq_inds.append(np.where(key_match)[0])
 
-        event_times = [epochs.events[e, 0] for e in eq_inds]
+        event_times = [self.events[e, 0] for e in eq_inds]
         indices = _get_drop_indices(event_times, method)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
-        epochs.drop_epochs(indices, reason='EQUALIZED_COUNT')
+        self.drop_epochs(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
-        return epochs, indices
+        return self, indices
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):
@@ -2054,6 +2047,11 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
         If 'truncate', events will be truncated from the end of each event
         list. If 'mintime', timing differences between each event list will be
         minimized.
+
+    Returns
+    -------
+    epochs_list : list of Epochs instances
+        Equalized Epochs instances.
     """
     if not all(isinstance(e, _BaseEpochs) for e in epochs_list):
         raise ValueError('All inputs must be Epochs instances')
@@ -2066,6 +2064,8 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):
         e.drop_epochs(inds, reason='EQUALIZED_COUNT')
+
+    return epochs_list
 
 
 def _get_drop_indices(event_times, method):
