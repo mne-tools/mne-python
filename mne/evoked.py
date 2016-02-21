@@ -18,7 +18,7 @@ from .fixes import in1d
 from .utils import check_fname, logger, verbose, object_hash, _time_mask, warn
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
-from .viz.evoked import (_plot_evoked_white, _joint_plot,
+from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
                          _animate_evoked_topomap)
 
 from .externals.six import string_types
@@ -777,9 +777,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         .. versionadded:: 0.12.0
         """
-        return _joint_plot(self, times=times, title=title, picks=picks,
-                           exclude=exclude, show=show, ts_args=ts_args,
-                           topomap_args=topomap_args)
+        return plot_evoked_joint(self, times=times, title=title, picks=picks,
+                                 exclude=exclude, show=show, ts_args=ts_args,
+                                 topomap_args=topomap_args)
 
     def animate_topomap(self, ch_type='mag', times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True):
