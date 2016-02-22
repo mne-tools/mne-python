@@ -141,23 +141,23 @@ Authors
 
 The committer list for this release is the following (preceded by number of commits):
 
-   171  Eric Larson
-   117  Jaakko Leppakangas
-    58  Jona Sassenhagen
-    52  Mainak Jas
-    46  Alexandre Gramfort
-    33  Denis A. Engemann
-    28  Teon Brooks
-    24  Clemens Brunner
-    23  Christian Brodbeck
-    15  Mark Wronkiewicz
-    10  Jean-Remi King
-     5  Marijn van Vliet
-     3  Fede Raimondo
-     2  Alexander Rudiuk
-     2  emilyps14
-     2  lennyvarghese
-     1  Marian Dovgialo
+  * 171  Eric Larson
+  * 117  Jaakko Leppakangas
+  *  58  Jona Sassenhagen
+  *  52  Mainak Jas
+  *  46  Alexandre Gramfort
+  *  33  Denis A. Engemann
+  *  28  Teon Brooks
+  *  24  Clemens Brunner
+  *  23  Christian Brodbeck
+  *  15  Mark Wronkiewicz
+  *  10  Jean-Remi King
+  *   5  Marijn van Vliet
+  *   3  Fede Raimondo
+  *   2  Alexander Rudiuk
+  *   2  emilyps14
+  *   2  lennyvarghese
+  *   1  Marian Dovgialo
 
 .. _changes_0_10:
 
@@ -229,11 +229,11 @@ Changelog
 
     - Add source space morphing in :func:`morph_source_spaces` and :func:`SourceEstimate.to_original_src` by `Eric Larson`_ and `Denis Engemann`_
 
-   - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
+    - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
 
-   - New ``mne flash_bem`` command to compute BEM surfaces from Flash MRI images by `Lorenzo Desantis`_, `Alex Gramfort`_ and `Eric Larson`_. See :func:`mne.bem.utils.make_flash_bem`.
+    - New ``mne flash_bem`` command to compute BEM surfaces from Flash MRI images by `Lorenzo Desantis`_, `Alex Gramfort`_ and `Eric Larson`_. See :func:`mne.bem.utils.make_flash_bem`.
 
-   - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
+    - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
 
     - Add :func:`mne.report.Report.add_slider_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
 
@@ -278,33 +278,33 @@ Authors
 
 The committer list for this release is the following (preceded by number of commits):
 
-   273  Eric Larson
-   270  Jaakko Leppakangas
-   194  Alexandre Gramfort
-   128  Denis A. Engemann
-   114  Jona Sassenhagen
-   107  Mark Wronkiewicz
-    97  Teon Brooks
-    81  Lorenzo De Santis
-    55  Yousra Bekhti
-    54  Jean-Remi King
-    48  Romain Trachel
-    45  Mainak Jas
-    40  Alexandre Barachant
-    32  Marijn van Vliet
-    26  Jair Montoya
-    22  Chris Holdgraf
-    16  Christopher J. Bailey
-     7  Christian Brodbeck
-     5  Natalie Klein
-     5  Fede Raimondo
-     5  Alan Leggitt
-     5  Roan LaPlante
-     5  Ross Maddox
-     4  Dan G. Wakeman
-     3  Daniel McCloy
-     3  Daniel Strohmeier
-     1  Jussi Nurminen
+   * 273  Eric Larson
+   * 270  Jaakko Leppakangas
+   * 194  Alexandre Gramfort
+   * 128  Denis A. Engemann
+   * 114  Jona Sassenhagen
+   * 107  Mark Wronkiewicz
+   *  97  Teon Brooks
+   *  81  Lorenzo De Santis
+   *  55  Yousra Bekhti
+   *  54  Jean-Remi King
+   *  48  Romain Trachel
+   *  45  Mainak Jas
+   *  40  Alexandre Barachant
+   *  32  Marijn van Vliet
+   *  26  Jair Montoya
+   *  22  Chris Holdgraf
+   *  16  Christopher J. Bailey
+   *   7  Christian Brodbeck
+   *   5  Natalie Klein
+   *   5  Fede Raimondo
+   *   5  Alan Leggitt
+   *   5  Roan LaPlante
+   *   5  Ross Maddox
+   *   4  Dan G. Wakeman
+   *   3  Daniel McCloy
+   *   3  Daniel Strohmeier
+   *   1  Jussi Nurminen
 
 .. _changes_0_9:
 
@@ -512,40 +512,40 @@ Authors
 
 The committer list for this release is the following (preceded by number of commits):
 
-   515  Eric Larson
-   343  Denis A. Engemann
-   304  Alexandre Gramfort
-   300  Teon Brooks
-   142  Mainak Jas
-   119  Jean-Remi King
-    77  Alan Leggitt
-    75  Marijn van Vliet
-    63  Chris Holdgraf
-    57  Yousra Bekhti
-    49  Mark Wronkiewicz
-    44  Christian Brodbeck
-    30  Jona Sassenhagen
-    29  Hari Bharadwaj
-    27  Clément Moutard
-    24  Ingoo Lee
-    18  Marmaduke Woodman
-    16  Martin Luessi
-    10  Jaakko Leppakangas
-     9  Andrew Dykstra
-     9  Daniel Strohmeier
-     7  kjs
-     6  Dan G. Wakeman
-     5  Federico Raimondo
-     3  Basile Pinsard
-     3  Christoph Dinh
-     3  Hafeza Anevar
-     2  Martin Billinger
-     2  Roan LaPlante
-     1  Manoj Kumar
-     1  Matt Tucker
-     1  Romain Trachel
-     1  mads jensen
-     1  sviter
+   * 515  Eric Larson
+   * 343  Denis A. Engemann
+   * 304  Alexandre Gramfort
+   * 300  Teon Brooks
+   * 142  Mainak Jas
+   * 119  Jean-Remi King
+   *  77  Alan Leggitt
+   *  75  Marijn van Vliet
+   *  63  Chris Holdgraf
+   *  57  Yousra Bekhti
+   *  49  Mark Wronkiewicz
+   *  44  Christian Brodbeck
+   *  30  Jona Sassenhagen
+   *  29  Hari Bharadwaj
+   *  27  Clément Moutard
+   *  24  Ingoo Lee
+   *  18  Marmaduke Woodman
+   *  16  Martin Luessi
+   *  10  Jaakko Leppakangas
+   *   9  Andrew Dykstra
+   *   9  Daniel Strohmeier
+   *   7  kjs
+   *   6  Dan G. Wakeman
+   *   5  Federico Raimondo
+   *   3  Basile Pinsard
+   *   3  Christoph Dinh
+   *   3  Hafeza Anevar
+   *   2  Martin Billinger
+   *   2  Roan LaPlante
+   *   1  Manoj Kumar
+   *   1  Matt Tucker
+   *   1  Romain Trachel
+   *   1  mads jensen
+   *   1  sviter
 
 .. _changes_0_8:
 

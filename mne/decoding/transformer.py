@@ -181,7 +181,7 @@ class EpochsVectorizer(TransformerMixin):
 
         Returns
         -------
-        self : instance of ConcatenateChannels
+        self : instance of EpochsVectorizer
             returns the modified instance
         """
         if not isinstance(epochs_data, np.ndarray):

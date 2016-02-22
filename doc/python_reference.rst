@@ -42,7 +42,7 @@ Classes
    preprocessing.ICA
    decoding.CSP
    decoding.Scaler
-   decoding.ConcatenateChannels
+   decoding.EpochsVectorizer
    decoding.FilterEstimator
    decoding.PSDEstimator
    decoding.GeneralizationAcrossTime
@@ -623,7 +623,7 @@ Functions:
    sensitivity_map
    setup_source_space
    setup_volume_source_space
-   write_bem_surface
+   write_bem_surfaces
    write_trans
 
 .. currentmodule:: mne.bem
@@ -939,7 +939,7 @@ Classes:
    :template: class.rst
 
    Scaler
-   ConcatenateChannels
+   EpochsVectorizer
    PSDEstimator
    FilterEstimator
    CSP
