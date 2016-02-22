@@ -517,7 +517,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The color of text in the colorbar and title. Defaults to white.
         merge_grads : bool
             Whether to use RMS value of gradiometer pairs. Only works for
-            neuromag data. Defaults to False.
+            Neuromag data. Defaults to False.
         show : bool
             Show figure if True.
 

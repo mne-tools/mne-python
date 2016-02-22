@@ -520,7 +520,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to white.
     merge_grads : bool
-        Whether to use RMS value of gradiometer pairs. Only works for neuromag
+        Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
     show : bool
         Show figure if True.

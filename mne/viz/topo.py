@@ -228,7 +228,10 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     if x_label is not None:
         plt.xlabel(x_label)
     if y_label is not None:
-        plt.ylabel(y_label)
+        if isinstance(y_label, list):
+            plt.ylabel(y_label[ch_idx])
+        else:
+            plt.ylabel(y_label)
     if colorbar:
         plt.colorbar()
 
@@ -292,7 +295,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to white.
     merge_grads : bool
-        Whether to use RMS value of gradiometer pairs. Only works for neuromag
+        Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
     show : bool
         Show figure if True.
@@ -331,7 +334,6 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not all(e.ch_names == ch_names for e in evoked):
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
-
     if merge_grads:
         from ..channels.layout import _merge_grad_data, _pair_grad_sensors
         picks = _pair_grad_sensors(info, topomap_coords=False)
@@ -349,6 +351,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             new_picks.append(range(len(data)))
         picks = new_picks
         types_used = ['grad']
+        y_label = _handle_default('units')['grad']
 
     if layout is None:
         from ..channels.layout import find_layout
@@ -383,6 +386,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         elif proj == 'interactive':  # let it fail early.
             for e in evoked:
                 _check_delayed_ssp(e)
+        # Y labels for picked plots must be reconstructed
+        y_label = [_handle_default('units')[channel_type(info, ch_idx)] for
+                   ch_idx in range(len(chs_in_layout))]
 
     if ylim is None:
         def set_ylim(x):
@@ -409,7 +415,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      axis_facecolor=axis_facecolor,
-                     title=title, x_label='Time (s)')
+                     title=title, x_label='Time (s)', y_label=y_label)
 
     if fig_background is not None:
         add_background_image(fig, fig_background)
