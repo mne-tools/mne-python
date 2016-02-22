@@ -6,10 +6,13 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from os.path import join
+from os import listdir
 
-from ...utils import logger
+from ...utils import logger, warn
 from ..constants import FIFF
 from .res4 import _make_ctf_name
+from ...transforms import apply_trans
 
 
 _cardinal_dict = dict(nasion=FIFF.FIFFV_POINT_NASION,
@@ -49,3 +52,46 @@ def _read_eeg(directory):
                     eeg['np'] += 1
     logger.info('    Separate EEG position data file read.')
     return eeg
+
+
+def _read_pos(directory, transformations):
+    """Read the .pos file and return eeg positions as digitizer extra points.
+    """
+    fname = [join(directory, f) for f in listdir(directory) if
+             f.endswith('.pos')]
+    if len(fname) < 1:
+        return list()
+    elif len(fname) > 1:
+        warn('    Found multiple pos files. Extra digitizer points not added.')
+        return list()
+    logger.info('    Reading digitizer points from %s...' % fname)
+    if transformations['t_ctf_head_head'] is None:
+        warn('    No transformation found. Extra digitizer points not added.')
+        return list()
+    fname = fname[0]
+    digs = list()
+    i = 2000
+    with open(fname, 'r') as fid:
+        for line in fid:
+            line = line.strip()
+            if len(line) > 0:
+                parts = line.split()
+                # The lines can have 4 or 5 parts. First part is for the id,
+                # which can be an int or a string. The last three are for xyz
+                # coordinates. The extra part is for additional info
+                # (e.g. 'Pz', 'Cz') which is ignored.
+                if len(parts) not in [4, 5]:
+                    continue
+                try:
+                    ident = int(parts[0]) + 1000
+                except ValueError:  # if id is not an int
+                    ident = i
+                    i += 1
+                dig = dict(kind=FIFF.FIFFV_POINT_EXTRA, ident=ident, r=list(),
+                           coord_frame=FIFF.FIFFV_MNE_COORD_CTF_HEAD)
+                r = np.array([float(p) for p in parts[-3:]]) / 100.  # cm to m
+                if (r * r).sum() > 1e-4:
+                    r = apply_trans(transformations['t_ctf_head_head'], r)
+                    dig['r'] = r
+                    digs.append(dig)
+    return digs

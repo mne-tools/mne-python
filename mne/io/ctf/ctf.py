@@ -18,7 +18,7 @@ from ..utils import _mult_cal_one, _blk_read_lims
 
 from .res4 import _read_res4, _make_ctf_name
 from .hc import _read_hc
-from .eeg import _read_eeg
+from .eeg import _read_eeg, _read_pos
 from .trans import _make_ctf_coord_trans_set
 from .info import _compose_meas_info
 from .constants import CTF
@@ -105,10 +105,16 @@ class RawCTF(_BaseRaw):
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations
         eeg = _read_eeg(directory)  # Read the EEG electrode loc info
+
         # Investigate the coil location data to get the coordinate trans
         coord_trans = _make_ctf_coord_trans_set(res4, coils)
+
+        digs = _read_pos(directory, coord_trans)
+
         # Compose a structure which makes fiff writing a piece of cake
         info = _compose_meas_info(res4, coils, coord_trans, eeg)
+        info['dig'] += digs
+
         # Determine how our data is distributed across files
         fnames = list()
         last_samps = list()
