@@ -351,9 +351,38 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     scalings = _handle_default('scalings', scalings)
     evoked = [e.copy() for e in evoked]
+
+    # HACK development version...
+    merge_grads = True
+    if 'grad' in types_used and merge_grads:
+        types_used = ['grad']
+        picks = [picks[1]]
     for e in evoked:
-        for pick, t in zip(picks, types_used):
-            e.data[pick] = e.data[pick] * scalings[t]
+        for pick, ch_type in zip(picks, types_used):
+            e.data[pick] = e.data[pick] * scalings[ch_type]
+
+            if ch_type == 'grad' and merge_grads:
+                from ..channels.layout import _merge_grad_data
+
+                from ..channels import read_layout
+                from ..channels.layout import _pair_grad_sensors
+                planars = np.sort(_pair_grad_sensors(e.info, layout=layout,
+                                                     exclude=[],
+                                                     topomap_coords=False))
+                layout = read_layout('Vectorview-mag')
+                layout.names = [chn[:-1] + 'x' for chn in layout.names]
+                layout.kind = 'Vectorview-gradnorm'
+                e_gradnorm = e.pick_types(meg='mag', copy=True)
+                for idc, ch in enumerate(e_gradnorm.info['chs']):
+                    ch['ch_name'] = layout.names[idc]
+                    ch['coil_type'] = 3012
+                e_gradnorm.data = _merge_grad_data(e.data[planars])
+
+                # HACK to get rest of code working...
+                evoked = [e_gradnorm]
+                picks = np.arange(len(e_gradnorm.data))
+                info = e_gradnorm.info
+                ylim = dict(grad=(0, 200))
 
     if proj is True and all(e.proj is not True for e in evoked):
         evoked = [e.apply_proj() for e in evoked]
