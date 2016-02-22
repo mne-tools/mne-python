@@ -15,7 +15,7 @@ from scipy import linalg
 from scipy.fftpack import fftn, ifftn
 
 from ..fixes import partial
-from ..baseline import _log_rescale, _rescale
+from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask, warn
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
@@ -443,8 +443,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     # needed.
     if times is not None:
         times = times[::decim]
-    _log_rescale(baseline, baseline_mode)
-    power = _rescale(power, times, baseline, baseline_mode, copy=False)
+    power = rescale(power, times, baseline, baseline_mode, copy=False)
     return power
 
 
@@ -505,9 +504,8 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     """Aux Function to prepare tfr computation"""
     from ..viz.utils import _setup_vmin_vmax
 
-    _log_rescale(baseline, mode)
-    if mode is not None and baseline is not None:
-        data = _rescale(data, times, baseline, mode, copy=True)
+    copy = baseline is not None
+    data = rescale(data, times, baseline, mode, copy=copy)
 
     # crop time
     itmin, itmax = None, None
@@ -909,7 +907,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         s += ', channels : %d' % self.data.shape[0]
         return "<AverageTFR  |  %s>" % s
 
-    def apply_baseline(self, baseline, mode='mean'):
+    @verbose
+    def apply_baseline(self, baseline, mode='mean', verbose=None):
         """Baseline correct the data
 
         Parameters
@@ -928,9 +927,10 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             deviation of power during baseline after subtracting the mean,
             power = [power - mean(power_baseline)] / std(power_baseline))
             If None, baseline no correction will be performed.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
         """
-        _log_rescale(baseline, mode)
-        self.data = _rescale(self.data, self.times, baseline, mode, copy=False)
+        self.data = rescale(self.data, self.times, baseline, mode, copy=False)
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean',

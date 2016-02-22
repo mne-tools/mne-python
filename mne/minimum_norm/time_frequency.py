@@ -11,7 +11,7 @@ from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
 from ..time_frequency.multitaper import (dpss_windows, _psd_from_mt,
                                          _psd_from_mt_adaptive, _mt_spectra)
-from ..baseline import _log_rescale, _rescale
+from ..baseline import rescale, _log_rescale
 from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
@@ -142,8 +142,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         power = np.mean(powers[:, idx, :], axis=1)
 
         # Run baseline correction
-        power = _rescale(power, epochs.times[::decim], baseline, baseline_mode,
-                         copy=False)
+        power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
+                        copy=False, verbose=False)
 
         tmin = epochs.times[0]
         tstep = float(decim) / Fs
@@ -368,9 +368,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                                                prepared=False)
 
     # Run baseline correction
-    _log_rescale(baseline)
-    power = _rescale(power, epochs.times[::decim], baseline, baseline_mode,
-                     copy=False)
+    power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
+                    copy=False)
 
     return power, plv
 

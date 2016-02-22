@@ -7,7 +7,7 @@
 
 import numpy as np
 
-from .utils import logger
+from .utils import logger, verbose
 
 
 def _log_rescale(baseline, mode='mean'):
@@ -19,7 +19,8 @@ def _log_rescale(baseline, mode='mean'):
     logger.info(msg)
 
 
-def _rescale(data, times, baseline, mode='mean', copy=True):
+@verbose
+def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     """Rescale aka baseline correct data
 
     Parameters
@@ -46,6 +47,8 @@ def _rescale(data, times, baseline, mode='mean', copy=True):
         same as zscore but data is rendered in log-scale first.
     copy : bool
         Operate on a copy of the data, or in place.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -60,6 +63,7 @@ def _rescale(data, times, baseline, mode='mean', copy=True):
     if mode not in valid_modes:
         raise Exception('mode should be any of : %s' % (valid_modes, ))
 
+    _log_rescale(baseline, mode)
     if baseline is not None:
         bmin, bmax = baseline
         if bmin is None:
