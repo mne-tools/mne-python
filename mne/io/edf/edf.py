@@ -114,6 +114,11 @@ class RawEDF(_BaseRaw):
         annotmap = self._raw_extras[fi]['annotmap']
         subtype = self._raw_extras[fi]['subtype']
 
+        # Interpolating stim chan except it later gets overwritten.
+        if ((not (annot and annotmap or tal_channel is not None) and
+                (stim_channel in sel))):
+            warn('Interpolating stim channel. Events may jitter.')
+
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
         cal = np.array([ch['cal'] for ch in self.info['chs']])
@@ -160,14 +165,11 @@ class RawEDF(_BaseRaw):
                             ch_data = np.hstack([ch_data, [0] * n_missing])
                             ch_data = ch_data[r_sidx:r_eidx]
                         elif ci == stim_channel:
-                            if annot and annotmap or \
-                                    tal_channel is not None:
+                            if annot and annotmap or tal_channel is not None:
                                 # don't bother with resampling the stim ch
                                 # because it gets overwritten later on.
                                 ch_data = np.zeros(n_buf_samp)
                             else:
-                                warn('Interpolating stim channel. Events may '
-                                     'jitter.')
                                 oldrange = np.linspace(0, 1, n_samp + 1, True)
                                 newrange = np.linspace(0, 1, buf_len, False)
                                 newrange = newrange[r_sidx:r_eidx]
