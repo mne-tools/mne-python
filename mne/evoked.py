@@ -9,7 +9,7 @@
 from copy import deepcopy
 import numpy as np
 
-from .baseline import rescale
+from .baseline import _log_rescale, _rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin,
                                 equalize_channels)
@@ -278,7 +278,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if proj:
             self.apply_proj()
         # Run baseline correction
-        self.data = rescale(self.data, times, baseline, 'mean', copy=False)
+        _log_rescale(baseline)
+        self.data = _rescale(self.data, times, baseline, copy=False)
 
     def save(self, fname):
         """Save dataset to file.

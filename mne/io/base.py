@@ -386,8 +386,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                     int(start_file), int(stop_file),
                                     cals, mult)
             offset += n_read
-
-        logger.info('[done]')
         return data
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

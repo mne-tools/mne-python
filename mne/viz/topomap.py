@@ -16,7 +16,7 @@ from functools import partial
 import numpy as np
 from scipy import linalg
 
-from ..baseline import rescale
+from ..baseline import _log_rescale, _rescale
 from ..io.constants import FIFF
 from ..io.pick import pick_types, _picks_by_type
 from ..utils import _clean_names, _time_mask, verbose, logger, warn
@@ -923,9 +923,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         names = None
 
     data = tfr.data
-
-    if mode is not None and baseline is not None:
-        data = rescale(data, tfr.times, baseline, mode, copy=True)
+    _log_rescale(baseline, mode)
+    data = _rescale(data, tfr.times, baseline, mode, copy=True)
 
     # crop time
     itmin, itmax = None, None
