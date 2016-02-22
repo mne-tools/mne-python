@@ -160,8 +160,7 @@ class RawEDF(_BaseRaw):
                             ch_data = np.hstack([ch_data, [0] * n_missing])
                             ch_data = ch_data[r_sidx:r_eidx]
                         elif ci == stim_channel:
-                            if annot and annotmap or \
-                                    tal_channel is not None:
+                            if annot and annotmap or tal_channel is not None:
                                 # don't bother with resampling the stim ch
                                 # because it gets overwritten later on.
                                 ch_data = np.zeros(n_buf_samp)
