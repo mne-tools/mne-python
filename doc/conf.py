@@ -273,7 +273,8 @@ sphinx_gallery_conf = {
     'filename_pattern': '/plot_',
     'examples_dirs'   : ['../examples', '../tutorials'],
     'gallery_dirs'    : ['auto_examples', 'auto_tutorials'],
-    'doc_module': ('sphinx_gallery', 'numpy'),
+    'doc_module': ('mne',),
+    'mod_example_dir' : 'generated',
     'reference_url': {
         'mne': None,
         'matplotlib': 'http://matplotlib.org',
@@ -281,5 +282,5 @@ sphinx_gallery_conf = {
         'scipy': 'http://docs.scipy.org/doc/scipy-0.11.0/reference',
         'mayavi': 'http://docs.enthought.com/mayavi/mayavi'},
     'find_mayavi_figures': True,
-    'default_thumb_file': '_static/mne_helmet.png',
+    'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
     }
