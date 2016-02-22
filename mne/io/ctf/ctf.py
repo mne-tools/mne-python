@@ -113,7 +113,7 @@ class RawCTF(_BaseRaw):
 
         # Compose a structure which makes fiff writing a piece of cake
         info = _compose_meas_info(res4, coils, coord_trans, eeg)
-        if len(digs):
+        if len(digs) > 0:
             info['dig'] += digs
 
         # Determine how our data is distributed across files

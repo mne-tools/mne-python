@@ -92,6 +92,6 @@ def _read_pos(directory, transformations):
                 r = np.array([float(p) for p in parts[-3:]]) / 100.  # cm to m
                 if (r * r).sum() > 1e-4:
                     r = apply_trans(transformations['t_ctf_head_head'], r)
-                    dig['r'].append(r)
+                    dig['r'] = r
                     digs.append(dig)
     return digs
