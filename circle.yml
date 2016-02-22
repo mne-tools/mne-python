@@ -55,7 +55,7 @@ dependencies:
 test:
   override:
     # Some examples take longer than 10 minutes to run.
-    - if [ -n "${RUN_NIGHTLY_BUILD}" ]; then cd doc && make html_dev; fi;:
+    - if [ -n "${RUN_NIGHTLY_BUILD}" ]; then cd doc && make html_dev-pattern PATTERN='/time_frequency/plot_' && make html_dev-pattern PATTERN='/examples/plot_\|/tutorials/plot_\|/connectivity/plot_\|/datasets/plot_\|/decoding/plot_\|/forward/plot_\|/inverse/plot_\|/io/plot_\|/preprocessing/plot_\|/realtime/plot_\|/simulation/plot_\|/stats/plot_\|/visualization/plot_'; fi:
         timeout: 1500
 
 general:
