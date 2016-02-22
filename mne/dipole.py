@@ -36,14 +36,15 @@ class Dipole(object):
 
     Used to store positions, orientations, amplitudes, times, goodness of fit
     of dipoles, typically obtained with Neuromag/xfit, mne_dipole_fit
-    or certain inverse solvers.
+    or certain inverse solvers. Note that dipole position vectors are given in
+    the head coordinate frame.
 
     Parameters
     ----------
     times : array, shape (n_dipoles,)
         The time instants at which each dipole was fitted (sec).
     pos : array, shape (n_dipoles, 3)
-        The dipoles positions (m).
+        The dipoles positions (m) in head coordinates.
     amplitude : array, shape (n_dipoles,)
         The amplitude of the dipoles (nAm).
     ori : array, shape (n_dipoles, 3)
@@ -76,6 +77,7 @@ class Dipole(object):
             The name of the .dip file.
         """
         fmt = "  %7.1f %7.1f %8.2f %8.2f %8.2f %8.3f %8.3f %8.3f %8.3f %6.1f"
+        # NB CoordinateSystem is hard-coded as Head here
         with open(fname, 'wb') as fid:
             fid.write('# CoordinateSystem "Head"\n'.encode('utf-8'))
             fid.write('#   begin     end   X (mm)   Y (mm)   Z (mm)'
@@ -214,7 +216,6 @@ class Dipole(object):
 
 # #############################################################################
 # IO
-
 @verbose
 def read_dipole(fname, verbose=None):
     """Read .dip file from Neuromag/xfit or MNE
@@ -609,6 +610,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         inner_skull = _bem_find_surface(bem, 'inner_skull')
         inner_skull = inner_skull.copy()
         R, r0 = _fit_sphere(inner_skull['rr'], disp=False)
+        # r0 back to head frame for logging
         r0 = apply_trans(mri_head_t['trans'], r0[np.newaxis, :])[0]
         logger.info('Grid origin      : '
                     '%6.1f %6.1f %6.1f mm rad = %6.1f mm.'
@@ -621,7 +623,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
             R = bem['layers'][0]['rad']
         else:
             R = np.inf
-        inner_skull = [R, r0]
+        inner_skull = [R, r0]  # NB sphere model defined in head frame
     r0_mri = apply_trans(invert_transform(mri_head_t)['trans'],
                          r0[np.newaxis, :])[0]
 
@@ -687,6 +689,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     guess_src = _make_guesses(inner_skull, r0_mri,
                               guess_grid, guess_exclude, guess_mindist,
                               n_jobs=n_jobs)[0]
+
+    # inner_skull and grid coordinates go from mri to head frame
     if isinstance(inner_skull, dict):
         transform_surface_to(inner_skull, 'head', mri_head_t)
     transform_surface_to(guess_src, 'head', mri_head_t)
@@ -696,6 +700,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     fwd_data = dict(coils_list=[megcoils, eegels], infos=[meg_info, None],
                     ccoils_list=[compcoils, None], coil_types=['meg', 'eeg'],
                     inner_skull=inner_skull)
+    # fwd_data['inner_skull'] in head frame, bem in mri, confusing...
     _prep_field_computation(guess_src['rr'], bem, fwd_data, n_jobs,
                             verbose=False)
     guess_fwd = _dipole_forwards(fwd_data, whitener, guess_src['rr'],

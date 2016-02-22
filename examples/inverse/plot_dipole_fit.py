@@ -10,14 +10,22 @@ For a comparison of fits between MNE-C and mne-python, see:
 
     https://gist.github.com/Eric89GXL/ca55f791200fe1dc3dd2
 
+Note that for 3D graphics you may need to choose a specific IPython backend,
+such as:
+`%matplotlib qt` or `%matplotlib wx`
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
 from os import path as op
+import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
+from mne.forward import make_forward_dipole
+from mne.evoked import combine_evoked
+from mne.simulation import simulate_evoked
 
 print(__doc__)
 
@@ -39,5 +47,34 @@ evoked.crop(0.07, 0.08)
 # Fit a dipole
 dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 
-# Plot the result
+# Plot the result in 3D brain
 dip.plot_locations(fname_trans, 'sample', subjects_dir)
+
+# Calculate and visualise magnetic field predicted by dipole with maximum GOF
+# and compare to the measured data, highlighting the ipsilateral (right) source
+stc, fwd = make_forward_dipole(dip, fname_bem, evoked.info, fname_trans)
+pred_evoked = simulate_evoked(fwd, stc, evoked.info, None, snr=np.inf)
+
+# find time point with highes GOF to plot
+bestfit_t = dip.times[np.argmax(dip.gof)]
+# rememeber to create a subplot for the colorbar
+fig, axes = plt.subplots(nrows=1, ncols=4, figsize=[10., 3.4])
+vmin, vmax = -400, 400  # make sure each plot has same colour range
+
+# first plot the topography at the time of the best fitting (single) dipole
+evoked.plot_topomap(times=bestfit_t, ch_type='mag', outlines='skirt',
+                    time_format='Measured field', colorbar=False,
+                    vmin=vmin, vmax=vmax, axes=axes[0])
+
+# compare this to the predicted field
+pred_evoked.plot_topomap(times=bestfit_t, ch_type='mag', outlines='skirt',
+                         time_format='Predicted field', colorbar=False,
+                         vmin=vmin, vmax=vmax, axes=axes[1])
+
+# Subtract predicted from measured data (apply equal weights)
+diff = combine_evoked([evoked, pred_evoked], [1, -1])
+diff.plot_topomap(times=bestfit_t, ch_type='mag',
+                  outlines='skirt', time_format='Difference', colorbar=True,
+                  vmin=vmin, vmax=vmax, axes=axes[2])
+plt.suptitle('Comparison of measured and predicted fields '
+             'at {:.0f} ms'.format(bestfit_t * 1000.), fontsize=16)

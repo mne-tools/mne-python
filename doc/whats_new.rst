@@ -28,6 +28,8 @@ Changelog
 
     - :func:`mne.decoding.GeneralizationAcrossTime` accepts non-deterministic cross-validations, by `Jean-Remi King`_
 
+    - Add creating forward operator for dipole object :func:`mne.forward.make_forward_dipole` by `Chris Bailey`_
+
 BUG
 ~~~
 
