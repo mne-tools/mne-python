@@ -5,6 +5,7 @@
 import os
 from os import path as op
 import shutil
+import warnings
 
 import numpy as np
 from nose.tools import assert_raises, assert_true
@@ -82,7 +83,8 @@ def test_read_ctf():
     shutil.copytree(ctf_eeg_fname, ctf_no_hc_fname)
     remove_base = op.join(ctf_no_hc_fname, op.basename(ctf_fname_catch[:-3]))
     os.remove(remove_base + '.hc')
-    assert_raises(RuntimeError, read_raw_ctf, ctf_no_hc_fname)  # no coord tr
+    with warnings.catch_warnings(record=True):  # no coord tr
+        assert_raises(RuntimeError, read_raw_ctf, ctf_no_hc_fname)
     os.remove(remove_base + '.eeg')
     shutil.copy(op.join(ctf_dir, 'catch-alp-good-f.ds_nohc_raw.fif'),
                 op.join(temp_dir, 'no_hc', 'catch-alp-good-f.ds_raw.fif'))

@@ -75,7 +75,7 @@ def _read_pos(directory, transformations):
         for line in fid:
             line = line.strip()
             if len(line) > 0:
-                parts = line.decode('utf-8').split()
+                parts = line.split()
                 # The lines can have 4 or 5 parts. First part is for the id,
                 # which can be an int or a string. The last three are for xyz
                 # coordinates. The extra part is for additional info
