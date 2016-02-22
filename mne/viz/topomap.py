@@ -361,7 +361,7 @@ def _plot_sensors(pos_x, pos_y, sensors, ax):
         ax.plot(pos_x, pos_y, sensors)
 
 
-def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
+def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
                  contours=6, image_interp='bilinear', show=True,
@@ -382,8 +382,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         The value specifying the upper bound of the color range.
         If None, the maximum absolute value is used. If callable, the output
         equals vmax(data). Defaults to None.
-    cmap : matplotlib colormap
-        Colormap.
+    cmap : matplotlib colormap | None
+        Colormap to use. If None, 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
@@ -481,7 +482,10 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         raise ValueError("Data and pos need to be of same length. Got data of "
                          "length %s, pos of length %s" % (len(data), len(pos)))
 
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    norm = min(data) >= 0
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
+    if cmap is None:
+        cmap = 'Reds' if norm else 'RdBu_r'
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
 
@@ -553,7 +557,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                                  transform=ax.transData)
     if _is_default_outlines or patch is not None:
         im.set_clip_path(patch_)
-        # ax.set_clip_path(patch_)
         if cont is not None:
             for col in cont.collections:
                 col.set_clip_path(patch_)
@@ -987,7 +990,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 
 def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
-                        vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
+                        vmin=None, vmax=None, cmap=None, sensors=True,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
                         res=64, size=1, cbar_fmt='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
@@ -1024,9 +1027,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         The value specifying the upper bound of the color range.
         If None, the maximum absolute value is used. If callable, the output
         equals vmax(data). Defaults to None.
-    cmap : matplotlib colormap
-        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-        'Reds'.
+    cmap : matplotlib colormap | None
+        Colormap to use. If None, 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
@@ -1201,8 +1204,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
-
     images, contours_ = [], []
 
     if mask is not None:
@@ -1249,7 +1250,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         if unit is not None:
             cax.set_title(unit)
         cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
-        cbar.set_ticks([vmin, 0, vmax])
+        cbar.set_ticks([cbar.vmin, 0, cbar.vmax])
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)

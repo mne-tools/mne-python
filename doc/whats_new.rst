@@ -28,6 +28,8 @@ Changelog
 
     - :func:`mne.decoding.GeneralizationAcrossTime` accepts non-deterministic cross-validations, by `Jean-Remi King`_
 
+    - Add plotting RMS of gradiometer pairs in :func:`mne.viz.plot_evoked_topo` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
@@ -53,6 +55,7 @@ BUG
 
     - Fix bug when specifying irregular ``train_times['slices']`` in :func:`mne.decoding.GeneralizationAcrossTime`, by `Jean-Remi King`_
 
+    - Fix colorbar range on norm data by `Jaakko Leppakangas`_
 
 API
 ~~~

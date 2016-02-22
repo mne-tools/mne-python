@@ -17,7 +17,7 @@ import numpy as np
 from ..io.pick import channel_type, pick_types
 from ..fixes import normalize_colors
 from ..utils import _clean_names, warn
-
+from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show)
@@ -75,7 +75,6 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     fig.set_facecolor(fig_facecolor)
     if layout is None:
-        from ..channels import find_layout
         layout = find_layout(info)
 
     if on_pick is not None:
@@ -335,7 +334,6 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
     if merge_grads:
-        from ..channels.layout import _merge_grad_data, _pair_grad_sensors
         picks = _pair_grad_sensors(info, topomap_coords=False)
         chs = list()
         for pick in picks[::2]:
@@ -343,7 +341,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             ch['ch_name'] = ch['ch_name'][:-1] + 'X'
             chs.append(ch)
         info['chs'] = chs
-        info['bads'] = []  # bads dropped on pair_grad_sensors
+        info['bads'] = list()  # bads dropped on pair_grad_sensors
         new_picks = list()
         for e in evoked:
             data = _merge_grad_data(e.data[picks]) * scalings['grad']
@@ -354,7 +352,6 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         y_label = _handle_default('units')['grad']
 
     if layout is None:
-        from ..channels.layout import find_layout
         layout = find_layout(info)
 
     if not merge_grads:
@@ -555,7 +552,6 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     if vmax is None:
         vmax = data.max()
     if layout is None:
-        from ..channels.layout import find_layout
         layout = find_layout(epochs.info)
 
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
