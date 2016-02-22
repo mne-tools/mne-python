@@ -164,18 +164,18 @@ def test_movement_compensation():
     raw_erm = Raw(erm_fname, allow_maxshield='yes')
     assert_raises(ValueError, maxwell_filter, raw_erm, coord_frame='meg',
                   head_pos=head_pos)  # can't do ERM file
-    head_pos_bad = head_pos[:, :9]
     assert_raises(ValueError, maxwell_filter, raw,
-                  head_pos=head_pos_bad)  # bad shape
-    head_pos_bad = 'foo'
-    assert_raises(TypeError, maxwell_filter, raw,
-                  head_pos=head_pos_bad)  # bad type
-    head_pos_bad = head_pos[::-1]
-    assert_raises(ValueError, maxwell_filter, raw,
-                  head_pos=head_pos_bad)
+                  head_pos=head_pos[:, :9])  # bad shape
+    assert_raises(TypeError, maxwell_filter, raw, head_pos='foo')  # bad type
+    assert_raises(ValueError, maxwell_filter, raw, head_pos=head_pos[::-1])
     head_pos_bad = head_pos.copy()
-    head_pos_bad[0, 0] = 1.  # bad time given the first_samp...
+    head_pos_bad[0, 0] = raw.first_samp / raw.info['sfreq'] - 1e-2
     assert_raises(ValueError, maxwell_filter, raw, head_pos=head_pos_bad)
+    # make sure numerical error doesn't screw it up, though
+    head_pos_bad[0, 0] = raw.first_samp / raw.info['sfreq'] - 1e-4
+    raw_sss_tweak = maxwell_filter(raw, head_pos=head_pos_bad,
+                                   origin=mf_head_origin)
+    assert_meg_snr(raw_sss_tweak, raw_sss, 2., 10.)
 
 
 @slow_test
