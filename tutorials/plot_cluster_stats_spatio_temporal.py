@@ -148,7 +148,7 @@ p_threshold = 0.001
 t_threshold = -stats.distributions.t.ppf(p_threshold / 2., n_subjects - 1)
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
-    spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=2,
+    spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=1,
                                        threshold=t_threshold)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).
