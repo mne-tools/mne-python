@@ -219,7 +219,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
             dpss[2 * i] *= -1
     # rather than test the sign of one point, test the sign of the
     # linear slope up to the first (largest) peak
-    pk = np.argmax(np.abs(dpss[1::2, :N//2]), axis=1)
+    pk = np.argmax(np.abs(dpss[1::2, :N // 2]), axis=1)
     for i, p in enumerate(pk):
         if np.sum(dpss[2 * i + 1, :p]) < 0:
             dpss[2 * i + 1] *= -1
