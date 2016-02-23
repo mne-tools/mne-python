@@ -19,6 +19,7 @@ from scipy import io
 import numpy as np
 
 from mne import pick_types
+from mne.datasets import testing
 from mne.externals.six import iterbytes
 from mne.utils import _TempDir, run_tests_if_main, requires_pandas
 from mne.io import read_raw_edf, Raw
@@ -39,6 +40,9 @@ edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 edf_uneven_eeglab_path = op.join(data_dir, 'test_uneven_samp.mat')
 edf_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.edf')
 edf_txt_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.txt')
+
+data_path = testing.data_path(download=False)
+edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
 
 
 eog = ['REOG', 'LEOG', 'IEOG']
@@ -101,6 +105,7 @@ def test_edf_data():
     assert_array_equal(edf_events, events)
 
 
+@testing.requires_testing_data
 def test_stim_channel():
     """Test reading raw edf files with stim channel"""
     raw_py = read_raw_edf(edf_path, misc=range(-4, 0), stim_channel=139,
@@ -134,6 +139,16 @@ def test_stim_channel():
     assert_array_equal(data_py, data_eeglab)
 
     assert_raises(RuntimeError, read_raw_edf, edf_path, preload=False)
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw = read_raw_edf(edf_stim_resamp_path, verbose=True)
+    assert_equal(len(w), 1)
+    assert_true('Events may jitter' in str(w[0].message))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw[:]
+    assert_equal(len(w), 0)
 
 
 def test_parse_annotation():
