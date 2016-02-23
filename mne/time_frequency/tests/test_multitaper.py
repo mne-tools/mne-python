@@ -1,6 +1,6 @@
 import numpy as np
 from nose.tools import assert_raises
-from numpy.testing import assert_array_almost_equal, assert_equal
+from numpy.testing import assert_array_almost_equal
 from distutils.version import LooseVersion
 
 from mne.time_frequency import psd_multitaper
@@ -32,9 +32,6 @@ def test_dpss_windows():
 
     assert_array_almost_equal(dpss, dpss_ni)
     assert_array_almost_equal(eigs, eigs_ni)
-
-    dpss, _ = dpss_windows(245411, 4, 8, False, 1000)
-    assert_equal(dpss.shape[-1], 245411)
 
 
 @requires_nitime
