@@ -144,7 +144,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     This class provides basic functionality and should never be instantiated
     directly. See Epochs below for an explanation of the parameters.
     """
-    def __init__(self, info, data, events, event_id, tmin, tmax,
+    def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None,
                  picks=None, name='Unknown', reject=None, flat=None,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
@@ -1689,9 +1689,9 @@ class Epochs(_BaseEpochs):
         and a dict is created with string integer names corresponding
         to the event id integers.
     tmin : float
-        Start time before event.
+        Start time before event. If nothing is provided, defaults to -0.2
     tmax : float
-        End time after event.
+        End time after event. If nothing is provided, defaults to 0.5
     baseline : None or tuple of length 2 (default (None, 0))
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -1835,9 +1835,9 @@ class Epochs(_BaseEpochs):
     mne.Epochs.equalize_event_counts
     """
     @verbose
-    def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
-                 picks=None, name='Unknown', preload=False, reject=None,
-                 flat=None, proj=True, decim=1, reject_tmin=None,
+    def __init__(self, raw, events, event_id=None, tmin=-0.2, tmax=0.5,
+                 baseline=(None, 0), picks=None, name='Unknown', preload=False,
+                 reject=None, flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=True,
                  on_missing='error', verbose=None):
         if not isinstance(raw, _BaseRaw):
@@ -1888,7 +1888,7 @@ class EpochsArray(_BaseEpochs):
         If some events don't match the events of interest as specified
         by event_id, they will be marked as 'IGNORED' in the drop log.
     tmin : float
-        Start time before event.
+        Start time before event. If nothing provided, defaults to -0.2.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
         the keys can later be used to access associated events. Example:

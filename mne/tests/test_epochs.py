@@ -1979,4 +1979,13 @@ def test_seeg():
     assert_equal(len(picks), n_channels)
 
 
+def test_default_values():
+    """Test default event_id, tmax tmin values are working correctly"""
+    raw, events = _get_data()[:2]
+    epoch_1 = Epochs(raw, events[:1], preload=True)
+    epoch_2 = Epochs(raw, events[:1], event_id=None, tmin=-0.2, tmax=0.5,
+                     preload=True)
+    assert_equal(hash(epoch_1), hash(epoch_2))
+
+
 run_tests_if_main()

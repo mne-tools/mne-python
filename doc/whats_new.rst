@@ -76,6 +76,8 @@ API
 
     - The :func:`mne.bem.fit_sphere_to_headshape` now has a ``units`` argument that should be set explicitly. This will default to ``units='mm'`` in 0.12 for backward compatibility but change to ``units='m'`` in 0.13.
 
+    - Added default parameters in Epochs class namely ``event_id=None``, ``tmin=-0.2`` and ``tmax=0.5``.
+
 .. _changes_0_11:
 
 Version 0.11
