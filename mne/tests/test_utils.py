@@ -283,7 +283,6 @@ def test_logging():
 
     # now go the other way (printing default on)
     set_log_file(test_name)
-    assert_equal(len(logger.handlers), 2)  # stream, file
     set_log_level('INFO')
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')

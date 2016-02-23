@@ -276,9 +276,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._dtype_ = dtype
         self.annotations = None
         # If we have True or a string, actually do the preloading
+        self._update_times()
         if load_from_disk:
             self._preload_data(preload)
-        self._update_times()
 
     @property
     def _dtype(self):
