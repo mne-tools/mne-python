@@ -305,7 +305,6 @@ def test_logging():
         assert_equal(len(w), 0)
         set_log_file(test_name)
     assert_equal(len(w), 1)
-    assert_equal(len(logger.handlers), 2)  # stream, file
     assert_true('test_utils.py' in w[0].filename)
     evoked = Evoked(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
