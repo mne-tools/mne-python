@@ -17,7 +17,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _check_mayavi_version, requires_mayavi,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
-                       _get_call_line, compute_corr, sys_info, verbose)
+                       _get_call_line, compute_corr, sys_info, verbose, logger)
 from mne.io import show_fiff
 from mne import Evoked
 from mne.externals.six.moves import StringIO
@@ -248,6 +248,13 @@ def test_logging():
         old_lines = clean_lines(old_log_file.readlines())
     with open(fname_log_2, 'r') as old_log_file_2:
         old_lines_2 = clean_lines(old_log_file_2.readlines())
+    # we changed our logging a little bit
+    old_lines = [o.replace('No baseline correction applied...',
+                           'No baseline correction applied')
+                 for o in old_lines]
+    old_lines_2 = [o.replace('No baseline correction applied...',
+                             'No baseline correction applied')
+                   for o in old_lines_2]
 
     if op.isfile(test_name):
         os.remove(test_name)
@@ -276,6 +283,7 @@ def test_logging():
 
     # now go the other way (printing default on)
     set_log_file(test_name)
+    assert_equal(len(logger.handlers), 2)  # stream, file
     set_log_level('INFO')
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
@@ -298,6 +306,7 @@ def test_logging():
         assert_equal(len(w), 0)
         set_log_file(test_name)
     assert_equal(len(w), 1)
+    assert_equal(len(logger.handlers), 2)  # stream, file
     assert_true('test_utils.py' in w[0].filename)
     evoked = Evoked(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:

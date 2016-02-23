@@ -278,7 +278,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if proj:
             self.apply_proj()
         # Run baseline correction
-        self.data = rescale(self.data, times, baseline, 'mean', copy=False)
+        self.data = rescale(self.data, times, baseline, copy=False)
 
     def save(self, fname):
         """Save dataset to file.

@@ -10,8 +10,17 @@ import numpy as np
 from .utils import logger, verbose
 
 
+def _log_rescale(baseline, mode='mean'):
+    """Helper to log the rescaling method"""
+    if baseline is not None:
+        msg = 'Applying baseline correction (mode: %s)' % mode
+    else:
+        msg = 'No baseline correction applied'
+    logger.info(msg)
+
+
 @verbose
-def rescale(data, times, baseline, mode, verbose=None, copy=True):
+def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     """Rescale aka baseline correct data
 
     Parameters
@@ -36,10 +45,10 @@ def rescale(data, times, baseline, mode, verbose=None, copy=True):
         power = [power - mean(power_baseline)] / std(power_baseline)).
         logratio is the same an mean but in log-scale, zlogratio is the
         same as zscore but data is rendered in log-scale first.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     copy : bool
         Operate on a copy of the data, or in place.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -54,8 +63,8 @@ def rescale(data, times, baseline, mode, verbose=None, copy=True):
     if mode not in valid_modes:
         raise Exception('mode should be any of : %s' % (valid_modes, ))
 
+    _log_rescale(baseline, mode)
     if baseline is not None:
-        logger.info("Applying baseline correction ... (mode: %s)" % mode)
         bmin, bmax = baseline
         if bmin is None:
             imin = 0
@@ -90,8 +99,5 @@ def rescale(data, times, baseline, mode, verbose=None, copy=True):
             data = np.log10(data)
             std = np.std(data[..., imin:imax], axis=-1)[..., None]
             data /= std
-
-    else:
-        logger.info("No baseline correction applied...")
 
     return data

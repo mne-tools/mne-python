@@ -323,10 +323,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if start >= stop:
             raise ValueError('No data in this range')
 
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
-                    (start, stop - 1, start / float(self.info['sfreq']),
-                     (stop - 1) / float(self.info['sfreq'])))
-
         #  Initialize the data and calibration vector
         n_sel_channels = self.info['nchan'] if sel is None else len(sel)
         # convert sel to a slice if possible for efficiency
@@ -386,8 +382,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                     int(start_file), int(stop_file),
                                     cals, mult)
             offset += n_read
-
-        logger.info('[done]')
         return data
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -441,10 +435,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     @verbose
-    def _preload_data(self, preload, verbose=False):
+    def _preload_data(self, preload, verbose=None):
         """This function actually preloads the data"""
         data_buffer = preload if isinstance(preload, (string_types,
                                                       np.ndarray)) else None
+        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
+                    (0, len(self.times) - 1, 0., self.times[-1]))
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info['nchan']
         self.preload = True

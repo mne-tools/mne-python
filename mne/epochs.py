@@ -32,7 +32,7 @@ from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _aspect_rev
-from .baseline import rescale
+from .baseline import rescale, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import resample, detrend, FilterMixin
@@ -252,7 +252,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     raise ValueError(err)
         if tmin > tmax:
             raise ValueError('tmin has to be less than or equal to tmax')
-
+        _log_rescale(baseline)
         self.baseline = baseline
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
@@ -440,7 +440,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            ref_meg=True, eog=True, ecg=True, seeg=True,
                            emg=True, exclude=[])
         data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline,
-                                    'mean', copy=False)
+                                    copy=False)
         self.baseline = baseline
 
     def _reject_setup(self, reject, flat):
@@ -551,7 +551,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            ref_meg=True, eog=True, ecg=True, seeg=True,
                            emg=True, exclude=[])
         epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
-                               'mean', copy=False, verbose=verbose)
+                               copy=False, verbose=False)
 
         # handle offset
         if self._offset is not None:
@@ -1165,6 +1165,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             # we start out with an empty array, allocate only if necessary
             data = np.empty((0, len(self.info['ch_names']), len(self.times)))
+            logger.info('Loading data for %s events and %s original time '
+                        'points ...' % (n_events, len(self._raw_times)))
         if self._bad_dropped:
             if not out:
                 return
