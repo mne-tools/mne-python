@@ -1165,6 +1165,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             # we start out with an empty array, allocate only if necessary
             data = np.empty((0, len(self.info['ch_names']), len(self.times)))
+            logger.info('Loading data from for %s events and %s original time '
+                        'points ...' % (n_events, len(self._raw_times)))
         if self._bad_dropped:
             if not out:
                 return

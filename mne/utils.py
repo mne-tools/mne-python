@@ -970,7 +970,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
             https://docs.python.org/dev/howto/logging.html
 
         e.g., "%(asctime)s - %(levelname)s - %(message)s".
-    overwrite : bool, or None
+    overwrite : bool | None
         Overwrite the log file (if it exists). Otherwise, statements
         will be appended to the log (default). None is the same as False,
         but additionally raises a warning to notify the user that log
@@ -979,9 +979,11 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger = logging.getLogger('mne')
     handlers = logger.handlers
     for h in handlers:
-        if isinstance(h, logging.FileHandler):
-            h.close()
-        logger.removeHandler(h)
+        # only remove our handlers (get along nicely with nose)
+        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
+            if isinstance(h, logging.FileHandler):
+                h.close()
+            logger.removeHandler(h)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
             # Don't use warn() here because we just want to
