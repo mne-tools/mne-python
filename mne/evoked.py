@@ -469,7 +469,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   border='none', ylim=None, scalings=None, title=None,
                   proj=False, vline=[0.0], fig_facecolor='k',
                   fig_background=None, axis_facecolor='k', font_color='w',
-                  show=True):
+                  merge_grads=False, show=True):
         """Plot 2D topography of evoked responses.
 
         Clicking on the plot of an individual sensor opens a new figure showing
@@ -515,6 +515,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The face color to be used for each sensor plot. Defaults to black.
         font_color : str | obj
             The color of text in the colorbar and title. Defaults to white.
+        merge_grads : bool
+            Whether to use RMS value of gradiometer pairs. Only works for
+            Neuromag data. Defaults to False.
         show : bool
             Show figure if True.
 
@@ -531,10 +534,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                 vline=vline, fig_facecolor=fig_facecolor,
                                 fig_background=fig_background,
                                 axis_facecolor=axis_facecolor,
-                                font_color=font_color, show=show)
+                                font_color=font_color, merge_grads=merge_grads,
+                                show=show)
 
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
-                     vmax=None, cmap='RdBu_r', sensors=True, colorbar=True,
+                     vmax=None, cmap=None, sensors=True, colorbar=True,
                      scale=None, scale_time=1e3, unit=None, res=64, size=1,
                      cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
@@ -570,8 +574,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If None, the maximum absolute value is used. If vmin is None,
             but vmax is not, defaults to np.max(data).
             If callable, the output equals vmax(data).
-        cmap : matplotlib colormap
-            Colormap. Defaults to 'RdBu_r'.
+        cmap : matplotlib colormap | None
+            Colormap to use. If None, 'Reds' is used for all positive data,
+            otherwise defaults to 'RdBu_r'.
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True, a circle
@@ -652,19 +657,17 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Defaults to None.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
-                                   layout=layout, vmin=vmin,
-                                   vmax=vmax, cmap=cmap, sensors=sensors,
+                                   layout=layout, vmin=vmin, vmax=vmax,
+                                   cmap=cmap, sensors=sensors,
                                    colorbar=colorbar, scale=scale,
-                                   scale_time=scale_time,
-                                   unit=unit, res=res, proj=proj, size=size,
-                                   cbar_fmt=cbar_fmt, time_format=time_format,
-                                   show=show, show_names=show_names,
-                                   title=title, mask=mask,
-                                   mask_params=mask_params,
+                                   scale_time=scale_time, unit=unit, res=res,
+                                   proj=proj, size=size, cbar_fmt=cbar_fmt,
+                                   time_format=time_format, show=show,
+                                   show_names=show_names, title=title,
+                                   mask=mask, mask_params=mask_params,
                                    outlines=outlines, contours=contours,
-                                   image_interp=image_interp,
-                                   average=average, head_pos=head_pos,
-                                   axes=axes)
+                                   image_interp=image_interp, average=average,
+                                   head_pos=head_pos, axes=axes)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):

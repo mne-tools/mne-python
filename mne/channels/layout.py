@@ -158,7 +158,6 @@ def read_layout(kind, path=None, scale=True):
     """
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'layouts')
-
     if not kind.endswith('.lout') and op.exists(op.join(path, kind + '.lout')):
         kind += '.lout'
     elif not kind.endswith('.lay') and op.exists(op.join(path, kind + '.lay')):
@@ -410,7 +409,10 @@ def find_layout(info, ch_type=None, exclude='bads'):
     elif has_vv_only_mag or (has_vv_meg and ch_type == 'mag'):
         layout_name = 'Vectorview-mag'
     elif has_vv_only_grad or (has_vv_meg and ch_type == 'grad'):
-        layout_name = 'Vectorview-grad'
+        if info['ch_names'][0].endswith('X'):
+            layout_name = 'Vectorview-grad_norm'
+        else:
+            layout_name = 'Vectorview-grad'
     elif ((has_eeg_coils_only and ch_type in [None, 'eeg']) or
           (has_eeg_coils_and_meg and ch_type == 'eeg')):
         if not isinstance(info, (dict, Info)):
