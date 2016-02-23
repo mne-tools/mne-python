@@ -349,7 +349,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             new_picks.append(range(len(data)))
         picks = new_picks
         types_used = ['grad']
-        y_label = _handle_default('units')['grad']
+        y_label = 'RMS amplitude (%s)' % _handle_default('units')['grad']
 
     if layout is None:
         layout = find_layout(info)
@@ -384,8 +384,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             for e in evoked:
                 _check_delayed_ssp(e)
         # Y labels for picked plots must be reconstructed
-        y_label = [_handle_default('units')[channel_type(info, ch_idx)] for
-                   ch_idx in range(len(chs_in_layout))]
+        y_label = ['Amplitude (%s)' % _handle_default('units')[channel_type(
+            info, ch_idx)] for ch_idx in range(len(chs_in_layout))]
 
     if ylim is None:
         def set_ylim(x):
