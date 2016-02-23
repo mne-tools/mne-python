@@ -5,10 +5,10 @@
 # License: BSD (3-clause)
 
 import copy as cp
-import os
-import itertools as itt
-from copy import deepcopy
 from distutils.version import LooseVersion
+import itertools as itt
+from math import log
+import os
 
 import numpy as np
 from scipy import linalg
@@ -159,7 +159,7 @@ class Covariance(dict):
         cov : instance of Covariance
             The copied object.
         """
-        return deepcopy(self)
+        return cp.deepcopy(self)
 
     def as_diag(self, copy=True):
         """Set covariance to be processed as being diagonal.
@@ -947,7 +947,7 @@ def _gaussian_loglik_scorer(est, X, y=None):
     n_samples, n_features = X.shape
     log_like = np.zeros(n_samples)
     log_like = -.5 * (X * (np.dot(X, precision))).sum(axis=1)
-    log_like -= .5 * (n_features * np.log(2. * np.pi) - _logdet(precision))
+    log_like -= .5 * (n_features * log(2. * np.pi) - _logdet(precision))
     out = np.mean(log_like)
     return out
 
