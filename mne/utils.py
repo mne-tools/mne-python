@@ -1928,13 +1928,10 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None):
     if not np.isfinite(tmax):
         tmax = times[-1]
     if sfreq is not None:
-        # Push to nearest sample first
-        tmin = round(tmin * sfreq) / sfreq
-        tmax = round(tmax * sfreq) / sfreq
-    deltas = np.abs(times - tmax)  # Find nearest times
-    tmax = times[np.where(deltas == deltas.min())[0]][-1]
-    deltas = np.abs(times - tmin)
-    tmin = times[np.where(deltas == deltas.min())[0]][-1]
+        # Push to a bit past the nearest sample boundary first
+        sfreq = float(sfreq)
+        tmin = int(round(tmin * sfreq)) / sfreq - 0.5 / sfreq
+        tmax = int(round(tmax * sfreq)) / sfreq + 0.5 / sfreq
     mask = (times >= tmin)
     mask &= (times <= tmax)
     return mask
