@@ -145,7 +145,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     uncertainty V: The discrete case. Bell System Technical Journal,
     Volume 57 (1978), 1371430
     """
-    from scipy.interpolate import interp1d
+    from scipy import interpolate
     Kmax = int(Kmax)
     W = float(half_nbw) / N
     nidx = np.arange(N, dtype='d')
@@ -162,9 +162,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         d, e = dpss_windows(interp_from, half_nbw, Kmax, low_bias=False)
         for this_d in d:
             x = np.arange(this_d.shape[-1])
-            I = interp1d(x, this_d, kind=interp_kind)
-            d_temp = I(np.arange(0, this_d.shape[-1] - 1,
-                                 float(this_d.shape[-1] - 1) / N))
+            I = interpolate.interp1d(x, this_d, kind=interp_kind)
+            d_temp = I(np.linspace(0, this_d.shape[-1] - 1, N, endpoint=False))
 
             # Rescale:
             d_temp = d_temp / np.sqrt(sum_squared(d_temp))
@@ -218,9 +217,11 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     for i, f in enumerate(fix_symmetric):
         if f:
             dpss[2 * i] *= -1
-    fix_skew = (dpss[1::2, 1] < 0)
-    for i, f in enumerate(fix_skew):
-        if f:
+    # rather than test the sign of one point, test the sign of the
+    # linear slope up to the first (largest) peak
+    pk = np.argmax(np.abs(dpss[1::2, :N//2]), axis=1)
+    for i, p in enumerate(pk):
+        if np.sum(dpss[2 * i + 1, :p]) < 0:
             dpss[2 * i + 1] *= -1
 
     # Now find the eigenvalues of the original spectral concentration problem
@@ -244,6 +245,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
             idx = [np.argmax(eigvals)]
         dpss, eigvals = dpss[idx], eigvals[idx]
     assert len(dpss) > 0  # should never happen
+    assert dpss.shape[1] == N  # old nitime bug
     return dpss, eigvals
 
 
