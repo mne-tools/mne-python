@@ -24,7 +24,7 @@ from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
-from ..utils import verbose, logger, _clean_names, warn
+from ..utils import verbose, logger, _clean_names, warn, _time_mask
 from ..fixes import _get_args, partial
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
@@ -265,7 +265,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                            'coord_frame="meg"')
     if st_only and st_duration is None:
         raise ValueError('st_duration must not be None if st_only is True')
-    head_pos = _check_pos(head_pos, head_frame, raw, st_fixed)
+    head_pos = _check_pos(head_pos, head_frame, raw, st_fixed,
+                          raw.info['sfreq'])
     _check_info(raw.info, sss=not st_only, tsss=st_duration is not None,
                 calibration=not st_only and calibration is not None,
                 ctc=not st_only and cross_talk is not None)
@@ -669,7 +670,7 @@ def _copy_preload_add_channels(raw, add_channels):
         return raw, np.array([], int)
 
 
-def _check_pos(pos, head_frame, raw, st_fixed):
+def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
     """Check for a valid pos array and transform it to a more usable form"""
     if pos is None:
         return [None, np.array([-1])]
@@ -685,7 +686,7 @@ def _check_pos(pos, head_frame, raw, st_fixed):
     t_off = raw.first_samp / raw.info['sfreq']
     if not np.array_equal(t, np.unique(t)):
         raise ValueError('Time points must unique and in ascending order')
-    if (t < t_off).any():
+    if not _time_mask(t, tmin=t_off, tmax=None, sfreq=sfreq).all():
         raise ValueError('Head position time points must be greater than '
                          'first sample offset, but found %0.4f < %0.4f'
                          % (t[0], t_off))
