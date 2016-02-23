@@ -49,8 +49,11 @@ dependencies:
     #    python -c "import mne, os; print(mne.datasets.sample.data_path(os.path.join(os.environ['HOME'], 'examples'), verbose=True))";
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
 
-
 test:
+  override:
+    - cd
+
+deployment:
   staging:
     branch: master
     commands:
