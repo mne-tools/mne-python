@@ -953,7 +953,7 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         info['order'] = sort_by_name_idx
     else:
         info['chs'] = chans
-        info['order'] = None
+        info['order'] = np.arange(len(chans))
 
     # finally add some important fields from the config
     info['e_table'] = cfg['user_blocks'][BTI.UB_B_E_TABLE_USED]
@@ -1064,12 +1064,7 @@ class RawBTi(_BaseRaw):
                 data_view = data[:, sample_start:sample_stop]
                 one = np.empty(block.shape[::-1])
 
-                order = bti_info['order']
-                if order is None:
-                    order_ = np.arange(block.shape[1])
-                else:
-                    order_ = bti_info['order']
-                for ii, b_i_o in enumerate(order_):
+                for ii, b_i_o in enumerate(bti_info['order']):
                     one[ii] = block[:, b_i_o] * read_cals[b_i_o]
                 _mult_cal_one(data_view, one, idx, cals, mult)
 
