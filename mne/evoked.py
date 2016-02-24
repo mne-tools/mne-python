@@ -259,11 +259,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             logger.info('        t = %10.2f ... %10.2f ms (%s)'
                         % (1000 * first / info['sfreq'],
                            1000 * last / info['sfreq'], comment))
-            logger.info('        nave = %d : aspect type = %d'
-                        % (nave, aspect_kind))
             if info['comps'] is not None:
                 logger.info('        %d CTF compensation matrices available'
                             % len(info['comps']))
+            logger.info('        nave = %d - aspect type = %d'
+                        % (nave, aspect_kind))
 
         # Calibrate
         cals = np.array([info['chs'][k]['cal'] *

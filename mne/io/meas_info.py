@@ -1475,7 +1475,7 @@ def _merge_info(infos, verbose=None):
                     'hpi_results', 'hpi_meas', 'hpi_subsystem', 'events',
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq',
-                    'subject_info', 'sfreq']
+                    'subject_info', 'sfreq', 'xplotter_layout']
 
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
@@ -1571,6 +1571,7 @@ RAW_INFO_FIELDS = (
     'file_id', 'filename', 'highpass', 'hpi_meas', 'hpi_results',
     'hpi_subsystem', 'line_freq', 'lowpass', 'meas_date', 'meas_id', 'nchan',
     'proj_id', 'proj_name', 'projs', 'sfreq', 'subject_info',
+    'xplotter_layout',
 )
 
 
@@ -1582,7 +1583,7 @@ def _empty_info(sfreq):
         'dev_ctf_t', 'dig', 'experimenter',
         'file_id', 'filename', 'highpass', 'hpi_subsystem', 'line_freq',
         'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
-        'subject_info',
+        'subject_info', 'xplotter_layout',
     )
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
                   'projs')
