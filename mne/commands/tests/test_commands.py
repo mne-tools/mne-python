@@ -246,5 +246,8 @@ def test_flash_bem():
 def test_show_info():
     """Test mne show_info"""
     check_usage(mne_show_info)
+    with ArgvSetter((raw_fname,)):
+        mne_show_info.run()
+
 
 run_tests_if_main()
