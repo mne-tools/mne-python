@@ -14,6 +14,7 @@ from itertools import cycle
 
 import numpy as np
 
+from ..io.constants import Bunch
 from ..io.pick import channel_type, pick_types
 from ..fixes import normalize_colors
 from ..utils import _clean_names, warn
@@ -25,7 +26,8 @@ from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
-                    axis_spinecolor='k', layout_scale=None):
+                    axis_spinecolor='k', layout_scale=None,
+                    use_axes=True):
     """ Create iterator over channel positions
 
     This function returns a generator that unpacks into
@@ -61,14 +63,33 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     Returns
     -------
-    A generator that can be unpacked into
+    A generator that can be unpacked into:
 
-    ax : matplotlib.axis.Axis
-        The current axis of the topo plot.
-    ch_dx : int
-        The related channel index.
+        ax : matplotlib.axis.Axis
+            The current axis of the topo plot.
+        ch_dx : int
+            The related channel index.
+
     """
-    import matplotlib.pyplot as plt
+    return _iter_topography(info, layout, on_pick, fig, fig_facecolor,
+                            axis_facecolor, axis_spinecolor, layout_scale,
+                            use_axes=True)
+
+
+def _iter_topography(info, layout=None, on_pick=None, fig=None,
+                     fig_facecolor='k', axis_facecolor='k',
+                     axis_spinecolor='k', layout_scale=None,
+                     use_axes=True):
+    """Private helper to iterate over topography
+
+    Has the same parameters as iter_topography, plus:
+
+    use_axes : bool
+        If True, matplotlib axes will be used. If False, a single axis
+        will be constructed. The former is useful for custom plotting,
+        the latter for speed.
+    """
+    from matplotlib import pyplot as plt, collections
 
     if fig is None:
         fig = plt.figure()
@@ -87,19 +108,44 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     ch_names = _clean_names(info['ch_names'])
     iter_ch = [(x, y) for x, y in enumerate(layout.names) if y in ch_names]
+    if not use_axes:
+        under_ax = plt.axes([0, 0, 1, 1])
+        under_ax.set(xlim=[0, 1], ylim=[0, 1])
+        under_ax.axis('off')
+    axs = list()
     for idx, name in iter_ch:
-        ax = plt.axes(pos[idx])
-        ax.patch.set_facecolor(axis_facecolor)
-        plt.setp(list(ax.spines.values()), color=axis_spinecolor)
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
-        plt.setp(ax.get_xticklines(), visible=False)
-        plt.setp(ax.get_yticklines(), visible=False)
         ch_idx = ch_names.index(name)
-        vars(ax)['_mne_ch_name'] = name
-        vars(ax)['_mne_ch_idx'] = ch_idx
-        vars(ax)['_mne_ax_face_color'] = axis_facecolor
-        yield ax, ch_idx
+        if use_axes:  # old, slow way
+            ax = plt.axes(pos[idx])
+            ax.patch.set_facecolor(axis_facecolor)
+            plt.setp(list(ax.spines.values()), color=axis_spinecolor)
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+            plt.setp(ax.get_xticklines(), visible=False)
+            plt.setp(ax.get_yticklines(), visible=False)
+            vars(ax)['_mne_ch_name'] = name
+            vars(ax)['_mne_ch_idx'] = ch_idx
+            vars(ax)['_mne_ax_face_color'] = axis_facecolor
+            yield ax, ch_idx
+        else:
+            ax = Bunch(ax=under_ax, pos=pos[idx],
+                       _mne_ch_name=name, _mne_ch_idx=ch_idx,
+                       _mne_ax_face_color=axis_facecolor)
+            axs.append(ax)
+    if not use_axes:
+        # Create a PolyCollection for the axis backgrounds
+        verts = np.transpose([pos[:, :2],
+                              pos[:, :2] + pos[:, 2:] * [1, 0],
+                              pos[:, :2] + pos[:, 2:],
+                              pos[:, :2] + pos[:, 2:] * [0, 1],
+                              ], [1, 0, 2])
+        # XXX Need to add interactivity to the patches so click-to-show
+        # works properly
+        under_ax.add_collection(collections.PolyCollection(
+            verts, facecolor=axis_facecolor, edgecolor=axis_spinecolor,
+            linewidth=1.))
+        for ax in axs:
+            yield ax, ax._mne_ch_idx
 
 
 def _plot_topo(info=None, times=None, show_func=None, layout=None,
@@ -127,11 +173,12 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         plt.setp(cb_yticks, color=font_color)
         ax.axis('off')
 
-    my_topo_plot = iter_topography(info, layout=layout, on_pick=on_pick,
-                                   fig=fig, layout_scale=layout_scale,
-                                   axis_spinecolor=border,
-                                   axis_facecolor=axis_facecolor,
-                                   fig_facecolor=fig_facecolor)
+    my_topo_plot = _iter_topography(info, layout=layout, on_pick=on_pick,
+                                    fig=fig, layout_scale=layout_scale,
+                                    axis_spinecolor=border,
+                                    axis_facecolor=axis_facecolor,
+                                    fig_facecolor=fig_facecolor,
+                                    use_axes=False)
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
@@ -142,9 +189,6 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
 
         show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
                   vmax=vmax, ylim=ylim_)
-
-        if ylim_ and not any(v is None for v in ylim_):
-            plt.ylim(*ylim_)
 
     if title is not None:
         plt.figtext(0.03, 0.9, title, color=font_color, fontsize=19)
@@ -211,26 +255,34 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      times, vline=None, x_label=None, y_label=None,
                      colorbar=False):
-    """ Aux function to show time series on topo """
+    """Aux function to show time series on topo using """
     import matplotlib.pyplot as plt
-    picker_flag = False
+    if not (ylim and not any(v is None for v in ylim)):
+        ylim = np.array([data.min(), data.max()])
+    # Translation and scale parameters to take data->under_ax normalized coords
+    pos = ax.pos
+    x_s = pos[2] / (tmax - tmin)
+    x_t = pos[0] - x_s * tmin
+    y_s = pos[3] / (ylim[1] - ylim[0])
+    y_t = pos[1] - y_s * ylim[0]
+    ax = ax.ax
+    # XXX These calls could probably be made faster by using collections
     for data_, color_ in zip(data, color):
-        if not picker_flag:
-            # use large tol for picker so we can click anywhere in the axes
-            ax.plot(times, data_[ch_idx], color_, picker=1e9)
-            picker_flag = True
-        else:
-            ax.plot(times, data_[ch_idx], color_)
+        ax.plot(x_t + x_s * times,
+                y_t + y_s * data_[ch_idx],
+                color_, clip_on=True, clip_box=pos)
     if vline:
-        for x in vline:
-            plt.axvline(x, color='w', linewidth=0.5)
+        vline = np.array(vline) * x_s + x_t
+        ax.vlines(vline, pos[1], pos[1] + pos[3], color='w', linewidth=0.5)
+    ax.hlines(y_t, pos[0], pos[0] + pos[2], color='w', linewidth=0.5)
     if x_label is not None:
-        plt.xlabel(x_label)
+        ax.text(pos[0] + pos[2] / 2., pos[1], x_label,
+                horizontalalignment='center', verticalalignment='top')
     if y_label is not None:
-        if isinstance(y_label, list):
-            plt.ylabel(y_label[ch_idx])
-        else:
-            plt.ylabel(y_label)
+        y_label = y_label[ch_idx] if isinstance(y_label, list) else y_label
+        ax.text(pos[0], pos[1] + pos[3] / 2., y_label,
+                horizontalignment='right', verticalalignment='middel',
+                rotation=90)
     if colorbar:
         plt.colorbar()
 
@@ -484,11 +536,13 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
               cmap=cmap, interpolation='nearest')
 
     if x_label is not None:
-        plt.xlabel(x_label)
+        ax.set_xlabel(x_label)
     if y_label is not None:
-        plt.ylabel(y_label)
+        ax.set_ylabel(y_label)
     if colorbar:
         plt.colorbar()
+    if ylim and not any(v is None for v in ylim):
+        ax.set_ylim(*ylim)
 
 
 def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
