@@ -9,6 +9,7 @@ import os.path as op
 import shutil
 import tarfile
 import stat
+import sys
 
 from .. import __version__ as mne_version
 from ..utils import get_config, set_config, _fetch_file, logger, warn
@@ -233,7 +234,10 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         return ''
     if not op.exists(folder_path) or force_update:
         if name == 'brainstorm':
-            answer = input('%sAgree (y/[n])? ' % _bst_license_text)
+            if '--accept-brainstorm-license' in sys.argv:
+                answer = 'y'
+            else:
+                answer = input('%sAgree (y/[n])? ' % _bst_license_text)
             if answer.lower() != 'y':
                 raise RuntimeError('You must agree to the license to use this '
                                    'dataset')

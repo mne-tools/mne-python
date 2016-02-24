@@ -12,10 +12,10 @@ dependencies:
   # Various dependencies
   pre:
     # Get a running Python
-    - cd ~
+    - cd ~;
     # Disable pyenv (no cleaner way provided by CircleCI as it prepends pyenv version to PATH)
-    - rm -rf ~/.pyenv
-    - rm -rf ~/virtualenvs
+    - rm -rf ~/.pyenv;
+    - rm -rf ~/virtualenvs;
     # Get Anaconda and conda-based requirements
     - >
       if [ ! -d "/home/ubuntu/miniconda" ]; then
@@ -36,7 +36,7 @@ dependencies:
     - which pip;
     - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
     - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
-    - cd /home/ubuntu && git clone https://github.com/enthought/pyface.git && cd pyface && python setup.py develop
+    - cd /home/ubuntu && git clone https://github.com/enthought/pyface.git && cd pyface && python setup.py develop;
     - pip install sphinx_bootstrap_theme PySurfer nilearn neo;
     - cd /home/ubuntu/mne-python && python setup.py develop;
     - mkdir -p ~/mne_data;
@@ -44,8 +44,7 @@ dependencies:
     - make testing_data;
     - make spm_data;
     - make somato_data;
-    - cd /home/ubuntu/.mne && echo '{"MNE_DATASETS_BRAINSTORM_PATH":"/home/ubuntu/mne_data","MNE_DATASETS_EEGBCI_PATH":"/home/ubuntu/mne_data","MNE_DATASETS_MEGSIM_PATH":"/home/ubuntu/mne_data","MNE_DATASETS_SAMPLE_PATH":"/home/ubuntu/mne_data","MNE_DATASETS_SOMATO_PATH":"/home/ubuntu/mne_data","MNE_DATASETS_SPM_FACE_PATH":"/home/ubuntu/mne_data","MNE_DATASETS_TESTING_PATH":"/home/ubuntu/mne_data"}' > mne-python.json;
-    - if [[ ! -e ../mne_data/MNE-brainstorm-data ]]; then cd ../mne_data && mkdir MNE-brainstorm-data && cd MNE-brainstorm-data && wget https://copy.com/ZTHXXFcuIZycvRoA/brainstorm/bst_raw.tar.bz2 && tar xvf bst_raw.tar.bz2; fi
+    - python -c "import mne; mne.datasets.brainstorm.bst_auditory.data_path(verbose=True)" --accept-brainstorm-license;
     - python -c "import mne; mne.sys_info()";
     - python -c "import mne, os; print(mne.datasets.sample.data_path(os.path.join(os.environ['HOME'], 'mne_data'), verbose=True))";
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
