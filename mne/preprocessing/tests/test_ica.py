@@ -110,7 +110,7 @@ def test_ica_full_data_recovery():
 
 @requires_sklearn
 def test_ica_rank_reduction():
-    """Test recovery of full data when no source is rejected"""
+    """Test recovery ICA rank reduction"""
     # Most basic recovery
     raw = Raw(raw_fname).crop(0.5, stop, False)
     raw.load_data()

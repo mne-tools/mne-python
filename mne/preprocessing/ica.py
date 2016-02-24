@@ -1215,28 +1215,30 @@ class ICA(ContainsMixin):
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
-        pca_data = fast_dot(self.pca_components_, data)
-        # Apply unmixing to low dimension PCA
-        sources = fast_dot(self.unmixing_matrix_, pca_data[:n_components])
-
+        sel_keep = np.arange(n_components)
         if include not in (None, []):
-            mask = np.ones(len(sources), dtype=np.bool)
-            mask[np.unique(include)] = False
-            sources[mask] = 0.
-            logger.info('Zeroing out %i ICA components' % mask.sum())
+            sel_keep = np.unique(include)
         elif exclude not in (None, []):
-            exclude_ = np.unique(exclude)
-            sources[exclude_] = 0.
-            logger.info('Zeroing out %i ICA components' % len(exclude_))
-        logger.info('Inverse transforming to PCA space')
-        pca_data[:n_components] = fast_dot(self.mixing_matrix_, sources)
-        data = fast_dot(self.pca_components_[:n_components].T,
-                        pca_data[:n_components])
-        logger.info('Reconstructing sensor space signals from %i PCA '
-                    'components' % max(_n_pca_comp, n_components))
+            sel_keep = np.setdiff1d(np.arange(n_components), exclude)
+
+        logger.info('Zeroing out %i ICA components'
+                    % (n_components - len(sel_keep)))
+
+        unmixing = np.eye(_n_pca_comp)
+        unmixing[:n_components, :n_components] = self.unmixing_matrix_
+        unmixing = np.dot(unmixing, self.pca_components_[:_n_pca_comp])
+
+        mixing = np.eye(_n_pca_comp)
+        mixing[:n_components, :n_components] = self.mixing_matrix_
+        mixing = np.dot(self.pca_components_[:_n_pca_comp].T, mixing)
+
         if _n_pca_comp > n_components:
-            data += fast_dot(self.pca_components_[n_components:_n_pca_comp].T,
-                             pca_data[n_components:_n_pca_comp])
+            sel_keep = np.concatenate(
+                (sel_keep, range(n_components, _n_pca_comp)))
+
+        proj_mat = np.dot(mixing[:, sel_keep], unmixing[sel_keep, :])
+
+        data = fast_dot(proj_mat, data)
 
         if self.pca_mean_ is not None:
             data += self.pca_mean_[:, None]
