@@ -17,6 +17,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  grand_average, combine_evoked, create_info)
+from mne.datasets import testing
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.epochs import EpochsArray
 from mne.tests.common import assert_naming
@@ -29,6 +30,9 @@ fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                 'test-ave.fif')
 fname_gz = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                    'test-ave.fif.gz')
+
+data_path = testing.data_path(download=False)
+fname_xfit_dip = op.join(data_path, 'misc', 'fam_115_LH.fif')
 
 
 @requires_version('scipy', '0.14')
@@ -482,3 +486,25 @@ def test_add_channels():
     assert_raises(AssertionError, evoked_meg.add_channels, [evoked_eeg])
     assert_raises(ValueError, evoked_meg.add_channels, [evoked_meg])
     assert_raises(AssertionError, evoked_meg.add_channels, evoked_badsf)
+
+
+@testing.requires_testing_data
+def test_xplotter_dipole():
+    """Test reading an xplotter dipole"""
+    tempdir = _TempDir()
+    with warnings.catch_warnings(record=True):  # bad naming
+        evoked = read_evokeds(fname_xfit_dip)[0]
+        write_evokeds(op.join(tempdir, 'evoked-ave.fif'), evoked)
+        evoked_read = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))
+    assert_equal(len(evoked_read), 1)
+    evoked_read = evoked_read[0]
+    assert_allclose(evoked_read.data, evoked.data)
+    assert_allclose(evoked_read.times, evoked.times)
+    assert_equal(evoked_read.info['xplotter_layout'],
+                 evoked.info['xplotter_layout'])
+    assert_equal(evoked_read.ch_names, evoked.ch_names)
+    for ch_1, ch_2 in zip(evoked_read.info['chs'], evoked.info['chs']):
+        assert_equal(ch_1['ch_name'], ch_2['ch_name'])
+        for key in ('loc', 'kind', 'unit_mul', 'range', 'coord_frame', 'unit',
+                    'cal', 'coil_type', 'scanno', 'logno'):
+            assert_allclose(ch_1[key], ch_2[key], err_msg=key)

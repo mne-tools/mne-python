@@ -101,7 +101,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('No evoked filename specified')
 
         self.verbose = verbose
-        logger.info('Reading %s ...' % fname)
         f, tree, _ = fiff_open(fname)
         with f as fid:
             if not isinstance(proj, bool):
@@ -160,7 +159,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             nchan = 0
             sfreq = -1
             chs = []
-            comment = None
+            comment = last = first = first_time = nsamp = None
             for k in range(my_evoked['nent']):
                 my_kind = my_evoked['directory'][k].kind
                 pos = my_evoked['directory'][k].pos
@@ -182,6 +181,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 elif my_kind == FIFF.FIFF_CH_INFO:
                     tag = read_tag(fid, pos)
                     chs.append(tag.data)
+                elif my_kind == FIFF.FIFF_FIRST_TIME:
+                    tag = read_tag(fid, pos)
+                    first_time = float(tag.data)
+                elif my_kind == FIFF.FIFF_NO_SAMPLES:
+                    tag = read_tag(fid, pos)
+                    nsamp = int(tag.data)
 
             if comment is None:
                 comment = 'No comment'
@@ -202,15 +207,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if sfreq > 0:
                     info['sfreq'] = sfreq
 
-            nsamp = last - first + 1
-            logger.info('    Found the data of interest:')
-            logger.info('        t = %10.2f ... %10.2f ms (%s)'
-                        % (1000 * first / info['sfreq'],
-                           1000 * last / info['sfreq'], comment))
-            if info['comps'] is not None:
-                logger.info('        %d CTF compensation matrices available'
-                            % len(info['comps']))
-
             # Read the data in the aspect block
             nave = 1
             epoch = []
@@ -230,9 +226,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     tag = read_tag(fid, pos)
                     epoch.append(tag)
 
-            logger.info('        nave = %d - aspect type = %d'
-                        % (nave, aspect_kind))
-
             nepoch = len(epoch)
             if nepoch != 1 and nepoch != info['nchan']:
                 raise ValueError('Number of epoch tags is unreasonable '
@@ -250,9 +243,27 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 all_data = np.concatenate([e.data[None, :] for e in epoch],
                                           axis=0).astype(np.float)
 
-            if all_data.shape[1] != nsamp:
+            if first is not None:
+                nsamp = last - first + 1
+            elif first_time is not None:
+                first = int(round(first_time * info['sfreq']))
+                last = first + nsamp
+            else:
+                raise RuntimeError('Could not read time parameters')
+            if nsamp is not None and all_data.shape[1] != nsamp:
                 raise ValueError('Incorrect number of samples (%d instead of '
                                  ' %d)' % (all_data.shape[1], nsamp))
+            nsamp = all_data.shape[1]
+            last = first + nsamp - 1
+            logger.info('    Found the data of interest:')
+            logger.info('        t = %10.2f ... %10.2f ms (%s)'
+                        % (1000 * first / info['sfreq'],
+                           1000 * last / info['sfreq'], comment))
+            logger.info('        nave = %d : aspect type = %d'
+                        % (nave, aspect_kind))
+            if info['comps'] is not None:
+                logger.info('        %d CTF compensation matrices available'
+                            % len(info['comps']))
 
         # Calibrate
         cals = np.array([info['chs'][k]['cal'] *
@@ -1112,7 +1123,7 @@ def _get_evoked_node(fname):
     """Helper to get info in evoked file"""
     f, tree, _ = fiff_open(fname)
     with f as fid:
-        _, meas = read_meas_info(fid, tree)
+        _, meas = read_meas_info(fid, tree, verbose=False)
         evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
     return evoked_node
 
@@ -1261,9 +1272,14 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     See Also
     --------
     write_evokeds
+
+    Notes
+    -----
+    This function can also read dipole time courses produced by Elekta's
+    xfit program.
     """
     check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
-
+    logger.info('Reading %s ...' % fname)
     return_list = True
     if condition is None:
         evoked_node = _get_evoked_node(fname)

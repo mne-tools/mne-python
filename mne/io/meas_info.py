@@ -744,6 +744,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     proj_name = None
     line_freq = None
     custom_ref_applied = False
+    xplotter_layout = None
     for k in range(meas_info['nent']):
         kind = meas_info['directory'][k].kind
         pos = meas_info['directory'][k].pos
@@ -796,6 +797,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
             custom_ref_applied = bool(tag.data)
+        elif kind == FIFF.FIFF_XPLOTTER_LAYOUT:
+            tag = read_tag(fid, pos)
+            xplotter_layout = str(tag.data)
 
     # Check that we have everything we need
     if nchan is None:
@@ -1075,6 +1079,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['acq_pars'] = acq_pars
     info['acq_stim'] = acq_stim
     info['custom_ref_applied'] = custom_ref_applied
+    info['xplotter_layout'] = xplotter_layout
     info._check_consistency()
 
     return info, meas
@@ -1236,6 +1241,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
     if info.get('custom_ref_applied'):
         write_int(fid, FIFF.FIFF_MNE_CUSTOM_REF, info['custom_ref_applied'])
+    if info.get('xplotter_layout'):
+        write_string(fid, FIFF.FIFF_XPLOTTER_LAYOUT, info['xplotter_layout'])
 
     #  Channel information
     for k, c in enumerate(info['chs']):
