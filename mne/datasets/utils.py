@@ -94,32 +94,32 @@ def _dataset_version(path, name):
 def _get_path(path, key, name):
     """Helper to get a dataset path"""
     if path is None:
-            # use an intelligent guess if it's not defined
-            def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
-                                           '..', 'examples'))
-            if get_config(key) is None:
-                key = 'MNE_DATA'
-            path = get_config(key, def_path)
+        # use an intelligent guess if it's not defined
+        def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
+                                       'examples'))
+        if get_config(key) is None:
+            key = 'MNE_DATA'
+        path = get_config(key, def_path)
 
-            # use the same for all datasets
-            if not op.exists(path) or not os.access(path, os.W_OK):
+        # use the same for all datasets
+        if not op.exists(path) or not os.access(path, os.W_OK):
+            try:
+                os.mkdir(path)
+            except OSError:
                 try:
-                    os.mkdir(path)
+                    logger.info('Checking for %s data in '
+                                '"~/mne_data"...' % name)
+                    path = op.join(op.expanduser("~"), "mne_data")
+                    if not op.exists(path):
+                        logger.info("Trying to create "
+                                    "'~/mne_data' in home directory")
+                        os.mkdir(path)
                 except OSError:
-                    try:
-                        logger.info('Checking for %s data in '
-                                    '"~/mne_data"...' % name)
-                        path = op.join(op.expanduser("~"), "mne_data")
-                        if not op.exists(path):
-                            logger.info("Trying to create "
-                                        "'~/mne_data' in home directory")
-                            os.mkdir(path)
-                    except OSError:
-                        raise OSError("User does not have write permissions "
-                                      "at '%s', try giving the path as an "
-                                      "argument to data_path() where user has "
-                                      "write permissions, for ex:data_path"
-                                      "('/home/xyz/me2/')" % (path))
+                    raise OSError("User does not have write permissions "
+                                  "at '%s', try giving the path as an "
+                                  "argument to data_path() where user has "
+                                  "write permissions, for ex:data_path"
+                                  "('/home/xyz/me2/')" % (path))
     if not isinstance(path, string_types):
         raise ValueError('path must be a string or None')
     return path
