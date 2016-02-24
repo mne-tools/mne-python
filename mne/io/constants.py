@@ -328,7 +328,7 @@ FIFF.FIFF_PROJ_ITEM_VECTORS      = 3415
 FIFF.FIFF_PROJ_ITEM_DEFINITION   = 3416
 FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST = 3417
 #   XPlotter
-FIFF.FIFF_XPLOTTER_LAYOUT        =3501  # string - "Xplotter layout tag"
+FIFF.FIFF_XPLOTTER_LAYOUT        = 3501  # string - "Xplotter layout tag"
 #
 #   MRIs
 #
