@@ -1219,7 +1219,7 @@ class ICA(ContainsMixin):
         if include not in (None, []):
             sel_keep = np.unique(include)
         elif exclude not in (None, []):
-            sel_keep = np.intersect1d(np.arange(n_components), exclude)
+            sel_keep = np.setdiff1d(np.arange(n_components), exclude)
 
         logger.info('Zeroing out %i ICA components'
                     % (n_components - len(sel_keep)))
@@ -1233,7 +1233,8 @@ class ICA(ContainsMixin):
         mixing = np.dot(self.pca_components_[:_n_pca_comp].T, mixing)
 
         if _n_pca_comp > n_components:
-            sel_keep = np.concatenate((sel_keep, range(n_components, _n_pca_comp)))
+            sel_keep = np.concatenate(
+                (sel_keep, range(n_components, _n_pca_comp)))
 
         proj_mat = np.dot(mixing[:, sel_keep], unmixing[sel_keep, :])
 
