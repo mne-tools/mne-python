@@ -80,8 +80,7 @@ def test_average_movements():
     # usable data
     crop = 0., 10.
     origin = (0., 0., 0.04)
-    with warnings.catch_warnings(record=True):  # MaxShield
-        raw = Raw(fname_raw_move, allow_maxshield=True)
+    raw = Raw(fname_raw_move, allow_maxshield='yes')
     raw.info['bads'] += ['MEG2443']  # mark some bad MEG channel
     raw.crop(*crop, copy=False).load_data()
     raw.filter(None, 20, method='iir')
@@ -1978,6 +1977,15 @@ def test_seeg():
     picks = pick_types(epochs.info, meg=False, eeg=False, stim=False,
                        eog=False, ecg=False, seeg=True, emg=False, exclude=[])
     assert_equal(len(picks), n_channels)
+
+
+def test_default_values():
+    """Test default event_id, tmax tmin values are working correctly"""
+    raw, events = _get_data()[:2]
+    epoch_1 = Epochs(raw, events[:1], preload=True)
+    epoch_2 = Epochs(raw, events[:1], event_id=None, tmin=-0.2, tmax=0.5,
+                     preload=True)
+    assert_equal(hash(epoch_1), hash(epoch_2))
 
 
 run_tests_if_main()

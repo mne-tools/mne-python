@@ -248,6 +248,13 @@ def test_logging():
         old_lines = clean_lines(old_log_file.readlines())
     with open(fname_log_2, 'r') as old_log_file_2:
         old_lines_2 = clean_lines(old_log_file_2.readlines())
+    # we changed our logging a little bit
+    old_lines = [o.replace('No baseline correction applied...',
+                           'No baseline correction applied')
+                 for o in old_lines]
+    old_lines_2 = [o.replace('No baseline correction applied...',
+                             'No baseline correction applied')
+                   for o in old_lines_2]
 
     if op.isfile(test_name):
         os.remove(test_name)
@@ -510,7 +517,20 @@ def test_time_mask():
     N = 10
     x = np.arange(N).astype(float)
     assert_equal(_time_mask(x, 0, N - 1).sum(), N)
-    assert_equal(_time_mask(x - 1e-10, 0, N - 1).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, 0, N - 1, sfreq=1000.).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, None, N - 1, sfreq=1000.).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, None, None, sfreq=1000.).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, -np.inf, None, sfreq=1000.).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, None, np.inf, sfreq=1000.).sum(), N)
+    # non-uniformly spaced inputs
+    x = np.array([4, 10])
+    assert_equal(_time_mask(x[:1], tmin=10, sfreq=1).sum(), 0)
+    assert_equal(_time_mask(x, tmin=10, sfreq=1).sum(), 1)
+    assert_equal(_time_mask(x, tmin=6, sfreq=1).sum(), 1)
+    assert_equal(_time_mask(x, tmin=5, sfreq=1).sum(), 1)
+    assert_equal(_time_mask(x, tmin=4.5001, sfreq=1).sum(), 1)
+    assert_equal(_time_mask(x, tmin=4.4999, sfreq=1).sum(), 2)
+    assert_equal(_time_mask(x, tmin=4, sfreq=1).sum(), 2)
 
 
 def test_random_permutation():

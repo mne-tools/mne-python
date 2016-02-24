@@ -107,8 +107,7 @@ def test_simulate_raw_sphere():
     test_outname = op.join(tempdir, 'sim_test_raw.fif')
     raw_sim.save(test_outname)
 
-    raw_sim_loaded = Raw(test_outname, preload=True, proj=False,
-                         allow_maxshield=True)
+    raw_sim_loaded = Raw(test_outname, preload=True, proj=False)
     assert_allclose(raw_sim_loaded[:][0], raw_sim[:][0], rtol=1e-6, atol=1e-20)
     del raw_sim, raw_sim_2
     # with no cov (no noise) but with artifacts, most time periods should match
@@ -212,8 +211,7 @@ def test_simulate_raw_bem():
 @testing.requires_testing_data
 def test_simulate_raw_chpi():
     """Test simulation of raw data with cHPI"""
-    with warnings.catch_warnings(record=True):  # MaxShield
-        raw = Raw(raw_chpi_fname, allow_maxshield=True)
+    raw = Raw(raw_chpi_fname, allow_maxshield='yes')
     sphere = make_sphere_model('auto', 'auto', raw.info)
     # make sparse spherical source space
     sphere_vol = tuple(sphere['r0'] * 1000.) + (sphere.radius * 1000.,)

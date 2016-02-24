@@ -970,7 +970,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
             https://docs.python.org/dev/howto/logging.html
 
         e.g., "%(asctime)s - %(levelname)s - %(message)s".
-    overwrite : bool, or None
+    overwrite : bool | None
         Overwrite the log file (if it exists). Otherwise, statements
         will be appended to the log (default). None is the same as False,
         but additionally raises a warning to notify the user that log
@@ -979,9 +979,11 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger = logging.getLogger('mne')
     handlers = logger.handlers
     for h in handlers:
-        if isinstance(h, logging.FileHandler):
-            h.close()
-        logger.removeHandler(h)
+        # only remove our handlers (get along nicely with nose)
+        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
+            if isinstance(h, logging.FileHandler):
+                h.close()
+            logger.removeHandler(h)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
             # Don't use warn() here because we just want to
@@ -1923,20 +1925,15 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None):
     """Helper to safely find sample boundaries"""
     tmin = -np.inf if tmin is None else tmin
     tmax = np.inf if tmax is None else tmax
+    if not np.isfinite(tmin):
+        tmin = times[0]
+    if not np.isfinite(tmax):
+        tmax = times[-1]
     if sfreq is not None:
-        # Push to nearest sample first
-        if np.isfinite(tmin):
-            tmin = round(tmin * sfreq) / sfreq
-        else:
-            tmin = times[0]
-        if np.isfinite(tmax):
-            tmax = round(tmax * sfreq) / sfreq
-        else:
-            tmax = times[-1]
-    deltas = np.abs(times - tmax)  # Find nearest times
-    tmax = times[np.where(deltas == deltas.min())[0]][-1]
-    deltas = np.abs(times - tmin)
-    tmin = times[np.where(deltas == deltas.min())[0]][-1]
+        # Push to a bit past the nearest sample boundary first
+        sfreq = float(sfreq)
+        tmin = int(round(tmin * sfreq)) / sfreq - 0.5 / sfreq
+        tmax = int(round(tmax * sfreq)) / sfreq + 0.5 / sfreq
     mask = (times >= tmin)
     mask &= (times <= tmax)
     return mask

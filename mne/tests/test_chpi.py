@@ -87,14 +87,10 @@ def test_hpi_info():
     tempdir = _TempDir()
     temp_name = op.join(tempdir, 'temp_raw.fif')
     for fname in (chpi_fif_fname, sss_fif_fname):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always')
-            raw = Raw(fname, allow_maxshield=True)
+        raw = Raw(fname, allow_maxshield='yes')
         assert_true(len(raw.info['hpi_subsystem']) > 0)
         raw.save(temp_name, overwrite=True)
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('always')
-            raw_2 = Raw(temp_name, allow_maxshield=True)
+        raw_2 = Raw(temp_name, allow_maxshield='yes')
         assert_equal(len(raw_2.info['hpi_subsystem']),
                      len(raw.info['hpi_subsystem']))
 
@@ -139,8 +135,7 @@ def test_calculate_chpi_positions():
     """Test calculation of cHPI positions
     """
     trans, rot, t = head_pos_to_trans_rot_t(read_head_pos(pos_fname))
-    with warnings.catch_warnings(record=True):
-        raw = Raw(chpi_fif_fname, allow_maxshield=True, preload=True)
+    raw = Raw(chpi_fif_fname, allow_maxshield='yes', preload=True)
     t -= raw.first_samp / raw.info['sfreq']
     quats = _calculate_chpi_positions(raw, verbose='debug')
     trans_est, rot_est, t_est = head_pos_to_trans_rot_t(quats)
@@ -171,8 +166,7 @@ def test_calculate_chpi_positions():
 @testing.requires_testing_data
 def test_chpi_subtraction():
     """Test subtraction of cHPI signals"""
-    with warnings.catch_warnings(record=True):  # maxshield
-        raw = Raw(chpi_fif_fname, allow_maxshield=True, preload=True)
+    raw = Raw(chpi_fif_fname, allow_maxshield='yes', preload=True)
     filter_chpi(raw, include_line=False)
     # MaxFilter doesn't do quite as well as our algorithm with the last bit
     raw.crop(0, 16, copy=False)

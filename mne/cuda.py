@@ -169,10 +169,10 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
                     x_fft=gpuarray.empty(cuda_fft_len, np.complex128),
                     x=gpuarray.empty(int(n_fft), np.float64))
                 logger.info('Using CUDA for FFT FIR filtering')
-            except Exception:
+            except Exception as exp:
                 logger.info('CUDA not used, could not instantiate memory '
-                            '(arrays may be too large), falling back to '
-                            'n_jobs=1')
+                            '(arrays may be too large: "%s"), falling back to '
+                            'n_jobs=1' % str(exp))
         else:
             logger.info('CUDA not used, CUDA could not be initialized, '
                         'falling back to n_jobs=1')

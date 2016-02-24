@@ -504,10 +504,8 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     """Aux Function to prepare tfr computation"""
     from ..viz.utils import _setup_vmin_vmax
 
-    if mode is not None and baseline is not None:
-        logger.info("Applying baseline correction '%s' during %s" %
-                    (mode, baseline))
-        data = rescale(data.copy(), times, baseline, mode)
+    copy = baseline is not None
+    data = rescale(data, times, baseline, mode, copy=copy)
 
     # crop time
     itmin, itmax = None, None
@@ -909,7 +907,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         s += ', channels : %d' % self.data.shape[0]
         return "<AverageTFR  |  %s>" % s
 
-    def apply_baseline(self, baseline, mode='mean'):
+    @verbose
+    def apply_baseline(self, baseline, mode='mean', verbose=None):
         """Baseline correct the data
 
         Parameters
@@ -928,6 +927,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             deviation of power during baseline after subtracting the mean,
             power = [power - mean(power_baseline)] / std(power_baseline))
             If None, baseline no correction will be performed.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
         """
         self.data = rescale(self.data, self.times, baseline, mode, copy=False)
 

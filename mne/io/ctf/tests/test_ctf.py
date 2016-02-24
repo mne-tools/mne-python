@@ -5,6 +5,7 @@
 import os
 from os import path as op
 import shutil
+import warnings
 
 import numpy as np
 from nose.tools import assert_raises, assert_true
@@ -82,7 +83,8 @@ def test_read_ctf():
     shutil.copytree(ctf_eeg_fname, ctf_no_hc_fname)
     remove_base = op.join(ctf_no_hc_fname, op.basename(ctf_fname_catch[:-3]))
     os.remove(remove_base + '.hc')
-    assert_raises(RuntimeError, read_raw_ctf, ctf_no_hc_fname)  # no coord tr
+    with warnings.catch_warnings(record=True):  # no coord tr
+        assert_raises(RuntimeError, read_raw_ctf, ctf_no_hc_fname)
     os.remove(remove_base + '.eeg')
     shutil.copy(op.join(ctf_dir, 'catch-alp-good-f.ds_nohc_raw.fif'),
                 op.join(temp_dir, 'no_hc', 'catch-alp-good-f.ds_raw.fif'))
@@ -136,6 +138,8 @@ def test_read_ctf():
             for key in ('loc', 'cal'):
                 assert_allclose(c1[key], c2[key], atol=1e-6, rtol=1e-4,
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
+        if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
+            raw.info['dig'] = raw.info['dig'][:-10]
         assert_dig_allclose(raw.info, raw_c.info)
 
         # check data match

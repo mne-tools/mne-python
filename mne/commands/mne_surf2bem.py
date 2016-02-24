@@ -40,7 +40,7 @@ def run():
     points *= 1e-3
     surf = dict(coord_frame=5, id=int(options.id), nn=None, np=len(points),
                 ntri=len(tris), rr=points, sigma=1, tris=tris)
-    mne.write_bem_surface(options.fif, surf)
+    mne.write_bem_surfaces(options.fif, surf)
 
 
 is_main = (__name__ == '__main__')

@@ -483,7 +483,7 @@ in Neuromag software. The coil types fall in two general categories:
 - Axial gradiometers and planar gradiometers
   and
 
-- Planar gradiometers.
+- Planar magnetometers.
 
 For axial sensors, the *z* axis of the
 local coordinate system is parallel to the field component detected, *i.e.*,

@@ -425,7 +425,7 @@ def _read_old_pack(fid, tag, shape, rlims):
     """Read old pack tag"""
     offset = float(np.fromstring(fid.read(4), dtype=">f4"))
     scale = float(np.fromstring(fid.read(4), dtype=">f4"))
-    data = np.fromstring(fid.read(tag.size - 8), dtype=">h2")
+    data = np.fromstring(fid.read(tag.size - 8), dtype=">i2")
     data = data * scale  # to float64
     data += offset
     return data

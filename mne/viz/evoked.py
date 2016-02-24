@@ -470,7 +470,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
                      proj=False, vline=[0.0], fig_facecolor='k',
                      fig_background=None, axis_facecolor='k', font_color='w',
-                     show=True):
+                     merge_grads=False, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -519,6 +519,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The face color to be used for each sensor plot. Defaults to black.
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to white.
+    merge_grads : bool
+        Whether to use RMS value of gradiometer pairs. Only works for Neuromag
+        data. Defaults to False.
     show : bool
         Show figure if True.
 
@@ -534,7 +537,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_facecolor=fig_facecolor,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
-                             font_color=font_color, show=show)
+                             font_color=font_color, merge_grads=merge_grads,
+                             show=show)
 
 
 def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
@@ -946,8 +950,9 @@ def _connection_line(x, fig, sourceax, targetax):
                   linestyle='-', linewidth=1.5, alpha=.66, zorder=-1)
 
 
-def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
-                show=True, ts_args=None, topomap_args=None):
+def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
+                      exclude=None,
+                      show=True, ts_args=None, topomap_args=None):
     """Plot evoked data as butterfly plot and add topomaps for selected
     time points.
 
@@ -1031,9 +1036,10 @@ def _joint_plot(evoked, times="peaks", title='', picks=None, exclude=None,
                 raise RuntimeError('Possibly infinite loop due to channel '
                                    'selection problem. This should never '
                                    'happen! Please check your channel types.')
-            figs.append(_joint_plot(ev_, times=times, title=title, show=show,
-                                    ts_args=ts_args, exclude=list(),
-                                    topomap_args=topomap_args))
+            figs.append(
+                plot_evoked_joint(
+                    ev_, times=times, title=title, show=show, ts_args=ts_args,
+                    exclude=list(), topomap_args=topomap_args))
         return figs
 
     fig = plt.figure(figsize=(8.0, 4.2))

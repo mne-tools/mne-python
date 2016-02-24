@@ -42,7 +42,7 @@ Classes
    preprocessing.ICA
    decoding.CSP
    decoding.Scaler
-   decoding.ConcatenateChannels
+   decoding.EpochsVectorizer
    decoding.FilterEstimator
    decoding.PSDEstimator
    decoding.GeneralizationAcrossTime
@@ -316,6 +316,7 @@ Functions:
    plot_evoked_image
    plot_evoked_topo
    plot_evoked_topomap
+   plot_evoked_joint
    plot_evoked_field
    plot_evoked_white
    plot_ica_sources
@@ -623,7 +624,7 @@ Functions:
    sensitivity_map
    setup_source_space
    setup_volume_source_space
-   write_bem_surface
+   write_bem_surfaces
    write_trans
 
 .. currentmodule:: mne.bem
@@ -939,7 +940,7 @@ Classes:
    :template: class.rst
 
    Scaler
-   ConcatenateChannels
+   EpochsVectorizer
    PSDEstimator
    FilterEstimator
    CSP

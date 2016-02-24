@@ -24,7 +24,7 @@ from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, _BaseRaw
 from ..io.pick import pick_types, pick_info, pick_channels
-from ..utils import verbose, logger, _clean_names, warn
+from ..utils import verbose, logger, _clean_names, warn, _time_mask
 from ..fixes import _get_args, partial
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
@@ -40,7 +40,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,
                    st_correlation=0.98, coord_frame='head', destination=None,
                    regularize='in', ignore_ref=False, bad_condition='error',
-                   head_pos=None, st_fixed=True, verbose=None):
+                   head_pos=None, st_fixed=True, st_only=False, verbose=None):
     """Apply Maxwell filter to data using multipole moments
 
     .. warning:: Automatic bad channel detection is not currently implemented.
@@ -119,6 +119,23 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         If True (default), do tSSS using the median head position during the
         ``st_duration`` window. This is the default behavior of MaxFilter
         and has been most extensively tested.
+
+        .. versionadded:: 0.12
+
+    st_only : bool
+        If True, only tSSS (temporal) projection of MEG data will be
+        performed on the output data. The non-tSSS parameters (e.g.,
+        ``int_order``, ``calibration``, ``head_pos``, etc.) will still be
+        used to form the SSS bases used to calculate temporal projectors,
+        but the ouptut MEG data will *only* have temporal projections
+        performed. Noise reduction from SSS basis multiplication,
+        cross-talk cancellation, movement compensation, and so forth
+        will not be applied to the data. This is useful, for example, when
+        evoked movement compensation will be performed with
+        :func:`mne.epochs.average_movements`.
+
+        .. versionadded:: 0.12
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose)
 
@@ -215,8 +232,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
     # triage inputs ASAP to avoid late-thrown errors
-
-    _check_raw(raw)
+    if not isinstance(raw, _BaseRaw):
+        raise TypeError('raw must be Raw, not %s' % type(raw))
     _check_usable(raw)
     _check_regularize(regularize)
     st_correlation = float(st_correlation)
@@ -246,13 +263,20 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                            'info["dev_head_t"] is None; if this is an '
                            'empty room recording, consider using '
                            'coord_frame="meg"')
-    head_pos = _check_pos(head_pos, head_frame, raw, st_fixed)
+    if st_only and st_duration is None:
+        raise ValueError('st_duration must not be None if st_only is True')
+    head_pos = _check_pos(head_pos, head_frame, raw, st_fixed,
+                          raw.info['sfreq'])
+    _check_info(raw.info, sss=not st_only, tsss=st_duration is not None,
+                calibration=not st_only and calibration is not None,
+                ctc=not st_only and cross_talk is not None)
 
     # Now we can actually get moving
 
     logger.info('Maxwell filtering raw data')
+    add_channels = (head_pos[0] is not None) and not st_only
     raw_sss, pos_picks = _copy_preload_add_channels(
-        raw, add_channels=head_pos[0] is not None)
+        raw, add_channels=add_channels)
     del raw
     _remove_meg_projs(raw_sss)  # remove MEG projectors, they won't apply now
     info, times = raw_sss.info, raw_sss.times
@@ -374,10 +398,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
         # Get original data
         orig_data = raw_sss._data[good_picks, start:stop]
+        # This could just be np.empty if not st_only, but shouldn't be slow
+        # this way so might as well just always take the original data
+        out_meg_data = raw_sss._data[meg_picks, start:stop]
         # Apply cross-talk correction
         if cross_talk is not None:
             orig_data = ctc.dot(orig_data)
-        out_meg_data = np.empty((len(meg_picks), stop - start))
         out_pos_data = np.empty((len(pos_picks), stop - start))
 
         # Figure out which positions to use
@@ -407,40 +433,45 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                                        pS_decomp_st[n_use_in_st:]), resid)
                 resid -= orig_in_data
                 # Here we operate on our actual data
-                _do_tSSS(orig_data, orig_in_data, resid, st_correlation,
+                proc = out_meg_data if st_only else orig_data
+                _do_tSSS(proc, orig_in_data, resid, st_correlation,
                          n_positions, t_str)
 
-        # Do movement compensation on the data
-        for trans, rel_start, rel_stop, this_pos_quat in zip(*t_s_s_q_a[:4]):
-            # Recalculate bases if necessary (trans will be None iff the
-            # first position in this interval is the same as last of the
-            # previous interval)
-            if trans is not None:
-                S_decomp, pS_decomp, reg_moments, n_use_in = \
-                    _get_this_decomp_trans(trans, verbose=False)
+        if not st_only or st_when == 'after':
+            # Do movement compensation on the data
+            for trans, rel_start, rel_stop, this_pos_quat in \
+                    zip(*t_s_s_q_a[:4]):
+                # Recalculate bases if necessary (trans will be None iff the
+                # first position in this interval is the same as last of the
+                # previous interval)
+                if trans is not None:
+                    S_decomp, pS_decomp, reg_moments, n_use_in = \
+                        _get_this_decomp_trans(trans, verbose=False)
 
-            # Determine multipole moments for this interval
-            mm_in = np.dot(pS_decomp[:n_use_in],
-                           orig_data[:, rel_start:rel_stop])
+                # Determine multipole moments for this interval
+                mm_in = np.dot(pS_decomp[:n_use_in],
+                               orig_data[:, rel_start:rel_stop])
 
-            # Our output data
-            out_meg_data[:, rel_start:rel_stop] = \
-                np.dot(S_recon.take(reg_moments[:n_use_in], axis=1), mm_in)
-            if len(pos_picks) > 0:
-                out_pos_data[:, rel_start:rel_stop] = \
-                    this_pos_quat[:, np.newaxis]
+                # Our output data
+                if not st_only:
+                    out_meg_data[:, rel_start:rel_stop] = \
+                        np.dot(S_recon.take(reg_moments[:n_use_in], axis=1),
+                               mm_in)
+                if len(pos_picks) > 0:
+                    out_pos_data[:, rel_start:rel_stop] = \
+                        this_pos_quat[:, np.newaxis]
 
-            # Transform orig_data to store just the residual
-            if st_when == 'after':
-                # Reconstruct data using original location from external
-                # and internal spaces and compute residual
-                rel_resid_data = resid[:, rel_start:rel_stop]
-                orig_in_data[:, rel_start:rel_stop] = \
-                    np.dot(S_decomp[:, :n_use_in], mm_in)
-                rel_resid_data -= np.dot(np.dot(S_decomp[:, n_use_in:],
-                                                pS_decomp[n_use_in:]),
-                                         rel_resid_data)
-                rel_resid_data -= orig_in_data[:, rel_start:rel_stop]
+                # Transform orig_data to store just the residual
+                if st_when == 'after':
+                    # Reconstruct data using original location from external
+                    # and internal spaces and compute residual
+                    rel_resid_data = resid[:, rel_start:rel_stop]
+                    orig_in_data[:, rel_start:rel_stop] = \
+                        np.dot(S_decomp[:, :n_use_in], mm_in)
+                    rel_resid_data -= np.dot(np.dot(S_decomp[:, n_use_in:],
+                                                    pS_decomp[n_use_in:]),
+                                             rel_resid_data)
+                    rel_resid_data -= orig_in_data[:, rel_start:rel_stop]
 
         # If doing tSSS at the end
         if st_when == 'after':
@@ -456,7 +487,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Update info
     info['dev_head_t'] = recon_trans  # set the reconstruction transform
     _update_sss_info(raw_sss, origin, int_order, ext_order, len(good_picks),
-                     coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0)
+                     coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0,
+                     st_only)
     logger.info('[done]')
     return raw_sss
 
@@ -620,7 +652,7 @@ def _copy_preload_add_channels(raw, add_channels):
             dict(ch_name='CHPI%03d' % (ii + 1), logno=ii + 1,
                  scanno=off + ii + 1, unit_mul=-1, range=1., unit=-1,
                  kind=kinds[ii], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-                 cal=1. / 10000., coil_type=FIFF.FWD_COIL_UNKNOWN)
+                 cal=1e-4, coil_type=FIFF.FWD_COIL_UNKNOWN, loc=np.zeros(12))
             for ii in range(len(kinds))]
         raw.info['chs'].extend(chpi_chs)
         raw.info._check_consistency()
@@ -638,7 +670,7 @@ def _copy_preload_add_channels(raw, add_channels):
         return raw, np.array([], int)
 
 
-def _check_pos(pos, head_frame, raw, st_fixed):
+def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
     """Check for a valid pos array and transform it to a more usable form"""
     if pos is None:
         return [None, np.array([-1])]
@@ -654,7 +686,7 @@ def _check_pos(pos, head_frame, raw, st_fixed):
     t_off = raw.first_samp / raw.info['sfreq']
     if not np.array_equal(t, np.unique(t)):
         raise ValueError('Time points must unique and in ascending order')
-    if (t < t_off).any():
+    if not _time_mask(t, tmin=t_off, tmax=None, sfreq=sfreq).all():
         raise ValueError('Head position time points must be greater than '
                          'first sample offset, but found %0.4f < %0.4f'
                          % (t[0], t_off))
@@ -1424,22 +1456,22 @@ def _cart_to_sph(cart_pts):
     return np.array([rad, az, pol]).T
 
 
-def _check_raw(raw):
+def _check_info(info, sss=True, tsss=True, calibration=True, ctc=True):
     """Ensure that Maxwell filtering has not been applied yet"""
-    if not isinstance(raw, _BaseRaw):
-        raise TypeError('raw must be Raw, not %s' % type(raw))
-    for ent in raw.info.get('proc_history', []):
-        for msg, key in (('SSS', 'sss_info'),
-                         ('tSSS', 'max_st'),
-                         ('fine calibration', 'sss_cal'),
-                         ('cross-talk cancellation',  'sss_ctc')):
+    for ent in info.get('proc_history', []):
+        for msg, key, doing in (('SSS', 'sss_info', sss),
+                                ('tSSS', 'max_st', tsss),
+                                ('fine calibration', 'sss_cal', calibration),
+                                ('cross-talk cancellation',  'sss_ctc', ctc)):
+            if not doing:
+                continue
             if len(ent['max_info'][key]) > 0:
                 raise RuntimeError('Maxwell filtering %s step has already '
-                                   'been applied' % msg)
+                                   'been applied, cannot reapply' % msg)
 
 
 def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
-                     sss_ctc, sss_cal, max_st, reg_moments):
+                     sss_ctc, sss_cal, max_st, reg_moments, st_only):
     """Helper function to update info inplace after Maxwell filtering
 
     Parameters
@@ -1463,6 +1495,8 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         The tSSS information.
     reg_moments : ndarray | slice
         The moments that were used.
+    st_only : bool
+        Whether tSSS only was performed.
     """
     n_in, n_out = _get_n_moments([int_order, ext_order])
     raw.info['maxshield'] = False
@@ -1473,15 +1507,19 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
                          job=np.array([2]), nfree=np.sum(components[:n_in]),
                          frame=_str_to_frame[coord_frame],
                          components=components)
-    max_info_dict = dict(sss_info=sss_info_dict, max_st=max_st,
-                         sss_cal=sss_cal, sss_ctc=sss_ctc)
+    max_info_dict = dict(max_st=max_st)
+    if st_only:
+        max_info_dict.update(sss_info=dict(), sss_cal=dict(), sss_ctc=dict())
+    else:
+        max_info_dict.update(sss_info=sss_info_dict, sss_cal=sss_cal,
+                             sss_ctc=sss_ctc)
+        # Reset 'bads' for any MEG channels since they've been reconstructed
+        _reset_meg_bads(raw.info)
     block_id = _generate_meas_id()
     proc_block = dict(max_info=max_info_dict, block_id=block_id,
                       creator='mne-python v%s' % __version__,
                       date=_date_now(), experimentor='')
     raw.info['proc_history'] = [proc_block] + raw.info.get('proc_history', [])
-    # Reset 'bads' for any MEG channels since they've been reconstructed
-    _reset_meg_bads(raw.info)
 
 
 def _reset_meg_bads(info):

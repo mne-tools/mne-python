@@ -20,6 +20,7 @@ io_dir = op.join(op.dirname(inspect.getfile(inspect.currentframe())), '..')
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fname_mc = op.join(data_path, 'SSS', 'test_move_anon_movecomp_raw_sss.fif')
 
 
 def test_pick_refs():
@@ -90,6 +91,7 @@ def test_pick_channels_regexp():
     assert_array_equal(pick_channels_regexp(ch_names, 'MEG *'), [0, 1, 2])
 
 
+@testing.requires_testing_data
 def test_pick_seeg():
     """Test picking with SEEG
     """
@@ -110,6 +112,9 @@ def test_pick_seeg():
     e_seeg = evoked.pick_types(meg=False, seeg=True, copy=True)
     for l, r in zip(e_seeg.ch_names, names[4:]):
         assert_equal(l, r)
+    # Deal with constant debacle
+    raw = Raw(fname_mc)
+    assert_equal(len(pick_types(raw.info, meg=False, seeg=True)), 0)
 
 
 def test_pick_chpi():

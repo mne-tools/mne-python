@@ -24,6 +24,14 @@ Changelog
 
     - Add system config utility :func:`mne.sys_info` by `Eric Larson`_
 
+    - Automatic cross-validation and scoring metrics in :func:`mne.decoding.GeneralizationAcrossTime`, by `Jean-Remi King`_
+
+    - :func:`mne.decoding.GeneralizationAcrossTime` accepts non-deterministic cross-validations, by `Jean-Remi King`_
+
+    - Add plotting RMS of gradiometer pairs in :func:`mne.viz.plot_evoked_topo` by `Jaakko Leppakangas`_
+
+    - Add regularization methods to :func:`mne.compute_raw_covariance` by `Eric Larson`_.
+
 BUG
 ~~~
 
@@ -47,17 +55,34 @@ BUG
 
     - Fix bug in rank calculation of :func:`mne.utils.estimate_rank`, :func:`mne.io.Raw.estimate_rank`, and covariance functions where the tolerance was set to slightly too small a value, new 'auto' mode uses values from ``scipy.linalg.orth`` by `Eric Larson`_.
 
+    - Fix bug when specifying irregular ``train_times['slices']`` in :func:`mne.decoding.GeneralizationAcrossTime`, by `Jean-Remi King`_
+
+    - Fix colorbar range on norm data by `Jaakko Leppakangas`_
+
+    - Fix bug in :func:`mne.preprocessing.run_ica`, which used the ``ecg_criterion`` parameter for the EOG criterion instead of ``eog_criterion`` by `Christian Brodbeck`_
+
 API
 ~~~
 
     - The default `picks=None` in :func:`mne.viz.plot_epochs_image` now only plots the first 5 channels, not all channels, by `Jona Sassenhagen`_
-    - The `mesh_color` parameter in :func:`mne.viz.plot_dipole_locations` has been removed (use `brain_color` instead), by `Marijn van Vliet`_
+
+    - The ``mesh_color`` parameter in :func:`mne.viz.plot_dipole_locations` has been removed (use `brain_color` instead), by `Marijn van Vliet`_
 
     - Deprecated functions :func:`mne.time_frequency.compute_raw_psd` and :func:`mne.time_frequency.compute_epochs_psd`, replaced by :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
 
     - Deprecated function :func:`mne.time_frequency.multitaper_psd` and replaced by :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
     - The `'ch_names'` and `'nchan'` fields of the :class:`mne.io.Info` class are now read-only and are automatically updated to accommodate changes in the `'chs'` field, by `Marijn van Vliet`_
+
+    - The ``y_pred`` attribute in :func:`mne.decoding.GeneralizationAcrossTime` and :func:`mne.decoding.TimeDecoding` is now a numpy array, by `Jean-Remi King`_
+
+    - The :func:`mne.bem.fit_sphere_to_headshape` function now default to ``dig_kinds='auto'`` which will use extra digitization points, falling back to extra plus eeg digitization points if there not enough extra points are available.
+
+    - The :func:`mne.bem.fit_sphere_to_headshape` now has a ``units`` argument that should be set explicitly. This will default to ``units='mm'`` in 0.12 for backward compatibility but change to ``units='m'`` in 0.13.
+
+    - Added default parameters in Epochs class namely ``event_id=None``, ``tmin=-0.2`` and ``tmax=0.5``.
+
+    - To unify and extend the behavior of :func:`mne.comupute_raw_covariance` relative to :func:`mne.compute_covariance`, the default parameter ``tstep=0.2`` now discards any epochs at the end of the :class:`mne.io.Raw` instance that are not the full ``tstep`` duration. This will slighly change the computation of :func:`mne.compute_raw_covaraince`, but should only potentially have a big impact if the :class:`mne.io.Raw` instance is short relative to ``tstep`` and the last, too short (now discarded) epoch contained data inconsistent with the epochs that preceded it.
 
 .. _changes_0_11:
 
@@ -132,23 +157,23 @@ Authors
 
 The committer list for this release is the following (preceded by number of commits):
 
-   171  Eric Larson
-   117  Jaakko Leppakangas
-    58  Jona Sassenhagen
-    52  Mainak Jas
-    46  Alexandre Gramfort
-    33  Denis A. Engemann
-    28  Teon Brooks
-    24  Clemens Brunner
-    23  Christian Brodbeck
-    15  Mark Wronkiewicz
-    10  Jean-Remi King
-     5  Marijn van Vliet
-     3  Fede Raimondo
-     2  Alexander Rudiuk
-     2  emilyps14
-     2  lennyvarghese
-     1  Marian Dovgialo
+  * 171  Eric Larson
+  * 117  Jaakko Leppakangas
+  *  58  Jona Sassenhagen
+  *  52  Mainak Jas
+  *  46  Alexandre Gramfort
+  *  33  Denis A. Engemann
+  *  28  Teon Brooks
+  *  24  Clemens Brunner
+  *  23  Christian Brodbeck
+  *  15  Mark Wronkiewicz
+  *  10  Jean-Remi King
+  *   5  Marijn van Vliet
+  *   3  Fede Raimondo
+  *   2  Alexander Rudiuk
+  *   2  emilyps14
+  *   2  lennyvarghese
+  *   1  Marian Dovgialo
 
 .. _changes_0_10:
 
@@ -220,11 +245,11 @@ Changelog
 
     - Add source space morphing in :func:`morph_source_spaces` and :func:`SourceEstimate.to_original_src` by `Eric Larson`_ and `Denis Engemann`_
 
-   - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
+    - Adapt ``corrmap`` function (Viola et al. 2009) to semi-automatically detect similar ICs across data sets by `Jona Sassenhagen`_ and `Denis Engemann`_ and `Eric Larson`_
 
-   - New ``mne flash_bem`` command to compute BEM surfaces from Flash MRI images by `Lorenzo Desantis`_, `Alex Gramfort`_ and `Eric Larson`_. See :func:`mne.bem.utils.make_flash_bem`.
+    - New ``mne flash_bem`` command to compute BEM surfaces from Flash MRI images by `Lorenzo Desantis`_, `Alex Gramfort`_ and `Eric Larson`_. See :func:`mne.bem.utils.make_flash_bem`.
 
-   - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
+    - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
 
     - Add :func:`mne.report.Report.add_slider_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
 
@@ -269,33 +294,33 @@ Authors
 
 The committer list for this release is the following (preceded by number of commits):
 
-   273  Eric Larson
-   270  Jaakko Leppakangas
-   194  Alexandre Gramfort
-   128  Denis A. Engemann
-   114  Jona Sassenhagen
-   107  Mark Wronkiewicz
-    97  Teon Brooks
-    81  Lorenzo De Santis
-    55  Yousra Bekhti
-    54  Jean-Remi King
-    48  Romain Trachel
-    45  Mainak Jas
-    40  Alexandre Barachant
-    32  Marijn van Vliet
-    26  Jair Montoya
-    22  Chris Holdgraf
-    16  Christopher J. Bailey
-     7  Christian Brodbeck
-     5  Natalie Klein
-     5  Fede Raimondo
-     5  Alan Leggitt
-     5  Roan LaPlante
-     5  Ross Maddox
-     4  Dan G. Wakeman
-     3  Daniel McCloy
-     3  Daniel Strohmeier
-     1  Jussi Nurminen
+   * 273  Eric Larson
+   * 270  Jaakko Leppakangas
+   * 194  Alexandre Gramfort
+   * 128  Denis A. Engemann
+   * 114  Jona Sassenhagen
+   * 107  Mark Wronkiewicz
+   *  97  Teon Brooks
+   *  81  Lorenzo De Santis
+   *  55  Yousra Bekhti
+   *  54  Jean-Remi King
+   *  48  Romain Trachel
+   *  45  Mainak Jas
+   *  40  Alexandre Barachant
+   *  32  Marijn van Vliet
+   *  26  Jair Montoya
+   *  22  Chris Holdgraf
+   *  16  Christopher J. Bailey
+   *   7  Christian Brodbeck
+   *   5  Natalie Klein
+   *   5  Fede Raimondo
+   *   5  Alan Leggitt
+   *   5  Roan LaPlante
+   *   5  Ross Maddox
+   *   4  Dan G. Wakeman
+   *   3  Daniel McCloy
+   *   3  Daniel Strohmeier
+   *   1  Jussi Nurminen
 
 .. _changes_0_9:
 
@@ -503,40 +528,40 @@ Authors
 
 The committer list for this release is the following (preceded by number of commits):
 
-   515  Eric Larson
-   343  Denis A. Engemann
-   304  Alexandre Gramfort
-   300  Teon Brooks
-   142  Mainak Jas
-   119  Jean-Remi King
-    77  Alan Leggitt
-    75  Marijn van Vliet
-    63  Chris Holdgraf
-    57  Yousra Bekhti
-    49  Mark Wronkiewicz
-    44  Christian Brodbeck
-    30  Jona Sassenhagen
-    29  Hari Bharadwaj
-    27  Clément Moutard
-    24  Ingoo Lee
-    18  Marmaduke Woodman
-    16  Martin Luessi
-    10  Jaakko Leppakangas
-     9  Andrew Dykstra
-     9  Daniel Strohmeier
-     7  kjs
-     6  Dan G. Wakeman
-     5  Federico Raimondo
-     3  Basile Pinsard
-     3  Christoph Dinh
-     3  Hafeza Anevar
-     2  Martin Billinger
-     2  Roan LaPlante
-     1  Manoj Kumar
-     1  Matt Tucker
-     1  Romain Trachel
-     1  mads jensen
-     1  sviter
+   * 515  Eric Larson
+   * 343  Denis A. Engemann
+   * 304  Alexandre Gramfort
+   * 300  Teon Brooks
+   * 142  Mainak Jas
+   * 119  Jean-Remi King
+   *  77  Alan Leggitt
+   *  75  Marijn van Vliet
+   *  63  Chris Holdgraf
+   *  57  Yousra Bekhti
+   *  49  Mark Wronkiewicz
+   *  44  Christian Brodbeck
+   *  30  Jona Sassenhagen
+   *  29  Hari Bharadwaj
+   *  27  Clément Moutard
+   *  24  Ingoo Lee
+   *  18  Marmaduke Woodman
+   *  16  Martin Luessi
+   *  10  Jaakko Leppakangas
+   *   9  Andrew Dykstra
+   *   9  Daniel Strohmeier
+   *   7  kjs
+   *   6  Dan G. Wakeman
+   *   5  Federico Raimondo
+   *   3  Basile Pinsard
+   *   3  Christoph Dinh
+   *   3  Hafeza Anevar
+   *   2  Martin Billinger
+   *   2  Roan LaPlante
+   *   1  Manoj Kumar
+   *   1  Matt Tucker
+   *   1  Romain Trachel
+   *   1  mads jensen
+   *   1  sviter
 
 .. _changes_0_8:
 

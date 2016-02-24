@@ -160,14 +160,12 @@ class RawEDF(_BaseRaw):
                             ch_data = np.hstack([ch_data, [0] * n_missing])
                             ch_data = ch_data[r_sidx:r_eidx]
                         elif ci == stim_channel:
-                            if annot and annotmap or \
-                                    tal_channel is not None:
+                            if annot and annotmap or tal_channel is not None:
                                 # don't bother with resampling the stim ch
                                 # because it gets overwritten later on.
                                 ch_data = np.zeros(n_buf_samp)
                             else:
-                                warn('Interpolating stim channel. Events may '
-                                     'jitter.')
+                                # Stim channel will be interpolated
                                 oldrange = np.linspace(0, 1, n_samp + 1, True)
                                 newrange = np.linspace(0, 1, buf_len, False)
                                 newrange = newrange[r_sidx:r_eidx]
@@ -461,6 +459,11 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
     info['description'] = None
     info['buffer_size_sec'] = 10.
     edf_info['nsamples'] = int(n_records * max_samp)
+
+    # These are the conditions under which a stim channel will be interpolated
+    if stim_channel is not None and not (annot and annotmap) and \
+            tal_channel is None and n_samps[stim_channel] != int(max_samp):
+        warn('Interpolating stim channel. Events may jitter.')
 
     return info, edf_info
 

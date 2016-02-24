@@ -17,7 +17,7 @@ import numpy as np
 from ..io.pick import channel_type, pick_types
 from ..fixes import normalize_colors
 from ..utils import _clean_names, warn
-
+from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show)
@@ -75,7 +75,6 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     fig.set_facecolor(fig_facecolor)
     if layout is None:
-        from ..channels import find_layout
         layout = find_layout(info)
 
     if on_pick is not None:
@@ -107,7 +106,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, vline=None, font_color='w'):
+               y_label=None, font_color='w'):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
 
@@ -228,7 +227,10 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     if x_label is not None:
         plt.xlabel(x_label)
     if y_label is not None:
-        plt.ylabel(y_label)
+        if isinstance(y_label, list):
+            plt.ylabel(y_label[ch_idx])
+        else:
+            plt.ylabel(y_label)
     if colorbar:
         plt.colorbar()
 
@@ -242,7 +244,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
                       proj=False, vline=[0.0], fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      show=True):
+                      merge_grads=False, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -266,10 +268,11 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     border : str
         matplotlib borders style to be used for each sensor plot.
     ylim : dict | None
-        ylim for plots. The value determines the upper and lower subplot
-        limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
-        mag, grad, misc. If None, the ylim parameter for each channel is
-        determined by the maximum absolute peak.
+        ylim for plots (after scaling has been applied). The value
+        determines the upper and lower subplot limits. e.g.
+        ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad. If None,
+        the ylim parameter for each channel is determined by the maximum
+        absolute peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
@@ -290,6 +293,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The face color to be used for each sensor plot. Defaults to black.
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to white.
+    merge_grads : bool
+        Whether to use RMS value of gradiometer pairs. Only works for Neuromag
+        data. Defaults to False.
     show : bool
         Show figure if True.
 
@@ -320,45 +326,66 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not all((e.times == times).all() for e in evoked):
         raise ValueError('All evoked.times must be the same')
 
+    evoked = [e.copy() for e in evoked]
     info = evoked[0].info
     ch_names = evoked[0].ch_names
+    scalings = _handle_default('scalings', scalings)
     if not all(e.ch_names == ch_names for e in evoked):
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
+    if merge_grads:
+        picks = _pair_grad_sensors(info, topomap_coords=False)
+        chs = list()
+        for pick in picks[::2]:
+            ch = info['chs'][pick]
+            ch['ch_name'] = ch['ch_name'][:-1] + 'X'
+            chs.append(ch)
+        info['chs'] = chs
+        info['bads'] = list()  # bads dropped on pair_grad_sensors
+        new_picks = list()
+        for e in evoked:
+            data = _merge_grad_data(e.data[picks]) * scalings['grad']
+            e.data = data
+            new_picks.append(range(len(data)))
+        picks = new_picks
+        types_used = ['grad']
+        y_label = 'RMS amplitude (%s)' % _handle_default('units')['grad']
 
     if layout is None:
-        from ..channels.layout import find_layout
         layout = find_layout(info)
 
-    # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
-    chs_in_layout = set(layout.names) & set(ch_names)
-    types_used = set(channel_type(info, ch_names.index(ch))
-                     for ch in chs_in_layout)
-    # remove possible reference meg channels
-    types_used = set.difference(types_used, set('ref_meg'))
-    # one check for all vendors
-    meg_types = set(('mag', 'grad'))
-    is_meg = len(set.intersection(types_used, meg_types)) > 0
-    if is_meg:
-        types_used = list(types_used)[::-1]  # -> restore kwarg order
-        picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
-                 for kk in types_used]
-    else:
-        types_used_kwargs = dict((t, True) for t in types_used)
-        picks = [pick_types(info, meg=False, exclude=[], **types_used_kwargs)]
-    assert isinstance(picks, list) and len(types_used) == len(picks)
+    if not merge_grads:
+        # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
+        chs_in_layout = set(layout.names) & set(ch_names)
+        types_used = set(channel_type(info, ch_names.index(ch))
+                         for ch in chs_in_layout)
+        # remove possible reference meg channels
+        types_used = set.difference(types_used, set('ref_meg'))
+        # one check for all vendors
+        meg_types = set(('mag', 'grad'))
+        is_meg = len(set.intersection(types_used, meg_types)) > 0
+        if is_meg:
+            types_used = list(types_used)[::-1]  # -> restore kwarg order
+            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
+                     for kk in types_used]
+        else:
+            types_used_kwargs = dict((t, True) for t in types_used)
+            picks = [pick_types(info, meg=False, exclude=[],
+                                **types_used_kwargs)]
+        assert isinstance(picks, list) and len(types_used) == len(picks)
 
-    scalings = _handle_default('scalings', scalings)
-    evoked = [e.copy() for e in evoked]
-    for e in evoked:
-        for pick, t in zip(picks, types_used):
-            e.data[pick] = e.data[pick] * scalings[t]
-
-    if proj is True and all(e.proj is not True for e in evoked):
-        evoked = [e.apply_proj() for e in evoked]
-    elif proj == 'interactive':  # let it fail early.
         for e in evoked:
-            _check_delayed_ssp(e)
+            for pick, ch_type in zip(picks, types_used):
+                e.data[pick] = e.data[pick] * scalings[ch_type]
+
+        if proj is True and all(e.proj is not True for e in evoked):
+            evoked = [e.apply_proj() for e in evoked]
+        elif proj == 'interactive':  # let it fail early.
+            for e in evoked:
+                _check_delayed_ssp(e)
+        # Y labels for picked plots must be reconstructed
+        y_label = ['Amplitude (%s)' % _handle_default('units')[channel_type(
+            info, ch_idx)] for ch_idx in range(len(chs_in_layout))]
 
     if ylim is None:
         def set_ylim(x):
@@ -385,7 +412,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      axis_facecolor=axis_facecolor,
-                     title=title, x_label='Time (s)', vline=vline)
+                     title=title, x_label='Time (s)', y_label=y_label)
 
     if fig_background is not None:
         add_background_image(fig, fig_background)
@@ -525,7 +552,6 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     if vmax is None:
         vmax = data.max()
     if layout is None:
-        from ..channels.layout import find_layout
         layout = find_layout(epochs.info)
 
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,

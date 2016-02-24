@@ -25,7 +25,9 @@ condition = 'Left Auditory'
 evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 
 ###############################################################################
-# Show topography
+# Show topography.
+# For Neuromag data, you can use merge_grads=True to plot
+# RMS values of gradiometer pairs.
 title = 'MNE sample data (condition : %s)' % evoked.comment
-plot_evoked_topo(evoked, title=title)
+plot_evoked_topo(evoked, title=title, merge_grads=False)
 plt.show()
