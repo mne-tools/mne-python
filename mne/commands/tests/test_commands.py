@@ -244,7 +244,7 @@ def test_flash_bem():
 
 
 def test_show_info():
-    """Test mne surf2bem"""
+    """Test mne show_info"""
     check_usage(mne_show_info)
 
 run_tests_if_main()
