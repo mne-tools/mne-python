@@ -135,8 +135,18 @@ def test_read_ctf():
             for key in ('kind', 'scanno', 'unit', 'ch_name', 'unit_mul',
                         'range', 'coord_frame', 'coil_type', 'logno'):
                 assert_equal(c1[key], c2[key])
-            for key in ('loc', 'cal'):
+            for key in ('cal',):
                 assert_allclose(c1[key], c2[key], atol=1e-6, rtol=1e-4,
+                                err_msg='raw.info["chs"][%d][%s]' % (ii, key))
+            # XXX 2016/02/24: fixed bug with normal computation that used
+            # to exist, once mne-C tools are updated we should update our FIF
+            # conversion files, then the slices can go away (and the check
+            # can be combined with that for "cal")
+            for key in ('loc',):
+                assert_allclose(c1[key][:3], c2[key][:3], atol=1e-6, rtol=1e-4,
+                                err_msg='raw.info["chs"][%d][%s]' % (ii, key))
+                assert_allclose(c1[key][9:12], c2[key][9:12], atol=1e-6,
+                                rtol=1e-4,
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
         if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
             raw.info['dig'] = raw.info['dig'][:-10]

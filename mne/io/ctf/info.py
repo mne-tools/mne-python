@@ -147,24 +147,28 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 pos['ez'] *= -1
             # Check how the other vectors should be defined
             off_diag = False
+            # Default: ex and ey are arbitrary in the plane normal to ez
             if cch['sensor_type_index'] == CTF.CTFV_REF_GRAD_CH:
+                # The off-diagonal gradiometers are an exception:
+                #
                 # We use the same convention for ex as for Neuromag planar
-                # gradiometers: pointing in the positive gradient direction
+                # gradiometers: ex pointing in the positive gradient direction
                 diff = cch['coil']['pos'][0] - cch['coil']['pos'][1]
                 size = np.sqrt(np.sum(diff * diff))
                 if size > 0.:
                     diff /= size
+                # Is ez normal to the line joining the coils?
                 if np.abs(np.dot(diff, pos['ez'])) < 1e-3:
                     off_diag = True
-                if off_diag:
-                    # The off-diagonal gradiometers are an exception
+                    # Handle the off-diagonal gradiometer coordinate system
                     pos['r0'] -= size * diff / 2.0
                     pos['ex'][:] = diff
                     pos['ey'][:] = np.cross(pos['ez'], pos['ex'])
+                else:
+                    pos['ex'][:], pos['ey'][:] = _get_plane_vectors(pos['ez'])
             else:
-                # ex and ey are arbitrary in the plane normal to ex
                 pos['ex'][:], pos['ey'][:] = _get_plane_vectors(pos['ez'])
-            # Transform into a Neuromag-like coordinate system
+            # Transform into a Neuromag-like device coordinate system
             pos['r0'][:] = apply_trans(t['t_ctf_dev_dev'], pos['r0'])
             for key in ('ex', 'ey', 'ez'):
                 pos[key][:] = apply_trans(t['t_ctf_dev_dev'], pos[key],
