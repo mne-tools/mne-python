@@ -198,7 +198,7 @@ n_permutations = 128  # ... run fewer permutations (reduces sensitivity)
 
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
-    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
+    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=2,
                                  threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations,
                                  buffer_size=None)

@@ -28,7 +28,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)
-raw.filter(1, 45, n_jobs=1)
+raw.filter(1, 45, n_jobs=2)
 
 ###############################################################################
 # 1) Fit ICA model using the FastICA algorithm
