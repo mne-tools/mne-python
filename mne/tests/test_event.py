@@ -3,7 +3,8 @@ import os
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
 import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
@@ -304,6 +305,10 @@ def test_make_fixed_length_events():
     raw = io.Raw(raw_fname)
     events = make_fixed_length_events(raw, id=1)
     assert_true(events.shape[1], 3)
+    tmin, tmax = raw.times[[0, -1]]
+    duration = tmax - tmin
+    events = make_fixed_length_events(raw, 1, tmin, tmax, duration)
+    assert_equal(events.shape[0], 1)
 
 
 def test_define_events():

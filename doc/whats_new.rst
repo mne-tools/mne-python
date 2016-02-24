@@ -30,6 +30,8 @@ Changelog
 
     - Add plotting RMS of gradiometer pairs in :func:`mne.viz.plot_evoked_topo` by `Jaakko Leppakangas`_
 
+    - Add regularization methods to :func:`mne.compute_raw_covariance` by `Eric Larson`_.
+
 BUG
 ~~~
 
@@ -77,6 +79,8 @@ API
     - The :func:`mne.bem.fit_sphere_to_headshape` now has a ``units`` argument that should be set explicitly. This will default to ``units='mm'`` in 0.12 for backward compatibility but change to ``units='m'`` in 0.13.
 
     - Added default parameters in Epochs class namely ``event_id=None``, ``tmin=-0.2`` and ``tmax=0.5``.
+
+    - To unify and extend the behavior of :func:`mne.comupute_raw_covariance` relative to :func:`mne.compute_covariance`, the default parameter ``tstep=0.2`` now discards any epochs at the end of the :class:`mne.io.Raw` instance that are not the full ``tstep`` duration. This will slighly change the computation of :func:`mne.compute_raw_covaraince`, but should only potentially have a big impact if the :class:`mne.io.Raw` instance is short relative to ``tstep`` and the last, too short (now discarded) epoch contained data inconsistent with the epochs that preceded it.
 
 .. _changes_0_11:
 

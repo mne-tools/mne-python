@@ -5,6 +5,8 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_array_equal
 
+from scipy import linalg
+
 from .. import pick_types, Evoked
 from ..io import _BaseRaw
 from ..io.constants import FIFF
@@ -68,6 +70,14 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
     _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG')
     if chpi_med_tol is not None and len(chpis) > 0:
         _check_snr(actual, desired, chpis, 0., chpi_med_tol, msg, kind='cHPI')
+
+
+def assert_snr(actual, desired, tol):
+    """Assert actual and desired arrays are within some SNR tolerance"""
+    from nose.tools import assert_true
+    snr = (linalg.norm(desired, ord='fro') /
+           linalg.norm(desired - actual, ord='fro'))
+    assert_true(snr >= tol, msg='%f < %f' % (snr, tol))
 
 
 def _dig_sort_key(dig):
