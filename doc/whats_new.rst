@@ -32,6 +32,8 @@ Changelog
 
     - Add regularization methods to :func:`mne.compute_raw_covariance` by `Eric Larson`_.
 
+    - Add command ``mne show_info`` to quickly show the measurement info from a .fif file from the terminal by `Alex Gramfort`_.
+
 BUG
 ~~~
 
