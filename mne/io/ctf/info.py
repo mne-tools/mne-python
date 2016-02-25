@@ -137,6 +137,19 @@ def _convert_channel_info(res4, t, use_eeg_pos):
         if cch['sensor_type_index'] in (CTF.CTFV_REF_MAG_CH,
                                         CTF.CTFV_REF_GRAD_CH,
                                         CTF.CTFV_MEG_CH):
+            # Extra check for a valid MEG channel
+            if np.sum(cch['coil']['pos'][0] ** 2) < 1e-6 or \
+                    np.sum(cch['coil']['norm'][0] ** 2) < 1e-6:
+                nmisc += 1
+                ch.update(logno=nmisc, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                          kind=FIFF.FIFFV_MISC_CH, unit=FIFF.FIFF_UNIT_V)
+                text = 'MEG'
+                if cch['sensor_type_index'] != CTF.CTFV_MEG_CH:
+                    text += ' ref'
+                warn('%s channel %s did not have position assigned, so '
+                     'it was changed to a MISC channel'
+                     % (text, ch['ch_name']))
+                continue
             ch['unit'] = FIFF.FIFF_UNIT_T
             # Set up the local coordinate frame
             pos['r0'][:] = cch['coil']['pos'][0]
@@ -211,22 +224,16 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                         pos['r0'][:] = apply_trans(t['t_ctf_head_head'],
                                                    pos['r0'])
             neeg += 1
-            ch['logno'] = neeg
-            ch['kind'] = FIFF.FIFFV_EEG_CH
-            ch['unit'] = FIFF.FIFF_UNIT_V
-            ch['coord_frame'] = coord_frame
+            ch.update(logno=neeg, kind=FIFF.FIFFV_EEG_CH,
+                      unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame)
         elif cch['sensor_type_index'] == CTF.CTFV_STIM_CH:
             nstim += 1
-            ch['logno'] = nstim
-            ch['kind'] = FIFF.FIFFV_STIM_CH
-            ch['unit'] = FIFF.FIFF_UNIT_V
-            ch['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
+            ch.update(logno=nstim, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                      kind=FIFF.FIFFV_STIM_CH, unit=FIFF.FIFF_UNIT_V)
         else:
             nmisc += 1
-            ch['logno'] = nmisc
-            ch['kind'] = FIFF.FIFFV_MISC_CH
-            ch['unit'] = FIFF.FIFF_UNIT_V
-            ch['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
+            ch.update(logno=nmisc, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                      kind=FIFF.FIFFV_MISC_CH, unit=FIFF.FIFF_UNIT_V)
     return chs
 
 

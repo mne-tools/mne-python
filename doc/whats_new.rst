@@ -63,6 +63,8 @@ BUG
 
     - Fix bug in :func:`mne.preprocessing.run_ica`, which used the ``ecg_criterion`` parameter for the EOG criterion instead of ``eog_criterion`` by `Christian Brodbeck`_
 
+    - Fix normals in CTF data reader by `Eric Larson`_
+
 API
 ~~~
 
