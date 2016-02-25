@@ -21,7 +21,7 @@ from mne.utils import run_tests_if_main
 
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
-from mne.viz.topo import _plot_update_evoked_topo
+from mne.viz.topo import _plot_update_evoked_topo_proj
 
 # Set our plotters to test mode
 import matplotlib
@@ -103,13 +103,15 @@ def test_plot_topo():
         fig = plot_evoked_topo(picked_evoked_delayed_ssp, layout,
                                proj='interactive')
         func = _get_presser(fig)
-        event = namedtuple('Event', 'inaxes')
-        func(event(inaxes=fig.axes[0]))
+        event = namedtuple('Event', ['inaxes', 'xdata', 'ydata'])
+        func(event(inaxes=fig.axes[0], xdata=fig.axes[0]._mne_axs[0].pos[0],
+                   ydata=fig.axes[0]._mne_axs[0].pos[1]))
+        func(event(inaxes=fig.axes[0], xdata=0, ydata=0))
         params = dict(evokeds=[picked_evoked_delayed_ssp],
                       times=picked_evoked_delayed_ssp.times,
                       fig=fig, projs=picked_evoked_delayed_ssp.info['projs'])
         bools = [True] * len(params['projs'])
-        _plot_update_evoked_topo(params, bools)
+        _plot_update_evoked_topo_proj(params, bools)
     # should auto-generate layout
     plot_evoked_topo(picked_evoked_eeg.copy(),
                      fig_background=np.zeros((4, 3, 3)), proj=True)
