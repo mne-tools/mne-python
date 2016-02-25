@@ -621,7 +621,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise RuntimeError('Raw data needs to be preloaded. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+            picks = pick_types(self.info, meg=True, eeg=True, seeg=True,
+                               exclude=[])
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')
@@ -803,7 +804,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if 'ICA ' in ','.join(self.ch_names):
                 pick_parameters = dict(misc=True, ref_meg=False)
             else:
-                pick_parameters = dict(meg=True, eeg=True, ref_meg=False)
+                pick_parameters = dict(meg=True, eeg=True, seeg=True,
+                                       ref_meg=False)
             picks = pick_types(self.info, exclude=[], **pick_parameters)
             # let's be safe.
             if len(picks) < 1:
@@ -931,7 +933,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if 'ICA ' in ','.join(self.ch_names):
                 pick_parameters = dict(misc=True)
             else:
-                pick_parameters = dict(meg=True, eeg=True)
+                pick_parameters = dict(meg=True, eeg=True, seeg=True)
             picks = pick_types(self.info, exclude=[], **pick_parameters)
             # let's be safe.
             if len(picks) < 1:
@@ -1597,8 +1599,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
         tslice = slice(start, stop + 1)
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
-                               exclude='bads')
+            picks = pick_types(self.info, meg=True, eeg=True, seeg=True,
+                               ref_meg=False, exclude='bads')
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
