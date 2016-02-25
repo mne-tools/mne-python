@@ -73,18 +73,13 @@ def _get_cnt_info(input_fname, read_blocks):
         fid.seek(376)
         cnt_info['sfreq'] = np.fromfile(fid, dtype='<u2', count=1)[0]
         fid.seek(438)
-        cnt_info['lowpass_toggle'] = np.fromfile(fid, 'i1', count=1)[0]
-        cnt_info['highpass_toggle'] = np.fromfile(fid, 'i1', count=1)[0]
+        lowpass_toggle = np.fromfile(fid, 'i1', count=1)[0]
+        highpass_toggle = np.fromfile(fid, 'i1', count=1)[0]
         fid.seek(869)
-        cnt_info['lowcutoff'] = np.fromfile(fid, dtype='f4', count=1)[0]
-        cnt_info['lowpoles'] = np.fromfile(fid, dtype='u2', count=1)[0]
-        cnt_info['highcutoff'] = np.fromfile(fid, dtype='f4', count=1)[0]
-        cnt_info['highpoles'] = np.fromfile(fid, dtype='u2', count=1)[0]
+        lowcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
+        fid.seek(2, 1)
+        highcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
 
-        # Bandpass=0 Notch=1 Highpass=2 Lowpass=3
-        cnt_info['filtertype'] = np.fromfile(fid, dtype='i1', count=1)[0]
-        # Frequency=0 Time=1
-        cnt_info['filterdomain'] = np.fromfile(fid, dtype='i1', count=1)[0]
         fid.seek(886)
         cnt_info['event_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
         cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
@@ -113,10 +108,10 @@ def _get_cnt_info(input_fname, read_blocks):
     cnt_info['n_channels'] = n_channels
 
     info = _empty_info(cnt_info['sfreq'])
-    if cnt_info['lowpass_toggle'] == 1:
-        info['lowpass'] = cnt_info['highcutoff']
-    if cnt_info['highpass_toggle'] == 1:
-        info['highpass'] = cnt_info['lowcutoff']
+    if lowpass_toggle == 1:
+        info['lowpass'] = highcutoff
+    if highpass_toggle == 1:
+        info['highpass'] = lowcutoff
     info.update({'filename': input_fname,
                  'meas_date': calendar.timegm(date.utctimetuple()),
                  'description': None, 'buffer_size_sec': 10.})
@@ -214,8 +209,7 @@ class RawCNT(_BaseRaw):
             for event in events:
                 event_ch[event - 1] = 1
 
-            fid.seek(900 + 75 * n_channels + start * n_channels * n_bytes -
-                     s_offset * n_channels * n_bytes)
+            fid.seek(900 + n_channels * (75 + (start - s_offset) * n_bytes))
             data_ = np.empty([n_channels, n_samples])
             # One extra sample set is read here to make sure the desired time
             # window is covered by the blocks.
