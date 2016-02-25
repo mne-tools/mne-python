@@ -30,6 +30,7 @@ from . import pick
 from .array import RawArray
 from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
+from .cnt import read_raw_cnt
 from .ctf import read_raw_ctf
 from .edf import read_raw_edf
 from .egi import read_raw_egi
