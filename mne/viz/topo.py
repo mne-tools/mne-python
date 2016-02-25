@@ -76,7 +76,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
                             use_axes=True)
 
 
-def _iter_topography(info, layout=None, on_pick=None, fig=None,
+def _iter_topography(info, layout, on_pick, fig,
                      fig_facecolor='k', axis_facecolor='k',
                      axis_spinecolor='k', layout_scale=None,
                      use_axes=True):
@@ -123,15 +123,16 @@ def _iter_topography(info, layout=None, on_pick=None, fig=None,
             ax.set_yticklabels([])
             plt.setp(ax.get_xticklines(), visible=False)
             plt.setp(ax.get_yticklines(), visible=False)
-            vars(ax)['_mne_ch_name'] = name
-            vars(ax)['_mne_ch_idx'] = ch_idx
-            vars(ax)['_mne_ax_face_color'] = axis_facecolor
+            ax._mne_ch_name = name
+            ax._mne_ch_idx = ch_idx
+            ax._mne_ax_face_color = axis_facecolor
             yield ax, ch_idx
         else:
             ax = Bunch(ax=under_ax, pos=pos[idx],
                        _mne_ch_name=name, _mne_ch_idx=ch_idx,
                        _mne_ax_face_color=axis_facecolor)
             axs.append(ax)
+    under_ax._mne_axs = axs
     if not use_axes:
         # Create a PolyCollection for the axis backgrounds
         verts = np.transpose([pos[:, :2],
@@ -148,8 +149,8 @@ def _iter_topography(info, layout=None, on_pick=None, fig=None,
             yield ax, ax._mne_ch_idx
 
 
-def _plot_topo(info=None, times=None, show_func=None, layout=None,
-               decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
+def _plot_topo(info, times, show_func, click_func, layout, vmin, vmax,
+               ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
                y_label=None, font_color='w'):
@@ -158,7 +159,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
 
     # prepare callbacks
     tmin, tmax = times[[0, -1]]
-    on_pick = partial(show_func, tmin=tmin, tmax=tmax, vmin=vmin,
+    on_pick = partial(click_func, tmin=tmin, tmax=tmax, vmin=vmin,
                       vmax=vmax, ylim=ylim, x_label=x_label,
                       y_label=y_label, colorbar=colorbar)
 
@@ -196,16 +197,27 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
     return fig
 
 
-def _plot_topo_onpick(event, show_func=None, colorbar=False):
+def _plot_topo_onpick(event, show_func):
     """Onpick callback that shows a single channel in a new figure"""
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
     orig_ax = event.inaxes
-    if event.inaxes is None or '_mne_ch_idx' not in vars(orig_ax):
+    if event.inaxes is None or (not hasattr(orig_ax, '_mne_ch_idx') and
+                                not hasattr(orig_ax, '_mne_axs')):
         return
 
     import matplotlib.pyplot as plt
     try:
+        if hasattr(orig_ax, '_mne_axs'):  # in unified, single-axes mode
+            x, y = event.xdata, event.ydata
+            for ax in orig_ax._mne_axs:
+                if x >= ax.pos[0] and y >= ax.pos[1] and \
+                        x <= ax.pos[0] + ax.pos[2] and \
+                        y <= ax.pos[1] + ax.pos[3]:
+                    orig_ax = ax
+                    break
+            else:
+                return
         ch_idx = orig_ax._mne_ch_idx
         face_color = orig_ax._mne_ax_face_color
         fig, ax = plt.subplots(1)
@@ -221,7 +233,7 @@ def _plot_topo_onpick(event, show_func=None, colorbar=False):
         # so we print
         # it here to know what went wrong
         print(err)
-        raise err
+        raise
 
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
@@ -252,10 +264,37 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
-                     times, vline=None, x_label=None, y_label=None,
-                     colorbar=False):
-    """Aux function to show time series on topo using """
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
+                     color, times, vline=None, x_label=None,
+                     y_label=None, colorbar=False):
+    """Aux function to show time series on topo split across multiple axes"""
+    import matplotlib.pyplot as plt
+    picker_flag = False
+    for data_, color_ in zip(data, color):
+        if not picker_flag:
+            # use large tol for picker so we can click anywhere in the axes
+            ax.plot(times, data_[ch_idx], color_, picker=1e9)
+            picker_flag = True
+        else:
+            ax.plot(times, data_[ch_idx], color_)
+    if vline:
+        for x in vline:
+            plt.axvline(x, color='w', linewidth=0.5)
+    if x_label is not None:
+        plt.xlabel(x_label)
+    if y_label is not None:
+        if isinstance(y_label, list):
+            plt.ylabel(y_label[ch_idx])
+        else:
+            plt.ylabel(y_label)
+    if colorbar:
+        plt.colorbar()
+
+
+def _plot_timeseries_unified(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
+                             color, times, vline=None, x_label=None,
+                             y_label=None, colorbar=False):
+    """Aux function to show multiple time series on topo using a single axes"""
     import matplotlib.pyplot as plt
     if not (ylim and not any(v is None for v in ylim)):
         ylim = np.array([data.min(), data.max()])
@@ -456,11 +495,15 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     else:
         raise ValueError('ylim must be None ore a dict')
 
-    plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
-                       color=color, times=times, vline=vline)
+    data = [e.data for e in evoked]
+    show_func = partial(_plot_timeseries_unified, data=data,
+                        color=color, times=times, vline=vline)
+    click_func = partial(_plot_timeseries, data=data,
+                         color=color, times=times, vline=vline)
 
-    fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
-                     decim=1, colorbar=False, ylim=ylim_, cmap=None,
+    fig = _plot_topo(info, times, show_func, click_func, layout,
+                     vmin=None, vmax=None,
+                     colorbar=False, ylim=ylim_, cmap=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      axis_facecolor=axis_facecolor,
@@ -483,16 +526,12 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
 def _plot_update_evoked_topo(params, bools):
     """Helper function to update topo sensor plots"""
-    evokeds, times, fig = [params[k] for k in ('evokeds', 'times', 'fig')]
-
-    projs = [proj for ii, proj in enumerate(params['projs'])
-             if ii in np.where(bools)[0]]
-
+    evokeds = [e.copy() for e in params['evokeds']]
+    fig = params['fig']
+    projs = [proj for proj, b in zip(params['projs'], bools) if b]
     params['proj_bools'] = bools
-    evokeds = [e.copy() for e in evokeds]
     for e in evokeds:
-        e.info['projs'] = []
-        e.add_proj(projs)
+        e.add_proj(projs, remove_existing=True)
         e.apply_proj()
 
     # make sure to only modify the time courses, not the ticks
@@ -503,7 +542,7 @@ def _plot_update_evoked_topo(params, bools):
     for ax in axes:
         lines = ax.lines[ax_slice]
         for line, evoked in zip(lines, evokeds):
-            line.set_data(times, evoked.data[ax._mne_ch_idx])
+            line.set_ydata(evoked.data[ax._mne_ch_idx])
 
     fig.canvas.draw()
 
@@ -613,7 +652,8 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
                          cmap=cmap)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,
-                     show_func=erf_imshow, layout=layout, decim=1,
+                     show_func=erf_imshow, click_func=erf_imshow,
+                     layout=layout, decim=1,
                      colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                      layout_scale=layout_scale, title=title,
                      fig_facecolor=fig_facecolor,
