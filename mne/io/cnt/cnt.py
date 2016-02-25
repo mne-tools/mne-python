@@ -24,16 +24,28 @@ def read_raw_cnt(input_fname, read_blocks=True, preload=False, verbose=None):
     ----------
     input_fname : str
         Path to the data file.
+    read_blocks : bool
+        Whether to read data in blocks. This is for dealing with different
+        kinds of CNT data formats.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-
+    Instance of RawCNT.
     """
     return RawCNT(input_fname, read_blocks=read_blocks, preload=preload,
                   verbose=verbose)
 
 
 def _get_cnt_info(input_fname, read_blocks):
+    """Helper for reading the cnt header."""
     dtype = '<i4'
     n_bytes = np.dtype(dtype).itemsize
     offset = 900  # Size of the 'SETUP' header.
@@ -99,7 +111,7 @@ def _get_cnt_info(input_fname, read_blocks):
             cal = np.fromfile(fid, dtype='f4', count=1)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
     cnt_info['n_channels'] = n_channels
-    cnt_info['baselines'] = np.array(baselines)
+
     info = _empty_info(cnt_info['sfreq'])
     if cnt_info['lowpass_toggle'] == 1:
         info['lowpass'] = cnt_info['highcutoff']
@@ -117,12 +129,43 @@ def _get_cnt_info(input_fname, read_blocks):
                      'coord_frame': FIFF.FIFFV_COORD_HEAD, 'loc': np.zeros(12),
                      'coil_type': ch_coil, 'kind': ch_kind}
         chs.append(chan_info)
+
+    # Add the stim channel.
+    chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
+                 'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI',
+                 'unit': FIFF.FIFF_UNITM_NONE,
+                 'coord_frame': FIFF.FIFFV_COORD_UNKNOWN, 'loc': np.zeros(12),
+                 'coil_type': FIFF.FIFFV_COIL_NONE, 'kind': FIFF.FIFFV_SYST_CH}
+    chs.append(chan_info)
+    baselines.append(0)  # For stim channel
+    cnt_info['baselines'] = np.array(baselines)
     info['chs'] = chs
     return info, cnt_info
 
 
 class RawCNT(_BaseRaw):
+    """Raw object from Neuroscan CNT file.
 
+    Parameters
+    ----------
+    input_fname : str
+        Path to the CNT file.
+    read_blocks : bool
+        Whether to read data in blocks. This is for dealing with different
+        kinds of CNT data formats.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
+    """
     def __init__(self, input_fname, read_blocks=True, preload=False,
                  verbose=None):
         input_fname = path.abspath(input_fname)
@@ -135,10 +178,12 @@ class RawCNT(_BaseRaw):
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        n_channels = self.info['nchan']
+        """Take a chunk of raw data, multiply by mult or cals, and store"""
+        n_channels = self.info['nchan'] - 1
         n_samples = self._raw_extras[0]['n_samples']
         channel_offset = self._raw_extras[0]['channel_offset']
         baselines = self._raw_extras[0]['baselines']
+        event_offset = self._raw_extras[0]['event_offset']
         n_bytes = 2
         # The data is divided into blocks of samples / channel.
         # channel_offset determines the amount of successive samples.
@@ -147,9 +192,30 @@ class RawCNT(_BaseRaw):
         s_offset = start % channel_offset
 
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
+            fid.seek(event_offset)
+            event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
+            event_size = np.fromfile(fid, dtype='<i4', count=1)
+            if event_type == 1:
+                bytes = 8
+            elif event_type == 2:
+                bytes = 19
+            else:
+                raise IOError('Unexpected event size.')
+            n_events = event_size / bytes
+            events = list()
+            for i in range(n_events):
+                fid.seek(event_offset + 9 + i * bytes + 4)
+                offset = np.fromfile(fid, dtype='<i4', count=1)
+                events.append((offset - 900 - 75 * n_channels) /
+                              (n_channels * 2))
+
+            event_ch = np.zeros(n_samples)
+
+            for event in events:
+                event_ch[event - 1] = 1
+
             fid.seek(900 + 75 * n_channels + start * n_channels * n_bytes -
                      s_offset * n_channels * n_bytes)
-            #data_ = np.empty([n_channels, stop - start])
             data_ = np.empty([n_channels, n_samples])
             # One extra sample set is read here to make sure the desired time
             # window is covered by the blocks.
@@ -162,5 +228,8 @@ class RawCNT(_BaseRaw):
                 block = block.reshape(n_channels, channel_offset, order='C')
                 block_start = sampleset * channel_offset
                 data_[:, block_start:block_start + channel_offset] = block
+            event_block = event_ch[start:stop]
+            data_ = np.vstack((data_, event_block))
 
-        _mult_cal_one(data, data_ - baselines[:, None], idx, cals, mult=None)
+            _mult_cal_one(data, data_ - baselines[:, None], idx, cals,
+                          mult=None)
