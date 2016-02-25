@@ -97,6 +97,7 @@ it is supported by the IDEX Paris-Saclay, ANR-11-IDEX-0003-02, via the
    getting_started
    whats_new
    cite
+   cited
    references
    tutorials
    auto_examples/index
