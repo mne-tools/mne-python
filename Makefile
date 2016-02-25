@@ -36,26 +36,6 @@ sample_data:
 testing_data:
 	@python -c "import mne; mne.datasets.testing.data_path(verbose=True);"
 
-spm_data:
-	@python -c "import mne; mne.datasets.spm_face.data_path(verbose=True);"
-
-somato_data:
-	@python -c "import mne; mne.datasets.somato.data_path(verbose=True);"
-
-bst_auditory_data:
-	@python -c "import mne; mne.datasets.brainstorm.bst_auditory.data_path(verbose=True);"
-
-bst_resting_data:
-	@python -c "import mne; mne.datasets.brainstorm.bst_resting.data_path(verbose=True);"
-
-bst_raw_data:
-	@python -c "import mne; mne.datasets.brainstorm.bst_raw.data_path(verbose=True);"
-
-megsim_data:
-	@python -c "import mne; mne.datasets.megsim.urls._load_all_data();"
-
-examples_data: sample_data testing_data spm_data somato_data bst_auditory_data bst_resting_data bst_raw_data megsim_data
-
 test: in
 	rm -f .coverage
 	$(NOSETESTS) -a '!ultra_slow_test' mne

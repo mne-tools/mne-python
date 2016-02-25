@@ -115,7 +115,7 @@ X = X.reshape((n_subjects, 1, n_src))
 #    specifying a connectivity matrix implies grid-like connectivity, which
 #    we want here:
 T_obs, clusters, p_values, H0 = \
-    spatio_temporal_cluster_1samp_test(X, n_jobs=2, threshold=threshold,
+    spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold,
                                        connectivity=connectivity,
                                        tail=1, n_permutations=n_permutations)
 
@@ -133,7 +133,7 @@ p_bon = -np.log10(bonferroni_correction(p)[1])
 #    Now let's do some clustering using the standard method with "hat":
 stat_fun = partial(ttest_1samp_no_p, sigma=sigma)
 T_obs_hat, clusters, p_values, H0 = \
-    spatio_temporal_cluster_1samp_test(X, n_jobs=2, threshold=threshold,
+    spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold,
                                        connectivity=connectivity,
                                        tail=1, n_permutations=n_permutations,
                                        stat_fun=stat_fun)
@@ -147,7 +147,7 @@ T_obs_hat = T_obs_hat.reshape((width, width))
 
 #    Now the threshold-free cluster enhancement method (TFCE):
 T_obs_tfce, clusters, p_values, H0 = \
-    spatio_temporal_cluster_1samp_test(X, n_jobs=2, threshold=threshold_tfce,
+    spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold_tfce,
                                        connectivity=connectivity,
                                        tail=1, n_permutations=n_permutations)
 T_obs_tfce = T_obs_tfce.reshape((width, width))
@@ -155,7 +155,7 @@ ps_tfce = -np.log10(p_values.reshape((width, width)))
 
 #    Now the TFCE with "hat" variance correction:
 T_obs_tfce_hat, clusters, p_values, H0 = \
-    spatio_temporal_cluster_1samp_test(X, n_jobs=2, threshold=threshold_tfce,
+    spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold_tfce,
                                        connectivity=connectivity,
                                        tail=1, n_permutations=n_permutations,
                                        stat_fun=stat_fun)
