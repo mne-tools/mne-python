@@ -36,7 +36,6 @@ Changelog
 
     - Add creating forward operator for dipole object :func:`mne.forward.make_forward_dipole` by `Chris Bailey`_
 
-
 BUG
 ~~~
 

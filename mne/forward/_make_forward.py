@@ -615,7 +615,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     """Convert dipole object to source estimate and calculate forward operator
 
-    The instance of Dipole is converted to a discrete volume source space,
+    The instance of Dipole is converted to a discrete source space,
     which is then combined with a BEM or a sphere model and
     the sensor information in info to form a forward operator.
 
@@ -695,7 +695,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
                 format(t * 1000., pos[0] * 1000.,
                        pos[1] * 1000., pos[2] * 1000.)
         msg += len(head) * '#'
-        print(msg)
+        logger.error(msg)
         raise ValueError('One or more dipoles outside the inner skull.')
 
     # multiple dipoles (rr and nn) per time instant allowed
