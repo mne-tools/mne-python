@@ -132,10 +132,13 @@ def _do_path_update(path, update_path, key, name):
     if update_path is None:
         if get_config(key, '') != path:
             update_path = True
-            msg = ('Do you want to set the path:\n    %s\nas the default '
-                   '%s dataset path in the mne-python config [y]/n? '
-                   % (path, name))
-            answer = input(msg)
+            if '--update-dataset-path' in sys.argv:
+                answer = 'y'
+            else:
+                msg = ('Do you want to set the path:\n    %s\nas the default '
+                       '%s dataset path in the mne-python config [y]/n? '
+                       % (path, name))
+                answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
         else:
