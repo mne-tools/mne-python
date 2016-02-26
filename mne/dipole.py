@@ -55,11 +55,11 @@ class Dipole(object):
         Name of the dipole.
     """
     def __init__(self, times, pos, amplitude, ori, gof, name=None):
-        self.times = times
-        self.pos = pos
-        self.amplitude = amplitude
-        self.ori = ori
-        self.gof = gof
+        self.times = np.array(times)
+        self.pos = np.array(pos)
+        self.amplitude = np.array(amplitude)
+        self.ori = np.array(ori)
+        self.gof = np.array(gof)
         self.name = name
 
     def __repr__(self):

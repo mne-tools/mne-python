@@ -388,7 +388,7 @@ def test_make_forward_dipole():
 
     # Warning emitted due to uneven sampling in time
     with warnings.catch_warnings(record=True) as w:
-        stc, fwd = make_forward_dipole(dip_test, sphere, info,
+        fwd, stc = make_forward_dipole(dip_test, sphere, info,
                                        trans=fname_trans)
         assert_true(issubclass(w[-1].category, RuntimeWarning))
 
@@ -406,15 +406,14 @@ def test_make_forward_dipole():
                                    snr=snr, random_state=rng)
         # evo_test.add_proj(make_eeg_average_ref_proj(evo_test.info))
         dfit, resid = fit_dipole(evo_test, cov, sphere, None)
-        times += list(dfit.times)
-        pos += list(dfit.pos)
-        amplitude += list(dfit.amplitude)
-        ori += list(dfit.ori)
-        gof += list(dfit.gof)
+        times += dfit.times.tolist()
+        pos += dfit.pos.tolist()
+        amplitude += dfit.amplitude.tolist()
+        ori += dfit.ori.tolist()
+        gof += dfit.gof.tolist()
 
     # Create a new Dipole object with the dipole fits
-    dip_fit = Dipole(np.array(times), np.array(pos), np.array(amplitude),
-                     np.array(ori), np.array(gof))
+    dip_fit = Dipole(times, pos, amplitude, ori, gof)
 
     # check that true (test) dipoles and fits are "close"
     # cf. mne/tests/test_dipole.py
@@ -437,10 +436,10 @@ def test_make_forward_dipole():
     # Make sure rejection works with BEM: one dipole at z=1m
     # NB _make_forward.py:_prepare_for_forward will raise a RuntimeError
     # if no points are left after min_dist exclusions, hence 2 dips here!
-    dip_outside = Dipole(times=np.array([0., 0.001]),
-                         pos=np.array([[0., 0., 1.0], [0., 0., 0.040]]),
-                         amplitude=np.array([100e-9, 100e-9]),
-                         ori=np.array([[1., 0., 0.], [1., 0., 0.]]), gof=1)
+    dip_outside = Dipole(times=[0., 0.001],
+                         pos=[[0., 0., 1.0], [0., 0., 0.040]],
+                         amplitude=[100e-9, 100e-9],
+                         ori=[[1., 0., 0.], [1., 0., 0.]], gof=1)
     assert_raises(ValueError, make_forward_dipole, dip_outside, fname_bem,
                   info, fname_trans)
     # if we get this far, can safely assume the code works with BEMs too
@@ -448,16 +447,16 @@ def test_make_forward_dipole():
 
     # Now make an evenly sampled set of dipoles, some simultaneous,
     # should return a VolSourceEstimate regardless
-    times = np.array([0., 0., 0., 0.001, 0.001, 0.002])
+    times = [0., 0., 0., 0.001, 0.001, 0.002]
     pos = np.random.rand(6, 3) * 0.020 + \
         np.array([0., 0., 0.040])[np.newaxis, :]
-    amplitude = np.random.rand(6,) * 100e-9
+    amplitude = np.random.rand(6) * 100e-9
     ori = np.eye(6, 3) + np.eye(6, 3, -3)
     gof = np.arange(len(times)) / len(times)  # arbitrary
 
     dip_even_samp = Dipole(times, pos, amplitude, ori, gof)
 
-    stc, fwd = make_forward_dipole(dip_even_samp, sphere, info,
+    fwd, stc = make_forward_dipole(dip_even_samp, sphere, info,
                                    trans=fname_trans)
     assert_true(isinstance, VolSourceEstimate)
     assert_allclose(stc.times, np.arange(0., 0.003, 0.001))

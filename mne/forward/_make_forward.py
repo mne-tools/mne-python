@@ -423,7 +423,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     _print_coord_trans(mri_head_t)
 
     # make a new dict with the relevant information
-    arg_list = [info_extra, trans, src, bem_extra, fname,  meg, eeg,
+    arg_list = [info_extra, trans, src, bem_extra, fname, meg, eeg,
                 mindist, overwrite, n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
@@ -616,7 +616,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     """Convert dipole object to source estimate and calculate forward operator
 
     The instance of Dipole is converted to a discrete volume source space,
-    which is then combined with a BEM (can also be a sphere model dict) and
+    which is then combined with a BEM or a sphere model and
     the sensor information in info to form a forward operator.
 
     The source estimate object (with the forward operator) can be projected to
@@ -635,7 +635,8 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     bem : str | dict
         The BEM filename (str) or a loaded sphere model (dict).
     info : instance of Info
-        Sensor-information etc., e.g., from a real data file.
+        The measurement information dictionary. It is sensor-information etc.,
+        e.g., from a real data file.
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
@@ -646,12 +647,12 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
 
     Returns
     -------
+    fwd : instance of Forward
+        The forward solution corresponding to the source estimate(s).
     stc : instance of VolSourceEstimate | list of VolSourceEstimate
         The dipoles converted to a discrete set of points and associated
         time courses. If the time points of the dipole are unevenly spaced,
         a list of single-timepoint source estimates are returned.
-    fwd : instance of Forward
-        The forward solution corresponding to the source estimate(s).
 
     See Also
     --------
@@ -695,7 +696,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
                        pos[1] * 1000., pos[2] * 1000.)
         msg += len(head) * '#'
         print(msg)
-        raise ValueError('One or more dipoles outside the inner skull')
+        raise ValueError('One or more dipoles outside the inner skull.')
 
     # multiple dipoles (rr and nn) per time instant allowed
     # uneven sampling in time returns list
@@ -732,7 +733,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
             stc += [VolSourceEstimate(data[:, col][:, np.newaxis],
                                       vertices=fwd['src'][0]['vertno'],
                                       tmin=tp, tstep=0.001, subject=None)]
-    return stc, fwd
+    return fwd, stc
 
 
 def _to_forward_dict(fwd, names, fwd_grad=None,
