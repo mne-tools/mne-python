@@ -17,6 +17,7 @@ from . import array
 from . import base
 from . import brainvision
 from . import bti
+from . import cnt
 from . import ctf
 from . import constants
 from . import edf
