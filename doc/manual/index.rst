@@ -100,6 +100,14 @@ To enable reproducibility of results, MNE-Python includes several dataset fetche
 
    datasets_index
 
+Migrating
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   migrating
+
 Pitfalls
 --------
 
