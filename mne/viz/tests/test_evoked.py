@@ -14,9 +14,8 @@ import numpy as np
 from numpy.testing import assert_raises
 
 
-from mne import io, read_events, Epochs, pick_types, read_cov, read_evokeds
+from mne import io, read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
-from mne.datasets import testing
 from mne.utils import slow_test, run_tests_if_main
 from mne.viz.evoked import _butterfly_onselect
 from mne.viz.utils import _fake_click
@@ -36,9 +35,6 @@ event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 0.1
 n_chan = 6
 layout = read_layout('Vectorview-all')
-
-data_path = testing.data_path(download=False)
-fname_xfit_dip = op.join(data_path, 'misc', 'fam_115_LH.fif')
 
 
 def _get_raw():
@@ -136,15 +132,5 @@ def test_plot_evoked():
         evoked_sss.plot_white(cov)
         evoked_sss.plot_white(cov_fname)
         plt.close('all')
-
-
-@testing.requires_testing_data
-def test_plot_xfit_dip():
-    """Test plotting of xfit dipole"""
-    import matplotlib.pyplot as plt
-    with warnings.catch_warnings(record=True):  # bad naming
-        evoked = read_evokeds(fname_xfit_dip)[0]
-    evoked.plot()
-    plt.close('all')
 
 run_tests_if_main()

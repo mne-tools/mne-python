@@ -3,17 +3,20 @@
 #
 # License: Simplified BSD
 
-import numpy as np
-from scipy import linalg
 from copy import deepcopy
 import re
+
+import numpy as np
+from scipy import linalg
 
 from .cov import read_cov, _get_whitener_data
 from .io.pick import pick_types, channel_type
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
+from .evoked import _read_evoked, _aspect_rev, _write_evokeds
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform, Transform)
+from .viz.evoked import _plot_evoked
 
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
@@ -28,11 +31,11 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .fixes import partial
-from .utils import logger, verbose, _time_mask, warn
+from .utils import logger, verbose, _time_mask, warn, _check_fname
 
 
 class Dipole(object):
-    """Dipole class
+    """Dipole class for sequential dipole fits
 
     Used to store positions, orientations, amplitudes, times, goodness of fit
     of dipoles, typically obtained with Neuromag/xfit, mne_dipole_fit
@@ -53,6 +56,16 @@ class Dipole(object):
         The goodness of fit.
     name : str | None
         Name of the dipole.
+
+    See Also
+    --------
+    DipoleFixed
+
+    Notes
+    -----
+    This class is for sequential dipole fits, where the position
+    changes as a function of time. For fixed dipole fits, where the
+    position is fixed as a function of time, use :class:`mne.DipoleFixed`.
     """
     def __init__(self, times, pos, amplitude, ori, gof, name=None):
         self.times = np.array(times)
@@ -214,6 +227,70 @@ class Dipole(object):
         return self.pos.shape[0]
 
 
+class DipoleFixed(object):
+    """Dipole class for fixed-position dipole fits
+
+    Parameters
+    ----------
+    fname : str
+        The file to load.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    Dipole
+
+    Notes
+    -----
+    This class is for sequential dipole fits, where the position
+    changes as a function of time. For fixed dipole fits, where the
+    position is fixed as a function of time, use :class:`mne.DipoleFixed`.
+    """
+    @verbose
+    def __init__(self, fname, verbose=None):
+        _check_fname(fname, overwrite=True, must_exist=True)
+        logger.info('Reading %s ...' % fname)
+        self.info, self.nave, self._aspect_kind, self.first, self.last, \
+            self.comment, self.times, self.data = _read_evoked(fname)
+        self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
+        self.verbose = verbose
+
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
+    @verbose
+    def save(self, fname, verbose=None):
+        """Save dipole in a .fif file
+
+        Parameters
+        ----------
+        fname : str
+            The name of the .fif file.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+        """
+        _check_fname(fname, overwrite=True, must_exist=False)
+        if not fname.endswith('.fif') and not fname.endswith('.fif.gz'):
+            raise ValueError('filename must end with .fif or .fif.gz')
+        _write_evokeds(fname, self, check=False)
+
+    def plot(self, show=True):
+        """Plot dipole data
+
+        Parameters
+        ----------
+        show : bool
+            Call pyplot.show() at the end or not.
+        """
+        return _plot_evoked(self, picks=None, exclude=(), unit=True, show=show,
+                            ylim=None, xlim='tight', proj=False, hline=None,
+                            units=None, scalings=None, titles=None, axes=None,
+                            gfp=False, window_title=None, spatial_colors=False,
+                            plot_type="butterfly", selectable=False)
+
+
 # #############################################################################
 # IO
 @verbose
@@ -223,7 +300,7 @@ def read_dipole(fname, verbose=None):
     Parameters
     ----------
     fname : str
-        The name of the .dip file.
+        The name of the .dip or .fif file.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -232,6 +309,9 @@ def read_dipole(fname, verbose=None):
     dipole : instance of Dipole
         The dipole.
     """
+    _check_fname(fname, overwrite=True, must_exist=True)
+    if fname.endswith('.fif') or fname.endswith('.fif.gz'):
+        return DipoleFixed(fname)
     try:
         data = np.loadtxt(fname, comments='%')
     except:

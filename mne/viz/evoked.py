@@ -158,7 +158,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
-                 spatial_colors=False, set_tight_layout=True):
+                 spatial_colors=False, set_tight_layout=True,
+                 selectable=True):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -264,15 +265,15 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                    xycoords='axes fraction', fontsize=20,
                                    color='green', zorder=3)
                 text.set_visible(False)
-                callback_onselect = partial(_butterfly_onselect,
-                                            ch_types=ch_types_used,
-                                            evoked=evoked, text=text)
-                blit = False if plt.get_backend() == 'MacOSX' else True
-                selectors.append(SpanSelector(ax, callback_onselect,
-                                              'horizontal', minspan=10,
-                                              useblit=blit,
-                                              rectprops=dict(alpha=0.5,
-                                                             facecolor='red')))
+                if selectable:
+                    callback_onselect = partial(
+                        _butterfly_onselect, ch_types=ch_types_used,
+                        evoked=evoked, text=text)
+                    blit = False if plt.get_backend() == 'MacOSX' else True
+                    selectors.append(SpanSelector(
+                        ax, callback_onselect, 'horizontal', minspan=10,
+                        useblit=blit, rectprops=dict(alpha=0.5,
+                                                     facecolor='red')))
 
                 gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
                 if not gfp_only:
@@ -463,7 +464,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors)
+                        spatial_colors=spatial_colors, selectable=True)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,

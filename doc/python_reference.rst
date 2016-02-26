@@ -34,6 +34,7 @@ Classes
    MixedSourceEstimate
    Covariance
    Dipole
+   DipoleFixed
    Label
    BiHemiLabel
    Transform

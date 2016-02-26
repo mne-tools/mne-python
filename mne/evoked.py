@@ -96,200 +96,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def __init__(self, fname, condition=None, baseline=None, proj=True,
                  kind='average', verbose=None):
-
-        if fname is None:
-            raise ValueError('No evoked filename specified')
-
-        self.verbose = verbose
-        f, tree, _ = fiff_open(fname)
-        with f as fid:
-            if not isinstance(proj, bool):
-                raise ValueError(r"'proj' must be 'True' or 'False'")
-
-            #   Read the measurement info
-            info, meas = read_meas_info(fid, tree, clean_bads=True)
-            info['filename'] = fname
-
-            #   Locate the data of interest
-            processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
-            if len(processed) == 0:
-                raise ValueError('Could not find processed data')
-
-            evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
-            if len(evoked_node) == 0:
-                raise ValueError('Could not find evoked data')
-
-            # find string-based entry
-            if isinstance(condition, string_types):
-                if kind not in _aspect_dict.keys():
-                    raise ValueError('kind must be "average" or '
-                                     '"standard_error"')
-
-                comments, aspect_kinds, t = _get_entries(fid, evoked_node)
-                goods = np.logical_and(in1d(comments, [condition]),
-                                       in1d(aspect_kinds,
-                                            [_aspect_dict[kind]]))
-                found_cond = np.where(goods)[0]
-                if len(found_cond) != 1:
-                    raise ValueError('condition "%s" (%s) not found, out of '
-                                     'found datasets:\n  %s'
-                                     % (condition, kind, t))
-                condition = found_cond[0]
-            elif condition is None:
-                if len(evoked_node) > 1:
-                    _, _, conditions = _get_entries(fid, evoked_node)
-                    raise TypeError("Evoked file has more than one "
-                                    "conditions, the condition parameters "
-                                    "must be specified from:\n%s" % conditions)
-                else:
-                    condition = 0
-
-            if condition >= len(evoked_node) or condition < 0:
-                raise ValueError('Data set selector out of range')
-
-            my_evoked = evoked_node[condition]
-
-            # Identify the aspects
-            aspects = dir_tree_find(my_evoked, FIFF.FIFFB_ASPECT)
-            if len(aspects) > 1:
-                logger.info('Multiple aspects found. Taking first one.')
-            my_aspect = aspects[0]
-
-            # Now find the data in the evoked block
-            nchan = 0
-            sfreq = -1
-            chs = []
-            comment = last = first = first_time = nsamp = None
-            for k in range(my_evoked['nent']):
-                my_kind = my_evoked['directory'][k].kind
-                pos = my_evoked['directory'][k].pos
-                if my_kind == FIFF.FIFF_COMMENT:
-                    tag = read_tag(fid, pos)
-                    comment = tag.data
-                elif my_kind == FIFF.FIFF_FIRST_SAMPLE:
-                    tag = read_tag(fid, pos)
-                    first = int(tag.data)
-                elif my_kind == FIFF.FIFF_LAST_SAMPLE:
-                    tag = read_tag(fid, pos)
-                    last = int(tag.data)
-                elif my_kind == FIFF.FIFF_NCHAN:
-                    tag = read_tag(fid, pos)
-                    nchan = int(tag.data)
-                elif my_kind == FIFF.FIFF_SFREQ:
-                    tag = read_tag(fid, pos)
-                    sfreq = float(tag.data)
-                elif my_kind == FIFF.FIFF_CH_INFO:
-                    tag = read_tag(fid, pos)
-                    chs.append(tag.data)
-                elif my_kind == FIFF.FIFF_FIRST_TIME:
-                    tag = read_tag(fid, pos)
-                    first_time = float(tag.data)
-                elif my_kind == FIFF.FIFF_NO_SAMPLES:
-                    tag = read_tag(fid, pos)
-                    nsamp = int(tag.data)
-
-            if comment is None:
-                comment = 'No comment'
-
-            #   Local channel information?
-            if nchan > 0:
-                if chs is None:
-                    raise ValueError('Local channel information was not found '
-                                     'when it was expected.')
-
-                if len(chs) != nchan:
-                    raise ValueError('Number of channels and number of '
-                                     'channel definitions are different')
-
-                info['chs'] = chs
-                logger.info('    Found channel information in evoked data. '
-                            'nchan = %d' % nchan)
-                if sfreq > 0:
-                    info['sfreq'] = sfreq
-
-            # Read the data in the aspect block
-            nave = 1
-            epoch = []
-            for k in range(my_aspect['nent']):
-                kind = my_aspect['directory'][k].kind
-                pos = my_aspect['directory'][k].pos
-                if kind == FIFF.FIFF_COMMENT:
-                    tag = read_tag(fid, pos)
-                    comment = tag.data
-                elif kind == FIFF.FIFF_ASPECT_KIND:
-                    tag = read_tag(fid, pos)
-                    aspect_kind = int(tag.data)
-                elif kind == FIFF.FIFF_NAVE:
-                    tag = read_tag(fid, pos)
-                    nave = int(tag.data)
-                elif kind == FIFF.FIFF_EPOCH:
-                    tag = read_tag(fid, pos)
-                    epoch.append(tag)
-
-            nepoch = len(epoch)
-            if nepoch != 1 and nepoch != info['nchan']:
-                raise ValueError('Number of epoch tags is unreasonable '
-                                 '(nepoch = %d nchan = %d)'
-                                 % (nepoch, info['nchan']))
-
-            if nepoch == 1:
-                # Only one epoch
-                all_data = epoch[0].data.astype(np.float)
-                # May need a transpose if the number of channels is one
-                if all_data.shape[1] == 1 and info['nchan'] == 1:
-                    all_data = all_data.T.astype(np.float)
-            else:
-                # Put the old style epochs together
-                all_data = np.concatenate([e.data[None, :] for e in epoch],
-                                          axis=0).astype(np.float)
-
-            if first is not None:
-                nsamp = last - first + 1
-            elif first_time is not None:
-                first = int(round(first_time * info['sfreq']))
-                last = first + nsamp
-            else:
-                raise RuntimeError('Could not read time parameters')
-            if nsamp is not None and all_data.shape[1] != nsamp:
-                raise ValueError('Incorrect number of samples (%d instead of '
-                                 ' %d)' % (all_data.shape[1], nsamp))
-            nsamp = all_data.shape[1]
-            last = first + nsamp - 1
-            logger.info('    Found the data of interest:')
-            logger.info('        t = %10.2f ... %10.2f ms (%s)'
-                        % (1000 * first / info['sfreq'],
-                           1000 * last / info['sfreq'], comment))
-            if info['comps'] is not None:
-                logger.info('        %d CTF compensation matrices available'
-                            % len(info['comps']))
-            logger.info('        nave = %d - aspect type = %d'
-                        % (nave, aspect_kind))
-
-        # Calibrate
-        cals = np.array([info['chs'][k]['cal'] *
-                         info['chs'][k].get('scale', 1.0)
-                         for k in range(info['nchan'])])
-        all_data *= cals[:, np.newaxis]
-
-        times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
-        self.info = info
-
-        # Put the rest together all together
-        self.nave = nave
-        self._aspect_kind = aspect_kind
+        if not isinstance(proj, bool):
+            raise ValueError(r"'proj' must be 'True' or 'False'")
+        # Read the requested data
+        self.info, self.nave, self._aspect_kind, self.first, self.last, \
+            self.comment, self.times, self.data = _read_evoked(
+                fname, condition, kind)
         self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
-        self.first = first
-        self.last = last
-        self.comment = comment
-        self.times = times
-        self.data = all_data
-
-        # bind info, proj, data to self so apply_proj can be used
-        self.data = all_data
+        self.verbose = verbose
+        # project and baseline correct
         if proj:
             self.apply_proj()
-        # Run baseline correction
-        self.data = rescale(self.data, times, baseline, copy=False)
+        self.data = rescale(self.data, self.times, baseline, copy=False)
 
     def save(self, fname):
         """Save dataset to file.
@@ -1272,11 +1090,6 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     See Also
     --------
     write_evokeds
-
-    Notes
-    -----
-    This function can also read dipole time courses produced by Elekta's
-    xfit program.
     """
     check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
     logger.info('Reading %s ...' % fname)
@@ -1292,6 +1105,182 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
            verbose=verbose) for c in condition]
 
     return out if return_list else out[0]
+
+
+def _read_evoked(fname, condition=None, kind='average'):
+    """Read evoked data from a FIF file"""
+    if fname is None:
+        raise ValueError('No evoked filename specified')
+
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        #   Read the measurement info
+        info, meas = read_meas_info(fid, tree, clean_bads=True)
+        info['filename'] = fname
+
+        #   Locate the data of interest
+        processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
+        if len(processed) == 0:
+            raise ValueError('Could not find processed data')
+
+        evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
+        if len(evoked_node) == 0:
+            raise ValueError('Could not find evoked data')
+
+        # find string-based entry
+        if isinstance(condition, string_types):
+            if kind not in _aspect_dict.keys():
+                raise ValueError('kind must be "average" or '
+                                 '"standard_error"')
+
+            comments, aspect_kinds, t = _get_entries(fid, evoked_node)
+            goods = np.logical_and(in1d(comments, [condition]),
+                                   in1d(aspect_kinds,
+                                        [_aspect_dict[kind]]))
+            found_cond = np.where(goods)[0]
+            if len(found_cond) != 1:
+                raise ValueError('condition "%s" (%s) not found, out of '
+                                 'found datasets:\n  %s'
+                                 % (condition, kind, t))
+            condition = found_cond[0]
+        elif condition is None:
+            if len(evoked_node) > 1:
+                _, _, conditions = _get_entries(fid, evoked_node)
+                raise TypeError("Evoked file has more than one "
+                                "conditions, the condition parameters "
+                                "must be specified from:\n%s" % conditions)
+            else:
+                condition = 0
+
+        if condition >= len(evoked_node) or condition < 0:
+            raise ValueError('Data set selector out of range')
+
+        my_evoked = evoked_node[condition]
+
+        # Identify the aspects
+        aspects = dir_tree_find(my_evoked, FIFF.FIFFB_ASPECT)
+        if len(aspects) > 1:
+            logger.info('Multiple aspects found. Taking first one.')
+        my_aspect = aspects[0]
+
+        # Now find the data in the evoked block
+        nchan = 0
+        sfreq = -1
+        chs = []
+        comment = last = first = first_time = nsamp = None
+        for k in range(my_evoked['nent']):
+            my_kind = my_evoked['directory'][k].kind
+            pos = my_evoked['directory'][k].pos
+            if my_kind == FIFF.FIFF_COMMENT:
+                tag = read_tag(fid, pos)
+                comment = tag.data
+            elif my_kind == FIFF.FIFF_FIRST_SAMPLE:
+                tag = read_tag(fid, pos)
+                first = int(tag.data)
+            elif my_kind == FIFF.FIFF_LAST_SAMPLE:
+                tag = read_tag(fid, pos)
+                last = int(tag.data)
+            elif my_kind == FIFF.FIFF_NCHAN:
+                tag = read_tag(fid, pos)
+                nchan = int(tag.data)
+            elif my_kind == FIFF.FIFF_SFREQ:
+                tag = read_tag(fid, pos)
+                sfreq = float(tag.data)
+            elif my_kind == FIFF.FIFF_CH_INFO:
+                tag = read_tag(fid, pos)
+                chs.append(tag.data)
+            elif my_kind == FIFF.FIFF_FIRST_TIME:
+                tag = read_tag(fid, pos)
+                first_time = float(tag.data)
+            elif my_kind == FIFF.FIFF_NO_SAMPLES:
+                tag = read_tag(fid, pos)
+                nsamp = int(tag.data)
+
+        if comment is None:
+            comment = 'No comment'
+
+        #   Local channel information?
+        if nchan > 0:
+            if chs is None:
+                raise ValueError('Local channel information was not found '
+                                 'when it was expected.')
+
+            if len(chs) != nchan:
+                raise ValueError('Number of channels and number of '
+                                 'channel definitions are different')
+
+            info['chs'] = chs
+            logger.info('    Found channel information in evoked data. '
+                        'nchan = %d' % nchan)
+            if sfreq > 0:
+                info['sfreq'] = sfreq
+
+        # Read the data in the aspect block
+        nave = 1
+        epoch = []
+        for k in range(my_aspect['nent']):
+            kind = my_aspect['directory'][k].kind
+            pos = my_aspect['directory'][k].pos
+            if kind == FIFF.FIFF_COMMENT:
+                tag = read_tag(fid, pos)
+                comment = tag.data
+            elif kind == FIFF.FIFF_ASPECT_KIND:
+                tag = read_tag(fid, pos)
+                aspect_kind = int(tag.data)
+            elif kind == FIFF.FIFF_NAVE:
+                tag = read_tag(fid, pos)
+                nave = int(tag.data)
+            elif kind == FIFF.FIFF_EPOCH:
+                tag = read_tag(fid, pos)
+                epoch.append(tag)
+
+        nepoch = len(epoch)
+        if nepoch != 1 and nepoch != info['nchan']:
+            raise ValueError('Number of epoch tags is unreasonable '
+                             '(nepoch = %d nchan = %d)'
+                             % (nepoch, info['nchan']))
+
+        if nepoch == 1:
+            # Only one epoch
+            data = epoch[0].data
+            # May need a transpose if the number of channels is one
+            if data.shape[1] == 1 and info['nchan'] == 1:
+                data = data.T
+        else:
+            # Put the old style epochs together
+            data = np.concatenate([e.data[None, :] for e in epoch], axis=0)
+        data = data.astype(np.float)
+
+        if first is not None:
+            nsamp = last - first + 1
+        elif first_time is not None:
+            first = int(round(first_time * info['sfreq']))
+            last = first + nsamp
+        else:
+            raise RuntimeError('Could not read time parameters')
+        if nsamp is not None and data.shape[1] != nsamp:
+            raise ValueError('Incorrect number of samples (%d instead of '
+                             ' %d)' % (data.shape[1], nsamp))
+        nsamp = data.shape[1]
+        last = first + nsamp - 1
+        logger.info('    Found the data of interest:')
+        logger.info('        t = %10.2f ... %10.2f ms (%s)'
+                    % (1000 * first / info['sfreq'],
+                       1000 * last / info['sfreq'], comment))
+        if info['comps'] is not None:
+            logger.info('        %d CTF compensation matrices available'
+                        % len(info['comps']))
+        logger.info('        nave = %d - aspect type = %d'
+                    % (nave, aspect_kind))
+
+    # Calibrate
+    cals = np.array([info['chs'][k]['cal'] *
+                     info['chs'][k].get('scale', 1.0)
+                     for k in range(info['nchan'])])
+    data *= cals[:, np.newaxis]
+
+    times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
+    return info, nave, aspect_kind, first, last, comment, times, data
 
 
 def write_evokeds(fname, evoked):
@@ -1310,7 +1299,13 @@ def write_evokeds(fname, evoked):
     --------
     read_evokeds
     """
-    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
+    _write_evokeds(fname, evoked)
+
+
+def _write_evokeds(fname, evoked, check=True):
+    """Helper to write evoked data"""
+    if check:
+        check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
 
     if not isinstance(evoked, list):
         evoked = [evoked]
