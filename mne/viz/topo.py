@@ -14,6 +14,7 @@ from itertools import cycle
 
 import numpy as np
 
+from ..io.constants import Bunch
 from ..io.pick import channel_type, pick_types
 from ..fixes import normalize_colors
 from ..utils import _clean_names, warn
@@ -61,14 +62,32 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     Returns
     -------
-    A generator that can be unpacked into
+    A generator that can be unpacked into:
 
-    ax : matplotlib.axis.Axis
-        The current axis of the topo plot.
-    ch_dx : int
-        The related channel index.
+        ax : matplotlib.axis.Axis
+            The current axis of the topo plot.
+        ch_dx : int
+            The related channel index.
+
     """
-    import matplotlib.pyplot as plt
+    return _iter_topography(info, layout, on_pick, fig, fig_facecolor,
+                            axis_facecolor, axis_spinecolor, layout_scale)
+
+
+def _iter_topography(info, layout, on_pick, fig,
+                     fig_facecolor='k', axis_facecolor='k',
+                     axis_spinecolor='k', layout_scale=None,
+                     unified=False):
+    """Private helper to iterate over topography
+
+    Has the same parameters as iter_topography, plus:
+
+    unified : bool
+        If False (default), multiple matplotlib axes will be used.
+        If True, a single axis will be constructed. The former is
+        useful for custom plotting, the latter for speed.
+    """
+    from matplotlib import pyplot as plt, collections
 
     if fig is None:
         fig = plt.figure()
@@ -87,32 +106,57 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     ch_names = _clean_names(info['ch_names'])
     iter_ch = [(x, y) for x, y in enumerate(layout.names) if y in ch_names]
+    if unified:
+        under_ax = plt.axes([0, 0, 1, 1])
+        under_ax.set(xlim=[0, 1], ylim=[0, 1])
+        under_ax.axis('off')
+        axs = list()
     for idx, name in iter_ch:
-        ax = plt.axes(pos[idx])
-        ax.patch.set_facecolor(axis_facecolor)
-        plt.setp(list(ax.spines.values()), color=axis_spinecolor)
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
-        plt.setp(ax.get_xticklines(), visible=False)
-        plt.setp(ax.get_yticklines(), visible=False)
         ch_idx = ch_names.index(name)
-        vars(ax)['_mne_ch_name'] = name
-        vars(ax)['_mne_ch_idx'] = ch_idx
-        vars(ax)['_mne_ax_face_color'] = axis_facecolor
-        yield ax, ch_idx
+        if not unified:  # old, slow way
+            ax = plt.axes(pos[idx])
+            ax.patch.set_facecolor(axis_facecolor)
+            plt.setp(list(ax.spines.values()), color=axis_spinecolor)
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+            plt.setp(ax.get_xticklines(), visible=False)
+            plt.setp(ax.get_yticklines(), visible=False)
+            ax._mne_ch_name = name
+            ax._mne_ch_idx = ch_idx
+            ax._mne_ax_face_color = axis_facecolor
+            yield ax, ch_idx
+        else:
+            ax = Bunch(ax=under_ax, pos=pos[idx], data_lines=list(),
+                       _mne_ch_name=name, _mne_ch_idx=ch_idx,
+                       _mne_ax_face_color=axis_facecolor)
+            axs.append(ax)
+    if unified:
+        under_ax._mne_axs = axs
+        # Create a PolyCollection for the axis backgrounds
+        verts = np.transpose([pos[:, :2],
+                              pos[:, :2] + pos[:, 2:] * [1, 0],
+                              pos[:, :2] + pos[:, 2:],
+                              pos[:, :2] + pos[:, 2:] * [0, 1],
+                              ], [1, 0, 2])
+        under_ax.add_collection(collections.PolyCollection(
+            verts, facecolor=axis_facecolor, edgecolor=axis_spinecolor,
+            linewidth=1.))
+        for ax in axs:
+            yield ax, ax._mne_ch_idx
 
 
-def _plot_topo(info=None, times=None, show_func=None, layout=None,
-               decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
+def _plot_topo(info, times, show_func, click_func=None, layout=None,
+               vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, font_color='w'):
+               y_label=None, font_color='w', unified=False):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
 
     # prepare callbacks
     tmin, tmax = times[[0, -1]]
-    on_pick = partial(show_func, tmin=tmin, tmax=tmax, vmin=vmin,
+    click_func = show_func if click_func is None else click_func
+    on_pick = partial(click_func, tmin=tmin, tmax=tmax, vmin=vmin,
                       vmax=vmax, ylim=ylim, x_label=x_label,
                       y_label=y_label, colorbar=colorbar)
 
@@ -127,11 +171,12 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         plt.setp(cb_yticks, color=font_color)
         ax.axis('off')
 
-    my_topo_plot = iter_topography(info, layout=layout, on_pick=on_pick,
-                                   fig=fig, layout_scale=layout_scale,
-                                   axis_spinecolor=border,
-                                   axis_facecolor=axis_facecolor,
-                                   fig_facecolor=fig_facecolor)
+    my_topo_plot = _iter_topography(info, layout=layout, on_pick=on_pick,
+                                    fig=fig, layout_scale=layout_scale,
+                                    axis_spinecolor=border,
+                                    axis_facecolor=axis_facecolor,
+                                    fig_facecolor=fig_facecolor,
+                                    unified=unified)
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
@@ -143,25 +188,33 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
                   vmax=vmax, ylim=ylim_)
 
-        if ylim_ and not any(v is None for v in ylim_):
-            plt.ylim(*ylim_)
-
     if title is not None:
         plt.figtext(0.03, 0.9, title, color=font_color, fontsize=19)
 
     return fig
 
 
-def _plot_topo_onpick(event, show_func=None, colorbar=False):
+def _plot_topo_onpick(event, show_func):
     """Onpick callback that shows a single channel in a new figure"""
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
     orig_ax = event.inaxes
-    if event.inaxes is None or '_mne_ch_idx' not in vars(orig_ax):
+    if event.inaxes is None or (not hasattr(orig_ax, '_mne_ch_idx') and
+                                not hasattr(orig_ax, '_mne_axs')):
         return
 
     import matplotlib.pyplot as plt
     try:
+        if hasattr(orig_ax, '_mne_axs'):  # in unified, single-axes mode
+            x, y = event.xdata, event.ydata
+            for ax in orig_ax._mne_axs:
+                if x >= ax.pos[0] and y >= ax.pos[1] and \
+                        x <= ax.pos[0] + ax.pos[2] and \
+                        y <= ax.pos[1] + ax.pos[3]:
+                    orig_ax = ax
+                    break
+            else:
+                return
         ch_idx = orig_ax._mne_ch_idx
         face_color = orig_ax._mne_ax_face_color
         fig, ax = plt.subplots(1)
@@ -177,7 +230,21 @@ def _plot_topo_onpick(event, show_func=None, colorbar=False):
         # so we print
         # it here to know what went wrong
         print(err)
-        raise err
+        raise
+
+
+def _compute_scalings(bn, xlim, ylim):
+    """Compute scale factors for a unified plot"""
+    pos = bn.pos
+    bn.x_s = pos[2] / (xlim[0] - xlim[1])
+    bn.x_t = pos[0] - bn.x_s * xlim[1]
+    bn.y_s = pos[3] / (ylim[1] - ylim[0])
+    bn.y_t = pos[1] - bn.y_s * ylim[0]
+
+
+def _check_vlim(vlim):
+    """AUX function"""
+    return not np.isscalar(vlim) and vlim is not None
 
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
@@ -208,10 +275,10 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
-                     times, vline=None, x_label=None, y_label=None,
-                     colorbar=False):
-    """ Aux function to show time series on topo """
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
+                     color, times, vline=None, x_label=None,
+                     y_label=None, colorbar=False):
+    """Aux function to show time series on topo split across multiple axes"""
     import matplotlib.pyplot as plt
     picker_flag = False
     for data_, color_ in zip(data, color):
@@ -235,9 +302,37 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         plt.colorbar()
 
 
-def _check_vlim(vlim):
-    """AUX function"""
-    return not np.isscalar(vlim) and vlim is not None
+def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
+                             color, times, vline=None, x_label=None,
+                             y_label=None, colorbar=False):
+    """Aux function to show multiple time series on topo using a single axes"""
+    import matplotlib.pyplot as plt
+    if not (ylim and not any(v is None for v in ylim)):
+        ylim = np.array([np.min(data), np.max(data)])
+    # Translation and scale parameters to take data->under_ax normalized coords
+    _compute_scalings(bn, (tmin, tmax), ylim)
+    pos = bn.pos
+    data_lines = bn.data_lines
+    ax = bn.ax
+    # XXX These calls could probably be made faster by using collections
+    for data_, color_ in zip(data, color):
+        data_lines.append(ax.plot(
+            bn.x_t + bn.x_s * times, bn.y_t + bn.y_s * data_[ch_idx],
+            color_, clip_on=True, clip_box=pos)[0])
+    if vline:
+        vline = np.array(vline) * bn.x_s + bn.x_t
+        ax.vlines(vline, pos[1], pos[1] + pos[3], color='w', linewidth=0.5)
+    ax.hlines(bn.y_t, pos[0], pos[0] + pos[2], color='w', linewidth=0.5)
+    if x_label is not None:
+        ax.text(pos[0] + pos[2] / 2., pos[1], x_label,
+                horizontalalignment='center', verticalalignment='top')
+    if y_label is not None:
+        y_label = y_label[ch_idx] if isinstance(y_label, list) else y_label
+        ax.text(pos[0], pos[1] + pos[3] / 2., y_label,
+                horizontalignment='right', verticalalignment='middel',
+                rotation=90)
+    if colorbar:
+        plt.colorbar()
 
 
 def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
@@ -404,15 +499,20 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     else:
         raise ValueError('ylim must be None ore a dict')
 
-    plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
-                       color=color, times=times, vline=vline)
+    data = [e.data for e in evoked]
+    show_func = partial(_plot_timeseries_unified, data=data,
+                        color=color, times=times, vline=vline)
+    click_func = partial(_plot_timeseries, data=data,
+                         color=color, times=times, vline=vline)
 
-    fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
-                     decim=1, colorbar=False, ylim=ylim_, cmap=None,
+    fig = _plot_topo(info=info, times=times, show_func=show_func,
+                     click_func=click_func, layout=layout,
+                     colorbar=False, ylim=ylim_, cmap=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      axis_facecolor=axis_facecolor,
-                     title=title, x_label='Time (s)', y_label=y_label)
+                     title=title, x_label='Time (s)', y_label=y_label,
+                     unified=True)
 
     if fig_background is not None:
         add_background_image(fig, fig_background)
@@ -421,7 +521,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         for e in evoked:
             _check_delayed_ssp(e)
         params = dict(evokeds=evoked, times=times,
-                      plot_update_proj_callback=_plot_update_evoked_topo,
+                      plot_update_proj_callback=_plot_update_evoked_topo_proj,
                       projs=evoked[0].info['projs'], fig=fig)
         _draw_proj_checkbox(None, params)
 
@@ -429,29 +529,20 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     return fig
 
 
-def _plot_update_evoked_topo(params, bools):
+def _plot_update_evoked_topo_proj(params, bools):
     """Helper function to update topo sensor plots"""
-    evokeds, times, fig = [params[k] for k in ('evokeds', 'times', 'fig')]
-
-    projs = [proj for ii, proj in enumerate(params['projs'])
-             if ii in np.where(bools)[0]]
-
+    evokeds = [e.copy() for e in params['evokeds']]
+    fig = params['fig']
+    projs = [proj for proj, b in zip(params['projs'], bools) if b]
     params['proj_bools'] = bools
-    evokeds = [e.copy() for e in evokeds]
     for e in evokeds:
-        e.info['projs'] = []
-        e.add_proj(projs)
+        e.add_proj(projs, remove_existing=True)
         e.apply_proj()
 
     # make sure to only modify the time courses, not the ticks
-    axes = fig.get_axes()
-    n_lines = len(axes[0].lines)
-    n_diff = len(evokeds) - n_lines
-    ax_slice = slice(abs(n_diff)) if n_diff < 0 else slice(n_lines)
-    for ax in axes:
-        lines = ax.lines[ax_slice]
-        for line, evoked in zip(lines, evokeds):
-            line.set_data(times, evoked.data[ax._mne_ch_idx])
+    for ax in fig.axes[0]._mne_axs:
+        for line, evoked in zip(ax.data_lines, evokeds):
+            line.set_ydata(ax.y_t + ax.y_s * evoked.data[ax._mne_ch_idx])
 
     fig.canvas.draw()
 
@@ -484,9 +575,9 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
               cmap=cmap, interpolation='nearest')
 
     if x_label is not None:
-        plt.xlabel(x_label)
+        ax.set_xlabel(x_label)
     if y_label is not None:
-        plt.ylabel(y_label)
+        ax.set_ylabel(y_label)
     if colorbar:
         plt.colorbar()
 
@@ -559,7 +650,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
                          cmap=cmap)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,
-                     show_func=erf_imshow, layout=layout, decim=1,
+                     show_func=erf_imshow, layout=layout,
                      colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                      layout_scale=layout_scale, title=title,
                      fig_facecolor=fig_facecolor,
