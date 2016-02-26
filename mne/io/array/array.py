@@ -7,6 +7,7 @@
 import numpy as np
 
 from ..base import _BaseRaw
+from ..meas_info import Info
 from ...utils import verbose, logger
 
 
@@ -34,6 +35,11 @@ class RawArray(_BaseRaw):
     """
     @verbose
     def __init__(self, data, info, first_samp=0, verbose=None):
+        if not isinstance(info, Info):
+            raise TypeError('info must be an instance of Info, got %s'
+                            % type(info))
+        info._check_consistency()  # make sure it's valid
+        data = np.asarray(data)
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
