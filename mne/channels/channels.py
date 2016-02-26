@@ -291,6 +291,9 @@ class SetChannelsMixin(object):
                                  "fix the measurement info of your data."
                                  % (ch_name, unit_old))
             if unit_old != _human2unit[ch_type]:
+                if not unit_old in _unit2human.keys():
+                    unit_old = str(unit_old) # this may not have been a string until now
+                    _unit2human[unit_old] = unit_old # not sure what value should go here...
                 warn("The unit for channel %s has changed from %s to %s."
                      % (ch_name, _unit2human[unit_old], _unit2human[unit_new]))
             self.info['chs'][c_ind]['unit'] = _human2unit[ch_type]
