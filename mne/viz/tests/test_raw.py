@@ -25,6 +25,8 @@ event_name = op.join(base_dir, 'test-eve.fif')
 
 def _get_raw():
     raw = io.Raw(raw_fname, preload=True)
+    with warnings.catch_warnings(record=True):
+        raw.set_channel_types({raw.ch_names[0]: 'ias'})
     raw.pick_channels(raw.ch_names[:9])
     return raw
 

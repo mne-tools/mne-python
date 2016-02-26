@@ -13,7 +13,7 @@ from functools import partial
 import numpy as np
 
 from ..externals.six import string_types
-from ..io.pick import pick_types, _pick_data_channels
+from ..io.pick import pick_types, _pick_data_channels, pick_info
 from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
@@ -732,7 +732,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
 def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, n_jobs=1, verbose=None):
+                      show=True, block=False, n_jobs=1, verbose=None):
     """Function for plotting channel wise frequency spectra as topography.
 
     Parameters
@@ -770,6 +770,9 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
         If True, transform data to decibels. Defaults to True.
     show : bool
         Show figure if True. Defaults to True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
+        May not work on all systems / platforms. Defaults to False.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
     verbose : bool, str, int, or None
@@ -793,11 +796,16 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
     else:
         y_label = 'Power'
     plot_fun = partial(_plot_timeseries, data=[psds], color=color, times=freqs)
+    picks = _pick_data_channels(raw.info)
+    info = pick_info(raw.info, picks)
 
-    fig = _plot_topo(raw.info, times=freqs, show_func=plot_fun, layout=layout,
+    fig = _plot_topo(info, times=freqs, show_func=plot_fun, layout=layout,
                      axis_facecolor=axis_facecolor,
                      fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
                      y_label=y_label)
 
-    plt_show(show)
+    try:
+        plt_show(show, block=block)
+    except TypeError:  # not all versions have this
+        plt_show(show)
     return fig
