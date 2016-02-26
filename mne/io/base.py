@@ -17,7 +17,7 @@ from scipy import linalg
 
 from .constants import FIFF
 from .pick import pick_types, channel_type, pick_channels, pick_info
-from .pick import _pick_data_channels
+from .pick import _pick_data_channels, _pick_data_or_ica
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -2252,13 +2252,3 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False):
                        "because they are EOG channels use the eog parameter."
                        % str(missing_positions))
                 raise KeyError(err)
-
-
-def _pick_data_or_ica(info):
-    ch_names = [c['ch_name'] for c in info['chs']]
-    if 'ICA ' in ','.join(ch_names):
-        picks = pick_types(info, exclude=[], misc=True)
-    else:
-        picks = _pick_data_channels(info, exclude=[],
-                                    with_ref_meg=False)
-    return picks

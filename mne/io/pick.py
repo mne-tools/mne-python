@@ -646,3 +646,14 @@ def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
                       resp=False, chpi=False, exci=False, ias=False,
                       syst=False, seeg=True, include=[], exclude=exclude,
                       selection=None)
+
+
+def _pick_data_or_ica(info):
+    """Convenience function for picking only data or ICA channels."""
+    ch_names = [c['ch_name'] for c in info['chs']]
+    if 'ICA ' in ','.join(ch_names):
+        picks = pick_types(info, exclude=[], misc=True)
+    else:
+        picks = _pick_data_channels(info, exclude=[],
+                                    with_ref_meg=False)
+    return picks
