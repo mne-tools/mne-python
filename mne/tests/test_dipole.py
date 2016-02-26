@@ -269,10 +269,9 @@ def test_accuracy():
 def test_dipole_fixed():
     """Test reading a fixed-position dipole (from Xfit)"""
     tempdir = _TempDir()
-    with warnings.catch_warnings(record=True):  # bad naming
-        dip = read_dipole(fname_xfit_dip)
-        dip.save(op.join(tempdir, 'evoked-ave.fif'))
-        dip_read = read_dipole(op.join(tempdir, 'evoked-ave.fif'))
+    dip = read_dipole(fname_xfit_dip)
+    dip.save(op.join(tempdir, 'test-dip.fif.gz'))
+    dip_read = read_dipole(op.join(tempdir, 'test-dip.fif.gz'))
     assert_allclose(dip_read.data, dip_read.data)
     assert_allclose(dip_read.times, dip.times)
     assert_equal(dip_read.info['xplotter_layout'], dip.info['xplotter_layout'])

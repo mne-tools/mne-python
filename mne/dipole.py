@@ -31,7 +31,7 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .fixes import partial
-from .utils import logger, verbose, _time_mask, warn, _check_fname
+from .utils import logger, verbose, _time_mask, warn, _check_fname, check_fname
 
 
 class Dipole(object):
@@ -271,7 +271,7 @@ class DipoleFixed(object):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-        _check_fname(fname, overwrite=True, must_exist=False)
+        check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz'))
         if not fname.endswith('.fif') and not fname.endswith('.fif.gz'):
             raise ValueError('filename must end with .fif or .fif.gz')
         _write_evokeds(fname, self, check=False)
