@@ -612,6 +612,7 @@ Functions:
    do_forward_solution
    make_bem_model
    make_bem_solution
+   make_forward_dipole
    make_forward_solution
    make_field_map
    make_sphere_model
