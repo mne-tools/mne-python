@@ -793,7 +793,7 @@ def test_filter_picks():
 
     # -- Error if no data channel
     for ch_type in ('misc', 'stim'):
-        picks = {ch: ch == ch_type for ch in ch_types}
+        picks = dict((ch, ch == ch_type) for ch in ch_types)
         raw_ = raw.pick_types(copy=True, **picks)
         assert_raises(RuntimeError, raw_.filter, 10, 30)
 
