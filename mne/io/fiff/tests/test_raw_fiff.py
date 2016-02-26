@@ -782,9 +782,10 @@ def test_filter_picks():
 
     # -- Filter data channels
     for ch_type in ('mag', 'grad', 'eeg', 'seeg'):
-        picks = {ch: ch == ch_type for ch in ch_types}
+        picks = dict((ch, ch == ch_type) for ch in ch_types)
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
         raw_ = raw.pick_types(copy=True, **picks)
+        # Avoid RuntimeWarning due to Attenuation
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             raw_.filter(10, 30)
