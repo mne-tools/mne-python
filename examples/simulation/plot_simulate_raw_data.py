@@ -67,7 +67,7 @@ fig.show()
 # Simulate raw data
 raw_sim = simulate_raw(raw, stc, trans_fname, src, bem_fname, cov='simple',
                        iir_filter=[0.2, -0.2, 0.04], ecg=True, blink=True,
-                       n_jobs=2, verbose=True)
+                       n_jobs=1, verbose=True)
 raw_sim.plot()
 
 ##############################################################################

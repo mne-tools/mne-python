@@ -106,30 +106,39 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
     return lut, n_fact
 
 
-def _get_legen_lut_fast(x, lut):
+def _get_legen_lut_fast(x, lut, block=None):
     """Return Legendre coefficients for given x values in -1<=x<=1"""
     # map into table vals (works for both vals and deriv tables)
     n_interp = (lut.shape[0] - 1.0)
     # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
-    mm = x * (n_interp / 2.0) + 0.5 * n_interp
+    mm = x * (n_interp / 2.0)
+    mm += 0.5 * n_interp
     # nearest-neighbor version (could be decent enough...)
     idx = np.round(mm).astype(int)
-    vals = lut[idx]
+    if block is None:
+        vals = lut[idx]
+    else:  # read only one block at a time to minimize memory consumption
+        vals = lut[idx, :, block]
     return vals
 
 
-def _get_legen_lut_accurate(x, lut):
+def _get_legen_lut_accurate(x, lut, block=None):
     """Return Legendre coefficients for given x values in -1<=x<=1"""
     # map into table vals (works for both vals and deriv tables)
     n_interp = (lut.shape[0] - 1.0)
     # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
-    mm = x * (n_interp / 2.0) + 0.5 * n_interp
+    mm = x * (n_interp / 2.0)
+    mm += 0.5 * n_interp
     # slower, more accurate interpolation version
     mm = np.minimum(mm, n_interp - 0.0000000001)
     idx = np.floor(mm).astype(int)
     w2 = mm - idx
-    w2.shape += tuple([1] * (lut.ndim - w2.ndim))  # expand to correct size
-    vals = (1 - w2) * lut[idx] + w2 * lut[idx + 1]
+    if block is None:
+        w2.shape += tuple([1] * (lut.ndim - w2.ndim))  # expand to correct size
+        vals = (1 - w2) * lut[idx] + w2 * lut[idx + 1]
+    else:  # read only one block at a time to minimize memory consumption
+        w2.shape += tuple([1] * (lut[:, :, block].ndim - w2.ndim))
+        vals = (1 - w2) * lut[idx, :, block] + w2 * lut[idx + 1, :, block]
     return vals
 
 
@@ -139,8 +148,8 @@ def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
     # The result is
     #   sums[:]    (2n+1)^2/n beta^n P_n
     coeffs = lut_fun(ctheta)
-    betans = np.cumprod(np.tile(beta[:, np.newaxis], (1, n_fact.shape[0])),
-                        axis=1)
+    betans = np.tile(beta[:, np.newaxis], (1, n_fact.shape[0]))
+    betans = np.cumprod(betans, axis=1, out=betans)  # run inplace
     coeffs *= betans
     s0 = np.dot(coeffs, n_fact)  # == weighted sum across cols
     return s0
@@ -174,14 +183,18 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     #  * sums[:, 1]    n/(2n+1) beta^(n+1) P_n'
     #  * sums[:, 2]    n/((2n+1)(n+1)) beta^(n+1) P_n'
     #  * sums[:, 3]    n/((2n+1)(n+1)) beta^(n+1) P_n''
-    coeffs = lut_fun(ctheta)
-    bbeta = np.cumprod(np.tile(beta[np.newaxis], (n_fact.shape[0], 1)),
-                       axis=0)
+    bbeta = np.tile(beta[np.newaxis], (n_fact.shape[0], 1))
+    bbeta = np.cumprod(bbeta, axis=0, out=bbeta)  # run inplace
     bbeta *= beta
     # This is equivalent, but slower:
     # sums = np.sum(bbeta[:, :, np.newaxis].T * n_fact * coeffs, axis=1)
     # sums = np.rollaxis(sums, 2)
-    sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, coeffs)
+    # or
+    # sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta)))
+    sums = np.empty((n_fact.shape[1], len(beta)))
+    for k in range(n_fact.shape[1]):  # lookup in blocks to save memory
+        np.einsum('ji,j,ij->i', bbeta, n_fact[:, k], lut_fun(ctheta, block=k),
+                  out=sums[k])
     return sums
 
 

@@ -84,7 +84,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['pli', 'wpli2_debiased']
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     label_ts, method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
-    fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
+    fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=1)
 
 # con is a 3D array, get the connectivity for the first (and only) freq. band
 # for each method

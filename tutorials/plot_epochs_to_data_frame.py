@@ -99,9 +99,6 @@ from mne.datasets import sample
 
 print(__doc__)
 
-# turn on interactive mode
-plt.ion()
-
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -219,6 +216,8 @@ final_df.rename(columns={0: sel[2]})  # as the index is oblivious of names.
 
 # The index is now written into regular columns so it can be used as factor.
 print(final_df)
+
+plt.show()
 
 # To save as csv file, uncomment the next line.
 # final_df.to_csv('my_epochs.csv')
