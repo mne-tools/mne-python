@@ -33,6 +33,8 @@ time interval of the epochs ``tmin`` and ``tmax``, and the conditions ``cond1`` 
 ||                 ||                                                            || evoked.save(fname)                                |
 +------------------+-------------------------------------------------------------+----------------------------------------------------+
 
+Note that MNE has functions to read a variety of file formats, not just :func:`mne.io.Raw`. The interested user is directed to the :ref:`IO documentation <ch_convert>`.
+
 Pitfalls
 --------
 
