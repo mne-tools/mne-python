@@ -186,6 +186,9 @@ def test_reject():
                   picks=picks, preload=False, reject='foo')
     assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax,
                   picks=picks_meg, preload=False, reject=dict(eeg=1.))
+    # this one is okay because it's not actually requesting rejection
+    Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
+           preload=False, reject=dict(eeg=np.inf))
     for val in (None, -1):  # protect against older MNE-C types
         for kwarg in ('reject', 'flat'):
             assert_raises(ValueError, Epochs, raw, events, event_id,

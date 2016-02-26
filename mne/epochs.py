@@ -458,7 +458,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                % (kind, bads))
 
         for key in idx.keys():
-            if len(idx[key]) == 0 and (key in reject or key in flat):
+            # don't throw an error if rejection/flat would do nothing
+            if len(idx[key]) == 0 and (np.isfinite(reject.get(key, np.inf)) or
+                                       flat.get(key, -1) >= 0):
                 # This is where we could eventually add e.g.
                 # self.allow_missing_reject_keys check to allow users to
                 # provide keys that don't exist in data
