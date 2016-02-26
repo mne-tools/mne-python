@@ -6,7 +6,7 @@ Migrating from EEGLAB
 To read in data exported from EEGLAB, MNE offers :ref:`EDF and set file readers <ch_convert>`.
 
 Here is a cheatsheet to help users migrate painlessly from EEGLAB. For the sake of clarity, let us assume
-that the following are already defined or known: the file name ``fname``, low pass cut off frequency ``lfreq``,
+that the following are already defined or known: the file name ``fname``, low-pass cut-off frequency ``lfreq``,
 time interval of the epochs ``tmin`` and ``tmax``, and the conditions ``cond1`` and ``cond2``.
 
 ================== ============================================================ ====================================================
