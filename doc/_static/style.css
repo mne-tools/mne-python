@@ -7,12 +7,32 @@ body {
 }
 
 a {
-    color: rgb(255,2,16);
+    color: rgb(102,178,255);
     text-decoration: none;
 }
 
 a:hover {
-    color: rgb(255,2,16);
+    color: rgb(102,178,255);
+}
+
+h2 a {
+    color: rgb(0,0,0);
+    text-decoration: none;
+}
+
+h1 {
+    font-weight: 1000;
+}
+
+h2 {
+    background-color: rgb(255,255,255);
+    font-size: 140%;
+    font-weight: 600;
+}
+
+h3 {
+    font-size: 110%;
+    font-weight: 150;
 }
 
 blockquote {
@@ -34,7 +54,12 @@ code {
 }
 
 .devbar a {
-    color: #b8bec4;
+    color: rgb(0, 0, 0);
+}
+
+.devbar {
+    background-color: rgb(255, 0, 0);
+    opacity: 0.4;
 }
 
 #navbar a:hover {
@@ -42,5 +67,26 @@ code {
 }
 
 .note a {
-    color: rgb(255,236,0);
+    color: rgb(0,0,255);
+}
+
+.note {
+    background-color: rgb(210,255,255);
+    color: rgb(0, 0, 0);
+    border: none;
+}
+
+.note pre {
+    background-color: rgb(255,255,255);
+}
+
+blockquote {
+  padding: 0 0 0 15px;
+  margin: 0 0 20px;
+  border-left: 5px solid #eeeeee;
+}
+
+.span.box {
+    width: 49%;
+    float: left;
 }
