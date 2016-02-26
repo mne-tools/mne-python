@@ -17,6 +17,7 @@ from scipy import linalg
 
 from .constants import FIFF
 from .pick import pick_types, channel_type, pick_channels, pick_info
+from .pick import _pick_data_channels
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -621,7 +622,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise RuntimeError('Raw data needs to be preloaded. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+            picks = _pick_data_channels(self.info, exclude=[],
+                                        with_ref_meg=False)
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')
@@ -800,11 +802,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
-            if 'ICA ' in ','.join(self.ch_names):
-                pick_parameters = dict(misc=True, ref_meg=False)
-            else:
-                pick_parameters = dict(meg=True, eeg=True, ref_meg=False)
-            picks = pick_types(self.info, exclude=[], **pick_parameters)
+            picks = _pick_data_or_ica(self.info)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
@@ -928,11 +926,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             verbose = self.verbose
         fs = float(self.info['sfreq'])
         if picks is None:
-            if 'ICA ' in ','.join(self.ch_names):
-                pick_parameters = dict(misc=True)
-            else:
-                pick_parameters = dict(meg=True, eeg=True)
-            picks = pick_types(self.info, exclude=[], **pick_parameters)
+            picks = _pick_data_or_ica(self.info)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
@@ -1597,8 +1591,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
         tslice = slice(start, stop + 1)
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
-                               exclude='bads')
+            picks = _pick_data_channels(self.info, exclude='bads',
+                                        with_ref_meg=False)
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
@@ -2258,3 +2252,13 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False):
                        "because they are EOG channels use the eog parameter."
                        % str(missing_positions))
                 raise KeyError(err)
+
+
+def _pick_data_or_ica(info):
+    ch_names = [c['ch_name'] for c in info['chs']]
+    if 'ICA ' in ','.join(ch_names):
+        picks = pick_types(info, exclude=[], misc=True)
+    else:
+        picks = _pick_data_channels(info, exclude=[],
+                                    with_ref_meg=False)
+    return picks

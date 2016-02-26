@@ -771,6 +771,33 @@ def test_filter():
     assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
 
 
+def test_filter_picks():
+    """Test filtering default channel picks"""
+    ch_types = ['mag', 'grad', 'eeg', 'seeg', 'misc', 'stim']
+    info = create_info(ch_names=ch_types, ch_types=ch_types, sfreq=256)
+    raw = RawArray(data=np.zeros((len(ch_types), 1000)), info=info)
+
+    # -- Deal with meg mag grad exception
+    ch_types = ('misc', 'stim', 'meg', 'eeg', 'seeg')
+
+    # -- Filter data channels
+    for ch_type in ('mag', 'grad', 'eeg', 'seeg'):
+        picks = dict((ch, ch == ch_type) for ch in ch_types)
+        picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
+        raw_ = raw.pick_types(copy=True, **picks)
+        # Avoid RuntimeWarning due to Attenuation
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            raw_.filter(10, 30)
+            assert_true(len(w) == 1)
+
+    # -- Error if no data channel
+    for ch_type in ('misc', 'stim'):
+        picks = dict((ch, ch == ch_type) for ch in ch_types)
+        raw_ = raw.pick_types(copy=True, **picks)
+        assert_raises(RuntimeError, raw_.filter, 10, 30)
+
+
 @testing.requires_testing_data
 def test_crop():
     """Test cropping raw files
