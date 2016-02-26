@@ -610,18 +610,19 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                 False)
 
     params['offsets'] = offsets
-    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
+    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5,
+                               zorder=1)[0]
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     vertline_color = (0., 0.75, 0.)
     params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
-                                    zorder=-1)[0]
+                                    zorder=0)[0]
     params['ax_vertline'].ch_name = ''
     params['vertline_t'] = ax_hscroll.text(0, 1, '', color=vertline_color,
                                            va='bottom', ha='right')
     params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
                                                     color=vertline_color,
-                                                    zorder=1)[0]
+                                                    zorder=2)[0]
 
 
 def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
@@ -649,7 +650,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
             # do NOT operate in-place lest this get screwed up
             this_data = params['data'][inds[ch_ind]] * params['scale_factor']
             this_color = bad_color if ch_name in info['bads'] else color
-            this_z = -1 if ch_name in info['bads'] else 0
+            this_z = 0 if ch_name in info['bads'] else 1
             if isinstance(this_color, dict):
                 this_color = this_color[params['types'][inds[ch_ind]]]
 

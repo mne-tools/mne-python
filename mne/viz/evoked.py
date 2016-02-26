@@ -140,7 +140,7 @@ def _plot_legend(pos, colors, axis, bads, outlines):
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=2)
     pos_x, pos_y = _prepare_topomap(pos, ax)
-    ax.scatter(pos_x, pos_y, color=colors, s=25, marker='.', zorder=0)
+    ax.scatter(pos_x, pos_y, color=colors, s=25, marker='.', zorder=1)
     for idx in bads:
         ax.scatter(pos_x[idx], pos_y[idx], s=5, marker='.', color='w',
                    zorder=1)
@@ -262,7 +262,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             if plot_type == 'butterfly':
                 text = ax.annotate('Loading...', xy=(0.01, 0.1),
                                    xycoords='axes fraction', fontsize=20,
-                                   color='green', zorder=2)
+                                   color='green', zorder=3)
                 text.set_visible(False)
                 callback_onselect = partial(_butterfly_onselect,
                                             ch_types=ch_types_used,
@@ -306,7 +306,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                 colors[idx.index(i)] = 'r'
                     for ch_idx in range(len(D)):
                         line_list.append(ax.plot(times, D[ch_idx], picker=3.,
-                                                 zorder=0,
+                                                 zorder=1,
                                                  color=colors[ch_idx])[0])
                 if gfp:  # 'only' or boolean True
                     gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
@@ -319,23 +319,23 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         y_offset = 0.
                     this_gfp += y_offset
                     ax.fill_between(times, y_offset, this_gfp, color='none',
-                                    facecolor=gfp_color, zorder=0, alpha=0.25)
+                                    facecolor=gfp_color, zorder=1, alpha=0.25)
                     line_list.append(ax.plot(times, this_gfp, color=gfp_color,
-                                             zorder=2)[0])
+                                             zorder=3)[0])
                     ax.text(times[0] + 0.01 * (times[-1] - times[0]),
                             this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
-                            'GFP', zorder=3, color=gfp_color,
+                            'GFP', zorder=4, color=gfp_color,
                             path_effects=gfp_path_effects)
                 for ii, line in zip(idx, line_list):
                     if ii in bad_ch_idx:
-                        line.set_zorder(1)
+                        line.set_zorder(2)
                         if spatial_colors:
                             line.set_linestyle("--")
                 ax.set_ylabel('data (%s)' % ch_unit)
                 # for old matplotlib, we actually need this to have a bounding
                 # box (!), so we have to put some valid text here, change
                 # alpha and path effects later
-                texts.append(ax.text(0, 0, 'blank', zorder=2,
+                texts.append(ax.text(0, 0, 'blank', zorder=3,
                                      verticalalignment='baseline',
                                      horizontalalignment='left',
                                      fontweight='bold', alpha=0))
@@ -947,7 +947,7 @@ def _connection_line(x, fig, sourceax, targetax):
     (xs, _) = transFigure.transform(sourceax.transData.transform([x, 0]))
     (_, ys) = transFigure.transform(sourceax.transAxes.transform([0, 1]))
     return Line2D((xt, xs), (yt, ys), transform=tf, color='grey',
-                  linestyle='-', linewidth=1.5, alpha=.66, zorder=-1)
+                  linestyle='-', linewidth=1.5, alpha=.66, zorder=0)
 
 
 def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
@@ -1108,7 +1108,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # mark times in time series plot
     for timepoint in tstimes:
         ts_ax.axvline(timepoint, color='grey', linestyle='-',
-                      linewidth=1.5, alpha=.66, zorder=-1)
+                      linewidth=1.5, alpha=.66, zorder=0)
 
     # show and return it
     plt_show(show)

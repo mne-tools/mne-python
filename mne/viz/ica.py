@@ -274,10 +274,10 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
             color = label_colors[key]
             # ... but display component number too
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
-                         zorder=1, color=color, label=exc_label))
+                         zorder=2, color=color, label=exc_label))
         else:
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
-                                 color='k', zorder=0))
+                                 color='k', zorder=1))
 
     ax.set_title(title)
     ax.set_xlim(times[[0, -1]])
@@ -290,7 +290,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     # for old matplotlib, we actually need this to have a bounding
     # box (!), so we have to put some valid text here, change
     # alpha and  path effects later
-    texts.append(ax.text(0, 0, 'blank', zorder=2,
+    texts.append(ax.text(0, 0, 'blank', zorder=3,
                          verticalalignment='baseline',
                          horizontalalignment='left',
                          fontweight='bold', alpha=0))

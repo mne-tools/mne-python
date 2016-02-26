@@ -609,7 +609,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
     ax_vscroll.set_axis_off()
     ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
-                                               facecolor='w', zorder=2))
+                                               facecolor='w', zorder=3))
 
     ax_help_button = plt.subplot2grid((10, 15), (9, 0), colspan=1)
     help_button = mpl.widgets.Button(ax_help_button, 'Help')
@@ -624,10 +624,10 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
                                                    facecolor=this_color,
                                                    edgecolor=this_color,
-                                                   zorder=3))
+                                                   zorder=4))
 
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
-                                       edgecolor='w', facecolor='w', zorder=4)
+                                       edgecolor='w', facecolor='w', zorder=5)
     ax_vscroll.add_patch(vsel_patch)
 
     ax_vscroll.set_ylim(len(types), 0)
@@ -645,7 +645,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         if len(colors) - 1 < ch_idx:
             break
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                            zorder=2, picker=3.)
+                            zorder=3, picker=3.)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -691,7 +691,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                        facecolor=(0.75, 0.75, 0.75),
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
-    text = ax.text(0, 0, 'blank', zorder=2, verticalalignment='baseline',
+    text = ax.text(0, 0, 'blank', zorder=3, verticalalignment='baseline',
                    ha='left', fontweight='bold')
     text.set_visible(False)
 
@@ -845,10 +845,10 @@ def _plot_traces(params):
                     if bad_idx < start_idx or bad_idx > end_idx:
                         continue
                     this_color[bad_idx - start_idx] = (1., 0., 0.)
-                lines[line_idx].set_zorder(1)
+                lines[line_idx].set_zorder(2)
             else:
                 this_color = params['colors'][ch_idx][start_idx:end_idx]
-                lines[line_idx].set_zorder(2)
+                lines[line_idx].set_zorder(3)
                 if not butterfly:
                     ylabels[line_idx].set_color('black')
             lines[line_idx].set_segments(segments)
@@ -974,10 +974,10 @@ def _plot_vert_lines(params):
             for event_idx in range(len(epochs.events)):
                 pos = [event_idx * len(epochs.times) + t_zero[0],
                        event_idx * len(epochs.times) + t_zero[0]]
-                ax.plot(pos, ax.get_ylim(), 'g', zorder=3, alpha=0.4)
+                ax.plot(pos, ax.get_ylim(), 'g', zorder=4, alpha=0.4)
     for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * len(epochs.times), epoch_idx * len(epochs.times)]
-        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
+        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=2)
 
 
 def _pick_bad_epochs(event, params):
@@ -1000,13 +1000,13 @@ def _pick_bad_epochs(event, params):
         for ch_idx in range(len(params['ch_names'])):
             params['colors'][ch_idx][epoch_idx] = params['def_colors'][ch_idx]
         params['ax_hscroll'].patches[epoch_idx].set_color('w')
-        params['ax_hscroll'].patches[epoch_idx].set_zorder(1)
+        params['ax_hscroll'].patches[epoch_idx].set_zorder(2)
         params['plot_fun']()
         return
     # add bad epoch
     params['bads'] = np.append(params['bads'], epoch_idx)
     params['ax_hscroll'].patches[epoch_idx].set_color((1., 0., 0., 1.))
-    params['ax_hscroll'].patches[epoch_idx].set_zorder(2)
+    params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
     params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
     for ch_idx in range(len(params['ch_names'])):
         params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
@@ -1114,7 +1114,7 @@ def _mouse_click(event, params):
         for epoch_idx in range(params['n_epochs']):  # plot lines
             pos = [epoch_idx * n_times + xdata, epoch_idx * n_times + xdata]
             params['vert_lines'].append(params['ax'].plot(pos, ylim, 'y',
-                                                          zorder=4))
+                                                          zorder=5))
         params['vertline_t'].set_text('%0.3f' % params['epochs'].times[xdata])
         params['plot_fun']()
 
@@ -1180,7 +1180,7 @@ def _plot_onkey(event, params):
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                            zorder=2, picker=3.)
+                            zorder=3, picker=3.)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
@@ -1210,7 +1210,7 @@ def _plot_onkey(event, params):
             ax = params['ax']
             pos = params['vert_lines'][0][0].get_data()[0] + params['duration']
             params['vert_lines'].append(ax.plot(pos, ax.get_ylim(), 'y',
-                                                zorder=3))
+                                                zorder=4))
         params['duration'] += n_times
         if params['t_start'] + params['duration'] > len(params['times']):
             params['t_start'] -= n_times
@@ -1299,7 +1299,7 @@ def _prepare_butterfly(params):
 
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                                zorder=2, picker=3.)
+                                zorder=3, picker=3.)
             ax.add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
@@ -1362,7 +1362,7 @@ def _update_channels_epochs(event, params):
         params['lines'].pop()
     while len(params['lines']) < n_channels:
         lc = LineCollection(list(), linewidths=0.5, antialiased=False,
-                            zorder=2, picker=3.)
+                            zorder=3, picker=3.)
         params['ax'].add_collection(lc)
         params['lines'].append(lc)
     params['ax'].set_yticks(params['offsets'])
