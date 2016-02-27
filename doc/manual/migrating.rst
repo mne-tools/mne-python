@@ -46,6 +46,8 @@ Note that MNE has functions to read a variety of file formats, not just :func:`m
 Pitfalls
 --------
 
-* Python operations are natively in place. To explicitly ask for a copy like in Matlab, use the boolean argument ``copy`` provided in MNE functions. 
-* The concept of channel types is critical in MNE because it supports analysis of multimodal data (e.g., EEG, MEG, EOG) whereas most EEGLAB 
-  functions assume the same channel type to be EEG.
+* Python function often operate in-place. This means that the input to the function is modified.
+  This can be confusing to new users migrating from Matlab. However, it is also possible to ask MNE functions not to modify the input.
+  In this case, a copy of the input is made, which is operated upon and returned. Look out for the boolean argument ``copy`` in MNE functions.
+* The concept of channel types is critical in MNE because it supports analysis of multimodal data (e.g., EEG, MEG, EOG, Stim channel)
+  whereas most EEGLAB functions assume the same channel type (EEG).
