@@ -14,8 +14,8 @@ time interval of the epochs ``tmin`` and ``tmax``, and the conditions ``cond1`` 
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Processing step   | EEGLAB function                                              | MNE                                                                         |
 +===================+==============================================================+=============================================================================+
-| Get started       | addpath('EEGLAB')                                            | | import mne                                                                |
-|                   |                                                              | | from mne import io,     :class:`Epochs <mne.Epochs>`                      |
+| Get started       | | addpath(...);                                              | | import mne                                                                |
+|                   | | eeglab;                                                    | | from mne import io,     :class:`Epochs <mne.Epochs>`                      |
 |                   |                                                              | | from mne.preprocessing import     :class:`ICA <mne.preprocessing.ICA>`    |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Import data       | EEG = pop_fileio(fname);                                     | | :func:`raw = io.Raw(fname) <mne.io.Raw>`                                  |
