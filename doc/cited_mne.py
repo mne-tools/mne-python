@@ -1,4 +1,11 @@
-"""Parse google scholar -> rst for MNE citations."""
+#!/usr/bin/env python
+"""Parse google scholar -> rst for MNE citations.
+
+Example usage:
+
+    $ cited_mne --backend selenium --clear
+
+"""
 
 # Author: Mainak Jas <mainak.jas@telecom-paristech.fr>
 # License : BSD 3-clause
@@ -6,32 +13,41 @@
 # Parts of this code were copied from google_scholar_parser
 # (https://github.com/carlosp420/google_scholar_parser)
 
+import os
 import re
 import time
 import random
 import requests
 
+import numpy as np
+from joblib import Memory
 from BeautifulSoup import BeautifulSoup
-from mne.externals.tempita import Template
 
+from mne.externals.tempita import Template
+from mne.commands.utils import get_optparser
+
+# cache to avoid making too many calls to Google Scholar
+cachedir = 'cachedir'
+if not os.path.exists(cachedir):
+    os.mkdir(cachedir)
+mem = Memory(cachedir=cachedir, verbose=2)
 
 UA = ('Mozilla/5.0 (X11; U; FreeBSD i386; en-US; rv:1.9.2.9) '
       'Gecko/20100913 Firefox/3.6.9')
 
-# ##### Templates for ciations #####
+# ##### Templates for citations #####
 html = (u""".. _cited
 
-Citations
-=========
+Publications from MNE users
+===========================
 
 Papers citing MNE as extracted from Google Scholar (on %s).
+
 """)
 
 cite_template = Template(u"""
-{{paper}}
-
-{{for ii, author in enumerate(authors)}}
-{{ii + 1}}. `{{titles[ii]}} <{{links[ii]}}>`_. {{author}}.
+{{for ii, publication in enumerate(publications)}}
+{{ii + 1}}. {{publication}}.
 {{endfor}}
 
 """)
@@ -117,6 +133,7 @@ def _get_soup(url, backend='selenium'):
     return soup
 
 
+@mem.cache
 def get_citing_articles(cites_url, backend):
     """Get the citing articles.
 
@@ -171,7 +188,18 @@ def get_citing_articles(cites_url, backend):
     return titles, authors, links
 
 if __name__ == '__main__':
-    backend = 'requests'
+    parser = get_optparser(__file__)
+    parser.add_option("-c", "--clear", dest="clear", action='store_true',
+                      help="if True, clear the cache.", default=False)
+    parser.add_option("-b", "--backend", dest="backend",
+                      help="backend for parsing (selenium | requests)",
+                      default='requests')
+    options, args = parser.parse_args()
+    backend, clear = options.backend, options.clear
+
+    if clear:
+        mem.clear()
+
     random.seed()
     gen_date = time.strftime("%B %d, %Y")
     html = html % gen_date
@@ -180,22 +208,39 @@ if __name__ == '__main__':
     papers = ['MEG and EEG data analysis with MNE-Python',
               'MNE software for processing MEG and EEG data']
 
+    publications = list()
     for url_tail, paper in zip(url_tails, papers):
         titles, authors, links = get_citing_articles(
             'https://scholar.google.co.in/scholar?cites=%s'
             % url_tail, backend=backend)
 
-        titles = [title.encode('utf8') for title in titles]
-        authors = [author.encode('utf8') for author in authors]
+        this_publication = list()
+        for ii in range(len(titles)):
+            pub = '`%s. <%s>`_. %s' % (titles[ii], links[ii], authors[ii])
+            this_publication.append(pub)
 
-        paper = '\n'.join([paper, '-' * len(paper)])
+        this_publication = [p.encode('utf8') for p in this_publication]
+        publications.append(this_publication)
 
-        # create rst & cleanup
-        this_html = cite_template.substitute(paper=paper, titles=titles,
-                                             authors=authors, links=links)
-        this_html = this_html.replace('&hellip;', '...')
+    # get a union of the citations for the two papers, sorted in
+    # alphabetic order
+    publications = np.union1d(publications[1], publications[0]).tolist()
 
-        html += this_html
+    # sort by year of publication
+    years = list()
+    for pub in publications:
+        m = re.search('\d{4} -', pub)
+        if m is None:
+            years.append(-1)
+        else:
+            years.append(int(m.group(0)[:-2]))
+    order = np.argsort(years)[::-1]
+    publications = [publications[idx] for idx in order]
+
+    # create rst & cleanup
+    this_html = cite_template.substitute(publications=publications)
+    this_html = this_html.replace('&hellip;', '...')
+    html += this_html
 
     # output an rst file
     with open('cited.rst', 'w') as f:
