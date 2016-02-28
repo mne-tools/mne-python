@@ -7,6 +7,9 @@ from scipy import sparse
 import os
 import warnings
 
+from mne import read_evokeds
+from mne.externals.six.moves import StringIO
+from mne.io import show_fiff
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
                        sum_squared, estimate_rank,
@@ -17,10 +20,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _check_mayavi_version, requires_mayavi,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
-                       _get_call_line, compute_corr, sys_info, verbose)
-from mne.io import show_fiff
-from mne import Evoked
-from mne.externals.six.moves import StringIO
+                       _get_call_line, compute_corr, sys_info, verbose,
+                       check_fname)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -78,6 +79,7 @@ def test_misc():
     assert_raises(TypeError, _get_stim_channel, 1, None)
     assert_raises(TypeError, _get_stim_channel, [1], None)
     assert_raises(TypeError, _check_fname, 1)
+    assert_raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     assert_raises(ValueError, _check_subject, None, None)
     assert_raises(ValueError, _check_subject, None, 1)
     assert_raises(ValueError, _check_subject, 1, None)
@@ -262,19 +264,19 @@ def test_logging():
     set_log_file(test_name)
     set_log_level('WARNING')
     # should NOT print
-    evoked = Evoked(fname_evoked, condition=1)
+    evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name) as fid:
         assert_true(fid.readlines() == [])
     # should NOT print
-    evoked = Evoked(fname_evoked, condition=1, verbose=False)
+    evoked = read_evokeds(fname_evoked, condition=1, verbose=False)
     with open(test_name) as fid:
         assert_true(fid.readlines() == [])
     # should NOT print
-    evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
+    evoked = read_evokeds(fname_evoked, condition=1, verbose='WARNING')
     with open(test_name) as fid:
         assert_true(fid.readlines() == [])
     # SHOULD print
-    evoked = Evoked(fname_evoked, condition=1, verbose=True)
+    evoked = read_evokeds(fname_evoked, condition=1, verbose=True)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
@@ -285,15 +287,15 @@ def test_logging():
     set_log_file(test_name)
     set_log_level('INFO')
     # should NOT print
-    evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
+    evoked = read_evokeds(fname_evoked, condition=1, verbose='WARNING')
     with open(test_name) as fid:
         assert_true(fid.readlines() == [])
     # should NOT print
-    evoked = Evoked(fname_evoked, condition=1, verbose=False)
+    evoked = read_evokeds(fname_evoked, condition=1, verbose=False)
     with open(test_name) as fid:
         assert_true(fid.readlines() == [])
     # SHOULD print
-    evoked = Evoked(fname_evoked, condition=1)
+    evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
     with open(fname_log, 'r') as old_log_file:
@@ -306,7 +308,7 @@ def test_logging():
         set_log_file(test_name)
     assert_equal(len(w), 1)
     assert_true('test_utils.py' in w[0].filename)
-    evoked = Evoked(fname_evoked, condition=1)
+    evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines_2)
@@ -314,7 +316,7 @@ def test_logging():
     # make sure overwriting works
     set_log_file(test_name, overwrite=True)
     # this line needs to be called to actually do some logging
-    evoked = Evoked(fname_evoked, condition=1)
+    evoked = read_evokeds(fname_evoked, condition=1)
     del evoked
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())

@@ -290,7 +290,7 @@ def warn(message, category=RuntimeWarning):
     logger.warning(message)
 
 
-def check_fname(fname, filetype, endings):
+def check_fname(fname, filetype, endings, endings_err=()):
     """Enforce MNE filename conventions
 
     Parameters
@@ -301,7 +301,14 @@ def check_fname(fname, filetype, endings):
         Type of file. e.g., ICA, Epochs etc.
     endings : tuple
         Acceptable endings for the filename.
+    endings_err : tuple
+        Obligatory possible endings for the filename.
     """
+    if len(endings_err) > 0 and not fname.endswith(endings_err):
+        print_endings = ' or '.join([', '.join(endings_err[:-1]),
+                                     endings_err[-1]])
+        raise IOError('The filename (%s) for file type %s must end with %s'
+                      % (fname, filetype, print_endings))
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
         warn('This filename (%s) does not conform to MNE naming conventions. '

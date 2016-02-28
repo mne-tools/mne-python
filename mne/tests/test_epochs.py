@@ -1732,6 +1732,8 @@ def test_add_channels_epochs():
         epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
 
         assert_equal(len(epochs.info['projs']), len(epochs2.info['projs']))
+        assert_equal(len(epochs.info.keys()), len(epochs_meg.info.keys()))
+        assert_equal(len(epochs.info.keys()), len(epochs_eeg.info.keys()))
         assert_equal(len(epochs.info.keys()), len(epochs2.info.keys()))
 
         data1 = epochs.get_data()

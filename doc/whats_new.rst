@@ -36,6 +36,8 @@ Changelog
 
     - Add creating forward operator for dipole object :func:`mne.forward.make_forward_dipole` by `Chris Bailey`_
 
+    - Add reading of Elekta ``xfit`` fixed-position dipole time courses using :func:`mne.read_dipole` by `Eric Larson`_.
+
 BUG
 ~~~
 
