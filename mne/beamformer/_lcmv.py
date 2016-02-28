@@ -237,8 +237,13 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
                          'is used.')
 
     # Restrict forward solution to selected channels
-    ch_names = [info['chs'][k]['ch_name'] for k in picks]
-    forward = pick_channels_forward(forward, include=ch_names)
+    info_ch_names = [c['ch_name'] for c in info['chs']]
+    ch_names = [info_ch_names[k] for k in picks]
+    fwd_ch_names = forward['sol']['row_names']
+    # Keep channels in forward present in info:
+    fwd_ch_names = [c for c in fwd_ch_names if c in info_ch_names]
+    forward = pick_channels_forward(forward, fwd_ch_names)
+    picks_forward = [fwd_ch_names.index(c) for c in ch_names]
 
     # Get gain matrix (forward operator)
     if label is not None:
@@ -255,9 +260,14 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
         G = forward['sol']['data']
 
     # Apply SSPs
-    proj, ncomp, _ = make_projector(info['projs'], ch_names)
+    proj, ncomp, _ = make_projector(info['projs'], fwd_ch_names)
+
     if info['projs']:
         G = np.dot(proj, G)
+
+    # Pick after applying the projections
+    G = G[picks_forward]
+    proj = proj[np.ix_(picks_forward, picks_forward)]
 
     return is_free_ori, ch_names, proj, vertno, G
 
