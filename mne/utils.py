@@ -301,6 +301,8 @@ def check_fname(fname, filetype, endings, endings_err=()):
         Type of file. e.g., ICA, Epochs etc.
     endings : tuple
         Acceptable endings for the filename.
+    endings_err : tuple
+        Obligatory possible endings for the filename.
     """
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = ' or '.join([', '.join(endings_err[:-1]),
