@@ -505,9 +505,10 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
                 if psize > 0:
                     orig_n = p['data']['data'].shape[1]
                     if len(vecsel) < 0.9 * orig_n:
-                        warn('Projection vector "%s" magnitude %0.2f, '
-                             'applying projector with %s/%s of the original '
-                             'channels available may be dangerous'
+                        warn('Projection vector "%s" has magnitude %0.2f '
+                             '(should be unity), applying projector with '
+                             '%s/%s of the original channels available may '
+                             'be dangerous'
                              % (p['desc'], psize, len(vecsel), orig_n))
                     this_vecs[:, v] /= psize
                     nonzero += 1
