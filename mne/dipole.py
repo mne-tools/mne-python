@@ -246,6 +246,8 @@ class DipoleFixed(object):
     This class is for sequential dipole fits, where the position
     changes as a function of time. For fixed dipole fits, where the
     position is fixed as a function of time, use :class:`mne.DipoleFixed`.
+
+    .. versionadded:: 0.12
     """
     @verbose
     def __init__(self, fname, verbose=None):
@@ -267,13 +269,14 @@ class DipoleFixed(object):
         Parameters
         ----------
         fname : str
-            The name of the .fif file.
+            The name of the .fif file. Must end with ``'.fif'`` or
+            ``'.fif.gz'`` to make it explicit that the file contains
+            dipole information in FIF format.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-        check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz'))
-        if not fname.endswith('.fif') and not fname.endswith('.fif.gz'):
-            raise ValueError('filename must end with .fif or .fif.gz')
+        check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz'),
+                    ('.fif', '.fif.gz'))
         _write_evokeds(fname, self, check=False)
 
     def plot(self, show=True):
@@ -283,6 +286,11 @@ class DipoleFixed(object):
         ----------
         show : bool
             Call pyplot.show() at the end or not.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure containing the time courses.
         """
         return _plot_evoked(self, picks=None, exclude=(), unit=True, show=show,
                             ylim=None, xlim='tight', proj=False, hline=None,

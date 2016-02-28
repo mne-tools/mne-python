@@ -20,7 +20,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _check_mayavi_version, requires_mayavi,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
-                       _get_call_line, compute_corr, sys_info, verbose)
+                       _get_call_line, compute_corr, sys_info, verbose,
+                       check_fname)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -78,6 +79,7 @@ def test_misc():
     assert_raises(TypeError, _get_stim_channel, 1, None)
     assert_raises(TypeError, _get_stim_channel, [1], None)
     assert_raises(TypeError, _check_fname, 1)
+    assert_raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     assert_raises(ValueError, _check_subject, None, None)
     assert_raises(ValueError, _check_subject, None, 1)
     assert_raises(ValueError, _check_subject, 1, None)

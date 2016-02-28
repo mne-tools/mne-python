@@ -184,7 +184,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
              spatial_colors=False):
-        """Plot evoked data as butterfly plots
+        """Plot evoked data using butterfly plots
 
         Left click to a line shows the channel name. Selecting an area by
         clicking and holding left mouse button plots a topographic map of the
@@ -240,6 +240,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             coordinates into color values. Spatially similar channels will have
             similar colors. Bad channels will be dotted. If False, the good
             channels are plotted black and bad channels red. Defaults to False.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            Figure containing the butterfly plots.
         """
         return plot_evoked(self, picks=picks, exclude=exclude, unit=unit,
                            show=show, ylim=ylim, proj=proj, xlim=xlim,
@@ -288,6 +293,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Axes, there must be only one channel type plotted.
         cmap : matplotlib colormap
             Colormap.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            Figure containing the images.
         """
         return plot_evoked_image(self, picks=picks, exclude=exclude, unit=unit,
                                  show=show, clim=clim, proj=proj, xlim=xlim,
@@ -355,6 +365,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         fig : Instance of matplotlib.figure.Figure
             Images of evoked responses at sensor locations
 
+        Notes
+        -----
         .. versionadded:: 0.10.0
         """
         return plot_evoked_topo(self, layout=layout, layout_scale=layout_scale,
@@ -484,6 +496,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             the same length as ``times`` (unless ``times`` is None). If
             instance of Axes, ``times`` must be a float or a list of one float.
             Defaults to None.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            Images of evoked responses at sensor locations
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin, vmax=vmax,

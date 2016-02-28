@@ -402,7 +402,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False):
-    """Plot evoked data
+    """Plot evoked data using butteryfly plots
 
     Left click to a line shows the channel name. Selecting an area by clicking
     and holding left mouse button plots a topographic map of the painted area.
@@ -458,6 +458,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
         channels are plotted black and bad channels red. Defaults to False.
+
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        Figure containing the butterfly plots.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
@@ -528,7 +534,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
     return _plot_evoked_topo(evoked=evoked, layout=layout,
@@ -632,6 +638,11 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         Axes, there must be only one channel type plotted.
     cmap : matplotlib colormap
         Colormap.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        Figure containing the images.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=clim, proj=proj, xlim=xlim,
@@ -668,7 +679,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
     """Plot whitened evoked response
 
     Plots the whitened evoked response and the whitened GFP as described in
-    [1]. If one single covariance object is passed, the GFP panel (bottom)
+    [1]_. If one single covariance object is passed, the GFP panel (bottom)
     will depict different sensor types. If multiple covariance objects are
     passed as a list, the left column will display the whitened evoked
     responses for each channel based on the whitener from the noise covariance
@@ -694,9 +705,9 @@ def plot_evoked_white(evoked, noise_cov, show=True):
 
     References
     ----------
-    [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-        covariance estimation and spatial whitening of MEG and EEG signals,
-        vol. 108, 328-342, NeuroImage.
+    .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+           covariance estimation and spatial whitening of MEG and EEG
+           signals, vol. 108, 328-342, NeuroImage.
     """
     return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
                               scalings=None, rank=None, show=show)
@@ -710,7 +721,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     scalings : dict | None
         The rescaling method to be applied to improve the accuracy of rank
         estimaiton. If dict, it will override the following default values
-        (used if None):
+        (used if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
