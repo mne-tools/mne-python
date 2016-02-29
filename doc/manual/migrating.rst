@@ -1,10 +1,10 @@
-.. _migrating
+.. _migrating:
 
 Migrating from EEGLAB
 =====================
 
-To read in data exported from EEGLAB, MNE offers an EDF reader :func:`mne.io.read_raw_edf` and a `set` file reader.
-To read in `set` files containing ``raw`` data, use :func:`mne.io.read_raw_eeglab` and to read in `set` files containing
+To read in data exported from EEGLAB, MNE offers an EDF reader :func:`mne.io.read_raw_edf` and a ``set`` file reader.
+To read in `set` files containing ``raw`` data, use :func:`mne.io.read_raw_eeglab` and to read in ``set`` files containing
 ``epochs`` data, use :func:`mne.read_epochs_eeglab`.
 
 Here is a cheatsheet to help users migrate painlessly from EEGLAB. For the sake of clarity, let us assume
@@ -35,7 +35,7 @@ and above which to filter out data.
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
 | ERP butterfly plot| pop_timtopo(EEG_epochs, ...);                                | :func:`evoked.plot() <mne.Evoked.plot>`                                     |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Contrast ERPs     | pop_compareerps(EEG_epochs1, EEG_epochs2);                   | :class:`(evoked1 - evoked2).plot() <mne.Evoked>`                            |
+| Contrast ERPs     | pop_compareerps(EEG_epochs1, EEG_epochs2);                   | :func:`(evoked1 - evoked2).plot() <mne.Evoked.__sub__>`                     |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Save data         | EEG = pop_saveset(EEG, fname);                               | | :func:`raw.save(fname) <mne.io.Raw.save>`                                 |
 |                   |                                                              | | :func:`epochs.save(fname) <mne.Epochs.save>`                              |

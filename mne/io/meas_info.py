@@ -215,7 +215,6 @@ class Info(collections.MutableMapping):
         Name of the project the experiment belongs to.
     subject_info : dict | None
         Information about the subject.
-        See: :ref:`subject_info` for details
     proc_history : list of dict | None | not present in dict
         The SSS info, the CTC correction and the calibaraions from the SSS
         processing logs inside of a raw file.

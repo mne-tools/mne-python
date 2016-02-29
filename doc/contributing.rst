@@ -1,7 +1,7 @@
 .. _contributing:
 
-Contributing to MNE project
-===========================
+Contributie to MNE
+==================
 
 .. contents:: Contents
    :local:

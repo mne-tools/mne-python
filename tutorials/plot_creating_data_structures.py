@@ -20,7 +20,7 @@ import numpy as np
 #           :ref:`tut_info_objects`.
 #
 # Normally, :class:`mne.io.meas_info.Info` objects are created by the various
-# :ref:`data import functions` <ch_raw>`.
+# :ref:`data import functions <ch_convert>`.
 # However, if you wish to create one from scratch, you can use the
 # :func:`mne.create_info` function to initialize the minimally required
 # fields. Further fields can be assigned later as one would with a regular

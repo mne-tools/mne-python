@@ -92,6 +92,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Evoked response.
     verbose : bool, str, int, or None.
         See above.
+
+    .. automethod:: __add__
+    .. automethod:: __sub__
     """
     @verbose
     def __init__(self, fname, condition=None, baseline=None, proj=True,
@@ -759,13 +762,29 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return evoked
 
     def __add__(self, evoked):
-        """Add evoked taking into account number of epochs"""
+        """Add evoked taking into account number of epochs
+
+        The addition will be performed by weighting each Evoked
+        instance by the number of averages.
+
+        See Also
+        --------
+        mne.combine_evoked
+        """
         out = combine_evoked([self, evoked])
         out.comment = self.comment + " + " + evoked.comment
         return out
 
     def __sub__(self, evoked):
-        """Add evoked taking into account number of epochs"""
+        """Subtract evoked taking into account number of epochs
+
+        The subtraction will be performed by weighting each Evoked
+        instance by the number of averages.
+
+        See Also
+        --------
+        mne.combine_evoked
+        """
         this_evoked = deepcopy(evoked)
         this_evoked.data *= -1.
         out = combine_evoked([self, this_evoked])

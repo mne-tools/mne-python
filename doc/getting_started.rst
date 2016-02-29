@@ -1,13 +1,11 @@
 .. _getting_started:
 
-Getting Started
+Getting started
 ===============
 
 .. contents:: Contents
    :local:
    :depth: 2
-
-.. XXX do a Getting for both C and Python
 
 MNE is an academic software package that aims to provide data analysis
 pipelines encompassing all phases of M/EEG data processing.
@@ -20,17 +18,200 @@ by the `FreeSurfer`_ software.
 
 .. _FreeSurfer: http://surfer.nmr.mgh.harvard.edu
 
-Downloading and installing the Unix commands
---------------------------------------------
-
 .. note::
 
-    If you are working at the Martinos Center see :ref:`setup_martinos`
-    for instructions to work with MNE and to access the Neuromag software.
+    If you are at the Martinos Center, please see this section :ref:`inside_martinos`.
+
+
+Install Python and MNE-Python
+-----------------------------
+
+To use MNE-Python, you need two things:
+
+1. :ref:`A working Python interpreter and dependencies<install_interpreter>`
+
+2. :ref:`MNE-Python installed to the Python distribution <install_mne_python>`
+
+
+.. _install_interpreter:
+
+Install a Python interpreter and dependencies
+#############################################
+
+There are multiple options available for getting a suitable Python interpreter
+running on your system. However, for a fast and up to date scientific Python
+environment that resolves all dependencies, we highly recommend following
+installation instructions for the Anaconda Python distribution. Go here
+to download, and follow the installation instructions:
+
+https://www.continuum.io/downloads
+
+Anaconda is free for academic purposes. You can also
+`sign up for a subscription free for academic use <https://www.continuum.io/anaconda-academic-subscriptions-available>`_
+that allows installation of the ``accelerate`` package to speed up
+comptutations up to 10x by using
+`Intel MKL <https://software.intel.com/en-us/intel-mkl>`_ as:
+
+.. code-block:: bash
+
+    $ conda install accelerate
+
+Once Anaconda works properly, you can do this to resolve mne-python dependencies:
+
+.. code-block:: bash
+
+    $ conda install scipy matplotlib scikit-learn
+
+To test that everything works properly, open up IPython:
+
+.. code-block:: bash
+
+    $ ipython --matplotlib=qt
+
+Now that you have a working Python environment you can install MNE-Python.
+
+.. _install_mne_python:
+
+Install mne-python
+##################
+
+Most users should start with the "stable" version of mne-python, which can
+be installed this way:
+
+.. code-block:: bash
+
+    $ pip install mne --upgrade
+
+For the newest features (and potentially more bugs), you can instead install
+the development version by:
+
+.. code-block:: bash
+
+    $ pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+
+If you plan to contribute to the project or want to be able to update
+your MNE-Python version very frequently (weekly or monthly), please follow
+the :ref:`git instructions <contributing>`.
+
+Check your installation
+#######################
+
+To check that everything went fine, in ipython, type::
+
+    >>> import mne
+
+If you get a new prompt with no error messages, you should be good to go!
+
+Familiarize yourself with Python
+################################
+
+This is a very good place to get started: http://scipy-lectures.github.io.
+We highly recommend watching these videos to get a sense of how scientific
+computing is done in Python.
+
+Run some MNE-Python examples
+############################
+
+Once MNE-python is set up, you should try running some of the basic
+:ref:`tutorials <tutorials>` and `examples <auto_examples/index.html>`_.
+
+Make frequent use :ref:`api_reference` and :ref:`manual` to understand
+the capabilities of MNE.
+
+Advanced setup
+##############
+
+CUDA
+^^^^
+
+If you want to use NVIDIA CUDA for filtering (can yield up to 10x speedups),
+you should install:
+
+1. `the NVIDIA toolkit on your system <https://developer.nvidia.com/cuda-downloads>`_
+2. `pycuda <http://wiki.tiker.net/PyCuda/Installation/>`_
+3. `skcuda <https://github.com/lebedov/scikits.cuda>`_
+
+To initialize mne-python cuda support, after installing these dependencies
+and running their associated unit tests (to ensure your installation is correct)
+you can run::
+
+    >>> mne.cuda.init_cuda() # doctest: +SKIP
+
+If you have everything installed correctly, you should see an INFO-level log
+message telling you your CUDA hardware's available memory. To have CUDA
+initialized on startup, you can do::
+
+    >>> mne.utils.set_config('MNE_USE_CUDA', 'true') # doctest: +SKIP
+
+You can test if MNE CUDA support is working by running the associated test:
+
+.. code-block:: bash
+
+    $ nosetests mne/tests/test_filter.py
+
+If all tests pass with none skipped, then mne-python CUDA support works.
+
+matplotlib
+^^^^^^^^^^
+
+For the setups listed above we would strongly recommend to use the Qt
+matplotlib backend for fast and correct rendering:
+
+.. code-block:: bash
+
+    $ ipython --matplotlib=qt
+
+On Linux, for example, QT is the only matplotlib backend for which 3D rendering
+will work correctly. On Mac OS X for other backends certain matplotlib
+functions might not work as expected.
+
+IPython notebooks
+^^^^^^^^^^^^^^^^^
+
+To take full advantage of mne-python's visualization capacities in combination
+with IPython notebooks and inline displaying, please explicitly add the
+following magic method invocation to your notebook or configure your notebook
+runtime accordingly::
+
+    >>> %matplotlib inline
+
+If you use another Python setup and you encounter some difficulties please
+report them on the MNE mailing list or on github to get assistance.
+
+Mayavi and PySurfer
+^^^^^^^^^^^^^^^^^^^
+
+Mayavi is currently only available for Python2.7.
+The easiest way to install `mayavi` is to do the following with Anaconda:
+
+.. code-block:: bash
+
+    $ conda install mayavi
+
+For other methods of installation, please consult the `Mayavi documentation`_.
+
+The PySurfer package, which is used for visualizing cortical source estimates,
+uses Mayavi and can be installed using:
+
+.. code-block:: bash
+
+    $ pip install PySurfer
+
+Some users may need to configure PySurfer before they can make full use of
+our visualization capabilities. Please refer to the
+`PySurfer installation page`_ for up to date information.
+
+
+Download and install the Unix commands
+--------------------------------------
+
+Some advanced functionality is provided by the MNE-C command-line tools.
+It is not strictly necessary to have the MNE-C tools installed to use
+MNE-Python, but it can be helpful.
 
 The MNE Unix commands can be downloaded at:
 
-* `Download <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_ MNE
+* `Download MNE <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_
 
 :ref:`c_reference` gives an overview of the command line
 tools provided with MNE.
@@ -251,71 +432,6 @@ The MNE software relies on the FreeSurfer software for cortical
 surface reconstruction and other MRI-related tasks. Please consult
 the FreeSurfer home page site at ``http://surfer.nmr.mgh.harvard.edu/`` .
 
+.. _Pysurfer installation page: https://pysurfer.github.io/install.html
 
-Downloading and installing MNE-Python
--------------------------------------
-
-.. note::
-
-    If you are at the Martinos Center, please see this section :ref:`inside_martinos`.
-
-New to the Python programming language?
-#######################################
-
-This is a very good place to get started: http://scipy-lectures.github.io.
-
-Installing the Python interpreter
-#################################
-
-For a fast and up to date scientific Python environment that resolves all
-dependencies, we recommend the Anaconda Python distribution:
-
-https://store.continuum.io/cshop/anaconda/
-
-Anaconda is free for academic purposes.
-
-To test that everything works properly, open up IPython::
-
-    $ ipython --matplotlib=qt
-
-Now that you have a working Python environment you can install MNE-Python.
-
-mne-python installation
-#######################
-
-Most users should start with the "stable" version of mne-python, which can
-be installed this way:
-
-    $ pip install mne --upgrade
-
-For the newest features (and potentially more bugs), you can instead install
-the development version by:
-
-    $ pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
-
-If you plan to contribute to the project, please follow the git instructions: 
-:ref:`contributing`.
-
-If you would like to use a custom installation of python (or have specific
-questions about integrating special tools like IPython notebooks), please
-see this section :ref:`detailed_notes`.
-
-Checking your installation
-##########################
-
-To check that everything went fine, in ipython, type::
-
-    >>> import mne
-
-If you get a new prompt with no error messages, you should be good to go!
-Consider reading the :ref:`detailed_notes` for more advanced options and
-speed-related enhancements.
-
-Going beyond
-------------
-
-Now you're ready to read our:
-
-  * :ref:`tutorials`
-  * `Examples <auto_examples/index.html>`_
-  * :ref:`manual`
+.. _Mayavi documentation: http://docs.enthought.com/mayavi/mayavi/installation.html
