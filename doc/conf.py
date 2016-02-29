@@ -41,7 +41,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.pngmath',
               'sphinx.ext.mathjax',
               'numpy_ext.numpydoc',
-            #   'sphinx.ext.intersphinx',
+              'sphinx.ext.intersphinx',
               # 'flow_diagram',
               sg_extension]
 
