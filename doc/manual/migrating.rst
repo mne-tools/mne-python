@@ -8,8 +8,9 @@ To read in `set` files containing ``raw`` data, use :func:`mne.io.read_raw_eegla
 ``epochs`` data, use :func:`mne.read_epochs_eeglab`.
 
 Here is a cheatsheet to help users migrate painlessly from EEGLAB. For the sake of clarity, let us assume
-that the following are already defined or known: the file name ``fname``, low-pass cut-off frequency ``lfreq``,
-time interval of the epochs ``tmin`` and ``tmax``, and the conditions ``cond1`` and ``cond2``.
+that the following are already defined or known: the file name ``fname``, time interval of the epochs ``tmin`` and ``tmax``,
+and the conditions ``cond1`` and ``cond2``. The variables ``l_freq`` and ``h_freq`` are the frequencies (in Hz) below which
+and above which to filter out data.
 
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Processing step   | EEGLAB function                                              | MNE                                                                         |
@@ -22,7 +23,7 @@ time interval of the epochs ``tmin`` and ``tmax``, and the conditions ``cond1`` 
 |                   |                                                              | | :func:`raw = io.read_raw_edf(fname) <mne.io.read_raw_edf>`                |
 |                   |                                                              | | :func:`raw = io.read_raw_eeglab(fname) <mne.io.read_raw_eeglab>`          |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Filter data       | EEG = pop_eegfiltnew(EEG, lfreq, hfreq);                     | :func:`raw.filter(lfreq, hfreq) <mne.io.Raw.filter>`                        |
+| Filter data       | EEG = pop_eegfiltnew(EEG, l_freq, h_freq);                   | :func:`raw.filter(l_freq, h_freq) <mne.io.Raw.filter>`                      |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Run ICA           | EEG = pop_runica(EEG);                                       | :func:`ica.fit(raw) <mne.preprocessing.ICA.fit>`                            |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
@@ -36,9 +37,9 @@ time interval of the epochs ``tmin`` and ``tmax``, and the conditions ``cond1`` 
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Contrast ERPs     | pop_compareerps(EEG_epochs1, EEG_epochs2);                   | :class:`(evoked1 - evoked2).plot() <mne.Evoked>`                            |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Save data         | |                                                            | | :func:`raw.save(fname) <mne.io.Raw.save>`                                 |
-|                   | | EEG = pop_saveset(EEG, fname);                             | | :func:`epochs.save(fname) <mne.Epochs.save>`                              |
-|                   | |                                                            | | :func:`evoked.save(fname) <mne.Evoked.save>`                              |
+| Save data         | EEG = pop_saveset(EEG, fname);                               | | :func:`raw.save(fname) <mne.io.Raw.save>`                                 |
+|                   |                                                              | | :func:`epochs.save(fname) <mne.Epochs.save>`                              |
+|                   |                                                              | | :func:`evoked.save(fname) <mne.Evoked.save>`                              |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
 
 Note that MNE has functions to read a variety of file formats, not just :func:`mne.io.Raw`. The interested user is directed to the :ref:`IO documentation <ch_convert>`.
