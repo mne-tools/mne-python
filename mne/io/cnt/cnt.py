@@ -112,9 +112,9 @@ def _get_cnt_info(input_fname, read_blocks):
         info['lowpass'] = highcutoff
     if highpass_toggle == 1:
         info['highpass'] = lowcutoff
-    info.update({'filename': input_fname,
-                 'meas_date': calendar.timegm(date.utctimetuple()),
-                 'description': None, 'buffer_size_sec': 10.})
+    info.update(filename=input_fname,
+                meas_date=calendar.timegm(date.utctimetuple()),
+                description=None, buffer_size_sec=10.)
     for idx, ch_name in enumerate(ch_names):
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
@@ -135,6 +135,7 @@ def _get_cnt_info(input_fname, read_blocks):
     baselines.append(0)  # For stim channel
     cnt_info['baselines'] = np.array(baselines)
     info['chs'] = chs
+    info._check_consistency()
     return info, cnt_info
 
 
@@ -185,23 +186,23 @@ class RawCNT(_BaseRaw):
         # Here we use sample offset to align the data because start can be in
         # the middle of these blocks.
         s_offset = start % channel_offset
-
+        sel = np.arange(n_channels + 1)[idx]
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             fid.seek(event_offset)
             event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
             event_size = np.fromfile(fid, dtype='<i4', count=1)
             if event_type == 1:
-                bytes = 8
+                event_bytes = 8
             elif event_type == 2:
-                bytes = 19
+                event_bytes = 19
             else:
                 raise IOError('Unexpected event size.')
-            n_events = event_size / bytes
+            n_events = event_size // event_bytes
             events = list()
             for i in range(n_events):
-                fid.seek(event_offset + 9 + i * bytes + 4)
+                fid.seek(event_offset + 9 + i * event_bytes + 4)
                 offset = np.fromfile(fid, dtype='<i4', count=1)
-                events.append((offset - 900 - 75 * n_channels) /
+                events.append((offset - 900 - 75 * n_channels) //
                               (n_channels * 2))
 
             event_ch = np.zeros(n_samples)
@@ -210,20 +211,20 @@ class RawCNT(_BaseRaw):
                 event_ch[event - 1] = 1
 
             fid.seek(900 + n_channels * (75 + (start - s_offset) * n_bytes))
-            data_ = np.empty([n_channels, n_samples])
+            data_ = np.empty([n_channels + 1, n_samples])
             # One extra sample set is read here to make sure the desired time
             # window is covered by the blocks.
-            for sampleset in range(n_samples / channel_offset + 1):
+            for sampleset in range(n_samples // channel_offset + 1):
                 if sampleset * channel_offset >= stop - start + s_offset:
                     data_ = data_[:, s_offset:stop - start + s_offset]
                     break
-                block = np.fromfile(fid, dtype='<i2',
+                block = np.zeros((n_channels + 1, channel_offset))
+                samps = np.fromfile(fid, dtype='<i2',
                                     count=n_channels * channel_offset)
-                block = block.reshape(n_channels, channel_offset, order='C')
-                block_start = sampleset * channel_offset
-                data_[:, block_start:block_start + channel_offset] = block
-            event_block = event_ch[start:stop]
-            data_ = np.vstack((data_, event_block))
-
-            _mult_cal_one(data, data_ - baselines[:, None], idx, cals,
-                          mult=None)
+                samps = samps.reshape(n_channels, channel_offset, order='C')
+                b_start = sampleset * channel_offset
+                block[:-1] = samps
+                data_[sel, b_start:b_start + channel_offset] = block[sel]
+            data_[-1] = event_ch[start:stop]
+            data -= baselines[sel, None]
+            _mult_cal_one(data, data_, idx, cals, mult=None)
