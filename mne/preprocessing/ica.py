@@ -109,7 +109,7 @@ class ICA(ContainsMixin):
     n_components : int | float | None
         The number of components used for ICA decomposition. If int, it must be
         smaller then max_pca_components. If None, all PCA components will be
-        used. If float between 0 and 1 components can will be selected by the
+        used. If float between 0 and 1 components will be selected by the
         cumulative percentage of explained variance.
     max_pca_components : int | None
         The number of components used for PCA decomposition. If None, no
