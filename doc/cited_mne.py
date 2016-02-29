@@ -237,6 +237,10 @@ if __name__ == '__main__':
     order = np.argsort(years)[::-1]
     publications = [publications[idx] for idx in order]
 
+    # filter out publications not containing (http://, https://, ftp://)
+    publications = [p for p in publications if
+                    any(sub in p for sub in ('http://', 'https://', 'ftp://'))]
+
     # create rst & cleanup
     this_html = cite_template.substitute(publications=publications)
     this_html = this_html.replace('&hellip;', '...')
