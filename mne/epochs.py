@@ -1479,7 +1479,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         inst._data = resample(inst._data, sfreq, o_sfreq, npad,
                               n_jobs=n_jobs)
         # adjust indirectly affected variables
-        inst.info['sfreq'] = sfreq
+        inst.info['sfreq'] = float(sfreq)
         inst.times = (np.arange(inst._data.shape[2], dtype=np.float) /
                       sfreq + inst.times[0])
         return inst
