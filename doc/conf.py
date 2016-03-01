@@ -142,10 +142,6 @@ html_theme_options = {
     ],
     }
 
-html_context = {
-    'css_files': ['_static/custom.css'],
-}
-
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 

@@ -93,10 +93,13 @@ See :ref:`getting_started` with Python.
     the data reside in the examples directory
     and that you run the script from its current directory.
 
-    From IPython e.g. say::
-    
-        cd examples/preprocessing
-        %run plot_find_ecg_artifacts.py
+    .. code-block:: bash
+
+        $ cd examples/preprocessing
+
+    Then in Python you can do::
+
+        In [1]: %run plot_find_ecg_artifacts.py
 
 
 See :ref:`datasets` for a list of all available datasets and some

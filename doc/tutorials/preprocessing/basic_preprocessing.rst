@@ -8,10 +8,10 @@ rate than necessary needlessly consumes memory and slows down computations
 operating on the data. To avoid that, you can down-sample your time series.
 
 Since down-sampling reduces the timing precision of events, we recommend first
-extracting epochs and down-sampling the Epochs object.
+extracting epochs and down-sampling the Epochs object::
 
-  >>> # Down-sampling to a new sampling frequency of 100 Hz
-  >>> epochs_downsampled = epochs.resample(100, copy=True)
+    >>> # Down-sampling to a new sampling frequency of 100 Hz
+    >>> epochs_downsampled = epochs.resample(100, copy=True)
 
 .. figure:: ../_images/sphx_glr_plot_resample_001.png
   :scale: 50%
@@ -24,7 +24,7 @@ extracting epochs and down-sampling the Epochs object.
 Bandpass filtering
 ------------------
 Bandpass filtering is a classical step in preprocessing; it filters the data
-with a bandpass filter to select the frequency range of interest.
+with a bandpass filter to select the frequency range of interest::
 
     >>> # bandpass filtering to the range [10, 50] Hz
     >>> raw.filter(10, 50)
@@ -38,7 +38,7 @@ Some peaks may also be present at the harmonic frequencies, i.e. the integer mul
 the power-line frequency, e.g. 100Hz, 150Hz, ... (or 120Hz, 180Hz, ...).
 
 Removing power-line noise can be done with a Notch filter, directly on the Raw object,
-specifying an array of frequency to be cut off:
+specifying an array of frequency to be cut off::
 
     >>> raw.notch_filter(np.arange(60, 241, 60), picks=picks)
 

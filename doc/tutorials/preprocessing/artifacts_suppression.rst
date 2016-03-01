@@ -19,12 +19,12 @@ These components have to be correctly identified and removed.
 
 If EOG or ECG recordings are available, they can be used in ICA to automatically
 select the corresponding artifact components from the decomposition. To do so,
-you have to first build an Epoch object around blink or heartbeat event.
+you have to first build an Epoch object around blink or heartbeat event::
 
     >>> # Create an Epoch object from heartbeat events
     >>> ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
 
-Then you need to create an ICA estimator and fit it on the data.
+Then you need to create an ICA estimator and fit it on the data::
 
     >>> # Initialize the ICA estimator and fit it on the data
     >>> ica = mne.preprocessing.ICA(n_components=0.95, method='fastica')
@@ -33,7 +33,7 @@ Then you need to create an ICA estimator and fit it on the data.
 Then you have to call the :func:`ICA.find_bads_ecg` function. It will
 compute a score that quantify how much the Epoch is correlated to each independent
 component, and select the components with the best scores. Then you just have to
-exclude the components with func:`ICA.exclude`.
+exclude the components with func:`ICA.exclude`::
 
     >>> # Find components highy correlated with heartbeat events
     >>> ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
@@ -55,7 +55,7 @@ exclude the components with func:`ICA.exclude`.
 If EOG or ECG recordings are not available, you can visually select the artifact
 components. This can be done on the independent components time series or on the independent
 components spatial distribution, looking for
-the characteristic shapes of blinks and heartbeats artifacts.
+the characteristic shapes of blinks and heartbeats artifacts::
 
     >>> #
     >>>
@@ -83,5 +83,6 @@ SSP-based rejection is done using the
 :func:`compute_proj_ecg <mne.preprocessing.compute_proj_ecg>` and
 :func:`compute_proj_eog <mne.preprocessing.compute_proj_eog>` methods,
 see :ref:`ssp` section in the manual for more information.
+The commands look like::
 
     >>> ecg_proj, ecg_event = mne.preprocessing.compute_proj_ecg(raw)
