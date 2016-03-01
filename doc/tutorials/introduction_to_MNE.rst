@@ -14,8 +14,6 @@ Later on, MNE was extended with the Python programming language.
 MNE-Python now implements almost all MNE-C’s functionality and offers transparent scripting.
 On top of that it extends MNE-C’s functionality considerably (customize events, compute contrasts, group statistics, time-frequency analysis, EEG-sensor space analyses, multivariate statistics, various source localization algorithms etc.) If you have being using the MNE-C commands in the past, there is no need to convert your fif files to a new system or database. MNE-Python works nicely with the historical fif files, yet it also allows you to import data in many other formats (see :ref:`IO functions <ch_convert>`).
 
-**figure/diagram plot**
-
 
 What can you do with MNE using Python?
 --------------------------------------
