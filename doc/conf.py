@@ -44,8 +44,12 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx_gallery.gen_gallery',
-    'numpy_ext.numpydoc',
 ]
+
+extensions += ['numpy_ext.numpydoc'] 
+extensions += ['gen_commands']  # auto generate the doc for the python commands
+# extensions += ['flow_diagram]  # generate flow chart in cookbook
+
 autosummary_generate = True
 autodoc_default_flags = ['inherited-members']
 

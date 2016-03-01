@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Authors: Christian Brodbeck  <christianbrodbeck@nyu.edu>
 
-""" Open the coregistration GUI.
+"""Open the coregistration GUI.
 
 example usage:  $ mne coreg
 

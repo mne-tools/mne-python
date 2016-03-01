@@ -292,6 +292,7 @@ our visualization capabilities. Please refer to the
 `PySurfer installation page <https://pysurfer.github.io/install.html>`_
 for up to date information.
 
+.. _install_mne_c:
 
 Install MNE-C
 -------------

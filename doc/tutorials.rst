@@ -101,3 +101,4 @@ These tutorials get you started to processing MEG/EEG data with MNE-Python. You 
     :maxdepth: 1
 
     tutorials/command_line.rst
+    generated/commands.rst
