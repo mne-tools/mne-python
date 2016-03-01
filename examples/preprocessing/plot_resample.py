@@ -24,10 +24,10 @@ from mne.io import Raw
 from mne.datasets import sample
 
 ###############################################################################
-# Setting up data paths and loading raw data
+# Setting up data paths and loading raw data (skip some data for speed)
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-raw = Raw(raw_fname, preload=True)
+raw = Raw(raw_fname).crop(120, 240, copy=False).load_data()
 
 ###############################################################################
 # Since downsampling reduces the timing precision of events, we recommend
