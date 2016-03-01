@@ -128,9 +128,9 @@ def _get_cnt_info(input_fname, read_blocks):
     # Add the stim channel.
     chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
                  'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI',
-                 'unit': FIFF.FIFF_UNITM_NONE,
+                 'unit': FIFF.FIFF_UNIT_NONE,
                  'coord_frame': FIFF.FIFFV_COORD_UNKNOWN, 'loc': np.zeros(12),
-                 'coil_type': FIFF.FIFFV_COIL_NONE, 'kind': FIFF.FIFFV_SYST_CH}
+                 'coil_type': FIFF.FIFFV_COIL_NONE, 'kind': FIFF.FIFFV_STIM_CH}
     chs.append(chan_info)
     baselines.append(0)  # For stim channel
     cnt_info['baselines'] = np.array(baselines)
