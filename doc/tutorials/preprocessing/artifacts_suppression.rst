@@ -33,14 +33,14 @@ Then you need to create an ICA estimator and fit it on the data::
 Then you have to call the :func:`ICA.find_bads_ecg` function. It will
 compute a score that quantify how much the Epoch is correlated to each independent
 component, and select the components with the best scores. Then you just have to
-exclude the components with func:`ICA.exclude`::
+exclude the components with func:`ICA.exclude`:::
 
     >>> # Find components highy correlated with heartbeat events
     >>> ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
     >>> # Here we remove only 3 components
     >>> ica.exclude += ecg_inds[:3]
 
-.. figure:: ../../_images/sphx_glr_plot_ica_from_raw_005.png
+.. figure:: ../../../../_images/sphx_glr_plot_ica_from_raw_005.png
     :target: ../../auto_tutorials/plot_ica_from_raw.html
     :scale: 50%
 
