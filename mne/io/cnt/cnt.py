@@ -211,20 +211,25 @@ class RawCNT(_BaseRaw):
                 event_ch[event - 1] = 1
 
             fid.seek(900 + n_channels * (75 + (start - s_offset) * n_bytes))
-            data_ = np.empty([n_channels + 1, n_samples])
-            # One extra sample set is read here to make sure the desired time
-            # window is covered by the blocks.
-            for sampleset in range(n_samples // channel_offset + 1):
-                if sampleset * channel_offset >= stop - start + s_offset:
-                    data_ = data_[:, s_offset:stop - start + s_offset]
-                    break
-                block = np.zeros((n_channels + 1, channel_offset))
-                samps = np.fromfile(fid, dtype='<i2',
-                                    count=n_channels * channel_offset)
-                samps = samps.reshape(n_channels, channel_offset, order='C')
-                b_start = sampleset * channel_offset
-                block[:-1] = samps
-                data_[sel, b_start:b_start + channel_offset] = block[sel]
-            data_[-1] = event_ch[start:stop]
-            data -= baselines[sel, None]
-            _mult_cal_one(data, data_, idx, cals, mult=None)
+            data_ = np.empty((n_channels + 1, data.shape[1]))
+            n_samps = stop - start
+
+            # In case channel offset and start time do not align perfectly, one
+            # extra sample set is read here to cover the desired time window.
+            # The whole block is read at once and then reshaped to
+            # (n_channels, n_samples).
+            extra_samps = channel_offset * n_channels if s_offset != 0 else 0
+            count = (n_samps * n_channels + extra_samps)
+            n_samps = count // n_channels // channel_offset
+            samps = np.fromfile(fid, dtype='<i2', count=count)
+            samps = samps.reshape((n_samps, n_channels, channel_offset),
+                                  order='C')
+
+        block = np.zeros((n_channels + 1, channel_offset * n_samps))
+        for set_idx, row in enumerate(samps):
+            block[:-1, set_idx * channel_offset:(set_idx +
+                                                 1) * channel_offset] = row
+        data_[sel] = block[sel, s_offset:stop - start + s_offset]
+        data_[-1] = event_ch[start:stop]
+        data -= baselines[sel, None]
+        _mult_cal_one(data, data_, idx, cals, mult=None)
