@@ -14,9 +14,12 @@ pipelines encompassing all phases of M/EEG data processing.
 It consists of two subpackages which are fully integrated
 and compatible: the original MNE-C (distributed as compiled C code)
 and MNE-Python. A basic :ref:`ch_matlab` is also available mostly
-to allow reading and write MNE files. For source localization
-the software depends on anatomical MRI processing tools provided
-by the FreeSurfer_ software.
+to allow reading and write MNE files. The sister :ref:`mne_cpp` project
+aims to provide modular and open-source tools for acquisition,
+visualization, and analysis.
+
+For source localization with anatomical constraints, MNE depends on
+anatomical MRI processing tools provided by FreeSurfer_.
 
 Install Python and MNE-Python
 -----------------------------
@@ -257,7 +260,7 @@ with IPython notebooks and inline displaying, please explicitly add the
 following magic method invocation to your notebook or configure your notebook
 runtime accordingly::
 
-    >>> %matplotlib inline
+    In [1]: %matplotlib inline
 
 If you use another Python setup and you encounter some difficulties please
 report them on the MNE mailing list or on github to get assistance.

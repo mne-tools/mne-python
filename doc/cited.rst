@@ -1,4 +1,4 @@
-.. _cited
+.. _cited:
 
 Publications from MNE users
 ===========================

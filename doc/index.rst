@@ -35,7 +35,7 @@ MNE includes a comprehensive `Python <https://www.python.org/>`_ package
 supplemented by tools compiled from C code for the LINUX and Mac OSX
 operating systems, as well as a MATLAB toolbox.
 
-**From raw data to source estimates in about 30 lines of code:**
+**From raw data to source estimates in about 30 lines of code (:ref:`try it yourself! <getting_started>`_):**
 
 .. code:: python
 
@@ -115,9 +115,8 @@ Direct financial support for the project has been provided by:
    :maxdepth: 1
 
    cite
-   cited
    references
-   mne_cpp
+   cited
 
 .. raw:: html
 
