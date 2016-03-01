@@ -4,15 +4,16 @@ Brainstorm tutorial datasets
 ============================
 
 Here we compute the evoked from raw for the Brainstorm
-tutorial dataset. For comparison, see:
-http://neuroimage.usc.edu/brainstorm/Tutorials/MedianNerveCtf
+tutorial dataset. For comparison, see [1]_ and:
+
+    http://neuroimage.usc.edu/brainstorm/Tutorials/MedianNerveCtf
 
 References
 ----------
 .. [1] Tadel F, Baillet S, Mosher JC, Pantazis D, Leahy RM.
-Brainstorm: A User-Friendly Application for MEG/EEG Analysis.
-Computational Intelligence and Neuroscience, vol. 2011, Article ID 879716,
-13 pages, 2011. doi:10.1155/2011/879716
+       Brainstorm: A User-Friendly Application for MEG/EEG Analysis.
+       Computational Intelligence and Neuroscience, vol. 2011, Article ID
+       879716, 13 pages, 2011. doi:10.1155/2011/879716
 """
 
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>

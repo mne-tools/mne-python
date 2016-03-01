@@ -94,7 +94,7 @@ release = version
 # today_fmt = '%B %d, %Y'
 
 # List of documents that shouldn't be included in the build.
-unused_docs = ['config_doc.rst']
+unused_docs = []
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
@@ -139,13 +139,14 @@ html_theme_options = {
     'bootswatch_theme': "flatly",
     'navbar_sidebarrel': False,
     'bootstrap_version': "3",
-    'navbar_links': [("Tutorials", "tutorials"),
-                     ("Gallery", "auto_examples/index"),
-                     ("Manual", "manual/index"),
-                     ("API", "python_reference"),
-                     ("FAQ", "faq"),
-                     ("Cite", "cite"),
-                     ],
+    'navbar_links': [
+        ("Get started", "getting_started"),
+        ("Tutorials", "tutorials"),
+        ("Gallery", "auto_examples/index"),
+        ("API", "python_reference"),
+        ("Manual", "manual/index"),
+        ("FAQ", "faq"),
+    ],
     }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -165,7 +166,7 @@ html_logo = "_static/mne_logo_small.png"
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = "favicon.ico"
+html_favicon = "_static/favicon.ico"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -278,8 +279,8 @@ sphinx_gallery_conf = {
     'reference_url': {
         'mne': None,
         'matplotlib': 'http://matplotlib.org',
-        'numpy': 'http://docs.scipy.org/doc/numpy-1.9.1',
-        'scipy': 'http://docs.scipy.org/doc/scipy-0.11.0/reference',
+        'numpy': 'http://docs.scipy.org/doc/numpy-1.10.1',
+        'scipy': 'http://docs.scipy.org/doc/scipy-0.17.0/reference',
         'mayavi': 'http://docs.enthought.com/mayavi/mayavi'},
     'find_mayavi_figures': True,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),

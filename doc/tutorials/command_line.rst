@@ -97,4 +97,5 @@ Produce stc files (activation files)::
 
 And, we're done!
 
-You can now get started with the Python :ref:`examples-index`
+You can now get started with the
+`Python examples gallery <auto_examples/index.html>`_.

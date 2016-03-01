@@ -1442,7 +1442,7 @@ class ICA(ContainsMixin):
         labels : str | list | 'ecg' | 'eog' | None
             The labels to consider for the axes tests. Defaults to None.
             If list, should match the outer shape of `scores`.
-            If 'ecg' or 'eog', the labels_ attributes will be looked up.
+            If 'ecg' or 'eog', the ``labels_`` attributes will be looked up.
             Note that '/' is used internally for sublabels specifying ECG and
             EOG channels.
         axhline : float

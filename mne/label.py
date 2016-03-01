@@ -711,6 +711,7 @@ class BiHemiLabel(object):
         A name for the label. It is OK to change that attribute manually.
     subject : str | None
         Subject the label is from.
+
     """
 
     def __init__(self, lh, rh, name=None, color=None):

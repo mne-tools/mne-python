@@ -1,8 +1,8 @@
 .. _api_reference:
 
-=============
-API Reference
-=============
+====================
+Python API Reference
+====================
 
 This is the classes and functions reference of mne-python. Functions are
 grouped thematically by analysis stage. Functions and classes that are not
@@ -647,13 +647,6 @@ Functions:
 
    restrict_forward_to_label
    restrict_forward_to_stc
-
-:py:mod:`mne.source_space`:
-
-.. automodule:: mne.source_space
-   :no-members:
-   :no-inherited-members:
-
 
 Inverse Solutions
 =================

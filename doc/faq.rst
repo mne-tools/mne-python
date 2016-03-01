@@ -1,3 +1,5 @@
+.. include:: links.inc
+
 .. _faq:
 
 ==========================
@@ -6,6 +8,57 @@ Frequently Asked Questions
 
 .. contents:: Contents
    :local:
+
+
+General MNE-Python issues
+=========================
+
+Help! I can't get Python and MNE-Python working!
+------------------------------------------------
+
+Check out our section on how to get Anaconda up and running over at the
+:ref:`getting started page <install_interpreter>`.
+
+I'm not sure how to do *X* analysis step with my *Y* data...
+------------------------------------------------------------
+
+Knowing "the right thing" to do with EEG and MEG data is challenging.
+We use the `MNE mailing list`_ to discuss
+how to deal with different bits of data. It's worth searching the archives
+to see if there have been relevant discussions before.
+
+I think I found a bug, what do I do?
+------------------------------------
+
+Please report any problems you find while using MNE-Python
+`issue tracker <https://github.com/mne-tools/mne-python/issues/>`_.
+Try :ref:`using the latest master version <installing_master>` to
+see if the problem persists before reporting the bug, as it may have
+been fixed since the latest release.
+
+It is helpful to include system information with bug reports, so it can be
+useful to include the output of the :func:`mne.sys_info` command when
+reporting a bug, which should look something like this::
+
+    >>> import mne
+    >>> mne.sys_info()
+    Platform:      Linux-4.2.0-27-generic-x86_64-with-debian-jessie-sid
+    Python:        2.7.11 |Continuum Analytics, Inc.| (default, Dec  6 2015, 18:08:32)  [GCC 4.4.7 20120313 (Red Hat 4.4.7-1)]
+    Executable:    /home/larsoner/miniconda/bin/python
+
+    mne:           0.12.dev0
+    numpy:         1.10.2 {lapack=mkl_lapack95_lp64, blas=mkl_intel_lp64}
+    scipy:         0.16.1
+    matplotlib:    1.5.1
+
+    sklearn:       Not found
+    nibabel:       Not found
+    nitime:        Not found
+    mayavi:        Not found
+    nose:          1.3.7
+    pandas:        Not found
+    pycuda:        Not found
+    skcuda:        Not found
 
 
 Inverse Solution
@@ -53,7 +106,7 @@ reconstructed from the same SSS basis vectors with the same numerical rank.
 This also implies that both sensor types are not any longer linearly independent.
 
 These methods for evaluation can be used to assess model violations. Additional
-introductory materials can be found [here](https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation).
+introductory materials can be found `here <https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation>`_.
 
 For expert use cases or debugging the alternative estimators can also be compared::
 

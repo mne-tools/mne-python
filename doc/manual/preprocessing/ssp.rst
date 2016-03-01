@@ -1,11 +1,11 @@
 .. _ssp:
 
+Projections
+###########
+
 .. contents:: Contents
    :local:
    :depth: 3
-
-Projections
-###########
 
 The Signal-Space Projection (SSP) method
 ========================================
