@@ -3,7 +3,7 @@
 
 Tutorials
 =========
-These tutorials get you started to processing MEG/EEG data with MNE-Python. You can find each step of the processing pipeline, and re-run the python code by copy-paste.
+These tutorials get you started to processing MEG/EEG data with MNE-Python. You can find each step of the processing pipeline, and re-run the Python code by copy-paste.
 
 .. toctree::
   :maxdepth: 1
