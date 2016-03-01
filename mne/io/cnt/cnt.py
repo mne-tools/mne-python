@@ -95,14 +95,14 @@ def _get_cnt_info(input_fname, read_blocks):
         cals = list()
         baselines = list()  # Baselines are subtracted before scaling the data.
         chs = list()
-        for i in range(n_channels):
-            fid.seek(data_offset + 75 * i)
+        for ch_idx in range(n_channels):
+            fid.seek(data_offset + 75 * ch_idx)
             ch_names.append(''.join(np.fromfile(fid, dtype='S1', count=10)))
-            fid.seek(data_offset + 75 * i + 47)
+            fid.seek(data_offset + 75 * ch_idx + 47)
             baselines.append(np.fromfile(fid, dtype='i2', count=1)[0])
-            fid.seek(data_offset + 75 * i + 59)
+            fid.seek(data_offset + 75 * ch_idx + 59)
             sensitivity = np.fromfile(fid, dtype='f4', count=1)[0]
-            fid.seek(data_offset + 75 * i + 71)
+            fid.seek(data_offset + 75 * ch_idx + 71)
             cal = np.fromfile(fid, dtype='f4', count=1)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
     cnt_info['n_channels'] = n_channels
@@ -127,7 +127,7 @@ def _get_cnt_info(input_fname, read_blocks):
 
     # Add the stim channel.
     chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
-                 'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI',
+                 'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI 014',
                  'unit': FIFF.FIFF_UNIT_NONE,
                  'coord_frame': FIFF.FIFFV_COORD_UNKNOWN, 'loc': np.zeros(12),
                  'coil_type': FIFF.FIFFV_COIL_NONE, 'kind': FIFF.FIFFV_STIM_CH}
