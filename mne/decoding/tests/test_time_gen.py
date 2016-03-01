@@ -424,4 +424,13 @@ def test_decoding_time():
     tg = TimeDecoding(clf=clf, cv=cv)
     tg.fit(epochs, y=y)
 
+
+def test_string_scorer():
+    """Test whether passing string as scorer works as intended"""
+    epochs = make_epochs()
+    gat = GeneralizationAcrossTime(scorer='accuracy')
+    gat.fit(epochs)
+    assert_equal("<GAT | fitted, start : -0.100 (s), stop : 0.500 (s), "
+                 "no prediction, no score>", "%s" %gat)
+
 run_tests_if_main()
