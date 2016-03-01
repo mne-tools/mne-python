@@ -1,8 +1,8 @@
 """
 .. _tut_preprocessing_ica:
 
-Compute ICA on MEG data and remove artifacts
-============================================
+Example: Compute ICA on MEG data and remove artifacts
+=====================================================
 
 ICA is fit to MEG raw data.
 The sources matching the ECG and EOG are automatically found and displayed.
