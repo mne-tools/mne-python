@@ -2095,14 +2095,43 @@ def _get_root_dir():
 def sys_info(fid=None, show_paths=False):
     """Print the system information for debugging
 
+    This function is useful for printing system information
+    to help triage bugs.
+
     Parameters
     ----------
     fid : file-like | None
         The file to write to. Will be passed to :func:`print()`.
-        Can be None to use ``sys.stdout``.
+        Can be None to use :data:`sys.stdout`.
     show_paths : bool
         If True, print paths for each module.
-    """
+
+    Examples
+    --------
+    Running this function with no arguments prints an output that is
+    useful when submitting bug reports::
+
+        >>> import mne
+        >>> mne.sys_info() # doctest: +SKIP
+        Platform:      Linux-4.2.0-27-generic-x86_64-with-Ubuntu-15.10-wily
+        Python:        2.7.10 (default, Oct 14 2015, 16:09:02)  [GCC 5.2.1 20151010]
+        Executable:    /usr/bin/python
+
+        mne:           0.12.dev0
+        numpy:         1.12.0.dev0+ec5bd81 {lapack=mkl_rt, blas=mkl_rt}
+        scipy:         0.18.0.dev0+3deede3
+        matplotlib:    1.5.1+1107.g1fa2697
+
+        sklearn:       0.18.dev0
+        nibabel:       2.1.0dev
+        nitime:        0.6
+        mayavi:        4.3.1
+        nose:          1.3.7
+        pandas:        0.17.1+25.g547750a
+        pycuda:        2015.1.3
+        skcuda:        0.5.2
+
+    """  # noqa
     ljust = 15
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'

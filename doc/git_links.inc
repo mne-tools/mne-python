@@ -77,16 +77,12 @@
 
 .. python editors
 .. _atom: https://atom.io/
-.. _spyder: http://spyder-ide.blogspot.com/
+.. _Spyder: http://pythonhosted.org/spyder/
 .. _anaconda: http://www.continuum.io/downloads
 .. _EPD: https://www.enthought.com/products/epd/
 .. _sublime text: http://www.sublimetext.com/
 
-.. mne stuff
-.. _mne command line utilities: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/
-.. _mne-scripts: https://github.com/mne-tools/mne-scripts/
-
-.. _Freesurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
+.. _FreeSurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
 
 .. |emdash| unicode:: U+02014
 

@@ -92,9 +92,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Evoked response.
     verbose : bool, str, int, or None.
         See above.
-
-    .. automethod:: __add__
-    .. automethod:: __sub__
     """
     @verbose
     def __init__(self, fname, condition=None, baseline=None, proj=True,

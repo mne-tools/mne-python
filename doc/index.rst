@@ -109,15 +109,14 @@ Direct financial support for the project has been provided by:
 
    python_reference
    manual/index
+   whats_new
 
 .. toctree::
    :maxdepth: 1
 
-   whats_new
    cite
    cited
    references
-   martinos
    mne_cpp
 
 .. raw:: html
