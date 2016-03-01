@@ -437,7 +437,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     # remove mean (do not use in-place subtraction as it may modify input x)
     x = x - np.mean(x, axis=-1)[:, np.newaxis]
-    x_mt = np.zeros((len(x), len(dpss), len(x[0])))
+    x_mt = np.zeros((len(x), len(dpss), x.shape[1]), dtype=complex)
     for idx, sig in enumerate(x):
         x_mt[idx] = fftpack.fft(sig[np.newaxis, :] * dpss, n=n_fft)
 
