@@ -437,7 +437,13 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     # remove mean (do not use in-place subtraction as it may modify input x)
     x = x - np.mean(x, axis=-1)[:, np.newaxis]
-    x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
+
+    # The following is equivalent to this, but uses less memory:
+    # x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
+    n_tapers = dpss.shape[0] if dpss.ndim > 1 else 1
+    x_mt = np.zeros((len(x), n_tapers, n_fft), dtype=complex)
+    for idx, sig in enumerate(x):
+        x_mt[idx] = fftpack.fft(sig[np.newaxis, :] * dpss, n=n_fft)
 
     # only keep positive frequencies
     freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
