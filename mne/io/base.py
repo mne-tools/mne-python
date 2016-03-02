@@ -1011,7 +1011,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if npad is None:
             npad = 100
             warn('npad is currently taken to be 100, but will be changed to '
-                 '"auto" in 0.12. Please set the value explicitly.')
+                 '"auto" in 0.12. Please set the value explicitly.',
+                 DeprecationWarning)
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
 
