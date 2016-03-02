@@ -945,7 +945,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                   picks=picks, n_jobs=n_jobs, copy=False)
 
     @verbose
-    def resample(self, sfreq, npad=100, window='boxcar', stim_picks=None,
+    def resample(self, sfreq, npad=None, window='boxcar', stim_picks=None,
                  n_jobs=1, events=None, copy=False, verbose=None):
         """Resample data channels.
 
@@ -973,8 +973,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         sfreq : float
             New sample rate to use.
-        npad : int
+        npad : int | str
             Amount to pad the start and end of the data.
+            Can also be "auto" to use a padding that will result in
+            a power-of-two size (can be much faster).
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
         stim_picks : array of int | None
@@ -1006,6 +1008,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         For some data, it may be more accurate to use npad=0 to reduce
         artifacts. This is dataset dependent -- check your data!
         """
+        if npad is None:
+            npad = 100
+            warn('npad is currently taken to be 100, but will be changed to '
+                 '"auto" in 0.12. Please set the value explicitly.')
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
 

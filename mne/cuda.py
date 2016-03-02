@@ -3,7 +3,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy.fftpack import fft, ifft
+from scipy.fftpack import fft, ifft, rfft, irfft
 
 from .utils import sizeof_fmt, logger, get_config, warn
 
@@ -295,7 +295,7 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
     return n_jobs, cuda_dict, W
 
 
-def fft_resample(x, W, new_len, npad, to_remove,
+def fft_resample(x, W, new_len, npads, to_removes,
                  cuda_dict=dict(use_cuda=False)):
     """Do FFT resampling with a filter function (possibly using CUDA)
 
@@ -307,9 +307,10 @@ def fft_resample(x, W, new_len, npad, to_remove,
         The filtering function to apply.
     new_len : int
         The size of the output array (before removing padding).
-    npad : int
-        Amount of padding to apply before resampling.
-    to_remove : int
+    npads : tuple of int
+        Amount of padding to apply to the start and end of the
+        signal before resampling.
+    to_removes : tuple of int
         Number of samples to remove after resampling.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
@@ -322,18 +323,28 @@ def fft_resample(x, W, new_len, npad, to_remove,
     # add some padding at beginning and end to make this work a little cleaner
     if x.dtype != np.float64:
         x = x.astype(np.float64)
-    x = _smart_pad(x, npad)
+    x = _smart_pad(x, npads)
     old_len = len(x)
     shorter = new_len < old_len
     if not cuda_dict['use_cuda']:
         N = int(min(new_len, old_len))
-        sl_1 = slice((N + 1) // 2)
-        y_fft = np.zeros(new_len, np.complex128)
-        x_fft = fft(x).ravel() * W
+        # The below is equivalent to this, but faster
+        # sl_1 = slice((N + 1) // 2)
+        # y_fft = np.zeros(new_len, np.complex128)
+        # x_fft = fft(x).ravel() * W
+        # y_fft[sl_1] = x_fft[sl_1]
+        # sl_2 = slice(-(N - 1) // 2, None)
+        # y_fft[sl_2] = x_fft[sl_2]
+        # y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
+        x_fft = rfft(x).ravel()
+        x_fft *= W[np.arange(1, len(x) + 1) // 2].real
+        y_fft = np.zeros(new_len, np.float64)
+        sl_1 = slice(N)
         y_fft[sl_1] = x_fft[sl_1]
-        sl_2 = slice(-(N - 1) // 2, None)
-        y_fft[sl_2] = x_fft[sl_2]
-        y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
+        if min(new_len, old_len) % 2 == 0:
+            if new_len > old_len:
+                y_fft[N - 1] /= 2.
+        y = irfft(y_fft, overwrite_x=True).ravel()
     else:
         cudafft = _get_cudafft()
         cuda_dict['x'].set(np.concatenate((x, np.zeros(max(new_len - old_len,
@@ -356,10 +367,10 @@ def fft_resample(x, W, new_len, npad, to_remove,
         y = cuda_dict['x'].get()[:new_len if shorter else None]
 
     # now let's trim it back to the correct size (if there was padding)
-    if to_remove > 0:
+    if (to_removes > 0).any():
         keep = np.ones((new_len), dtype='bool')
-        keep[:to_remove] = False
-        keep[-to_remove:] = False
+        keep[:to_removes[0]] = False
+        keep[-to_removes[1]:] = False
         y = np.compress(keep, y)
 
     return y
@@ -372,11 +383,12 @@ def fft_resample(x, W, new_len, npad, to_remove,
 def _smart_pad(x, n_pad):
     """Pad vector x
     """
-    if n_pad == 0:
+    if (n_pad == 0).all():
         return x
-    elif n_pad < 0:
+    elif (n_pad < 0).any():
         raise RuntimeError('n_pad must be non-negative')
     # need to pad with zeros if len(x) <= npad
-    z_pad = np.zeros(max(n_pad - len(x) + 1, 0), dtype=x.dtype)
-    return np.concatenate([z_pad, 2 * x[0] - x[n_pad:0:-1], x,
-                           2 * x[-1] - x[-2:-n_pad - 2:-1], z_pad])
+    l_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
+    r_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
+    return np.concatenate([l_z_pad, 2 * x[0] - x[n_pad[0]:0:-1], x,
+                           2 * x[-1] - x[-2:-n_pad[1] - 2:-1], r_z_pad])
