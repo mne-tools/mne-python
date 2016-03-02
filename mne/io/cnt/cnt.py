@@ -81,31 +81,55 @@ def _get_cnt_info(input_fname, read_blocks):
         highcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
 
         fid.seek(886)
-        cnt_info['event_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
+        event_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
         cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
                                                      count=1)[0]
+        # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
         if cnt_info['channel_offset'] > 1 and read_blocks:
-            cnt_info['channel_offset'] /= 2
+            cnt_info['channel_offset'] /= 2  # Data read as 2 byte ints.
             warn('Reading in data in blocks of %d. If this fails, try using '
                  'read_blocks=False.')
-        cnt_info['n_samples'] = (cnt_info['event_offset'] -
-                                 (900 + 75 * n_channels)) / (2 * n_channels)
-        ch_names = list()
-        cals = list()
-        baselines = list()  # Baselines are subtracted before scaling the data.
-        chs = list()
-        for ch_idx in range(n_channels):
+        n_samples = (event_offset - (900 + 75 * n_channels)) / (2 * n_channels)
+        ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(),
+                                               list())
+        size = list()
+        for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
             ch_names.append(''.join(np.fromfile(fid, dtype='S1', count=10)))
+            fid.seek(data_offset + 75 * ch_idx + 19)
+            pos.append(np.fromfile(fid, dtype='f4', count=2))  # x and y pos
             fid.seek(data_offset + 75 * ch_idx + 47)
+            # Baselines are subtracted before scaling the data.
             baselines.append(np.fromfile(fid, dtype='i2', count=1)[0])
             fid.seek(data_offset + 75 * ch_idx + 59)
             sensitivity = np.fromfile(fid, dtype='f4', count=1)[0]
+            fid.seek(data_offset + 75 * ch_idx + 66)
+            size.append(np.fromfile(fid, dtype='u1', count=5))
             fid.seek(data_offset + 75 * ch_idx + 71)
             cal = np.fromfile(fid, dtype='f4', count=1)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
-    cnt_info['n_channels'] = n_channels
+
+        fid.seek(event_offset)
+        event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
+        event_size = np.fromfile(fid, dtype='<i4', count=1)
+        if event_type == 1:
+            event_bytes = 8
+        elif event_type == 2:
+            event_bytes = 19
+        else:
+            raise IOError('Unexpected event size.')
+        n_events = event_size // event_bytes
+        events = list()
+        for i in range(n_events):
+            fid.seek(event_offset + 9 + i * event_bytes + 4)
+            offset = np.fromfile(fid, dtype='<i4', count=1)
+            events.append((offset - 900 - 75 * n_channels) //
+                          (n_channels * 2))
+        stim_channel = np.zeros(n_samples)
+
+        for event in events:
+            stim_channel[event - 1] = 1
 
     info = _empty_info(cnt_info['sfreq'])
     if lowpass_toggle == 1:
@@ -118,10 +142,11 @@ def _get_cnt_info(input_fname, read_blocks):
     for idx, ch_name in enumerate(ch_names):
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
+        loc = [pos[idx][0], pos[idx][1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         chan_info = {'cal': cals[idx], 'logno': idx + 1, 'scanno': idx + 1,
                      'range': 1.0, 'unit_mul': 0., 'ch_name': ch_name,
                      'unit': FIFF.FIFF_UNIT_V,
-                     'coord_frame': FIFF.FIFFV_COORD_HEAD, 'loc': np.zeros(12),
+                     'coord_frame': FIFF.FIFFV_COORD_HEAD, 'loc': loc,
                      'coil_type': ch_coil, 'kind': ch_kind}
         chs.append(chan_info)
 
@@ -133,7 +158,8 @@ def _get_cnt_info(input_fname, read_blocks):
                  'coil_type': FIFF.FIFFV_COIL_NONE, 'kind': FIFF.FIFFV_STIM_CH}
     chs.append(chan_info)
     baselines.append(0)  # For stim channel
-    cnt_info['baselines'] = np.array(baselines)
+    cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
+                    n_channels=n_channels, stim_channel=stim_channel)
     info['chs'] = chs
     info._check_consistency()
     return info, cnt_info
@@ -176,10 +202,8 @@ class RawCNT(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Take a chunk of raw data, multiply by mult or cals, and store"""
         n_channels = self.info['nchan'] - 1
-        n_samples = self._raw_extras[0]['n_samples']
         channel_offset = self._raw_extras[0]['channel_offset']
         baselines = self._raw_extras[0]['baselines']
-        event_offset = self._raw_extras[0]['event_offset']
         n_bytes = 2
         # The data is divided into blocks of samples / channel.
         # channel_offset determines the amount of successive samples.
@@ -187,49 +211,32 @@ class RawCNT(_BaseRaw):
         # the middle of these blocks.
         s_offset = start % channel_offset
         sel = np.arange(n_channels + 1)[idx]
+        block_size = channel_offset * n_channels  # Size of blocks in file.
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
-            fid.seek(event_offset)
-            event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
-            event_size = np.fromfile(fid, dtype='<i4', count=1)
-            if event_type == 1:
-                event_bytes = 8
-            elif event_type == 2:
-                event_bytes = 19
-            else:
-                raise IOError('Unexpected event size.')
-            n_events = event_size // event_bytes
-            events = list()
-            for i in range(n_events):
-                fid.seek(event_offset + 9 + i * event_bytes + 4)
-                offset = np.fromfile(fid, dtype='<i4', count=1)
-                events.append((offset - 900 - 75 * n_channels) //
-                              (n_channels * 2))
-
-            event_ch = np.zeros(n_samples)
-
-            for event in events:
-                event_ch[event - 1] = 1
-
             fid.seek(900 + n_channels * (75 + (start - s_offset) * n_bytes))
             data_ = np.empty((n_channels + 1, data.shape[1]))
             n_samps = stop - start
 
-            # In case channel offset and start time do not align perfectly, one
-            # extra sample set is read here to cover the desired time window.
+            # In case channel offset and start time do not align perfectly,
+            # extra sample sets are read here to cover the desired time window.
             # The whole block is read at once and then reshaped to
             # (n_channels, n_samples).
-            extra_samps = channel_offset * n_channels if s_offset != 0 else 0
-            count = (n_samps * n_channels + extra_samps)
-            n_samps = count // n_channels // channel_offset
+            extra_samps = block_size if (s_offset != 0 or
+                                         n_samps % channel_offset != 0) else 0
+            if s_offset >= (channel_offset // 2):  # Extend at the end.
+                extra_samps += block_size
+            count = n_samps // channel_offset * block_size + extra_samps
+            n_samps = count // block_size
             samps = np.fromfile(fid, dtype='<i2', count=count)
             samps = samps.reshape((n_samps, n_channels, channel_offset),
                                   order='C')
-
+        # Intermediate shaping to block sizes.
         block = np.zeros((n_channels + 1, channel_offset * n_samps))
-        for set_idx, row in enumerate(samps):
+        for set_idx, row in enumerate(samps):  # Final shape.
             block[:-1, set_idx * channel_offset:(set_idx +
                                                  1) * channel_offset] = row
-        data_[sel] = block[sel, s_offset:stop - start + s_offset]
-        data_[-1] = event_ch[start:stop]
+        block = block[sel, s_offset:stop - start + s_offset]
+        data_[sel] = block
+        data_[-1] = self._raw_extras[0]['stim_channel'][start:stop]
         data -= baselines[sel, None]
         _mult_cal_one(data, data_, idx, cals, mult=None)
