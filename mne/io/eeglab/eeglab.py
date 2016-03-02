@@ -250,7 +250,7 @@ class RawEEGLAB(_BaseRaw):
         Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
     event_id_func : callable
         What to do for events not found in `event_id`. Must
-        take one `str` argument and return an ìnt`. Currently defaults to
+        take one `str` argument and return an `int`. Currently defaults to
 
             `lambda t: int("".join([x for x in t if x.isdigit()]))`
 
