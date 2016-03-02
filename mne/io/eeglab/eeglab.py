@@ -75,9 +75,7 @@ def _get_info(eeg, montage, eog=()):
         selection = np.arange(len(eeg.chanlocs))
         locs_available = True
         for chanloc in eeg.chanlocs:
-            ch_names.append(str(chanloc.labels) if
-                            isinstance(chanloc.labels, string_types)
-                            else str(chanloc.labels.decode()))
+            ch_names.append(chanloc.labels)
             loc_x = _to_loc(chanloc.X)
             loc_y = _to_loc(chanloc.Y)
             loc_z = _to_loc(chanloc.Z)
@@ -91,7 +89,7 @@ def _get_info(eeg, montage, eog=()):
         path = op.dirname(montage)
 
     if montage is None:
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
+        info = create_info(ch_names, eeg.srate, ch_types='eeg')  # deal with missing ch_names
     else:
         _check_update_montage(info, montage, path=path,
                               update_ch_names=True)
@@ -139,9 +137,9 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
     event_id_func : None | callable
         What to do for events not found in `event_id`. Must
         take one `str` argument and return an `int`. If `None`, defaults to
-        `strip_non_integer`, which strips event codes such as "D128" or "S  1"
-        of their non-integer parts and returns the integer. Any event that is
-        not in `event_id` and cannot be parsed with this function is dropped.
+        stripping event codes such as "D128" or "S  1" of their non-integer
+        parts and returning the integer. Any event that is not in `event_id`
+        and cannot be parsed with this function is dropped.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -250,9 +248,9 @@ class RawEEGLAB(_BaseRaw):
     event_id_func : None | callable
         What to do for events not found in `event_id`. Must
         take one `str` argument and return an `int`. If `None`, defaults to
-        `strip_non_integer`, which strips event codes such as "D128" or "S  1"
-        of their non-integer parts and returns the integer. Any event that is
-        not in `event_id` and cannot be parsed with this function is dropped.
+        stripping event codes such as "D128" or "S  1" of their non-integer
+        parts and returns the integer. Any event that is not in `event_id` and
+        cannot be parsed with this function is dropped.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -277,7 +275,7 @@ class RawEEGLAB(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, montage, eog=(), event_id=None,
-                 event_id_func=strip_to_integer, preload=False, verbose=None):
+                 event_id_func=None, preload=False, verbose=None):
         """Read EEGLAB .set file.
         """
         from scipy import io
@@ -304,6 +302,8 @@ class RawEEGLAB(_BaseRaw):
             event_id = dict()
 
         self.preload = False # so the event-setting works
+        if event_id_func is None:
+            event_id_func = strip_to_integer
         events = _read_eeglab_events(eeg, event_id=event_id,
                                      event_id_func=event_id_func)
         self._create_event_ch(events, n_samp=eeg.pnts)
@@ -514,13 +514,16 @@ class EpochsEEGLAB(_BaseEpochs):
         logger.info('Ready.')
 
 
-def _read_eeglab_events(eeg, event_id=dict(), event_id_func=strip_non_integer):
+def _read_eeglab_events(eeg, event_id=dict(), event_id_func=None):
     """Create events array from EEGLAB structure
 
     An event array is constructed by looking up events in the
     event_id, trying to reduce them to their integer part otherwise, and
     entirely dropping them (with a warning) if this is impossible.
     Returns a 3x3 array of zeros if no events are found."""
+    if event_id_func is None:
+        event_id_func = strip_to_integer
+
     types = [event.type for event in eeg.event]
     latencies = [event.latency for event in eeg.event]
 
@@ -566,7 +569,7 @@ def _read_eeglab_events(eeg, event_id=dict(), event_id_func=strip_non_integer):
         return np.asarray(events)
 
 
-def strip_non_integer(trigger):
+def strip_to_integer(trigger):
     """Return only the integer part of a string
     """
     return int("".join([x for x in trigger if x.isdigit()]))
