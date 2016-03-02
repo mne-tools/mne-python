@@ -213,13 +213,13 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
 
 
 def _synthesize_stim_channel(events, n_samp):
-    """Synthesize a stim channel from events read from a vmrk file
+    """Synthesize a stim channel from events read from an event file
 
     Parameters
     ----------
     events : array, shape (n_events, 3)
         Each row representing an event as (onset, duration, trigger) sequence
-        (the format returned by _read_vmrk_events).
+        (the format returned by `_read_vmrk_events` or `_read_eeglab_events).
     n_samp : int
         The number of samples.
 
