@@ -425,22 +425,22 @@ def test_decoding_time():
     tg.fit(epochs, y=y)
 
 
+@requires_sklearn
 def test_string_scorer():
     """Test whether passing string as scorer works as intended"""
     epochs = make_epochs()
     gat_1 = GeneralizationAcrossTime(scorer='accuracy')
     gat_1.fit(epochs)
     assert_equal("<GAT | fitted, start : -0.100 (s), stop : 0.500 (s), "
-                 "no prediction, no score>", "%s" %gat)
-    predict_1 = gat_1.predict(epochs)
-    score_1 = gat_1.score()
+                 "no prediction, no score>", "%s" %gat_1)
+    score_1 = gat_1.score(epochs)
 
     gat_2 = GeneralizationAcrossTime()
     gat_2.fit(epochs)
-    predict_2 = gat_2.predict(epochs)
-    score_2 = gat_2.score()
-
+    score_2 = gat_2.score(epochs)
     assert_equal(score_1, score_2)
-    assert_equal(predict_1, predict_2)
+
+    gat_1.scorer = 'accuracies'
+    assert_raises(KeyError, gat_1.score, epochs)
 
 run_tests_if_main()

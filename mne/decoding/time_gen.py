@@ -7,7 +7,6 @@
 
 import numpy as np
 import copy
-import sklearn.metrics
 
 from ..io.pick import pick_types
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
@@ -335,6 +334,7 @@ class _GeneralizationAcrossTime(object):
             number of testing times per training time need not be regular;
             else, np.shape(scores) = (n_train_time, n_test_time).
         """
+        import sklearn.metrics
         from sklearn.base import is_classifier
         from sklearn.metrics import accuracy_score, mean_squared_error
         if check_version('sklearn', '0.17'):
@@ -362,11 +362,11 @@ class _GeneralizationAcrossTime(object):
                     self.scorer_ = mean_squared_error
 
         elif isinstance(self.scorer_, str):
-            try:
-                self.scorer_ = SCORERS[self.scorer_]
-            except KeyError:
-                raise KeyError("{0} Doesn't appear to be valid. Please choose "
-                               "from {1}".format(self.scorer_, SCORERS.keys()))
+            if hasattr(sklearn.metrics, self.scorer_ + '_score'):
+                self.scorer_ = getattr(sklearn.metrics, self.scorer_ + '_score')
+            else:
+                raise KeyError("`{0} scorer` Doesn't appear to be valid "
+                               "sklearn scorer.".format(self.scorer_))
         if not self.scorer_:
             raise ValueError('Could not find a scoring metric for `clf=%s` '
                              ' and `predict_method=%s`. Manually define scorer'
@@ -1516,14 +1516,3 @@ def _set_cv(cv, clf=None, X=None, y=None):
         raise ValueError('Some folds do not have any train epochs.')
 
     return cv, cv_splits
-
-
-SCORERS = dict(r2=sklearn.metrics.r2_score,
-               median_absolute_error=sklearn.metrics.median_absolute_error,
-               mean_absolute_error=sklearn.metrics.mean_absolute_error,
-               mean_squared_error=sklearn.metrics.mean_squared_error,
-               accuracy=sklearn.metrics.accuracy_score,
-               roc_auc=sklearn.metrics.roc_auc_score,
-               average_precision=sklearn.metrics.average_precision_score,
-               log_loss=sklearn.metrics.log_loss,
-               adjusted_rand_score=sklearn.metrics.adjusted_rand_score)
