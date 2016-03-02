@@ -9,7 +9,7 @@ import warnings
 from nose.tools import assert_raises, assert_equal
 from numpy.testing import assert_array_equal
 
-from mne import write_events, read_epochs_eeglab
+from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
@@ -37,6 +37,13 @@ def test_io_set():
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
                          montage=montage)
         raw = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage)
+        # test finding events in continuous data
+        event_id={'rt':1, 'square':2}
+        raw = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage,
+                              event_id=event_id)
+        Epochs(raw, find_events(raw))  # without event_id
+        epochs = Epochs(raw, find_events(raw), event_id)  # with event_id
+        assert_equal(epochs["square"].average().nave, 80)
         raw2 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
         assert_array_equal(raw[:][0], raw2[:][0])
     # one warning per each preload=False or str with raw_fname_onefile
