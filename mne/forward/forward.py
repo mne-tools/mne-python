@@ -1308,7 +1308,7 @@ def restrict_forward_to_label(fwd, labels):
     fwd_out['sol']['data'] = np.zeros((fwd['sol']['data'].shape[0], 0))
     fwd_out['sol']['ncol'] = 0
 
-    for i in range(2):
+    for i in xrange(2):
         fwd_out['src'][i]['vertno'] = np.array([], int)
         fwd_out['src'][i]['nuse'] = 0
         fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
@@ -1316,25 +1316,22 @@ def restrict_forward_to_label(fwd, labels):
         fwd_out['src'][i]['use_tris'] = np.array([], int)
         fwd_out['src'][i]['nuse_tri'] = np.array([0])
 
+    nuse_lh = fwd['src'][0]['nuse']
     for label in labels:
-        if label.hemi == 'lh':
-            i = 0
-            src_sel = np.intersect1d(fwd['src'][0]['vertno'], label.vertices)
-            src_sel = np.searchsorted(fwd['src'][0]['vertno'], src_sel)
-        else:
-            i = 1
-            src_sel = np.intersect1d(fwd['src'][1]['vertno'], label.vertices)
-            src_sel = (np.searchsorted(fwd['src'][1]['vertno'], src_sel) +
-                       len(fwd['src'][0]['vertno']))
 
+        # src_sel are indices mapping vertices in label to cols in fwd
+        i = 0 if label.hemi == 'lh' else 1
+        src_sel = np.intersect1d(fwd['src'][i]['vertno'], label.vertices)
+        src_sel = np.searchsorted(fwd['src'][i]['vertno'], src_sel)
+        vertno_label = fwd['src'][i]['vertno'][src_sel]
+
+        # Add column shift to right hemi
+        src_sel += i*nuse_lh
         fwd_out['source_rr'] = np.vstack([fwd_out['source_rr'],
                                           fwd['source_rr'][src_sel]])
         fwd_out['nsource'] += len(src_sel)
-
-        fwd_out['src'][i]['vertno'] = np.r_[fwd_out['src'][i]['vertno'],
-                                            src_sel]
-        fwd_out['src'][i]['nuse'] += len(src_sel)
-        fwd_out['src'][i]['inuse'][src_sel] = 1
+        fwd_out['src'][i]['inuse'][vertno_label] = 1
+        fwd_out['src'][i]['nuse'] += len(vertno_label)
 
         if is_fixed_orient(fwd):
             idx = src_sel
@@ -1346,6 +1343,9 @@ def restrict_forward_to_label(fwd, labels):
         fwd_out['sol']['data'] = np.hstack([fwd_out['sol']['data'],
                                             fwd['sol']['data'][:, idx]])
         fwd_out['sol']['ncol'] += len(idx)
+
+    for i in xrange(2):
+        fwd_out['src'][i]['vertno'] = np.where(fwd_out['src'][i]['inuse'])[0]
 
     return fwd_out
 
