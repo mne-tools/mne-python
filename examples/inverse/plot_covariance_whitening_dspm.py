@@ -88,10 +88,11 @@ clim = dict(kind='value', lims=[0, 2.5, 5])
 
 samples_epochs = 5, 15,
 method = 'empirical', 'shrunk'
-best_colors = 'steelblue', 'red'
+colors = 'steelblue', 'red'
 
 evokeds = list()
-noise_covs = list()
+stcs = list()
+methods_ordered = list()
 for n_train in samples_epochs:
     # estimate covs based on a subset of samples
     # make sure we have the same number of conditions.
@@ -102,13 +103,33 @@ for n_train in samples_epochs:
     epochs_train.equalize_event_counts(event_ids, copy=False)
     assert len(epochs_train) == 2 * n_train
 
-    noise_covs.append(compute_covariance(
+    noise_covs = compute_covariance(
         epochs_train, method=method, tmin=None, tmax=0,  # baseline only
-        return_estimators=True))  # returns list
+        return_estimators=True)  # returns list
     # prepare contrast
-    evokeds.append([epochs_train[k].average() for k in conditions])
+    evokeds = [epochs_train[k].average() for k in conditions]
     del epochs_train, events_
-del raw  # save some memory
+    # do contrast
+
+    # We skip empirical rank estimation that we introduced in response to
+    # the findings in reference [1] to use the naive code path that
+    # triggered the behavior described in [1]. The expected true rank is
+    # 274 for this dataset. Please do not do this with your data but
+    # rely on the default rank estimator that helps regularizing the
+    # covariance.
+    stcs.append(list())
+    methods_ordered.append(list())
+    for cov in noise_covs:
+        inverse_operator = make_inverse_operator(evokeds[0].info, forward,
+                                                 cov, loose=0.2, depth=0.8,
+                                                 rank=274)
+        stc_a, stc_b = (apply_inverse(e, inverse_operator, lambda2, "dSPM",
+                                      pick_ori=None) for e in evokeds)
+        stc = stc_a - stc_b
+        methods_ordered[-1].append(cov['method'])
+        stcs[-1].append(stc)
+    del inverse_operator, evokeds, cov, noise_covs, stc, stc_a, stc_b
+del raw, forward  # save some memory
 
 
 ##############################################################################
@@ -129,21 +150,11 @@ def brain_to_mpl(brain):
 for ni, (n_train, axes) in enumerate(zip(samples_epochs, (axes1, axes2))):
     # compute stc based on worst and best
     ax_dynamics = axes[1]
-    for est, ax, kind, color in zip(noise_covs[ni], axes[::2],
-                                    ['best', 'worst'], best_colors):
-        # We skip empirical rank estimation that we introduced in response to
-        # the findings in reference [1] to use the naive code path that
-        # triggered the behavior described in [1]. The expected true rank is
-        # 274 for this dataset. Please do not do this with your data but
-        # rely on the default rank estimator that helps regularizing the
-        # covariance.
-        inverse_operator = make_inverse_operator(evokeds[ni][0].info, forward,
-                                                 est, loose=0.2, depth=0.8,
-                                                 rank=274)
-        stc_a, stc_b = (apply_inverse(e, inverse_operator, lambda2, "dSPM",
-                                      pick_ori=None) for e in evokeds[ni])
-        del inverse_operator
-        stc = stc_a - stc_b
+    for stc, ax, method, kind, color in zip(stcs[ni],
+                                            axes[::2],
+                                            methods_ordered[ni],
+                                            ['best', 'worst'],
+                                            colors):
         brain = stc.plot(subjects_dir=subjects_dir, hemi='both', clim=clim)
         brain.set_time(175)
 
@@ -159,7 +170,7 @@ for ni, (n_train, axes) in enumerate(zip(samples_epochs, (axes1, axes2))):
         # plot spatial mean
         stc_mean = stc.data.mean(0)
         ax_dynamics.plot(stc.times * 1e3, stc_mean,
-                         label='{0} ({1})'.format(est['method'], kind),
+                         label='{0} ({1})'.format(method, kind),
                          color=color)
         # plot spatial std
         stc_var = stc.data.std(0)
