@@ -1326,7 +1326,7 @@ def restrict_forward_to_label(fwd, labels):
         vertno_label = fwd['src'][i]['vertno'][src_sel]
 
         # Add column shift to right hemi
-        src_sel += i*nuse_lh
+        src_sel += i * nuse_lh
         fwd_out['source_rr'] = np.vstack([fwd_out['source_rr'],
                                           fwd['source_rr'][src_sel]])
         fwd_out['nsource'] += len(src_sel)
