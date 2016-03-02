@@ -16,7 +16,6 @@ from ...channels.montage import Montage
 from ...epochs import _BaseEpochs
 from ...event import read_events
 from ...externals.six import string_types
-#from mne.io.brainvision import _synthesize_stim_channel
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
@@ -108,9 +107,10 @@ def _get_info(eeg, montage, eog=()):
     return info
 
 
-def read_raw_eeglab(input_fname, montage=None, preload=False, eog=(),
-                    event_id=dict(), event_id_func="strip-to-int",
-                    verbose=None):
+def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
+                    event_id_func=lambda t: int("".join([x for x in t
+                                                         if x.isdigit()])),
+                    preload=False, verbose=None):
     """Read an EEGLAB .set file
 
     Parameters
@@ -122,6 +122,27 @@ def read_raw_eeglab(input_fname, montage=None, preload=False, eog=(),
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
+    eog : list | tuple | 'auto'
+        Names or indices of channels that should be designated
+        EOG channels. If 'auto', the channel names containing
+        ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
+    event_id : dict | None
+        The ids of the events to consider. If None (default),
+        an empty dict is used and `event_id_func` (see below) is called on
+        every event value. If dict, the keys will be mapped to trigger values
+        on the stimulus channel and only keys not in `event_id` will be handled
+        by `event_id_func`.
+        Keys are case-sensitive.
+        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
+    event_id_func : callable
+        What to do for events not found in `event_id`. Must
+        take one `str` argument and return an ìnt`. Currently defaults to
+
+            `lambda t: int("".join([x for x in t if x.isdigit()]))`
+
+        which strips event codes such as "D128" or "S  1" of their non-integer
+        parts and returns the integer. Any event that is not in `event_id` and
+        cannot be parsed with this function is dropped.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -130,24 +151,6 @@ def read_raw_eeglab(input_fname, montage=None, preload=False, eog=(),
         on the hard drive (slower, requires less memory). Note that
         preload=False will be effective only if the data is stored in a
         separate binary file.
-    eog : list | tuple | 'auto'
-        Names or indices of channels that should be designated
-        EOG channels. If 'auto', the channel names containing
-        ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
-    event_id : dict | None
-        The ids of the events to consider. If None (default),
-        `event_id_func` (see below) is called on every event value. If dict,
-        the keys will be mapped to trigger values on the stimulus channel
-        Keys are case-sensitive.
-        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
-    event_id_func : callable | str | None
-        What to do for events not found in `event_id`. If callable, must
-        take one `str` argument and return an ìnt`. If a string, must be one
-        of the supported methods of parsing events. Currently, only
-        'strip-to-integer' is supported, which strips event codes such as
-        "D128" or "S  1" of their non-integer parts and returns the integer.
-        Any event that is not in `event_id` and cannot be parsed with this
-        function is dropped.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -165,7 +168,7 @@ def read_raw_eeglab(input_fname, montage=None, preload=False, eog=(),
     mne.io.Raw : Documentation of attribute and methods.
     """
     return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
-                     eog=eog, event_id=event_id, event_id_func="strip-to-int",
+                     eog=eog, event_id=event_id, event_id_func=event_id_func,
                      verbose=verbose)
 
 
@@ -233,30 +236,33 @@ class RawEEGLAB(_BaseRaw):
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated
         EOG channels. If 'auto', the channel names containing
         ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
     event_id : dict | None
         The ids of the events to consider. If None (default),
-        `event_id_func` (see below) is called on every event value. If dict,
-        the keys will be mapped to trigger values on the stimulus channel
+        an empty dict is used and `event_id_func` (see below) is called on
+        every event value. If dict, the keys will be mapped to trigger values
+        on the stimulus channel and only keys not in `event_id` will be handled
+        by `event_id_func`.
         Keys are case-sensitive.
         Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
-    event_id_func : callable | str | None
-        What to do for events not found in `event_id`. If callable, must
-        take one `str` argument and return an ìnt`. If a string, must be one
-        of the supported methods of parsing events. Currently, only
-        'strip-to-integer' is supported, which strips event codes such as
-        "D128" or "S  1" of their non-integer parts and returns the integer.
-        Any event that is not in `event_id` and cannot be parsed with this
-        function is dropped.
+    event_id_func : callable
+        What to do for events not found in `event_id`. Must
+        take one `str` argument and return an ìnt`. Currently defaults to
+
+            `lambda t: int("".join([x for x in t if x.isdigit()]))`
+
+        which strips event codes such as "D128" or "S  1" of their non-integer
+        parts and returns the integer. Any event that is not in `event_id` and
+        cannot be parsed with this function is dropped.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -274,8 +280,10 @@ class RawEEGLAB(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, montage, preload=False, eog=(),
-                 event_id=dict(), event_id_func='strip-to-int', verbose=None):
+    def __init__(self, input_fname, montage, eog=(), event_id=None,
+                 event_id_func=lambda t: int("".join([x for x in t
+                                                      if x.isdigit()])),
+                 preload=False, verbose=None):
         """Read EEGLAB .set file.
         """
         from scipy import io
@@ -298,12 +306,10 @@ class RawEEGLAB(_BaseRaw):
                         unit=FIFF.FIFF_UNIT_NONE, unit_mul=0.,
                         coord_frame=FIFF.FIFFV_COORD_HEAD)
         info['chs'].append(stimchan)
-#        info["ch_names"].append("STI 014")
-#        info['nchan'] += 1
-        if event_id_func == 'strip-to-int':
-            event_id_func = _strip_non_int_event
+        if event_id is None:
+            event_id = dict()
 
-        self.preload = False  # so the event-setting works
+        self.preload  # so the event-setting works
         events = _read_eeglab_events(eeg, event_id=event_id,
                                      event_id_func=event_id_func)
         self._create_event_ch(events, n_samp=eeg.pnts)
@@ -514,14 +520,8 @@ class EpochsEEGLAB(_BaseEpochs):
         logger.info('Ready.')
 
 
-def _strip_non_int_event(t):
-    """Strip every non-digit from the input string and return the
-    concatenated integer."""
-    return int("".join([x for x in t if x.isdigit()]))
-
-
-def _read_eeglab_events(eeg, event_id=dict(),
-                            event_id_func=_strip_non_int_event):
+def _read_eeglab_events(eeg, event_id=dict(), event_id_func=lambda t:
+                        int("".join([x for x in t if x.isdigit()]))):
     """Create events array from EEGLAB structure by looking them up in the
     event_id, trying to reduce them to their integer part otherwise, and
     entirely dropping them (with a warning) if this is impossible.
