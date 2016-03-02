@@ -431,14 +431,14 @@ def test_string_scorer():
     epochs = make_epochs()
     gat_1 = GeneralizationAcrossTime(scorer='accuracy')
     gat_1.fit(epochs)
-    assert_equal("<GAT | fitted, start : -0.100 (s), stop : 0.500 (s), "
+    assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
                  "no prediction, no score>", "%s" %gat_1)
     score_1 = gat_1.score(epochs)
 
     gat_2 = GeneralizationAcrossTime()
     gat_2.fit(epochs)
     score_2 = gat_2.score(epochs)
-    assert_equal(score_1, score_2)
+    assert_array_equal(score_1, score_2)
 
     gat_1.scorer = 'accuracies'
     assert_raises(KeyError, gat_1.score, epochs)
