@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+import warnings
 import os.path as op
 
 import numpy as np
