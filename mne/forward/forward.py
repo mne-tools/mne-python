@@ -1298,7 +1298,7 @@ def restrict_forward_to_label(fwd, labels):
     --------
     restrict_forward_to_stc
     """
-    message = 'labels needs to be an instance of Label or a list of Label'
+    message = 'labels must be instance of Label or a list of Label.'
     vertices = [np.array([], int), np.array([], int)]
 
     if not isinstance(labels, list):
@@ -1307,7 +1307,7 @@ def restrict_forward_to_label(fwd, labels):
     # Get vertices separately of each hemisphere from all label
     for label in labels:
         if not isinstance(label, Label):
-            raise TypeError(message)
+            raise TypeError(message + ' Instead received %s' % type(label))
         i = 0 if label.hemi == 'lh' else 1
         vertices[i] = np.append(vertices[i], label.vertices)
     # Remove duplicates and sort
