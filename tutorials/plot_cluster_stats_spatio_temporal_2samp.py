@@ -34,7 +34,7 @@ subjects_dir = data_path + '/subjects'
 
 # Load stc to in common cortical space (fsaverage)
 stc = mne.read_source_estimate(stc_fname)
-stc.resample(50)
+stc.resample(50, npad='auto')
 
 stc = mne.morph_data('sample', 'fsaverage', stc, grade=5, smooth=20,
                      subjects_dir=subjects_dir)

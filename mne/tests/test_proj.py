@@ -210,7 +210,7 @@ def test_compute_proj_raw():
     # test resampled-data projector, upsampling instead of downsampling
     # here to save an extra filtering (raw would have to be LP'ed to be equiv)
     raw_resamp = cp.deepcopy(raw)
-    raw_resamp.resample(raw.info['sfreq'] * 2, n_jobs=2)
+    raw_resamp.resample(raw.info['sfreq'] * 2, n_jobs=2, npad='auto')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         projs = compute_proj_raw(raw_resamp, duration=None, stop=raw_time,

@@ -1123,8 +1123,8 @@ def test_resample():
     epochs1 = EpochsArray(data, deepcopy(info), events)
     epochs2 = EpochsArray(data, deepcopy(info), events)
     epochs = concatenate_epochs([epochs1, epochs2])
-    epochs1.resample(epochs1.info['sfreq'] // 2)
-    epochs2.resample(epochs2.info['sfreq'] // 2)
+    epochs1.resample(epochs1.info['sfreq'] // 2, npad='auto')
+    epochs2.resample(epochs2.info['sfreq'] // 2, npad='auto')
     epochs = concatenate_epochs([epochs1, epochs2])
     for e in epochs1, epochs2, epochs:
         assert_equal(e.times[0], epochs.tmin)

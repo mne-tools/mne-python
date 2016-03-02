@@ -448,7 +448,7 @@ def test_compute_covariance_auto_reg():
     """Test automated regularization"""
 
     raw = Raw(raw_fname, preload=True)
-    raw.resample(100)  # much faster estimation
+    raw.resample(100, npad='auto')  # much faster estimation
     events = find_events(raw, stim_channel='STI 014')
     event_ids = [1, 2, 3, 4]
     reject = dict(mag=4e-12)

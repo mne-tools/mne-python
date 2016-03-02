@@ -32,7 +32,7 @@ def test_1d_filter():
                     h = np.concatenate([[1.], np.zeros(n_filter - 1)])
                 # ensure we pad the signal the same way for both filters
                 n_pad = max(min(n_filter, n_signal - 1), 0)
-                x_pad = _smart_pad(x, n_pad)
+                x_pad = _smart_pad(x, np.array([n_pad, n_pad]))
                 for zero_phase in (True, False):
                     # compute our expected result the slow way
                     if zero_phase:
@@ -342,12 +342,15 @@ def test_cuda():
                      for o in out]) == tot)
 
     # check resampling
-    a = rng.randn(3, sig_len_secs * sfreq)
-    a1 = resample(a, 1, 2, n_jobs=2, npad=0)
-    a2 = resample(a, 1, 2, n_jobs='cuda', npad=0)
-    a3 = resample(a, 2, 1, n_jobs=2, npad=0)
-    a4 = resample(a, 2, 1, n_jobs='cuda', npad=0)
-    assert_array_almost_equal(a3, a4, 14)
+    for window in ('boxcar', 'triang'):
+        for N in (997, 1000):  # one prime, one even
+            a = rng.randn(2, N)
+            for fro, to in ((1, 2), (2, 1), (1, 3), (3, 1)):
+                a1 = resample(a, fro, to, n_jobs=1, npad='auto',
+                              window=window)
+                a2 = resample(a, fro, to, n_jobs='cuda', npad='auto',
+                              window=window)
+                assert_allclose(a1, a2, rtol=1e-7, atol=1e-14)
     assert_array_almost_equal(a1, a2, 14)
     assert_array_equal(resample([0, 0], 2, 1, n_jobs='cuda'), [0., 0., 0., 0.])
     assert_array_equal(resample(np.zeros(2, np.float32), 2, 1, n_jobs='cuda'),

@@ -159,7 +159,7 @@ def _1d_overlap_filter(x, h_fft, n_h, n_edge, zero_phase, cuda_dict):
         n_fft = cuda_dict['x'].size  # account for CUDA's modification of h_fft
     else:
         n_fft = len(h_fft)
-    x_ext = _smart_pad(x, n_edge)
+    x_ext = _smart_pad(x, np.array([n_edge, n_edge]))
     n_x = len(x_ext)
     x_filtered = np.zeros_like(x_ext)
 
@@ -1265,8 +1265,9 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
         Factor to upsample by.
     down : float
         Factor to downsample by.
-    npad : integer
+    npad : int | str
         Number of samples to use at the beginning and end for padding.
+        Can be "auto" to pad to the next highest power of 2.
     axis : int
         Axis along which to resample (default is the last axis).
     window : string or tuple
@@ -1317,12 +1318,31 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     if x_len == 0:
         warn('x has zero length along last axis, returning a copy of x')
         return x.copy()
+    bad_msg = 'npad must be "auto" or an integer'
+    if isinstance(npad, string_types):
+        if npad != 'auto':
+            raise ValueError(bad_msg)
+        # Figure out reasonable pad that gets us to a power of 2
+        min_add = min(x_len // 8, 100) * 2
+        npad = 2 ** int(np.ceil(np.log2(x_len + min_add))) - x_len
+        npad, extra = divmod(npad, 2)
+        npads = np.array([npad, npad + extra], int)
+    else:
+        if npad != int(npad):
+            raise ValueError(bad_msg)
+        npads = np.array([npad, npad], int)
+    del npad
 
     # prep for resampling now
     x_flat = x.reshape((-1, x_len))
-    orig_len = x_len + 2 * npad  # length after padding
+    orig_len = x_len + npads.sum()  # length after padding
     new_len = int(round(ratio * orig_len))  # length after resampling
-    to_remove = np.round(ratio * npad).astype(int)
+    final_len = int(round(ratio * x_len))
+    to_removes = [int(round(ratio * npads[0]))]
+    to_removes.append(new_len - final_len - to_removes[0])
+    to_removes = np.array(to_removes)
+    # This should hold:
+    # assert np.abs(to_removes[1] - to_removes[0]) <= int(np.ceil(ratio))
 
     # figure out windowing function
     if window is not None:
@@ -1344,13 +1364,13 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     # do the resampling using an adaptation of scipy's FFT-based resample()
     # use of the 'flat' window is recommended for minimal ringing
     if n_jobs == 1:
-        y = np.zeros((len(x_flat), new_len - 2 * to_remove), dtype=x.dtype)
+        y = np.zeros((len(x_flat), new_len - to_removes.sum()), dtype=x.dtype)
         for xi, x_ in enumerate(x_flat):
-            y[xi] = fft_resample(x_, W, new_len, npad, to_remove,
+            y[xi] = fft_resample(x_, W, new_len, npads, to_removes,
                                  cuda_dict)
     else:
         parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
-        y = parallel(p_fun(x_, W, new_len, npad, to_remove, cuda_dict)
+        y = parallel(p_fun(x_, W, new_len, npads, to_removes, cuda_dict)
                      for x_ in x_flat)
         y = np.array(y)
 
