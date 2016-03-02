@@ -226,12 +226,12 @@ def _synthesize_stim_channel(events, n_samp):
     Returns
     -------
     stim_channel : array, shape (n_samples,)
-        An array containing the whole recording's event marking
+        An array containing the whole recording's event marking.
     """
     # select events overlapping buffer
     onset = events[:, 0]
     # create output buffer
-    stim_channel = np.zeros(n_samp, int)
+    stim_channel = np.zeros(n_sample, int)
     for onset, duration, trigger in events:
         stim_channel[onset:onset + duration] = trigger
     return stim_channel
