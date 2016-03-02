@@ -147,8 +147,7 @@ vertices = [stc.lh_vertno, np.array([], int)]  # empty array for right hemi
 stc_feat = mne.SourceEstimate(feature_weights, vertices=vertices,
                               tmin=stc.tmin, tstep=stc.tstep,
                               subject='sample')
-"""
+
 brain = stc_feat.plot()
 brain.set_time(100)
 brain.show_view('l')  # take the medial view to further explore visual areas
-"""
