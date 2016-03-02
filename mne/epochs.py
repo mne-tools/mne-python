@@ -1438,7 +1438,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return this_epochs
 
     @verbose
-    def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
+    def resample(self, sfreq, npad=None, window='boxcar', n_jobs=1,
                  copy=False, verbose=None):
         """Resample preloaded data
 
@@ -1446,8 +1446,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         sfreq : float
             New sample rate to use
-        npad : int
+        npad : int | str
             Amount to pad the start and end of the data.
+            Can also be "auto" to use a padding that will result in
+            a power-of-two size (can be much faster).
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
         n_jobs : int
@@ -1472,6 +1474,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # XXX this could operate on non-preloaded data, too
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
+        if npad is None:
+            npad = 100
+            warn('npad is currently taken to be 100, but will be changed to '
+                 '"auto" in 0.12. Please set the value explicitly.',
+                 DeprecationWarning)
 
         inst = self.copy() if copy else self
 

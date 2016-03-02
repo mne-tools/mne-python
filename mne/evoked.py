@@ -705,7 +705,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         from .forward import _as_meg_type_evoked
         return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
 
-    def resample(self, sfreq, npad=100, window='boxcar'):
+    def resample(self, sfreq, npad=None, window='boxcar'):
         """Resample data
 
         This function operates in-place.
@@ -714,11 +714,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         sfreq : float
             New sample rate to use
-        npad : int
+        npad : int | str
             Amount to pad the start and end of the data.
+            Can also be "auto" to use a padding that will result in
+            a power-of-two size (can be much faster).
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
         """
+        if npad is None:
+            npad = 100
+            warn('npad is currently taken to be 100, but will be changed to '
+                 '"auto" in 0.12. Please set the value explicitly.',
+                 DeprecationWarning)
         sfreq = float(sfreq)
         o_sfreq = self.info['sfreq']
         self.data = resample(self.data, sfreq, o_sfreq, npad, -1, window)

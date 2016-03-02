@@ -75,10 +75,10 @@ sample_vertices = [s['vertno'] for s in inverse_operator['src']]
 
 #    Let's average and compute inverse, resampling to speed things up
 evoked1 = epochs1.average()
-evoked1.resample(50)
+evoked1.resample(50, npad='auto')
 condition1 = apply_inverse(evoked1, inverse_operator, lambda2, method)
 evoked2 = epochs2.average()
-evoked2.resample(50)
+evoked2.resample(50, npad='auto')
 condition2 = apply_inverse(evoked2, inverse_operator, lambda2, method)
 
 #    Let's only deal with t > 0, cropping to reduce multiple comparisons

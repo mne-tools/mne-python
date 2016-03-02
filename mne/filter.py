@@ -1322,11 +1322,11 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     if isinstance(npad, string_types):
         if npad != 'auto':
             raise ValueError(bad_msg)
-        # Figure out pad that gets us to a power of 2 with at least
-        # 100 on each end
-        npad = 2 ** int(np.ceil(np.log2(x_len + 200))) - x_len
+        # Figure out reasonable pad that gets us to a power of 2
+        min_add = min(x_len // 8, 100) * 2
+        npad = 2 ** int(np.ceil(np.log2(x_len + min_add))) - x_len
         npad, extra = divmod(npad, 2)
-        npads = np.array([npad, npad + extra])  # XXX
+        npads = np.array([npad, npad + extra], int)
     else:
         if npad != int(npad):
             raise ValueError(bad_msg)
@@ -1341,7 +1341,8 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     to_removes = [int(round(ratio * npads[0]))]
     to_removes.append(new_len - final_len - to_removes[0])
     to_removes = np.array(to_removes)
-    assert np.abs(to_removes[1] - to_removes[0]) <= int(np.ceil(ratio))
+    # This should hold:
+    # assert np.abs(to_removes[1] - to_removes[0]) <= int(np.ceil(ratio))
 
     # figure out windowing function
     if window is not None:
