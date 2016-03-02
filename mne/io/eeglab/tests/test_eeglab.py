@@ -36,12 +36,10 @@ def test_io_set():
         warnings.simplefilter('always')
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
                          montage=montage)
-        raw = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage)
         # test finding events in continuous data
-        event_id={'rt':1, 'square':2}
+        event_id = {'rt': 1, 'square': 2}
         raw = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage,
                               event_id=event_id)
-        Epochs(raw, find_events(raw))  # without event_id
         epochs = Epochs(raw, find_events(raw), event_id)  # with event_id
         assert_equal(epochs["square"].average().nave, 80)
         raw2 = read_raw_eeglab(input_fname=raw_fname, montage=montage)

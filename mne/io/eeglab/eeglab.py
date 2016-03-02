@@ -88,8 +88,8 @@ def _get_info(eeg, montage, eog=()):
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
 
-    if montage is None:
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')  # deal with missing ch_names
+    if montage is None:  # deal with missing ch_names
+        info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         _check_update_montage(info, montage, path=path,
                               update_ch_names=True)
@@ -293,15 +293,15 @@ class RawEEGLAB(_BaseRaw):
 
         n_chan = len(info["chs"])
         stim_chan = dict(ch_name='STI 014', coil_type=FIFF.FIFFV_COIL_NONE,
-                        kind=FIFF.FIFFV_STIM_CH, logno=n_chan + 1,
-                        scanno=n_chan + 1, cal=1., range=1., loc=np.zeros(12),
-                        unit=FIFF.FIFF_UNIT_NONE, unit_mul=0.,
-                        coord_frame=FIFF.FIFFV_COORD_HEAD)
+                         kind=FIFF.FIFFV_STIM_CH, logno=n_chan + 1,
+                         scanno=n_chan + 1, cal=1., range=1., loc=np.zeros(12),
+                         unit=FIFF.FIFF_UNIT_NONE, unit_mul=0.,
+                         coord_frame=FIFF.FIFFV_COORD_HEAD)
         info['chs'].append(stim_chan)
         if event_id is None:
             event_id = dict()
 
-        self.preload = False # so the event-setting works
+        self.preload = False  # so the event-setting works
         if event_id_func is None:
             event_id_func = strip_to_integer
         events = _read_eeglab_events(eeg, event_id=event_id,
@@ -557,8 +557,8 @@ def _read_eeglab_events(eeg, event_id=dict(), event_id_func=None):
 
     if len(events) < len(types):
         warnings.warn("Some event codes could not be mapped to integers."
-                          " Use the `event_id` parameter to"
-                          " map such events to integers manually.")
+                      " Use the `event_id` parameter to"
+                      " map such events to integers manually.")
 
     if len(events) < 3:
         warnings.warn("No events found, consider adding an `event_id`."
