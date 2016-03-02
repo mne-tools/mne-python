@@ -210,3 +210,28 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
                      'coil_type': coil_type, 'kind': kind, 'loc': np.zeros(12)}
         chs.append(chan_info)
     return chs
+
+
+def _synthesize_stim_channel(events, n_samp):
+    """Synthesize a stim channel from events read from a vmrk file
+
+    Parameters
+    ----------
+    events : array, shape (n_events, 3)
+        Each row representing an event as (onset, duration, trigger) sequence
+        (the format returned by _read_vmrk_events).
+    n_samp : int
+        The number of samples.
+
+    Returns
+    -------
+    stim_channel : array, shape (n_samples,)
+        An array containing the whole recording's event marking
+    """
+    # select events overlapping buffer
+    onset = events[:, 0]
+    # create output buffer
+    stim_channel = np.zeros(n_samp, int)
+    for onset, duration, trigger in events:
+        stim_channel[onset:onset + duration] = trigger
+    return stim_channel
