@@ -55,7 +55,8 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=None, preload=True,
-                    reject=dict(grad=4000e-13, eog=150e-6))
+                    reject=dict(grad=4000e-13, eog=150e-6),
+                    decim=5)  # decimate to save memory and increase speed
 
 epochs.equalize_event_counts(list(event_id.keys()), 'mintime', copy=False)
 epochs_list = [epochs[k] for k in event_id]
@@ -146,7 +147,8 @@ vertices = [stc.lh_vertno, np.array([], int)]  # empty array for right hemi
 stc_feat = mne.SourceEstimate(feature_weights, vertices=vertices,
                               tmin=stc.tmin, tstep=stc.tstep,
                               subject='sample')
-
+"""
 brain = stc_feat.plot()
 brain.set_time(100)
 brain.show_view('l')  # take the medial view to further explore visual areas
+"""
