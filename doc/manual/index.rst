@@ -1,7 +1,7 @@
 .. _manual:
 
-Manual
-======
+User Manual
+===========
 
 If you are new to MNE, consider first reading the :ref:`cookbook`, as it
 gives some simple steps for starting with analysis. The other sections provide
@@ -56,7 +56,6 @@ Projecting raw data into source (brain) space.
 .. toctree::
    :maxdepth: 1
 
-   source_localization/anatomy
    source_localization/forward
    source_localization/covariance
    source_localization/inverse
@@ -100,6 +99,14 @@ To enable reproducibility of results, MNE-Python includes several dataset fetche
 
    datasets_index
 
+Migrating
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   migrating
+
 Pitfalls
 --------
 
@@ -119,7 +126,6 @@ Additional information about various MNE-C tools.
    c_reference
    gui/analyze
    gui/browse
-   c_cookbook
 
 
 MATLAB tools
@@ -140,7 +146,6 @@ More details about our implementations and software.
 .. toctree::
    :maxdepth: 1
 
-   appendix/overview
    appendix/bem_model
    appendix/martinos
    appendix/c_misc

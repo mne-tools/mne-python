@@ -140,7 +140,7 @@ def _plot_legend(pos, colors, axis, bads, outlines):
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=2)
     pos_x, pos_y = _prepare_topomap(pos, ax)
-    ax.scatter(pos_x, pos_y, color=colors, s=25, marker='.', zorder=0)
+    ax.scatter(pos_x, pos_y, color=colors, s=25, marker='.', zorder=1)
     for idx in bads:
         ax.scatter(pos_x[idx], pos_y[idx], s=5, marker='.', color='w',
                    zorder=1)
@@ -158,7 +158,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
                  cmap=None, gfp=False, window_title=None,
-                 spatial_colors=False, set_tight_layout=True):
+                 spatial_colors=False, set_tight_layout=True,
+                 selectable=True):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -184,7 +185,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
     # Valid data types ordered for consistency
-    channel_types = ['eeg', 'grad', 'mag', 'seeg']
+    channel_types = ['eeg', 'grad', 'mag', 'seeg', 'dipole', 'gof']
 
     if picks is None:
         picks = list(range(info['nchan']))
@@ -262,17 +263,17 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             if plot_type == 'butterfly':
                 text = ax.annotate('Loading...', xy=(0.01, 0.1),
                                    xycoords='axes fraction', fontsize=20,
-                                   color='green', zorder=2)
+                                   color='green', zorder=3)
                 text.set_visible(False)
-                callback_onselect = partial(_butterfly_onselect,
-                                            ch_types=ch_types_used,
-                                            evoked=evoked, text=text)
-                blit = False if plt.get_backend() == 'MacOSX' else True
-                selectors.append(SpanSelector(ax, callback_onselect,
-                                              'horizontal', minspan=10,
-                                              useblit=blit,
-                                              rectprops=dict(alpha=0.5,
-                                                             facecolor='red')))
+                if selectable:
+                    callback_onselect = partial(
+                        _butterfly_onselect, ch_types=ch_types_used,
+                        evoked=evoked, text=text)
+                    blit = False if plt.get_backend() == 'MacOSX' else True
+                    selectors.append(SpanSelector(
+                        ax, callback_onselect, 'horizontal', minspan=10,
+                        useblit=blit, rectprops=dict(alpha=0.5,
+                                                     facecolor='red')))
 
                 gfp_only = (isinstance(gfp, string_types) and gfp == 'only')
                 if not gfp_only:
@@ -306,7 +307,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                                 colors[idx.index(i)] = 'r'
                     for ch_idx in range(len(D)):
                         line_list.append(ax.plot(times, D[ch_idx], picker=3.,
-                                                 zorder=0,
+                                                 zorder=1,
                                                  color=colors[ch_idx])[0])
                 if gfp:  # 'only' or boolean True
                     gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
@@ -319,23 +320,23 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         y_offset = 0.
                     this_gfp += y_offset
                     ax.fill_between(times, y_offset, this_gfp, color='none',
-                                    facecolor=gfp_color, zorder=0, alpha=0.25)
+                                    facecolor=gfp_color, zorder=1, alpha=0.25)
                     line_list.append(ax.plot(times, this_gfp, color=gfp_color,
-                                             zorder=2)[0])
+                                             zorder=3)[0])
                     ax.text(times[0] + 0.01 * (times[-1] - times[0]),
                             this_gfp[0] + 0.05 * np.diff(ax.get_ylim())[0],
-                            'GFP', zorder=3, color=gfp_color,
+                            'GFP', zorder=4, color=gfp_color,
                             path_effects=gfp_path_effects)
                 for ii, line in zip(idx, line_list):
                     if ii in bad_ch_idx:
-                        line.set_zorder(1)
+                        line.set_zorder(2)
                         if spatial_colors:
                             line.set_linestyle("--")
                 ax.set_ylabel('data (%s)' % ch_unit)
                 # for old matplotlib, we actually need this to have a bounding
                 # box (!), so we have to put some valid text here, change
                 # alpha and path effects later
-                texts.append(ax.text(0, 0, 'blank', zorder=2,
+                texts.append(ax.text(0, 0, 'blank', zorder=3,
                                      verticalalignment='baseline',
                                      horizontalalignment='left',
                                      fontweight='bold', alpha=0))
@@ -401,7 +402,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False):
-    """Plot evoked data
+    """Plot evoked data using butteryfly plots
 
     Left click to a line shows the channel name. Selecting an area by clicking
     and holding left mouse button plots a topographic map of the painted area.
@@ -457,13 +458,19 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
         channels are plotted black and bad channels red. Defaults to False.
+
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        Figure containing the butterfly plots.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors)
+                        spatial_colors=spatial_colors, selectable=True)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
@@ -527,7 +534,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
     return _plot_evoked_topo(evoked=evoked, layout=layout,
@@ -631,6 +638,11 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         Axes, there must be only one channel type plotted.
     cmap : matplotlib colormap
         Colormap.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        Figure containing the images.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=clim, proj=proj, xlim=xlim,
@@ -667,7 +679,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
     """Plot whitened evoked response
 
     Plots the whitened evoked response and the whitened GFP as described in
-    [1]. If one single covariance object is passed, the GFP panel (bottom)
+    [1]_. If one single covariance object is passed, the GFP panel (bottom)
     will depict different sensor types. If multiple covariance objects are
     passed as a list, the left column will display the whitened evoked
     responses for each channel based on the whitener from the noise covariance
@@ -693,9 +705,9 @@ def plot_evoked_white(evoked, noise_cov, show=True):
 
     References
     ----------
-    [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-        covariance estimation and spatial whitening of MEG and EEG signals,
-        vol. 108, 328-342, NeuroImage.
+    .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+           covariance estimation and spatial whitening of MEG and EEG
+           signals, vol. 108, 328-342, NeuroImage.
     """
     return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
                               scalings=None, rank=None, show=show)
@@ -709,7 +721,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     scalings : dict | None
         The rescaling method to be applied to improve the accuracy of rank
         estimaiton. If dict, it will override the following default values
-        (used if None):
+        (used if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
@@ -947,7 +959,7 @@ def _connection_line(x, fig, sourceax, targetax):
     (xs, _) = transFigure.transform(sourceax.transData.transform([x, 0]))
     (_, ys) = transFigure.transform(sourceax.transAxes.transform([0, 1]))
     return Line2D((xt, xs), (yt, ys), transform=tf, color='grey',
-                  linestyle='-', linewidth=1.5, alpha=.66, zorder=-1)
+                  linestyle='-', linewidth=1.5, alpha=.66, zorder=0)
 
 
 def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
@@ -1108,7 +1120,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # mark times in time series plot
     for timepoint in tstimes:
         ts_ax.axvline(timepoint, color='grey', linestyle='-',
-                      linewidth=1.5, alpha=.66, zorder=-1)
+                      linewidth=1.5, alpha=.66, zorder=0)
 
     # show and return it
     plt_show(show)

@@ -1,5 +1,5 @@
 """
-.. _tut_stats_cluster_sensor_rANOVA_tfr
+.. _tut_stats_cluster_sensor_rANOVA_tfr:
 
 ====================================================================
 Mass-univariate twoway repeated measures ANOVA on single trial power

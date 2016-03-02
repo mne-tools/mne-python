@@ -18,7 +18,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
     """Get path to local copy of MEGSIM dataset URL
 
     This is a low-level function useful for getting a local copy of a
-    remote MEGSIM dataet.
+    remote MEGSIM dataset.
 
     Parameters
     ----------

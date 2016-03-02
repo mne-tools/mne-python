@@ -290,7 +290,7 @@ def warn(message, category=RuntimeWarning):
     logger.warning(message)
 
 
-def check_fname(fname, filetype, endings):
+def check_fname(fname, filetype, endings, endings_err=()):
     """Enforce MNE filename conventions
 
     Parameters
@@ -301,7 +301,14 @@ def check_fname(fname, filetype, endings):
         Type of file. e.g., ICA, Epochs etc.
     endings : tuple
         Acceptable endings for the filename.
+    endings_err : tuple
+        Obligatory possible endings for the filename.
     """
+    if len(endings_err) > 0 and not fname.endswith(endings_err):
+        print_endings = ' or '.join([', '.join(endings_err[:-1]),
+                                     endings_err[-1]])
+        raise IOError('The filename (%s) for file type %s must end with %s'
+                      % (fname, filetype, print_endings))
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
         warn('This filename (%s) does not conform to MNE naming conventions. '
@@ -970,7 +977,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
             https://docs.python.org/dev/howto/logging.html
 
         e.g., "%(asctime)s - %(levelname)s - %(message)s".
-    overwrite : bool, or None
+    overwrite : bool | None
         Overwrite the log file (if it exists). Otherwise, statements
         will be appended to the log (default). None is the same as False,
         but additionally raises a warning to notify the user that log
@@ -979,9 +986,11 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger = logging.getLogger('mne')
     handlers = logger.handlers
     for h in handlers:
-        if isinstance(h, logging.FileHandler):
-            h.close()
-        logger.removeHandler(h)
+        # only remove our handlers (get along nicely with nose)
+        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
+            if isinstance(h, logging.FileHandler):
+                h.close()
+            logger.removeHandler(h)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
             # Don't use warn() here because we just want to
@@ -1155,7 +1164,7 @@ known_config_types = (
     'MNE_DATASETS_MISC_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
-    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
+    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS',
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_TESTING_PATH',
     'MNE_LOGGING_LEVEL',
@@ -2086,14 +2095,43 @@ def _get_root_dir():
 def sys_info(fid=None, show_paths=False):
     """Print the system information for debugging
 
+    This function is useful for printing system information
+    to help triage bugs.
+
     Parameters
     ----------
     fid : file-like | None
         The file to write to. Will be passed to :func:`print()`.
-        Can be None to use ``sys.stdout``.
+        Can be None to use :data:`sys.stdout`.
     show_paths : bool
         If True, print paths for each module.
-    """
+
+    Examples
+    --------
+    Running this function with no arguments prints an output that is
+    useful when submitting bug reports::
+
+        >>> import mne
+        >>> mne.sys_info() # doctest: +SKIP
+        Platform:      Linux-4.2.0-27-generic-x86_64-with-Ubuntu-15.10-wily
+        Python:        2.7.10 (default, Oct 14 2015, 16:09:02)  [GCC 5.2.1 20151010]
+        Executable:    /usr/bin/python
+
+        mne:           0.12.dev0
+        numpy:         1.12.0.dev0+ec5bd81 {lapack=mkl_rt, blas=mkl_rt}
+        scipy:         0.18.0.dev0+3deede3
+        matplotlib:    1.5.1+1107.g1fa2697
+
+        sklearn:       0.18.dev0
+        nibabel:       2.1.0dev
+        nitime:        0.6
+        mayavi:        4.3.1
+        nose:          1.3.7
+        pandas:        0.17.1+25.g547750a
+        pycuda:        2015.1.3
+        skcuda:        0.5.2
+
+    """  # noqa
     ljust = 15
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'

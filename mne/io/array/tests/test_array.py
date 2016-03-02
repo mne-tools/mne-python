@@ -60,6 +60,7 @@ def test_array_raw():
     assert_allclose(data, data2)
     assert_allclose(times, times2)
     assert_true('RawArray' in repr(raw2))
+    assert_raises(TypeError, RawArray, info, data)
 
     # filtering
     picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]

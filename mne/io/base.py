@@ -17,6 +17,7 @@ from scipy import linalg
 
 from .constants import FIFF
 from .pick import pick_types, channel_type, pick_channels, pick_info
+from .pick import _pick_data_channels, _pick_data_or_ica
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -276,9 +277,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._dtype_ = dtype
         self.annotations = None
         # If we have True or a string, actually do the preloading
+        self._update_times()
         if load_from_disk:
             self._preload_data(preload)
-        self._update_times()
 
     @property
     def _dtype(self):
@@ -322,10 +323,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if start >= stop:
             raise ValueError('No data in this range')
-
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
-                    (start, stop - 1, start / float(self.info['sfreq']),
-                     (stop - 1) / float(self.info['sfreq'])))
 
         #  Initialize the data and calibration vector
         n_sel_channels = self.info['nchan'] if sel is None else len(sel)
@@ -386,8 +383,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                     int(start_file), int(stop_file),
                                     cals, mult)
             offset += n_read
-
-        logger.info('[done]')
         return data
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -441,10 +436,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     @verbose
-    def _preload_data(self, preload, verbose=False):
+    def _preload_data(self, preload, verbose=None):
         """This function actually preloads the data"""
         data_buffer = preload if isinstance(preload, (string_types,
                                                       np.ndarray)) else None
+        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
+                    (0, len(self.times) - 1, 0., self.times[-1]))
         self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info['nchan']
         self.preload = True
@@ -625,7 +622,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise RuntimeError('Raw data needs to be preloaded. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+            picks = _pick_data_channels(self.info, exclude=[],
+                                        with_ref_meg=False)
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')
@@ -804,11 +802,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
-            if 'ICA ' in ','.join(self.ch_names):
-                pick_parameters = dict(misc=True, ref_meg=False)
-            else:
-                pick_parameters = dict(meg=True, eeg=True, ref_meg=False)
-            picks = pick_types(self.info, exclude=[], **pick_parameters)
+            picks = _pick_data_or_ica(self.info)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
@@ -932,11 +926,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             verbose = self.verbose
         fs = float(self.info['sfreq'])
         if picks is None:
-            if 'ICA ' in ','.join(self.ch_names):
-                pick_parameters = dict(misc=True)
-            else:
-                pick_parameters = dict(meg=True, eeg=True)
-            picks = pick_types(self.info, exclude=[], **pick_parameters)
+            picks = _pick_data_or_ica(self.info)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
@@ -1601,8 +1591,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
         tslice = slice(start, stop + 1)
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
-                               exclude='bads')
+            picks = _pick_data_channels(self.info, exclude='bads',
+                                        with_ref_meg=False)
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0

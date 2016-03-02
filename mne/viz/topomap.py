@@ -923,9 +923,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         names = None
 
     data = tfr.data
-
-    if mode is not None and baseline is not None:
-        data = rescale(data, tfr.times, baseline, mode, copy=True)
+    data = rescale(data, tfr.times, baseline, mode, copy=True)
 
     # crop time
     itmin, itmax = None, None

@@ -28,7 +28,7 @@ def channel_type(info, idx):
     -------
     type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
            'ref_meg' | 'resp' | 'exci' | 'ias' | 'syst' | 'misc'
-           'seeg' | 'chpi'
+           'seeg' | 'chpi' | 'dipole' | 'gof'
         Type of channel
     """
     kind = info['chs'][idx]['kind']
@@ -66,6 +66,10 @@ def channel_type(info, idx):
                   FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
                   FIFF.FIFFV_HPI_MOV]:
         return 'chpi'  # channels relative to head position monitoring
+    elif kind == FIFF.FIFFV_DIPOLE_WAVE:
+        return 'dipole'
+    elif kind == FIFF.FIFFV_GOODNESS_FIT:
+        return 'gof'
     raise Exception('Unknown channel type')
 
 
@@ -171,8 +175,8 @@ def _check_meg_type(meg, allow_auto=False):
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
-               exci=False, ias=False, syst=False, seeg=False,
-               include=[], exclude='bads', selection=None):
+               exci=False, ias=False, syst=False, seeg=False, dipole=False,
+               gof=False, include=[], exclude='bads', selection=None):
     """Pick channels by type and names
 
     Parameters
@@ -212,7 +216,11 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     syst : bool
         System status channel information (on Triux systems only).
     seeg : bool
-        Stereotactic EEG channels
+        Stereotactic EEG channels.
+    dipole : bool
+        Dipole time course channels.
+    gof : bool
+        Dipole goodness of fit channels.
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -284,6 +292,10 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                       FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
                       FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
                       FIFF.FIFFV_HPI_MOV] and chpi:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_DIPOLE_WAVE and dipole:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_GOODNESS_FIT and gof:
             pick[k] = True
 
     # restrict channels to selection if provided
@@ -639,10 +651,21 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
     return chs
 
 
-def _pick_data_channels(info, exclude='bads'):
+def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
     """Convenience function for picking only data channels."""
     return pick_types(info, meg=True, eeg=True, stim=False, eog=False,
-                      ecg=False, emg=False, ref_meg=True, misc=False,
+                      ecg=False, emg=False, ref_meg=with_ref_meg, misc=False,
                       resp=False, chpi=False, exci=False, ias=False,
                       syst=False, seeg=True, include=[], exclude=exclude,
                       selection=None)
+
+
+def _pick_data_or_ica(info):
+    """Convenience function for picking only data or ICA channels."""
+    ch_names = [c['ch_name'] for c in info['chs']]
+    if 'ICA ' in ','.join(ch_names):
+        picks = pick_types(info, exclude=[], misc=True)
+    else:
+        picks = _pick_data_channels(info, exclude=[],
+                                    with_ref_meg=False)
+    return picks

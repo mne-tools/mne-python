@@ -48,7 +48,7 @@ def _make_compensator(info, kind):
                     raise ValueError('Ambiguous channel %s' % col_name)
                 presel[col, ind[0]] = 1.0
 
-            #   Create the postselector
+            #   Create the postselector (zero entries for channels not found)
             postsel = np.zeros((info['nchan'], this_data['nrow']))
             for c, ch_name in enumerate(info['ch_names']):
                 ind = [k for k, ch in enumerate(this_data['row_names'])
@@ -57,6 +57,7 @@ def _make_compensator(info, kind):
                     raise ValueError('Ambiguous channel %s' % ch_name)
                 elif len(ind) == 1:
                     postsel[c, ind[0]] = 1.0
+                # else, don't use it at all (postsel[c, ?] = 0.0) by allocation
             this_comp = np.dot(postsel, np.dot(this_data['data'], presel))
             return this_comp
 

@@ -186,6 +186,9 @@ def test_reject():
                   picks=picks, preload=False, reject='foo')
     assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax,
                   picks=picks_meg, preload=False, reject=dict(eeg=1.))
+    # this one is okay because it's not actually requesting rejection
+    Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
+           preload=False, reject=dict(eeg=np.inf))
     for val in (None, -1):  # protect against older MNE-C types
         for kwarg in ('reject', 'flat'):
             assert_raises(ValueError, Epochs, raw, events, event_id,
@@ -1729,6 +1732,8 @@ def test_add_channels_epochs():
         epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
 
         assert_equal(len(epochs.info['projs']), len(epochs2.info['projs']))
+        assert_equal(len(epochs.info.keys()), len(epochs_meg.info.keys()))
+        assert_equal(len(epochs.info.keys()), len(epochs_eeg.info.keys()))
         assert_equal(len(epochs.info.keys()), len(epochs2.info.keys()))
 
         data1 = epochs.get_data()

@@ -51,7 +51,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 tmin = 0.0  # exclude the baseline period
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     epochs, method='pli', mode='multitaper', sfreq=sfreq, fmin=fmin, fmax=fmax,
-    faverage=True, tmin=tmin, mt_adaptive=False, n_jobs=2)
+    faverage=True, tmin=tmin, mt_adaptive=False, n_jobs=1)
 
 # the epochs contain an EOG channel, which we remove now
 ch_names = epochs.ch_names

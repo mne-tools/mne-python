@@ -3,17 +3,20 @@
 #
 # License: Simplified BSD
 
-import numpy as np
-from scipy import linalg
 from copy import deepcopy
 import re
+
+import numpy as np
+from scipy import linalg
 
 from .cov import read_cov, _get_whitener_data
 from .io.pick import pick_types, channel_type
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
+from .evoked import _read_evoked, _aspect_rev, _write_evokeds
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform, Transform)
+from .viz.evoked import _plot_evoked
 
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
@@ -28,22 +31,23 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .fixes import partial
-from .utils import logger, verbose, _time_mask, warn
+from .utils import logger, verbose, _time_mask, warn, _check_fname, check_fname
 
 
 class Dipole(object):
-    """Dipole class
+    """Dipole class for sequential dipole fits
 
     Used to store positions, orientations, amplitudes, times, goodness of fit
     of dipoles, typically obtained with Neuromag/xfit, mne_dipole_fit
-    or certain inverse solvers.
+    or certain inverse solvers. Note that dipole position vectors are given in
+    the head coordinate frame.
 
     Parameters
     ----------
     times : array, shape (n_dipoles,)
         The time instants at which each dipole was fitted (sec).
     pos : array, shape (n_dipoles, 3)
-        The dipoles positions (m).
+        The dipoles positions (m) in head coordinates.
     amplitude : array, shape (n_dipoles,)
         The amplitude of the dipoles (nAm).
     ori : array, shape (n_dipoles, 3)
@@ -52,13 +56,23 @@ class Dipole(object):
         The goodness of fit.
     name : str | None
         Name of the dipole.
+
+    See Also
+    --------
+    DipoleFixed
+
+    Notes
+    -----
+    This class is for sequential dipole fits, where the position
+    changes as a function of time. For fixed dipole fits, where the
+    position is fixed as a function of time, use :class:`mne.DipoleFixed`.
     """
     def __init__(self, times, pos, amplitude, ori, gof, name=None):
-        self.times = times
-        self.pos = pos
-        self.amplitude = amplitude
-        self.ori = ori
-        self.gof = gof
+        self.times = np.array(times)
+        self.pos = np.array(pos)
+        self.amplitude = np.array(amplitude)
+        self.ori = np.array(ori)
+        self.gof = np.array(gof)
         self.name = name
 
     def __repr__(self):
@@ -76,6 +90,7 @@ class Dipole(object):
             The name of the .dip file.
         """
         fmt = "  %7.1f %7.1f %8.2f %8.2f %8.2f %8.3f %8.3f %8.3f %8.3f %6.1f"
+        # NB CoordinateSystem is hard-coded as Head here
         with open(fname, 'wb') as fid:
             fid.write('# CoordinateSystem "Head"\n'.encode('utf-8'))
             fid.write('#   begin     end   X (mm)   Y (mm)   Z (mm)'
@@ -212,9 +227,80 @@ class Dipole(object):
         return self.pos.shape[0]
 
 
+class DipoleFixed(object):
+    """Dipole class for fixed-position dipole fits
+
+    Parameters
+    ----------
+    fname : str
+        The file to load.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    Dipole
+
+    Notes
+    -----
+    This class is for sequential dipole fits, where the position
+    changes as a function of time. For fixed dipole fits, where the
+    position is fixed as a function of time, use :class:`mne.DipoleFixed`.
+
+    .. versionadded:: 0.12
+    """
+    @verbose
+    def __init__(self, fname, verbose=None):
+        _check_fname(fname, overwrite=True, must_exist=True)
+        logger.info('Reading %s ...' % fname)
+        self.info, self.nave, self._aspect_kind, self.first, self.last, \
+            self.comment, self.times, self.data = _read_evoked(fname)
+        self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
+        self.verbose = verbose
+
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
+    @verbose
+    def save(self, fname, verbose=None):
+        """Save dipole in a .fif file
+
+        Parameters
+        ----------
+        fname : str
+            The name of the .fif file. Must end with ``'.fif'`` or
+            ``'.fif.gz'`` to make it explicit that the file contains
+            dipole information in FIF format.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+        """
+        check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz'),
+                    ('.fif', '.fif.gz'))
+        _write_evokeds(fname, self, check=False)
+
+    def plot(self, show=True):
+        """Plot dipole data
+
+        Parameters
+        ----------
+        show : bool
+            Call pyplot.show() at the end or not.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure containing the time courses.
+        """
+        return _plot_evoked(self, picks=None, exclude=(), unit=True, show=show,
+                            ylim=None, xlim='tight', proj=False, hline=None,
+                            units=None, scalings=None, titles=None, axes=None,
+                            gfp=False, window_title=None, spatial_colors=False,
+                            plot_type="butterfly", selectable=False)
+
+
 # #############################################################################
 # IO
-
 @verbose
 def read_dipole(fname, verbose=None):
     """Read .dip file from Neuromag/xfit or MNE
@@ -222,7 +308,7 @@ def read_dipole(fname, verbose=None):
     Parameters
     ----------
     fname : str
-        The name of the .dip file.
+        The name of the .dip or .fif file.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -231,6 +317,9 @@ def read_dipole(fname, verbose=None):
     dipole : instance of Dipole
         The dipole.
     """
+    _check_fname(fname, overwrite=True, must_exist=True)
+    if fname.endswith('.fif') or fname.endswith('.fif.gz'):
+        return DipoleFixed(fname)
     try:
         data = np.loadtxt(fname, comments='%')
     except:
@@ -609,6 +698,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         inner_skull = _bem_find_surface(bem, 'inner_skull')
         inner_skull = inner_skull.copy()
         R, r0 = _fit_sphere(inner_skull['rr'], disp=False)
+        # r0 back to head frame for logging
         r0 = apply_trans(mri_head_t['trans'], r0[np.newaxis, :])[0]
         logger.info('Grid origin      : '
                     '%6.1f %6.1f %6.1f mm rad = %6.1f mm.'
@@ -621,7 +711,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
             R = bem['layers'][0]['rad']
         else:
             R = np.inf
-        inner_skull = [R, r0]
+        inner_skull = [R, r0]  # NB sphere model defined in head frame
     r0_mri = apply_trans(invert_transform(mri_head_t)['trans'],
                          r0[np.newaxis, :])[0]
 
@@ -687,6 +777,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     guess_src = _make_guesses(inner_skull, r0_mri,
                               guess_grid, guess_exclude, guess_mindist,
                               n_jobs=n_jobs)[0]
+
+    # inner_skull and grid coordinates go from mri to head frame
     if isinstance(inner_skull, dict):
         transform_surface_to(inner_skull, 'head', mri_head_t)
     transform_surface_to(guess_src, 'head', mri_head_t)
@@ -696,6 +788,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     fwd_data = dict(coils_list=[megcoils, eegels], infos=[meg_info, None],
                     ccoils_list=[compcoils, None], coil_types=['meg', 'eeg'],
                     inner_skull=inner_skull)
+    # fwd_data['inner_skull'] in head frame, bem in mri, confusing...
     _prep_field_computation(guess_src['rr'], bem, fwd_data, n_jobs,
                             verbose=False)
     guess_fwd = _dipole_forwards(fwd_data, whitener, guess_src['rr'],

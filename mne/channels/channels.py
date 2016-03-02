@@ -286,6 +286,10 @@ class SetChannelsMixin(object):
             _check_set(self.info['chs'][c_ind], self.info['projs'], ch_type)
             unit_old = self.info['chs'][c_ind]['unit']
             unit_new = _human2unit[ch_type]
+            if unit_old not in _unit2human:
+                raise ValueError("Channel '%s' has unknown unit (%s). Please "
+                                 "fix the measurement info of your data."
+                                 % (ch_name, unit_old))
             if unit_old != _human2unit[ch_type]:
                 warn("The unit for channel %s has changed from %s to %s."
                      % (ch_name, _unit2human[unit_old], _unit2human[unit_new]))

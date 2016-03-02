@@ -109,7 +109,7 @@ class ICA(ContainsMixin):
     n_components : int | float | None
         The number of components used for ICA decomposition. If int, it must be
         smaller then max_pca_components. If None, all PCA components will be
-        used. If float between 0 and 1 components can will be selected by the
+        used. If float between 0 and 1 components will be selected by the
         cumulative percentage of explained variance.
     max_pca_components : int | None
         The number of components used for PCA decomposition. If None, no
@@ -1215,28 +1215,30 @@ class ICA(ContainsMixin):
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
-        pca_data = fast_dot(self.pca_components_, data)
-        # Apply unmixing to low dimension PCA
-        sources = fast_dot(self.unmixing_matrix_, pca_data[:n_components])
-
+        sel_keep = np.arange(n_components)
         if include not in (None, []):
-            mask = np.ones(len(sources), dtype=np.bool)
-            mask[np.unique(include)] = False
-            sources[mask] = 0.
-            logger.info('Zeroing out %i ICA components' % mask.sum())
+            sel_keep = np.unique(include)
         elif exclude not in (None, []):
-            exclude_ = np.unique(exclude)
-            sources[exclude_] = 0.
-            logger.info('Zeroing out %i ICA components' % len(exclude_))
-        logger.info('Inverse transforming to PCA space')
-        pca_data[:n_components] = fast_dot(self.mixing_matrix_, sources)
-        data = fast_dot(self.pca_components_[:n_components].T,
-                        pca_data[:n_components])
-        logger.info('Reconstructing sensor space signals from %i PCA '
-                    'components' % max(_n_pca_comp, n_components))
+            sel_keep = np.setdiff1d(np.arange(n_components), exclude)
+
+        logger.info('Zeroing out %i ICA components'
+                    % (n_components - len(sel_keep)))
+
+        unmixing = np.eye(_n_pca_comp)
+        unmixing[:n_components, :n_components] = self.unmixing_matrix_
+        unmixing = np.dot(unmixing, self.pca_components_[:_n_pca_comp])
+
+        mixing = np.eye(_n_pca_comp)
+        mixing[:n_components, :n_components] = self.mixing_matrix_
+        mixing = np.dot(self.pca_components_[:_n_pca_comp].T, mixing)
+
         if _n_pca_comp > n_components:
-            data += fast_dot(self.pca_components_[n_components:_n_pca_comp].T,
-                             pca_data[n_components:_n_pca_comp])
+            sel_keep = np.concatenate(
+                (sel_keep, range(n_components, _n_pca_comp)))
+
+        proj_mat = np.dot(mixing[:, sel_keep], unmixing[sel_keep, :])
+
+        data = fast_dot(proj_mat, data)
 
         if self.pca_mean_ is not None:
             data += self.pca_mean_[:, None]
@@ -1440,7 +1442,7 @@ class ICA(ContainsMixin):
         labels : str | list | 'ecg' | 'eog' | None
             The labels to consider for the axes tests. Defaults to None.
             If list, should match the outer shape of `scores`.
-            If 'ecg' or 'eog', the labels_ attributes will be looked up.
+            If 'ecg' or 'eog', the ``labels_`` attributes will be looked up.
             Note that '/' is used internally for sublabels specifying ECG and
             EOG channels.
         axhline : float
@@ -2167,7 +2169,7 @@ def run_ica(raw, n_components, max_pca_components=100,
                       ecg_score_func=ecg_score_func,
                       ecg_criterion=ecg_criterion, eog_ch=eog_ch,
                       eog_score_func=eog_score_func,
-                      eog_criterion=ecg_criterion,
+                      eog_criterion=eog_criterion,
                       skew_criterion=skew_criterion,
                       kurt_criterion=kurt_criterion,
                       var_criterion=var_criterion,

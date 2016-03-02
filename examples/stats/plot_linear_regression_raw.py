@@ -35,7 +35,8 @@ data_path = spm_face.data_path()
 # Load and filter data, set up epochs
 raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw.fif'
 
-raw = mne.io.Raw(raw_fname, preload=True)  # Take first run
+# Use just the first 4 minutes to save memory
+raw = mne.io.Raw(raw_fname).crop(0, 240, copy=False).load_data()
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 45, method='iir')
@@ -44,16 +45,16 @@ events = mne.find_events(raw, stim_channel='UPPT001')
 event_id = dict(faces=1, scrambled=2)
 tmin, tmax = -.1, .5
 
-raw.pick_types(meg=True)
-
 # regular epoching
+picks = mne.pick_types(raw.info, meg=True)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=None,
-                    baseline=None, preload=True, verbose=False, decim=4)
+                    baseline=None, preload=True, picks=picks,
+                    verbose=False, decim=4)
 
 # rERF
 evokeds = linear_regression_raw(raw, events=events, event_id=event_id,
                                 reject=None, tmin=tmin, tmax=tmax,
-                                decim=4)
+                                decim=4, picks=picks)
 # linear_regression_raw returns a dict of evokeds
 # select conditions similarly to mne.Epochs objects
 

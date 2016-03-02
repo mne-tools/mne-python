@@ -31,7 +31,7 @@ from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
-                         _coord_frame_name, Transform)
+                         _coord_frame_name, Transform, _str_to_frame)
 from .externals.six import string_types
 
 
@@ -1549,19 +1549,28 @@ def _make_voxel_ras_trans(move, ras, voxel_size):
     return t
 
 
-def _make_discrete_source_space(pos):
+def _make_discrete_source_space(pos, coord_frame='mri'):
     """Use a discrete set of source locs/oris to make src space
 
     Parameters
     ----------
     pos : dict
         Must have entries "rr" and "nn". Data should be in meters.
+    coord_frame : str
+        The coordinate frame in which the positions are given; default: 'mri'.
+        The frame must be one defined in transforms.py:_str_to_frame
 
     Returns
     -------
     src : dict
         The source space.
     """
+    # Check that coordinate frame is valid
+    if coord_frame not in _str_to_frame:  # will fail if coord_frame not string
+        raise KeyError('coord_frame must be one of %s, not "%s"'
+                       % (list(_str_to_frame.keys()), coord_frame))
+    coord_frame = _str_to_frame[coord_frame]  # now an int
+
     # process points
     rr = pos['rr'].copy()
     nn = pos['nn'].copy()
@@ -1578,7 +1587,6 @@ def _make_discrete_source_space(pos):
     logger.info('%d sources' % npts)
 
     # Ready to make the source space
-    coord_frame = FIFF.FIFFV_COORD_MRI
     sp = dict(coord_frame=coord_frame, type='discrete', nuse=npts, np=npts,
               inuse=np.ones(npts, int), vertno=np.arange(npts), rr=rr, nn=nn,
               id=-1)

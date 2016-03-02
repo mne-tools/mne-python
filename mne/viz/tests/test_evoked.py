@@ -15,10 +15,10 @@ from numpy.testing import assert_raises
 
 
 from mne import io, read_events, Epochs, pick_types, read_cov
+from mne.channels import read_layout
+from mne.utils import slow_test, run_tests_if_main
 from mne.viz.evoked import _butterfly_onselect
 from mne.viz.utils import _fake_click
-from mne.utils import slow_test, run_tests_if_main
-from mne.channels import read_layout
 
 # Set our plotters to test mode
 import matplotlib

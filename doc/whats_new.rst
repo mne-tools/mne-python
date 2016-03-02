@@ -1,3 +1,5 @@
+.. _whats_new:
+
 What's new
 ==========
 ..
@@ -30,6 +32,14 @@ Changelog
 
     - Add plotting RMS of gradiometer pairs in :func:`mne.viz.plot_evoked_topo` by `Jaakko Leppakangas`_
 
+    - Add regularization methods to :func:`mne.compute_raw_covariance` by `Eric Larson`_.
+
+    - Add command ``mne show_info`` to quickly show the measurement info from a .fif file from the terminal by `Alex Gramfort`_.
+
+    - Add creating forward operator for dipole object :func:`mne.forward.make_forward_dipole` by `Chris Bailey`_
+
+    - Add reading of Elekta ``xfit`` fixed-position dipole time courses using :func:`mne.read_dipole` by `Eric Larson`_.
+
 BUG
 ~~~
 
@@ -57,6 +67,10 @@ BUG
 
     - Fix colorbar range on norm data by `Jaakko Leppakangas`_
 
+    - Fix bug in :func:`mne.preprocessing.run_ica`, which used the ``ecg_criterion`` parameter for the EOG criterion instead of ``eog_criterion`` by `Christian Brodbeck`_
+
+    - Fix normals in CTF data reader by `Eric Larson`_
+
 API
 ~~~
 
@@ -77,6 +91,10 @@ API
     - The :func:`mne.bem.fit_sphere_to_headshape` now has a ``units`` argument that should be set explicitly. This will default to ``units='mm'`` in 0.12 for backward compatibility but change to ``units='m'`` in 0.13.
 
     - Added default parameters in Epochs class namely ``event_id=None``, ``tmin=-0.2`` and ``tmax=0.5``.
+
+    - To unify and extend the behavior of :func:`mne.comupute_raw_covariance` relative to :func:`mne.compute_covariance`, the default parameter ``tstep=0.2`` now discards any epochs at the end of the :class:`mne.io.Raw` instance that are not the full ``tstep`` duration. This will slighly change the computation of :func:`mne.compute_raw_covaraince`, but should only potentially have a big impact if the :class:`mne.io.Raw` instance is short relative to ``tstep`` and the last, too short (now discarded) epoch contained data inconsistent with the epochs that preceded it.
+
+    - The default ``picks=None`` in :func:`mne.io.Raw.filter` nows picks eeg, meg and seeg channels, by `Jean-Remi King`_
 
 .. _changes_0_11:
 

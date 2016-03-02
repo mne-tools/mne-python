@@ -164,20 +164,22 @@ FIFF.FIFFV_NEXT_NONE   = -1
 #
 # Channel types
 #
-FIFF.FIFFV_MEG_CH     =   1
-FIFF.FIFFV_REF_MEG_CH = 301
-FIFF.FIFFV_EEG_CH     =   2
-FIFF.FIFFV_MCG_CH     = 201
-FIFF.FIFFV_STIM_CH    =   3
-FIFF.FIFFV_EOG_CH     = 202
-FIFF.FIFFV_EMG_CH     = 302
-FIFF.FIFFV_ECG_CH     = 402
-FIFF.FIFFV_MISC_CH    = 502
-FIFF.FIFFV_RESP_CH    = 602  # Respiration monitoring
-FIFF.FIFFV_SEEG_CH    = 802  # stereotactic EEG
-FIFF.FIFFV_SYST_CH    = 900  # some system status information (on Triux systems only)
-FIFF.FIFFV_IAS_CH     = 910  # Internal Active Shielding data (maybe on Triux only)
-FIFF.FIFFV_EXCI_CH    = 920  # flux excitation channel used to be a stimulus channel
+FIFF.FIFFV_MEG_CH       =   1
+FIFF.FIFFV_REF_MEG_CH   = 301
+FIFF.FIFFV_EEG_CH       =   2
+FIFF.FIFFV_MCG_CH       = 201
+FIFF.FIFFV_STIM_CH      =   3
+FIFF.FIFFV_EOG_CH       = 202
+FIFF.FIFFV_EMG_CH       = 302
+FIFF.FIFFV_ECG_CH       = 402
+FIFF.FIFFV_MISC_CH      = 502
+FIFF.FIFFV_RESP_CH      = 602  # Respiration monitoring
+FIFF.FIFFV_SEEG_CH      = 802  # stereotactic EEG
+FIFF.FIFFV_SYST_CH      = 900  # some system status information (on Triux systems only)
+FIFF.FIFFV_IAS_CH       = 910  # Internal Active Shielding data (maybe on Triux only)
+FIFF.FIFFV_EXCI_CH      = 920  # flux excitation channel used to be a stimulus channel
+FIFF.FIFFV_DIPOLE_WAVE  = 1000  # Dipole time curve (xplotter/xfit)
+FIFF.FIFFV_GOODNESS_FIT = 1001  # Goodness of fit (xplotter/xfit)
 
 #
 # Quaternion channels for head position monitoring
@@ -325,6 +327,8 @@ FIFF.FIFF_PROJ_ITEM_NVEC         = 3414
 FIFF.FIFF_PROJ_ITEM_VECTORS      = 3415
 FIFF.FIFF_PROJ_ITEM_DEFINITION   = 3416
 FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST = 3417
+#   XPlotter
+FIFF.FIFF_XPLOTTER_LAYOUT        = 3501  # string - "Xplotter layout tag"
 #
 #   MRIs
 #

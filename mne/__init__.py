@@ -43,7 +43,8 @@ from .event import (read_events, write_events, find_events, merge_events,
 from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       do_forward_solution, average_forward_solutions,
                       write_forward_solution, make_forward_solution,
-                      convert_forward_solution, make_field_map)
+                      convert_forward_solution, make_field_map,
+                      make_forward_dipole)
 from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               SourceEstimate, VolSourceEstimate, morph_data,
                               morph_data_precomputed, compute_morph_matrix,
@@ -77,7 +78,7 @@ from .transforms import (read_trans, write_trans,
 from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
 from .selection import read_selection
-from .dipole import read_dipole, Dipole, fit_dipole
+from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
 from .channels import equalize_channels, rename_channels, find_layout
 
 from . import beamformer

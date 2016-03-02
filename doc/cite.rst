@@ -1,7 +1,7 @@
 .. _cite:
 
-Cite MNE
---------
+How to cite MNE
+---------------
 
 If you use in your research the implementations provided by the MNE software you should cite:
 
