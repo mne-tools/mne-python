@@ -1308,7 +1308,7 @@ def restrict_forward_to_label(fwd, labels):
     fwd_out['sol']['data'] = np.zeros((fwd['sol']['data'].shape[0], 0))
     fwd_out['sol']['ncol'] = 0
 
-    for i in xrange(2):
+    for i in range(2):
         fwd_out['src'][i]['vertno'] = np.array([], int)
         fwd_out['src'][i]['nuse'] = 0
         fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
@@ -1344,7 +1344,7 @@ def restrict_forward_to_label(fwd, labels):
                                             fwd['sol']['data'][:, idx]])
         fwd_out['sol']['ncol'] += len(idx)
 
-    for i in xrange(2):
+    for i in range(2):
         fwd_out['src'][i]['vertno'] = np.where(fwd_out['src'][i]['inuse'])[0]
 
     return fwd_out
