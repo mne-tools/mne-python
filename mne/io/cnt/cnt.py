@@ -139,10 +139,14 @@ def _get_cnt_info(input_fname, read_blocks):
     info.update(filename=input_fname,
                 meas_date=calendar.timegm(date.utctimetuple()),
                 description=None, buffer_size_sec=10.)
+
+    coords = _topo_to_sphere(pos)
     for idx, ch_name in enumerate(ch_names):
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
-        loc = [pos[idx][0], pos[idx][1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        loc = np.zeros(12)
+        loc[:3] = coords[idx]
+
         chan_info = {'cal': cals[idx], 'logno': idx + 1, 'scanno': idx + 1,
                      'range': 1.0, 'unit_mul': 0., 'ch_name': ch_name,
                      'unit': FIFF.FIFF_UNIT_V,
@@ -163,6 +167,38 @@ def _get_cnt_info(input_fname, read_blocks):
     info['chs'] = chs
     info._check_consistency()
     return info, cnt_info
+
+
+def _topo_to_sphere(pos):
+    """Helper function for transforming xy-coordinates to sphere.
+    Parameters
+    ----------
+    pos : array of shape (xs, ys)
+        Coordinates to transform.
+
+    Returns
+    -------
+    coords : list
+        xyz-coordinates.
+    """
+    xs = np.array(pos)[:, 0]
+    ys = np.array(pos)[:, 1]
+
+    xs -= min(xs)  # First normalize the points.
+    ys -= min(ys)
+    xs *= (2. / max(xs))
+    ys *= (2. / max(ys))
+    xs -= 1.  # Values range from -1 to 1
+    ys -= 1.
+    coords = list()
+    for x, y in zip(xs, ys):
+        t = np.sqrt(x ** 2 + y ** 2)
+        if t > 1:  # Force the points to the surface of a sphere.
+            t = 1.
+        alpha = np.arccos(t)
+        z = np.sin(alpha)
+        coords.append([x, y, z])
+    return coords
 
 
 class RawCNT(_BaseRaw):

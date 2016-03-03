@@ -44,6 +44,8 @@ Changelog
 
     - Add method :func:`mne.epochs.plot_image` calling :func:`mne.viz.epochs.plot_epochs_image` for better usability by `Asish Panda`_.
 
+    - Add reader for Neuroscan CNT files by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
@@ -101,6 +103,8 @@ API
     - The default ``picks=None`` in :func:`mne.io.Raw.filter` nows picks eeg, meg and seeg channels, by `Jean-Remi King`_
 
     - EOG, ECG and EMG channels are now plotted by default (if present in data) when using :func:`mne.viz.plot_evoked` by `Marijn van Vliet`_
+
+    - CTF data reader now reads eeg locations from .pos file as hpi points by `Jaakko Leppakangas`_
 
 .. _changes_0_11:
 
