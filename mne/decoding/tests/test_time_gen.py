@@ -424,4 +424,19 @@ def test_decoding_time():
     tg = TimeDecoding(clf=clf, cv=cv)
     tg.fit(epochs, y=y)
 
+    # Test scorer parameter to accept string
+    epochs.crop(epochs.times[0], epochs.times[2])
+    td_1 = TimeDecoding(scorer='accuracy')
+    td_1.fit(epochs)
+    score_1 = td_1.score(epochs)
+
+    td_2 = TimeDecoding()
+    td_2.fit(epochs)
+    score_2 = td_2.score(epochs)
+    assert_array_equal(score_1, score_2)
+
+    td_1.scorer = 'accuracies'
+    assert_raises(KeyError, td_1.score, epochs)
+
+
 run_tests_if_main()

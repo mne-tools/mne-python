@@ -40,6 +40,8 @@ Changelog
 
     - Add reading of Elekta ``xfit`` fixed-position dipole time courses using :func:`mne.read_dipole` by `Eric Larson`_.
 
+    - Accept :class:`mne.decoding.GeneralizationAcrossTime`'s ``scorer`` parameter to be a string that refers to a scikit-learn metric scorer by `Asish Panda`_.
+
 BUG
 ~~~
 
@@ -1422,3 +1424,5 @@ of commits):
 .. _Jussi Nurminen: https://scholar.google.fi/citations?user=R6CQz5wAAAAJ&hl=en
 
 .. _Clemens Brunner: https://github.com/cle1109
+
+.. _Asish Panda: https://github.com/kaichogami
