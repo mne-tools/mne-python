@@ -54,7 +54,8 @@ def _get_cnt_info(input_fname, read_blocks):
     # Reading only the fields of interest. Structure of the whole header at
     # http://paulbourke.net/dataformats/eeg/
     with open(input_fname, 'rb', buffering=0) as fid:
-        fid.seek(225)
+        fid.seek(205)
+        session_label = ''.join(np.fromfile(fid, dtype='S1', count=20))
         session_date = ''.join(np.fromfile(fid, dtype='S1', count=10))
         time = ''.join(np.fromfile(fid, dtype='S1', count=12))
         date = session_date.split('/')
@@ -66,6 +67,10 @@ def _get_cnt_info(input_fname, read_blocks):
         # Assuming mm/dd/yy
         date = datetime.datetime(int(date[2]), int(date[0]), int(date[1]),
                                  int(time[0]), int(time[1]), int(time[2]))
+        meas_date = calendar.timegm(date.utctimetuple())
+        if meas_date < 0:
+            warn('Could not parse meas date from the header. Setting to 0...')
+            meas_date = 0
         fid.seek(370)
         n_channels = np.fromfile(fid, dtype='<u2', count=1)[0]
 
@@ -90,6 +95,8 @@ def _get_cnt_info(input_fname, read_blocks):
             cnt_info['channel_offset'] /= 2  # Data read as 2 byte ints.
             warn('Reading in data in blocks of %d. If this fails, try using '
                  'read_blocks=False.')
+        else:
+            cnt_info['channel_offset'] = 1
         n_samples = (event_offset - (900 + 75 * n_channels)) / (2 * n_channels)
         ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(),
                                                list())
@@ -136,9 +143,8 @@ def _get_cnt_info(input_fname, read_blocks):
         info['lowpass'] = highcutoff
     if highpass_toggle == 1:
         info['highpass'] = lowcutoff
-    info.update(filename=input_fname,
-                meas_date=calendar.timegm(date.utctimetuple()),
-                description=None, buffer_size_sec=10.)
+    info.update(filename=input_fname, meas_date=np.array([meas_date, 0]),
+                description=session_label, buffer_size_sec=10.)
 
     coords = _topo_to_sphere(pos)
     for idx, ch_name in enumerate(ch_names):
@@ -237,42 +243,53 @@ class RawCNT(_BaseRaw):
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Take a chunk of raw data, multiply by mult or cals, and store"""
-        n_channels = self.info['nchan'] - 1
+        n_channels = self.info['nchan'] - 1  # Stim channel already read.
         channel_offset = self._raw_extras[0]['channel_offset']
         baselines = self._raw_extras[0]['baselines']
+        stim_ch = self._raw_extras[0]['stim_channel']
         n_bytes = 2
+        sel = np.arange(n_channels + 1)[idx]
+        chunk_size = channel_offset * n_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
         # channel_offset determines the amount of successive samples.
         # Here we use sample offset to align the data because start can be in
         # the middle of these blocks.
+        data_left = (stop - start) * n_channels
+        # Read up to 100 MB of data at a time, block_size is in data samples
+        block_size = ((int(100e6) // n_bytes) // chunk_size) * chunk_size
+        block_size = min(data_left, block_size)
         s_offset = start % channel_offset
-        sel = np.arange(n_channels + 1)[idx]
-        block_size = channel_offset * n_channels  # Size of blocks in file.
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             fid.seek(900 + n_channels * (75 + (start - s_offset) * n_bytes))
-            data_ = np.empty((n_channels + 1, data.shape[1]))
-            n_samps = stop - start
-
-            # In case channel offset and start time do not align perfectly,
-            # extra sample sets are read here to cover the desired time window.
-            # The whole block is read at once and then reshaped to
-            # (n_channels, n_samples).
-            extra_samps = block_size if (s_offset != 0 or
-                                         n_samps % channel_offset != 0) else 0
-            if s_offset >= (channel_offset // 2):  # Extend at the end.
-                extra_samps += block_size
-            count = n_samps // channel_offset * block_size + extra_samps
-            n_samps = count // block_size
-            samps = np.fromfile(fid, dtype='<i2', count=count)
-            samps = samps.reshape((n_samps, n_channels, channel_offset),
-                                  order='C')
-        # Intermediate shaping to block sizes.
-        block = np.zeros((n_channels + 1, channel_offset * n_samps))
-        for set_idx, row in enumerate(samps):  # Final shape.
-            block[:-1, set_idx * channel_offset:(set_idx +
-                                                 1) * channel_offset] = row
-        block = block[sel, s_offset:stop - start + s_offset]
-        data_[sel] = block
-        data_[-1] = self._raw_extras[0]['stim_channel'][start:stop]
-        data -= baselines[sel, None]
-        _mult_cal_one(data, data_, idx, cals, mult=None)
+            for sample_start in np.arange(0, data_left,
+                                          block_size) // n_channels:
+                sample_stop = sample_start + min((block_size // n_channels,
+                                                  data_left // n_channels -
+                                                  sample_start))
+                n_samps = sample_stop - sample_start
+                data_ = np.empty((n_channels + 1, n_samps))
+                # In case channel offset and start time do not align perfectly,
+                # extra sample sets are read here to cover the desired time
+                # window. The whole (up to 100 MB) block is read at once and
+                # then reshaped to (n_channels, n_samples).
+                extra_samps = chunk_size if (s_offset != 0 or n_samps %
+                                             channel_offset != 0) else 0
+                if s_offset >= (channel_offset / 2.):  # Extend at the end.
+                    extra_samps += chunk_size
+                count = n_samps // channel_offset * chunk_size + extra_samps
+                n_chunks = count // chunk_size
+                samps = np.fromfile(fid, dtype='<i2', count=count)
+                samps = samps.reshape((n_chunks, n_channels, channel_offset),
+                                      order='C')
+                # Intermediate shaping to chunk sizes.
+                block = np.zeros((n_channels + 1, channel_offset * n_chunks))
+                for set_idx, row in enumerate(samps):  # Final shape.
+                    block_slice = slice(set_idx * channel_offset,
+                                        (set_idx + 1) * channel_offset)
+                    block[:-1, block_slice] = row
+                block = block[sel, s_offset:n_samps + s_offset]
+                data_[sel] = block
+                data_[-1] = stim_ch[start + sample_start:start + sample_stop]
+                data -= baselines[sel, None]
+                _mult_cal_one(data[:, sample_start:sample_stop], data_, idx,
+                              cals, mult=None)
