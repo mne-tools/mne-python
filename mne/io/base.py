@@ -1925,10 +1925,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
     if part_idx > 0:
         # insert index in filename
-        path, base = op.split(fname)
-        idx = base.find('.')
-        use_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx,
-                                                base[idx + 1:]))
+        base, ext = op.splitext(fname)
+        use_fname = '%s-%d%s' % (base, part_idx, ext)
     else:
         use_fname = fname
     logger.info('Writing %s' % use_fname)
