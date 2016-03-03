@@ -362,11 +362,12 @@ class _GeneralizationAcrossTime(object):
                     self.scorer_ = mean_squared_error
 
         elif isinstance(self.scorer_, str):
-            if hasattr(sklearn.metrics, self.scorer_ + '_score'):
-                self.scorer_ = getattr(sklearn.metrics, self.scorer_ + '_score')
+            if hasattr(sklearn.metrics, '%s_score' % self.scorer_):
+                self.scorer_ = getattr(sklearn.metrics, '%s_score' %
+                                       self.scorer_)
             else:
-                raise KeyError("`{0} scorer` Doesn't appear to be valid "
-                               "sklearn scorer.".format(self.scorer_))
+                raise KeyError("`{0} scorer` Doesn't appear to be valid a "
+                               "scikit-learn scorer.".format(self.scorer_))
         if not self.scorer_:
             raise ValueError('Could not find a scoring metric for `clf=%s` '
                              ' and `predict_method=%s`. Manually define scorer'
@@ -905,8 +906,11 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
                 these predictions into a single estimate per sample.
 
         Default: 'cross-validation'
-    scorer : object | None
-        scikit-learn Scorer instance. If None, set to accuracy_score.
+    scorer : object | None | str
+        scikit-learn Scorer instance or str type indicating the name of
+        the scorer such as `accuracy`, `roc_auc`. If None, set to 
+        accuracy_score.
+
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
@@ -1203,8 +1207,10 @@ class TimeDecoding(_GeneralizationAcrossTime):
                 these predictions into a single estimate per sample.
 
         Default: 'cross-validation'
-    scorer : object | None
-        scikit-learn Scorer instance. If None, set to accuracy_score.
+    scorer : object | None | str
+        scikit-learn Scorer instance or str type indicating the
+        name of the scorer such as `accuracy`, `roc_auc`. If None,
+        set to accuracy_score.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
