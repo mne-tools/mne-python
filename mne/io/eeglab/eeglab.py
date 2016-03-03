@@ -24,8 +24,7 @@ CAL = 1e-6
 
 
 def _check_fname(fname):
-    """Check if the file extension is valid.
-    """
+    """Check if the file extension is valid."""
     fmt = str(op.splitext(fname)[-1])
     if fmt == '.dat':
         raise NotImplementedError(
@@ -36,8 +35,7 @@ def _check_fname(fname):
 
 
 def _check_mat_struct(fname):
-    """Check if the mat struct contains 'EEG'.
-    """
+    """Check if the mat struct contains 'EEG'."""
     if not check_version('scipy', '0.12'):
         raise RuntimeError('scipy >= 0.12 must be installed for reading EEGLAB'
                            ' files.')
@@ -54,8 +52,7 @@ def _check_mat_struct(fname):
 
 
 def _to_loc(ll):
-    """Check if location exists.
-    """
+    """Check if location exists."""
     if isinstance(ll, (int, float)) or len(ll) > 0:
         return ll
     else:
@@ -63,8 +60,7 @@ def _to_loc(ll):
 
 
 def _get_info(eeg, montage, eog=()):
-    """Get measurement info.
-    """
+    """Get measurement info."""
     info = _empty_info(sfreq=eeg.srate)
 
     # add the ch_names and info['chs'][idx]['loc']
@@ -306,7 +302,7 @@ class RawEEGLAB(_BaseRaw):
             event_id_func = strip_to_integer
         events = _read_eeglab_events(eeg, event_id=event_id,
                                      event_id_func=event_id_func)
-        self._create_event_ch(events, n_samp=eeg.pnts)
+        self._create_event_ch(events, n_sample=eeg.pnts)
 
         # read the data
         if isinstance(eeg.data, string_types):
@@ -327,6 +323,7 @@ class RawEEGLAB(_BaseRaw):
             data = eeg.data.reshape(eeg.nbchan, -1, order='F')
             data = data.astype(np.double)
             data *= CAL
+            data = np.vstack((data, self._event_ch))
             super(RawEEGLAB, self).__init__(
                 info, data, last_samps=last_samps, orig_format='double',
                 verbose=verbose)
@@ -336,15 +333,15 @@ class RawEEGLAB(_BaseRaw):
         stim_ch = self._event_ch[start:stop][sample_start:sample_stop]
         return np.vstack((block, stim_ch))
 
-    def _create_event_ch(self, events, n_samp=None):
+    def _create_event_ch(self, events, n_sample=None):
         """Create the event channel"""
-        if n_samp is None:
-            n_samp = self.last_samp - self.first_samp + 1
+        if n_sample is None:
+            n_sample = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
         if events.ndim != 2 or events.shape[1] != 3:
             raise ValueError("[n_events x 3] shaped array required")
         # update events
-        self._event_ch = _synthesize_stim_channel(events, n_samp)
+        self._event_ch = _synthesize_stim_channel(events, n_sample)
         self._events = events
         if self.preload:
             self._data[-1] = self._event_ch
@@ -570,6 +567,5 @@ def _read_eeglab_events(eeg, event_id=dict(), event_id_func=None):
 
 
 def strip_to_integer(trigger):
-    """Return only the integer part of a string
-    """
+    """Return only the integer part of a string."""
     return int("".join([x for x in trigger if x.isdigit()]))

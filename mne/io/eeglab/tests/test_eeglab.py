@@ -30,25 +30,32 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 def test_io_set():
     """Test importing EEGLAB .set files"""
     from scipy import io
-
-    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname, montage=montage)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with warnings.catch_warnings(record=True) as w1:
+        # main tests, and test missing event_id
+        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
+                         montage=montage)
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
                          montage=montage)
+        assert_equal(len(w1), 20)  # for preload_false and dropping events
+    with warnings.catch_warnings(record=True) as w2:
         # test finding events in continuous data
         event_id = {'rt': 1, 'square': 2}
-        raw = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage,
-                              event_id=event_id)
-        epochs = Epochs(raw, find_events(raw), event_id)  # with event_id
-        assert_equal(epochs["square"].average().nave, 80)
-        raw2 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
-        assert_array_equal(raw[:][0], raw2[:][0])
-    # one warning per each preload=False or str with raw_fname_onefile
-    assert_equal(len(w), 3)
+        raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                               event_id=event_id, preload=False)
+        raw2 = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage,
+                               event_id=event_id)
+        raw3 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                               event_id=event_id)
+        raw4 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
+        epochs = Epochs(raw1, find_events(raw1), event_id)
+        assert_equal(len(find_events(raw4)), 0)  # no events without event_id
+        assert_equal(epochs["square"].average().nave, 80)  # 80 with
+        assert_array_equal(raw1[:][0], raw2[:][0], raw3[:][0])
+        assert_array_equal(raw1[:][-1], raw2[:][-1], raw3[:][-1])
+        assert_equal(len(w2), 4)
+        # for preload=False / str with fname_onefile, and for dropped events
 
     with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
         epochs = read_epochs_eeglab(epochs_fname)
         epochs2 = read_epochs_eeglab(epochs_fname_onefile)
     # 3 warnings for each read_epochs_eeglab because there are 3 epochs
@@ -82,7 +89,6 @@ def test_io_set():
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(temp_dir, 'test_epochs.dat'))
     with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
         assert_raises(NotImplementedError, read_epochs_eeglab,
                       bad_epochs_fname)
     assert_equal(len(w), 3)

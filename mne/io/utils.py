@@ -220,12 +220,12 @@ def _synthesize_stim_channel(events, n_samp):
     events : array, shape (n_events, 3)
         Each row representing an event as (onset, duration, trigger) sequence
         (the format returned by `_read_vmrk_events` or `_read_eeglab_events).
-    n_samp : int
+    n_sample : int
         The number of samples.
 
     Returns
     -------
-    stim_channel : array, shape (n_samples,)
+    stim_channel : array, shape (n_sample,)
         An array containing the whole recording's event marking.
     """
     # select events overlapping buffer
