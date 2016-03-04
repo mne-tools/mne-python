@@ -48,8 +48,8 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
                        slice(0, bnd + 100)]
         other_raws = [reader(preload=buffer_fname, **kwargs),
                       reader(preload=False, **kwargs)]
-        for ii, sl_time in enumerate(slices):
-            for yy, other_raw in enumerate(other_raws):
+        for sl_time in slices:
+            for other_raw in other_raws:
                 data1, times1 = raw[picks, sl_time]
                 data2, times2 = other_raw[picks, sl_time]
                 assert_allclose(data1, data2)
