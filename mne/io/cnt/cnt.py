@@ -15,6 +15,7 @@ from ..constants import FIFF
 from ..utils import _mult_cal_one
 from ..meas_info import _empty_info
 from ..base import _BaseRaw
+from ..utils import _read_str
 
 
 def read_raw_cnt(input_fname, eog=(), ecg=(), emg=(), misc=(),
@@ -76,21 +77,21 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
     # http://paulbourke.net/dataformats/eeg/
     with open(input_fname, 'rb', buffering=0) as fid:
         fid.seek(21)
-        patient_id = ''.join(np.fromfile(fid, dtype='S1', count=20))
+        patient_id = _read_str(fid, 20)
         patient_id = int(patient_id) if patient_id.isdigit() else 0
         fid.seek(121)
-        patient_name = ''.join(np.fromfile(fid, dtype='S1', count=20)).split()
+        patient_name = _read_str(fid, 20)
         last_name = patient_name[0]
         first_name = patient_name[-1]
         fid.seek(2, 1)
-        sex = ''.join(np.fromfile(fid, dtype='S1', count=1))
+        sex = _read_str(fid, 1)
         if sex == 'M':
             sex = 1
         elif sex == 'F':
             sex = 2
         else:  # can be 'U'
             sex = 0
-        hand = ''.join(np.fromfile(fid, dtype='S1', count=1))
+        hand = _read_str(fid, 1)
         if hand == 'R':
             hand = 1
         elif hand == 'L':
@@ -98,9 +99,9 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
         else:  # can be 'M' for mixed or 'U'
             hand = 0
         fid.seek(205)
-        session_label = ''.join(np.fromfile(fid, dtype='S1', count=20))
-        session_date = ''.join(np.fromfile(fid, dtype='S1', count=10))
-        time = ''.join(np.fromfile(fid, dtype='S1', count=12))
+        session_label = _read_str(fid, 20)
+        session_date = _read_str(fid, 10)
+        time = _read_str(fid, 12)
         date = session_date.split('/')
         if len(date) != 3:
             warn('Could not parse meas date from the header. Setting to 0...')
@@ -142,18 +143,19 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
         if cnt_info['channel_offset'] > 1 and read_blocks:
-            cnt_info['channel_offset'] /= 2  # Data read as 2 byte ints.
+            cnt_info['channel_offset'] //= 2  # Data read as 2 byte ints.
             warn('Reading in data in blocks of %d. If this fails, try using '
                  'read_blocks=False.')
         else:
             cnt_info['channel_offset'] = 1
-        n_samples = (event_offset - (900 + 75 * n_channels)) / (2 * n_channels)
+        n_samples = (event_offset - (900 + 75 * n_channels)) // (2 *
+                                                                 n_channels)
         ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(),
                                                list())
         bads = list()
         for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
-            ch_name = ''.join(np.fromfile(fid, dtype='S1', count=10))
+            ch_name = _read_str(fid, 10)
             ch_names.append(ch_name)
             fid.seek(data_offset + 75 * ch_idx + 4)
             if np.fromfile(fid, dtype='u1', count=1)[0]:
@@ -269,22 +271,15 @@ def _topo_to_sphere(pos, eegs):
     xs = np.array(pos)[:, 0]
     ys = np.array(pos)[:, 1]
 
-    ys -= min(ys)  # Normalize the points
-    xs -= min(xs)
-    xs /= max(xs)
-    ys /= max(ys)
+    sqs = max(np.sqrt((xs[eegs] ** 2) + (ys[eegs] ** 2)))
+    xs /= sqs  # Shape to a sphere and normalize
+    ys /= sqs
 
     xs += 0.5 - np.mean(xs[eegs])  # Centralize the points
     ys += 0.5 - np.mean(ys[eegs])
 
-    xs *= 2  # Values ranging from -1 to 1
-    ys *= 2
-    xs -= 1.
-    ys -= 1.
-
-    sqs = max(np.sqrt((xs[eegs] ** 2) + (ys[eegs] ** 2)))  # Shape to a sphere
-    xs /= sqs
-    ys /= sqs
+    xs = xs * 2 - 1  # Values ranging from -1 to 1
+    ys = ys * 2 - 1
 
     coords = list()
     for x, y in zip(xs, ys):

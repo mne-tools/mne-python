@@ -9,6 +9,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from ..externals.six import b
 
 
 def _find_channels(ch_names, ch_type='EOG'):
@@ -167,3 +168,14 @@ def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
                 block = np.vstack((block, stim_ch))
             data_view = data[:, sample_start:sample_stop]
             _mult_cal_one(data_view, block, idx, cals, mult)
+
+
+def _read_str(fid, count=1):
+    """Read string from a binary file in a version compatible way."""
+    dtype = np.dtype('>S%i' % count)
+    string = fid.read(dtype.itemsize)
+    data = np.fromstring(string, dtype=dtype)[0]
+    bytestr = b('').join([data[0:data.index(b('\x00')) if
+                          b('\x00') in data else count]])
+
+    return str(bytestr.decode('ascii'))  # Return native str type for Py2/3
