@@ -44,8 +44,6 @@ dependencies:
     - python -c "import mne; mne.datasets.testing.data_path(verbose=True);";
     - python -c "import mne; mne.datasets.spm_face.data_path(verbose=True);";
     - python -c "import mne; mne.datasets.somato.data_path(verbose=True);";
-    - python -c "import mne; mne.datasets.brainstorm.bst_auditory.data_path(verbose=True)" --accept-brainstorm-license;
-    - python -c "import mne; mne.datasets.brainstorm.bst_resting.data_path(verbose=True);" --accept-brainstorm-license;
     - python -c "import mne; mne.datasets.brainstorm.bst_raw.data_path(verbose=True);" --accept-brainstorm-license;
     - python -c "import mne; mne.datasets.megsim.urls._load_all_data();" --update-dataset-path;
     - python -c "import mne; mne.datasets.eegbci.data_path('http://www.physionet.org/physiobank/database/eegmmidb', update_path=True, verbose=True);";

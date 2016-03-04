@@ -176,7 +176,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
         sample='MNE-sample-data-processed.tar.gz',
         somato='MNE-somato-data.tar.gz',
-        spm='MNE-spm-face.tar.bz2',
+        spm='MNE-spm-face.tar.gz',
         testing='mne-testing-data-%s.tar.gz' % releases['testing'],
         fake='foo.tgz',
     )
@@ -192,7 +192,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='MNE-testing-data',
     )
     urls = dict(
-        brainstorm='https://copy.com/ZTHXXFcuIZycvRoA/brainstorm/%s',
+        brainstorm='https://mne-tools.s3.amazonaws.com/datasets/'
+                   'MNE-brainstorm-data/%s',
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/%s',
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'

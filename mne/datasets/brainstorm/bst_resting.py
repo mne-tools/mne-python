@@ -21,7 +21,7 @@ URL: http://neuroimage.usc.edu/brainstorm/DatasetResting
 @verbose
 def data_path(path=None, force_update=False, update_path=True, download=True,
               verbose=None):
-    archive_name = dict(brainstorm='bst_resting.tar.bz2')
+    archive_name = dict(brainstorm='bst_resting.tar.gz')
     data_path = _data_path(path=path, force_update=force_update,
                            update_path=update_path, name='brainstorm',
                            download=download, archive_name=archive_name)
