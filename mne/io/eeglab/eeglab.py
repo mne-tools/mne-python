@@ -322,7 +322,7 @@ class RawEEGLAB(_BaseRaw):
             event_id_func = _strip_to_integer
         events = _read_eeglab_events(eeg, event_id=event_id,
                                      event_id_func=event_id_func)
-        self._create_event_ch(events, n_sample=eeg.pnts)
+        self._create_event_ch(events, n_samples=eeg.pnts)
 
         # read the data
         if isinstance(eeg.data, string_types):
@@ -354,16 +354,15 @@ class RawEEGLAB(_BaseRaw):
         stim_ch = self._event_ch[start:stop][sample_start:sample_stop]
         return np.vstack((block, stim_ch))
 
-    def _create_event_ch(self, events, n_sample=None):
+    def _create_event_ch(self, events, n_samples=None):
         """Create the event channel"""
-        if n_sample is None:
-            n_sample = self.last_samp - self.first_samp + 1
+        if n_samples is None:
+            n_samples = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
         if events.ndim != 2 or events.shape[1] != 3:
             raise ValueError("[n_events x 3] shaped array required")
         # update events
-        self._event_ch = _synthesize_stim_channel(events, n_sample)
-        self._events = events
+        self._event_ch = _synthesize_stim_channel(events, n_samples)
         if self.preload:
             self._data[-1] = self._event_ch
 
@@ -552,8 +551,8 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func=None):
     types = [event.type for event in eeg.event]
     latencies = [event.latency for event in eeg.event]
 
-    not_in_event_id = set([x for x in types if x not in event_id])
-    not_purely_numeric = set([x for x in not_in_event_id if not x.isdigit()])
+    not_in_event_id = set(x for x in types if x not in event_id)
+    not_purely_numeric = set(x for x in not_in_event_id if not x.isdigit())
     no_numbers = set([x for x in not_purely_numeric
                       if not any([d.isdigit() for d in x])])
     have_integers = set([x for x in not_purely_numeric
@@ -562,28 +561,28 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func=None):
         basewarn = "Events like the following will be dropped"
         n_no_numbers, n_have_integers = len(no_numbers), len(have_integers)
         if n_no_numbers > 0:
-            no_num_warm = " entirely: {}, {} in total"
+            no_num_warm = " entirely: {0}, {1} in total"
             warn(basewarn + no_num_warm.format(list(no_numbers)[:5],
                                                n_no_numbers))
         if n_have_integers > 0 and event_id_func is None:
             intwarn = (", but could be reduced to their integer part "
                        "instead with the default `event_id_func`: "
-                       "{}, {} in total")
+                       "{0}, {1} in total")
             warn(basewarn + intwarn.format(list(have_integers)[:5],
                                            n_have_integers))
 
     events = list()
-    for t, latency in zip(types, latencies):
-        try:
-            event_code = event_id[t] if t in event_id else event_id_func(t)
+    for tt, latency in zip(types, latencies):
+        try:  # look up the event in event_id and if not, try event_id_func
+            event_code = event_id[tt] if tt in event_id else event_id_func(tt)
             events.append([int(latency), 1, event_code])
-        except ValueError:
-            pass  # We're already raising warnings above
+        except ValueError:  # if event_id_func can't parse the event
+            pass  # We're already raising warnings above, so we just drop
 
     if len(events) < len(types):
         warn("Some event codes could not be mapped to integers. Use the "
              "`event_id` parameter to map such events to integers manually.")
-    if len(events) < 3:
+    if len(events) < 1:
         warn("No events found, consider adding an `event_id`. As is, the "
              "trigger channel will consist entirely of zeros.")
         return np.zeros((0, 3))
