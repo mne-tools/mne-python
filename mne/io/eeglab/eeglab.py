@@ -3,7 +3,7 @@
 #
 # License: BSD (3-clause)
 
-import warnings
+from ...utils import warn
 import os.path as op
 
 import numpy as np
@@ -105,7 +105,7 @@ def _get_info(eeg, montage, eog=()):
     return info
 
 
-def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
+def read_raw_eeglab(input_fname, montage=None, eog=(), misc=(), event_id=None,
                     event_id_func=None, preload=False, verbose=None):
     """Read an EEGLAB .set file
 
@@ -119,23 +119,29 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
-        Names or indices of channels that should be designated
-        EOG channels. If 'auto', the channel names containing
-        ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
+        Names or indices of channels that should be designated EOG channels.
+        If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
+        Defaults to empty tuple.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the vhdr file.
+        Default is ``()``.
     event_id : dict | None
-        The ids of the events to consider. If None (default),
-        an empty dict is used and `event_id_func` (see below) is called on
-        every event value. If dict, the keys will be mapped to trigger values
-        on the stimulus channel and only keys not in `event_id` will be handled
-        by `event_id_func`.
-        Keys are case-sensitive.
-        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
+        The ids of the events to consider. If None (default), an empty dict is
+        used and `event_id_func` (see below) is called on every event value.
+        If dict, the keys will be mapped to trigger values on the stimulus
+        channel and only keys not in `event_id` will be handled by
+        `event_id_func`. Keys are case-sensitive.
+        Example::
+
+            {'SyncStatus': 1; 'Pulse Artifact': 3}
+
     event_id_func : None | callable
-        What to do for events not found in `event_id`. Must
-        take one `str` argument and return an `int`. If `None`, defaults to
-        stripping event codes such as "D128" or "S  1" of their non-integer
-        parts and returning the integer. Any event that is not in `event_id`
-        and cannot be parsed with this function is dropped.
+        What to do for events not found in `event_id`. Must take one `str`
+        argument and return an `int`. If `None`, defaults to stripping event
+        codes such as "D128" or "S  1" of their non-integer parts and returns
+        the integer. Any event that is not in `event_id` and cannot be parsed
+        with this function is dropped.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -161,12 +167,12 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
-                     eog=eog, event_id=event_id, event_id_func=event_id_func,
-                     verbose=verbose)
+                     eog=eog, misc=misc, event_id=event_id,
+                     event_id_func=event_id_func, verbose=verbose)
 
 
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
-                       eog=(), verbose=None):
+                       eog=(), misc=(), verbose=None):
     """Reader function for EEGLAB epochs files
 
     Parameters
@@ -181,9 +187,13 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         in the drop log. If None, it is constructed from the EEGLAB (.set) file
         with each unique event encoded with a different integer.
     event_id : int | list of int | dict | None
-        The id of the event to consider. If dict,
-        the keys can later be used to acces associated events. Example:
-        dict(auditory=1, visual=3). If int, a dict will be created with
+        The id of the event to consider. If dict, the keys can later be used
+        to acces associated events.
+        Example::
+
+            {"auditory":1, "visual":3}
+
+        If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, the event_id is constructed from the
         EEGLAB (.set) file with each descriptions copied from `eventtype`.
@@ -192,9 +202,13 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
-        Names or indices of channels that should be designated
-        EOG channels. If 'auto', the channel names containing
-        ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
+        Names or indices of channels that should be designated EOG channels.
+        If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
+        Defaults to empty tuple.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the vhdr file.
+        Default is ``()``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -213,7 +227,8 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     mne.Epochs : Documentation of attribute and methods.
     """
     epochs = EpochsEEGLAB(input_fname=input_fname, events=events, eog=eog,
-                          event_id=event_id, montage=montage, verbose=verbose)
+                          misc=misc, event_id=event_id, montage=montage,
+                          verbose=verbose)
     return epochs
 
 
@@ -226,33 +241,39 @@ class RawEEGLAB(_BaseRaw):
         Path to the .set file. If the data is stored in a separate .fdt file,
         it is expected to be in the same folder as the .set file.
     montage : str | None | instance of montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
+        Path or instance of montage containing electrode positions. If None,
+        sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
-        Names or indices of channels that should be designated
-        EOG channels. If 'auto', the channel names containing
-        ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
+        Names or indices of channels that should be designated EOG channels.
+        If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
+        Defaults to empty tuple.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the vhdr file.
+        Default is ``()``.
     event_id : dict | None
-        The ids of the events to consider. If None (default),
-        an empty dict is used and `event_id_func` (see below) is called on
-        every event value. If dict, the keys will be mapped to trigger values
-        on the stimulus channel and only keys not in `event_id` will be handled
-        by `event_id_func`.
-        Keys are case-sensitive.
-        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
+        The ids of the events to consider. If None (default), an empty dict is
+        used and `event_id_func` (see below) is called on every event value.
+        If dict, the keys will be mapped to trigger values on the stimulus
+        channel and only keys not in `event_id` will be handled by
+        `event_id_func`. Keys are case-sensitive.
+        Example::
+
+            {'SyncStatus': 1; 'Pulse Artifact': 3}
+
     event_id_func : None | callable
-        What to do for events not found in `event_id`. Must
-        take one `str` argument and return an `int`. If `None`, defaults to
-        stripping event codes such as "D128" or "S  1" of their non-integer
-        parts and returns the integer. Any event that is not in `event_id` and
-        cannot be parsed with this function is dropped.
+        What to do for events not found in `event_id`. Must take one `str`
+        argument and return an `int`. If `None`, defaults to stripping event
+        codes such as "D128" or "S  1" of their non-integer parts and returns
+        the integer. Any event that is not in `event_id` and cannot be parsed
+        with this function is dropped.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+        If True, the data will be preloaded into memory (fast, requires large
+        amount of memory). If preload is a string, preload is the file name of
+        a memory-mapped file which is used to store the data on the hard
+        drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -270,7 +291,7 @@ class RawEEGLAB(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, montage, eog=(), event_id=None,
+    def __init__(self, input_fname, montage, eog=(), misc=(), event_id=None,
                  event_id_func=None, preload=False, verbose=None):
         """Read EEGLAB .set file.
         """
@@ -292,14 +313,14 @@ class RawEEGLAB(_BaseRaw):
                          kind=FIFF.FIFFV_STIM_CH, logno=n_chan + 1,
                          scanno=n_chan + 1, cal=1., range=1., loc=np.zeros(12),
                          unit=FIFF.FIFF_UNIT_NONE, unit_mul=0.,
-                         coord_frame=FIFF.FIFFV_COORD_HEAD)
+                         coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
         info['chs'].append(stim_chan)
         if event_id is None:
             event_id = dict()
 
         self.preload = False  # so the event-setting works
         if event_id_func is None:
-            event_id_func = strip_to_integer
+            event_id_func = _strip_to_integer
         events = _read_eeglab_events(eeg, event_id=event_id,
                                      event_id_func=event_id_func)
         self._create_event_ch(events, n_sample=eeg.pnts)
@@ -315,15 +336,16 @@ class RawEEGLAB(_BaseRaw):
                 orig_format='double', verbose=verbose)
         else:
             if preload is False or isinstance(preload, string_types):
-                warnings.warn('Data will be preloaded. preload=False or a'
-                              ' string preload is not supported when the data'
-                              ' is stored in the .set file')
+                warn('Data will be preloaded. preload=False or a string '
+                     'preload is not supported when the data is stored in '
+                     'the .set file')
             # can't be done in standard way with preload=True because of
             # different reading path (.set file)
-            data = eeg.data.reshape(eeg.nbchan, -1, order='F')
-            data = data.astype(np.double)
+            n_chan, n_times = eeg.data.shape
+            data = np.empty((n_chan + 1, n_times), dtype=np.double)
+            data[:-1] = eeg.data
             data *= CAL
-            data = np.vstack((data, self._event_ch))
+            data[-1] = self._event_ch
             super(RawEEGLAB, self).__init__(
                 info, data, last_samps=last_samps, orig_format='double',
                 verbose=verbose)
@@ -412,9 +434,13 @@ class EpochsEEGLAB(_BaseEpochs):
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
-        Names or indices of channels that should be designated
-        EOG channels. If 'auto', the channel names containing
-        ``EOG`` or ``EYE`` are used. Defaults to empty tuple.
+        Names or indices of channels that should be designated EOG channels.
+        If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
+        Defaults to empty tuple.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the vhdr file.
+        Default is ``()``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -429,7 +455,8 @@ class EpochsEEGLAB(_BaseEpochs):
     @verbose
     def __init__(self, input_fname, events=None, event_id=None, tmin=0,
                  baseline=None,  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, montage=None, eog=(), verbose=None):
+                 reject_tmax=None, montage=None, eog=(), misc=(),
+                 verbose=None):
         from scipy import io
         _check_mat_struct(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
@@ -511,15 +538,17 @@ class EpochsEEGLAB(_BaseEpochs):
         logger.info('Ready.')
 
 
-def _read_eeglab_events(eeg, event_id=dict(), event_id_func=None):
+def _read_eeglab_events(eeg, event_id=None, event_id_func=None):
     """Create events array from EEGLAB structure
 
     An event array is constructed by looking up events in the
     event_id, trying to reduce them to their integer part otherwise, and
     entirely dropping them (with a warning) if this is impossible.
-    Returns a 3x3 array of zeros if no events are found."""
+    Returns a 1x3 array of zeros if no events are found."""
     if event_id_func is None:
-        event_id_func = strip_to_integer
+        event_id_func = _strip_to_integer
+    if event_id is None:
+        event_id = dict()
 
     types = [event.type for event in eeg.event]
     latencies = [event.latency for event in eeg.event]
@@ -534,15 +563,15 @@ def _read_eeglab_events(eeg, event_id=dict(), event_id_func=None):
         basewarn = "Events like the following will be dropped"
         n_no_numbers, n_have_integers = len(no_numbers), len(have_integers)
         if n_no_numbers > 0:
-            nonumwarm = " entirely: {}, {} in total"
-            warnings.warn(basewarn + nonumwarm.format(list(no_numbers)[:5],
-                                                      n_no_numbers))
+            no_num_warm = " entirely: {}, {} in total"
+            warn(basewarn + no_num_warm.format(list(no_numbers)[:5],
+                                               n_no_numbers))
         if n_have_integers > 0 and event_id_func is None:
             intwarn = (", but could be reduced to their integer part "
                        "instead with the default `event_id_func`: "
                        "{}, {} in total")
-            warnings.warn(basewarn + intwarn.format(list(have_integers)[:5],
-                                                    n_have_integers))
+            warn(basewarn + intwarn.format(list(have_integers)[:5],
+                                           n_have_integers))
 
     events = list()
     for t, latency in zip(types, latencies):
@@ -553,19 +582,16 @@ def _read_eeglab_events(eeg, event_id=dict(), event_id_func=None):
             pass  # We're already raising warnings above
 
     if len(events) < len(types):
-        warnings.warn("Some event codes could not be mapped to integers."
-                      " Use the `event_id` parameter to"
-                      " map such events to integers manually.")
-
+        warn("Some event codes could not be mapped to integers. Use the "
+             "`event_id` parameter to map such events to integers manually.")
     if len(events) < 3:
-        warnings.warn("No events found, consider adding an `event_id`."
-                      " As-is, the trigger channel will consist entirely"
-                      " of zeros.")
-        return np.zeros((3, 3))
+        warn("No events found, consider adding an `event_id`. As is, the "
+             "trigger channel will consist entirely of zeros.")
+        return np.zeros((0, 3))
     else:
         return np.asarray(events)
 
 
-def strip_to_integer(trigger):
+def _strip_to_integer(trigger):
     """Return only the integer part of a string."""
     return int("".join([x for x in trigger if x.isdigit()]))
