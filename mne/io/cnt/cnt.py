@@ -86,18 +86,18 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
         fid.seek(2, 1)
         sex = _read_str(fid, 1)
         if sex == 'M':
-            sex = 1
+            sex = FIFF.FIFFV_SUBJ_SEX_MALE
         elif sex == 'F':
-            sex = 2
+            sex = FIFF.FIFFV_SUBJ_SEX_FEMALE
         else:  # can be 'U'
-            sex = 0
+            sex = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
         hand = _read_str(fid, 1)
         if hand == 'R':
-            hand = 1
+            hand = FIFF.FIFFV_SUBJ_HAND_RIGHT
         elif hand == 'L':
-            hand = 2
+            hand = FIFF.FIFFV_SUBJ_HAND_LEFT
         else:  # can be 'M' for mixed or 'U'
-            hand = 0
+            hand = FIFF.FIFFV_SUBJ_HAND_UNKNOWN
         fid.seek(205)
         session_label = _read_str(fid, 20)
         session_date = _read_str(fid, 10)

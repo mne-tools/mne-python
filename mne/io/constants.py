@@ -230,6 +230,14 @@ FIFF.FIFF_SUBJ_HEIGHT       = 408  # Height of the subject
 FIFF.FIFF_SUBJ_COMMENT      = 409  # Comment about the subject
 FIFF.FIFF_SUBJ_HIS_ID       = 410  # ID used in the Hospital Information System
 
+FIFF.FIFFV_SUBJ_HAND_UNKNOWN= 1    # Unknown or mixed
+FIFF.FIFFV_SUBJ_HAND_RIGHT  = 1    # Righthanded
+FIFF.FIFFV_SUBJ_HAND_LEFT   = 2    # Lefthanded
+
+FIFF.FIFFV_SUBJ_SEX_UNKNOWN = 0    # Unknown gender
+FIFF.FIFFV_SUBJ_SEX_MALE    = 1    # Male
+FIFF.FIFFV_SUBJ_SEX_FEMALE  = 2    # Female
+
 FIFF.FIFF_PROJ_ID           = 500
 FIFF.FIFF_PROJ_NAME         = 501
 FIFF.FIFF_PROJ_AIM          = 502
