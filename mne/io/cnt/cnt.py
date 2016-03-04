@@ -70,41 +70,57 @@ def read_raw_cnt(input_fname, eog=(), ecg=(), emg=(), misc=(),
 
 def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
     """Helper for reading the cnt header."""
-    dtype = '<i4'
-    n_bytes = np.dtype(dtype).itemsize
-    offset = 900  # Size of the 'SETUP' header.
-    start = 0
+    data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
     # http://paulbourke.net/dataformats/eeg/
     with open(input_fname, 'rb', buffering=0) as fid:
         fid.seek(21)
         patient_id = ''.join(np.fromfile(fid, dtype='S1', count=20))
+        patient_id = int(patient_id) if patient_id.isdigit() else 0
         fid.seek(121)
-        patient_name = ''.join(np.fromfile(fid, dtype='S1', count=20))
-        age = np.fromfile(fid, dtype='<u2', count=1)[0]
+        patient_name = ''.join(np.fromfile(fid, dtype='S1', count=20)).split()
+        last_name = patient_name[0]
+        first_name = patient_name[-1]
+        fid.seek(2, 1)
         sex = ''.join(np.fromfile(fid, dtype='S1', count=1))
+        if sex == 'M':
+            sex = 1
+        elif sex == 'F':
+            sex = 2
+        else:  # can be 'U'
+            sex = 0
         hand = ''.join(np.fromfile(fid, dtype='S1', count=1))
+        if hand == 'R':
+            hand = 1
+        elif hand == 'L':
+            hand = 2
+        else:  # can be 'M' for mixed or 'U'
+            hand = 0
         fid.seek(205)
         session_label = ''.join(np.fromfile(fid, dtype='S1', count=20))
         session_date = ''.join(np.fromfile(fid, dtype='S1', count=10))
         time = ''.join(np.fromfile(fid, dtype='S1', count=12))
         date = session_date.split('/')
-        if date[2].startswith('9'):
-            date[2] = '19' + date[2]
-        elif len(date[2]) == 2:
-            date[2] = '20' + date[2]
-        time = time.split(':')
-        # Assuming mm/dd/yy
-        date = datetime.datetime(int(date[2]), int(date[0]), int(date[1]),
-                                 int(time[0]), int(time[1]), int(time[2]))
-        meas_date = calendar.timegm(date.utctimetuple())
-        if meas_date < 0:
+        if len(date) != 3:
             warn('Could not parse meas date from the header. Setting to 0...')
             meas_date = 0
+        else:
+            if date[2].startswith('9'):
+                date[2] = '19' + date[2]
+            elif len(date[2]) == 2:
+                date[2] = '20' + date[2]
+            time = time.split(':')
+            # Assuming mm/dd/yy
+            date = datetime.datetime(int(date[2]), int(date[0]), int(date[1]),
+                                     int(time[0]), int(time[1]), int(time[2]))
+            meas_date = calendar.timegm(date.utctimetuple())
+            if meas_date < 0:
+                warn('Could not parse meas date from the header. Setting to '
+                     '0...')
+                meas_date = 0
         fid.seek(370)
         n_channels = np.fromfile(fid, dtype='<u2', count=1)[0]
-        data_offset = n_channels * start * n_bytes + offset
         fid.seek(376)
         sfreq = np.fromfile(fid, dtype='<u2', count=1)[0]
         if eog == 'header':
@@ -134,7 +150,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
         n_samples = (event_offset - (900 + 75 * n_channels)) / (2 * n_channels)
         ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(),
                                                list())
-        size, bads = list(), list()
+        bads = list()
         for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
             ch_name = ''.join(np.fromfile(fid, dtype='S1', count=10))
@@ -149,15 +165,13 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
             baselines.append(np.fromfile(fid, dtype='i2', count=1)[0])
             fid.seek(data_offset + 75 * ch_idx + 59)
             sensitivity = np.fromfile(fid, dtype='f4', count=1)[0]
-            fid.seek(data_offset + 75 * ch_idx + 66)
-            size.append(np.fromfile(fid, dtype='u1', count=5))
             fid.seek(data_offset + 75 * ch_idx + 71)
             cal = np.fromfile(fid, dtype='f4', count=1)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
         fid.seek(event_offset)
         event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
-        event_size = np.fromfile(fid, dtype='<i4', count=1)
+        event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
         if event_type == 1:
             event_bytes = 8
         elif event_type == 2:
@@ -169,19 +183,19 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
         stim_channel = np.zeros(n_samples)  # Construct stim channel
         for i in range(n_events):
             fid.seek(event_offset + 9 + i * event_bytes)
-            event_id = np.fromfile(fid, dtype='u2', count=2)
+            event_id = np.fromfile(fid, dtype='u2', count=1)[0]
             fid.seek(event_offset + 9 + i * event_bytes + 4)
             offset = np.fromfile(fid, dtype='<i4', count=1)[0]
             event_time = (offset - 900 - 75 * n_channels) // (n_channels * 2)
-            stim_channel[event_time - 1] = event_id[0]
+            stim_channel[event_time - 1] = event_id
 
     info = _empty_info(sfreq)
     if lowpass_toggle == 1:
         info['lowpass'] = highcutoff
     if highpass_toggle == 1:
         info['highpass'] = lowcutoff
-    subject_info = {'age': age, 'name': patient_name, 'hand': hand,
-                    'id': patient_id, 'sex': sex}
+    subject_info = {'hand': hand, 'id': patient_id, 'sex': sex,
+                    'first_name': first_name, 'last_name': last_name}
 
     if eog == 'auto':
         eog = [ch for ch in ch_names if 'EOG' in ch.upper()]
@@ -232,7 +246,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
                     stim_channel=stim_channel)
     info.update(filename=input_fname, meas_date=np.array([meas_date, 0]),
-                description=session_label, buffer_size_sec=10., bads=bads,
+                description=str(session_label), buffer_size_sec=10., bads=bads,
                 subject_info=subject_info, chs=chs)
     info._check_consistency()
     return info, cnt_info
