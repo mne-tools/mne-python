@@ -497,6 +497,7 @@ Events
    pick_events
    read_events
    write_events
+   concatenate_epochs
 
 .. currentmodule:: mne.event
 
@@ -515,7 +516,6 @@ Events
    add_channels_epochs
    average_movements
    combine_event_ids
-   concatenate_epochs
    equalize_epoch_counts
 
 Sensor Space Data
