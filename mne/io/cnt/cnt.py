@@ -17,13 +17,37 @@ from ..meas_info import _empty_info
 from ..base import _BaseRaw
 
 
-def read_raw_cnt(input_fname, read_blocks=True, preload=False, verbose=None):
-    """
+def read_raw_cnt(input_fname, eog=(), ecg=(), emg=(), misc=(),
+                 read_blocks=True, preload=False, verbose=None):
+    """Read CNT data as raw object,
+
+    Note: Channels that are not assigned with keywords ``eog``, ``ecg``,
+    ``emg`` and ``misc`` are assigned as eeg channels. All the eeg channels are
+    fit to a sphere when computing the z-coordinates for the channels.
+    If channels assigned as eeg channels were placed away from the head (i.e.
+    x and y coordinates don't fit to a sphere), all the channel locations will
+    be distorted.
 
     Parameters
     ----------
     input_fname : str
         Path to the data file.
+    eog : list | tuple | 'auto' | 'header'
+        Names of channels or list of indices that should be designated
+        EOG channels. If 'header', VEOG and HEOG channels assigned in the file
+        header are used. If 'auto', channel names containing 'EOG' are used.
+        Defaults to empty tuple.
+    ecg : list or tuple | 'auto'
+        Names of channels or list of indices that should be designated
+        ECG channels. If 'auto', the channel names containing 'ECG' are used.
+        Defaults to empty tuple.
+    emg : list or tuple
+        Names of channels or list of indices that should be designated
+        EMG channels. If 'auto', the channel names containing 'EMG' are used.
+        Defaults to empty tuple.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated
+        MISC channels. Defaults to empty tuple.
     read_blocks : bool
         Whether to read data in blocks. This is for dealing with different
         kinds of CNT data formats.
@@ -40,11 +64,11 @@ def read_raw_cnt(input_fname, read_blocks=True, preload=False, verbose=None):
     -------
     Instance of RawCNT.
     """
-    return RawCNT(input_fname, read_blocks=read_blocks, preload=preload,
-                  verbose=verbose)
+    return RawCNT(input_fname, eog=eog, ecg=ecg, emg=emg, misc=misc,
+                  read_blocks=read_blocks, preload=preload, verbose=verbose)
 
 
-def _get_cnt_info(input_fname, read_blocks):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
     """Helper for reading the cnt header."""
     dtype = '<i4'
     n_bytes = np.dtype(dtype).itemsize
@@ -54,6 +78,13 @@ def _get_cnt_info(input_fname, read_blocks):
     # Reading only the fields of interest. Structure of the whole header at
     # http://paulbourke.net/dataformats/eeg/
     with open(input_fname, 'rb', buffering=0) as fid:
+        fid.seek(21)
+        patient_id = ''.join(np.fromfile(fid, dtype='S1', count=20))
+        fid.seek(121)
+        patient_name = ''.join(np.fromfile(fid, dtype='S1', count=20))
+        age = np.fromfile(fid, dtype='<u2', count=1)[0]
+        sex = ''.join(np.fromfile(fid, dtype='S1', count=1))
+        hand = ''.join(np.fromfile(fid, dtype='S1', count=1))
         fid.seek(205)
         session_label = ''.join(np.fromfile(fid, dtype='S1', count=20))
         session_date = ''.join(np.fromfile(fid, dtype='S1', count=10))
@@ -73,10 +104,13 @@ def _get_cnt_info(input_fname, read_blocks):
             meas_date = 0
         fid.seek(370)
         n_channels = np.fromfile(fid, dtype='<u2', count=1)[0]
-
         data_offset = n_channels * start * n_bytes + offset
         fid.seek(376)
-        cnt_info['sfreq'] = np.fromfile(fid, dtype='<u2', count=1)[0]
+        sfreq = np.fromfile(fid, dtype='<u2', count=1)[0]
+        if eog == 'header':
+            fid.seek(402)
+            eog = [idx for idx in np.fromfile(fid, dtype='i2', count=2) if
+                   idx >= 0]
         fid.seek(438)
         lowpass_toggle = np.fromfile(fid, 'i1', count=1)[0]
         highpass_toggle = np.fromfile(fid, 'i1', count=1)[0]
@@ -100,10 +134,14 @@ def _get_cnt_info(input_fname, read_blocks):
         n_samples = (event_offset - (900 + 75 * n_channels)) / (2 * n_channels)
         ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(),
                                                list())
-        size = list()
+        size, bads = list(), list()
         for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
-            ch_names.append(''.join(np.fromfile(fid, dtype='S1', count=10)))
+            ch_name = ''.join(np.fromfile(fid, dtype='S1', count=10))
+            ch_names.append(ch_name)
+            fid.seek(data_offset + 75 * ch_idx + 4)
+            if np.fromfile(fid, dtype='u1', count=1)[0]:
+                bads.append(ch_name)
             fid.seek(data_offset + 75 * ch_idx + 19)
             pos.append(np.fromfile(fid, dtype='f4', count=2))  # x and y pos
             fid.seek(data_offset + 75 * ch_idx + 47)
@@ -126,39 +164,62 @@ def _get_cnt_info(input_fname, read_blocks):
             event_bytes = 19
         else:
             raise IOError('Unexpected event size.')
+
         n_events = event_size // event_bytes
-        events = list()
+        stim_channel = np.zeros(n_samples)  # Construct stim channel
         for i in range(n_events):
+            fid.seek(event_offset + 9 + i * event_bytes)
+            event_id = np.fromfile(fid, dtype='u2', count=2)
             fid.seek(event_offset + 9 + i * event_bytes + 4)
-            offset = np.fromfile(fid, dtype='<i4', count=1)
-            events.append((offset - 900 - 75 * n_channels) //
-                          (n_channels * 2))
-        stim_channel = np.zeros(n_samples)
+            offset = np.fromfile(fid, dtype='<i4', count=1)[0]
+            event_time = (offset - 900 - 75 * n_channels) // (n_channels * 2)
+            stim_channel[event_time - 1] = event_id[0]
 
-        for event in events:
-            stim_channel[event - 1] = 1
-
-    info = _empty_info(cnt_info['sfreq'])
+    info = _empty_info(sfreq)
     if lowpass_toggle == 1:
         info['lowpass'] = highcutoff
     if highpass_toggle == 1:
         info['highpass'] = lowcutoff
-    info.update(filename=input_fname, meas_date=np.array([meas_date, 0]),
-                description=session_label, buffer_size_sec=10.)
+    subject_info = {'age': age, 'name': patient_name, 'hand': hand,
+                    'id': patient_id, 'sex': sex}
 
-    coords = _topo_to_sphere(pos)
+    if eog == 'auto':
+        eog = [ch for ch in ch_names if 'EOG' in ch.upper()]
+    if ecg == 'auto':
+        ecg = [ch for ch in ch_names if 'ECG' in ch.upper()]
+    if emg == 'auto':
+        emg = [ch for ch in ch_names if 'EMG' in ch.upper()]
+    eegs = list()
     for idx, ch_name in enumerate(ch_names):
-        ch_coil = FIFF.FIFFV_COIL_EEG
-        ch_kind = FIFF.FIFFV_EEG_CH
-        loc = np.zeros(12)
-        loc[:3] = coords[idx]
+        if ch_name in eog or idx in eog:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_EOG_CH
+        elif ch_name in ecg or idx in ecg:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_ECG_CH
+        elif ch_name in emg or idx in emg:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_EMG_CH
+        elif ch_name in misc or idx in misc:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_MISC_CH
+        else:
+            coil_type = FIFF.FIFFV_COIL_EEG
+            kind = FIFF.FIFFV_EEG_CH
+            eegs.append(idx)
 
         chan_info = {'cal': cals[idx], 'logno': idx + 1, 'scanno': idx + 1,
                      'range': 1.0, 'unit_mul': 0., 'ch_name': ch_name,
                      'unit': FIFF.FIFF_UNIT_V,
-                     'coord_frame': FIFF.FIFFV_COORD_HEAD, 'loc': loc,
-                     'coil_type': ch_coil, 'kind': ch_kind}
+                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                     'coil_type': coil_type, 'kind': kind}
         chs.append(chan_info)
+
+    coords = _topo_to_sphere(pos, eegs)
+    locs = np.zeros((len(chs), 12), dtype=float)
+    locs[:, :3] = coords
+    for ch, loc in zip(chs, locs):
+        ch.update(loc=loc)
 
     # Add the stim channel.
     chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
@@ -169,39 +230,55 @@ def _get_cnt_info(input_fname, read_blocks):
     chs.append(chan_info)
     baselines.append(0)  # For stim channel
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
-                    n_channels=n_channels, stim_channel=stim_channel)
-    info['chs'] = chs
+                    stim_channel=stim_channel)
+    info.update(filename=input_fname, meas_date=np.array([meas_date, 0]),
+                description=session_label, buffer_size_sec=10., bads=bads,
+                subject_info=subject_info, chs=chs)
     info._check_consistency()
     return info, cnt_info
 
 
-def _topo_to_sphere(pos):
+def _topo_to_sphere(pos, eegs):
     """Helper function for transforming xy-coordinates to sphere.
     Parameters
     ----------
-    pos : array of shape (xs, ys)
-        Coordinates to transform.
+    pos : array of shape (chs, 2)
+        xy-oordinates to transform.
+    eegs : list of int
+        Indices of eeg channels that are included when calculating the sphere.
 
     Returns
     -------
-    coords : list
+    coords : list of shape (chs, 3)
         xyz-coordinates.
     """
     xs = np.array(pos)[:, 0]
     ys = np.array(pos)[:, 1]
 
-    xs -= min(xs)  # First normalize the points.
-    ys -= min(ys)
-    xs *= (2. / max(xs))
-    ys *= (2. / max(ys))
-    xs -= 1.  # Values range from -1 to 1
+    ys -= min(ys)  # Normalize the points
+    xs -= min(xs)
+    xs /= max(xs)
+    ys /= max(ys)
+
+    xs += 0.5 - np.mean(xs[eegs])  # Centralize the points
+    ys += 0.5 - np.mean(ys[eegs])
+
+    xs *= 2  # Values ranging from -1 to 1
+    ys *= 2
+    xs -= 1.
     ys -= 1.
+
+    sqs = max(np.sqrt((xs[eegs] ** 2) + (ys[eegs] ** 2)))  # Shape to a sphere
+    xs /= sqs
+    ys /= sqs
+
     coords = list()
     for x, y in zip(xs, ys):
-        t = np.sqrt(x ** 2 + y ** 2)
-        if t > 1:  # Force the points to the surface of a sphere.
-            t = 1.
-        alpha = np.arccos(t)
+        r = np.sqrt(x ** 2 + y ** 2)
+        if r > 1:  # If a point is outside the sphere set z=0.
+            coords.append([x, y, 0])
+            continue
+        alpha = np.arccos(r)
         z = np.sin(alpha)
         coords.append([x, y, z])
     return coords
@@ -210,10 +287,32 @@ def _topo_to_sphere(pos):
 class RawCNT(_BaseRaw):
     """Raw object from Neuroscan CNT file.
 
+    Note: Channels that are not assigned with keywords ``eog``, ``ecg``,
+    ``emg`` and ``misc`` are assigned as eeg channels. All the eeg channels are
+    fit to a sphere when computing the z-coordinates for the channels.
+    If channels assigned as eeg channels were placed away from the head (i.e.
+    x and y coordinates don't fit to a sphere), all the channel locations will
+    be distorted.
+
     Parameters
     ----------
     input_fname : str
         Path to the CNT file.
+    eog : list | tuple
+        Names of channels or list of indices that should be designated
+        EOG channels. If 'auto', the channel names beginning with
+        ``EOG`` are used. Defaults to empty tuple.
+    ecg : list or tuple
+        Names of channels or list of indices that should be designated
+        ECG channels. If 'auto', the channel names beginning with
+        ``ECG`` are used. Defaults to empty tuple.
+    emg : list or tuple
+        Names of channels or list of indices that should be designated
+        EMG channels. If 'auto', the channel names beginning with
+        ``EMG`` are used. Defaults to empty tuple.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated
+        MISC channels. Defaults to empty tuple.
     read_blocks : bool
         Whether to read data in blocks. This is for dealing with different
         kinds of CNT data formats.
@@ -230,10 +329,11 @@ class RawCNT(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    def __init__(self, input_fname, read_blocks=True, preload=False,
-                 verbose=None):
+    def __init__(self, input_fname, eog=(), ecg=(), emg=(), misc=(),
+                 read_blocks=True, preload=False, verbose=None):
         input_fname = path.abspath(input_fname)
-        info, cnt_info = _get_cnt_info(input_fname, read_blocks)
+        info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
+                                       read_blocks)
         last_samps = [cnt_info['n_samples'] - 1]
         super(RawCNT, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
