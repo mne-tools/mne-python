@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-from ...utils import warn
 import os.path as op
 
 import numpy as np
@@ -84,7 +83,7 @@ def _get_info(eeg, montage, eog=()):
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
 
-    if montage is None:  # deal with missing ch_names
+    if montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         _check_update_montage(info, montage, path=path,
