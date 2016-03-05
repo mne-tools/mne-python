@@ -219,19 +219,19 @@ def _synthesize_stim_channel(events, n_samp):
     ----------
     events : array, shape (n_events, 3)
         Each row representing an event as (onset, duration, trigger) sequence
-        (the format returned by `_read_vmrk_events` or `_read_eeglab_events).
-    n_sample : int
+        (the format returned by `_read_vmrk_events` or `_read_eeglab_events`).
+    n_samples : int
         The number of samples.
 
     Returns
     -------
-    stim_channel : array, shape (n_sample,)
+    stim_channel : array, shape (n_samples,)
         An array containing the whole recording's event marking.
     """
     # select events overlapping buffer
     onset = events[:, 0]
     # create output buffer
-    stim_channel = np.zeros(n_sample, int)
+    stim_channel = np.zeros(n_samples, int)
     for onset, duration, trigger in events:
         stim_channel[onset:onset + duration] = trigger
     return stim_channel
