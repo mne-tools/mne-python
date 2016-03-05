@@ -25,6 +25,8 @@ These tutorials get you started to processing MEG/EEG data with MNE-Python. You 
     auto_tutorials/plot_epochs_objects.rst
     auto_tutorials/plot_epochs_to_data_frame.rst
 
+.. container:: span box
+
   .. raw:: html
 
     <h2>Preprocessing</h2>
@@ -37,6 +39,8 @@ These tutorials get you started to processing MEG/EEG data with MNE-Python. You 
     tutorials/preprocessing/artifacts_suppression.rst
     auto_tutorials/plot_ica_from_raw.rst
 
+.. container:: span box
+
   .. raw:: html
 
     <h2>Sensor-level analysis</h2>
@@ -45,6 +49,8 @@ These tutorials get you started to processing MEG/EEG data with MNE-Python. You 
   * Time-Frequency analysis with multitapers --TODO
   * Connectivity study with phase-lag index --TODO--
   * Decoding --TODO--
+
+.. container:: span box
 
   .. raw:: html
 
@@ -72,6 +78,8 @@ These tutorials get you started to processing MEG/EEG data with MNE-Python. You 
     auto_tutorials/plot_cluster_1samp_test_time_frequency.rst
     auto_tutorials/plot_cluster_stats_time_frequency.rst
 
+.. container:: span box
+
   .. raw:: html
 
     <h2>Source-space Statistics</h2>
@@ -84,6 +92,8 @@ These tutorials get you started to processing MEG/EEG data with MNE-Python. You 
     auto_tutorials/plot_cluster_stats_spatio_temporal_repeated_measures_anova.rst
     auto_tutorials/plot_cluster_stats_spatio_temporal.rst
 
+.. container:: span box
+
   .. raw:: html
 
     <h2>Visualization and Reporting</h2>
@@ -92,6 +102,8 @@ These tutorials get you started to processing MEG/EEG data with MNE-Python. You 
     :maxdepth: 1
 
     tutorials/report.rst
+
+.. container:: span box
 
   .. raw:: html
 

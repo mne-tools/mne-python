@@ -87,6 +87,16 @@ blockquote {
 }
 
 .span.box {
-    width: 49%;
+    width: 47%;
+    height: 220px;
     float: left;
+    border-radius: 20px;
+    background: #FFFFCC;
+    border-style: solid;
+    border-color: #ece5b6;
+    margin: 5px;
+}
+
+.span h2 {
+    background: #FFFFCC;
 }
