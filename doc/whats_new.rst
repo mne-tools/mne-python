@@ -50,6 +50,8 @@ Changelog
 
     - Add method :func:`mne.Epochs.plot_topo_image` by `Jaakko Leppakangas`_
 
+    - Add the ability to read events when importing raw EEGLAB files, by `Jona Sassenhagen`_.
+
 BUG
 ~~~
 
