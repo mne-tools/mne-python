@@ -203,11 +203,13 @@ def test_info_no_rename_no_reorder_no_pdf():
         # just check reading data | corner case
         raw2 = read_raw_bti(
             pdf_fname=pdf, config_fname=config, head_shape_fname=None,
+            rename_channels=False,
             sort_by_ch_name=True, preload=True)
 
     sort_idx = [raw1.bti_ch_labels.index(ch) for ch in raw2.bti_ch_labels]
     raw1._data = raw1._data[sort_idx]
     assert_array_equal(raw1._data, raw2._data)
+    assert_array_equal(raw2.bti_ch_labels, raw2.ch_names)
 
 
 def test_no_conversion():
