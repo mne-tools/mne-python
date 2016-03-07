@@ -151,8 +151,10 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
     if chance is not False:
         if chance is True:
             chance = _get_chance_level(gat.scorer_, gat.y_train_)
-        ax.axhline(float(chance), color='k', linestyle='--',
-                   label="Chance level")
+        chance = float(chance)
+        if np.isfinite(chance):  # don't plot nan chance level
+            ax.axhline(chance, color='k', linestyle='--',
+                       label="Chance level")
     ax.axvline(0, color='k', label='')
 
     if isinstance(train_time, (str, float)):
@@ -232,5 +234,5 @@ def _get_chance_level(scorer, y_train):
     else:
         chance = np.nan
         warn('Cannot find chance level from %s, specify chance level'
-             % scorer.func_name)
+             % scorer.__name__)
     return chance

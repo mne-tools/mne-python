@@ -28,7 +28,7 @@ subjects_dir = data_path + '/subjects'
 # Note that forward solutions can also be read with read_forward_solution
 fwd = mne.make_forward_solution(raw_fname, trans, src, bem,
                                 fname=None, meg=True, eeg=True, mindist=5.0,
-                                n_jobs=2, overwrite=True)
+                                n_jobs=1, overwrite=True)
 
 # convert to surface orientation for better visualization
 fwd = mne.convert_forward_solution(fwd, surf_ori=True)

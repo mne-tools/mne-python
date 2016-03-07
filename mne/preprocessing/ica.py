@@ -109,7 +109,7 @@ class ICA(ContainsMixin):
     n_components : int | float | None
         The number of components used for ICA decomposition. If int, it must be
         smaller then max_pca_components. If None, all PCA components will be
-        used. If float between 0 and 1 components can will be selected by the
+        used. If float between 0 and 1 components will be selected by the
         cumulative percentage of explained variance.
     max_pca_components : int | None
         The number of components used for PCA decomposition. If None, no
@@ -1442,7 +1442,7 @@ class ICA(ContainsMixin):
         labels : str | list | 'ecg' | 'eog' | None
             The labels to consider for the axes tests. Defaults to None.
             If list, should match the outer shape of `scores`.
-            If 'ecg' or 'eog', the labels_ attributes will be looked up.
+            If 'ecg' or 'eog', the ``labels_`` attributes will be looked up.
             Note that '/' is used internally for sublabels specifying ECG and
             EOG channels.
         axhline : float

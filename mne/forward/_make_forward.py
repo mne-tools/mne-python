@@ -15,14 +15,18 @@ from ..io.constants import FIFF
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform)
-from ..utils import logger, verbose
-from ..source_space import _ensure_src, _filter_source_spaces
+from ..utils import logger, verbose, warn
+from ..source_space import (_ensure_src, _filter_source_spaces,
+                            _make_discrete_source_space, SourceSpaces)
+from ..source_estimate import VolSourceEstimate
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
 
-from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
+from .forward import (Forward, write_forward_solution, _merge_meg_eeg_fwds,
+                      convert_forward_solution)
 from ._compute_forward import _compute_forwards
+from ..fixes import in1d
 
 
 _accuracy_dict = dict(normal=FIFF.FWD_COIL_ACCURACY_NORMAL,
@@ -419,7 +423,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     _print_coord_trans(mri_head_t)
 
     # make a new dict with the relevant information
-    arg_list = [info_extra, trans, src, bem_extra, fname,  meg, eeg,
+    arg_list = [info_extra, trans, src, bem_extra, fname, meg, eeg,
                 mindist, overwrite, n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
@@ -464,6 +468,9 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
         logger.info('')
 
     rr = np.concatenate([s['rr'][s['vertno']] for s in src])
+    if len(rr) < 1:
+        raise RuntimeError('No points left in source space after excluding '
+                           'points close to inner skull.')
 
     # deal with free orientations:
     source_nn = np.tile(np.eye(3), (len(rr), 1))
@@ -603,6 +610,130 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     logger.info('Finished.')
     return fwd
+
+
+def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
+    """Convert dipole object to source estimate and calculate forward operator
+
+    The instance of Dipole is converted to a discrete source space,
+    which is then combined with a BEM or a sphere model and
+    the sensor information in info to form a forward operator.
+
+    The source estimate object (with the forward operator) can be projected to
+    sensor-space using :func:`mne.simulation.evoked.simulate_evoked`.
+
+    Note that if the (unique) time points of the dipole object are unevenly
+    spaced, the first output will be a list of single-timepoint source
+    estimates.
+
+    Parameters
+    ----------
+    dipole : instance of Dipole
+        Dipole object containing position, orientation and amplitude of
+        one or more dipoles. Multiple simultaneous dipoles may be defined by
+        assigning them identical times.
+    bem : str | dict
+        The BEM filename (str) or a loaded sphere model (dict).
+    info : instance of Info
+        The measurement information dictionary. It is sensor-information etc.,
+        e.g., from a real data file.
+    trans : str | None
+        The head<->MRI transform filename. Must be provided unless BEM
+        is a sphere model.
+    n_jobs : int
+        Number of jobs to run in parallel (used in making forward solution).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fwd : instance of Forward
+        The forward solution corresponding to the source estimate(s).
+    stc : instance of VolSourceEstimate | list of VolSourceEstimate
+        The dipoles converted to a discrete set of points and associated
+        time courses. If the time points of the dipole are unevenly spaced,
+        a list of single-timepoint source estimates are returned.
+
+    See Also
+    --------
+    mne.simulation.simulate_evoked
+
+    Notes
+    -----
+    .. versionadded:: 0.12.0
+    """
+    # Make copies to avoid mangling original dipole
+    times = dipole.times.copy()
+    pos = dipole.pos.copy()
+    amplitude = dipole.amplitude.copy()
+    ori = dipole.ori.copy()
+
+    # Convert positions to discrete source space (allows duplicate rr & nn)
+    # NB information about dipole orientation enters here, then no more
+    sources = dict(rr=pos, nn=ori)
+    # Dipole objects must be in the head frame
+    sp = _make_discrete_source_space(sources, coord_frame='head')
+    src = SourceSpaces([sp])  # dict with working_dir, command_line not nec
+
+    # Forward operator created for channels in info (use pick_info to restrict)
+    # Use defaults for most params, including min_dist
+    fwd = make_forward_solution(info, trans, src, bem, fname=None,
+                                n_jobs=n_jobs, verbose=verbose)
+    # Convert from free orientations to fixed (in-place)
+    convert_forward_solution(fwd, surf_ori=False, force_fixed=True,
+                             copy=False, verbose=None)
+
+    # Check for omissions due to proximity to inner skull in
+    # make_forward_solution, which will result in an exception
+    if fwd['src'][0]['nuse'] != len(pos):
+        inuse = fwd['src'][0]['inuse'].astype(np.bool)
+        head = ('The following dipoles are outside the inner skull boundary')
+        msg = len(head) * '#' + '\n' + head + '\n'
+        for (t, pos) in zip(times[np.logical_not(inuse)],
+                            pos[np.logical_not(inuse)]):
+            msg += '    t={:.0f} ms, pos=({:.0f}, {:.0f}, {:.0f}) mm\n'.\
+                format(t * 1000., pos[0] * 1000.,
+                       pos[1] * 1000., pos[2] * 1000.)
+        msg += len(head) * '#'
+        logger.error(msg)
+        raise ValueError('One or more dipoles outside the inner skull.')
+
+    # multiple dipoles (rr and nn) per time instant allowed
+    # uneven sampling in time returns list
+    timepoints = np.unique(times)
+    if len(timepoints) > 1:
+        tdiff = np.diff(timepoints)
+        if not np.allclose(tdiff, tdiff[0]):
+            warn('Unique time points of dipoles unevenly spaced: returned '
+                 'stc will be a list, one for each time point.')
+            tstep = -1.0
+        else:
+            tstep = tdiff[0]
+    elif len(timepoints) == 1:
+        tstep = 0.001
+
+    # Build the data matrix, essentially a block-diagonal with
+    # n_rows: number of dipoles in total (dipole.amplitudes)
+    # n_cols: number of unique time points in dipole.times
+    # amplitude with identical value of times go together in one col (others=0)
+    data = np.zeros((len(amplitude), len(timepoints)))  # (n_d, n_t)
+    row = 0
+    for tpind, tp in enumerate(timepoints):
+        amp = amplitude[in1d(times, tp)]
+        data[row:row + len(amp), tpind] = amp
+        row += len(amp)
+
+    if tstep > 0:
+        stc = VolSourceEstimate(data, vertices=fwd['src'][0]['vertno'],
+                                tmin=timepoints[0],
+                                tstep=tstep, subject=None)
+    else:  # Must return a list of stc, one for each time point
+        stc = []
+        for col, tp in enumerate(timepoints):
+            stc += [VolSourceEstimate(data[:, col][:, np.newaxis],
+                                      vertices=fwd['src'][0]['vertno'],
+                                      tmin=tp, tstep=0.001, subject=None)]
+    return fwd, stc
 
 
 def _to_forward_dict(fwd, names, fwd_grad=None,

@@ -636,7 +636,7 @@ def _auto_topomap_coords(info, picks):
     dist = pdist(locs3d)
     if np.min(dist) < 1e-10:
         problematic_electrodes = [
-            info['ch_names'][elec_i]
+            chs[elec_i]['ch_name']
             for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]
         ]
 

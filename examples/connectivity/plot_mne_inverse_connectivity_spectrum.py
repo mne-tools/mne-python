@@ -68,7 +68,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     label_ts, method='wpli2_debiased', mode='multitaper', sfreq=sfreq,
-    fmin=fmin, fmax=fmax, mt_adaptive=True, n_jobs=2)
+    fmin=fmin, fmax=fmax, mt_adaptive=True, n_jobs=1)
 
 n_rows, n_cols = con.shape[:2]
 fig, axes = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)

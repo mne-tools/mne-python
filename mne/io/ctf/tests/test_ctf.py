@@ -54,7 +54,9 @@ def test_read_ctf():
     os.mkdir(op.join(temp_dir, 'randpos'))
     ctf_eeg_fname = op.join(temp_dir, 'randpos', ctf_fname_catch)
     shutil.copytree(op.join(ctf_dir, ctf_fname_catch), ctf_eeg_fname)
-    raw = _test_raw_reader(read_raw_ctf, directory=ctf_eeg_fname)
+    with warnings.catch_warnings(record=True) as w:  # reclassified ch
+        raw = _test_raw_reader(read_raw_ctf, directory=ctf_eeg_fname)
+    assert_true(all('MISC channel' in str(ww.message) for ww in w))
     picks = pick_types(raw.info, meg=False, eeg=True)
     pos = np.random.RandomState(42).randn(len(picks), 3)
     fake_eeg_fname = op.join(ctf_eeg_fname, 'catch-alp-good-f.eeg')
@@ -69,7 +71,9 @@ def test_read_ctf():
                 '%0.5f' % x for x in 100 * pos[ii])  # convert to cm
             fid.write(('\t'.join(args) + '\n').encode('ascii'))
     pos_read_old = np.array([raw.info['chs'][p]['loc'][:3] for p in picks])
-    raw = read_raw_ctf(ctf_eeg_fname)  # read modified data
+    with warnings.catch_warnings(record=True) as w:  # reclassified channel
+        raw = read_raw_ctf(ctf_eeg_fname)  # read modified data
+    assert_true(all('MISC channel' in str(ww.message) for ww in w))
     pos_read = np.array([raw.info['chs'][p]['loc'][:3] for p in picks])
     assert_allclose(apply_trans(raw.info['ctf_head_t'], pos), pos_read,
                     rtol=1e-5, atol=1e-5)
@@ -93,7 +97,9 @@ def test_read_ctf():
     use_fnames = [op.join(ctf_dir, c) for c in ctf_fnames]
     for fname in use_fnames:
         raw_c = Raw(fname + '_raw.fif', add_eeg_ref=False, preload=True)
-        raw = read_raw_ctf(fname)
+        with warnings.catch_warnings(record=True) as w:  # reclassified ch
+            raw = read_raw_ctf(fname)
+        assert_true(all('MISC channel' in str(ww.message) for ww in w))
 
         # check info match
         assert_array_equal(raw.ch_names, raw_c.ch_names)
@@ -134,9 +140,26 @@ def test_read_ctf():
         for ii, (c1, c2) in enumerate(zip(raw.info['chs'], raw_c.info['chs'])):
             for key in ('kind', 'scanno', 'unit', 'ch_name', 'unit_mul',
                         'range', 'coord_frame', 'coil_type', 'logno'):
-                assert_equal(c1[key], c2[key])
-            for key in ('loc', 'cal'):
+                if c1['ch_name'] == 'RMSP' and \
+                        'catch-alp-good-f' in fname and \
+                        key in ('kind', 'unit', 'coord_frame', 'coil_type',
+                                'logno'):
+                    continue  # XXX see below...
+                assert_equal(c1[key], c2[key], err_msg=key)
+            for key in ('cal',):
                 assert_allclose(c1[key], c2[key], atol=1e-6, rtol=1e-4,
+                                err_msg='raw.info["chs"][%d][%s]' % (ii, key))
+            # XXX 2016/02/24: fixed bug with normal computation that used
+            # to exist, once mne-C tools are updated we should update our FIF
+            # conversion files, then the slices can go away (and the check
+            # can be combined with that for "cal")
+            for key in ('loc',):
+                if c1['ch_name'] == 'RMSP' and 'catch-alp-good-f' in fname:
+                    continue
+                assert_allclose(c1[key][:3], c2[key][:3], atol=1e-6, rtol=1e-4,
+                                err_msg='raw.info["chs"][%d][%s]' % (ii, key))
+                assert_allclose(c1[key][9:12], c2[key][9:12], atol=1e-6,
+                                rtol=1e-4,
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
         if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
             raw.info['dig'] = raw.info['dig'][:-10]
@@ -163,7 +186,9 @@ def test_read_ctf():
             assert_allclose(raw_read[pick_ch, sl_time][0],
                             raw_c[pick_ch, sl_time][0])
         # all data / preload
-        raw = read_raw_ctf(fname, preload=True)
+        with warnings.catch_warnings(record=True) as w:  # reclassified ch
+            raw = read_raw_ctf(fname, preload=True)
+        assert_true(all('MISC channel' in str(ww.message) for ww in w))
         assert_allclose(raw[:][0], raw_c[:][0])
     assert_raises(TypeError, read_raw_ctf, 1)
     assert_raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')

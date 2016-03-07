@@ -34,7 +34,7 @@ subjects_dir = data_path + '/subjects'
 
 # Load stc to in common cortical space (fsaverage)
 stc = mne.read_source_estimate(stc_fname)
-stc.resample(50)
+stc.resample(50, npad='auto')
 
 stc = mne.morph_data('sample', 'fsaverage', stc, grade=5, smooth=20,
                      subjects_dir=subjects_dir)
@@ -77,7 +77,7 @@ f_threshold = stats.distributions.f.ppf(1. - p_threshold / 2.,
                                         n_subjects1 - 1, n_subjects2 - 1)
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu =\
-    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=2,
+    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
                                  threshold=f_threshold)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).

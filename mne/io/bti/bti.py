@@ -1169,7 +1169,9 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     info['lowpass'] = lp
     chs = []
 
-    bti_ch_names = [ch['name'] for ch in bti_info['chs']]
+    # Note that 'name' and 'chan_label' are not the same.
+    # We want the configured label if out IO parsed it.
+    bti_ch_names = [c.get('chan_label', c['name']) for c in bti_info['chs']]
     neuromag_ch_names = _rename_channels(
         bti_ch_names, ecg_ch=ecg_ch, eog_ch=eog_ch)
     ch_mapping = zip(bti_ch_names, neuromag_ch_names)

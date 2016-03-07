@@ -44,7 +44,7 @@ def test_gamma_map():
     forward = pick_types_forward(forward, meg=False, eeg=True)
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
                           proj=False)
-    evoked.resample(50)
+    evoked.resample(50, npad=100)
     evoked.crop(tmin=0.1, tmax=0.16)  # crop to nice window near samp border
 
     cov = read_cov(fname_cov)

@@ -9,6 +9,7 @@ import os.path as op
 import shutil
 import tarfile
 import stat
+import sys
 
 from .. import __version__ as mne_version
 from ..utils import get_config, set_config, _fetch_file, logger, warn
@@ -94,32 +95,32 @@ def _dataset_version(path, name):
 def _get_path(path, key, name):
     """Helper to get a dataset path"""
     if path is None:
-            # use an intelligent guess if it's not defined
-            def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
-                                           '..', 'examples'))
-            if get_config(key) is None:
-                key = 'MNE_DATA'
-            path = get_config(key, def_path)
+        # use an intelligent guess if it's not defined
+        def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
+                                       'examples'))
+        if get_config(key) is None:
+            key = 'MNE_DATA'
+        path = get_config(key, def_path)
 
-            # use the same for all datasets
-            if not op.exists(path) or not os.access(path, os.W_OK):
+        # use the same for all datasets
+        if not op.exists(path) or not os.access(path, os.W_OK):
+            try:
+                os.mkdir(path)
+            except OSError:
                 try:
-                    os.mkdir(path)
+                    logger.info('Checking for %s data in '
+                                '"~/mne_data"...' % name)
+                    path = op.join(op.expanduser("~"), "mne_data")
+                    if not op.exists(path):
+                        logger.info("Trying to create "
+                                    "'~/mne_data' in home directory")
+                        os.mkdir(path)
                 except OSError:
-                    try:
-                        logger.info('Checking for %s data in '
-                                    '"~/mne_data"...' % name)
-                        path = op.join(op.expanduser("~"), "mne_data")
-                        if not op.exists(path):
-                            logger.info("Trying to create "
-                                        "'~/mne_data' in home directory")
-                            os.mkdir(path)
-                    except OSError:
-                        raise OSError("User does not have write permissions "
-                                      "at '%s', try giving the path as an "
-                                      "argument to data_path() where user has "
-                                      "write permissions, for ex:data_path"
-                                      "('/home/xyz/me2/')" % (path))
+                    raise OSError("User does not have write permissions "
+                                  "at '%s', try giving the path as an "
+                                  "argument to data_path() where user has "
+                                  "write permissions, for ex:data_path"
+                                  "('/home/xyz/me2/')" % (path))
     if not isinstance(path, string_types):
         raise ValueError('path must be a string or None')
     return path
@@ -131,10 +132,13 @@ def _do_path_update(path, update_path, key, name):
     if update_path is None:
         if get_config(key, '') != path:
             update_path = True
-            msg = ('Do you want to set the path:\n    %s\nas the default '
-                   '%s dataset path in the mne-python config [y]/n? '
-                   % (path, name))
-            answer = input(msg)
+            if '--update-dataset-path' in sys.argv:
+                answer = 'y'
+            else:
+                msg = ('Do you want to set the path:\n    %s\nas the default '
+                       '%s dataset path in the mne-python config [y]/n? '
+                       % (path, name))
+                answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
         else:
@@ -163,7 +167,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.15', misc='0.1')
+    releases = dict(testing='0.16', misc='0.1')
     # And also update the "hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -172,7 +176,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
         sample='MNE-sample-data-processed.tar.gz',
         somato='MNE-somato-data.tar.gz',
-        spm='MNE-spm-face.tar.bz2',
+        spm='MNE-spm-face.tar.gz',
         testing='mne-testing-data-%s.tar.gz' % releases['testing'],
         fake='foo.tgz',
     )
@@ -188,7 +192,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='MNE-testing-data',
     )
     urls = dict(
-        brainstorm='https://copy.com/ZTHXXFcuIZycvRoA/brainstorm/%s',
+        brainstorm='https://mne-tools.s3.amazonaws.com/datasets/'
+                   'MNE-brainstorm-data/%s',
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/%s',
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
@@ -205,8 +210,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         misc='f0708d8914cf2692fee7b6c9f105e71c',
         sample='ccf5cbc41a3727ed02821330a07abb13',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
-        spm='3e9e83c642136e5b720e2ecc5dcc3244',
-        testing='dba99c82eab1b8cd0c7d9fb13809149f',
+        spm='f61041e3f3f2ba0def8a2ca71592cc41',
+        testing='1f23321c65572a7b71e4902571447aa4',
     )
     folder_origs = dict(  # not listed means None
         misc='mne-misc-data-%s' % releases['misc'],
@@ -233,7 +238,10 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         return ''
     if not op.exists(folder_path) or force_update:
         if name == 'brainstorm':
-            answer = input('%sAgree (y/[n])? ' % _bst_license_text)
+            if '--accept-brainstorm-license' in sys.argv:
+                answer = 'y'
+            else:
+                answer = input('%sAgree (y/[n])? ' % _bst_license_text)
             if answer.lower() != 'y':
                 raise RuntimeError('You must agree to the license to use this '
                                    'dataset')

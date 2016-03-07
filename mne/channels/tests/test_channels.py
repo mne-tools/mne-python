@@ -106,6 +106,11 @@ def test_set_channel_types():
         assert_true(info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_V)
         assert_true(info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_EEG)
 
+    # Test meaningful error when setting channel type with unknown unit
+    raw.info['chs'][0]['unit'] = 0.
+    ch_types = {raw.ch_names[0]: 'misc'}
+    assert_raises(ValueError, raw.set_channel_types, ch_types)
+
 
 def test_read_ch_connectivity():
     "Test reading channel connectivity templates"

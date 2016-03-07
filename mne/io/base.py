@@ -17,6 +17,7 @@ from scipy import linalg
 
 from .constants import FIFF
 from .pick import pick_types, channel_type, pick_channels, pick_info
+from .pick import _pick_data_channels, _pick_data_or_ica
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -621,7 +622,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise RuntimeError('Raw data needs to be preloaded. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+            picks = _pick_data_channels(self.info, exclude=[],
+                                        with_ref_meg=False)
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')
@@ -800,11 +802,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
-            if 'ICA ' in ','.join(self.ch_names):
-                pick_parameters = dict(misc=True, ref_meg=False)
-            else:
-                pick_parameters = dict(meg=True, eeg=True, ref_meg=False)
-            picks = pick_types(self.info, exclude=[], **pick_parameters)
+            picks = _pick_data_or_ica(self.info)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
@@ -928,11 +926,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             verbose = self.verbose
         fs = float(self.info['sfreq'])
         if picks is None:
-            if 'ICA ' in ','.join(self.ch_names):
-                pick_parameters = dict(misc=True)
-            else:
-                pick_parameters = dict(meg=True, eeg=True)
-            picks = pick_types(self.info, exclude=[], **pick_parameters)
+            picks = _pick_data_or_ica(self.info)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
@@ -951,7 +945,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                   picks=picks, n_jobs=n_jobs, copy=False)
 
     @verbose
-    def resample(self, sfreq, npad=100, window='boxcar', stim_picks=None,
+    def resample(self, sfreq, npad=None, window='boxcar', stim_picks=None,
                  n_jobs=1, events=None, copy=False, verbose=None):
         """Resample data channels.
 
@@ -979,8 +973,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         sfreq : float
             New sample rate to use.
-        npad : int
+        npad : int | str
             Amount to pad the start and end of the data.
+            Can also be "auto" to use a padding that will result in
+            a power-of-two size (can be much faster).
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
         stim_picks : array of int | None
@@ -1012,6 +1008,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         For some data, it may be more accurate to use npad=0 to reduce
         artifacts. This is dataset dependent -- check your data!
         """
+        if npad is None:
+            npad = 100
+            warn('npad is currently taken to be 100, but will be changed to '
+                 '"auto" in 0.12. Please set the value explicitly.',
+                 DeprecationWarning)
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
 
@@ -1597,8 +1598,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
         tslice = slice(start, stop + 1)
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
-                               exclude='bads')
+            picks = _pick_data_channels(self.info, exclude='bads',
+                                        with_ref_meg=False)
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
@@ -1924,10 +1925,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
     if part_idx > 0:
         # insert index in filename
-        path, base = op.split(fname)
-        idx = base.find('.')
-        use_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx,
-                                                base[idx + 1:]))
+        base, ext = op.splitext(fname)
+        use_fname = '%s-%d%s' % (base, part_idx, ext)
     else:
         use_fname = fname
     logger.info('Writing %s' % use_fname)

@@ -1,8 +1,8 @@
 .. _api_reference:
 
-=============
-API Reference
-=============
+====================
+Python API Reference
+====================
 
 This is the classes and functions reference of mne-python. Functions are
 grouped thematically by analysis stage. Functions and classes that are not
@@ -34,6 +34,7 @@ Classes
    MixedSourceEstimate
    Covariance
    Dipole
+   DipoleFixed
    Label
    BiHemiLabel
    Transform
@@ -496,6 +497,7 @@ Events
    pick_events
    read_events
    write_events
+   concatenate_epochs
 
 .. currentmodule:: mne.event
 
@@ -514,7 +516,6 @@ Events
    add_channels_epochs
    average_movements
    combine_event_ids
-   concatenate_epochs
    equalize_epoch_counts
 
 Sensor Space Data
@@ -612,6 +613,7 @@ Functions:
    do_forward_solution
    make_bem_model
    make_bem_solution
+   make_forward_dipole
    make_forward_solution
    make_field_map
    make_sphere_model
@@ -645,13 +647,6 @@ Functions:
 
    restrict_forward_to_label
    restrict_forward_to_stc
-
-:py:mod:`mne.source_space`:
-
-.. automodule:: mne.source_space
-   :no-members:
-   :no-inherited-members:
-
 
 Inverse Solutions
 =================

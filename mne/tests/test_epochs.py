@@ -186,6 +186,9 @@ def test_reject():
                   picks=picks, preload=False, reject='foo')
     assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax,
                   picks=picks_meg, preload=False, reject=dict(eeg=1.))
+    # this one is okay because it's not actually requesting rejection
+    Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
+           preload=False, reject=dict(eeg=np.inf))
     for val in (None, -1):  # protect against older MNE-C types
         for kwarg in ('reject', 'flat'):
             assert_raises(ValueError, Epochs, raw, events, event_id,
@@ -1120,8 +1123,8 @@ def test_resample():
     epochs1 = EpochsArray(data, deepcopy(info), events)
     epochs2 = EpochsArray(data, deepcopy(info), events)
     epochs = concatenate_epochs([epochs1, epochs2])
-    epochs1.resample(epochs1.info['sfreq'] // 2)
-    epochs2.resample(epochs2.info['sfreq'] // 2)
+    epochs1.resample(epochs1.info['sfreq'] // 2, npad='auto')
+    epochs2.resample(epochs2.info['sfreq'] // 2, npad='auto')
     epochs = concatenate_epochs([epochs1, epochs2])
     for e in epochs1, epochs2, epochs:
         assert_equal(e.times[0], epochs.tmin)
@@ -1729,6 +1732,8 @@ def test_add_channels_epochs():
         epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
 
         assert_equal(len(epochs.info['projs']), len(epochs2.info['projs']))
+        assert_equal(len(epochs.info.keys()), len(epochs_meg.info.keys()))
+        assert_equal(len(epochs.info.keys()), len(epochs_eeg.info.keys()))
         assert_equal(len(epochs.info.keys()), len(epochs2.info.keys()))
 
         data1 = epochs.get_data()

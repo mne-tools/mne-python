@@ -378,7 +378,8 @@ def _psd_from_mt(x_mt, weights):
         The computed PSD
     """
     psd = weights * x_mt
-    psd = (psd * psd.conj()).real.sum(axis=-2)
+    psd *= psd.conj()
+    psd = psd.real.sum(axis=-2)
     psd *= 2 / (weights * weights.conj()).real.sum(axis=-2)
     return psd
 
@@ -437,15 +438,19 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     # remove mean (do not use in-place subtraction as it may modify input x)
     x = x - np.mean(x, axis=-1)[:, np.newaxis]
-    x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
 
     # only keep positive frequencies
     freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
     freq_mask = (freqs >= 0)
-
-    x_mt = x_mt[:, :, freq_mask]
     freqs = freqs[freq_mask]
 
+    # The following is equivalent to this, but uses less memory:
+    # x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
+    n_tapers = dpss.shape[0] if dpss.ndim > 1 else 1
+    x_mt = np.zeros((len(x), n_tapers, freq_mask.sum()), dtype=np.complex128)
+    for idx, sig in enumerate(x):
+        x_mt[idx] = fftpack.fft(sig[np.newaxis, :] * dpss,
+                                n=n_fft)[:, freq_mask]
     return x_mt, freqs
 
 
@@ -516,10 +521,12 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     n_tapers_max = int(2 * half_nbw)
     dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
                                  low_bias=low_bias)
-    x_mt, freqs = _mt_spectra(x, dpss, sfreq)
 
     # descide which frequencies to keep
+    freqs = fftpack.fftfreq(x.shape[1], 1. / sfreq)
+    freqs = freqs[(freqs >= 0)]  # what we get from _mt_spectra
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
+    freqs = freqs[freq_mask]
 
     # combine the tapered spectra
     if adaptive and len(eigvals) < 3:
@@ -527,25 +534,30 @@ def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
              'number of tapers.')
         adaptive = False
 
-    if not adaptive:
-        x_mt = x_mt[:, :, freq_mask]
-        weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
-        psd = _psd_from_mt(x_mt, weights)
-    else:
-        parallel, my_psd_from_mt_adaptive, n_jobs = \
-            parallel_func(_psd_from_mt_adaptive, n_jobs)
-        out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
-                       for x in np.array_split(x_mt, n_jobs))
-        psd = np.concatenate(out)
+    psd = np.zeros((x.shape[0], freq_mask.sum()))
+    # Let's go in up to 50 MB chunks of signals to save memory
+    n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), n_jobs)
+    offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
+    for start, stop in zip(offsets[:-1], offsets[1:]):
+        x_mt = _mt_spectra(x[start:stop], dpss, sfreq)[0]
+        if not adaptive:
+            weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
+            psd[start:stop] = _psd_from_mt(x_mt[:, :, freq_mask], weights)
+        else:
+            n_splits = min(stop - start, n_jobs)
+            parallel, my_psd_from_mt_adaptive, n_jobs = \
+                parallel_func(_psd_from_mt_adaptive, n_splits)
+            out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
+                           for x in np.array_split(x_mt, n_splits))
+            psd[start:stop] = np.concatenate(out)
 
-    freqs = freqs[freq_mask]
     if normalization == 'full':
         psd /= sfreq
 
     # Combining/reshaping to original data shape
-    psd = psd.reshape(np.hstack([dshape, -1]))
+    psd.shape = dshape + (-1,)
     if ndim_in == 1:
-        psd = psd[0, :]
+        psd = psd[0]
     return psd, freqs
 
 
@@ -592,7 +604,8 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd
+    mne.io.Raw.plot_psd
+    mne.Epochs.plot_psd
 
     Notes
     -----

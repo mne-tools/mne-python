@@ -143,7 +143,7 @@ class ProjMixin(object):
         from ..epochs import _BaseEpochs
         from .base import _BaseRaw
         if self.info['projs'] is None or len(self.info['projs']) == 0:
-            logger.info('No projector specified for this dataset.'
+            logger.info('No projector specified for this dataset. '
                         'Please consider the method self.add_proj.')
             return self
 

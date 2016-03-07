@@ -175,7 +175,7 @@ def test_evoked_resample():
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
     sfreq_normal = ave.info['sfreq']
-    ave.resample(2 * sfreq_normal)
+    ave.resample(2 * sfreq_normal, npad=100)
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
     ave_up = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
@@ -184,7 +184,7 @@ def test_evoked_resample():
 
     # and compare the original to the downsampled upsampled version
     ave_new = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
-    ave_new.resample(sfreq_normal)
+    ave_new.resample(sfreq_normal, npad=100)
 
     assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
     assert_array_almost_equal(ave_normal.times, ave_new.times)

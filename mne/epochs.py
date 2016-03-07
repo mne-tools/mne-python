@@ -458,7 +458,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                % (kind, bads))
 
         for key in idx.keys():
-            if len(idx[key]) == 0 and (key in reject or key in flat):
+            # don't throw an error if rejection/flat would do nothing
+            if len(idx[key]) == 0 and (np.isfinite(reject.get(key, np.inf)) or
+                                       flat.get(key, -1) >= 0):
                 # This is where we could eventually add e.g.
                 # self.allow_missing_reject_keys check to allow users to
                 # provide keys that don't exist in data
@@ -1436,7 +1438,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return this_epochs
 
     @verbose
-    def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
+    def resample(self, sfreq, npad=None, window='boxcar', n_jobs=1,
                  copy=False, verbose=None):
         """Resample preloaded data
 
@@ -1444,8 +1446,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         sfreq : float
             New sample rate to use
-        npad : int
+        npad : int | str
             Amount to pad the start and end of the data.
+            Can also be "auto" to use a padding that will result in
+            a power-of-two size (can be much faster).
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
         n_jobs : int
@@ -1470,6 +1474,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # XXX this could operate on non-preloaded data, too
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
+        if npad is None:
+            npad = 100
+            warn('npad is currently taken to be 100, but will be changed to '
+                 '"auto" in 0.12. Please set the value explicitly.',
+                 DeprecationWarning)
 
         inst = self.copy() if copy else self
 
@@ -1477,7 +1486,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         inst._data = resample(inst._data, sfreq, o_sfreq, npad,
                               n_jobs=n_jobs)
         # adjust indirectly affected variables
-        inst.info['sfreq'] = sfreq
+        inst.info['sfreq'] = float(sfreq)
         inst.times = (np.arange(inst._data.shape[2], dtype=np.float) /
                       sfreq + inst.times[0])
         return inst

@@ -1,5 +1,5 @@
 """
-.. _tut_raw_objects
+.. _tut_raw_objects:
 
 The :class:`Raw <mne.io.RawFIF>` data structure: continuous data
 ================================================================
@@ -18,8 +18,8 @@ from matplotlib import pyplot as plt
 # (`.info`) (:ref:`tut_info_objects`.
 #
 # The most common way to load continuous data is from a .fif file. For more
-# information on :ref:`loading data from other formats <ch_raw>`, or creating
-# it :ref:`from scratch <tut_creating_data_structures>`.
+# information on :ref:`loading data from other formats <ch_convert>`, or
+# creating it :ref:`from scratch <tut_creating_data_structures>`.
 
 
 ###############################################################################
