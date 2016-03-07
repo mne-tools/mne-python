@@ -1478,7 +1478,7 @@ def _regularized_covariance(data, reg=None):
                               assume_centered=True)
             else:
                 raise ValueError("regularization parameter should be "
-                                 "'lwf' or 'oas'")
+                                 "'ledoit_wolf' or 'oas'")
         else:
             raise ValueError("regularization parameter should be "
                              "of type str or int (got %s)." % type(reg))
