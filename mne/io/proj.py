@@ -426,17 +426,16 @@ def _write_proj(fid, projs):
 
 ###############################################################################
 # Utils
-
-def make_projector(projs, ch_names, bads=[], include_active=True):
+def make_projector(projs, ch_names, bads=(), include_active=True):
     """Create an SSP operator from SSP projection vectors
 
     Parameters
     ----------
     projs : list
         List of projection vectors.
-    ch_names : list of strings
+    ch_names : list of str
         List of channels to include in the projection matrix.
-    bads : list of strings
+    bads : list of str
         Some bad channels to exclude. If bad channels were marked
         in the raw file when projs were calculated using mne-python,
         they should not need to be included here as they will
@@ -452,6 +451,17 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
         How many items in the projector.
     U : array
         The orthogonal basis of the projection vectors (optional).
+    """
+    return _make_projector(projs, ch_names, bads, include_active)
+
+
+def _make_projector(projs, ch_names, bads=(), include_active=True,
+                    inplace=False):
+    """Helper to subselect projs based on ch_names and bads
+
+    Use inplace=True mode to modify ``projs`` inplace so that no
+    warning will be raised next time projectors are constructed with
+    the given inputs. If inplace=True, no meaningful data are returned.
     """
     nchan = len(ch_names)
     if nchan == 0:
@@ -504,19 +514,26 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
                 psize = sqrt(np.sum(this_vecs[:, v] * this_vecs[:, v]))
                 if psize > 0:
                     orig_n = p['data']['data'].shape[1]
-                    if len(vecsel) < 0.9 * orig_n:
+                    if len(vecsel) < 0.9 * orig_n and not inplace:
                         warn('Projection vector "%s" has magnitude %0.2f '
                              '(should be unity), applying projector with '
                              '%s/%s of the original channels available may '
-                             'be dangerous'
+                             'be dangerous, consider recomputing and adding '
+                             'projection vectors for channels that are '
+                             'eventually used'
                              % (p['desc'], psize, len(vecsel), orig_n))
                     this_vecs[:, v] /= psize
                     nonzero += 1
-
+            # If doing "inplace" mode, "fix" the projectors to only operate
+            # on this subset of channels.
+            if inplace:
+                p['data']['data'] = this_vecs[sel].T
+                p['data']['col_names'] = [p['data']['col_names'][ii]
+                                          for ii in vecsel]
             nvec += p['data']['nrow']
 
     #   Check whether all of the vectors are exactly zero
-    if nonzero == 0:
+    if nonzero == 0 or inplace:
         return default_return
 
     # Reorthogonalize the vectors
@@ -530,6 +547,18 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
     proj = np.eye(nchan, nchan) - np.dot(U, U.T)
 
     return proj, nproj, U
+
+
+def _normalize_proj(info):
+    """Helper to normalize proj after subselection to avoid warnings
+
+    This is really only useful for tests, and might not be needed
+    eventually if we change or improve our handling of projectors
+    with picks.
+    """
+    # Here we do info.get b/c info can actually be a noise cov
+    _make_projector(info['projs'], info.get('ch_names', info.get('names')),
+                    info['bads'], include_active=True, inplace=True)
 
 
 def make_projector_info(info, include_active=True):

@@ -14,7 +14,7 @@ from mne import pick_types
 from mne.io import Raw
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.io.proj import (make_projector, activate_proj,
-                         _needs_eeg_average_ref_proj)
+                         _needs_eeg_average_ref_proj, _normalize_proj)
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
@@ -43,16 +43,27 @@ eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
 def test_bad_proj():
     """Test dealing with bad projection application
     """
-    raw = Raw(raw_fname, preload=False)
+    raw = Raw(raw_fname, preload=True)
     events = read_events(event_fname)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     picks = picks[2:9:3]
+    _check_warnings(raw, events, picks)
+    # still bad
+    raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    _check_warnings(raw, events, np.arange(len(raw.ch_names)))
+    # "fixed"
+    _normalize_proj(raw.info)  # bit of a hack to avoid projection warnings
+    _check_warnings(raw, events, np.arange(len(raw.ch_names)), count=0)
+
+
+def _check_warnings(raw, events, picks, count=3):
+    """Helper to count warnings"""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         Epochs(raw, events, dict(aud_l=1, vis_l=3),
                -0.2, 0.5, picks=picks, preload=True, proj=True)
-    assert_equal(len(w), 3)
+    assert_equal(len(w), count)
     for ww in w:
         assert_true('dangerous' in str(ww.message))
 

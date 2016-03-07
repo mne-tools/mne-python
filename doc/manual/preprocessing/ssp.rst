@@ -155,6 +155,11 @@ data of empty room recordings or averaged ECG or EOG artifacts.
 
 A second set of highlevel convenience functions is provided to compute projection vector for typical usecases. This includes :func:`mne.preprocessing.compute_proj_ecg` and :func:`mne.preprocessing.compute_proj_eog` for computing the ECG and EOG related artifact components, respectively. For computing the eeg reference signal, the function :func:`mne.preprocessing.ssp.make_eeg_average_ref_proj` can be used. The underlying implementation can be found in :mod:`mne.preprocessing.ssp`.
 
+.. warning:: It is best to compute projectors only on channels that will be
+             used (e.g., excluding bad channels). This ensures that
+             projection vectors will remain ortho-normalized and that they
+             properly capture the activity of interest.
+
 .. _remove_projector:
 
 Adding/removing projectors
