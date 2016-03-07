@@ -17,7 +17,7 @@ from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
 from .. import _BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
-from ..utils import _mult_cal_one, _read_str
+from ..utils import _mult_cal_one, read_str
 from .constants import BTI
 from .read import (read_int32, read_int16, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
@@ -280,8 +280,8 @@ def _read_config(fname):
     with _bti_open(fname, 'rb') as fid:
         cfg = dict()
         cfg['hdr'] = {'version': read_int16(fid),
-                      'site_name': _read_str(fid, 32),
-                      'dap_hostname': _read_str(fid, 16),
+                      'site_name': read_str(fid, 32),
+                      'dap_hostname': read_str(fid, 16),
                       'sys_type': read_int16(fid),
                       'sys_options': read_int32(fid),
                       'supply_freq': read_int16(fid),
@@ -304,9 +304,9 @@ def _read_config(fname):
             ub = dict()
 
             ub['hdr'] = {'nbytes': read_int32(fid),
-                         'kind': _read_str(fid, 20),
+                         'kind': read_str(fid, 20),
                          'checksum': read_int32(fid),
-                         'username': _read_str(fid, 32),
+                         'username': read_str(fid, 32),
                          'timestamp': read_int32(fid),
                          'user_space_size': read_int32(fid),
                          'reserved': read_char(fid, 32)}
@@ -325,7 +325,7 @@ def _read_config(fname):
                     fid.seek(20, 1)
                     dta['headers'] = list()
                     for hdr in range(6):
-                        d = {'name': _read_str(fid, 16),
+                        d = {'name': read_str(fid, 16),
                              'transform': read_transform(fid),
                              'units_per_bit': read_float(fid)}
                         dta['headers'] += [d]
@@ -351,7 +351,7 @@ def _read_config(fname):
                 elif kind == BTI.UB_B_EEG_LOCS:
                     dta['electrodes'] = []
                     while True:
-                        d = {'label': _read_str(fid, 16),
+                        d = {'label': read_str(fid, 16),
                              'location': read_double_matrix(fid, 1, 3)}
                         if not d['label']:
                             break
@@ -424,18 +424,18 @@ def _read_config(fname):
 
                     dta['labels'] = list()
                     for label in range(dta['entries']):
-                        dta['labels'] += [_read_str(fid, 16)]
+                        dta['labels'] += [read_str(fid, 16)]
 
                 elif kind == BTI.UB_B_CALIBRATION:
                     dta['sensor_no'] = read_int16(fid)
                     fid.seek(2, 1)
                     dta['timestamp'] = read_int32(fid)
-                    dta['logdir'] = _read_str(fid, 256)
+                    dta['logdir'] = read_str(fid, 256)
 
                 elif kind == BTI.UB_B_SYS_CONFIG_TIME:
                     # handle difference btw/ linux (256) and solaris (512)
                     size = 256 if ub['hdr']['user_space_size'] == 260 else 512
-                    dta['sysconfig_name'] = _read_str(fid, size)
+                    dta['sysconfig_name'] = read_str(fid, size)
                     dta['timestamp'] = read_int32(fid)
 
                 elif kind == BTI.UB_B_DELTA_ENABLED:
@@ -445,15 +445,15 @@ def _read_config(fname):
                     dta['hdr'] = {'version': read_int32(fid),
                                   'entry_size': read_int32(fid),
                                   'n_entries': read_int32(fid),
-                                  'filtername': _read_str(fid, 16),
+                                  'filtername': read_str(fid, 16),
                                   'n_e_values': read_int32(fid),
-                                  'reserved': _read_str(fid, 28)}
+                                  'reserved': read_str(fid, 28)}
 
                     if dta['hdr']['version'] == 2:
                         size = 16
-                        dta['ch_names'] = [_read_str(fid, size) for ch in
+                        dta['ch_names'] = [read_str(fid, size) for ch in
                                            range(dta['hdr']['n_entries'])]
-                        dta['e_ch_names'] = [_read_str(fid, size) for ch in
+                        dta['e_ch_names'] = [read_str(fid, size) for ch in
                                              range(dta['hdr']['n_e_values'])]
 
                         rows = dta['hdr']['n_entries']
@@ -474,19 +474,19 @@ def _read_config(fname):
                     dta['hdr'] = {'version': read_int32(fid),
                                   'entry_size': read_int32(fid),
                                   'n_entries': read_int32(fid),
-                                  'name': _read_str(fid, 32),
-                                  'description': _read_str(fid, 80),
+                                  'name': read_str(fid, 32),
+                                  'description': read_str(fid, 80),
                                   'n_anlg': read_int32(fid),
                                   'n_dsp': read_int32(fid),
-                                  'reserved': _read_str(fid, 72)}
+                                  'reserved': read_str(fid, 72)}
 
                     if dta['hdr']['version'] == 2:
-                        dta['ch_names'] = [_read_str(fid, 16) for ch in
+                        dta['ch_names'] = [read_str(fid, 16) for ch in
                                            range(dta['hdr']['n_entries'])]
-                        dta['anlg_ch_names'] = [_read_str(fid, 16) for ch in
+                        dta['anlg_ch_names'] = [read_str(fid, 16) for ch in
                                                 range(dta['hdr']['n_anlg'])]
 
-                        dta['dsp_ch_names'] = [_read_str(fid, 16) for ch in
+                        dta['dsp_ch_names'] = [read_str(fid, 16) for ch in
                                                range(dta['hdr']['n_dsp'])]
 
                         rows = dta['hdr']['n_entries']
@@ -523,7 +523,7 @@ def _read_config(fname):
 
                     dta['masks'] = []
                     for entry in range(dta['entries']):
-                        d = {'name': _read_str(fid, 20),
+                        d = {'name': read_str(fid, 20),
                              'nbits': read_uint16(fid),
                              'shift': read_uint16(fid),
                              'mask': read_uint32(fid)}
@@ -542,10 +542,10 @@ def _read_config(fname):
         # prepare reading channels
         def dev_header(x):
             return dict(size=read_int32(x), checksum=read_int32(x),
-                        reserved=_read_str(x, 32))
+                        reserved=read_str(x, 32))
 
         for channel in range(cfg['hdr']['total_chans']):
-            ch = {'name': _read_str(fid, 16),
+            ch = {'name': read_str(fid, 16),
                   'chan_no': read_int16(fid),
                   'ch_type': read_uint16(fid),
                   'sensor_no': read_int16(fid),
@@ -554,10 +554,10 @@ def _read_config(fname):
             fid.seek(2, 1)
             ch.update({'gain': read_float(fid),
                        'units_per_bit': read_float(fid),
-                       'yaxis_label': _read_str(fid, 16),
+                       'yaxis_label': read_str(fid, 16),
                        'aar_val': read_double(fid),
                        'checksum': read_int32(fid),
-                       'reserved': _read_str(fid, 32)})
+                       'reserved': read_str(fid, 32)})
 
             cfg['chs'] += [ch]
             _correct_offset(fid)  # before and after
@@ -565,13 +565,13 @@ def _read_config(fname):
             if ch['ch_type'] in [BTI.CHTYPE_MEG, BTI.CHTYPE_REFERENCE]:
                 dev = {'device_info': dev_header(fid),
                        'inductance': read_float(fid),
-                       'padding': _read_str(fid, 4),
+                       'padding': read_str(fid, 4),
                        'transform': _correct_trans(read_transform(fid)),
                        'xform_flag': read_int16(fid),
                        'total_loops': read_int16(fid)}
 
                 fid.seek(4, 1)
-                dev['reserved'] = _read_str(fid, 32)
+                dev['reserved'] = read_str(fid, 32)
                 dta.update({'dev': dev, 'loops': []})
                 for loop in range(dev['total_loops']):
                     d = {'position': read_double_matrix(fid, 1, 3),
@@ -581,35 +581,35 @@ def _read_config(fname):
                          'turns': read_int16(fid)}
                     fid.seek(2, 1)
                     d['checksum'] = read_int32(fid)
-                    d['reserved'] = _read_str(fid, 32)
+                    d['reserved'] = read_str(fid, 32)
                     dta['loops'] += [d]
 
             elif ch['ch_type'] == BTI.CHTYPE_EEG:
                 dta = {'device_info': dev_header(fid),
                        'impedance': read_float(fid),
-                       'padding': _read_str(fid, 4),
+                       'padding': read_str(fid, 4),
                        'transform': read_transform(fid),
                        'reserved': read_char(fid, 32)}
 
             elif ch['ch_type'] == BTI.CHTYPE_EXTERNAL:
                 dta = {'device_info': dev_header(fid),
                        'user_space_size': read_int32(fid),
-                       'reserved': _read_str(fid, 32)}
+                       'reserved': read_str(fid, 32)}
 
             elif ch['ch_type'] == BTI.CHTYPE_TRIGGER:
                 dta = {'device_info': dev_header(fid),
                        'user_space_size': read_int32(fid)}
                 fid.seek(2, 1)
-                dta['reserved'] = _read_str(fid, 32)
+                dta['reserved'] = read_str(fid, 32)
 
             elif ch['ch_type'] in [BTI.CHTYPE_UTILITY, BTI.CHTYPE_DERIVED]:
                 dta = {'device_info': dev_header(fid),
                        'user_space_size': read_int32(fid),
-                       'reserved': _read_str(fid, 32)}
+                       'reserved': read_str(fid, 32)}
 
             elif ch['ch_type'] == BTI.CHTYPE_SHORTED:
                 dta = {'device_info': dev_header(fid),
-                       'reserved': _read_str(fid, 32)}
+                       'reserved': read_str(fid, 32)}
 
             ch.update(dta)  # add data collected
             _correct_offset(fid)  # after each reading
@@ -634,11 +634,11 @@ def _read_epoch(fid):
 
 def _read_channel(fid):
     """Read BTi PDF channel"""
-    out = {'chan_label': _read_str(fid, 16),
+    out = {'chan_label': read_str(fid, 16),
            'chan_no': read_int16(fid),
            'attributes': read_int16(fid),
            'scale': read_float(fid),
-           'yaxis_label': _read_str(fid, 16),
+           'yaxis_label': read_str(fid, 16),
            'valid_min_max': read_int16(fid)}
 
     fid.seek(6, 1)
@@ -646,7 +646,7 @@ def _read_channel(fid):
                 'ymax': read_double(fid),
                 'index': read_int32(fid),
                 'checksum': read_int32(fid),
-                'off_flag': _read_str(fid, 16),
+                'off_flag': read_str(fid, 16),
                 'offset': read_float(fid)})
 
     fid.seek(12, 1)
@@ -656,7 +656,7 @@ def _read_channel(fid):
 
 def _read_event(fid):
     """Read BTi PDF event"""
-    out = {'event_name': _read_str(fid, 16),
+    out = {'event_name': read_str(fid, 16),
            'start_lat': read_float(fid),
            'end_lat': read_float(fid),
            'step_size': read_float(fid),
@@ -673,11 +673,11 @@ def _read_process(fid):
     """Read BTi PDF process"""
 
     out = {'nbytes': read_int32(fid),
-           'process_type': _read_str(fid, 20),
+           'process_type': read_str(fid, 20),
            'checksum': read_int32(fid),
-           'user': _read_str(fid, 32),
+           'user': read_str(fid, 32),
            'timestamp': read_int32(fid),
-           'filename': _read_str(fid, 256),
+           'filename': read_str(fid, 256),
            'total_steps': read_int32(fid)}
 
     fid.seek(32, 1)
@@ -685,7 +685,7 @@ def _read_process(fid):
     out['processing_steps'] = list()
     for step in range(out['total_steps']):
         this_step = {'nbytes': read_int32(fid),
-                     'process_type': _read_str(fid, 20),
+                     'process_type': read_str(fid, 20),
                      'checksum': read_int32(fid)}
         ptype = this_step['process_type']
         if ptype == BTI.PROC_DEFAULTS:
@@ -731,7 +731,7 @@ def _read_pfid_ed(fid):
     """Read PDF ed file"""
 
     out = {'comment_size': read_int32(fid),
-           'name': _read_str(fid, 17)}
+           'name': read_str(fid, 17)}
 
     fid.seek(9, 1)
     out.update({'pdf_number': read_int16(fid),
@@ -759,13 +759,13 @@ def _read_coil_def(fid):
 
     fid.seek(fid, 2, 1)
     coildef['checksum'] = read_int32(fid)
-    coildef['reserved'] = _read_str(fid, 32)
+    coildef['reserved'] = read_str(fid, 32)
 
 
 def _read_ch_config(fid):
     """Read BTi channel config"""
 
-    cfg = {'name': _read_str(fid, BTI.FILE_CONF_CH_NAME),
+    cfg = {'name': read_str(fid, BTI.FILE_CONF_CH_NAME),
            'chan_no': read_int16(fid),
            'ch_type': read_uint16(fid),
            'sensor_no': read_int16(fid)}
@@ -774,10 +774,10 @@ def _read_ch_config(fid):
 
     cfg.update({'gain': read_float(fid),
                 'units_per_bit': read_float(fid),
-                'yaxis_label': _read_str(fid, BTI.FILE_CONF_CH_YLABEL),
+                'yaxis_label': read_str(fid, BTI.FILE_CONF_CH_YLABEL),
                 'aar_val': read_double(fid),
                 'checksum': read_int32(fid),
-                'reserved': _read_str(fid, BTI.FILE_CONF_CH_RESERVED)})
+                'reserved': read_str(fid, BTI.FILE_CONF_CH_RESERVED)})
 
     _correct_offset(fid)
 
@@ -785,14 +785,14 @@ def _read_ch_config(fid):
     ch_type, chan = cfg['ch_type'], dict()
     chan['dev'] = {'size': read_int32(fid),
                    'checksum': read_int32(fid),
-                   'reserved': _read_str(fid, 32)}
+                   'reserved': read_str(fid, 32)}
     if ch_type in [BTI.CHTYPE_MEG, BTI.CHTYPE_REF]:
         chan['loops'] = [_read_coil_def(fid) for d in
                          range(chan['dev']['total_loops'])]
 
     elif ch_type == BTI.CHTYPE_EEG:
         chan['impedance'] = read_float(fid)
-        chan['padding'] = _read_str(fid, BTI.FILE_CONF_CH_PADDING)
+        chan['padding'] = read_str(fid, BTI.FILE_CONF_CH_PADDING)
         chan['transform'] = read_transform(fid)
         chan['reserved'] = read_char(fid, BTI.FILE_CONF_CH_RESERVED)
 
@@ -801,10 +801,10 @@ def _read_ch_config(fid):
         chan['user_space_size'] = read_int32(fid)
         if ch_type == BTI.CHTYPE_TRIGGER:
             fid.seek(2, 1)
-        chan['reserved'] = _read_str(fid, BTI.FILE_CONF_CH_RESERVED)
+        chan['reserved'] = read_str(fid, BTI.FILE_CONF_CH_RESERVED)
 
     elif ch_type == BTI.CHTYPE_SHORTED:
-        chan['reserved'] = _read_str(fid, BTI.FILE_CONF_CH_RESERVED)
+        chan['reserved'] = read_str(fid, BTI.FILE_CONF_CH_RESERVED)
 
     cfg['chan'] = chan
 
@@ -832,7 +832,7 @@ def _read_bti_header_pdf(pdf_fname):
 
         # actual header starts here
         info = {'version': read_int16(fid),
-                'file_type': _read_str(fid, 5),
+                'file_type': read_str(fid, 5),
                 'hdr_size': start - header_position,  # add for convenience
                 'start': start}
 
@@ -845,7 +845,7 @@ def _read_bti_header_pdf(pdf_fname):
                      'total_events': read_int32(fid),
                      'total_fixed_events': read_int32(fid),
                      'sample_period': read_float(fid),
-                     'xaxis_label': _read_str(fid, 16),
+                     'xaxis_label': read_str(fid, 16),
                      'total_processes': read_int32(fid),
                      'total_chans': read_int16(fid)})
 

@@ -104,7 +104,7 @@ API
 
     - EOG, ECG and EMG channels are now plotted by default (if present in data) when using :func:`mne.viz.plot_evoked` by `Marijn van Vliet`_
 
-    - CTF data reader now reads eeg locations from .pos file as hpi points by `Jaakko Leppakangas`_
+    - CTF data reader now reads EEG locations from .pos file as HPI points by `Jaakko Leppakangas`_
 
 .. _changes_0_11:
 

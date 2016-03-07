@@ -16,6 +16,7 @@ MEG                   4-D Neuroimaging / BTI      dir       :func:`mne.io.read_r
 MEG                   CTF                         dir       :func:`mne.io.read_raw_ctf`
 MEG                   KIT                         sqd       :func:`mne.io.read_raw_kit` and :func:`mne.read_epochs_kit`
 EEG                   Brainvision                .vhdr      :func:`mne.io.read_raw_brainvision`
+EEG                   Neuroscan CNT              .cnt       :func:`mne.io.read_raw_cnt`
 EEG                   European data format       .edf       :func:`mne.io.read_raw_edf`
 EEG                   Biosemi data format        .bdf       :func:`mne.io.read_raw_edf`
 EEG                   EGI simple binary          .egi       :func:`mne.io.read_raw_egi`
@@ -288,6 +289,18 @@ of the EDF format used by the EEG systems manufactured by a company called
 BioSemi. It can also be read in using :func:`mne.io.read_raw_edf`.
 
 .. warning:: The data samples in a BDF file are represented in a 3-byte (24-bit) format. Since 3-byte raw data buffers are not presently supported in the fif format these data will be changed to 4-byte integers in the conversion.
+
+Neuroscan CNT data format (.cnt)
+================================
+
+CNT files can be read in using :func:`mne.io.read_raw_cnt`.
+The channel locations can be read from a montage or the file header. If read
+from the header, the data channels (channels that are not assigned to EOG, ECG,
+EMG or misc) are fit to a sphere and assigned a z-value accordingly. If a
+non-data channel does not fit to the sphere, it is assigned a z-value of 0.
+See :ref:`BJEBIBAI`
+
+.. warning::  Reading channel locations from the file header may be dangerous as the x_coord and y_coord in ELECTLOC section of the header do not necessarily translate to absolute locations. Furthermore, EEG-electrode locations that do not fit to a sphere will distort the layout when computing the z-values. If you are not sure about the channel locations in the header, use of a montage is encouraged.
 
 EGI simple binary (.egi)
 ========================

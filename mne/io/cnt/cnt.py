@@ -12,27 +12,36 @@ import numpy as np
 
 from ...utils import warn, verbose
 from ..constants import FIFF
-from ..utils import _mult_cal_one
+from ..utils import _mult_cal_one, _find_channels, _create_chs
 from ..meas_info import _empty_info
-from ..base import _BaseRaw
-from ..utils import _read_str
+from ..base import _BaseRaw, _check_update_montage
+from ..utils import read_str
 
 
-def read_raw_cnt(input_fname, eog=(), ecg=(), emg=(), misc=(),
-                 read_blocks=True, preload=False, verbose=None):
-    """Read CNT data as raw object,
+def read_raw_cnt(input_fname, montage, eog=(), ecg=(), emg=(), misc=(),
+                 preload=False, verbose=None):
+    """Read CNT data as raw object.
 
-    Note: Channels that are not assigned with keywords ``eog``, ``ecg``,
-    ``emg`` and ``misc`` are assigned as eeg channels. All the eeg channels are
-    fit to a sphere when computing the z-coordinates for the channels.
-    If channels assigned as eeg channels were placed away from the head (i.e.
-    x and y coordinates don't fit to a sphere), all the channel locations will
-    be distorted.
+    .. Note::
+    If montage is not provided, the x and y coordinates are read from the file
+    header. Channels that are not assigned with keywords ``eog``, ``ecg``,
+    ``emg`` and ``misc`` are assigned as eeg channels. All the eeg channel
+    locations are fit to a sphere when computing the z-coordinates for the
+    channels. If channels assigned as eeg channels have locations far away from
+    the head (i.e. x and y coordinates don't fit to a sphere), all the channel
+    locations will be distorted. If you are not sure that the channel locations
+    in the header are correct, it is probably safer to use a (standard)
+    montage. See :func:`mne.channels.read_montage`
 
     Parameters
     ----------
     input_fname : str
         Path to the data file.
+    montage : str | None | instance of montage
+        Path or instance of montage containing electrode positions. If None,
+        xy sensor locations are read from the header (``x_coord`` and
+        ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
+        of :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto' | 'header'
         Names of channels or list of indices that should be designated
         EOG channels. If 'header', VEOG and HEOG channels assigned in the file
@@ -49,9 +58,6 @@ def read_raw_cnt(input_fname, eog=(), ecg=(), emg=(), misc=(),
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    read_blocks : bool
-        Whether to read data in blocks. This is for dealing with different
-        kinds of CNT data formats.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -65,11 +71,11 @@ def read_raw_cnt(input_fname, eog=(), ecg=(), emg=(), misc=(),
     -------
     Instance of RawCNT.
     """
-    return RawCNT(input_fname, eog=eog, ecg=ecg, emg=emg, misc=misc,
-                  read_blocks=read_blocks, preload=preload, verbose=verbose)
+    return RawCNT(input_fname, montage=montage, eog=eog, ecg=ecg, emg=emg,
+                  misc=misc, preload=preload, verbose=verbose)
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc):
     """Helper for reading the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -77,34 +83,35 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
     # http://paulbourke.net/dataformats/eeg/
     with open(input_fname, 'rb', buffering=0) as fid:
         fid.seek(21)
-        patient_id = _read_str(fid, 20)
+        patient_id = read_str(fid, 20)
         patient_id = int(patient_id) if patient_id.isdigit() else 0
         fid.seek(121)
-        patient_name = _read_str(fid, 20)
+        patient_name = read_str(fid, 20)
         last_name = patient_name[0]
         first_name = patient_name[-1]
         fid.seek(2, 1)
-        sex = _read_str(fid, 1)
+        sex = read_str(fid, 1)
         if sex == 'M':
             sex = FIFF.FIFFV_SUBJ_SEX_MALE
         elif sex == 'F':
             sex = FIFF.FIFFV_SUBJ_SEX_FEMALE
         else:  # can be 'U'
             sex = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
-        hand = _read_str(fid, 1)
+        hand = read_str(fid, 1)
         if hand == 'R':
             hand = FIFF.FIFFV_SUBJ_HAND_RIGHT
         elif hand == 'L':
             hand = FIFF.FIFFV_SUBJ_HAND_LEFT
         else:  # can be 'M' for mixed or 'U'
-            hand = FIFF.FIFFV_SUBJ_HAND_UNKNOWN
+            hand = None
         fid.seek(205)
-        session_label = _read_str(fid, 20)
-        session_date = _read_str(fid, 10)
-        time = _read_str(fid, 12)
+        session_label = read_str(fid, 20)
+        session_date = read_str(fid, 10)
+        time = read_str(fid, 12)
         date = session_date.split('/')
         if len(date) != 3:
-            warn('Could not parse meas date from the header. Setting to 0...')
+            warn('  Could not parse meas date from the header. '
+                 'Setting to 0...')
             meas_date = 0
         else:
             if date[2].startswith('9'):
@@ -117,7 +124,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
                                      int(time[0]), int(time[1]), int(time[2]))
             meas_date = calendar.timegm(date.utctimetuple())
             if meas_date < 0:
-                warn('Could not parse meas date from the header. Setting to '
+                warn('  Could not parse meas date from the header. Setting to '
                      '0...')
                 meas_date = 0
         fid.seek(370)
@@ -142,10 +149,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
                                                      count=1)[0]
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
-        if cnt_info['channel_offset'] > 1 and read_blocks:
+        if cnt_info['channel_offset'] > 1:
             cnt_info['channel_offset'] //= 2  # Data read as 2 byte ints.
-            warn('Reading in data in blocks of %d. If this fails, try using '
-                 'read_blocks=False.')
         else:
             cnt_info['channel_offset'] = 1
         n_samples = (event_offset - (900 + 75 * n_channels)) // (2 *
@@ -155,13 +160,15 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
         bads = list()
         for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
-            ch_name = _read_str(fid, 10)
+            ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
             fid.seek(data_offset + 75 * ch_idx + 4)
             if np.fromfile(fid, dtype='u1', count=1)[0]:
                 bads.append(ch_name)
             fid.seek(data_offset + 75 * ch_idx + 19)
-            pos.append(np.fromfile(fid, dtype='f4', count=2))  # x and y pos
+            xy = np.fromfile(fid, dtype='f4', count=2)
+            xy[1] *= -1  # invert y-axis
+            pos.append(xy)
             fid.seek(data_offset + 75 * ch_idx + 47)
             # Baselines are subtracted before scaling the data.
             baselines.append(np.fromfile(fid, dtype='i2', count=1)[0])
@@ -200,37 +207,16 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, read_blocks):
                     'first_name': first_name, 'last_name': last_name}
 
     if eog == 'auto':
-        eog = [ch for ch in ch_names if 'EOG' in ch.upper()]
+        eog = _find_channels(ch_names, 'EOG')
     if ecg == 'auto':
-        ecg = [ch for ch in ch_names if 'ECG' in ch.upper()]
+        ecg = _find_channels(ch_names, 'ECG')
     if emg == 'auto':
-        emg = [ch for ch in ch_names if 'EMG' in ch.upper()]
-    eegs = list()
-    for idx, ch_name in enumerate(ch_names):
-        if ch_name in eog or idx in eog:
-            coil_type = FIFF.FIFFV_COIL_NONE
-            kind = FIFF.FIFFV_EOG_CH
-        elif ch_name in ecg or idx in ecg:
-            coil_type = FIFF.FIFFV_COIL_NONE
-            kind = FIFF.FIFFV_ECG_CH
-        elif ch_name in emg or idx in emg:
-            coil_type = FIFF.FIFFV_COIL_NONE
-            kind = FIFF.FIFFV_EMG_CH
-        elif ch_name in misc or idx in misc:
-            coil_type = FIFF.FIFFV_COIL_NONE
-            kind = FIFF.FIFFV_MISC_CH
-        else:
-            coil_type = FIFF.FIFFV_COIL_EEG
-            kind = FIFF.FIFFV_EEG_CH
-            eegs.append(idx)
+        emg = _find_channels(ch_names, 'EMG')
 
-        chan_info = {'cal': cals[idx], 'logno': idx + 1, 'scanno': idx + 1,
-                     'range': 1.0, 'unit_mul': 0., 'ch_name': ch_name,
-                     'unit': FIFF.FIFF_UNIT_V,
-                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                     'coil_type': coil_type, 'kind': kind}
-        chs.append(chan_info)
-
+    chs = _create_chs(ch_names, cals, FIFF.FIFFV_COIL_EEG,
+                      FIFF.FIFFV_EEG_CH, eog, ecg, emg, misc)
+    eegs = [idx for idx, ch in enumerate(chs) if
+            ch['coil_type'] == FIFF.FIFFV_COIL_EEG]
     coords = _topo_to_sphere(pos, eegs)
     locs = np.zeros((len(chs), 12), dtype=float)
     locs[:, :3] = coords
@@ -296,17 +282,26 @@ def _topo_to_sphere(pos, eegs):
 class RawCNT(_BaseRaw):
     """Raw object from Neuroscan CNT file.
 
-    Note: Channels that are not assigned with keywords ``eog``, ``ecg``,
-    ``emg`` and ``misc`` are assigned as eeg channels. All the eeg channels are
-    fit to a sphere when computing the z-coordinates for the channels.
-    If channels assigned as eeg channels were placed away from the head (i.e.
-    x and y coordinates don't fit to a sphere), all the channel locations will
-    be distorted.
+    .. Note::
+    If montage is not provided, the x and y coordinates are read from the file
+    header. Channels that are not assigned with keywords ``eog``, ``ecg``,
+    ``emg`` and ``misc`` are assigned as eeg channels. All the eeg channel
+    locations are fit to a sphere when computing the z-coordinates for the
+    channels. If channels assigned as eeg channels have locations far away from
+    the head (i.e. x and y coordinates don't fit to a sphere), all the channel
+    locations will be distorted. If you are not sure that the channel locations
+    in the header are correct, it is probably safer to use a (standard)
+    montage. See :func:`mne.channels.read_montage`
 
     Parameters
     ----------
     input_fname : str
         Path to the CNT file.
+    montage : str | None | instance of montage
+        Path or instance of montage containing electrode positions. If None,
+        xy sensor locations are read from the header (``x_coord`` and
+        ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
+        of :func:`mne.channels.read_montage` for more information.
     eog : list | tuple
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
@@ -322,9 +317,6 @@ class RawCNT(_BaseRaw):
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    read_blocks : bool
-        Whether to read data in blocks. This is for dealing with different
-        kinds of CNT data formats.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -338,12 +330,12 @@ class RawCNT(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    def __init__(self, input_fname, eog=(), ecg=(), emg=(), misc=(),
-                 read_blocks=True, preload=False, verbose=None):
+    def __init__(self, input_fname, montage, eog=(), ecg=(), emg=(), misc=(),
+                 preload=False, verbose=None):
         input_fname = path.abspath(input_fname)
-        info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
-                                       read_blocks)
+        info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc)
         last_samps = [cnt_info['n_samples'] - 1]
+        _check_update_montage(info, montage)
         super(RawCNT, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
             last_samps=last_samps, orig_format='int',

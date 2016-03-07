@@ -9,7 +9,9 @@
 # License: BSD (3-clause)
 
 import numpy as np
+
 from ..externals.six import b
+from .constants import FIFF
 
 
 def _find_channels(ch_names, ch_type='EOG'):
@@ -170,7 +172,7 @@ def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
             _mult_cal_one(data_view, block, idx, cals, mult)
 
 
-def _read_str(fid, count=1):
+def read_str(fid, count=1):
     """Read string from a binary file in a version compatible way."""
     dtype = np.dtype('>S%i' % count)
     string = fid.read(dtype.itemsize)
@@ -179,3 +181,32 @@ def _read_str(fid, count=1):
                           b('\x00') in data else count]])
 
     return str(bytestr.decode('ascii'))  # Return native str type for Py2/3
+
+
+def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
+    """Helper for initializing info['chs'] for eeg channels."""
+    chs = list()
+    for idx, ch_name in enumerate(ch_names):
+        if ch_name in eog or idx in eog:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_EOG_CH
+        elif ch_name in ecg or idx in ecg:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_ECG_CH
+        elif ch_name in emg or idx in emg:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_EMG_CH
+        elif ch_name in misc or idx in misc:
+            coil_type = FIFF.FIFFV_COIL_NONE
+            kind = FIFF.FIFFV_MISC_CH
+        else:
+            coil_type = ch_coil
+            kind = ch_kind
+
+        chan_info = {'cal': cals[idx], 'logno': idx + 1, 'scanno': idx + 1,
+                     'range': 1.0, 'unit_mul': 0., 'ch_name': ch_name,
+                     'unit': FIFF.FIFF_UNIT_V,
+                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                     'coil_type': coil_type, 'kind': kind, 'loc': np.zeros(12)}
+        chs.append(chan_info)
+    return chs
