@@ -33,10 +33,10 @@ from mne.stats.regression import linear_regression_raw
 # Preprocess data
 data_path = spm_face.data_path()
 # Load and filter data, set up epochs
-raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw.fif'
+raw_path = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D.ds'
 
 # Use just the first 4 minutes to save memory
-raw = mne.io.Raw(raw_fname).crop(0, 240, copy=False).load_data()
+raw = mne.io.read_raw_ctf(raw_path).crop(0, 240, copy=False).load_data()
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 45, method='iir')
