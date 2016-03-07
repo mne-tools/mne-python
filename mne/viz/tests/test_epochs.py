@@ -17,6 +17,7 @@ from mne import io, read_events, Epochs
 from mne import pick_types
 from mne.utils import run_tests_if_main, requires_version
 from mne.channels import read_layout
+from mne.io.proj import _normalize_proj
 
 from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
@@ -78,15 +79,13 @@ def test_plot_epochs():
     """Test epoch plotting"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    with warnings.catch_warnings(record=True):  # bad proj
-        epochs.plot(scalings=None, title='Epochs')
+    _normalize_proj(epochs.info)
+    epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
-    with warnings.catch_warnings(record=True):  # bad proj
-        fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
+    fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')
     plt.close('all')
-    with warnings.catch_warnings(record=True):  # bad proj
-        fig = epochs.plot()
+    fig = epochs.plot()
     fig.canvas.key_press_event('left')
     fig.canvas.key_press_event('right')
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down

@@ -9,6 +9,7 @@ from numpy.testing import assert_raises
 
 from mne import io, read_events, pick_types, Annotations
 from mne.utils import requires_version, run_tests_if_main
+from mne.io.proj import _normalize_proj
 from mne.viz.utils import _fake_click
 from mne.viz import plot_raw
 
@@ -29,6 +30,7 @@ def _get_raw():
     with warnings.catch_warnings(record=True):
         raw.set_channel_types({raw.ch_names[0]: 'ias'})
     raw.pick_channels(raw.ch_names[:9])
+    _normalize_proj(raw.info)  # "Fix" projectors after subselection
     return raw
 
 
@@ -106,10 +108,9 @@ def test_plot_raw_filtered():
     assert_raises(ValueError, raw.plot, lowpass=1, highpass=1)
     assert_raises(ValueError, raw.plot, lowpass=1, filtorder=0)
     assert_raises(ValueError, raw.plot, clipping='foo')
-    with warnings.catch_warnings(record=True):  # bad proj
-        raw.plot(lowpass=1, clipping='transparent')
-        raw.plot(highpass=1, clipping='clamp')
-        raw.plot(highpass=1, lowpass=2)
+    raw.plot(lowpass=1, clipping='transparent')
+    raw.plot(highpass=1, clipping='clamp')
+    raw.plot(highpass=1, lowpass=2)
 
 
 @requires_version('scipy', '0.12')

@@ -10,6 +10,7 @@ from mne import compute_covariance
 from mne.datasets import testing
 from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw, tf_lcmv
 from mne.beamformer._lcmv import _lcmv_source_power
+from mne.io.proj import _normalize_proj
 from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main, slow_test
 
@@ -55,21 +56,21 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     event_id, tmin, tmax = 1, tmin, tmax
 
     # Setup for reading the raw data
-    raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
+    raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bad channels
+    # Set up pick list: MEG - bad channels
+    left_temporal_channels = mne.read_selection('Left-temporal')
+    picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True,
+                           eog=True, ref_meg=False, exclude='bads',
+                           selection=left_temporal_channels)
+    raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    _normalize_proj(raw.info)  # bit of a hack to avoid projection warnings
 
     if epochs:
-        # Set up pick list: MEG - bad channels
-        left_temporal_channels = mne.read_selection('Left-temporal')
-        picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                               eog=True, ref_meg=False, exclude='bads',
-                               selection=left_temporal_channels)
-
         # Read epochs
-        with warnings.catch_warnings(record=True):
-            epochs = mne.Epochs(
-                raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                baseline=(None, 0), preload=epochs_preload,
-                reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+        epochs = mne.Epochs(
+            raw, events, event_id, tmin, tmax, proj=True,
+            baseline=(None, 0), preload=epochs_preload,
+            reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
         if epochs_preload:
             epochs.resample(200, npad=0, n_jobs=2)
         evoked = epochs.average()
@@ -80,11 +81,11 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         info = raw.info
 
     noise_cov = mne.read_cov(fname_cov)
-    with warnings.catch_warnings(record=True):  # bad proj here
+    with warnings.catch_warnings(record=True):  # bad proj
         noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
                                        eeg=0.1, proj=True)
     if data_cov:
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings(record=True):  # too few samples
             data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.145)
     else:
         data_cov = None
@@ -102,8 +103,7 @@ def test_lcmv():
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     for fwd in [forward, forward_vol]:
-        with warnings.catch_warnings(record=True):
-            stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01)  # bad proj
+        stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01)
         stc.crop(0.02, None)
 
         stc_pow = np.sum(stc.data, axis=1)
@@ -116,9 +116,8 @@ def test_lcmv():
 
         if fwd is forward:
             # Test picking normal orientation (surface source space only)
-            with warnings.catch_warnings(record=True):  # bad proj
-                stc_normal = lcmv(evoked, forward_surf_ori, noise_cov,
-                                  data_cov, reg=0.01, pick_ori="normal")
+            stc_normal = lcmv(evoked, forward_surf_ori, noise_cov,
+                              data_cov, reg=0.01, pick_ori="normal")
             stc_normal.crop(0.02, None)
 
             stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
@@ -134,9 +133,8 @@ def test_lcmv():
             assert_true((np.abs(stc_normal.data) <= stc.data).all())
 
         # Test picking source orientation maximizing output source power
-        with warnings.catch_warnings(record=True):  # bad proj
-            stc_max_power = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
-                                 pick_ori="max-power")
+        stc_max_power = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
+                             pick_ori="max-power")
         stc_max_power.crop(0.02, None)
         stc_pow = np.sum(stc_max_power.data, axis=1)
         idx = np.argmax(stc_pow)
@@ -169,12 +167,11 @@ def test_lcmv():
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
-    with warnings.catch_warnings(record=True):  # bad proj
-        stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                           reg=0.01)
-        stcs_ = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                            reg=0.01, return_generator=True)
-        assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
+    stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
+                       reg=0.01)
+    stcs_ = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
+                        reg=0.01, return_generator=True)
+    assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     epochs.drop_bad_epochs()
     assert_true(len(epochs.events) == len(stcs))
@@ -186,15 +183,13 @@ def test_lcmv():
     stc_avg /= len(stcs)
 
     # compare it to the solution using evoked with fixed orientation
-    with warnings.catch_warnings(record=True):  # bad proj
-        stc_fixed = lcmv(evoked, forward_fixed, noise_cov, data_cov, reg=0.01)
+    stc_fixed = lcmv(evoked, forward_fixed, noise_cov, data_cov, reg=0.01)
     assert_array_almost_equal(stc_avg, stc_fixed.data)
 
     # use a label so we have few source vertices and delayed computation is
     # not used
-    with warnings.catch_warnings(record=True):  # bad proj
-        stcs_label = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                                 reg=0.01, label=label)
+    stcs_label = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
+                             reg=0.01, label=label)
 
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
@@ -210,15 +205,9 @@ def test_lcmv_raw():
     start, stop = raw.time_as_index([tmin, tmax])
 
     # use only the left-temporal MEG channels for LCMV
-    left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.pick_types(raw.info, meg=True, exclude='bads',
-                           selection=left_temporal_channels)
-
     data_cov = mne.compute_raw_covariance(raw, tmin=tmin, tmax=tmax)
-
-    with warnings.catch_warnings(record=True):  # bad proj
-        stc = lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01,
-                       label=label, start=start, stop=stop, picks=picks)
+    stc = lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01,
+                   label=label, start=start, stop=stop)
 
     assert_array_almost_equal(np.array([tmin, tmax]),
                               np.array([stc.times[0], stc.times[-1]]),
@@ -238,9 +227,8 @@ def test_lcmv_source_power():
     raw, epochs, evoked, data_cov, noise_cov, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
-    with warnings.catch_warnings(record=True):  # bad proj
-        stc_source_power = _lcmv_source_power(epochs.info, forward, noise_cov,
-                                              data_cov, label=label)
+    stc_source_power = _lcmv_source_power(epochs.info, forward, noise_cov,
+                                          data_cov, label=label)
 
     max_source_idx = np.argmax(stc_source_power.data)
     max_source_power = np.max(stc_source_power.data)
@@ -249,10 +237,9 @@ def test_lcmv_source_power():
     assert_true(0.4 < max_source_power < 2.4, max_source_power)
 
     # Test picking normal orientation and using a list of CSD matrices
-    with warnings.catch_warnings(record=True):  # bad proj
-        stc_normal = _lcmv_source_power(
-            epochs.info, forward_surf_ori, noise_cov, data_cov,
-            pick_ori="normal", label=label)
+    stc_normal = _lcmv_source_power(
+        epochs.info, forward_surf_ori, noise_cov, data_cov,
+        pick_ori="normal", label=label)
 
     # The normal orientation results should always be smaller than free
     # orientation results
@@ -294,12 +281,14 @@ def test_tf_lcmv():
     picks = mne.pick_types(raw.info, meg=True, eeg=False,
                            stim=True, eog=True, exclude='bads',
                            selection=left_temporal_channels)
+    raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    _normalize_proj(raw.info)  # bit of a hack to avoid projection warnings
+    del picks
 
     # Read epochs
-    with warnings.catch_warnings(record=True):  # bad proj
-        epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                            picks=picks, baseline=None, preload=False,
-                            reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                        baseline=None, preload=False,
+                        reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
     epochs.drop_bad_epochs()
 
     freq_bins = [(4, 12), (15, 40)]
@@ -312,18 +301,16 @@ def test_tf_lcmv():
     noise_covs = []
     for (l_freq, h_freq), win_length in zip(freq_bins, win_lengths):
         raw_band = raw.copy()
-        raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1, picks=picks)
-        with warnings.catch_warnings(record=True):  # bad proj
-            epochs_band = mne.Epochs(
-                raw_band, epochs.events, epochs.event_id, tmin=tmin, tmax=tmax,
-                baseline=None, proj=True, picks=picks)
+        raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1)
+        epochs_band = mne.Epochs(
+            raw_band, epochs.events, epochs.event_id, tmin=tmin, tmax=tmax,
+            baseline=None, proj=True)
         with warnings.catch_warnings(record=True):  # not enough samples
             noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
                                            win_length)
-        with warnings.catch_warnings(record=True):  # bad proj
-            noise_cov = mne.cov.regularize(
-                noise_cov, epochs_band.info, mag=reg, grad=reg, eeg=reg,
-                proj=True)
+        noise_cov = mne.cov.regularize(
+            noise_cov, epochs_band.info, mag=reg, grad=reg, eeg=reg,
+            proj=True)
         noise_covs.append(noise_cov)
         del raw_band  # to save memory
 
@@ -379,6 +366,7 @@ def test_tf_lcmv():
     # the underlying raw object
     epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                                   baseline=(None, 0), preload=True)
+    epochs_preloaded._raw = None
     with warnings.catch_warnings(record=True):  # not enough samples
         assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward,
                       noise_covs, tmin, tmax, tstep, win_lengths, freq_bins)

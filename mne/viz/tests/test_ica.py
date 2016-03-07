@@ -123,6 +123,8 @@ def test_plot_ica_overlay():
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
+    # can't use _normalize_proj here because of how and when ICA and Epochs
+    # objects do picking of Raw data
     with warnings.catch_warnings(record=True):  # bad proj
         ica.fit(raw, picks=picks)
     # don't test raw, needs preload ...
