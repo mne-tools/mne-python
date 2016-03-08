@@ -123,7 +123,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), misc=(), event_id=None,
         Defaults to empty tuple.
     misc : list or tuple
         Names of channels or list of indices that should be designated MISC
-        channels. Values should correspond to the electrodes in the vhdr file.
+        channels. Values should correspond to the electrodes in the .set file.
         Default is ``()``.
     event_id : dict | None
         The ids of the events to consider. If None (default), an empty dict is
@@ -206,7 +206,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         Defaults to empty tuple.
     misc : list or tuple
         Names of channels or list of indices that should be designated MISC
-        channels. Values should correspond to the electrodes in the vhdr file.
+        channels. Values should correspond to the electrodes in the .set file.
         Default is ``()``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -249,7 +249,7 @@ class RawEEGLAB(_BaseRaw):
         Defaults to empty tuple.
     misc : list or tuple
         Names of channels or list of indices that should be designated MISC
-        channels. Values should correspond to the electrodes in the vhdr file.
+        channels. Values should correspond to the electrodes in the .set file.
         Default is ``()``.
     event_id : dict | None
         The ids of the events to consider. If None (default), an empty dict is
@@ -307,12 +307,11 @@ class RawEEGLAB(_BaseRaw):
         last_samps = [eeg.pnts - 1]
         info = _get_info(eeg, montage, eog=eog)
 
-        n_chan = len(info["chs"])
         stim_chan = dict(ch_name='STI 014', coil_type=FIFF.FIFFV_COIL_NONE,
-                         kind=FIFF.FIFFV_STIM_CH, logno=n_chan + 1,
-                         scanno=n_chan + 1, cal=1., range=1., loc=np.zeros(12),
-                         unit=FIFF.FIFF_UNIT_NONE, unit_mul=0.,
-                         coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
+                         kind=FIFF.FIFFV_STIM_CH, logno=len(info["chs"]) + 1,
+                         scanno=len(info["chs"]) + 1, cal=1., range=1.,
+                         loc=np.zeros(12), unit=FIFF.FIFF_UNIT_NONE,
+                         unit_mul=0., coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
         info['chs'].append(stim_chan)
         if event_id is None:
             event_id = dict()
@@ -437,7 +436,7 @@ class EpochsEEGLAB(_BaseEpochs):
         Defaults to empty tuple.
     misc : list or tuple
         Names of channels or list of indices that should be designated MISC
-        channels. Values should correspond to the electrodes in the vhdr file.
+        channels. Values should correspond to the electrodes in the .set file.
         Default is ``()``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -550,6 +549,10 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func=None):
 
     types = [event.type for event in eeg.event]
     latencies = [event.latency for event in eeg.event]
+    if "boundary" in types and "boundary" not in event_id:
+        warn("The data contains 'boundary' events, indicating data "
+             "discontinuities. Be cautious of filtering and epoching around "
+             "these events.")
 
     not_in_event_id = set(x for x in types if x not in event_id)
     not_purely_numeric = set(x for x in not_in_event_id if not x.isdigit())

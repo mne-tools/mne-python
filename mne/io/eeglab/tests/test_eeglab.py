@@ -40,6 +40,8 @@ def test_io_set():
     with warnings.catch_warnings(record=True) as w2:
         # test finding events in continuous data
         event_id = {'rt': 1, 'square': 2}
+        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                               event_id=event_id, preload=True)
         raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
                                event_id=event_id, preload=False)
         raw2 = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage,
@@ -50,10 +52,11 @@ def test_io_set():
         epochs = Epochs(raw1, find_events(raw1), event_id)
         assert_equal(len(find_events(raw4)), 0)  # no events without event_id
         assert_equal(epochs["square"].average().nave, 80)  # 80 with
-        assert_array_equal(raw1[:][0], raw2[:][0], raw3[:][0])
-        assert_array_equal(raw1[:][-1], raw2[:][-1], raw3[:][-1])
+        assert_array_equal(raw0[:][0], raw1[:][0], raw2[:][0], raw3[:][0])
+        assert_array_equal(raw0[:][-1], raw1[:][-1], raw2[:][-1], raw3[:][-1])
         assert_equal(len(w2), 4)
         # for preload=False / str with fname_onefile, and for dropped events
+        raw0.filter(1, None)  # test that preloading works
 
     with warnings.catch_warnings(record=True) as w:
         epochs = read_epochs_eeglab(epochs_fname)
