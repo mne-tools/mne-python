@@ -352,7 +352,8 @@ class LinearModel(BaseEstimator):
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
-            If None, then channels are chosen in the order given above.
+            If None, then first available channel type from order given
++           above is used. Defaults to None.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to be
             specified for Neuromag data). If possible, the correct layout file
@@ -501,7 +502,8 @@ class LinearModel(BaseEstimator):
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
-            If None, then channels are chosen in the order given above.
+            If None, then first available channel type from order given
++           above is used. Defaults to None.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to be
             specified for Neuromag data). If possible, the correct layout file

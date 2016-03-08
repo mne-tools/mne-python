@@ -54,3 +54,6 @@ doc/samples
 cover
 
 *.orig
+
+# PyCharm
+.idea/**

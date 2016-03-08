@@ -957,7 +957,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
-            If None, then channels are chosen in the order given above.
+            If None, then first available channel type from order given
++           above is used. Defaults to None.
         baseline : tuple or list of length 2
             The time interval to apply rescaling / baseline correction.
             If None do not apply it. If baseline is (a, b)
