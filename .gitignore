@@ -55,5 +55,15 @@ cover
 
 *.orig
 
-# PyCharm
-.idea/**
+# Covers JetBrains IDEs:
+*.iml
+.idea/
+/.idea/vcs.xml
+*.ipr
+*.iws
+/out/
+.idea_modules/
+atlassian-ide-plugin.xml
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
