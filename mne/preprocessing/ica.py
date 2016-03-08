@@ -1302,7 +1302,8 @@ class ICA(ContainsMixin):
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
-            If None, then channels are chosen in the order given above.
+            If None, then first available channel type from order given
++           above is used. Defaults to None.
         res : int
             The resolution of the topomap image (n pixels along each side).
         layout : None | Layout
