@@ -18,7 +18,7 @@ from mne import pick_types
 from mne.utils import run_tests_if_main, requires_version
 from mne.channels import read_layout
 
-from mne.viz import plot_drop_log, plot_epochs_image
+from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
@@ -130,16 +130,16 @@ def test_plot_epochs_image():
     """
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    plot_epochs_image(epochs, picks=[1, 2])
+    epochs.plot_image(picks=[1, 2])
     overlay_times = [0.1]
-    plot_epochs_image(epochs, order=[0], overlay_times=overlay_times)
-    plot_epochs_image(epochs, overlay_times=overlay_times)
-    assert_raises(ValueError, plot_epochs_image, epochs,
+    epochs.plot_image(order=[0], overlay_times=overlay_times)
+    epochs.plot_image(overlay_times=overlay_times)
+    assert_raises(ValueError, epochs.plot_image,
                   overlay_times=[0.1, 0.2])
-    assert_raises(ValueError, plot_epochs_image, epochs,
+    assert_raises(ValueError, epochs.plot_image,
                   order=[0, 1])
     with warnings.catch_warnings(record=True) as w:
-        plot_epochs_image(epochs, overlay_times=[1.1])
+        epochs.plot_image(overlay_times=[1.1])
         warnings.simplefilter('always')
     assert_equal(len(w), 1)
 

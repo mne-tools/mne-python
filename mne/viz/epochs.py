@@ -34,7 +34,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     Parameters
     ----------
     epochs : instance of Epochs
-        The epochs
+        The epochs.
     picks : int | array-like of int | None
         The indices of the channels to consider. If None, the first
         five good channels are plotted.
@@ -43,18 +43,18 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         the epoch axis to apply in the image. If 0., no smoothing is applied.
     vmin : float
         The min value in the image. The unit is uV for EEG channels,
-        fT for magnetometers and fT/cm for gradiometers
+        fT for magnetometers and fT/cm for gradiometers.
     vmax : float
         The max value in the image. The unit is uV for EEG channels,
-        fT for magnetometers and fT/cm for gradiometers
+        fT for magnetometers and fT/cm for gradiometers.
     colorbar : bool
-        Display or not a colorbar
+        Display or not a colorbar.
     order : None | array of int | callable
         If not None, order is used to reorder the epochs on the y-axis
         of the image. If it's an array of int it should be of length
         the number of good epochs. If it's a callable the arguments
         passed are the times vector and the data as 2d array
-        (data.shape[1] == len(times)
+        (data.shape[1] == len(times).
     show : bool
         Show figure if True.
     units : dict | None
@@ -63,7 +63,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.
         If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
-        eog=1e6)`
+        eog=1e6)`.
     cmap : matplotlib colormap
         Colormap.
     fig : matplotlib figure | None
@@ -78,8 +78,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     Returns
     -------
-    figs : the list of matplotlib figures
-        One figure per channel displayed
+    figs : lists of matplotlib figures
+        One figure per channel displayed.
     """
     from scipy import ndimage
     units = _handle_default('units', units)
