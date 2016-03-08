@@ -42,6 +42,8 @@ Changelog
 
     - Accept :class:`mne.decoding.GeneralizationAcrossTime`'s ``scorer`` parameter to be a string that refers to a scikit-learn metric scorer by `Asish Panda`_.
 
+    - Add method :func:`mne.epochs.plot_image` calling :func:`mne.viz.epochs.plot_epochs_image` for better usability by `Asish Panda`_.
+
 BUG
 ~~~
 
