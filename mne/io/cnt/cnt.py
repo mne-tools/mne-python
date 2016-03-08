@@ -391,6 +391,6 @@ class RawCNT(_BaseRaw):
                 block = block[sel, s_offset:n_samps + s_offset]
                 data_[sel] = block
                 data_[-1] = stim_ch[start + sample_start:start + sample_stop]
-                data -= baselines[sel, None]
+                data_[sel] -= baselines[sel][:, None]
                 _mult_cal_one(data[:, sample_start:sample_stop], data_, idx,
                               cals, mult=None)
