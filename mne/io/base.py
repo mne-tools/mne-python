@@ -457,6 +457,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         segment_reject : bool
             Whether to perform rejection based on annotations.
             False by default.
+
+        Returns
+        -------
+        data : array | str
+            Data in the desired range (good segment) or description of the bad
+            segment.
         """
         if start < 0:
             return None

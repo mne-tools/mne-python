@@ -13,13 +13,13 @@ class Annotations(object):
 
     Parameters
     ----------
-    onset: array of float, shape (n_annotations,)
+    onset : array of float, shape (n_annotations,)
         Annotation time onsets from the beginning of the recording.
-    duration: array of float, shape (n_annotations,)
+    duration : array of float, shape (n_annotations,)
         Durations of the annotations.
-    description: array of str, shape (n_annotations,)
+    description : array of str, shape (n_annotations,)
         Array of strings containing description for each annotation.
-    orig_time: float | int | instance of datetime | array of int | None
+    orig_time : float | int | instance of datetime | array of int | None
         A POSIX Timestamp, datetime or an array containing the timestamp as the
         first element and microseconds as the second element. Determines the
         starting time of annotation acquisition. If None (default),
