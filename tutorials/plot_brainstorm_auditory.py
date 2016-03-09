@@ -22,12 +22,9 @@ References
 #
 # License: BSD (3-clause)
 
-# TODO:
-# - figure out why there is contamination at ~350 ms in standard condition
-# - complete source localization
-
 import numpy as np
 from scipy.io import loadmat
+from pyface.qt import QtGui, QtCore
 
 import mne
 from mne.datasets.brainstorm import bst_auditory
@@ -149,8 +146,13 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, preload=False,
                     proj=True)
 
+# Use only first 40 good epochs from each run
+epochs_standard = epochs['standard']
+discarded = np.concatenate([range(40, 192), range(232, 387)])
+epochs_standard.drop_epochs(discarded)
+
 # compute evoked
-evoked_standard = epochs['standard'].average()
+evoked_standard = epochs_standard.average()
 evoked_deviant = epochs['deviant'].average()
 
 # plot the result
@@ -167,14 +169,18 @@ evoked_difference.data = evoked_deviant.data - evoked_standard.data
 evoked_difference.plot(window_title='Difference', gfp=True)
 
 # compute noise covariance
+reject = dict(mag=4e-12)
 cov = mne.compute_raw_covariance(raw_erm, reject=reject)
 cov.plot(raw_erm.info)
 
+# src = mne.setup_source_space(subject, subjects_dir=subjects_dir)
 src = mne.read_source_spaces(subjects_dir +
                              '/bst_auditory/bem/bst_auditory-oct-6-src.fif')
-trans = mne.read_trans(data_path + '/MEG/bst_auditory/mainak-trans.fif')
+
+trans = mne.read_trans(data_path + '/MEG/bst_auditory/bst_auditory-trans.fif')
 surfs = mne.read_bem_surfaces(subjects_dir +
-                              '/bst_auditory/bem/bst_auditory-inner-skull.fif')
+                              '/bst_auditory/bem/inner_skull.fif')
+
 bem = mne.make_bem_solution(surfs)
 
 fwd = mne.make_forward_solution(evoked_standard.info, trans=trans, src=src,
