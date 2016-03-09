@@ -147,9 +147,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     proj=True)
 
 # Use only first 40 good epochs from each run
-epochs_standard = epochs['standard']
-discarded = np.concatenate([range(40, 192), range(232, 387)])
-epochs_standard.drop_epochs(discarded)
+selection = np.concatenate([range(40), range(192, 232)])
+epochs_standard = epochs['standard'][selection]
 
 # compute evoked
 evoked_standard = epochs_standard.average()
@@ -161,8 +160,8 @@ evoked_deviant.plot(window_title='Deviant', gfp=True)
 
 # show topomaps
 times = np.arange(0, 0.351, 0.025)
-evoked_standard.plot_topomap(times=times)
-evoked_deviant.plot_topomap(times=times)
+evoked_standard.plot_topomap(times=times, title='Standard')
+evoked_deviant.plot_topomap(times=times, title='Deviant')
 
 evoked_difference = evoked_standard.copy()
 evoked_difference.data = evoked_deviant.data - evoked_standard.data
@@ -173,6 +172,7 @@ reject = dict(mag=4e-12)
 cov = mne.compute_raw_covariance(raw_erm, reject=reject)
 cov.plot(raw_erm.info)
 
+# Source space is read from a file, but can also be made with a function.
 # src = mne.setup_source_space(subject, subjects_dir=subjects_dir)
 src = mne.read_source_spaces(subjects_dir +
                              '/bst_auditory/bem/bst_auditory-oct-6-src.fif')
@@ -205,3 +205,6 @@ stc_deviant.plot(subjects_dir=subjects_dir, subject=subject,
 
 stc_difference.plot(subjects_dir=subjects_dir, subject=subject,
                     surface='inflated', time_viewer=True, hemi='both')
+
+from scipy import stats
+ts = stats.ttest_rel(stc_standard.data, stc_deviant.data)
