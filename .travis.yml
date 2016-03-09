@@ -24,7 +24,7 @@ env:
     #
     # Conda currently has packaging bug with mayavi/traits/numpy where 1.10 can't be used
     # but breaks sklearn on install; hopefully eventually the NUMPY=1.9 on 2.7 full can be removed
-    - PYTHON=2.7 DEPS=full TEST_LOCATION=src # NUMPY="=1.9" SCIPY="=0.16"
+    - PYTHON=2.7 DEPS=full TEST_LOCATION=src NUMPY="=1.9" SCIPY="=0.17"
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1  # also runs flake8
     - PYTHON=3.5 DEPS=full TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
     - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.7" SCIPY="=0.11" MPL="=1.1" LIBPNG="=1.5" SKLEARN="=0.11" PANDAS="=0.8"
@@ -42,7 +42,7 @@ before_install:
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
 
 install:
-    - conda create -n testenv --yes pip python=$PYTHON nomkl
+    - conda create -n testenv --yes pip python=$PYTHON
     - source activate testenv
     - ENSURE_PACKAGES="numpy$NUMPY scipy$SCIPY matplotlib$MPL libpng$LIBPNG"
     - conda install --yes --quiet $ENSURE_PACKAGES nose coverage
