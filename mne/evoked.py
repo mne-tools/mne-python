@@ -400,7 +400,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The channel type to plot. For 'grad', the gradiometers are collec-
             ted in pairs and the RMS for each pair is plotted.
             If None, then first available channel type from order given
-+           above is used. Defaults to None.
+            above is used. Defaults to None.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct
