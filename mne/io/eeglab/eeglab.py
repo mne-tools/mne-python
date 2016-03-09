@@ -82,6 +82,8 @@ def _get_info(eeg, montage, eog=()):
             montage = Montage(np.array(pos), ch_names, kind, selection)
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
+    else:  # if eeg.chanlocs is empty, we still need default chan names
+        ch_names = ["Channel " + str(ii) for ii in range(eeg.nbchan)]
 
     if montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
@@ -316,7 +318,7 @@ class RawEEGLAB(_BaseRaw):
         if event_id is None:
             event_id = dict()
 
-        self.preload = False  # so the event-setting works
+#        self.preload = preload
         if event_id_func is None:
             event_id_func = _strip_to_integer
         events = _read_eeglab_events(eeg, event_id=event_id,
@@ -362,8 +364,6 @@ class RawEEGLAB(_BaseRaw):
             raise ValueError("[n_events x 3] shaped array required")
         # update events
         self._event_ch = _synthesize_stim_channel(events, n_samples)
-        if self.preload:
-            self._data[-1] = self._event_ch
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""

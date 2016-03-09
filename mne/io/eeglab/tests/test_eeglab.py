@@ -31,6 +31,7 @@ def test_io_set():
     """Test importing EEGLAB .set files"""
     from scipy import io
     with warnings.catch_warnings(record=True) as w1:
+        warnings.simplefilter('always')
         # main tests, and test missing event_id
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
                          montage=montage)
@@ -38,6 +39,7 @@ def test_io_set():
                          montage=montage)
         assert_equal(len(w1), 20)  # for preload_false and dropping events
     with warnings.catch_warnings(record=True) as w2:
+        warnings.simplefilter('always')
         # test finding events in continuous data
         event_id = {'rt': 1, 'square': 2}
         raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
@@ -49,6 +51,7 @@ def test_io_set():
         raw3 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
                                event_id=event_id)
         raw4 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
+        Epochs(raw0, find_events(raw0), event_id)
         epochs = Epochs(raw1, find_events(raw1), event_id)
         assert_equal(len(find_events(raw4)), 0)  # no events without event_id
         assert_equal(epochs["square"].average().nave, 80)  # 80 with
@@ -59,6 +62,7 @@ def test_io_set():
         raw0.filter(1, None)  # test that preloading works
 
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         epochs = read_epochs_eeglab(epochs_fname)
         epochs2 = read_epochs_eeglab(epochs_fname_onefile)
     # 3 warnings for each read_epochs_eeglab because there are 3 epochs
@@ -92,6 +96,7 @@ def test_io_set():
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(temp_dir, 'test_epochs.dat'))
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         assert_raises(NotImplementedError, read_epochs_eeglab,
                       bad_epochs_fname)
     assert_equal(len(w), 3)
