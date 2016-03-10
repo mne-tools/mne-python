@@ -126,8 +126,8 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
 
     time_mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info['sfreq'])
     if picks is None:
-        picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+        picks = pick_types(inst.info, meg=True, eeg=True, seeg=True,
+                           ref_meg=False, exclude='bads')
     if proj:
         # Copy first so it's not modified
         inst = inst.copy().apply_proj()
@@ -400,7 +400,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
     Fs = epochs.info['sfreq']
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+                           seeg=True, exclude='bads')
     n_fft, n_overlap = _check_nfft(len(epochs.times), n_fft, n_overlap)
 
     if tmin is not None or tmax is not None:
