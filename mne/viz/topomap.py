@@ -1120,12 +1120,19 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
 
+    picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
+        evoked, ch_type, layout)
+
+    print(picks)
+    evoked_ = evoked.pick_channels([evoked.ch_names[pick] for pick in picks],
+                                   copy=True)
+
     if axes is not None:
         if isinstance(axes, plt.Axes):
             axes = [axes]
-        times = _process_times(evoked, times, n_peaks=len(axes))
+        times = _process_times(evoked_, times, n_peaks=len(axes))
     else:
-        times = _process_times(evoked, times, n_peaks=None)
+        times = _process_times(evoked_, times, n_peaks=None)
     space = 1 / (2. * evoked.info['sfreq'])
     if (max(times) > max(evoked.times) + space or
             min(times) < min(evoked.times) - space):
@@ -1149,9 +1156,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
              'colorbar=False.')
     if len(axes) != n_times:
         raise RuntimeError('Axes and times must be equal in sizes.')
-
-    picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
-        evoked, ch_type, layout)
 
     if ch_type.startswith('planar'):
         key = 'grad'
