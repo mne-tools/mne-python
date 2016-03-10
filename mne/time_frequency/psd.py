@@ -5,7 +5,7 @@
 import numpy as np
 
 from ..parallel import parallel_func
-from ..io.pick import pick_types, _pick_data_channels
+from ..io.pick import _pick_data_channels
 from ..utils import logger, verbose, deprecated, _time_mask
 from .multitaper import _psd_multitaper
 
@@ -126,7 +126,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
 
     time_mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info['sfreq'])
     if picks is None:
-        picks = _pick_data_channels(inst.info)
+        picks = _pick_data_channels(inst.info, with_ref_meg=False)
     if proj:
         # Copy first so it's not modified
         inst = inst.copy().apply_proj()
@@ -398,7 +398,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, tmin=None,
     n_fft = int(n_fft)
     Fs = epochs.info['sfreq']
     if picks is None:
-        picks = _pick_data_channels(epochs.info)
+        picks = _pick_data_channels(epochs.info, with_ref_meg=False)
     n_fft, n_overlap = _check_nfft(len(epochs.times), n_fft, n_overlap)
 
     if tmin is not None or tmax is not None:
