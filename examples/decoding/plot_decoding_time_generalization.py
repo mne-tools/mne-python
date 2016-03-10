@@ -28,9 +28,9 @@ print(__doc__)
 # Preprocess data
 data_path = spm_face.data_path()
 # Load and filter data, set up epochs
-raw_path = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
+raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
 
-raw = mne.io.read_raw_ctf(raw_path % 1, preload=True)  # Take first run
+raw = mne.io.read_raw_ctf(raw_fname % 1, preload=True)  # Take first run
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 45, method='iir')

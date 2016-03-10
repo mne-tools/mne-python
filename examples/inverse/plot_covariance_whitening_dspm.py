@@ -48,9 +48,9 @@ print(__doc__)
 data_path = spm_face.data_path()
 subjects_dir = data_path + '/subjects'
 
-raw_path = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
+raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
 
-raw = io.read_raw_ctf(raw_path % 1, preload=True)  # Take first run
+raw = io.read_raw_ctf(raw_fname % 1, preload=True)  # Take first run
 # To save time and memory for this demo, we'll just use the first
 # 2.5 minutes (all we need to get 30 total events) and heavily
 # resample 480->60 Hz (usually you wouldn't do either of these!)
