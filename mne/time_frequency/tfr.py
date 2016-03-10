@@ -505,7 +505,8 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     from ..viz.utils import _setup_vmin_vmax
 
     copy = baseline is not None
-    data = rescale(data, times, baseline, mode, copy=copy)
+    if mode is not None:
+        data = rescale(data, times, baseline, mode, copy=copy)
 
     # crop time
     itmin, itmax = None, None
