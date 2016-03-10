@@ -256,7 +256,46 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         else:
             raise ValueError("No such solver: {0}".format(solver))
 
-    # prepare raw and events
+    # build data
+    data, info, events = _prepare_rerp_data(raw, events, picks=None, decim=1)
+
+    # build predictors
+    X, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
+        n_samples=data.shape[1], sfreq=info["sfreq"], events=events,
+        event_id=event_id, tmin=tmin, tmax=tmax, covariates=covariates)
+
+    # find only those positions where at least one predictor isn't 0
+    has_val = np.unique(X.nonzero()[0])
+
+    # reject positions based on extreme steps in the data
+    if reject is not None:
+        _, inds = _reject_data_segments(data, reject, flat, decim=None,
+                                        info=info, tstep=tstep)
+        for t0, t1 in inds:
+            has_val = np.setdiff1d(has_val, range(t0, t1))
+
+    # solve linear system
+    X, data = X.tocsr()[has_val], data[:, has_val]
+    coefs = solver(X, data)
+
+    # construct Evoked objects to be returned from output
+    evokeds = dict()
+    cum = 0
+    for cond in conds:
+        tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
+        evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
+                                    info=info, comment=cond,
+                                    tmin=tmin_ / float(info["sfreq"]),
+                                    nave=cond_length[cond],
+                                    kind='mean')  # nave and kind are
+        cum += tmax_ - tmin_                      # technically not correct
+
+    return evokeds
+
+
+def _prepare_rerp_data(raw, events, picks=None, decim=1):
+    """Prepare events and data (primarily for `linear_regression_raw`. See
+    there for explanation of parameters and output."""
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
     info = pick_info(raw.info, picks, copy=True)
@@ -264,7 +303,6 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     info["sfreq"] /= decim
     data, times = raw[:]
     data = data[picks, ::decim]
-    times = times[::decim]
     if len(set(events[:, 0])) < len(events[:, 0]):
         raise ValueError("`events` contains duplicate time points. Make "
                          "sure all entries in the first column of `events` "
@@ -280,21 +318,29 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                          "different events, drop close events, or choose a "
                          "different decimation factor.")
 
+
+    return data, info, events
+
+
+def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
+                        tmax=1, covariates=None):
+    """Build predictor matrix (primarily for `linear_regression_raw`. See
+    there for explanation of parameters and output."""
     conds = list(event_id)
     if covariates is not None:
         conds += list(covariates)
 
     # time windows (per event type) are converted to sample points from times
     if isinstance(tmin, (float, int)):
-        tmin_s = dict((cond, int(tmin * info["sfreq"])) for cond in conds)
+        tmin_s = dict((cond, int(tmin * sfreq)) for cond in conds)
     else:
-        tmin_s = dict((cond, int(tmin.get(cond, -.1) * info["sfreq"]))
+        tmin_s = dict((cond, int(tmin.get(cond, -.1) * sfreq))
                       for cond in conds)
     if isinstance(tmax, (float, int)):
         tmax_s = dict(
-            (cond, int((tmax * info["sfreq"]) + 1.)) for cond in conds)
+            (cond, int((tmax * sfreq) + 1.)) for cond in conds)
     else:
-        tmax_s = dict((cond, int((tmax.get(cond, 1.) * info["sfreq"]) + 1))
+        tmax_s = dict((cond, int((tmax.get(cond, 1.) * sfreq) + 1))
                       for cond in conds)
 
     # Construct predictor matrix
@@ -328,34 +374,6 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
         cond_length[cond] = len(onsets)
         xs.append(sparse.dia_matrix((values, onsets),
-                                    shape=(data.shape[1], n_lags)))
+                                    shape=(n_samples, n_lags)))
 
-    X = sparse.hstack(xs)
-
-    # find only those positions where at least one predictor isn't 0
-    has_val = np.unique(X.nonzero()[0])
-
-    # additionally, reject positions based on extreme steps in the data
-    if reject is not None:
-        _, inds = _reject_data_segments(data, reject, flat, decim=None,
-                                        info=info, tstep=tstep)
-        for t0, t1 in inds:
-            has_val = np.setdiff1d(has_val, range(t0, t1))
-
-    # solve linear system
-    X, data = X.tocsr()[has_val], data[:, has_val]
-    coefs = solver(X, data)
-
-    # construct Evoked objects to be returned from output
-    evokeds = dict()
-    cum = 0
-    for cond in conds:
-        tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
-        evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                    info=info, comment=cond,
-                                    tmin=tmin_ / float(info["sfreq"]),
-                                    nave=cond_length[cond],
-                                    kind='mean')  # note that nave and kind are
-        cum += tmax_ - tmin_                      # technically not correct
-
-    return evokeds
+    return sparse.hstack(xs), cond_length, tmin_s, tmax_s
