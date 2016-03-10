@@ -147,11 +147,15 @@ def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
     # Compute the sum occurring in the evaluation.
     # The result is
     #   sums[:]    (2n+1)^2/n beta^n P_n
-    coeffs = lut_fun(ctheta)
-    betans = np.tile(beta[:, np.newaxis], (1, n_fact.shape[0]))
-    betans = np.cumprod(betans, axis=1, out=betans)  # run inplace
-    coeffs *= betans
-    s0 = np.dot(coeffs, n_fact)  # == weighted sum across cols
+    n_chunk = 50000000 // (8 * max(n_fact.shape) * 2)
+    lims = np.concatenate([np.arange(0, beta.size, n_chunk), [beta.size]])
+    s0 = np.empty(beta.shape)
+    for start, stop in zip(lims[:-1], lims[1:]):
+        coeffs = lut_fun(ctheta[start:stop])
+        betans = np.tile(beta[start:stop][:, np.newaxis], (1, n_fact.shape[0]))
+        np.cumprod(betans, axis=1, out=betans)  # run inplace
+        coeffs *= betans
+        s0[start:stop] = np.dot(coeffs, n_fact)  # == weighted sum across cols
     return s0
 
 
@@ -183,18 +187,23 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     #  * sums[:, 1]    n/(2n+1) beta^(n+1) P_n'
     #  * sums[:, 2]    n/((2n+1)(n+1)) beta^(n+1) P_n'
     #  * sums[:, 3]    n/((2n+1)(n+1)) beta^(n+1) P_n''
-    bbeta = np.tile(beta[np.newaxis], (n_fact.shape[0], 1))
-    bbeta = np.cumprod(bbeta, axis=0, out=bbeta)  # run inplace
-    bbeta *= beta
+
     # This is equivalent, but slower:
     # sums = np.sum(bbeta[:, :, np.newaxis].T * n_fact * coeffs, axis=1)
     # sums = np.rollaxis(sums, 2)
     # or
     # sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta)))
     sums = np.empty((n_fact.shape[1], len(beta)))
-    for k in range(n_fact.shape[1]):  # lookup in blocks to save memory
-        np.einsum('ji,j,ij->i', bbeta, n_fact[:, k], lut_fun(ctheta, block=k),
-                  out=sums[k])
+    # beta can be e.g. 3 million elements, which ends up using lots of memory
+    # so we split up the computations into ~50 MB blocks
+    n_chunk = 50000000 // (8 * max(n_fact.shape) * 2)
+    lims = np.concatenate([np.arange(0, beta.size, n_chunk), [beta.size]])
+    for start, stop in zip(lims[:-1], lims[1:]):
+        bbeta = np.tile(beta[start:stop][np.newaxis], (n_fact.shape[0], 1))
+        bbeta[0] *= beta[start:stop]
+        np.cumprod(bbeta, axis=0, out=bbeta)  # run inplace
+        np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta[start:stop]),
+                  out=sums[:, start:stop])
     return sums
 
 
