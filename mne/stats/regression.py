@@ -257,10 +257,11 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
             raise ValueError("No such solver: {0}".format(solver))
 
     # build data
-    data, info, events = _prepare_rerp_data(raw, events, picks=None, decim=1)
+    data, info, events = _prepare_rerp_data(raw, events, picks=picks,
+                                            decim=decim)
 
     # build predictors
-    X, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
+    X, conds, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
         n_samples=data.shape[1], sfreq=info["sfreq"], events=events,
         event_id=event_id, tmin=tmin, tmax=tmax, covariates=covariates)
 
@@ -376,4 +377,4 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
         xs.append(sparse.dia_matrix((values, onsets),
                                     shape=(n_samples, n_lags)))
 
-    return sparse.hstack(xs), cond_length, tmin_s, tmax_s
+    return sparse.hstack(xs), conds, cond_length, tmin_s, tmax_s

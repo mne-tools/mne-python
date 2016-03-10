@@ -91,6 +91,7 @@ def test_continuous_regression_no_overlap():
     tmin, tmax = -.1, .5
 
     raw = mne.io.Raw(raw_fname, preload=True)
+    raw.apply_proj()
     events = mne.read_events(event_fname)
     event_id = dict(audio_l=1, audio_r=2)
 
