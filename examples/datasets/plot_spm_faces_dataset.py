@@ -61,7 +61,7 @@ epochs = mne.Epochs(raw, events, event_ids, tmin, tmax,  picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
 # Fit ICA, find and remove major artifacts
-ica = ICA(n_components=0.95).fit(raw, reject=reject)
+ica = ICA(n_components=0.95, random_state=0).fit(raw, decim=1, reject=reject)
 
 # compute correlation scores, get bad indices sorted by score
 eog_epochs = create_eog_epochs(raw, ch_name='MRT31-2908', reject=reject)
@@ -84,7 +84,7 @@ for e in evoked:
 plt.show()
 
 # estimate noise covarariance
-noise_cov = mne.compute_covariance(epochs, tmax=0)
+noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk')
 
 ###############################################################################
 # Visualize fields on MEG helmet
