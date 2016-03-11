@@ -129,7 +129,6 @@ class RawCTF(_BaseRaw):
             if sample_info['n_samp'] == 0:
                 break
             if len(fnames) == 0:
-                # XXX: Buffer size different to c version
                 info['buffer_size_sec'] = \
                     sample_info['block_size'] / info['sfreq']
                 info['filename'] = directory
