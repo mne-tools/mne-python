@@ -8,7 +8,7 @@ import shutil
 import warnings
 
 import numpy as np
-from nose.tools import assert_raises, assert_true
+from nose.tools import assert_raises, assert_true, assert_false
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 from mne import pick_types
@@ -17,7 +17,7 @@ from mne.transforms import apply_trans
 from mne.io import Raw, read_raw_ctf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import _TempDir, run_tests_if_main, slow_test
-from mne.datasets import testing
+from mne.datasets import testing, spm_face
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
 ctf_fname_continuous = 'testdata_ctf.ds'
@@ -196,5 +196,16 @@ def test_read_ctf():
     read_raw_ctf(op.join(ctf_dir, ctf_fname_continuous), 'ignore')
     assert_raises(ValueError, read_raw_ctf,
                   op.join(ctf_dir, ctf_fname_continuous), 'foo')
+
+
+@testing.requires_spm_data
+def test_read_spm_ctf():
+    """Test CTF reader with omitted samples."""
+    data_path = spm_face.data_path()
+    raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D.ds'
+    raw = read_raw_ctf(raw_fname)
+    extras = raw._raw_extras[0]
+    assert_equal(extras['n_samp'], raw.n_times)
+    assert_false(extras['n_samp'] == extras['n_samp_tot'])
 
 run_tests_if_main()
