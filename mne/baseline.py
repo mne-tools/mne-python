@@ -13,6 +13,10 @@ from .utils import logger, verbose
 def _log_rescale(baseline, mode='mean'):
     """Helper to log the rescaling method"""
     if baseline is not None:
+        valid_modes = ('logratio', 'ratio', 'zscore', 'mean', 'percent',
+                       'zlogratio')
+        if mode not in valid_modes:
+            raise Exception('mode should be any of : %s' % (valid_modes, ))
         msg = 'Applying baseline correction (mode: %s)' % mode
     else:
         msg = 'No baseline correction applied'
@@ -55,15 +59,12 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     data_scaled: array
         Array of same shape as data after rescaling.
     """
+    _log_rescale(baseline, mode)
+    if baseline is None:
+        return data
     if copy:
         data = data.copy()
 
-    valid_modes = ('logratio', 'ratio', 'zscore', 'mean', 'percent',
-                   'zlogratio')
-    if mode not in valid_modes:
-        raise Exception('mode should be any of : %s' % (valid_modes, ))
-
-    _log_rescale(baseline, mode)
     if baseline is not None:
         bmin, bmax = baseline
         if bmin is None:
