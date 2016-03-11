@@ -311,8 +311,8 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1):
                          "different events, drop close events, or choose a "
                          "different decimation factor.")
 
-
     return data, info, events
+
 
 def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
                         tmax=1, covariates=None):
