@@ -265,18 +265,11 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         n_samples=data.shape[1], sfreq=info["sfreq"], events=events,
         event_id=event_id, tmin=tmin, tmax=tmax, covariates=covariates)
 
-    # find only those positions where at least one predictor isn't 0
-    has_val = np.unique(X.nonzero()[0])
 
-    # reject positions based on extreme steps in the data
-    if reject is not None:
-        _, inds = _reject_data_segments(data, reject, flat, decim=None,
-                                        info=info, tstep=tstep)
-        for t0, t1 in inds:
-            has_val = np.setdiff1d(has_val, range(t0, t1))
+    # remove "empty" and contaminated data points
+    X, data = _clean_rerp_input(X, data, reject, flat, decim, info, tstep)
 
     # solve linear system
-    X, data = X.tocsr()[has_val], data[:, has_val]
     coefs = solver(X, data)
 
     # construct Evoked objects to be returned from output
@@ -295,8 +288,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
 
 def _prepare_rerp_data(raw, events, picks=None, decim=1):
-    """Prepare events and data (primarily for `linear_regression_raw`. See
-    there for explanation of parameters and output."""
+    """Prepare events and data, primarily for `linear_regression_raw`. See
+    there for an explanation of parameters and output."""
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
     info = pick_info(raw.info, picks, copy=True)
@@ -325,8 +318,9 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1):
 
 def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
                         tmax=1, covariates=None):
-    """Build predictor matrix (primarily for `linear_regression_raw`. See
-    there for explanation of parameters and output."""
+    """Build predictor matrix as well as metadata (e.g. condition time
+    windows), primarily for `linear_regression_raw`. See there for
+    an explanation of parameters and output."""
     conds = list(event_id)
     if covariates is not None:
         conds += list(covariates)
@@ -378,3 +372,19 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
                                     shape=(n_samples, n_lags)))
 
     return sparse.hstack(xs), conds, cond_length, tmin_s, tmax_s
+
+
+def _clean_rerp_input(X, data, reject, flat, decim, info, tstep):
+    """Remove empty and contaminated points from data and predictor matrices,
+    for `linear_regression_raw`. See there for an explanation of parameters."""
+    # find only those positions where at least one predictor isn't 0
+    has_val = np.unique(X.nonzero()[0])
+
+    # reject positions based on extreme steps in the data
+    if reject is not None:
+        _, inds = _reject_data_segments(data, reject, flat, decim=None,
+                                        info=info, tstep=tstep)
+        for t0, t1 in inds:
+            has_val = np.setdiff1d(has_val, range(t0, t1))
+
+    return X.tocsr()[has_val], data[:, has_val]
