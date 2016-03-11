@@ -265,7 +265,6 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         n_samples=data.shape[1], sfreq=info["sfreq"], events=events,
         event_id=event_id, tmin=tmin, tmax=tmax, covariates=covariates)
 
-
     # remove "empty" and contaminated data points
     X, data = _clean_rerp_input(X, data, reject, flat, decim, info, tstep)
 
@@ -314,7 +313,6 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1):
 
 
     return data, info, events
-
 
 def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
                         tmax=1, covariates=None):
