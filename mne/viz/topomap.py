@@ -1123,7 +1123,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         evoked, ch_type, layout)
 
-    print(picks)
     evoked_ = evoked.pick_channels([evoked.ch_names[pick] for pick in picks],
                                    copy=True)
 

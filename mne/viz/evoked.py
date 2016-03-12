@@ -1029,7 +1029,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         pick_names = [evoked.info['ch_names'][pick] for pick in picks]
         evoked.pick_channels(pick_names)
     else:
-        evoked.pick_types(eeg=True, eog=True, seeg=True)
+        evoked.pick_types(eeg=True, eog=True, seeg=True, meg=True)
 
     if exclude == 'bads':
         exclude = [ch for ch in evoked.info['bads']
