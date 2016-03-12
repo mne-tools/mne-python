@@ -83,7 +83,7 @@ def _get_info(eeg, montage, eog=()):
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
-        ch_names = ["Channel " + str(ii) for ii in range(eeg.nbchan)]
+        ch_names = ["EEG " + str(ii) for ii in range(eeg.nbchan)]
 
     if montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')

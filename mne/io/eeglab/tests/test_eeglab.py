@@ -37,7 +37,8 @@ def test_io_set():
                          montage=montage)
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
                          montage=montage)
-        assert_equal(len(w1), 20)  # for preload_false and dropping events
+        assert_equal(len(w1), 20)  # 3 for preload_false
+                                   # and a lot for dropping events
     with warnings.catch_warnings(record=True) as w2:
         warnings.simplefilter('always')
         # test finding events in continuous data
