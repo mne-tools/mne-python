@@ -254,29 +254,22 @@ def _topo_to_sphere(pos, eegs):
     coords : list of shape (chs, 3)
         xyz-coordinates.
     """
-    xs = np.array(pos)[:, 0]
-    ys = np.array(pos)[:, 1]
+    xs, ys = np.array(pos).T
 
-    sqs = max(np.sqrt((xs[eegs] ** 2) + (ys[eegs] ** 2)))
+    sqs = np.max(np.sqrt((xs[eegs] ** 2) + (ys[eegs] ** 2)))
     xs /= sqs  # Shape to a sphere and normalize
     ys /= sqs
 
     xs += 0.5 - np.mean(xs[eegs])  # Centralize the points
     ys += 0.5 - np.mean(ys[eegs])
 
-    xs = xs * 2 - 1  # Values ranging from -1 to 1
-    ys = ys * 2 - 1
+    xs = xs * 2. - 1.  # Values ranging from -1 to 1
+    ys = ys * 2. - 1.
 
-    coords = list()
-    for x, y in zip(xs, ys):
-        r = np.sqrt(x ** 2 + y ** 2)
-        if r > 1:  # If a point is outside the sphere set z=0.
-            coords.append([x, y, 0])
-            continue
-        alpha = np.arccos(r)
-        z = np.sin(alpha)
-        coords.append([x, y, z])
-    return coords
+    rs = np.clip(np.sqrt(xs ** 2 + ys ** 2), 0., 1.)
+    alphas = np.arccos(rs)
+    zs = np.sin(alphas)
+    return np.column_stack([xs, ys, zs])
 
 
 class RawCNT(_BaseRaw):
