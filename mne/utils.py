@@ -317,11 +317,17 @@ def check_fname(fname, filetype, endings, endings_err=()):
 
 
 class WrapStdOut(object):
-    """Ridiculous class to work around how doctest captures stdout"""
+    """Dynamically wrap to sys.stdout
+
+    This makes packages that monkey-patch sys.stdout (e.g.doctest,
+    sphinx-gallery) work properly."""
     def __getattr__(self, name):
         # Even more ridiculous than this class, this must be sys.stdout (not
         # just stdout) in order for this to work (tested on OSX and Linux)
-        return getattr(sys.stdout, name)
+        if hasattr(sys.stdout, name):
+            return getattr(sys.stdout, name)
+        else:
+            raise AttributeError("'file' object has not attribute '%s'" % name)
 
 
 class _TempDir(str):
