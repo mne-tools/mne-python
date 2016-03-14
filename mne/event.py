@@ -670,6 +670,7 @@ def merge_events(events, ids, new_id, replace_events=True):
             where = (events[:, col] == i)
             events_out[where, col] = new_id
     if not replace_events:
+        events_out = events_out[where]
         events_out = np.concatenate((events_out, events), axis=0)
         events_out = events_out[np.argsort(events_out[:, 0])]
     return events_out
