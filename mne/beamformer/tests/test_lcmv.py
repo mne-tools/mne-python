@@ -10,7 +10,6 @@ from mne import compute_covariance
 from mne.datasets import testing
 from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw, tf_lcmv
 from mne.beamformer._lcmv import _lcmv_source_power
-from mne.io.proj import _normalize_proj
 from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main, slow_test
 
@@ -63,7 +62,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
                            eog=True, ref_meg=False, exclude='bads',
                            selection=left_temporal_channels)
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
-    _normalize_proj(raw.info)  # bit of a hack to avoid projection warnings
+    raw.info.normalize_proj()  # avoid projection warnings
 
     if epochs:
         # Read epochs
@@ -282,7 +281,7 @@ def test_tf_lcmv():
                            stim=True, eog=True, exclude='bads',
                            selection=left_temporal_channels)
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
-    _normalize_proj(raw.info)  # bit of a hack to avoid projection warnings
+    raw.info.normalize_proj()  # avoid projection warnings
     del picks
 
     # Read epochs

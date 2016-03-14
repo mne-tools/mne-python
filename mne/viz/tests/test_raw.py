@@ -9,7 +9,6 @@ from numpy.testing import assert_raises
 
 from mne import io, read_events, pick_types, Annotations
 from mne.utils import requires_version, run_tests_if_main
-from mne.io.proj import _normalize_proj
 from mne.viz.utils import _fake_click
 from mne.viz import plot_raw
 
@@ -30,7 +29,7 @@ def _get_raw():
     with warnings.catch_warnings(record=True):
         raw.set_channel_types({raw.ch_names[0]: 'ias'})
     raw.pick_channels(raw.ch_names[:9])
-    _normalize_proj(raw.info)  # "Fix" projectors after subselection
+    raw.info.normalize_proj()  # Fix projectors after subselection
     return raw
 
 

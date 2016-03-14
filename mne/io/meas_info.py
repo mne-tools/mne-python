@@ -18,7 +18,7 @@ from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find
 from .tag import read_tag, find_tag
-from .proj import _read_proj, _write_proj, _uniquify_projs
+from .proj import _read_proj, _write_proj, _uniquify_projs, _normalize_proj
 from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
@@ -269,6 +269,22 @@ class Info(collections.MutableMapping):
         # Convert non-standard fields
         info_dict['ch_names'] = list(info_dict['ch_names'])
         return info_dict
+
+    def normalize_proj(self):
+        """(Re-)Normalize projection vectors after subselection
+
+        Applying projection after sub-selecting a set of channels that
+        were originally used to compute the original projection vectors
+        can be dangerous (e.g., if few channels remain, most power was
+        in channels that are no longer picked, etc.). By default, mne
+        will emit a warning when this is done.
+
+        This function will re-normalize projectors to use only the
+        remaining channels, thus avoiding that warning. Only use this
+        function if you're confident that the projection vectors still
+        adequately capture the original signal of interest.
+        """
+        _normalize_proj(self)
 
     def __getitem__(self, key):
         """Retrieve a value from the data store

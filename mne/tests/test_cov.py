@@ -97,7 +97,7 @@ def test_io_cov():
 def test_cov_estimation_on_raw():
     """Test estimation from raw (typically empty room)"""
     tempdir = _TempDir()
-    raw = Raw(raw_fname, preload=False)
+    raw = Raw(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
 
     cov = compute_raw_covariance(raw, tstep=None)
@@ -118,13 +118,15 @@ def test_cov_estimation_on_raw():
 
     # test with a subset of channels
     picks = pick_channels(raw.ch_names, include=raw.ch_names[:5])
+    raw.pick_channels([raw.ch_names[pick] for pick in picks])
+    raw.info.normalize_proj()
     cov = compute_raw_covariance(raw, picks=picks, tstep=None)
     assert_true(cov_mne.ch_names[:5] == cov.ch_names)
     assert_snr(cov.data, cov_mne.data[picks][:, picks], 1e4)
     cov = compute_raw_covariance(raw, picks=picks)
     assert_snr(cov.data, cov_mne.data[picks][:, picks], 90)  # cutoff samps
     # make sure we get a warning with too short a segment
-    raw_2 = raw.crop(0, 1)
+    raw_2 = Raw(raw_fname).crop(0, 1)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         cov = compute_raw_covariance(raw_2)
@@ -455,11 +457,12 @@ def test_compute_covariance_auto_reg():
 
     # cov with merged events and keep_sample_mean=True
     events_merged = merge_events(events, event_ids, 1234)
-    picks = pick_types(raw.info, meg='mag', eeg=False)
+    # we need a few channels for numerical reasons in PCA/FA
+    picks = pick_types(raw.info, meg='mag', eeg=False)[:10]
+    raw.pick_channels([raw.ch_names[pick] for pick in picks])
+    raw.info.normalize_proj()
     epochs = Epochs(
         raw, events_merged, 1234, tmin=-0.2, tmax=0,
-        picks=picks[:10],  # we need a few channels for numerical reasons
-        # in PCA/FA.
         baseline=(-0.2, -0.1), proj=True, reject=reject, preload=True)
     epochs = epochs.crop(None, 0)[:10]
 
