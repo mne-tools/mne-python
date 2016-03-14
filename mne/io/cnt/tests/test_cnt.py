@@ -12,7 +12,7 @@ from mne.datasets import testing
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.cnt import read_raw_cnt
 
-data_path = testing.data_path(download=True)
+data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 
 
