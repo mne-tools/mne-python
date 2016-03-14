@@ -16,7 +16,6 @@ from mne.forward._make_forward import _create_meg_coils
 from mne.forward._field_interpolation import _setup_dots
 from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import testing
-from mne.io.proj import _normalize_proj
 from mne import read_evokeds, pick_types
 from mne.fixes import partial
 from mne.externals.six.moves import zip
@@ -153,7 +152,7 @@ def test_make_field_map_meg():
 
     # now do it with make_field_map
     evoked.pick_types(meg=True, eeg=False)
-    _normalize_proj(evoked.info)  # bit of a hack to avoid projection warnings
+    evoked.info.normalize_proj()  # avoid projection warnings
     fmd = make_field_map(evoked, None,
                          subject='sample', subjects_dir=subjects_dir)
     assert_true(len(fmd) == 1)
@@ -164,7 +163,7 @@ def test_make_field_map_meg():
 
     # now test the make_field_map on head surf for MEG
     evoked.pick_types(meg=True, eeg=False)
-    _normalize_proj(evoked.info)
+    evoked.info.normalize_proj()
     fmd = make_field_map(evoked, trans_fname, meg_surf='head',
                          subject='sample', subjects_dir=subjects_dir)
     assert_true(len(fmd) == 1)
@@ -182,7 +181,7 @@ def test_make_field_map_meeg():
     picks = pick_types(evoked.info, meg=True, eeg=True)
     picks = picks[::10]
     evoked.pick_channels([evoked.ch_names[p] for p in picks])
-    _normalize_proj(evoked.info)
+    evoked.info.normalize_proj()
     maps = make_field_map(evoked, trans_fname, subject='sample',
                           subjects_dir=subjects_dir, n_jobs=1)
     assert_equal(maps[0]['data'].shape, (642, 6))  # EEG->Head
@@ -221,7 +220,7 @@ def test_as_meg_type_evoked():
     # channel names
     ch_names = evoked.info['ch_names']
     virt_evoked = evoked.pick_channels(ch_names=ch_names[:10:1], copy=True)
-    _normalize_proj(virt_evoked.info)
+    virt_evoked.info.normalize_proj()
     virt_evoked = virt_evoked.as_type('mag')
     assert_true(all('_virtual' in ch for ch in virt_evoked.info['ch_names']))
 

@@ -47,6 +47,9 @@ left_temporal_channels = mne.read_selection('Left-temporal')
 raw.pick_types(meg='mag', eeg=False, eog=False, stim=False, exclude='bads',
                selection=left_temporal_channels, copy=False)
 reject = dict(mag=4e-12)
+# Re-normalize our empty-room projectors, which should be fine after
+# subselection
+raw.info.normalize_proj()
 
 # Setting time limits for reading epochs. Note that tmin and tmax are set so
 # that time-frequency beamforming will be performed for a wider range of time
@@ -74,6 +77,7 @@ raw_noise = Raw(noise_fname, preload=True)
 raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 raw_noise.pick_types(meg='mag', eeg=False, eog=False, stim=False,
                      exclude='bads', selection=left_temporal_channels)
+raw_noise.info.normalize_proj()
 
 # Create artificial events for empty room noise data
 events_noise = make_fixed_length_events(raw_noise, event_id, duration=1.)

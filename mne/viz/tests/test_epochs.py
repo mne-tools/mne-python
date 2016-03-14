@@ -17,7 +17,6 @@ from mne import io, read_events, Epochs
 from mne import pick_types
 from mne.utils import run_tests_if_main, requires_version
 from mne.channels import read_layout
-from mne.io.proj import _normalize_proj
 
 from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
@@ -79,7 +78,7 @@ def test_plot_epochs():
     """Test epoch plotting"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    _normalize_proj(epochs.info)
+    epochs.info.normalize_proj()  # avoid warnings
     epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)

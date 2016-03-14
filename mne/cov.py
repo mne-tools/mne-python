@@ -936,7 +936,9 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 def _logdet(A):
     """Compute the log det of a symmetric matrix."""
     vals = linalg.eigh(A)[0]
-    vals = np.abs(vals)  # avoid negative values (numerical errors)
+    # avoid negative (numerical errors) or zero (semi-definite matrix) values
+    tol = vals.max() * vals.size * np.finfo(np.float64).eps
+    vals = np.where(vals > tol, vals, tol)
     return np.sum(np.log(vals))
 
 

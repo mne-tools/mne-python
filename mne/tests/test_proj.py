@@ -14,7 +14,7 @@ from mne import pick_types
 from mne.io import Raw
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.io.proj import (make_projector, activate_proj,
-                         _needs_eeg_average_ref_proj, _normalize_proj)
+                         _needs_eeg_average_ref_proj)
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
@@ -53,7 +53,7 @@ def test_bad_proj():
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
     _check_warnings(raw, events, np.arange(len(raw.ch_names)))
     # "fixed"
-    _normalize_proj(raw.info)  # bit of a hack to avoid projection warnings
+    raw.info.normalize_proj()  # avoid projection warnings
     _check_warnings(raw, events, np.arange(len(raw.ch_names)), count=0)
 
 
