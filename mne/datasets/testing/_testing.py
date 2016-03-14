@@ -12,7 +12,6 @@ from ..utils import (has_dataset, _data_path, _data_path_doc,
 
 
 has_testing_data = partial(has_dataset, name='testing')
-has_spm_data = partial(has_dataset, name='spm')
 
 
 @verbose
