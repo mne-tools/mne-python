@@ -31,7 +31,7 @@ from ..channels.channels import _get_T1T2_mag_inds
 
 
 # Note: Elekta uses single precision and some algorithms might use
-# truncated versions of constants (e.g., u0), which could lead to small
+# truncated versions of constants (e.g., μ0), which could lead to small
 # differences between algorithms
 
 
@@ -48,7 +48,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                  filtering, so data should be inspected and marked accordingly
                  prior to running this algorithm.
 
-    .. warning:: Not all features of Elekta MaxFilter (tm) are currently
+    .. warning:: Not all features of Elekta MaxFilter™ are currently
                  implemented (see Notes). Maxwell filtering in mne-python
                  is not designed for clinical use.
 
@@ -73,7 +73,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         Path to the FIF file with cross-talk correction information.
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
-        (in seconds). Elekta's default is 10.0 seconds in MaxFilter (tm) v2.2.
+        (in seconds). Elekta's default is 10.0 seconds in MaxFilter™ v2.2.
         Spatiotemporal SSS acts as implicitly as a high-pass filter where the
         cut-off frequency is 1/st_dur Hz. For this (and other) reasons, longer
         buffers are generally better as long as your system can handle the
@@ -95,12 +95,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         containing a MEG device<->head transformation, or a 3-element array
         giving the coordinates to translate to (with no rotations).
         For example, ``destination=(0, 0, 0.04)`` would translate the bases
-        as ``--trans default`` would in MaxFilter (tm) (i.e., to the default
+        as ``--trans default`` would in MaxFilter™ (i.e., to the default
         head location).
     regularize : str | None
         Basis regularization type, must be "in" or None.
         "in" is the same algorithm as the "-regularize in" option in
-        MaxFilter (tm).
+        MaxFilter™.
     ignore_ref : bool
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since Maxwell filtering
@@ -157,7 +157,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     permission from Jussi Nurminen. These algorithms are based on work
     from [1]_ and [2]_.
 
-    Compared to Elekta's MaxFilter (tm) software, our Maxwell filtering
+    Compared to Elekta's MaxFilter™ software, our Maxwell filtering
     algorithm currently provides the following features:
 
         * Bad channel reconstruction
@@ -1692,8 +1692,8 @@ def _update_sensor_geometry(info, fine_cal, head_frame, ignore_ref):
     np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
 
     # Log quantification of sensor changes
-    logger.info('        Adjusted coil positions by (u +- sigma): '
-                '%0.1f +- %0.1f (max: %0.1f)' %
+    logger.info('        Adjusted coil positions by (μ ± σ): '
+                '%0.1f° ± %0.1f° (max: %0.1f°)' %
                 (np.mean(ang_shift), np.std(ang_shift),
                  np.max(np.abs(ang_shift))))
 

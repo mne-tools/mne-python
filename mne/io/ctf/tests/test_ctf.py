@@ -198,7 +198,7 @@ def test_read_ctf():
                   op.join(ctf_dir, ctf_fname_continuous), 'foo')
 
 
-@testing.requires_spm_data
+@spm_face.requires_spm_data
 def test_read_spm_ctf():
     """Test CTF reader with omitted samples."""
     data_path = spm_face.data_path()

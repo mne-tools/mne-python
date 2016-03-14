@@ -46,13 +46,3 @@ def _skip_testing_data():
 
 requires_testing_data = np.testing.dec.skipif(_skip_testing_data,
                                               'Requires testing dataset')
-
-
-def _skip_spm_data():
-    skip_testing = (get_config('MNE_SKIP_TESTING_DATASET_TESTS', 'false') ==
-                    'true')
-    skip = skip_testing or not has_spm_data()
-    return skip
-
-requires_spm_data = np.testing.dec.skipif(_skip_spm_data,
-                                          'Requires spm dataset')
