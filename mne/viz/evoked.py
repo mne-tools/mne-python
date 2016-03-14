@@ -185,7 +185,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
     # Valid data types ordered for consistency
-    channel_types = ['eeg', 'grad', 'mag', 'seeg', 'dipole', 'gof']
+    valid_channel_types = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
+                           'dipole', 'gof']
 
     if picks is None:
         picks = list(range(info['nchan']))
@@ -208,7 +209,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     types = np.array([channel_type(info, idx) for idx in picks])
     n_channel_types = 0
     ch_types_used = []
-    for t in channel_types:
+    for t in valid_channel_types:
         if t in types:
             n_channel_types += 1
             ch_types_used.append(t)
