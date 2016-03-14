@@ -58,9 +58,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         Data to be filtered
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in meters.
-        The default is ``'auto'``, which means ``(0., 0., 0.)`` for
-        ``coord_frame='meg'``, and a head-digitization-based origin fit
-        for ``coord_frame='head'``.
+        The default is ``'auto'``, which means a head-digitization-based
+        origin fit when ``coord_frame='head'``, and ``(0., 0., 0.)`` when
+        ``coord_frame='meg'``.
     int_order : int
         Order of internal component of spherical expansion.
     ext_order : int
