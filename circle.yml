@@ -25,7 +25,7 @@ dependencies:
         chmod +x ~/miniconda.sh;
         ~/miniconda.sh -b -p /home/ubuntu/miniconda;
         conda update --yes --quiet conda;
-        conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython;
+        conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython pandas;
         sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
       else
         echo "Conda already set up.";
