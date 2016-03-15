@@ -9,7 +9,7 @@ import time
 import numpy as np
 
 from ..base import _BaseRaw, _check_update_montage
-from ..utils import _read_segments_file
+from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...utils import verbose, logger, warn
@@ -255,25 +255,18 @@ class RawEGI(_BaseRaw):
         if self._new_trigger is not None:
             ch_names.append('STI 014')  # our new_trigger
         nchan = len(ch_names)
-        for ii, ch_name in enumerate(ch_names):
-            ch_info = {
-                'cal': cal, 'logno': ii + 1, 'scanno': ii + 1, 'range': 1.0,
-                'unit_mul': 0, 'ch_name': ch_name, 'unit': FIFF.FIFF_UNIT_V,
-                'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                'coil_type': FIFF.FIFFV_COIL_EEG, 'kind': FIFF.FIFFV_EEG_CH,
-                'loc': np.array([0, 0, 0, 1] * 3, dtype='f4')}
-            if ch_name in eog or ii in eog or ii - nchan in eog:
-                ch_info.update(coil_type=FIFF.FIFFV_COIL_NONE,
-                               kind=FIFF.FIFFV_EOG_CH)
-            if ch_name in misc or ii in misc or ii - nchan in misc:
-                ch_info.update(coil_type=FIFF.FIFFV_COIL_NONE,
-                               kind=FIFF.FIFFV_MISC_CH)
-            if len(ch_name) == 4 or ch_name.startswith('STI'):
-                ch_info.update(
-                    {'unit_mul': 0, 'cal': 1, 'kind': FIFF.FIFFV_STIM_CH,
-                     'coil_type': FIFF.FIFFV_COIL_NONE,
-                     'unit': FIFF.FIFF_UNIT_NONE})
-            info['chs'].append(ch_info)
+        cals = np.repeat(cal, nchan)
+        ch_coil = FIFF.FIFFV_COIL_EEG
+        ch_kind = FIFF.FIFFV_EEG_CH
+        chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
+        sti_ch_idx = [i for i, name in enumerate(ch_names) if
+                      name.startswith('STI') or len(name) == 4]
+        for idx in sti_ch_idx:
+            chs[idx].update({'unit_mul': 0, 'cal': 1,
+                             'kind': FIFF.FIFFV_STIM_CH,
+                             'coil_type': FIFF.FIFFV_COIL_NONE,
+                             'unit': FIFF.FIFF_UNIT_NONE})
+        info['chs'] = chs
         _check_update_montage(info, montage)
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],

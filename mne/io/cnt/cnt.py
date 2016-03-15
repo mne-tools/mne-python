@@ -242,16 +242,17 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
 
 def _topo_to_sphere(pos, eegs):
     """Helper function for transforming xy-coordinates to sphere.
+
     Parameters
     ----------
-    pos : array of shape (chs, 2)
+    pos : array-like, shape (n_channels, 2)
         xy-oordinates to transform.
     eegs : list of int
         Indices of eeg channels that are included when calculating the sphere.
 
     Returns
     -------
-    coords : list of shape (chs, 3)
+    coords : array, shape (n_channels, 3)
         xyz-coordinates.
     """
     xs, ys = np.array(pos).T
@@ -260,7 +261,7 @@ def _topo_to_sphere(pos, eegs):
     xs /= sqs  # Shape to a sphere and normalize
     ys /= sqs
 
-    xs += 0.5 - np.mean(xs[eegs])  # Centralize the points
+    xs += 0.5 - np.mean(xs[eegs])  # Center the points
     ys += 0.5 - np.mean(ys[eegs])
 
     xs = xs * 2. - 1.  # Values ranging from -1 to 1
