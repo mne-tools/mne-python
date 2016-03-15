@@ -41,7 +41,7 @@ useful to include the output of the :func:`mne.sys_info` command when
 reporting a bug, which should look something like this::
 
     >>> import mne
-    >>> mne.sys_info()
+    >>> mne.sys_info()  # doctest:+SKIP
     Platform:      Linux-4.2.0-27-generic-x86_64-with-debian-jessie-sid
     Python:        2.7.11 |Continuum Analytics, Inc.| (default, Dec  6 2015, 18:08:32)  [GCC 4.4.7 20120313 (Red Hat 4.4.7-1)]
     Executable:    /home/larsoner/miniconda/bin/python
