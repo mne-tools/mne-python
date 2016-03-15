@@ -58,9 +58,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         Data to be filtered
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in meters.
-        The default is ``'auto'``, which means ``(0., 0., 0.)`` for
-        ``coord_frame='meg'``, and a head-digitization-based origin fit
-        for ``coord_frame='head'``.
+        The default is ``'auto'``, which means a head-digitization-based
+        origin fit when ``coord_frame='head'``, and ``(0., 0., 0.)`` when
+        ``coord_frame='meg'``.
     int_order : int
         Order of internal component of spherical expansion.
     ext_order : int
@@ -686,7 +686,9 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
     t_off = raw.first_samp / raw.info['sfreq']
     if not np.array_equal(t, np.unique(t)):
         raise ValueError('Time points must unique and in ascending order')
-    if not _time_mask(t, tmin=t_off, tmax=None, sfreq=sfreq).all():
+    # We need an extra 1e-3 (1 ms) here because MaxFilter outputs values
+    # only out to 3 decimal places
+    if not _time_mask(t, tmin=t_off - 1e-3, tmax=None, sfreq=sfreq).all():
         raise ValueError('Head position time points must be greater than '
                          'first sample offset, but found %0.4f < %0.4f'
                          % (t[0], t_off))

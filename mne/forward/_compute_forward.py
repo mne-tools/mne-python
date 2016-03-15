@@ -489,7 +489,7 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
     # B = np.dot(v0s, sol)
 
     # We chunk the source mri_rr's in order to save memory
-    bounds = np.r_[np.arange(0, len(mri_rr), 1000), len(mri_rr)]
+    bounds = np.concatenate([np.arange(0, len(mri_rr), 200), [len(mri_rr)]])
     B = np.empty((len(mri_rr) * 3, sol.shape[1]))
     for bi in range(len(bounds) - 1):
         # v0 in Hamalainen et al., 1989 == v_inf in Mosher, et al., 1999

@@ -100,6 +100,8 @@ API
 
     - The default ``picks=None`` in :func:`mne.io.Raw.filter` nows picks eeg, meg and seeg channels, by `Jean-Remi King`_
 
+    - EOG, ECG and EMG channels are now plotted by default (if present in data) when using :func:`mne.viz.plot_evoked` by `Marijn van Vliet`_
+
 .. _changes_0_11:
 
 Version 0.11

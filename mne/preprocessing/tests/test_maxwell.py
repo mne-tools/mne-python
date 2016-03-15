@@ -172,10 +172,10 @@ def test_movement_compensation():
     head_pos_bad[0, 0] = raw.first_samp / raw.info['sfreq'] - 1e-2
     assert_raises(ValueError, maxwell_filter, raw, head_pos=head_pos_bad)
     # make sure numerical error doesn't screw it up, though
-    head_pos_bad[0, 0] = raw.first_samp / raw.info['sfreq'] - 1e-4
+    head_pos_bad[0, 0] = raw.first_samp / raw.info['sfreq'] - 5e-4
     raw_sss_tweak = maxwell_filter(raw, head_pos=head_pos_bad,
                                    origin=mf_head_origin)
-    assert_meg_snr(raw_sss_tweak, raw_sss, 2., 10.)
+    assert_meg_snr(raw_sss_tweak, raw_sss, 2., 10., chpi_med_tol=11)
 
 
 @slow_test
