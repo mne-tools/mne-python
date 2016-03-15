@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Parse google scholar -> rst for MNE citations.
 
-Example usage:
+Example usage::
 
     $ cited_mne --backend selenium --clear
 
@@ -14,6 +14,7 @@ Example usage:
 # (https://github.com/carlosp420/google_scholar_parser)
 
 import os
+import os.path as op
 import re
 import time
 import random
@@ -247,5 +248,5 @@ if __name__ == '__main__':
     html += this_html
 
     # output an rst file
-    with open('cited.rst', 'w') as f:
+    with open(op.join('..', 'cited.rst'), 'w') as f:
         f.write(html.encode('utf8'))
