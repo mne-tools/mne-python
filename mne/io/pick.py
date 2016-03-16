@@ -28,7 +28,7 @@ def channel_type(info, idx):
     -------
     type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
            'ref_meg' | 'resp' | 'exci' | 'ias' | 'syst' | 'misc'
-           'seeg' | 'chpi' | 'dipole' | 'gof'
+           'seeg' | 'bio' | 'chpi' | 'dipole' | 'gof'
         Type of channel
     """
     kind = info['chs'][idx]['kind']

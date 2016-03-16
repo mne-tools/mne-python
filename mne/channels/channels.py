@@ -71,7 +71,7 @@ def _contains_ch_type(info, ch_type):
 
     valid_channel_types = ['grad', 'mag', 'planar1', 'planar2', 'eeg', 'stim',
                            'eog', 'emg', 'ecg', 'ref_meg', 'resp', 'exci',
-                           'ias', 'syst', 'seeg', 'misc']
+                           'ias', 'syst', 'seeg', 'misc', 'bio']
 
     if ch_type not in valid_channel_types:
         raise ValueError('ch_type must be one of %s, not "%s"'
