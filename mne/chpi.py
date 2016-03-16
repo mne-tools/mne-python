@@ -225,7 +225,11 @@ def _get_hpi_info(info):
     hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
     # how cHPI active is indicated in the FIF file
     hpi_sub = info['hpi_subsystem']
-    hpi_pick = pick_channels(info['ch_names'], [hpi_sub['event_channel']])[0]
+    if 'event_channel' in hpi_sub:
+        hpi_pick = pick_channels(info['ch_names'],
+                                 [hpi_sub['event_channel']])[0]
+    else:
+        hpi_pick = None  # there is no pick!
     hpi_on = [coil['event_bits'][0] for coil in hpi_sub['hpi_coils']]
     # not all HPI coils will actually be used
     hpi_on = np.array([hpi_on[hc['number'] - 1] for hc in hpi_coils])
@@ -289,13 +293,25 @@ def _fit_chpi_pos(coil_dev_rrs, coil_head_rrs, x0):
 
 @verbose
 def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
-                     exclude='bads', verbose=None):
+                     exclude='bads', add_hpi_stim_pick=True,
+                     remove_aliased=False, verbose=None):
     """Helper to set up cHPI fits"""
     from scipy.spatial.distance import cdist
     from .preprocessing.maxwell import _prep_mf_coils
     if not (check_version('numpy', '1.7') and check_version('scipy', '0.11')):
         raise RuntimeError('numpy>=1.7 and scipy>=0.11 required')
     hpi_freqs, coil_head_rrs, hpi_pick, hpi_ons = _get_hpi_info(info)[:4]
+    # What to do e.g. if Raw has been resampled and some of our
+    # HPI freqs would now be aliased
+    keepers = np.array([h < info['sfreq'] / 2. for h in hpi_freqs], bool)
+    if remove_aliased:
+        hpi_freqs = hpi_freqs[keepers]
+        coil_head_rrs = coil_head_rrs[keepers]
+        hpi_ons = hpi_ons[keepers]
+    elif not keepers.all():
+        raise RuntimeError('Found HPI frequencies %s above the Nyquist '
+                           'frequency %0.1f' % (hpi_freqs[~keepers].tolist(),
+                                                info['sfreq'] / 2.))
     line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,
                            info['line_freq'])
     logger.info('Line interference frequencies: %s Hz'
@@ -330,7 +346,12 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
 
     # Set up magnetic dipole fits
     picks_meg = pick_types(info, meg=True, eeg=False, exclude=exclude)
-    picks = np.concatenate([picks_meg, [hpi_pick]])
+    if add_hpi_stim_pick:
+        if hpi_pick is None:
+            raise RuntimeError('Could not find HPI status channel')
+        picks = np.concatenate([picks_meg, [hpi_pick]])
+    else:
+        picks = picks_meg
     megchs = [ch for ci, ch in enumerate(info['chs']) if ci in picks_meg]
     templates = _read_coil_defs(elekta_defs=True, verbose=False)
     coils = _create_meg_coils(megchs, 'accurate', coilset=templates)
@@ -603,11 +624,12 @@ def filter_chpi(raw, include_line=True, verbose=None):
     t_step = 0.01
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
     hpi = _setup_chpi_fits(raw.info, t_window, t_window, exclude=(),
+                           add_hpi_stim_pick=False, remove_aliased=True,
                            verbose=False)[0]
     fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2, n_step)
     n_freqs = len(hpi['freqs'])
     n_remove = 2 * n_freqs
-    meg_picks = hpi['picks'][:-1]
+    meg_picks = hpi['picks']
     n_times = len(raw.times)
 
     msg = 'Removing %s cHPI' % n_freqs
