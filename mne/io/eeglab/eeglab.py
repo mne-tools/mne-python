@@ -107,7 +107,8 @@ def _get_info(eeg, montage, eog=()):
 
 
 def read_raw_eeglab(input_fname, montage=None, eog=(), misc=(), event_id=None,
-                    event_id_func=None, preload=False, verbose=None):
+                    event_id_func='strip_to_integer', preload=False,
+                    verbose=None):
     """Read an EEGLAB .set file
 
     Parameters
@@ -129,20 +130,21 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), misc=(), event_id=None,
         Default is ``()``.
     event_id : dict | None
         The ids of the events to consider. If None (default), an empty dict is
-        used and `event_id_func` (see below) is called on every event value.
+        used and ``event_id_func`` (see below) is called on every event value.
         If dict, the keys will be mapped to trigger values on the stimulus
-        channel and only keys not in `event_id` will be handled by
-        `event_id_func`. Keys are case-sensitive.
+        channel and only keys not in ``event_id`` will be handled by
+        ``event_id_func``. Keys are case-sensitive.
         Example::
 
             {'SyncStatus': 1; 'Pulse Artifact': 3}
 
-    event_id_func : None | callable
+    event_id_func : None | str | callable
         What to do for events not found in `event_id`. Must take one `str`
-        argument and return an `int`. If `None`, defaults to stripping event
-        codes such as "D128" or "S  1" of their non-integer parts and returns
-        the integer. Any event that is not in `event_id` and cannot be parsed
-        with this function is dropped.
+        argument and return an `int`. If a string, must be 'strip-to-integer',
+        in which case it defaults to stripping event codes such as "D128" or
+        "S  1" of their non-integer parts and returns the integer.
+        Any event that is not in `event_id` and cannot be parsed with this
+        function is dropped.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -255,20 +257,21 @@ class RawEEGLAB(_BaseRaw):
         Default is ``()``.
     event_id : dict | None
         The ids of the events to consider. If None (default), an empty dict is
-        used and `event_id_func` (see below) is called on every event value.
+        used and ``event_id_func`` (see below) is called on every event value.
         If dict, the keys will be mapped to trigger values on the stimulus
-        channel and only keys not in `event_id` will be handled by
-        `event_id_func`. Keys are case-sensitive.
+        channel and only keys not in ``event_id`` will be handled by
+        ``event_id_func``. Keys are case-sensitive.
         Example::
 
             {'SyncStatus': 1; 'Pulse Artifact': 3}
 
-    event_id_func : None | callable
+    event_id_func : None | str | callable
         What to do for events not found in `event_id`. Must take one `str`
-        argument and return an `int`. If `None`, defaults to stripping event
-        codes such as "D128" or "S  1" of their non-integer parts and returns
-        the integer. Any event that is not in `event_id` and cannot be parsed
-        with this function is dropped.
+        argument and return an `int`. If a string, must be 'strip-to-integer',
+        in which case it defaults to stripping event codes such as "D128" or
+        "S  1" of their non-integer parts and returns the integer.
+        Any event that is not in `event_id` and cannot be parsed with this
+        function is dropped.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires large
@@ -293,7 +296,8 @@ class RawEEGLAB(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, montage, eog=(), misc=(), event_id=None,
-                 event_id_func=None, preload=False, verbose=None):
+                 event_id_func='strip_to_integer', preload=False,
+                 verbose=None):
         """Read EEGLAB .set file.
         """
         from scipy import io
@@ -315,12 +319,7 @@ class RawEEGLAB(_BaseRaw):
                          loc=np.zeros(12), unit=FIFF.FIFF_UNIT_NONE,
                          unit_mul=0., coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
         info['chs'].append(stim_chan)
-        if event_id is None:
-            event_id = dict()
 
-#        self.preload = preload
-        if event_id_func is None:
-            event_id_func = _strip_to_integer
         events = _read_eeglab_events(eeg, event_id=event_id,
                                      event_id_func=event_id_func)
         self._create_event_ch(events, n_samples=eeg.pnts)
@@ -392,7 +391,7 @@ class EpochsEEGLAB(_BaseEpochs):
         dict(auditory=1, visual=3). If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, the event_id is constructed from the
-        EEGLAB (.set) file with each descriptions copied from `eventtype`.
+        EEGLAB (.set) file with each descriptions copied from ``eventtype`.
     tmin : float
         Start time before event.
     baseline : None or tuple of length 2 (default (None, 0))
@@ -535,14 +534,15 @@ class EpochsEEGLAB(_BaseEpochs):
         logger.info('Ready.')
 
 
-def _read_eeglab_events(eeg, event_id=None, event_id_func=None):
+def _read_eeglab_events(eeg, event_id=None,
+                        event_id_func='strip_to_integer'):
     """Create events array from EEGLAB structure
 
     An event array is constructed by looking up events in the
     event_id, trying to reduce them to their integer part otherwise, and
     entirely dropping them (with a warning) if this is impossible.
     Returns a 1x3 array of zeros if no events are found."""
-    if event_id_func is None:
+    if event_id_func is 'strip_to_integer':
         event_id_func = _strip_to_integer
     if event_id is None:
         event_id = dict()
