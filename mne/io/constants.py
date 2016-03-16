@@ -164,6 +164,7 @@ FIFF.FIFFV_NEXT_NONE   = -1
 #
 # Channel types
 #
+FIFF.FIFFV_BIO_CH       = 102
 FIFF.FIFFV_MEG_CH       =   1
 FIFF.FIFFV_REF_MEG_CH   = 301
 FIFF.FIFFV_EEG_CH       =   2
