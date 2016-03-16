@@ -542,7 +542,7 @@ def channel_indices_by_type(info):
     """
     idx = dict(grad=[], mag=[], eeg=[], seeg=[], eog=[], ecg=[], stim=[],
                emg=[], ref_meg=[], misc=[], resp=[], chpi=[], exci=[], ias=[],
-               syst=[])
+               syst=[], bio=[])
     for k, ch in enumerate(info['chs']):
         for key in idx.keys():
             if channel_type(info, k) == key:
@@ -663,8 +663,8 @@ def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
     return pick_types(info, meg=True, eeg=True, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=with_ref_meg, misc=False,
                       resp=False, chpi=False, exci=False, ias=False,
-                      syst=False, seeg=True, include=[], exclude=exclude,
-                      selection=None)
+                      syst=False, seeg=True, dipole=False, gof=False,
+                      bio=False, include=[], exclude=exclude, selection=None)
 
 
 def _pick_data_or_ica(info):

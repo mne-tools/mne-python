@@ -128,6 +128,17 @@ def test_pick_chpi():
     assert_true('seeg' not in channel_types)
 
 
+def test_pick_bio():
+    """Test picking BIO channels."""
+    names = 'A1 A2 Fz O BIO1 BIO2 BIO3'.split()
+    types = 'mag mag eeg eeg bio bio bio'.split()
+    info = create_info(names, 1024., types)
+    idx = channel_indices_by_type(info)
+    assert_array_equal(idx['mag'], [0, 1])
+    assert_array_equal(idx['eeg'], [2, 3])
+    assert_array_equal(idx['bio'], [4, 5, 6])
+
+
 def _check_fwd_n_chan_consistent(fwd, n_expected):
     n_ok = len(fwd['info']['ch_names'])
     n_sol = fwd['sol']['data'].shape[0]
