@@ -11,6 +11,7 @@ import calendar
 import numpy as np
 
 from ...utils import warn, verbose
+from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import _mult_cal_one, _find_channels, _create_chs
 from ..meas_info import _empty_info
@@ -18,7 +19,7 @@ from ..base import _BaseRaw, _check_update_montage
 from ..utils import read_str
 
 
-def read_raw_cnt(input_fname, montage, eog=(), ecg=(), emg=(), misc=(),
+def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  preload=False, verbose=None):
     """Read CNT data as raw object.
 
@@ -47,6 +48,9 @@ def read_raw_cnt(input_fname, montage, eog=(), ecg=(), emg=(), misc=(),
         EOG channels. If 'header', VEOG and HEOG channels assigned in the file
         header are used. If 'auto', channel names containing 'EOG' are used.
         Defaults to empty tuple.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated
+        MISC channels. Defaults to empty tuple.
     ecg : list or tuple | 'auto'
         Names of channels or list of indices that should be designated
         ECG channels. If 'auto', the channel names containing 'ECG' are used.
@@ -55,9 +59,6 @@ def read_raw_cnt(input_fname, montage, eog=(), ecg=(), emg=(), misc=(),
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names containing 'EMG' are used.
         Defaults to empty tuple.
-    misc : list or tuple
-        Names of channels or list of indices that should be designated
-        MISC channels. Defaults to empty tuple.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -71,8 +72,8 @@ def read_raw_cnt(input_fname, montage, eog=(), ecg=(), emg=(), misc=(),
     -------
     Instance of RawCNT.
     """
-    return RawCNT(input_fname, montage=montage, eog=eog, ecg=ecg, emg=emg,
-                  misc=misc, preload=preload, verbose=verbose)
+    return RawCNT(input_fname, montage=montage, eog=eog, misc=misc, ecg=ecg,
+                  emg=emg, preload=preload, verbose=verbose)
 
 
 def _get_cnt_info(input_fname, eog, ecg, emg, misc):
@@ -240,39 +241,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
     return info, cnt_info
 
 
-def _topo_to_sphere(pos, eegs):
-    """Helper function for transforming xy-coordinates to sphere.
-
-    Parameters
-    ----------
-    pos : array-like, shape (n_channels, 2)
-        xy-oordinates to transform.
-    eegs : list of int
-        Indices of eeg channels that are included when calculating the sphere.
-
-    Returns
-    -------
-    coords : array, shape (n_channels, 3)
-        xyz-coordinates.
-    """
-    xs, ys = np.array(pos).T
-
-    sqs = np.max(np.sqrt((xs[eegs] ** 2) + (ys[eegs] ** 2)))
-    xs /= sqs  # Shape to a sphere and normalize
-    ys /= sqs
-
-    xs += 0.5 - np.mean(xs[eegs])  # Center the points
-    ys += 0.5 - np.mean(ys[eegs])
-
-    xs = xs * 2. - 1.  # Values ranging from -1 to 1
-    ys = ys * 2. - 1.
-
-    rs = np.clip(np.sqrt(xs ** 2 + ys ** 2), 0., 1.)
-    alphas = np.arccos(rs)
-    zs = np.sin(alphas)
-    return np.column_stack([xs, ys, zs])
-
-
 class RawCNT(_BaseRaw):
     """Raw object from Neuroscan CNT file.
 
@@ -300,6 +268,9 @@ class RawCNT(_BaseRaw):
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
         ``EOG`` are used. Defaults to empty tuple.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated
+        MISC channels. Defaults to empty tuple.
     ecg : list or tuple
         Names of channels or list of indices that should be designated
         ECG channels. If 'auto', the channel names beginning with
@@ -308,9 +279,7 @@ class RawCNT(_BaseRaw):
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names beginning with
         ``EMG`` are used. Defaults to empty tuple.
-    misc : list or tuple
-        Names of channels or list of indices that should be designated
-        MISC channels. Defaults to empty tuple.
+
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -324,7 +293,7 @@ class RawCNT(_BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    def __init__(self, input_fname, montage, eog=(), ecg=(), emg=(), misc=(),
+    def __init__(self, input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  preload=False, verbose=None):
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc)
