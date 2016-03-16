@@ -4,7 +4,7 @@
 
 import os.path as op
 import numpy as np
-from numpy.testing import assert_allclose, assert_raises_regex
+from numpy.testing import assert_allclose
 from nose.tools import assert_raises, assert_equal, assert_true
 import warnings
 
@@ -13,6 +13,7 @@ from mne.io.constants import FIFF
 from mne.chpi import (get_chpi_positions, _calculate_chpi_positions,
                       head_pos_to_trans_rot_t, read_head_pos,
                       write_head_pos, filter_chpi)
+from mne.fixes import assert_raises_regex
 from mne.transforms import rot_to_quat, quat_to_rot, _angle_between_quats
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, catch_logging,
                        requires_version)
