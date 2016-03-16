@@ -303,15 +303,17 @@ def _setup_chpi_fits(info, t_window, t_step_min, method='forward',
     hpi_freqs, coil_head_rrs, hpi_pick, hpi_ons = _get_hpi_info(info)[:4]
     # What to do e.g. if Raw has been resampled and some of our
     # HPI freqs would now be aliased
-    keepers = np.array([h < info['sfreq'] / 2. for h in hpi_freqs], bool)
+    highest = info.get('lowpass')
+    highest = info['sfreq'] / 2. if highest is None else highest
+    keepers = np.array([h <= highest for h in hpi_freqs], bool)
     if remove_aliased:
         hpi_freqs = hpi_freqs[keepers]
         coil_head_rrs = coil_head_rrs[keepers]
         hpi_ons = hpi_ons[keepers]
     elif not keepers.all():
-        raise RuntimeError('Found HPI frequencies %s above the Nyquist '
-                           'frequency %0.1f' % (hpi_freqs[~keepers].tolist(),
-                                                info['sfreq'] / 2.))
+        raise RuntimeError('Found HPI frequencies %s above the lowpass '
+                           '(or Nyquist) frequency %0.1f'
+                           % (hpi_freqs[~keepers].tolist(), highest))
     line_freqs = np.arange(info['line_freq'], info['sfreq'] / 3.,
                            info['line_freq'])
     logger.info('Line interference frequencies: %s Hz'

@@ -958,7 +958,9 @@ def test_resample():
 
     # resample should still work even when no stim channel is present
     raw = RawArray(np.random.randn(1, 100), create_info(1, 100, ['eeg']))
+    raw.info['lowpass'] = 50.
     raw.resample(10, npad='auto')
+    assert_equal(raw.info['lowpass'], 5.)
     assert_equal(len(raw), 10)
 
 

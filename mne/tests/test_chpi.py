@@ -164,7 +164,7 @@ def test_calculate_chpi_positions():
 
     # half the rate cuts off cHPI coils
     raw.resample(300., npad='auto')
-    assert_raises_regex(RuntimeError, 'above the Nyquist',
+    assert_raises_regex(RuntimeError, 'above the',
                         _calculate_chpi_positions, raw)
 
 
@@ -200,6 +200,6 @@ def test_chpi_subtraction():
     del raw.info['hpi_subsystem']['event_channel']
     with catch_logging() as log:
         filter_chpi(raw, verbose=True)
-    assert_true('4 cHPI' in log.getvalue())
+    assert_true('2 cHPI' in log.getvalue())
 
 run_tests_if_main()

@@ -77,6 +77,8 @@ BUG
 
     - Fix bug in :func:`mne.io.read_raw_ctf`, when omitting samples at the end by `Jaakko Leppakangas`_
 
+    - Fix ``info['lowpass']`` value for downsampled raw data by `Eric Larson`_
+
 API
 ~~~
 

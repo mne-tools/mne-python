@@ -1065,6 +1065,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         inst._data = np.concatenate(new_data, axis=1)
         inst.info['sfreq'] = sfreq
+        if inst.info.get('lowpass') is not None:
+            inst.info['lowpass'] = min(inst.info['lowpass'], sfreq / 2.)
         inst._update_times()
 
         # See the comment above why we ignore all errors here.
