@@ -107,7 +107,7 @@ def test_continuous_regression_no_overlap():
     # Check that evokeds and revokeds are nearly equivalent
     for cond in event_id.keys():
         assert_allclose(revokeds[cond].data,
-                        epochs[cond].average().data)
+                        epochs[cond].average().data, rtol=1e-15)
 
     # Test events that will lead to "duplicate" errors
     old_latency = events[1, 0]

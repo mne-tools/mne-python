@@ -272,16 +272,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     coefs = solver(X, data)
 
     # construct Evoked objects to be returned from output
-    evokeds = dict()
-    cum = 0
-    for cond in conds:
-        tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
-        evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                    info=info, comment=cond,
-                                    tmin=tmin_ / float(info["sfreq"]),
-                                    nave=cond_length[cond],
-                                    kind='mean')  # nave and kind are
-        cum += tmax_ - tmin_                      # technically not correct
+    evokeds = _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info)
 
     return evokeds
 
@@ -386,3 +377,20 @@ def _clean_rerp_input(X, data, reject, flat, decim, info, tstep):
             has_val = np.setdiff1d(has_val, range(t0, t1))
 
     return X.tocsr()[has_val], data[:, has_val]
+
+
+def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
+    """Create a dictionary of Evoked objects from a coefs matrix and condition
+    durations, primarily for `linear_regression_raw`. See there for an
+    explanation of parameters and output."""
+    evokeds = dict()
+    cum = 0
+    for cond in conds:
+        tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
+        evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
+                                    info=info, comment=cond,
+                                    tmin=tmin_ / float(info["sfreq"]),
+                                    nave=cond_length[cond],
+                                    kind='mean')  # nave and kind are
+        cum += tmax_ - tmin_                      # technically not correct
+    return evokeds
