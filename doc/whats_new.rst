@@ -75,6 +75,8 @@ BUG
 
     - Fix normals in CTF data reader by `Eric Larson`_
 
+    - Fix bug in :func:`mne.io.read_raw_ctf`, when omitting samples at the end by `Jaakko Leppakangas`_
+
 API
 ~~~
 

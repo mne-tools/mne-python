@@ -202,8 +202,8 @@ def test_read_ctf():
 def test_read_spm_ctf():
     """Test CTF reader with omitted samples."""
     data_path = spm_face.data_path()
-    raw_fname = data_path + op.join('MEG', 'spm',
-                                    'SPM_CTF_MEG_example_faces1_3D.ds')
+    raw_fname = op.join(data_path, 'MEG', 'spm',
+                        'SPM_CTF_MEG_example_faces1_3D.ds')
     raw = read_raw_ctf(raw_fname)
     extras = raw._raw_extras[0]
     assert_equal(extras['n_samp'], raw.n_times)
