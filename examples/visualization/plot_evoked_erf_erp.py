@@ -23,12 +23,10 @@ fname = path + '/MEG/sample/sample_audvis-ave.fif'
 condition = 'Left Auditory'
 evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 
-exclude = evoked.info['bads']
-exclude.append('EOG 061')  # Exlude EOG channel.
 # Plot the evoked response with spatially color coded lines.
 # Note: You can paint the area with left mouse button to show the topographic
 # map of the N100.
-evoked.plot(spatial_colors=True, exclude=exclude)
+evoked.plot(spatial_colors=True)
 
 ###############################################################################
 # Or plot manually after extracting peak latency
