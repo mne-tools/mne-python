@@ -75,6 +75,8 @@ BUG
 
     - Fix normals in CTF data reader by `Eric Larson`_
 
+    - Fix bug in :func:`mne.io.read_raw_ctf`, when omitting samples at the end by `Jaakko Leppakangas`_
+
 API
 ~~~
 
@@ -160,6 +162,8 @@ BUG
     - Fix drop percentages to take into account ``ignore`` option in :func:`mne.viz.plot_drop_log` and :func:`mne.Epochs.plot_drop_log` by `Eric Larson`_.
 
     - :class:`mne.EpochsArray` no longer has an average EEG reference silently added (but not applied to the data) by default. Use :func:`mne.EpochsArray.add_eeg_ref` to properly add one.
+
+    - Fix :func:`mne.io.read_raw_ctf` to read ``n_samp_tot`` instead of ``n_samp`` by `Jaakko Leppakangas`_
 
 API
 ~~~

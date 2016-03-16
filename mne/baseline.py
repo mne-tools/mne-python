@@ -13,6 +13,10 @@ from .utils import logger, verbose
 def _log_rescale(baseline, mode='mean'):
     """Helper to log the rescaling method"""
     if baseline is not None:
+        valid_modes = ('logratio', 'ratio', 'zscore', 'mean', 'percent',
+                       'zlogratio')
+        if mode not in valid_modes:
+            raise Exception('mode should be any of : %s' % (valid_modes, ))
         msg = 'Applying baseline correction (mode: %s)' % mode
     else:
         msg = 'No baseline correction applied'
@@ -55,49 +59,45 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     data_scaled: array
         Array of same shape as data after rescaling.
     """
+    _log_rescale(baseline, mode)
     if copy:
         data = data.copy()
+    if baseline is None:
+        return data
 
-    valid_modes = ('logratio', 'ratio', 'zscore', 'mean', 'percent',
-                   'zlogratio')
-    if mode not in valid_modes:
-        raise Exception('mode should be any of : %s' % (valid_modes, ))
+    bmin, bmax = baseline
+    if bmin is None:
+        imin = 0
+    else:
+        imin = int(np.where(times >= bmin)[0][0])
+    if bmax is None:
+        imax = len(times)
+    else:
+        imax = int(np.where(times <= bmax)[0][-1]) + 1
 
-    _log_rescale(baseline, mode)
-    if baseline is not None:
-        bmin, bmax = baseline
-        if bmin is None:
-            imin = 0
-        else:
-            imin = int(np.where(times >= bmin)[0][0])
-        if bmax is None:
-            imax = len(times)
-        else:
-            imax = int(np.where(times <= bmax)[0][-1]) + 1
-
-        # avoid potential "empty slice" warning
-        if data.shape[-1] > 0:
-            mean = np.mean(data[..., imin:imax], axis=-1)[..., None]
-        else:
-            mean = 0  # otherwise we get an ugly nan
-        if mode == 'mean':
-            data -= mean
-        if mode == 'logratio':
-            data /= mean
-            data = np.log10(data)  # a value of 1 means 10 times bigger
-        if mode == 'ratio':
-            data /= mean
-        elif mode == 'zscore':
-            std = np.std(data[..., imin:imax], axis=-1)[..., None]
-            data -= mean
-            data /= std
-        elif mode == 'percent':
-            data -= mean
-            data /= mean
-        elif mode == 'zlogratio':
-            data /= mean
-            data = np.log10(data)
-            std = np.std(data[..., imin:imax], axis=-1)[..., None]
-            data /= std
+    # avoid potential "empty slice" warning
+    if data.shape[-1] > 0:
+        mean = np.mean(data[..., imin:imax], axis=-1)[..., None]
+    else:
+        mean = 0  # otherwise we get an ugly nan
+    if mode == 'mean':
+        data -= mean
+    if mode == 'logratio':
+        data /= mean
+        data = np.log10(data)  # a value of 1 means 10 times bigger
+    if mode == 'ratio':
+        data /= mean
+    elif mode == 'zscore':
+        std = np.std(data[..., imin:imax], axis=-1)[..., None]
+        data -= mean
+        data /= std
+    elif mode == 'percent':
+        data -= mean
+        data /= mean
+    elif mode == 'zlogratio':
+        data /= mean
+        data = np.log10(data)
+        std = np.std(data[..., imin:imax], axis=-1)[..., None]
+        data /= std
 
     return data

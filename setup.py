@@ -108,6 +108,8 @@ if __name__ == "__main__":
                                 op.join('data', 'coil_def*.dat'),
                                 op.join('data', 'helmets', '*.fif.gz'),
                                 op.join('data', 'FreeSurferColorLUT.txt'),
+                                op.join('data', 'image', '*gif'),
+                                op.join('data', 'image', '*lout'),
                                 op.join('channels', 'data', 'layouts', '*.lout'),
                                 op.join('channels', 'data', 'layouts', '*.lay'),
                                 op.join('channels', 'data', 'montages', '*.sfp'),

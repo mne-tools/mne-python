@@ -149,13 +149,13 @@ class RawCTF(_BaseRaw):
         with open(self._filenames[fi], 'rb') as fid:
             for bi in range(len(r_lims)):
                 samp_offset = (bi + trial_start_idx) * si['res4_nsamp']
-                n_read = min(si['n_samp'] - samp_offset, si['block_size'])
+                n_read = min(si['n_samp_tot'] - samp_offset, si['block_size'])
                 # read the chunk of data
                 pos = CTF.HEADER_SIZE
                 pos += samp_offset * si['n_chan'] * 4
                 fid.seek(pos, 0)
-                this_data = np.fromstring(
-                    fid.read(si['n_chan'] * n_read * 4), '>i4')
+                this_data = np.fromfile(fid, '>i4',
+                                        count=si['n_chan'] * n_read)
                 this_data.shape = (si['n_chan'], n_read)
                 this_data = this_data[:, r_lims[bi, 0]:r_lims[bi, 1]]
                 data_view = data[:, d_lims[bi, 0]:d_lims[bi, 1]]

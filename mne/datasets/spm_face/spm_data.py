@@ -2,7 +2,9 @@
 #
 # License: BSD Style.
 
-from ...utils import verbose
+import numpy as np
+
+from ...utils import verbose, get_config
 from ...fixes import partial
 from ..utils import (has_dataset, _data_path, _data_path_doc,
                      _get_version, _version_doc)
@@ -26,3 +28,13 @@ def get_version():
     return _get_version('spm')
 
 get_version.__doc__ = _version_doc.format(name='spm')
+
+
+def _skip_spm_data():
+    skip_testing = (get_config('MNE_SKIP_TESTING_DATASET_TESTS', 'false') ==
+                    'true')
+    skip = skip_testing or not has_spm_data()
+    return skip
+
+requires_spm_data = np.testing.dec.skipif(_skip_spm_data,
+                                          'Requires spm dataset')

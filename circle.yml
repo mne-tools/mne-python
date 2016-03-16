@@ -3,6 +3,7 @@ machine:
     # We need to set this variable to let Anaconda take precedence
     PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
     MNE_DATA: "/home/ubuntu/mne_data"
+    DISPLAY: ":99.0"
 
 dependencies:
   cache_directories:
@@ -24,7 +25,7 @@ dependencies:
         chmod +x ~/miniconda.sh;
         ~/miniconda.sh -b -p /home/ubuntu/miniconda;
         conda update --yes --quiet conda;
-        conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx==1.2.3 pillow six IPython;
+        conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython pandas;
         sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
       else
         echo "Conda already set up.";
@@ -46,7 +47,7 @@ dependencies:
     - python -c "import mne; mne.datasets.somato.data_path(verbose=True);";
     - python -c "import mne; mne.datasets.brainstorm.bst_raw.data_path(verbose=True);" --accept-brainstorm-license;
     - python -c "import mne; mne.datasets.megsim.urls._load_all_data();" --update-dataset-path;
-    - python -c "import mne; mne.datasets.eegbci.data_path('http://www.physionet.org/physiobank/database/eegmmidb', update_path=True, verbose=True);";
+    - python -c "import mne; mne.datasets.eegbci.data_path('http://www.physionet.org/physiobank/database/eegmmidb/S001/S001R06.edf', update_path=True, verbose=True);";
     - python -c "import mne; mne.sys_info()";
     - python -c "import mne, os; print(mne.datasets.sample.data_path(os.path.join(os.environ['HOME'], 'mne_data'), verbose=True))";
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;

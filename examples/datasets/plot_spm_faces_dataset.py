@@ -36,9 +36,9 @@ subjects_dir = data_path + '/subjects'
 ###############################################################################
 # Load and filter data, set up epochs
 
-raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
+raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
 
-raw = io.Raw(raw_fname % 1, preload=True)  # Take first run
+raw = io.read_raw_ctf(raw_fname % 1, preload=True)  # Take first run
 # Here to save memory and time we'll downsample heavily -- this is not
 # advised for real data as it can effectively jitter events!
 raw.resample(120., npad='auto')
