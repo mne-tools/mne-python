@@ -122,7 +122,7 @@ Direct financial support for the project has been provided by:
 
    <h2>Community</h2>
 
-* `Analysis talk: join the MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
+* `Analysis talk: join the MNE mailing list <MNE mailing list>`_
 
 * `Feature requests and bug reports on GitHub <https://github.com/mne-tools/mne-python/issues/>`_
 
