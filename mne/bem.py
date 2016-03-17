@@ -1002,6 +1002,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                                 requires_freesurfer=True,
                                 requires_mne=True)[:2]
 
+    subjects_dir = env['SUBJECTS_DIR']
     subject_dir = op.join(subjects_dir, subject)
     mri_dir = op.join(subject_dir, 'mri')
     T1_dir = op.join(mri_dir, volume)
@@ -1019,13 +1020,13 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError('%s already exists. Use the --overwrite option'
-                               'to recreate it.' % ws_dir)
+                               ' to recreate it.' % ws_dir)
         else:
             shutil.rmtree(ws_dir)
     # put together the command
     cmd = ['mri_watershed']
     if preflood:
-        cmd += ["-h",  "%s" % int(preflood)]
+        cmd += ["-h", "%s" % int(preflood)]
 
     if gcaatlas:
         cmd += ['-atlas', '-T1', '-brain_atlas', env['FREESURFER_HOME'] +
@@ -1626,6 +1627,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                                          requires_mne=True)
 
     curdir = os.getcwd()
+    subjects_dir = env['SUBJECTS_DIR']
 
     logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
                 'the following parameters:\n'
