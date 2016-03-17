@@ -995,23 +995,21 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     verbose : bool, str or None
         If not None, override default verbose level
 
+    Notes
+    -----
     .. versionadded:: 0.10
     """
     from .surface import read_surface
     env, mri_dir = _prepare_env(subject, subjects_dir,
                                 requires_freesurfer=True,
                                 requires_mne=True)[:2]
-
+    subjects_dir = env['SUBJECTS_DIR']
     subject_dir = op.join(subjects_dir, subject)
     mri_dir = op.join(subject_dir, 'mri')
     T1_dir = op.join(mri_dir, volume)
     T1_mgz = op.join(mri_dir, volume + '.mgz')
     bem_dir = op.join(subject_dir, 'bem')
     ws_dir = op.join(subject_dir, 'bem', 'watershed')
-
-    if not op.isdir(subject_dir):
-        raise RuntimeError('Could not find the MRI data directory "%s"'
-                           % subject_dir)
     if not op.isdir(bem_dir):
         os.makedirs(bem_dir)
     if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
@@ -1067,7 +1065,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     surf = dict(coord_frame=5, id=4, nn=None, np=len(points),
                 ntri=len(tris), rr=points, sigma=1, tris=tris)
     write_bem_surfaces(fname_head, surf)
-    logger.info('Created %s/%s-head.fif\n\nComplete.' % (bem_dir, subject))
+    logger.info('Created %s\n\nComplete.' % (fname_head,))
 
 
 # ############################################################################
@@ -1436,11 +1434,17 @@ def _prepare_env(subject, subjects_dir, requires_freesurfer, requires_mne):
         raise TypeError('The subject argument must be set')
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
+    if not op.isdir(subjects_dir):
+        raise RuntimeError('Could not find the MRI data directory "%s"'
+                           % subjects_dir)
+    subject_dir = op.join(subjects_dir, subject)
+    if not op.isdir(subject_dir):
+        raise RuntimeError('Could not find the subject data directory "%s"'
+                           % (subject_dir,))
     env['SUBJECT'] = subject
     env['SUBJECTS_DIR'] = subjects_dir
-    mri_dir = op.join(subjects_dir, subject, 'mri')
-    bem_dir = op.join(subjects_dir, subject, 'bem')
+    mri_dir = op.join(subject_dir, 'mri')
+    bem_dir = op.join(subject_dir, 'bem')
     return env, mri_dir, bem_dir
 
 
