@@ -1050,7 +1050,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     #
     if op.isfile(T1_mgz):
         # XXX : do this with python code
-        surfs = ['brain_surface', 'inner_skull', 'outer_skull', 'outer_skin']
+        surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
         for s in surfs:
             s = op.join(ws_dir, '%s_%s_surface' % (subject, s))
             cmd = ['mne_convert_surface', '--surf', s, '--mghmri', T1_mgz,
