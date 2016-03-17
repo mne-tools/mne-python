@@ -347,7 +347,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         assert self._data.shape[-1] == len(self.times)
         return self
 
-    def decimate(self, decim, copy=False):
+    def decimate(self, decim, copy=False, offset=0):
         """Decimate the epochs
 
         Parameters
@@ -356,6 +356,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The amount to decimate data.
         copy : bool
             If True, operate on and return a copy of the Epochs object.
+        offset : int
+            Apply an offset to where the decimation starts relative to the
+            sample corresponding to t=0. The offset is in samples at the
+            current sampling rate.
+
+            .. versionadded:: 0.12
 
         Returns
         -------
@@ -388,12 +394,16 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  'of %g Hz. The decim=%i parameter will result in a sampling '
                  'frequency of %g Hz, which can cause aliasing artifacts.'
                  % (lowpass, decim, new_sfreq))  # > 50% nyquist lim
-
+        offset = int(offset)
+        if not 0 <= offset < decim:
+            raise ValueError('decim must be at least 0 and less than %s, got '
+                             '%s' % (decim, offset))
         epochs._decim *= decim
         start_idx = int(round(epochs._raw_times[0] * (epochs.info['sfreq'] *
                                                       epochs._decim)))
         i_start = start_idx % epochs._decim
-        decim_slice = slice(i_start, len(epochs._raw_times), epochs._decim)
+        decim_slice = slice(i_start + offset, len(epochs._raw_times),
+                            epochs._decim)
         epochs.info['sfreq'] = new_sfreq
         if epochs.preload:
             epochs._data = epochs._data[:, :, decim_slice].copy()
