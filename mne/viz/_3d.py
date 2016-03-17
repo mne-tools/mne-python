@@ -419,6 +419,69 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     return fig
 
 
+def _sensor_shape(coil):
+    """Get the sensor shape vertices"""
+    if coil['id'] in (2, 3012, 3013, 3011):
+        # square figure eight
+        # wound by right hand rule such that +x side is "up" (+z)
+        long_side = coil['size']  # length of long side (meters)
+        offset = 0.0025  # offset of the center portion of planar grad coil
+        vertices = np.array([
+            [0, 0, 0],
+            [offset, 0, 0],
+            [offset, -long_side / 2., 0],
+            [long_side / 2., -long_side / 2., 0],
+            [long_side / 2., long_side / 2., 0],
+            [offset, long_side / 2., 0],
+            [offset, 0, 0],
+            [0, 0, 0],
+            [-offset, 0, 0],
+            [-offset, -long_side / 2., 0],
+            [-long_side / 2., -long_side / 2., 0],
+            [-long_side / 2., long_side / 2., 0],
+            [-offset, long_side / 2., 0],
+            [-offset, 0, 0]])
+    elif coil['id'] == 2000:
+        # point source
+        vertices = np.array([
+            [-1., 1., 0.],
+            [1., 1., 0.],
+            [1., -1., 0.],
+            [-1., -1., 0.]]) * 0.001  # 2 mm square
+    elif coil['id'] in (3022, 3023, 3024):
+        # square magnetometer
+        vertices = np.array([
+            [-1., 1., 0.],
+            [1., 1., 0.],
+            [1., -1., 0.],
+            [-1., -1., 0.]]) * coil['size'] / 2.
+    elif coil['id'] in (4001, 4003, 5002, 7002, 7003):
+        # round magnetometer
+        n_pts = 15  # number of points for circle
+        circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts))
+        circle *= coil['size'] / 2.  # radius of coil
+        vertices = np.array([circle.real, circle.imag, np.zeros(n_pts)]).T
+    elif coil['id'] in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001):
+        if coil['id'] in (5004, 4005):
+            # round coil 1st order off-diagonal gradiometer
+            baseline = coil['baseline']  # axial separation
+        else:
+            baseline = 0.
+            # round coil 1st order gradiometer
+        n_pts = 16  # number of points for circle
+        # This time, go all the way around circle to close it fully
+        circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts - 1))
+        circle *= coil['size'] / 2.
+        vertices = np.array([
+            np.concatenate([circle.real + baseline / 2.,
+                            circle.real - baseline / 2.]),
+            np.concatenate([circle.imag, -circle.imag]),  # first, second coil
+            np.zeros(2 * n_pts)]).T
+    else:
+        vertices = np.empty([0, 3])
+    return vertices
+
+
 def _limits_to_control_points(clim, stc_data, colormap):
     """Private helper function to convert limits (values or percentiles)
     to control points.
