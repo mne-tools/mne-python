@@ -17,6 +17,7 @@ recursive-include mne/channels/data/neighbors *.mat
 recursive-include mne/preprocessing/tests/data *.mat
 recursive-include mne/html *.js
 recursive-include mne/html *.css
+recursive-include mne/gui/help *.json
 recursive-exclude examples/MNE-sample-data *
 recursive-exclude examples/MNE-testing-data *
 recursive-exclude examples/MNE-spm-face *
