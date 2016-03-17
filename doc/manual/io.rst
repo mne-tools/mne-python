@@ -300,7 +300,13 @@ EMG or misc) are fit to a sphere and assigned a z-value accordingly. If a
 non-data channel does not fit to the sphere, it is assigned a z-value of 0.
 See :ref:`BJEBIBAI`
 
-.. warning::  Reading channel locations from the file header may be dangerous as the x_coord and y_coord in ELECTLOC section of the header do not necessarily translate to absolute locations. Furthermore, EEG-electrode locations that do not fit to a sphere will distort the layout when computing the z-values. If you are not sure about the channel locations in the header, use of a montage is encouraged.
+.. warning::
+    Reading channel locations from the file header may be dangerous, as the
+    x_coord and y_coord in ELECTLOC section of the header do not necessarily
+    translate to absolute locations. Furthermore, EEG-electrode locations that
+    do not fit to a sphere will distort the layout when computing the z-values.
+    If you are not sure about the channel locations in the header, use of a
+    montage is encouraged.
 
 EGI simple binary (.egi)
 ========================

@@ -24,15 +24,16 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
     """Read CNT data as raw object.
 
     .. Note::
-    If montage is not provided, the x and y coordinates are read from the file
-    header. Channels that are not assigned with keywords ``eog``, ``ecg``,
-    ``emg`` and ``misc`` are assigned as eeg channels. All the eeg channel
-    locations are fit to a sphere when computing the z-coordinates for the
-    channels. If channels assigned as eeg channels have locations far away from
-    the head (i.e. x and y coordinates don't fit to a sphere), all the channel
-    locations will be distorted. If you are not sure that the channel locations
-    in the header are correct, it is probably safer to use a (standard)
-    montage. See :func:`mne.channels.read_montage`
+        If montage is not provided, the x and y coordinates are read from the
+        file header. Channels that are not assigned with keywords ``eog``,
+        ``ecg``, ``emg`` and ``misc`` are assigned as eeg channels. All the eeg
+        channel locations are fit to a sphere when computing the z-coordinates
+        for the channels. If channels assigned as eeg channels have locations
+        far away from the head (i.e. x and y coordinates don't fit to a
+        sphere), all the channel locations will be distorted. If you are not
+        sure that the channel locations in the header are correct, it is
+        probably safer to use a (standard) montage. See
+        :func:`mne.channels.read_montage`
 
     Parameters
     ----------
@@ -70,7 +71,16 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
 
     Returns
     -------
-    Instance of RawCNT.
+    raw : instance of RawCNT.
+        The raw data.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    .. versionadded:: 0.12
     """
     return RawCNT(input_fname, montage=montage, eog=eog, misc=misc, ecg=ecg,
                   emg=emg, preload=preload, verbose=verbose)
@@ -245,15 +255,16 @@ class RawCNT(_BaseRaw):
     """Raw object from Neuroscan CNT file.
 
     .. Note::
-    If montage is not provided, the x and y coordinates are read from the file
-    header. Channels that are not assigned with keywords ``eog``, ``ecg``,
-    ``emg`` and ``misc`` are assigned as eeg channels. All the eeg channel
-    locations are fit to a sphere when computing the z-coordinates for the
-    channels. If channels assigned as eeg channels have locations far away from
-    the head (i.e. x and y coordinates don't fit to a sphere), all the channel
-    locations will be distorted. If you are not sure that the channel locations
-    in the header are correct, it is probably safer to use a (standard)
-    montage. See :func:`mne.channels.read_montage`
+        If montage is not provided, the x and y coordinates are read from the
+        file header. Channels that are not assigned with keywords ``eog``,
+        ``ecg``, ``emg`` and ``misc`` are assigned as eeg channels. All the eeg
+        channel locations are fit to a sphere when computing the z-coordinates
+        for the channels. If channels assigned as eeg channels have locations
+        far away from the head (i.e. x and y coordinates don't fit to a
+        sphere), all the channel locations will be distorted. If you are not
+        sure that the channel locations in the header are correct, it is
+        probably safer to use a (standard) montage. See
+        :func:`mne.channels.read_montage`
 
     Parameters
     ----------
@@ -279,7 +290,6 @@ class RawCNT(_BaseRaw):
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names beginning with
         ``EMG`` are used. Defaults to empty tuple.
-
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -338,7 +348,7 @@ class RawCNT(_BaseRaw):
                 # then reshaped to (n_channels, n_samples).
                 extra_samps = chunk_size if (s_offset != 0 or n_samps %
                                              channel_offset != 0) else 0
-                if s_offset >= (channel_offset / 2.):  # Extend at the end.
+                if s_offset >= (channel_offset / 2):  # Extend at the end.
                     extra_samps += chunk_size
                 count = n_samps // channel_offset * chunk_size + extra_samps
                 n_chunks = count // chunk_size

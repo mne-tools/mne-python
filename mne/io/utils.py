@@ -173,7 +173,7 @@ def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
 
 
 def read_str(fid, count=1):
-    """Read string from a binary file in a version compatible way."""
+    """Read string from a binary file in a python version compatible way."""
     dtype = np.dtype('>S%i' % count)
     string = fid.read(dtype.itemsize)
     data = np.fromstring(string, dtype=dtype)[0]
