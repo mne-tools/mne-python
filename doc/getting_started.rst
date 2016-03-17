@@ -185,6 +185,8 @@ the license file, you can use:
 and your NumPy_, SciPy_, `scikit-learn`_, and therefore ``mne``
 should all work faster.
 
+.. _CUDA:
+
 CUDA
 ^^^^
 

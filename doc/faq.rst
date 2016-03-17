@@ -61,11 +61,13 @@ reporting a bug, which should look something like this::
     skcuda:        Not found
 
 
-Why shouldn't I "pickle" my MNE-Python objects for later use?
--------------------------------------------------------------
+Why is it dangerous to "pickle" my MNE-Python objects and data for later use?
+-----------------------------------------------------------------------------
 `Pickling <https://docs.python.org/3/library/pickle.html>`_ data and
 MNE-Python objects for later use can be tempting due to its simplicity
-and generality, but it is usually not the best option:
+and generality, but it is usually not the best option. Pickling is not
+designed for stable persistence, and it is likely that you will not be
+able to read your data in the not-too-distant future. For details, see:
 
 - http://www.benfrederickson.com/dont-pickle-your-data/
 - http://stackoverflow.com/questions/21752259/python-why-pickle
@@ -102,7 +104,7 @@ implications:
 
   Using this function to resample data before forming :class:`Epochs`
   for final analysis is generally discouraged because doing so effectively
-  loses precision (and jitters) event timings, see
+  loses precision of (and jitters) the event timings, see
   `this gist <https://gist.github.com/Eric89GXL/01642cb3789992fbca59>`_ as
   a demonstration. However, resampling raw data can be useful for
   (at least):
@@ -110,11 +112,11 @@ implications:
     - Computing projectors in low- or band-passed data
     - Exploring data
 
-- :func:`mne.preprocessing.ICA.fit` has a similar effect as
-  :func:`mne.Epochs.decimate`...
+- :func:`mne.preprocessing.ICA.fit` decimates data without low-passing,
+  but is only used for fitting a statistical model to the data.
 
-- :func:`mne.Epochs.decimate` function (which does the same thing as the
-  ``decim`` parameter in the :class:`Epochs` constructor) sub-selects every
+- :func:`mne.Epochs.decimate`, which does the same thing as the
+  ``decim`` parameter in the :class:`Epochs` constructor, sub-selects every
   :math:`N^{th}` sample before and after each event. This should only be
   used when the raw data have been sufficiently low-passed e.g. by
   :func:`mne.io.Raw.filter` to avoid aliasing artifacts.
@@ -144,7 +146,11 @@ Resampling raw data is taking forever! What do I do?
 ----------------------------------------------------
 
 :func:`mne.io.Raw.resample` was significantly sped up for version 0.12 by
-using the arameter ``npad=='auto'``. Try it, it might help!
+using the parameter ``npad=='auto'``. Try it, it might help!
+
+If you have an NVIDIA GPU you could also try using :ref:`CUDA`, which can
+sometimes speed up filtering and resampling operations by an order of
+magnitude.
 
 
 Inverse Solution
@@ -219,11 +225,11 @@ precompute a morphing matrix with :func:`mne.compute_morph_matrix` which
 can take some time, but then the actual morphing operation carried out by
 :func:`mne.SourceEstimate.morph_precomputed` is very fast, even for
 :class:`mne.SourceEstimate` objects with many time points. The method
-:func:`mne.SourceEstimate.morph`, by contrast, smooths the data directly
-on the data, which can be **very slow** with many time points.
+:func:`mne.SourceEstimate.morph`, by contrast, smooths the data by operating
+directly on the data, which can be **very slow** with many time points.
 If there are thousands of time points, then
 :func:`mne.SourceEstimate.morph_precomputed` will be much faster; if there
-are a few time points, then :func:`mne.SourceEstiamte.morph` will be faster.
+are a few time points, then :func:`mne.SourceEstimate.morph` will be faster.
 For data sizes in between, we advise testing to determine which is best,
 although some developers choose to always use
 :func:`mne.SourceEstimate.morph_precomputed` since it will rarely take
