@@ -283,7 +283,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         locs3d = np.array([ch['loc'][:3] for ch in chs])
                         x, y, z = locs3d.T
                         colors = _rgb(info, x, y, z)
-                        layout = find_layout(info, ch_type=t, exclude=[])
+                        if t in ('meg', 'mag', 'grad', 'eeg'):
+                            layout = find_layout(info, ch_type=t, exclude=[])
+                        else:
+                            layout = find_layout(info, None, exclude=[])
                         # drop channels that are not in the data
 
                         used_nm = np.array(_clean_names(info['ch_names']))[idx]

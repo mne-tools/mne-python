@@ -55,6 +55,7 @@ for ii, ev in enumerate(rt_epochs.iter_evoked()):
         evoked = ev
     else:
         evoked += ev
+    evoked.pick_types(meg=True, eog=False)  # leave out the eog channel
     plt.clf()  # clear canvas
     evoked.plot(axes=plt.gca())  # plot on current figure
     plt.pause(0.05)
