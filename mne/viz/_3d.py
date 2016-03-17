@@ -20,6 +20,7 @@ import numpy as np
 from scipy import linalg
 
 from ..externals.six import string_types, advance_iterator
+from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
@@ -307,6 +308,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
+    from ..forward import _create_meg_coils
     if coord_frame not in ['head', 'meg', 'mri']:
         raise ValueError('coord_frame must be "head" or "meg"')
     if ch_type not in [None, 'eeg', 'meg']:
@@ -339,7 +341,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     del surf_trans
 
     # determine points
-    meg_loc = list()
+    meg_rrs, meg_tris = list(), list()
     ext_loc = list()
     car_loc = list()
     if ch_type is None or ch_type == 'eeg':
@@ -360,17 +362,30 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                 warn('EEG electrode locations not found. Cannot plot EEG '
                      'electrodes.')
     if meg_sensors:
-        meg_loc = np.array([info['chs'][k]['loc'][:3]
-                           for k in pick_types(info)])
-        if len(meg_loc) > 0:
-            # Transform MEG coordinates from meg if necessary
-            if coord_frame == 'head':
-                meg_loc = apply_trans(info['dev_head_t'], meg_loc)
-            elif coord_frame == 'mri':
-                t = combine_transforms(info['dev_head_t'], head_mri_t,
+        meg_picks = pick_types(info, meg=True, ref_meg=True)
+        coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
+                       for pick in meg_picks]
+        # Transform MEG coordinates from meg if necessary
+        trans = None
+        if coord_frame == 'head':
+            trans = info['dev_head_t']
+        elif coord_frame == 'mri':
+            trans = combine_transforms(info['dev_head_t'], head_mri_t,
                                        'meg', 'mri')
-                meg_loc = apply_trans(t, meg_loc)
-        else:
+        coils = _create_meg_coils([info['chs'][pick] for pick in meg_picks],
+                                  acc='normal')
+        offset = 0
+        for coil, coil_trans in zip(coils, coil_transs):
+            rrs, tris = _sensor_shape(coil)
+            rrs = apply_trans(coil_trans, rrs)
+            if trans is not None:
+                rrs = apply_trans(trans, rrs)
+            meg_rrs.append(rrs)
+            meg_tris.append(tris + offset)
+            offset += len(meg_rrs[-1])
+        meg_rrs = np.concatenate(meg_rrs, axis=0)
+        meg_tris = np.concatenate(meg_tris, axis=0)
+        if len(meg_rrs) == 0:
             warn('MEG electrodes not found. Cannot plot MEG locations.')
     if dig:
         ext_loc = np.array([d['r'] for d in info['dig']
@@ -406,63 +421,68 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         mesh.data.cell_data.normals = None
         mlab.pipeline.surface(mesh, color=color, opacity=alpha)
 
-    datas = (eeg_loc, meg_loc, car_loc, ext_loc)
-    colors = ((1., 0., 0.), (0., 0.25, 0.5), (1., 1., 0.), (1., 0.5, 0.))
-    alphas = (1.0, 0.25, 0.5, 0.25)
-    scales = (0.005, 0.0025, 0.015, 0.0075)
+    datas = (eeg_loc, car_loc, ext_loc)
+    colors = ((1., 0., 0.), (1., 1., 0.), (1., 0.5, 0.))
+    alphas = (1.0, 0.5, 0.25)
+    scales = (0.005, 0.015, 0.0075)
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
                 mlab.points3d(data[:, 0], data[:, 1], data[:, 2],
                               color=color, scale_factor=scale, opacity=alpha)
+    if len(meg_rrs) > 0:
+        color, alpha = (0., 0.25, 0.5), 0.25
+        mlab.triangular_mesh(meg_rrs[:, 0], meg_rrs[:, 1], meg_rrs[:, 2],
+                             meg_tris, color=color, opacity=alpha)
     mlab.view(90, 90)
     return fig
 
 
+def _make_tris_fan(n_vert):
+    """Helper to make tris given a number of vertices of a circle-like obj"""
+    tris = np.zeros((n_vert - 2, 3), int)
+    tris[:, 2] = np.arange(2, n_vert)
+    tris[:, 1] = tris[:, 2] - 1
+    return tris
+
+
 def _sensor_shape(coil):
     """Get the sensor shape vertices"""
-    if coil['id'] in (2, 3012, 3013, 3011):
+    if coil['type'] in (2, 3012, 3013, 3011):
         # square figure eight
         # wound by right hand rule such that +x side is "up" (+z)
         long_side = coil['size']  # length of long side (meters)
         offset = 0.0025  # offset of the center portion of planar grad coil
-        vertices = np.array([
-            [0, 0, 0],
-            [offset, 0, 0],
-            [offset, -long_side / 2., 0],
-            [long_side / 2., -long_side / 2., 0],
-            [long_side / 2., long_side / 2., 0],
-            [offset, long_side / 2., 0],
-            [offset, 0, 0],
-            [0, 0, 0],
-            [-offset, 0, 0],
-            [-offset, -long_side / 2., 0],
-            [-long_side / 2., -long_side / 2., 0],
-            [-long_side / 2., long_side / 2., 0],
-            [-offset, long_side / 2., 0],
-            [-offset, 0, 0]])
-    elif coil['id'] == 2000:
-        # point source
-        vertices = np.array([
-            [-1., 1., 0.],
-            [1., 1., 0.],
-            [1., -1., 0.],
-            [-1., -1., 0.]]) * 0.001  # 2 mm square
-    elif coil['id'] in (3022, 3023, 3024):
-        # square magnetometer
-        vertices = np.array([
-            [-1., 1., 0.],
-            [1., 1., 0.],
-            [1., -1., 0.],
-            [-1., -1., 0.]]) * coil['size'] / 2.
-    elif coil['id'] in (4001, 4003, 5002, 7002, 7003):
+        rrs = np.array([
+            [offset, -long_side / 2.],
+            [long_side / 2., -long_side / 2.],
+            [long_side / 2., long_side / 2.],
+            [offset, long_side / 2.],
+            [-offset, -long_side / 2.],
+            [-long_side / 2., -long_side / 2.],
+            [-long_side / 2., long_side / 2.],
+            [-offset, long_side / 2.]])
+        tris = np.concatenate((_make_tris_fan(4),
+                               _make_tris_fan(4) + 4), axis=0)
+    elif coil['type'] in (2000, 3022, 3023, 3024):
+        if coil['type'] == 2000:
+            # point source
+            size = 0.001  # 2 mm square
+        else:
+            # square magnetometer
+            size = coil['size'] / 2.
+        rrs = np.array([[-1., 1.], [1., 1.], [1., -1.], [-1., -1.]]) * size
+        tris = _make_tris_fan(4)
+    elif coil['type'] in (4001, 4003, 5002, 7002, 7003):
         # round magnetometer
         n_pts = 15  # number of points for circle
         circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts))
+        circle = np.concatenate(([0.], circle))
         circle *= coil['size'] / 2.  # radius of coil
-        vertices = np.array([circle.real, circle.imag, np.zeros(n_pts)]).T
-    elif coil['id'] in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001):
-        if coil['id'] in (5004, 4005):
+        rrs = np.array([circle.real, circle.imag]).T
+        tris = _make_tris_fan(n_pts + 1)
+    elif coil['type'] in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001):
+        if coil['type'] in (5004, 4005):
             # round coil 1st order off-diagonal gradiometer
             baseline = coil['baseline']  # axial separation
         else:
@@ -472,14 +492,19 @@ def _sensor_shape(coil):
         # This time, go all the way around circle to close it fully
         circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts - 1))
         circle *= coil['size'] / 2.
-        vertices = np.array([
+        rrs = np.array([  # first, second coil
             np.concatenate([circle.real + baseline / 2.,
                             circle.real - baseline / 2.]),
-            np.concatenate([circle.imag, -circle.imag]),  # first, second coil
-            np.zeros(2 * n_pts)]).T
+            np.concatenate([circle.imag, -circle.imag])]).T
+        tris = _make_tris_fan(n_pts + 1),
+        temp = _make_tris_fan(n_pts + 1)
+        temp[temp > 0] += n_pts + 1
+        tris = np.concatenate([tris, temp], axis=0)
     else:
-        vertices = np.empty([0, 3])
-    return vertices
+        rrs = np.empty([0, 2])
+    # Go from (x,y) -> (x,y,z)
+    rrs = np.pad(rrs, ((0, 0), (0, 1)), mode='constant')
+    return rrs, tris
 
 
 def _limits_to_control_points(clim, stc_data, colormap):
