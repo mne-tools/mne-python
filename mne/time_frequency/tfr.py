@@ -181,7 +181,7 @@ def _centered(arr, newsize):
     return arr[tuple(myslice)]
 
 
-def _cwt_fft(X, Ws, mode="same"):
+def _cwt_fft(X, Ws, mode="same", decim=1):
     """Compute cwt with fft based convolutions
     Return a generator over signals.
     """
@@ -206,9 +206,9 @@ def _cwt_fft(X, Ws, mode="same"):
 
     for k, x in enumerate(X):
         if mode == "full":
-            tfr = np.zeros((n_freqs, fsize), dtype=np.complex128)
+            tfr = np.zeros((n_freqs, fsize // decim), dtype=np.complex128)
         elif mode == "same" or mode == "valid":
-            tfr = np.zeros((n_freqs, n_times), dtype=np.complex128)
+            tfr = np.zeros((n_freqs, n_times // decim), dtype=np.complex128)
 
         fft_x = fftn(x, [fsize])
         for i, W in enumerate(Ws):
@@ -216,13 +216,14 @@ def _cwt_fft(X, Ws, mode="same"):
             if mode == "valid":
                 sz = abs(W.size - n_times) + 1
                 offset = (n_times - sz) / 2
-                tfr[i, offset:(offset + sz)] = _centered(ret, sz)
+                this_slice = slice(offset // decim, (offset + sz) // decim)
+                tfr[i, this_slice] = _centered(ret, sz)[::decim]
             else:
-                tfr[i, :] = _centered(ret, n_times)
+                tfr[i, :] = _centered(ret, n_times)[::decim]
         yield tfr
 
 
-def _cwt_convolve(X, Ws, mode='same'):
+def _cwt_convolve(X, Ws, mode='same', decim=1):
     """Compute time freq decomposition with temporal convolutions
     Return a generator over signals.
     """
@@ -233,8 +234,8 @@ def _cwt_convolve(X, Ws, mode='same'):
 
     # Compute convolutions
     for x in X:
-        tfr = np.zeros((n_freqs, n_times), dtype=np.complex128)
-        for i, W in enumerate(Ws):
+        tfr = np.zeros((n_freqs, n_times // decim), dtype=np.complex128)
+        for ii, W in enumerate(Ws):
             ret = np.convolve(x, W, mode=mode)
             if len(W) > len(x):
                 raise ValueError('Wavelet is too long for such a short '
@@ -242,13 +243,14 @@ def _cwt_convolve(X, Ws, mode='same'):
             if mode == "valid":
                 sz = abs(W.size - n_times) + 1
                 offset = (n_times - sz) / 2
-                tfr[i, offset:(offset + sz)] = ret
+                tfr[ii, offset // decim:(offset + sz) // decim] = ret[::decim]
             else:
-                tfr[i] = ret
+                tfr[ii] = ret[::decim]
         yield tfr
 
 
-def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
+def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
+               decim=1):
     """Compute time freq decomposition with Morlet wavelets
 
     This function operates directly on numpy arrays. Consider using
@@ -268,6 +270,9 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
         Number of cycles. Fixed number or one per frequency.
     zero_mean : bool
         Make sure the wavelets are zero mean.
+    decim : int
+        Decimation factor applied after time-frequency decomposition.
+        Defaults to 1.
 
     Returns
     -------
@@ -282,14 +287,15 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
     # mode = "valid"
     n_signals, n_times = X.shape
     n_frequencies = len(freqs)
+    decim = int(decim)
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
     if use_fft:
-        coefs = _cwt_fft(X, Ws, mode)
+        coefs = _cwt_fft(X, Ws, mode, decim=decim)
     else:
-        coefs = _cwt_convolve(X, Ws, mode)
+        coefs = _cwt_convolve(X, Ws, mode, decim=decim)
 
     tfrs = np.empty((n_signals, n_frequencies, n_times), dtype=np.complex)
     for k, tfr in enumerate(coefs):

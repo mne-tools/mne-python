@@ -46,6 +46,8 @@ Changelog
 
     - Add reader for Neuroscan CNT files by `Jaakko Leppakangas`_
 
+    - Add ``decim`` parameter to :func:`mne.time_frequency.cwt_morlet`, by `Jean-Remi King`_
+
 BUG
 ~~~
 
