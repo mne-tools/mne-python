@@ -102,7 +102,7 @@ implications:
   data. Resampling is the two-step process of applying a low-pass FIR filter
   and subselecting samples from the data.
 
-  Using this function to resample data before forming :class:`Epochs`
+  Using this function to resample data before forming :class:`mne.Epochs`
   for final analysis is generally discouraged because doing so effectively
   loses precision of (and jitters) the event timings, see
   `this gist <https://gist.github.com/Eric89GXL/01642cb3789992fbca59>`_ as
@@ -116,7 +116,7 @@ implications:
   but is only used for fitting a statistical model to the data.
 
 - :func:`mne.Epochs.decimate`, which does the same thing as the
-  ``decim`` parameter in the :class:`Epochs` constructor, sub-selects every
+  ``decim`` parameter in the :class:`mne.Epochs` constructor, sub-selects every
   :math:`N^{th}` sample before and after each event. This should only be
   used when the raw data have been sufficiently low-passed e.g. by
   :func:`mne.io.Raw.filter` to avoid aliasing artifacts.
