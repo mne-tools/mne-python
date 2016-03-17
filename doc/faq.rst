@@ -30,8 +30,8 @@ to see if there have been relevant discussions before.
 I think I found a bug, what do I do?
 ------------------------------------
 
-Please report any problems you find while using MNE-Python
-`issue tracker`_.
+Please report any problems you find while using MNE-Python to the
+`GitHub issues page`_.
 Try :ref:`using the latest master version <installing_master>` to
 see if the problem persists before reporting the bug, as it may have
 been fixed since the latest release.
