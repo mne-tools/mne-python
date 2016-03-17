@@ -579,8 +579,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             raise ValueError("Number of times and data size don't match"
                              " (%d != %d)." % (n_times, len(times)))
         self.data = data
-        self.times = times
-        self.freqs = freqs
+        self.times = np.asarray(times)
+        self.freqs = np.asarray(freqs)
         self.nave = nave
         self.comment = comment
         self.method = method
@@ -763,7 +763,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
                   colorbar=True, layout_scale=0.945, show=True,
-                  border='none', fig_facecolor='k', font_color='w'):
+                  border='none', fig_facecolor='k', font_color='w', unified=False):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -831,7 +831,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         fig : matplotlib.figure.Figure
             The figure containing the topography.
         """
-        from ..viz.topo import _imshow_tfr, _plot_topo
+        from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
         times = self.times.copy()
         freqs = self.freqs
         data = self.data
@@ -849,15 +849,18 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             layout = find_layout(self.info)
         onselect_callback = partial(self._onselect, baseline=baseline,
                                     mode=mode, layout=layout)
-        imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap,
+
+        click_fun = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap,
+                            onselect=onselect_callback)
+        imshow = partial(_imshow_tfr_unified, tfr=data, freq=freqs, cmap=cmap,
                          onselect=onselect_callback)
 
-        fig = _plot_topo(info=info, times=times, show_func=imshow,
+        fig = _plot_topo(info=info, times=times, show_func=imshow, click_func=click_fun,
                          layout=layout, colorbar=colorbar, vmin=vmin,
                          vmax=vmax, cmap=cmap, layout_scale=layout_scale,
                          title=title, border=border, x_label='Time (ms)',
                          y_label='Frequency (Hz)', fig_facecolor=fig_facecolor,
-                         font_color=font_color)
+                         font_color=font_color, unified=unified, tfr=True)
         plt_show(show)
         return fig
 
@@ -1186,7 +1189,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     info = inst.info
 
     info, data, picks = _prepare_picks(info, data, picks)
-    data = data = data[:, picks, :]
+    data = data[:, picks, :]
 
     power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
                                     frequencies=freqs,

@@ -74,10 +74,9 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
                             axis_facecolor, axis_spinecolor, layout_scale)
 
 
-def _iter_topography(info, layout, on_pick, fig,
-                     fig_facecolor='k', axis_facecolor='k',
-                     axis_spinecolor='k', layout_scale=None,
-                     unified=False):
+def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
+                     axis_facecolor='k', axis_spinecolor='k',
+                     layout_scale=None, unified=False, tfr=False):
     """Private helper to iterate over topography
 
     Has the same parameters as iter_topography, plus:
@@ -138,9 +137,10 @@ def _iter_topography(info, layout, on_pick, fig,
                               pos[:, :2] + pos[:, 2:],
                               pos[:, :2] + pos[:, 2:] * [0, 1],
                               ], [1, 0, 2])
-        under_ax.add_collection(collections.PolyCollection(
-            verts, facecolor=axis_facecolor, edgecolor=axis_spinecolor,
-            linewidth=1.))
+        if not tfr:
+            under_ax.add_collection(collections.PolyCollection(
+                verts, facecolor=axis_facecolor, edgecolor=axis_spinecolor,
+                linewidth=1.))
         for ax in axs:
             yield ax, ax._mne_ch_idx
 
@@ -149,7 +149,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, font_color='w', unified=False):
+               y_label=None, font_color='w', unified=False, tfr=False):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
 
@@ -176,7 +176,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                                     axis_spinecolor=border,
                                     axis_facecolor=axis_facecolor,
                                     fig_facecolor=fig_facecolor,
-                                    unified=unified)
+                                    unified=unified, tfr=tfr)
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
@@ -253,6 +253,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
+
     extent = (tmin, tmax, freq[0], freq[-1])
     img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
                     vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
@@ -275,9 +276,26 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
-                     color, times, vline=None, x_label=None,
-                     y_label=None, colorbar=False):
+def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
+                        ylim=None, tfr=None, freq=None, vline=None,
+                        x_label=None, y_label=None, colorbar=False,
+                        picker=True, cmap='RdBu_r', title=None):
+    """"""
+    import matplotlib.pyplot as plt
+    _compute_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
+    ax = bn.ax
+    data_lines = bn.data_lines
+    extent = (bn.x_t + bn.x_s * tmax, bn.x_t + bn.x_s * tmin,
+              bn.y_t + bn.y_s * freq[-1], bn.y_t + bn.y_s * freq[0])
+    data_lines.append(ax.imshow(tfr[ch_idx], clip_on=True, clip_box=bn.pos,
+                                extent=extent, vmin=vmin, vmax=vmax,
+                                cmap=cmap))
+
+
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
+                     tfr=None, freq=None, vline=None, x_label=None,
+                     y_label=None, colorbar=False, picker=True, cmap='RdBu_r',
+                     title=None):
     """Aux function to show time series on topo split across multiple axes"""
     import matplotlib.pyplot as plt
     picker_flag = False
@@ -329,7 +347,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     if y_label is not None:
         y_label = y_label[ch_idx] if isinstance(y_label, list) else y_label
         ax.text(pos[0], pos[1] + pos[3] / 2., y_label,
-                horizontalignment='right', verticalalignment='middel',
+                horizontalignment='right', verticalalignment='middle',
                 rotation=90)
     if colorbar:
         plt.colorbar()
