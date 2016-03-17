@@ -28,7 +28,7 @@ def channel_type(info, idx):
     -------
     type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
            'ref_meg' | 'resp' | 'exci' | 'ias' | 'syst' | 'misc'
-           'seeg' | 'chpi' | 'dipole' | 'gof'
+           'seeg' | 'bio' | 'chpi' | 'dipole' | 'gof'
         Type of channel
     """
     kind = info['chs'][idx]['kind']
@@ -61,6 +61,8 @@ def channel_type(info, idx):
         return 'syst'
     elif kind == FIFF.FIFFV_SEEG_CH:
         return 'seeg'
+    elif kind == FIFF.FIFFV_BIO_CH:
+        return 'bio'
     elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
                   FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
                   FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
@@ -176,7 +178,8 @@ def _check_meg_type(meg, allow_auto=False):
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
-               gof=False, include=[], exclude='bads', selection=None):
+               gof=False, bio=False, include=[], exclude='bads',
+               selection=None):
     """Pick channels by type and names
 
     Parameters
@@ -221,6 +224,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         Dipole time course channels.
     gof : bool
         Dipole goodness of fit channels.
+    bio : bool
+        Bio channels.
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -296,6 +301,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         elif kind == FIFF.FIFFV_DIPOLE_WAVE and dipole:
             pick[k] = True
         elif kind == FIFF.FIFFV_GOODNESS_FIT and gof:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_BIO_CH and bio:
             pick[k] = True
 
     # restrict channels to selection if provided
@@ -535,7 +542,7 @@ def channel_indices_by_type(info):
     """
     idx = dict(grad=[], mag=[], eeg=[], seeg=[], eog=[], ecg=[], stim=[],
                emg=[], ref_meg=[], misc=[], resp=[], chpi=[], exci=[], ias=[],
-               syst=[])
+               syst=[], bio=[])
     for k, ch in enumerate(info['chs']):
         for key in idx.keys():
             if channel_type(info, k) == key:
@@ -656,8 +663,8 @@ def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
     return pick_types(info, meg=True, eeg=True, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=with_ref_meg, misc=False,
                       resp=False, chpi=False, exci=False, ias=False,
-                      syst=False, seeg=True, include=[], exclude=exclude,
-                      selection=None)
+                      syst=False, seeg=True, dipole=False, gof=False,
+                      bio=False, include=[], exclude=exclude, selection=None)
 
 
 def _pick_data_or_ica(info):

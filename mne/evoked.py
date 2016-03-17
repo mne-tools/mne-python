@@ -753,7 +753,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
                                stim=False, eog=False, ecg=False, emg=False,
-                               seeg=True, exclude='bads')
+                               seeg=True, bio=True, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
     def copy(self):

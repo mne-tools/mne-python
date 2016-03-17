@@ -71,7 +71,7 @@ def _contains_ch_type(info, ch_type):
 
     valid_channel_types = ['grad', 'mag', 'planar1', 'planar2', 'eeg', 'stim',
                            'eog', 'emg', 'ecg', 'ref_meg', 'resp', 'exci',
-                           'ias', 'syst', 'seeg', 'misc']
+                           'ias', 'syst', 'seeg', 'misc', 'bio']
 
     if ch_type not in valid_channel_types:
         raise ValueError('ch_type must be one of %s, not "%s"'
@@ -164,7 +164,8 @@ _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'resp': FIFF.FIFFV_RESP_CH,
                'seeg': FIFF.FIFFV_SEEG_CH,
                'stim': FIFF.FIFFV_STIM_CH,
-               'syst': FIFF.FIFFV_SYST_CH}
+               'syst': FIFF.FIFFV_SYST_CH,
+               'bio': FIFF.FIFFV_BIO_CH}
 _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'eeg': FIFF.FIFF_UNIT_V,
                'emg': FIFF.FIFF_UNIT_V,
@@ -175,7 +176,8 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'resp': FIFF.FIFF_UNIT_NONE,
                'seeg': FIFF.FIFF_UNIT_V,
                'stim': FIFF.FIFF_UNIT_NONE,
-               'syst': FIFF.FIFF_UNIT_NONE}
+               'syst': FIFF.FIFF_UNIT_NONE,
+               'bio': FIFF.FIFF_UNIT_V}
 _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T: 'T',
                FIFF.FIFF_UNIT_T_M: 'T/m',
@@ -342,8 +344,8 @@ class UpdateChannelsMixin(object):
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
-                   seeg=False, include=[], exclude='bads', selection=None,
-                   copy=False):
+                   seeg=False, bio=False, include=[], exclude='bads',
+                   selection=None, copy=False):
         """Pick some channels by type and names
 
         Parameters
@@ -381,6 +383,8 @@ class UpdateChannelsMixin(object):
             System status channel information (on Triux systems only).
         seeg : bool
             Stereotactic EEG channels.
+        bio : bool
+            Bio channels.
         include : list of string
             List of additional channels to include. If empty do not include
             any.
@@ -401,8 +405,8 @@ class UpdateChannelsMixin(object):
         idx = pick_types(
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
-            ias=ias, syst=syst, seeg=seeg, include=include, exclude=exclude,
-            selection=selection)
+            ias=ias, syst=syst, seeg=seeg, bio=bio, include=include,
+            exclude=exclude, selection=selection)
         inst._pick_drop_channels(idx)
         return inst
 
