@@ -13,6 +13,7 @@ from mne.io.constants import FIFF
 from mne.chpi import (get_chpi_positions, _calculate_chpi_positions,
                       head_pos_to_trans_rot_t, read_head_pos,
                       write_head_pos, filter_chpi)
+from mne.fixes import assert_raises_regex
 from mne.transforms import rot_to_quat, quat_to_rot, _angle_between_quats
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, catch_logging,
                        requires_version)
@@ -162,12 +163,19 @@ def test_calculate_chpi_positions():
     for line in log_file.getvalue().strip().split('\n')[4:-1]:
         assert_true('0/5 good' in line)
 
+    # half the rate cuts off cHPI coils
+    raw.resample(300., npad='auto')
+    assert_raises_regex(RuntimeError, 'above the',
+                        _calculate_chpi_positions, raw)
+
 
 @testing.requires_testing_data
 def test_chpi_subtraction():
     """Test subtraction of cHPI signals"""
     raw = Raw(chpi_fif_fname, allow_maxshield='yes', preload=True)
-    filter_chpi(raw, include_line=False)
+    with catch_logging() as log:
+        filter_chpi(raw, include_line=False, verbose=True)
+    assert_true('5 cHPI' in log.getvalue())
     # MaxFilter doesn't do quite as well as our algorithm with the last bit
     raw.crop(0, 16, copy=False)
     raw_c = Raw(sss_hpisubt_fname, preload=True).crop(0, 16, copy=False)
@@ -178,5 +186,21 @@ def test_chpi_subtraction():
     # Degenerate cases
     raw_nohpi = Raw(test_fif_fname, preload=True)
     assert_raises(RuntimeError, filter_chpi, raw_nohpi)
+
+    # When MaxFliter downsamples, like::
+    #     $ maxfilter -nosss -ds 2 -f test_move_anon_raw.fif \
+    #           -o test_move_anon_ds2_raw.fif
+    # it can strip out some values of info, which we emulate here:
+    raw = Raw(chpi_fif_fname, allow_maxshield='yes')
+    raw.crop(0, 1, copy=False).load_data()
+    raw.resample(600., npad='auto')
+    raw.info['buffer_size_sec'] = np.float64(2.)
+    raw.info['lowpass'] = 200.
+    del raw.info['maxshield']
+    del raw.info['hpi_results'][0]['moments']
+    del raw.info['hpi_subsystem']['event_channel']
+    with catch_logging() as log:
+        filter_chpi(raw, verbose=True)
+    assert_true('2 cHPI' in log.getvalue())
 
 run_tests_if_main()

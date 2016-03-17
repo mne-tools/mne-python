@@ -3,7 +3,7 @@
 If you add content to this file, please give the version of the package
 at which the fixe is no longer needed.
 
-# XXX : copied from scikit-learn
+# XXX : originally copied from scikit-learn
 
 """
 # Authors: Emmanuelle Gouillart <emmanuelle.gouillart@normalesup.org>
@@ -14,20 +14,22 @@ at which the fixe is no longer needed.
 
 from __future__ import division
 import collections
-from operator import itemgetter
-import inspect
-
-import warnings
-import numpy as np
-import scipy
-from scipy import linalg, sparse
-from math import ceil, log
-from numpy.fft import irfft
 from distutils.version import LooseVersion
 from functools import partial
+from gzip import GzipFile
+import inspect
+from math import ceil, log
+from operator import itemgetter
+import re
+import warnings
+
+import numpy as np
+from numpy.fft import irfft
+import scipy
+from scipy import linalg, sparse
+
 from .externals import six
 from .externals.six.moves import copyreg, xrange
-from gzip import GzipFile
 
 
 ###############################################################################
@@ -771,6 +773,83 @@ def assert_is(expr1, expr2, msg=None):
 def assert_is_not(expr1, expr2, msg=None):
     """Fake assert_is_not without message"""
     assert_true(expr1 is not expr2, msg)
+
+
+assert_raises_regex_impl = None
+
+
+# from numpy 1.9.1
+def assert_raises_regex(exception_class, expected_regexp,
+                        callable_obj=None, *args, **kwargs):
+    """
+    Fail unless an exception of class exception_class and with message that
+    matches expected_regexp is thrown by callable when invoked with arguments
+    args and keyword arguments kwargs.
+    Name of this function adheres to Python 3.2+ reference, but should work in
+    all versions down to 2.6.
+    """
+    __tracebackhide__ = True  # Hide traceback for py.test
+    import nose
+
+    global assert_raises_regex_impl
+    if assert_raises_regex_impl is None:
+        try:
+            # Python 3.2+
+            assert_raises_regex_impl = nose.tools.assert_raises_regex
+        except AttributeError:
+            try:
+                # 2.7+
+                assert_raises_regex_impl = nose.tools.assert_raises_regexp
+            except AttributeError:
+                # 2.6
+
+                # This class is copied from Python2.7 stdlib almost verbatim
+                class _AssertRaisesContext(object):
+
+                    def __init__(self, expected, expected_regexp=None):
+                        self.expected = expected
+                        self.expected_regexp = expected_regexp
+
+                    def failureException(self, msg):
+                        return AssertionError(msg)
+
+                    def __enter__(self):
+                        return self
+
+                    def __exit__(self, exc_type, exc_value, tb):
+                        if exc_type is None:
+                            try:
+                                exc_name = self.expected.__name__
+                            except AttributeError:
+                                exc_name = str(self.expected)
+                            raise self.failureException(
+                                "{0} not raised".format(exc_name))
+                        if not issubclass(exc_type, self.expected):
+                            # let unexpected exceptions pass through
+                            return False
+                        self.exception = exc_value  # store for later retrieval
+                        if self.expected_regexp is None:
+                            return True
+
+                        expected_regexp = self.expected_regexp
+                        if isinstance(expected_regexp, basestring):
+                            expected_regexp = re.compile(expected_regexp)
+                        if not expected_regexp.search(str(exc_value)):
+                            raise self.failureException(
+                                '"%s" does not match "%s"' %
+                                (expected_regexp.pattern, str(exc_value)))
+                        return True
+
+                def impl(cls, regex, callable_obj, *a, **kw):
+                    mgr = _AssertRaisesContext(cls, regex)
+                    if callable_obj is None:
+                        return mgr
+                    with mgr:
+                        callable_obj(*a, **kw)
+                assert_raises_regex_impl = impl
+
+    return assert_raises_regex_impl(exception_class, expected_regexp,
+                                    callable_obj, *args, **kwargs)
 
 
 def _sparse_block_diag(mats, format=None, dtype=None):
