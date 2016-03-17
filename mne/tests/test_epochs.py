@@ -294,6 +294,8 @@ def test_decim():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=False)
     assert_raises(ValueError, epochs.decimate, -1)
+    assert_raises(ValueError, epochs.decimate, 2, offset=-1)
+    assert_raises(ValueError, epochs.decimate, 2, offset=2)
     expected_data = epochs.get_data()[:, :, ::decim]
     expected_times = epochs.times[::decim]
     for preload in (True, False):

@@ -358,8 +358,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If True, operate on and return a copy of the Epochs object.
         offset : int
             Apply an offset to where the decimation starts relative to the
-            sample corresponding to t=0. The offset is in samples (modulo
-            ``decim``) at the current sampling rate.
+            sample corresponding to t=0. The offset is in samples at the
+            current sampling rate.
 
             .. versionadded:: 0.12
 
@@ -394,7 +394,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  'of %g Hz. The decim=%i parameter will result in a sampling '
                  'frequency of %g Hz, which can cause aliasing artifacts.'
                  % (lowpass, decim, new_sfreq))  # > 50% nyquist lim
-        offset = int(offset) % decim
+        offset = int(offset)
+        if not 0 <= offset < decim:
+            raise ValueError('decim must be at least 0 and less than %s, got '
+                             '%s' % (decim, offset))
         epochs._decim *= decim
         start_idx = int(round(epochs._raw_times[0] * (epochs.info['sfreq'] *
                                                       epochs._decim)))
