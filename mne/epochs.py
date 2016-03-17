@@ -439,7 +439,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         data = self._data
         picks = pick_types(self.info, meg=True, eeg=True, stim=False,
                            ref_meg=True, eog=True, ecg=True, seeg=True,
-                           emg=True, exclude=[])
+                           emg=True, bio=True, exclude=[])
         data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline,
                                     copy=False)
         self.baseline = baseline
@@ -552,7 +552,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # Baseline correct
         picks = pick_types(self.info, meg=True, eeg=True, stim=False,
                            ref_meg=True, eog=True, ecg=True, seeg=True,
-                           emg=True, exclude=[])
+                           emg=True, bio=True, exclude=[])
         epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
                                copy=False, verbose=False)
 
@@ -605,7 +605,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if evoked is None:
             picks = pick_types(self.info, meg=True, eeg=True,
                                stim=False, eog=False, ecg=False, seeg=True,
-                               emg=False, exclude=[])
+                               emg=False, bio=False, exclude=[])
             evoked = self.average(picks)
 
         # find the indices of the channels to use
