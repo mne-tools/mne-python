@@ -17,9 +17,9 @@ from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
 from .. import _BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
-from ..utils import _mult_cal_one
+from ..utils import _mult_cal_one, read_str
 from .constants import BTI
-from .read import (read_int32, read_int16, read_str, read_float, read_double,
+from .read import (read_int32, read_int16, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix)

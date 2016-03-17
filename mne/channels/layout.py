@@ -650,6 +650,39 @@ def _auto_topomap_coords(info, picks):
     return locs2d
 
 
+def _topo_to_sphere(pos, eegs):
+    """Helper function for transforming xy-coordinates to sphere.
+
+    Parameters
+    ----------
+    pos : array-like, shape (n_channels, 2)
+        xy-oordinates to transform.
+    eegs : list of int
+        Indices of eeg channels that are included when calculating the sphere.
+
+    Returns
+    -------
+    coords : array, shape (n_channels, 3)
+        xyz-coordinates.
+    """
+    xs, ys = np.array(pos).T
+
+    sqs = np.max(np.sqrt((xs[eegs] ** 2) + (ys[eegs] ** 2)))
+    xs /= sqs  # Shape to a sphere and normalize
+    ys /= sqs
+
+    xs += 0.5 - np.mean(xs[eegs])  # Center the points
+    ys += 0.5 - np.mean(ys[eegs])
+
+    xs = xs * 2. - 1.  # Values ranging from -1 to 1
+    ys = ys * 2. - 1.
+
+    rs = np.clip(np.sqrt(xs ** 2 + ys ** 2), 0., 1.)
+    alphas = np.arccos(rs)
+    zs = np.sin(alphas)
+    return np.column_stack([xs, ys, zs])
+
+
 def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     """Find the picks for pairing grad channels
 
