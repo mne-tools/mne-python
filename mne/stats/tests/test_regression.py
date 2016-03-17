@@ -91,6 +91,7 @@ def test_continuous_regression_no_overlap():
     tmin, tmax = -.1, .5
 
     raw = mne.io.Raw(raw_fname, preload=True)
+    raw.apply_proj()
     events = mne.read_events(event_fname)
     event_id = dict(audio_l=1, audio_r=2)
 
@@ -106,7 +107,7 @@ def test_continuous_regression_no_overlap():
     # Check that evokeds and revokeds are nearly equivalent
     for cond in event_id.keys():
         assert_allclose(revokeds[cond].data,
-                        epochs[cond].average().data)
+                        epochs[cond].average().data, rtol=1e-15)
 
     # Test events that will lead to "duplicate" errors
     old_latency = events[1, 0]
