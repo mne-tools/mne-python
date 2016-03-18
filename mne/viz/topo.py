@@ -236,8 +236,8 @@ def _plot_topo_onpick(event, show_func):
 def _compute_scalings(bn, xlim, ylim):
     """Compute scale factors for a unified plot"""
     pos = bn.pos
-    bn.x_s = pos[2] / (xlim[0] - xlim[1])
-    bn.x_t = pos[0] - bn.x_s * xlim[1]
+    bn.x_s = pos[2] / (xlim[1] - xlim[0])
+    bn.x_t = pos[0] - bn.x_s * xlim[0]
     bn.y_s = pos[3] / (ylim[1] - ylim[0])
     bn.y_t = pos[1] - bn.y_s * ylim[0]
 
@@ -284,7 +284,7 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
     _compute_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
     ax = bn.ax
     data_lines = bn.data_lines
-    extent = (bn.x_t + bn.x_s * tmax, bn.x_t + bn.x_s * tmin,
+    extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax,
               bn.y_t + bn.y_s * freq[-1], bn.y_t + bn.y_s * freq[0])
     data_lines.append(ax.imshow(tfr[ch_idx], clip_on=True, clip_box=bn.pos,
                                 extent=extent, vmin=vmin, vmax=vmax,
@@ -338,7 +338,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     if vline:
         vline = np.array(vline) * bn.x_s + bn.x_t
         ax.vlines(vline, pos[1], pos[1] + pos[3], color='w', linewidth=0.5)
-    ax.hlines(bn.y_t, pos[0], pos[0] + pos[2], color='w', linewidth=0.5)
+        ax.hlines(bn.y_t, pos[0], pos[0] + pos[2], color='w', linewidth=0.5)
     if x_label is not None:
         ax.text(pos[0] + pos[2] / 2., pos[1], x_label,
                 horizontalalignment='center', verticalalignment='top')
