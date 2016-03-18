@@ -140,7 +140,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
         if not tfr:
             under_ax.add_collection(collections.PolyCollection(
                 verts, facecolor=axis_facecolor, edgecolor=axis_spinecolor,
-                linewidth=1.))
+                linewidth=1.))  # Not needed for tfr plots.
         for ax in axs:
             yield ax, ax._mne_ch_idx
 
@@ -280,8 +280,7 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
                         ylim=None, tfr=None, freq=None, vline=None,
                         x_label=None, y_label=None, colorbar=False,
                         picker=True, cmap='RdBu_r', title=None):
-    """"""
-    import matplotlib.pyplot as plt
+    """Aux function to show multiple tfrs on topo using a single axes"""
     _compute_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
     ax = bn.ax
     data_lines = bn.data_lines
@@ -292,10 +291,9 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
                                 cmap=cmap))
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
-                     tfr=None, freq=None, vline=None, x_label=None,
-                     y_label=None, colorbar=False, picker=True, cmap='RdBu_r',
-                     title=None):
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
+                     color, times, vline=None, x_label=None,
+                     y_label=None, colorbar=False):
     """Aux function to show time series on topo split across multiple axes"""
     import matplotlib.pyplot as plt
     picker_flag = False

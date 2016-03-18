@@ -763,7 +763,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
                   colorbar=True, layout_scale=0.945, show=True,
-                  border='none', fig_facecolor='k', font_color='w', unified=False):
+                  border='none', fig_facecolor='k', font_color='w'):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -855,12 +855,13 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         imshow = partial(_imshow_tfr_unified, tfr=data, freq=freqs, cmap=cmap,
                          onselect=onselect_callback)
 
-        fig = _plot_topo(info=info, times=times, show_func=imshow, click_func=click_fun,
-                         layout=layout, colorbar=colorbar, vmin=vmin,
-                         vmax=vmax, cmap=cmap, layout_scale=layout_scale,
-                         title=title, border=border, x_label='Time (ms)',
-                         y_label='Frequency (Hz)', fig_facecolor=fig_facecolor,
-                         font_color=font_color, unified=unified, tfr=True)
+        fig = _plot_topo(info=info, times=times, show_func=imshow,
+                         click_func=click_fun, layout=layout,
+                         colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
+                         layout_scale=layout_scale, title=title, border=border,
+                         x_label='Time (ms)', y_label='Frequency (Hz)',
+                         fig_facecolor=fig_facecolor, font_color=font_color,
+                         unified=True, tfr=True)
         plt_show(show)
         return fig
 
