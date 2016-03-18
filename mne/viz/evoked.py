@@ -1028,7 +1028,6 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     if picks is not None:
         pick_names = [evoked.info['ch_names'][pick] for pick in picks]
-        evoked.pick_channels(pick_names)
     else:  # only pick channels that are plotted
         picks = _pick_data_channels(evoked.info, exclude=[])
         pick_names = [evoked.info['ch_names'][pick] for pick in picks]

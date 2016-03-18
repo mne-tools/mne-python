@@ -1129,8 +1129,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     else:
         data = evoked.data
 
-    evoked_ = evoked.pick_channels([evoked.ch_names[pick] for pick in picks],
-                                   copy=True)
+    evoked = evoked.pick_channels([evoked.ch_names[pick] for pick in picks],
+                                  copy=True)
 
     if axes is not None:
         if isinstance(axes, plt.Axes):
