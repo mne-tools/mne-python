@@ -51,11 +51,11 @@ rt_epochs.start()
 rt_client.send_data(rt_epochs, picks, tmin=0, tmax=150, buffer_size=1000)
 for ii, ev in enumerate(rt_epochs.iter_evoked()):
     print("Just got epoch %d" % (ii + 1))
+    ev.pick_types(meg=True, eog=False)  # leave out the eog channel
     if ii == 0:
         evoked = ev
     else:
         evoked += ev
-    evoked.pick_types(meg=True, eog=False)  # leave out the eog channel
     plt.clf()  # clear canvas
     evoked.plot(axes=plt.gca())  # plot on current figure
     plt.pause(0.05)
