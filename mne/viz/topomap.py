@@ -1135,9 +1135,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if axes is not None:
         if isinstance(axes, plt.Axes):
             axes = [axes]
-        times = _process_times(evoked_, times, n_peaks=len(axes))
+        times = _process_times(evoked, times, n_peaks=len(axes))
     else:
-        times = _process_times(evoked_, times, n_peaks=None)
+        times = _process_times(evoked, times, n_peaks=None)
     space = 1 / (2. * evoked.info['sfreq'])
     if (max(times) > max(evoked.times) + space or
             min(times) < min(evoked.times) - space):
