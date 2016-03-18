@@ -150,6 +150,15 @@ def test_time_frequency():
     assert_equal(power_pick.ch_names, power_drop.ch_names)
     assert_equal(power_pick.data.shape, power_drop.data.shape)
 
+    # Test decimation
+    for decim in [2, 3]:
+        for use_fft in [True, False]:
+            power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=2,
+                                    use_fft=use_fft, return_itc=True,
+                                    decim=decim)
+            assert_equal(power.data.shape[2],
+                         np.ceil(float(len(times)) / decim))
+
 
 def test_dpsswavelet():
     """Test DPSS wavelet"""
