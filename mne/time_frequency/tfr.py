@@ -185,6 +185,9 @@ def _cwt_fft(X, Ws, mode="same", decim=1):
     """Compute cwt with fft based convolutions
     Return a generator over signals.
     """
+    if mode not in ['same', 'valid', 'full']:
+        raise ValueError("`mode` must be 'same', 'valid' or 'full', "
+                         "got %s instead." % mode)
     X = np.asarray(X)
 
     # Precompute wavelets for given frequency range to save time
@@ -205,11 +208,12 @@ def _cwt_fft(X, Ws, mode="same", decim=1):
         fft_Ws[i] = fftn(W, [fsize])
 
     for k, x in enumerate(X):
-        if mode == "full":
-            tfr = np.zeros((n_freqs, fsize // decim), dtype=np.complex128)
-        elif mode == "same" or mode == "valid":
-            tfr = np.zeros((n_freqs, n_times // decim), dtype=np.complex128)
-
+        # Decimating is performed after centering the convolution, and can
+        # therefore lead to 1 time sample jittering.
+        jitter = (n_times % decim) % 2
+        n_times_out = fsize if mode == "full" else n_times
+        tfr = np.zeros((n_freqs, n_times_out // decim + jitter),
+                       dtype=np.complex128)
         fft_x = fftn(x, [fsize])
         for i, W in enumerate(Ws):
             ret = ifftn(fft_x * fft_Ws[i])[:n_times + W.size - 1]
@@ -234,7 +238,11 @@ def _cwt_convolve(X, Ws, mode='same', decim=1):
 
     # Compute convolutions
     for x in X:
-        tfr = np.zeros((n_freqs, n_times // decim), dtype=np.complex128)
+        # Decimating is performed after centering the convolution, and can
+        # therefore lead to 1 time sample jittering.
+        jitter = (n_times % decim) % 2
+        tfr = np.zeros((n_freqs, n_times // decim + jitter),
+                       dtype=np.complex128)
         for ii, W in enumerate(Ws):
             ret = np.convolve(x, W, mode=mode)
             if len(W) > len(x):
@@ -258,10 +266,10 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
 
     Parameters
     ----------
-    X : array of shape [n_signals, n_times]
-        signals (one per line)
+    X : array, shape (n_signals, n_times)
+        Signals (one per line)
     sfreq : float
-        sampling Frequency
+        Sampling frequency.
     freqs : array
         Array of frequencies of interest
     use_fft : bool
@@ -286,7 +294,6 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     mode = 'same'
     # mode = "valid"
     n_signals, n_times = X.shape
-    n_frequencies = len(freqs)
     decim = int(decim)
 
     # Precompute wavelets for given frequency range to save time
@@ -297,7 +304,7 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     else:
         coefs = _cwt_convolve(X, Ws, mode, decim=decim)
 
-    tfrs = np.empty((n_signals, n_frequencies, n_times), dtype=np.complex)
+    tfrs = np.empty((n_signals, len(freqs), n_times), dtype=np.complex)
     for k, tfr in enumerate(coefs):
         tfrs[k] = tfr
 
@@ -309,21 +316,22 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
     Parameters
     ----------
-    X : array of shape [n_signals, n_times]
-        signals (one per line)
+    X : array, shape (n_signals, n_times)
+        The signals.
     Ws : list of array
-        Wavelets time series
+        Wavelets time series.
     use_fft : bool
-        Use FFT for convolutions
+        Use FFT for convolutions. Defaults to True.
     mode : 'same' | 'valid' | 'full'
-        Convention for convolution
+        Convention for convolution. Defaults to 'same'.
     decim : int
-        Temporal decimation factor
+        Decimation factor applied after time-frequency decomposition.
+        Defaults to 1.
 
     Returns
     -------
-    tfr : 3D array
-        Time Frequency Decompositions (n_signals x n_frequencies x n_times)
+    tfr : array, shape (n_signals, n_frequencies, n_times)
+        The time frequency decompositions.
 
     See Also
     --------
@@ -331,16 +339,15 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
                                     with Morlet wavelets
     """
     n_signals, n_times = X[:, ::decim].shape
-    n_frequencies = len(Ws)
 
     if use_fft:
-        coefs = _cwt_fft(X, Ws, mode)
+        coefs = _cwt_fft(X, Ws, mode, decim=decim)
     else:
-        coefs = _cwt_convolve(X, Ws, mode)
+        coefs = _cwt_convolve(X, Ws, mode, decim=decim)
 
-    tfrs = np.empty((n_signals, n_frequencies, n_times), dtype=np.complex)
+    tfrs = np.empty((n_signals, len(Ws), n_times), dtype=np.complex)
     for k, tfr in enumerate(coefs):
-        tfrs[k] = tfr[..., ::decim]
+        tfrs[k] = tfr
 
     return tfrs
 
@@ -356,12 +363,11 @@ def _time_frequency(X, Ws, use_fft, decim):
 
     mode = 'same'
     if use_fft:
-        tfrs = _cwt_fft(X, Ws, mode)
+        tfrs = _cwt_fft(X, Ws, mode, decim=decim)
     else:
-        tfrs = _cwt_convolve(X, Ws, mode)
+        tfrs = _cwt_convolve(X, Ws, mode, decim=decim)
 
     for tfr in tfrs:
-        tfr = tfr[:, ::decim]
         tfr_abs = np.abs(tfr)
         psd += tfr_abs ** 2
         plf += tfr / tfr_abs
@@ -464,7 +470,7 @@ def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     data : array
         3D array of shape [n_epochs, n_channels, n_times]
     sfreq : float
-        sampling Frequency
+        Sampling frequency.
     frequencies : array
         Array of frequencies of interest
     use_fft : bool
@@ -1241,7 +1247,7 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     data : np.ndarray, shape (n_epochs, n_channels, n_times)
         The input data.
     sfreq : float
-        sampling Frequency
+        Sampling frequency.
     frequencies : np.ndarray, shape (n_frequencies,)
         Array of frequencies of interest
     time_bandwidth : float
