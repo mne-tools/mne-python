@@ -29,7 +29,7 @@ dependencies:
         sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
       else
         echo "Conda already set up.";
-      fi;
+      fi
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
@@ -40,29 +40,34 @@ dependencies:
     - cd /home/ubuntu && git clone https://github.com/enthought/pyface.git && cd pyface && python setup.py develop;
     - pip install sphinx_bootstrap_theme PySurfer nilearn neo;
     - cd /home/ubuntu/mne-python && python setup.py develop;
-    - mkdir -p ~/mne_data;
-    - python -c "import mne; mne.datasets.sample.data_path(verbose=True);";
-    - python -c "import mne; mne.datasets.testing.data_path(verbose=True);";
-    - python -c "import mne; mne.datasets.spm_face.data_path(verbose=True);";
-    - python -c "import mne; mne.datasets.somato.data_path(verbose=True);";
-    - python -c "import mne; mne.datasets.brainstorm.bst_raw.data_path(verbose=True);" --accept-brainstorm-license;
-    - python -c "import mne; mne.datasets.megsim.urls._load_all_data();" --update-dataset-path;
-    - python -c "import mne; mne.datasets.eegbci.data_path('http://www.physionet.org/physiobank/database/eegmmidb/S001/S001R06.edf', update_path=True, verbose=True);";
+    - if [ "$CIRCLE_BRANCH" == "master" ]; then
+        mkdir -p ~/mne_data;
+        python -c "import mne; mne.datasets.sample.data_path(verbose=True);";
+        python -c "import mne; mne.datasets.testing.data_path(verbose=True);";
+        python -c "import mne; mne.datasets.spm_face.data_path(verbose=True);";
+        python -c "import mne; mne.datasets.somato.data_path(verbose=True);";
+        python -c "import mne; mne.datasets.brainstorm.bst_raw.data_path(verbose=True);" --accept-brainstorm-license;
+        python -c "import mne; mne.datasets.megsim.urls._load_all_data();" --update-dataset-path;
+        python -c "import mne; mne.datasets.eegbci.data_path('http://www.physionet.org/physiobank/database/eegmmidb/S001/S001R06.edf', update_path=True, verbose=True);";
+      fi
     - python -c "import mne; mne.sys_info()";
-    - python -c "import mne, os; print(mne.datasets.sample.data_path(os.path.join(os.environ['HOME'], 'mne_data'), verbose=True))";
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
 
 test:
   override:
-    - make test-doc
-    - case $CIRCLE_NODE_INDEX in 0) cd doc && make html_dev-pattern PATTERN='/tutorials/plot_' ;; 1) cd doc && make html_dev-pattern PATTERN='/examples/plot_\|/connectivity/plot_\|/datasets/plot_\|/decoding/plot_\|/forward/plot_\|/inverse/plot_\|/io/plot_\|/preprocessing/plot_\|/realtime/plot_\|/simulation/plot_\|/stats/plot_\|/time_frequency/plot_\|/visualization/plot_' ;; esac:
-        parallel: true
-        timeout: 1500
+    - if [ "$CIRCLE_BRANCH" == "master" ]; then
+        make test-doc;
+      else
+        make html_dev-noplot;
+      fi
+    - if [ "$CIRCLE_BRANCH" == "master" ]; then case $CIRCLE_NODE_INDEX in 0) cd doc && make html_dev-pattern PATTERN='/tutorials/plot_' ;; 1) cd doc && make html_dev-pattern PATTERN='/examples/plot_\|/connectivity/plot_\|/datasets/plot_\|/decoding/plot_\|/forward/plot_\|/inverse/plot_\|/io/plot_\|/preprocessing/plot_\|/realtime/plot_\|/simulation/plot_\|/stats/plot_\|/time_frequency/plot_\|/visualization/plot_' ;; esac; fi:
+          parallel: true
+          timeout: 1500
 
 general:
-  branches:
-    only:
-      - master
+  #branches:
+  #  only:
+  #    - master
   # Open the doc to the API
   artifacts:
     - "doc/_build/html"
