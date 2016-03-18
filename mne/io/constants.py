@@ -177,6 +177,7 @@ FIFF.FIFFV_MISC_CH      = 502
 FIFF.FIFFV_RESP_CH      = 602  # Respiration monitoring
 FIFF.FIFFV_SEEG_CH      = 802  # stereotactic EEG
 FIFF.FIFFV_SYST_CH      = 900  # some system status information (on Triux systems only)
+FIFF.FIFFV_ECOG_CH      = 902
 FIFF.FIFFV_IAS_CH       = 910  # Internal Active Shielding data (maybe on Triux only)
 FIFF.FIFFV_EXCI_CH      = 920  # flux excitation channel used to be a stimulus channel
 FIFF.FIFFV_DIPOLE_WAVE  = 1000  # Dipole time curve (xplotter/xfit)
