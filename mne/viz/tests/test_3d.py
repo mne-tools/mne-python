@@ -15,6 +15,7 @@ from numpy.testing import assert_raises, assert_equal
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate)
+from mne.io import read_raw_ctf, read_raw_bti
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans)
 from mne.utils import requires_mayavi, requires_pysurfer, run_tests_if_main
@@ -33,9 +34,16 @@ trans_fname = op.join(data_dir, 'MEG', 'sample',
 src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
                     'sample-oct-6-src.fif')
 dip_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
+ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
+base_dir = op.join(io_dir, 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
+
+base_dir = op.join(io_dir, 'bti', 'tests', 'data')
+pdf_fname = op.join(base_dir, 'test_pdf_linux')
+config_fname = op.join(base_dir, 'test_config_linux')
+hs_fname = op.join(base_dir, 'test_hs_linux')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -96,15 +104,24 @@ def test_plot_evoked_field():
 @testing.requires_testing_data
 @requires_mayavi
 def test_plot_trans():
-    """Test plotting of -trans.fif files
+    """Test plotting of -trans.fif files and MEG sensor layouts
     """
-    evoked = read_evokeds(evoked_fname, condition='Left Auditory',
-                          baseline=(-0.2, 0.0))
-    plot_trans(evoked.info, trans_fname, subject='sample',
-               subjects_dir=subjects_dir)
-    assert_raises(ValueError, plot_trans, evoked.info, trans_fname,
+    # Neuromag
+    infos = [
+        read_evokeds(evoked_fname)[0].info,  # Neuromag
+        read_raw_ctf(ctf_fname).info,  # CTF-275
+        read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
+                     preload=False).info,  # BTi
+    ]
+    for info in infos:
+        plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
+                   subjects_dir=subjects_dir, ref_meg=True)
+    info = infos[0]
+    assert_raises(ValueError, plot_trans, info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   ch_type='bad-chtype')
+    # no-head version
+    plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
 
 
 @testing.requires_testing_data

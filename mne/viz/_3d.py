@@ -27,7 +27,7 @@ from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
                        transform_surface_to)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
-                          invert_transform)
+                          invert_transform, Transform)
 from ..utils import get_subjects_dir, logger, _check_subject, verbose, warn
 from ..fixes import _get_args
 from ..defaults import _handle_default
@@ -269,16 +269,18 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 @verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                ch_type=None, source=('bem', 'head'), coord_frame='head',
-               meg_sensors=False, dig=False, verbose=None):
+               meg_sensors=False, eeg_sensors=True, dig=False, ref_meg=False,
+               verbose=None):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
     ----------
     info : dict
         The measurement info.
-    trans : str | 'auto' | dict
+    trans : str | 'auto' | dict | None
         The full path to the head<->MRI transform ``*-trans.fif`` file
-        produced during coregistration.
+        produced during coregistration. If trans is None, no head
+        surface will be shown.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
@@ -298,8 +300,12 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         Coordinate frame to use, 'head', 'meg', or 'mri'.
     meg_sensors : bool
         If True, plot MEG sensors as points in addition to showing the helmet.
+    eeg_sensors : bool
+        If True, plot EEG sensors as points.
     dig : bool
         If True, plot the digitization points.
+    ref_meg : bool
+        If True (default False), include reference MEG sensors.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -315,20 +321,28 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
                          % ch_type)
 
+    show_head = True
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if isinstance(trans, string_types):
         if trans == 'auto':
             # let's try to do this in MRI coordinates so they're easy to plot
             trans = _find_trans(subject, subjects_dir)
         trans = read_trans(trans)
+    elif trans is None:
+        trans = Transform('head', 'mri', np.eye(4))
+        show_head = False
     elif not isinstance(trans, dict):
-        raise TypeError('trans must be str or dict')
+        raise TypeError('trans must be str, dict, or None')
     head_mri_t = _ensure_trans(trans, 'head', 'mri')
     del trans
 
     # both the head and helmet will be in MRI coordinates after this
-    surfs = [get_head_surf(subject, source=source, subjects_dir=subjects_dir)]
+    surfs = dict()
+    if show_head:
+        surfs['head'] = get_head_surf(subject, source=source,
+                                      subjects_dir=subjects_dir)
     if ch_type is None or ch_type == 'meg':
-        surfs.append(get_meg_helmet_surf(info, head_mri_t))
+        surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
     if coord_frame == 'meg':
         surf_trans = combine_transforms(info['dev_head_t'], head_mri_t,
                                         'meg', 'mri')
@@ -336,15 +350,16 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         surf_trans = head_mri_t
     else:  # coord_frame == 'mri'
         surf_trans = None
-    surfs = [transform_surface_to(surf, coord_frame, surf_trans)
-             for surf in surfs]
+    for key in surfs.keys():
+        surfs[key] = transform_surface_to(surfs[key], coord_frame, surf_trans)
     del surf_trans
 
     # determine points
     meg_rrs, meg_tris = list(), list()
     ext_loc = list()
     car_loc = list()
-    if ch_type is None or ch_type == 'eeg':
+    eeg_loc = list()
+    if eeg_sensors and (ch_type is None or ch_type == 'eeg'):
         eeg_loc = np.array([info['chs'][k]['loc'][:3]
                            for k in pick_types(info, meg=False, eeg=True)])
         if len(eeg_loc) > 0:
@@ -362,7 +377,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                 warn('EEG electrode locations not found. Cannot plot EEG '
                      'electrodes.')
     if meg_sensors:
-        meg_picks = pick_types(info, meg=True, ref_meg=True)
+        meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
         coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
                        for pick in meg_picks]
         # Transform MEG coordinates from meg if necessary
@@ -406,9 +421,9 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     from mayavi import mlab
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
-    alphas = [1.0, 0.5]  # head, helmet
-    colors = [(0.6, 0.6, 0.6), (0.0, 0.0, 0.6)]
-    for surf, alpha, color in zip(surfs, alphas, colors):
+    alphas = dict(head=1.0, helmet=0.5)
+    colors = dict(head=(0.6, 0.6, 0.6), helmet=(0.0, 0.0, 0.6))
+    for key, surf in surfs.items():
         x, y, z = surf['rr'].T
         nn = surf['nn']
         # make absolutely sure these are normalized for Mayavi
@@ -419,7 +434,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
         mesh.data.point_data.normals = nn
         mesh.data.cell_data.normals = None
-        mlab.pipeline.surface(mesh, color=color, opacity=alpha)
+        mlab.pipeline.surface(mesh, color=colors[key], opacity=alphas[key])
 
     datas = (eeg_loc, car_loc, ext_loc)
     colors = ((1., 0., 0.), (1., 1., 0.), (1., 0.5, 0.))
@@ -448,7 +463,10 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices"""
-    if coil['type'] in (2, 3012, 3013, 3011):
+    rrs = np.empty([0, 2])
+    tris = np.empty([0, 3], int)
+    id_ = coil['type'] & 0xFFFF
+    if id_ in (2, 3012, 3013, 3011):
         # square figure eight
         # wound by right hand rule such that +x side is "up" (+z)
         long_side = coil['size']  # length of long side (meters)
@@ -464,16 +482,12 @@ def _sensor_shape(coil):
             [-offset, long_side / 2.]])
         tris = np.concatenate((_make_tris_fan(4),
                                _make_tris_fan(4) + 4), axis=0)
-    elif coil['type'] in (2000, 3022, 3023, 3024):
-        if coil['type'] == 2000:
-            # point source
-            size = 0.001  # 2 mm square
-        else:
-            # square magnetometer
-            size = coil['size'] / 2.
+    elif id_ in (2000, 3022, 3023, 3024):
+        # square magnetometer (potentially point-type)
+        size = 0.001 if id_ == 2000 else (coil['size'] / 2.)
         rrs = np.array([[-1., 1.], [1., 1.], [1., -1.], [-1., -1.]]) * size
         tris = _make_tris_fan(4)
-    elif coil['type'] in (4001, 4003, 5002, 7002, 7003):
+    elif id_ in (4001, 4003, 5002, 7002, 7003):
         # round magnetometer
         n_pts = 15  # number of points for circle
         circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts))
@@ -481,27 +495,20 @@ def _sensor_shape(coil):
         circle *= coil['size'] / 2.  # radius of coil
         rrs = np.array([circle.real, circle.imag]).T
         tris = _make_tris_fan(n_pts + 1)
-    elif coil['type'] in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001):
-        if coil['type'] in (5004, 4005):
-            # round coil 1st order off-diagonal gradiometer
-            baseline = coil['baseline']  # axial separation
-        else:
-            baseline = 0.
-            # round coil 1st order gradiometer
+    elif id_ in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001):
+        # round coil 1st order (off-diagonal) gradiometer
+        baseline = coil['base'] if id_ in (5004, 4005) else 0.
         n_pts = 16  # number of points for circle
         # This time, go all the way around circle to close it fully
-        circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts - 1))
+        circle = np.exp(2j * np.pi * np.arange(-1, n_pts) / float(n_pts - 1))
+        circle[0] = 0  # center pt for triangulation
         circle *= coil['size'] / 2.
         rrs = np.array([  # first, second coil
             np.concatenate([circle.real + baseline / 2.,
                             circle.real - baseline / 2.]),
             np.concatenate([circle.imag, -circle.imag])]).T
-        tris = _make_tris_fan(n_pts + 1),
-        temp = _make_tris_fan(n_pts + 1)
-        temp[temp > 0] += n_pts + 1
-        tris = np.concatenate([tris, temp], axis=0)
-    else:
-        rrs = np.empty([0, 2])
+        tris = np.concatenate([_make_tris_fan(n_pts + 1),
+                               _make_tris_fan(n_pts + 1) + n_pts + 1])
     # Go from (x,y) -> (x,y,z)
     rrs = np.pad(rrs, ((0, 0), (0, 1)), mode='constant')
     return rrs, tris
