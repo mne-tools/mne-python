@@ -200,12 +200,14 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     fsize = 2 ** int(np.ceil(np.log2(size)))
 
     # precompute FFTs of Ws
-    fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
+    if use_fft:
+        fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
     for i, W in enumerate(Ws):
         if len(W) > n_times:
             raise ValueError('Wavelet is too long for such a short signal. '
                              'Reduce the number of cycles.')
-        fft_Ws[i] = fftn(W, [fsize])
+        if use_fft:
+            fft_Ws[i] = fftn(W, [fsize])
 
     # Decimating is performed after centering the convolution, and can
     # therefore lead to 1 time sample jittering.
