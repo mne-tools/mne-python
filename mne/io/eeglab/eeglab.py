@@ -140,7 +140,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), misc=(), event_id=None,
 
     event_id_func : None | str | callable
         What to do for events not found in ``event_id``. Must take one ``str``
-        argument and return an ``int``. If a string, must be 'strip-to-integer',
+        argument and return an ``int``. If string, must be 'strip-to-integer',
         in which case it defaults to stripping event codes such as "D128" or
         "S  1" of their non-integer parts and returns the integer.
         Any event that is not in `event_id` and cannot be parsed with this
@@ -267,7 +267,7 @@ class RawEEGLAB(_BaseRaw):
 
     event_id_func : None | str | callable
         What to do for events not found in ``event_id``. Must take one ``str``
-        argument and return an ``int``. If a string, must be 'strip-to-integer',
+        argument and return an ``int``. If string, must be 'strip-to-integer',
         in which case it defaults to stripping event codes such as "D128" or
         "S  1" of their non-integer parts and returns the integer.
         Any event that is not in `event_id` and cannot be parsed with this

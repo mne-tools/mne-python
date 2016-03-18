@@ -212,7 +212,7 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
     return chs
 
 
-def _synthesize_stim_channel(events, n_samp):
+def _synthesize_stim_channel(events, n_samples):
     """Synthesize a stim channel from events read from an event file
 
     Parameters
