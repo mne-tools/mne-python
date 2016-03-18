@@ -38,8 +38,8 @@ def test_io_set():
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
                          montage=montage)
         assert_equal(len(w1), 20)
-        # for preload_false and a lot for dropping events
-    with warnings.catch_warnings(record=True) as w2:
+        # f3 or preload_false and a lot for dropping events
+    with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # test finding events in continuous data
         event_id = {'rt': 1, 'square': 2}
@@ -58,8 +58,8 @@ def test_io_set():
         assert_equal(epochs["square"].average().nave, 80)  # 80 with
         assert_array_equal(raw0[:][0], raw1[:][0], raw2[:][0], raw3[:][0])
         assert_array_equal(raw0[:][-1], raw1[:][-1], raw2[:][-1], raw3[:][-1])
-        assert_equal(len(w2), 4)
-        # for preload=False / str with fname_onefile, and for dropped events
+        assert_equal(len(w), 4)
+        # 1 for preload=False / str with fname_onefile, 3 for dropped events
         raw0.filter(1, None)  # test that preloading works
 
     with warnings.catch_warnings(record=True) as w:

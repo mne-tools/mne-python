@@ -83,7 +83,7 @@ def _get_info(eeg, montage, eog=()):
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
-        ch_names = ["EEG " + str(ii) for ii in range(eeg.nbchan)]
+        ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
 
     if montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
@@ -349,11 +349,6 @@ class RawEEGLAB(_BaseRaw):
                 info, data, last_samps=last_samps, orig_format='double',
                 verbose=verbose)
 
-    def _add_trigger_ch(self, block, start, stop, sample_start, sample_stop):
-        """Callback function for adding the trigger channel."""
-        stim_ch = self._event_ch[start:stop][sample_start:sample_stop]
-        return np.vstack((block, stim_ch))
-
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel"""
         if n_samples is None:
@@ -534,8 +529,7 @@ class EpochsEEGLAB(_BaseEpochs):
         logger.info('Ready.')
 
 
-def _read_eeglab_events(eeg, event_id=None,
-                        event_id_func='strip_to_integer'):
+def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
     """Create events array from EEGLAB structure
 
     An event array is constructed by looking up events in the
