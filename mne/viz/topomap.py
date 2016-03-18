@@ -1123,6 +1123,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         evoked, ch_type, layout)
 
+    # project before picks
+    if proj is True and evoked.proj is not True:
+        data = evoked.copy().apply_proj().data
+    else:
+        data = evoked.data
+
     evoked_ = evoked.pick_channels([evoked.ch_names[pick] for pick in picks],
                                    copy=True)
 
@@ -1177,10 +1183,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                          tmax=None, sfreq=evoked.info['sfreq']))[0][0]
                 for t in times]
 
-    if proj is True and evoked.proj is not True:
-        data = evoked.copy().apply_proj().data
-    else:
-        data = evoked.data
     if average is None:
         data = data[np.ix_(picks, time_idx)]
     elif isinstance(average, float):
