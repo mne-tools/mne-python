@@ -1,14 +1,42 @@
 .. _tutorials:
 
-
 Tutorials
 =========
-These tutorials get you started to processing MEG/EEG data with MNE-Python. You can find each step of the processing pipeline, and re-run the Python code by copy-paste.
+Once you have
+:ref:`Python and MNE-Python up and running <install_python_and_mne_python>`,
+you can use these tutorials to get started processing MEG/EEG.
+You can find each step of the processing pipeline, and re-run the
+Python code by copy-paste.
 
-.. toctree::
-  :maxdepth: 1
+These tutorials aim to capture only the most important information.
+For further reading:
 
-  tutorials/introduction_to_MNE.rst
+- For a high-level overview of what you can do with MNE-Python:
+  :ref:`what_can_you_do`
+- For more examples of analyzing M/EEG data, including more sophisticated
+  analysis: :ref:`general_examples`
+- For details about analysis steps: :ref:`manual`
+- For details about specific functions and classes: :ref:`api_reference`
+
+.. note:: The default location for the MNE-sample data is
+          my-path-to/mne-python/examples. If you downloaded data and an
+          example asks you whether to download it again, make sure
+          the data reside in the examples directory
+          and that you run the script from its current directory.
+
+          .. code-block:: bash
+
+              $ cd examples/preprocessing
+
+          Then in Python you can do::
+
+              In [1]: %run plot_find_ecg_artifacts.py
+
+
+          See :ref:`datasets` for a list of all available datasets and some
+          advanced configuration options, e.g. to specify a custom
+          location for storing the datasets.
+
 
 .. container:: span box
 

@@ -13,7 +13,7 @@ Independent Component Analysis (ICA)
 ------------------------------------
 ICA finds directions in the feature space
 corresponding to projections with high non-Gaussianity. We thus obtain
-a decomposition into independent components, and the artifacts contribution is
+a decomposition into independent components, and the artifact’s contribution is
 localized in only a small number of components.
 These components have to be correctly identified and removed.
 
@@ -33,7 +33,7 @@ Then you need to create an ICA estimator and fit it on the data::
 Then you have to call the :func:`ICA.find_bads_ecg` function. It will
 compute a score that quantify how much the Epoch is correlated to each independent
 component, and select the components with the best scores. Then you just have to
-exclude the components with func:`ICA.exclude`:::
+exclude the components with func:`ICA.exclude`::
 
     >>> # Find components highy correlated with heartbeat events
     >>> ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
