@@ -15,7 +15,7 @@ from numpy.testing import assert_raises, assert_equal
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate)
-from mne.io import read_raw_ctf, read_raw_bti
+from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans)
 from mne.utils import requires_mayavi, requires_pysurfer, run_tests_if_main
@@ -44,7 +44,7 @@ base_dir = op.join(io_dir, 'bti', 'tests', 'data')
 pdf_fname = op.join(base_dir, 'test_pdf_linux')
 config_fname = op.join(base_dir, 'test_config_linux')
 hs_fname = op.join(base_dir, 'test_hs_linux')
-
+sqd_fname = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
@@ -106,17 +106,20 @@ def test_plot_evoked_field():
 def test_plot_trans():
     """Test plotting of -trans.fif files and MEG sensor layouts
     """
-    # Neuromag
-    infos = [
-        read_evokeds(evoked_fname)[0].info,  # Neuromag
-        read_raw_ctf(ctf_fname).info,  # CTF-275
-        read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
-                     preload=False).info,  # BTi
-    ]
-    for info in infos:
+    infos = dict(
+        Neuromag=read_evokeds(evoked_fname)[0].info,
+        CTF=read_raw_ctf(ctf_fname).info,
+        BTi=read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
+                         preload=False).info,
+        KIT=read_raw_kit(sqd_fname),
+    )
+    for system, info in infos.items():
+        ref_meg = False if system == 'KIT' else True
         plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
-                   subjects_dir=subjects_dir, ref_meg=True)
-    info = infos[0]
+                   subjects_dir=subjects_dir, ref_meg=ref_meg)
+    # KIT ref sensor coil def not defined
+    assert_raises(RuntimeError, plot_trans, infos['KIT'], None, ref_meg=True)
+    info = infos['Neuromag']
     assert_raises(ValueError, plot_trans, info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   ch_type='bad-chtype')
