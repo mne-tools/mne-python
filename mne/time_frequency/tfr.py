@@ -216,8 +216,8 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     n_times_out = n_times_out // decim + jitter
 
     # Make generator looping across signals
+    tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
     for x in X:
-        tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
         if use_fft:
             fft_x = fftn(x, [fsize])
 
