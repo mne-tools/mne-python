@@ -106,11 +106,13 @@ def test_plot_evoked_field():
 def test_plot_trans():
     """Test plotting of -trans.fif files and MEG sensor layouts
     """
+    with warnings.catch_warnings(record=True):  # 4D weight tables
+        bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
+                           preload=False).info
     infos = dict(
         Neuromag=read_evokeds(evoked_fname)[0].info,
         CTF=read_raw_ctf(ctf_fname).info,
-        BTi=read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
-                         preload=False).info,
+        BTi=bti,
         KIT=read_raw_kit(sqd_fname).info,
     )
     for system, info in infos.items():
@@ -119,7 +121,7 @@ def test_plot_trans():
                    subjects_dir=subjects_dir, ref_meg=ref_meg)
     # KIT ref sensor coil def not defined
     assert_raises(RuntimeError, plot_trans, infos['KIT'], None,
-	              meg_sensors=True, ref_meg=True)
+                  meg_sensors=True, ref_meg=True)
     info = infos['Neuromag']
     assert_raises(ValueError, plot_trans, info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir,

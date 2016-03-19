@@ -325,10 +325,10 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                          % ch_type)
 
     show_head = True
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if isinstance(trans, string_types):
         if trans == 'auto':
             # let's try to do this in MRI coordinates so they're easy to plot
+            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             trans = _find_trans(subject, subjects_dir)
         trans = read_trans(trans)
     elif trans is None:
@@ -342,6 +342,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     # both the head and helmet will be in MRI coordinates after this
     surfs = dict()
     if show_head:
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         surfs['head'] = get_head_surf(subject, source=source,
                                       subjects_dir=subjects_dir)
     if ch_type is None or ch_type == 'meg':
