@@ -111,18 +111,21 @@ def test_plot_trans():
         CTF=read_raw_ctf(ctf_fname).info,
         BTi=read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
                          preload=False).info,
-        KIT=read_raw_kit(sqd_fname),
+        KIT=read_raw_kit(sqd_fname).info,
     )
     for system, info in infos.items():
         ref_meg = False if system == 'KIT' else True
         plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
                    subjects_dir=subjects_dir, ref_meg=ref_meg)
     # KIT ref sensor coil def not defined
-    assert_raises(RuntimeError, plot_trans, infos['KIT'], None, ref_meg=True)
+    assert_raises(RuntimeError, plot_trans, infos['KIT'], None,
+	              meg_sensors=True, ref_meg=True)
     info = infos['Neuromag']
     assert_raises(ValueError, plot_trans, info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   ch_type='bad-chtype')
+    assert_raises(TypeError, plot_trans, 'foo', trans_fname,
+                  subject='sample', subjects_dir=subjects_dir)
     # no-head version
     plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
 

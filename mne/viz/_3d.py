@@ -20,7 +20,7 @@ import numpy as np
 from scipy import linalg
 
 from ..externals.six import string_types, advance_iterator
-from ..io import _loc_to_coil_trans
+from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
@@ -315,6 +315,9 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         The mayavi figure.
     """
     from ..forward import _create_meg_coils
+    if not isinstance(info, Info):
+        raise TypeError('info must be an instance of Info, got %s'
+                        % type(info))
     if coord_frame not in ['head', 'meg', 'mri']:
         raise ValueError('coord_frame must be "head" or "meg"')
     if ch_type not in [None, 'eeg', 'meg']:
