@@ -457,7 +457,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline,
                                     copy=False)
         epochs.baseline = baseline
-        
+
         return epochs
 
     def _reject_setup(self, reject, flat):
