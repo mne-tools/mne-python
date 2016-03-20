@@ -417,7 +417,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return epochs
 
     @verbose
-    def apply_baseline(self, baseline, copy=True, verbose=None):
+    def apply_baseline(self, baseline, copy=False, verbose=None):
         """Baseline correct epochs
 
         Parameters
