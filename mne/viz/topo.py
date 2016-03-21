@@ -249,7 +249,8 @@ def _check_vlim(vlim):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True, cmap='RdBu_r', title=None):
+                colorbar=False, picker=True, cmap='RdBu_r', title=None,
+                hline=None):
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
@@ -279,21 +280,21 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
 def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
                         ylim=None, tfr=None, freq=None, vline=None,
                         x_label=None, y_label=None, colorbar=False,
-                        picker=True, cmap='RdBu_r', title=None):
+                        picker=True, cmap='RdBu_r', title=None, hline=None):
     """Aux function to show multiple tfrs on topo using a single axes"""
     _compute_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
     ax = bn.ax
     data_lines = bn.data_lines
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax,
-              bn.y_t + bn.y_s * freq[-1], bn.y_t + bn.y_s * freq[0])
+              bn.y_t + bn.y_s * freq[0], bn.y_t + bn.y_s * freq[-1])
     data_lines.append(ax.imshow(tfr[ch_idx], clip_on=True, clip_box=bn.pos,
-                                extent=extent, vmin=vmin, vmax=vmax,
-                                cmap=cmap))
+                                extent=extent, aspect="auto", origin="lower",
+                                vmin=vmin, vmax=vmax, cmap=cmap))
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
-                     color, times, vline=None, x_label=None,
-                     y_label=None, colorbar=False):
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
+                     times, vline=None, x_label=None, y_label=None,
+                     colorbar=False, hline=None):
     """Aux function to show time series on topo split across multiple axes"""
     import matplotlib.pyplot as plt
     picker_flag = False
@@ -307,6 +308,9 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     if vline:
         for x in vline:
             plt.axvline(x, color='w', linewidth=0.5)
+    if vline:
+        for y in hline:
+            plt.axhline(y, color='w', linewidth=0.5)
     if x_label is not None:
         plt.xlabel(x_label)
     if y_label is not None:
@@ -320,7 +324,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
 
 def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
                              color, times, vline=None, x_label=None,
-                             y_label=None, colorbar=False):
+                             y_label=None, colorbar=False, hline=None):
     """Aux function to show multiple time series on topo using a single axes"""
     import matplotlib.pyplot as plt
     if not (ylim and not any(v is None for v in ylim)):
@@ -338,7 +342,9 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     if vline:
         vline = np.array(vline) * bn.x_s + bn.x_t
         ax.vlines(vline, pos[1], pos[1] + pos[3], color='w', linewidth=0.5)
-        ax.hlines(bn.y_t, pos[0], pos[0] + pos[2], color='w', linewidth=0.5)
+    if hline:
+        hline = np.array(hline) * bn.y_s + bn.y_t
+        ax.hlines(hline, pos[0], pos[0] + pos[2], color='w', linewidth=0.5)
     if x_label is not None:
         ax.text(pos[0] + pos[2] / 2., pos[1], x_label,
                 horizontalalignment='center', verticalalignment='top')
@@ -353,7 +359,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
 
 def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
-                      proj=False, vline=[0.0], fig_facecolor='k',
+                      proj=False, vline=[0.0], hline=[0.0], fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
                       merge_grads=False, show=True):
     """Plot 2D topography of evoked responses.
@@ -395,6 +401,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         be shown.
     vline : list of floats | None
         The values at which to show a vertical line.
+    hline : list of floats | None
+        The values at which to show a horizontal line.
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
     fig_background : None | numpy ndarray
@@ -517,18 +525,17 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     data = [e.data for e in evoked]
     show_func = partial(_plot_timeseries_unified, data=data,
-                        color=color, times=times, vline=vline)
+                        color=color, times=times, vline=vline, hline=hline)
     click_func = partial(_plot_timeseries, data=data,
-                         color=color, times=times, vline=vline)
+                         color=color, times=times, vline=vline, hline=hline)
 
     fig = _plot_topo(info=info, times=times, show_func=show_func,
                      click_func=click_func, layout=layout,
                      colorbar=False, ylim=ylim_, cmap=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
-                     axis_facecolor=axis_facecolor,
-                     title=title, x_label='Time (s)', y_label=y_label,
-                     unified=True)
+                     axis_facecolor=axis_facecolor, title=title,
+                     x_label='Time (s)', y_label=y_label, unified=True)
 
     if fig_background is not None:
         add_background_image(fig, fig_background)
