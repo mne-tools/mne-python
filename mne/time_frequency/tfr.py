@@ -188,6 +188,10 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     if mode not in ['same', 'valid', 'full']:
         raise ValueError("`mode` must be 'same', 'valid' or 'full', "
                          "got %s instead." % mode)
+    if mode == 'full' and (not use_fft):
+        # XXX JRK: full wavelet decomposition needs to be implemented
+        raise NotImplementedError('`full` decomposition with convolution is ' +
+                                  'currently not supported.')
     X = np.asarray(X)
 
     # Precompute wavelets for given frequency range to save time
@@ -212,8 +216,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     # Decimating is performed after centering the convolution, and can
     # therefore lead to 1 time sample jittering.
     jitter = (n_times % decim) % 2
-    n_times_out = fsize if mode == "full" else n_times
-    n_times_out = n_times_out // decim + jitter
+    n_times_out = n_times // decim + jitter
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
@@ -306,7 +309,8 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     use_fft : bool
         Use FFT for convolutions. Defaults to True.
     mode : 'same' | 'valid' | 'full'
-        Convention for convolution. Defaults to 'same'.
+        Convention for convolution. 'full' is currently not implemented with
+        `use_fft=False`. Defaults to 'same'.
     decim : int
         Decimation factor applied after time-frequency decomposition.
         Defaults to 1.

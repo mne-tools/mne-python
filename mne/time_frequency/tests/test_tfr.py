@@ -159,13 +159,17 @@ def test_time_frequency():
             assert_equal(power.data.shape[2],
                          np.ceil(float(len(times)) / decim))
 
-    # test cwt
+    # Test cwt modes
     Ws = morlet(512, [10, 20], n_cycles=2)
-    for use_fft in [True, False]:
-        for mode in ['same']:
-            print use_fft, mode
-            cwt(data[0, :, :], Ws, use_fft=use_fft, mode=mode)
     assert_raises(ValueError, cwt, data[0, :, :], Ws, mode='foo')
+    for use_fft in [True, False]:
+        for mode in ['same', 'valid', 'full']:
+            # XXX JRK: full wavelet decomposition needs to be implemented
+            if (not use_fft) and mode == 'full':
+                assert_raises(NotImplementedError, cwt, data[0, :, :], Ws,
+                              use_fft=use_fft, mode=mode)
+                continue
+            cwt(data[0, :, :], Ws, use_fft=use_fft, mode=mode)
 
 
 def test_dpsswavelet():
