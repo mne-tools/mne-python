@@ -21,8 +21,6 @@ print(__doc__)
 
 
 data_path = sample.data_path()
-
-data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
@@ -30,4 +28,4 @@ trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 condition = 'Left Auditory'
 evoked = read_evokeds(evoked_fname, condition=condition, baseline=(-0.2, 0.0))
 plot_trans(evoked.info, trans_fname, subject='sample', dig=True,
-           subjects_dir=subjects_dir)
+           meg_sensors=True, subjects_dir=subjects_dir)
