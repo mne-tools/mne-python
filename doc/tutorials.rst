@@ -67,16 +67,16 @@ For further reading:
     tutorials/preprocessing/artifacts_suppression.rst
     auto_tutorials/plot_ica_from_raw.rst
 
-.. container:: span box
+.. .. container:: span box
 
-  .. raw:: html
+..  .. raw:: html
 
-    <h2>Sensor-level analysis</h2>
+..     <h2>Sensor-level analysis</h2>
 
-  * Epoching and Averaging --TODO--
-  * Time-Frequency analysis with multitapers --TODO
-  * Connectivity study with phase-lag index --TODO--
-  * Decoding --TODO--
+..   * Epoching and Averaging --TODO--
+..   * Time-Frequency analysis with multitapers --TODO
+..   * Connectivity study with phase-lag index --TODO--
+..   * Decoding --TODO--
 
 .. container:: span box
 
@@ -84,7 +84,7 @@ For further reading:
 
     <h2>Source reconstruction</h2>
 
-  * noise/data covariance --TODO--
+  .. * noise/data covariance --TODO--
 
   .. toctree::
     :maxdepth: 1

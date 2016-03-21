@@ -27,12 +27,12 @@ h1 {
 h2 {
     background-color: rgb(255,255,255);
     font-size: 140%;
-    font-weight: 600;
+    font-weight: 800;
 }
 
 h3 {
     font-size: 110%;
-    font-weight: 150;
+    font-weight: 600;
 }
 
 blockquote {
@@ -45,7 +45,7 @@ code {
 }
 
 .devbar {
-    background-color: red;
+    background-color: rgb(255, 100, 100);
     color: white;
     font-weight:bold;
     text-align: center;
@@ -55,11 +55,6 @@ code {
 
 .devbar a {
     color: rgb(0, 0, 0);
-}
-
-.devbar {
-    background-color: rgb(255, 0, 0);
-    opacity: 0.4;
 }
 
 #navbar a:hover {
@@ -91,12 +86,12 @@ blockquote {
     height: 230px;
     float: left;
     border-radius: 20px;
-    background: #FFFFCC;
+    background: #f3f5f9;
     border-style: solid;
-    border-color: #ece5b6;
+    border-color: #2C3E50;
     margin: 5px;
 }
 
 .span h2 {
-    background: #FFFFCC;
+    background: #f3f5f9;
 }
