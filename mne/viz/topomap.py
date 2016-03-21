@@ -361,6 +361,27 @@ def _plot_sensors(pos_x, pos_y, sensors, ax):
         ax.plot(pos_x, pos_y, sensors)
 
 
+def plot_sensors(info):
+    """
+
+    Parameters
+    ----------
+    info
+
+    Returns
+    -------
+
+    """
+    from ..channels.layout import _auto_topomap_coords
+    import matplotlib.pyplot as plt
+    pos = _auto_topomap_coords(info, picks=range(len(info['chs']))[::3])
+    ax = plt.subplot(111)
+    _plot_sensors(pos[:, 0], pos[:, 1], True, ax)
+    ax.set_xlim((min(pos[:, 0]), max(pos[:, 0])))
+    ax.set_ylim((min(pos[:, 1]), max(pos[:, 1])))
+    plt.show()
+
+
 def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
