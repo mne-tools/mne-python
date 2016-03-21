@@ -190,8 +190,8 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
                          "got %s instead." % mode)
     if mode == 'full' and (not use_fft):
         # XXX JRK: full wavelet decomposition needs to be implemented
-        raise NotImplementedError('`full` decomposition with convolution is ' +
-                                  'currently not supported.')
+        raise ValueError('`full` decomposition with convolution is currently' +
+                         ' not supported.')
     X = np.asarray(X)
 
     # Precompute wavelets for given frequency range to save time
