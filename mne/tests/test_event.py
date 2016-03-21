@@ -28,6 +28,20 @@ fname_old_txt = op.join(base_dir, 'test-eve-old-style.eve')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 
+def test_fix_stim():
+    """Test fixing stim STI016 for Neuromag"""
+    raw = io.Raw(raw_fname, preload=True)
+    # 32768 (016) + 3 (002+001) bits gets incorrectly coded during acquisition
+    raw._data[raw.ch_names.index('STI 014'), :3] = [0, -32765, 0]
+    with warnings.catch_warnings(record=True) as w:
+        events = find_events(raw, 'STI 014')
+    assert_true(len(w) >= 1)
+    assert_true(any('STI016' in str(ww.message) for ww in w))
+    assert_array_equal(events[0], [raw.first_samp + 1, 0, 32765])
+    events = find_events(raw, 'STI 014', uint_cast=True)
+    assert_array_equal(events[0], [raw.first_samp + 1, 0, 32771])
+
+
 def test_add_events():
     """Test adding events to a Raw file"""
     # need preload
