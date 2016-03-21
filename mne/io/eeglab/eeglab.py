@@ -143,8 +143,9 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), misc=(), event_id=None,
         argument and return an ``int``. If string, must be 'strip-to-integer',
         in which case it defaults to stripping event codes such as "D128" or
         "S  1" of their non-integer parts and returns the integer.
-        Any event that is not in `event_id` and cannot be parsed with this
-        function is dropped.
+        If the event is not in the ``event_id`` and calling ``event_id_func``
+        on it results in a ``TypeError`` (e.g. if ``event_id_func`` is
+        ``None``) or a ``ValueError``, the event is dropped.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -270,8 +271,9 @@ class RawEEGLAB(_BaseRaw):
         argument and return an ``int``. If string, must be 'strip-to-integer',
         in which case it defaults to stripping event codes such as "D128" or
         "S  1" of their non-integer parts and returns the integer.
-        Any event that is not in `event_id` and cannot be parsed with this
-        function is dropped.
+        If the event is not in the ``event_id`` and calling ``event_id_func``
+        on it results in a ``TypeError`` (e.g. if ``event_id_func`` is
+        ``None``) or a ``ValueError``, the event is dropped.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires large
@@ -573,7 +575,7 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
         try:  # look up the event in event_id and if not, try event_id_func
             event_code = event_id[tt] if tt in event_id else event_id_func(tt)
             events.append([int(latency), 1, event_code])
-        except ValueError:  # if event_id_func can't parse the event
+        except (ValueError, TypeError):  # if event_id_func fails
             pass  # We're already raising warnings above, so we just drop
 
     if len(events) < len(types):
