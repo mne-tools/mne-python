@@ -32,7 +32,11 @@ def _butterfly_onpick(event, params):
     """Helper to add a channel name on click"""
     params['need_draw'] = True
     ax = event.artist.get_axes()
-    ax_idx = np.where([ax is a for a in params['axes']])[0][0]
+    ax_idx = np.where([ax is a for a in params['axes']])[0]
+    if len(ax_idx) == 0:  # this can happen if ax param is used
+        return  # let the other axes handle it
+    else:
+        ax_idx = ax_idx[0]
     lidx = np.where([l is event.artist for l in params['lines'][ax_idx]])[0][0]
     ch_name = params['ch_names'][params['idxs'][ax_idx][lidx]]
     text = params['texts'][ax_idx]
