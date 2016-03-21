@@ -308,7 +308,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     if vline:
         for x in vline:
             plt.axvline(x, color='w', linewidth=0.5)
-    if vline:
+    if hline:
         for y in hline:
             plt.axhline(y, color='w', linewidth=0.5)
     if x_label is not None:
@@ -359,7 +359,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
 
 def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
-                      proj=False, vline=[0.0], hline=[0.0], fig_facecolor='k',
+                      proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
                       merge_grads=False, show=True):
     """Plot 2D topography of evoked responses.
