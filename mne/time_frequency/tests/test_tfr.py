@@ -11,7 +11,7 @@ from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import (cwt_morlet, morlet, tfr_morlet,
                                     _dpss_wavelet, tfr_multitaper,
                                     AverageTFR, read_tfrs, write_tfrs,
-                                    combine_tfr)
+                                    combine_tfr, cwt)
 
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -158,6 +158,14 @@ def test_time_frequency():
                                     decim=decim)
             assert_equal(power.data.shape[2],
                          np.ceil(float(len(times)) / decim))
+
+    # test cwt
+    Ws = morlet(512, [10, 20], n_cycles=2)
+    for use_fft in [True, False]:
+        for mode in ['same']:
+            print use_fft, mode
+            cwt(data[0, :, :], Ws, use_fft=use_fft, mode=mode)
+    assert_raises(ValueError, cwt, data[0, :, :], Ws, mode='foo')
 
 
 def test_dpsswavelet():

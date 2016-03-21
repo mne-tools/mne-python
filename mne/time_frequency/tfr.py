@@ -285,7 +285,7 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
-    coefs = _cwt(X, Ws, mode, decim=decim, use_fft=use_fft)
+    coefs = cwt(X, Ws, use_fft=use_fft, mode=mode, decim=decim)
 
     tfrs = np.empty((n_signals, len(freqs), n_times), dtype=np.complex)
     for k, tfr in enumerate(coefs):
