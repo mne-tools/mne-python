@@ -406,9 +406,9 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
                             pad_stop=pad_stop, merge=merge)
 
 
-@verbose
 def _find_events(data, first_samp, verbose=None, output='onset',
-                 consecutive='increasing', min_samples=0, mask=0):
+                 consecutive='increasing', min_samples=0, mask=0,
+                 uint_cast=False):
     """Helper function for find events"""
     if min_samples > 0:
         merge = int(min_samples // 1)
@@ -417,10 +417,15 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     else:
         merge = 0
 
-    if np.any(data < 0):
-        warn('Trigger channel contains negative values, using absolute value.')
-        data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
+    if uint_cast:
+        data = data.astype(np.uint16).astype(np.int)
+    if data.min() < 0:
+        warn('Trigger channel contains negative values, using absolute '
+             'value. If data were acquired on a Neuromag system with '
+             'STI016 active, consider using uint_cast=True to work around '
+             'an acquisition bug')
+        data = np.abs(data)  # make sure trig channel is positive
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
     events = _mask_trigs(events, mask)
@@ -473,9 +478,9 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 
 
 @verbose
-def find_events(raw, stim_channel=None, verbose=None, output='onset',
+def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
-                shortest_event=2, mask=0):
+                shortest_event=2, mask=0, uint_cast=False, verbose=None):
     """Find events from raw file
 
     Parameters
@@ -489,8 +494,6 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         etc. are read. If these are not found, it will fall back to
         'STI 014' if present, then fall back to the first channel of type
         'stim', if present.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     output : 'onset' | 'offset' | 'step'
         Whether to report when events start, when events end, or both.
     consecutive : bool | 'increasing'
@@ -509,6 +512,17 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     mask : int
         The value of the digital mask to apply to the stim channel values.
         The default value is 0.
+    uint_cast : bool
+        If True (default False), do a cast to ``uint16`` on the channel
+        data. This can be used to fix a bug with STI101 and STI014 in
+        Neuromag acquisition setups that use channel STI016 (channel 16
+        turns data into e.g. -32768), similar to ``mne_fix_stim14 --32``
+        in MNE-C.
+
+        .. versionadded:: 0.12
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -597,7 +611,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
 
     events = _find_events(data, raw.first_samp, verbose=verbose, output=output,
                           consecutive=consecutive, min_samples=min_samples,
-                          mask=mask)
+                          mask=mask, uint_cast=uint_cast)
 
     # add safety check for spurious events (for ex. from neuromag syst.) by
     # checking the number of low sample events
