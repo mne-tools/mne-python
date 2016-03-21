@@ -83,6 +83,8 @@ BUG
 
     - Fix ``info['lowpass']`` value for downsampled raw data by `Eric Larson`_
 
+    - Remove measurement date from :class:`mne.io.Info` in :func:`mne.io.Raw.anonymize` by `Eric Larson`_
+
 API
 ~~~
 

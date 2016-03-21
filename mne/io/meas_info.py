@@ -345,7 +345,7 @@ class Info(collections.MutableMapping):
                 if len(entr) >= 56:
                     entr = _summarize_str(entr)
             elif k == 'meas_date' and np.iterable(v):
-                # first entire in meas_date is meaningful
+                # first entry in meas_date is meaningful
                 entr = dt.fromtimestamp(v[0]).strftime('%Y-%m-%d %H:%M:%S')
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
@@ -374,6 +374,10 @@ class Info(collections.MutableMapping):
     def _anonymize(self):
         if self.get('subject_info') is not None:
             del self['subject_info']
+        self['meas_date'] = [0, 0]
+        for key_1 in ('file_id', 'meas_id'):
+            for key_2 in ('secs', 'msecs', 'usecs'):
+                self[key_1][key_2] = 0
 
     def _check_consistency(self):
         """Do some self-consistency checks and datatype tweaks"""
@@ -1044,9 +1048,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['proj_name'] = proj_name
 
     if meas_date is None:
-        info['meas_date'] = [info['meas_id']['secs'], info['meas_id']['usecs']]
-    else:
-        info['meas_date'] = meas_date
+        meas_date = [info['meas_id']['secs'], info['meas_id']['usecs']]
+    info['meas_date'] = meas_date
 
     info['sfreq'] = sfreq
     info['highpass'] = highpass if highpass is not None else 0.
