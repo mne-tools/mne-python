@@ -106,7 +106,7 @@ def _get_info(eeg, montage, eog=()):
     return info
 
 
-def read_raw_eeglab(input_fname, montage=None, eog=(), misc=(), event_id=None,
+def read_raw_eeglab(input_fname, montage=None, eog=(), event_id=None,
                     event_id_func='strip_to_integer', preload=False,
                     verbose=None):
     """Read an EEGLAB .set file
@@ -124,10 +124,6 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), misc=(), event_id=None,
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    misc : list or tuple
-        Names of channels or list of indices that should be designated MISC
-        channels. Values should correspond to the electrodes in the .set file.
-        Default is ``()``.
     event_id : dict | None
         The ids of the events to consider. If None (default), an empty dict is
         used and ``event_id_func`` (see below) is called on every event value.
@@ -171,12 +167,12 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), misc=(), event_id=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
-                     eog=eog, misc=misc, event_id=event_id,
-                     event_id_func=event_id_func, verbose=verbose)
+                     eog=eog, event_id=event_id, event_id_func=event_id_func,
+                     verbose=verbose)
 
 
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
-                       eog=(), misc=(), verbose=None):
+                       eog=(), verbose=None):
     """Reader function for EEGLAB epochs files
 
     Parameters
@@ -209,10 +205,6 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    misc : list or tuple
-        Names of channels or list of indices that should be designated MISC
-        channels. Values should correspond to the electrodes in the .set file.
-        Default is ``()``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -231,8 +223,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     mne.Epochs : Documentation of attribute and methods.
     """
     epochs = EpochsEEGLAB(input_fname=input_fname, events=events, eog=eog,
-                          misc=misc, event_id=event_id, montage=montage,
-                          verbose=verbose)
+                          event_id=event_id, montage=montage, verbose=verbose)
     return epochs
 
 
@@ -252,10 +243,6 @@ class RawEEGLAB(_BaseRaw):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    misc : list or tuple
-        Names of channels or list of indices that should be designated MISC
-        channels. Values should correspond to the electrodes in the .set file.
-        Default is ``()``.
     event_id : dict | None
         The ids of the events to consider. If None (default), an empty dict is
         used and ``event_id_func`` (see below) is called on every event value.
@@ -297,7 +284,7 @@ class RawEEGLAB(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, montage, eog=(), misc=(), event_id=None,
+    def __init__(self, input_fname, montage, eog=(), event_id=None,
                  event_id_func='strip_to_integer', preload=False,
                  verbose=None):
         """Read EEGLAB .set file.
@@ -430,10 +417,6 @@ class EpochsEEGLAB(_BaseEpochs):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    misc : list or tuple
-        Names of channels or list of indices that should be designated MISC
-        channels. Values should correspond to the electrodes in the .set file.
-        Default is ``()``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -448,8 +431,7 @@ class EpochsEEGLAB(_BaseEpochs):
     @verbose
     def __init__(self, input_fname, events=None, event_id=None, tmin=0,
                  baseline=None,  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, montage=None, eog=(), misc=(),
-                 verbose=None):
+                 reject_tmax=None, montage=None, eog=(), verbose=None):
         from scipy import io
         _check_mat_struct(input_fname)
         eeg = io.loadmat(input_fname, struct_as_record=False,
