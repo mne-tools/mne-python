@@ -21,7 +21,8 @@ from .infomax_ import infomax
 
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
-from ..io.pick import (pick_types, pick_channels, pick_info)
+from ..io.pick import (pick_types, pick_channels, pick_info,
+                       _pick_data_channels)
 from ..io.write import (write_double_matrix, write_string,
                         write_name_list, write_int, start_block,
                         end_block)
@@ -346,9 +347,9 @@ class ICA(ContainsMixin):
             self._reset()
 
         if picks is None:  # just use good data channels
-            picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
-                               ecg=False, misc=False, stim=False,
-                               ref_meg=False, exclude='bads')
+            picks = _pick_data_channels(raw.info, exclude='bads',
+                                        with_ref_meg=False)
+
         logger.info('Fitting ICA to data using %i channels. \n'
                     'Please be patient, this may take some time' % len(picks))
 
@@ -387,9 +388,8 @@ class ICA(ContainsMixin):
             self._reset()
 
         if picks is None:
-            picks = pick_types(epochs.info, meg=True, eeg=True, eog=False,
-                               ecg=False, misc=False, stim=False,
-                               ref_meg=False, exclude='bads')
+            picks = _pick_data_channels(epochs.info, exclude='bads',
+                                        with_ref_meg=False)
         logger.info('Fitting ICA to data using %i channels. \n'
                     'Please be patient, this may take some time' % len(picks))
 
