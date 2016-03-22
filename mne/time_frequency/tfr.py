@@ -214,9 +214,8 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
             fft_Ws[i] = fftn(W, [fsize])
 
     # Decimating is performed after centering the convolution, and can
-    # therefore lead to 1 time sample jittering.
-    jitter = bool(n_times % decim)
-    n_times_out = n_times // decim + jitter
+    # therefore lead to one extra time sample.
+    n_times_out = n_times // decim + bool(n_times % decim)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
@@ -340,8 +339,7 @@ def _time_frequency(X, Ws, use_fft, decim):
     """Aux of time_frequency for parallel computing over channels
     """
     n_epochs, n_times = X.shape
-    jitter = bool(n_times % decim)
-    n_times = n_times // decim + jitter
+    n_times = n_times // decim + bool(n_times % decim)
     n_frequencies = len(Ws)
     psd = np.zeros((n_frequencies, n_times))  # PSD
     plf = np.zeros((n_frequencies, n_times), np.complex)  # phase lock
