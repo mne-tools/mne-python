@@ -54,12 +54,19 @@ def _update_raw_data(params):
     if params['ba'] is not None:
         data[data_picks] = filtfilt(params['ba'][0], params['ba'][1],
                                     data[data_picks], axis=1, padlen=0)
-    # scale
+    
+    # define scale
+    if params['scalings'] is None:
+        all_scalings = np.zeros(data.shape[0])
+        for di in range(data.shape[0]):
+            all_scalings[di] = np.max(data[di]) - np.min(data[di])
+        scalings = np.median(all_scalings)
+    else:
+        scalings = params['scalings'][params['types'][di]]
+        
+    # implement scale
     for di in range(data.shape[0]):
-        if params['scalings'] is None:
-            data[di] /= (np.max(data[di]) - np.min(data[di]))
-        else:
-            data[di] /= params['scalings'][params['types'][di]]
+        data[di] /= scalings
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
             data[di] = np.minimum(data[di], 1.0)
