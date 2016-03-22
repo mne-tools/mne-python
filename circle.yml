@@ -10,6 +10,7 @@ dependencies:
     - "/home/ubuntu/miniconda"
     - "/home/ubuntu/.mne"
     - "/home/ubuntu/mne_data"
+    - "/home/ubuntu/mne-tools.github.io"
   # Various dependencies
   pre:
     # Get a running Python
@@ -51,6 +52,12 @@ dependencies:
         python -c "import mne; mne.datasets.eegbci.data_path('http://www.physionet.org/physiobank/database/eegmmidb/S001/S001R06.edf', update_path=True, verbose=True);";
       fi
     - python -c "import mne; mne.sys_info()";
+    - >
+      if [ ! -d "/home/ubuntu/mne-tools.github.io" ]; then
+        cd .. && git clone https://github.com/mne-tools/mne-tools.github.io.git && cd mne-tools.github.io && git checkout production;
+      else
+        cd /home/ubuntu/mne-tools.github.io && git checkout production;
+      fi;
     - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
 
 test:
@@ -60,8 +67,7 @@ test:
       else
         cd doc && make html_dev-noplot;
       fi
-    - if [ "$CIRCLE_BRANCH" == "master" ]; then case $CIRCLE_NODE_INDEX in 0) cd doc && make html_dev-pattern PATTERN='/tutorials/plot_' ;; 1) cd doc && make html_dev-pattern PATTERN='/examples/plot_\|/connectivity/plot_\|/datasets/plot_\|/decoding/plot_\|/forward/plot_\|/inverse/plot_\|/io/plot_\|/preprocessing/plot_\|/realtime/plot_\|/simulation/plot_\|/stats/plot_\|/time_frequency/plot_\|/visualization/plot_' ;; esac; fi:
-          parallel: true
+    - if [ "$CIRCLE_BRANCH" == "master" ]; then cd doc && make html_dev; fi:
           timeout: 1500
 
 general:
@@ -71,3 +77,12 @@ general:
   # Open the doc to the API
   artifacts:
     - "doc/_build/html"
+
+deployment:
+  production:
+    branch: master
+    commands:
+      - cd doc/_build && cp -rf html ~/mne-tools.github.io
+      - git config --global user.email "circle@mne.com"
+      - git config --global user.name "Circle Ci"
+      - cd ../mne-tools.github.io && git checkout production && git pull origin production && git add -A && git commit -m 'Update dev docs.' && git push origin production
