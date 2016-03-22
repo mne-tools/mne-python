@@ -21,6 +21,7 @@ from mne.utils import run_tests_if_main
 
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
+from mne.viz.utils import _fake_click
 from mne.viz.topo import _plot_update_evoked_topo_proj
 
 # Set our plotters to test mode
@@ -126,8 +127,9 @@ def test_plot_topo_image_epochs():
     title = 'ERF images - MNE sample data'
     epochs = _get_epochs()
     cmap = mne_analyze_colormap(format='matplotlib')
-    plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
-                           colorbar=True, title=title, cmap=cmap)
+    fig = plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
+                                 colorbar=True, title=title, cmap=cmap)
+    _fake_click(fig, fig.axes[2], (0.08, 0.64))
     plt.close('all')
 
 

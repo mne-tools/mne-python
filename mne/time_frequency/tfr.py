@@ -861,7 +861,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
                          layout_scale=layout_scale, title=title, border=border,
                          x_label='Time (ms)', y_label='Frequency (Hz)',
                          fig_facecolor=fig_facecolor, font_color=font_color,
-                         unified=True, tfr=True)
+                         unified=True, img=True)
         plt_show(show)
         return fig
 

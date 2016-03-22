@@ -76,7 +76,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
 def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                      axis_facecolor='k', axis_spinecolor='k',
-                     layout_scale=None, unified=False, tfr=False):
+                     layout_scale=None, unified=False, img=False):
     """Private helper to iterate over topography
 
     Has the same parameters as iter_topography, plus:
@@ -137,10 +137,10 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                               pos[:, :2] + pos[:, 2:],
                               pos[:, :2] + pos[:, 2:] * [0, 1],
                               ], [1, 0, 2])
-        if not tfr:
+        if not img:
             under_ax.add_collection(collections.PolyCollection(
                 verts, facecolor=axis_facecolor, edgecolor=axis_spinecolor,
-                linewidth=1.))  # Not needed for tfr plots.
+                linewidth=1.))  # Not needed for image plots.
         for ax in axs:
             yield ax, ax._mne_ch_idx
 
@@ -149,7 +149,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, font_color='w', unified=False, tfr=False):
+               y_label=None, font_color='w', unified=False, img=False):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
 
@@ -176,7 +176,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                                     axis_spinecolor=border,
                                     axis_facecolor=axis_facecolor,
                                     fig_facecolor=fig_facecolor,
-                                    unified=unified, tfr=tfr)
+                                    unified=unified, img=img)
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
@@ -355,6 +355,73 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
                 rotation=90)
     if colorbar:
         plt.colorbar()
+
+
+def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
+                     epochs=None, sigma=None, order=None, scalings=None,
+                     vline=None, x_label=None, y_label=None, colorbar=False,
+                     cmap='RdBu_r'):
+    """Aux function to plot erfimage on sensor topography"""
+    from scipy import ndimage
+    import matplotlib.pyplot as plt
+    this_data = data[:, ch_idx, :].copy()
+    ch_type = channel_type(epochs.info, ch_idx)
+    if ch_type not in scalings:
+        raise KeyError('%s channel type not in scalings' % ch_type)
+    this_data *= scalings[ch_type]
+
+    if callable(order):
+        order = order(epochs.times, this_data)
+
+    if order is not None:
+        this_data = this_data[order]
+
+    if sigma > 0.:
+        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+
+    ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
+              origin='lower', vmin=vmin, vmax=vmax, picker=True, cmap=cmap,
+              interpolation='nearest')
+
+    ax = plt.gca()
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+    if y_label is not None:
+        ax.set_ylabel(y_label)
+    if colorbar:
+        plt.colorbar()
+
+
+def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
+                             data=None, epochs=None, sigma=None, order=None,
+                             scalings=None, vline=None, x_label=None,
+                             y_label=None, colorbar=False, cmap='RdBu_r'):
+    """"""
+    from scipy import ndimage
+    _compute_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
+    ax = bn.ax
+    data_lines = bn.data_lines
+    extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax, bn.y_t,
+              bn.y_t + bn.y_s * len(epochs.events))
+    this_data = data[:, ch_idx, :].copy()
+    ch_type = channel_type(epochs.info, ch_idx)
+    if ch_type not in scalings:
+        raise KeyError('%s channel type not in scalings' % ch_type)
+    this_data *= scalings[ch_type]
+
+    if callable(order):
+        order = order(epochs.times, this_data)
+
+    if order is not None:
+        this_data = this_data[order]
+
+    if sigma > 0.:
+        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+
+    data_lines.append(ax.imshow(this_data, extent=extent, aspect='auto',
+                                origin='lower', vmin=vmin, vmax=vmax,
+                                picker=True, cmap=cmap,
+                                interpolation='nearest'))
 
 
 def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
@@ -570,41 +637,6 @@ def _plot_update_evoked_topo_proj(params, bools):
     fig.canvas.draw()
 
 
-def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
-                     data=None, epochs=None, sigma=None,
-                     order=None, scalings=None, vline=None,
-                     x_label=None, y_label=None, colorbar=False,
-                     cmap='RdBu_r'):
-    """Aux function to plot erfimage on sensor topography"""
-    from scipy import ndimage
-    import matplotlib.pyplot as plt
-    this_data = data[:, ch_idx, :].copy()
-    ch_type = channel_type(epochs.info, ch_idx)
-    if ch_type not in scalings:
-        raise KeyError('%s channel type not in scalings' % ch_type)
-    this_data *= scalings[ch_type]
-
-    if callable(order):
-        order = order(epochs.times, this_data)
-
-    if order is not None:
-        this_data = this_data[order]
-
-    if sigma > 0.:
-        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
-
-    ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
-              origin='lower', vmin=vmin, vmax=vmax, picker=True,
-              cmap=cmap, interpolation='nearest')
-
-    if x_label is not None:
-        ax.set_xlabel(x_label)
-    if y_label is not None:
-        ax.set_ylabel(y_label)
-    if colorbar:
-        plt.colorbar()
-
-
 def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
                            layout_scale=.95, title=None, scalings=None,
@@ -668,16 +700,18 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     if layout is None:
         layout = find_layout(epochs.info)
 
+    show_func = partial(_erfimage_imshow_unified, scalings=scalings,
+                        order=order, data=data, epochs=epochs, sigma=sigma,
+                        cmap=cmap)
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
-                         data=data, epochs=epochs, sigma=sigma,
-                         cmap=cmap)
+                         data=data, epochs=epochs, sigma=sigma, cmap=cmap)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,
-                     show_func=erf_imshow, layout=layout,
+                     click_func=erf_imshow, show_func=show_func, layout=layout,
                      colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                      layout_scale=layout_scale, title=title,
-                     fig_facecolor=fig_facecolor,
-                     font_color=font_color, border=border,
-                     x_label='Time (s)', y_label='Epoch')
+                     fig_facecolor=fig_facecolor, font_color=font_color,
+                     border=border, x_label='Time (s)', y_label='Epoch',
+                     unified=True, img=True)
     plt_show(show)
     return fig
