@@ -67,7 +67,7 @@ test:
       else
         cd doc && make html_dev-noplot;
       fi
-    - if [ "$CIRCLE_BRANCH" == "master" ]; then cd doc && make html_dev fi:
+    - if [ "$CIRCLE_BRANCH" == "master" ]; then cd doc && make html_dev; fi:
           timeout: 1500
 
 general:
