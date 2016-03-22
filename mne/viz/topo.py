@@ -21,7 +21,7 @@ from ..utils import _clean_names, warn
 from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
-                    add_background_image, plt_show)
+                    add_background_image, plt_show, _setup_vmin_vmax)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -365,10 +365,6 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
     from scipy import ndimage
     import matplotlib.pyplot as plt
     this_data = data[:, ch_idx, :].copy()
-    ch_type = channel_type(epochs.info, ch_idx)
-    if ch_type not in scalings:
-        raise KeyError('%s channel type not in scalings' % ch_type)
-    this_data *= scalings[ch_type]
 
     if callable(order):
         order = order(epochs.times, this_data)
@@ -396,7 +392,7 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                              data=None, epochs=None, sigma=None, order=None,
                              scalings=None, vline=None, x_label=None,
                              y_label=None, colorbar=False, cmap='RdBu_r'):
-    """"""
+    """Aux function to plot erfimage topography using a single axis"""
     from scipy import ndimage
     _compute_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
     ax = bn.ax
@@ -404,10 +400,6 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax, bn.y_t,
               bn.y_t + bn.y_s * len(epochs.events))
     this_data = data[:, ch_idx, :].copy()
-    ch_type = channel_type(epochs.info, ch_idx)
-    if ch_type not in scalings:
-        raise KeyError('%s channel type not in scalings' % ch_type)
-    this_data *= scalings[ch_type]
 
     if callable(order):
         order = order(epochs.times, this_data)
@@ -693,10 +685,11 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     """
     scalings = _handle_default('scalings', scalings)
     data = epochs.get_data()
-    if vmin is None:
-        vmin = data.min()
-    if vmax is None:
-        vmax = data.max()
+    for idx, this_data in enumerate(data):
+        ch_type = channel_type(epochs.info, idx)
+        this_data *= scalings[ch_type]
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+
     if layout is None:
         layout = find_layout(epochs.info)
 

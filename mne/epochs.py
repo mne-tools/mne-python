@@ -39,7 +39,7 @@ from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d, _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
-                  plot_epochs_image)
+                  plot_epochs_image, plot_topo_image_epochs)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, object_hash, warn)
 from .externals.six import iteritems, string_types
@@ -993,6 +993,65 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             ch_type=ch_type, layout=layout, cmap=cmap,
             agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
             cbar_fmt=cbar_fmt, outlines=outlines, show=show, verbose=None)
+
+    def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
+                        colorbar=True, order=None, cmap='RdBu_r',
+                        layout_scale=.95, title=None, scalings=None,
+                        border='none', fig_facecolor='k', font_color='w',
+                        show=True):
+        """Plot Event Related Potential / Fields image on topographies
+
+        Parameters
+        ----------
+        layout: instance of Layout
+            System specific sensor positions.
+        sigma : float
+            The standard deviation of the Gaussian smoothing to apply along the
+            epoch axis to apply in the image. If 0., no smoothing is applied.
+        vmin : float
+            The min value in the image. The unit is uV for EEG channels,
+            fT for magnetometers and fT/cm for gradiometers.
+        vmax : float
+            The max value in the image. The unit is uV for EEG channels,
+            fT for magnetometers and fT/cm for gradiometers.
+        colorbar : bool
+            Display or not a colorbar.
+        order : None | array of int | callable
+            If not None, order is used to reorder the epochs on the y-axis
+            of the image. If it's an array of int it should be of length
+            the number of good epochs. If it's a callable the arguments
+            passed are the times vector and the data as 2d array
+            (data.shape[1] == len(times)).
+        cmap : instance of matplotlib.pyplot.colormap
+            Colors to be mapped to the values.
+        layout_scale: float
+            scaling factor for adjusting the relative size of the layout
+            on the canvas.
+        title : str
+            Title of the figure.
+        scalings : dict | None
+            The scalings of the channel types to be applied for plotting. If
+            None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        border : str
+            matplotlib borders style to be used for each sensor plot.
+        fig_facecolor : str | obj
+            The figure face color. Defaults to black.
+        font_color : str | obj
+            The color of tick labels in the colorbar. Defaults to white.
+        show : bool
+            Show figure if True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
+        """
+        return plot_topo_image_epochs(
+            self, layout=layout, sigma=sigma, vmin=vmin, vmax=vmax,
+            colorbar=colorbar, order=order, cmap=cmap,
+            layout_scale=layout_scale, title=title, scalings=scalings,
+            border=border, fig_facecolor=fig_facecolor, font_color=font_color,
+            show=show)
 
     def drop_bad_epochs(self, reject='existing', flat='existing'):
         """Drop bad epochs without retaining the epochs data.
