@@ -214,9 +214,8 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
             fft_Ws[i] = fftn(W, [fsize])
 
     # Decimating is performed after centering the convolution, and can
-    # therefore lead to 1 time sample jittering.
-    jitter = (n_times % decim) % 2
-    n_times_out = n_times // decim + jitter
+    # therefore lead to one extra time sample.
+    n_times_out = n_times // decim + bool(n_times % decim)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
