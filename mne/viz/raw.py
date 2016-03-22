@@ -56,7 +56,10 @@ def _update_raw_data(params):
                                     data[data_picks], axis=1, padlen=0)
     # scale
     for di in range(data.shape[0]):
-        data[di] /= params['scalings'][params['types'][di]]
+        if params['scalings'] is None:
+            data[di] /= (np.max(data[di]) - np.min(data[di]))
+        else:
+            data[di] /= params['scalings'][params['types'][di]]
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
             data[di] = np.minimum(data[di], 1.0)
@@ -173,7 +176,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     import matplotlib as mpl
     from scipy.signal import butter
     color = _handle_default('color', color)
-    scalings = _handle_default('scalings_plot_raw', scalings)
+    if scalings is not None:
+        scalings = _handle_default('scalings_plot_raw', scalings)
 
     if clipping is not None and clipping not in ('clamp', 'transparent'):
         raise ValueError('clipping must be None, "clamp", or "transparent", '
