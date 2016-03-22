@@ -688,9 +688,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     scale_coeffs = list()
     for idx in range(epochs.info['nchan']):
         ch_type = channel_type(epochs.info, idx)
-        scale_coeffs = scalings[ch_type]
+        scale_coeffs.append(scalings[ch_type])
     for epoch_data in data:
-        epoch_data *= scale_coeffs
+        epoch_data *= np.asarray(scale_coeffs)[:, np.newaxis]
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     if layout is None:
