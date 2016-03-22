@@ -474,7 +474,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     picks : array-like of int | None
         List of channels to use. Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
-        each standard channel type (`mag`, `grad`, and `eeg`).
+        each standard channel type (`mag`, `grad`, `eeg` and `seeg`).
     ax : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     color : str | tuple

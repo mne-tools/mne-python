@@ -37,7 +37,7 @@ def test_time_frequency():
     # Set parameters
     event_id = 1
     tmin = -0.2
-    tmax = 0.5
+    tmax = 0.499  # allow more exhaustive decimation testing
 
     # Setup for reading the raw data
     raw = io.Raw(raw_fname)
@@ -151,7 +151,7 @@ def test_time_frequency():
     assert_equal(power_pick.data.shape, power_drop.data.shape)
 
     # Test decimation
-    for decim in [2, 3]:
+    for decim in [2, 3, 5]:
         for use_fft in [True, False]:
             power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=2,
                                     use_fft=use_fft, return_itc=True,
