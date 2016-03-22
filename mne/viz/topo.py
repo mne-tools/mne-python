@@ -685,9 +685,12 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     """
     scalings = _handle_default('scalings', scalings)
     data = epochs.get_data()
-    for idx, this_data in enumerate(data):
+    scale_coeffs = list()
+    for idx in range(epochs.info['nchan']):
         ch_type = channel_type(epochs.info, idx)
-        this_data *= scalings[ch_type]
+        scale_coeffs = scalings[ch_type]
+    for epoch_data in data:
+        epoch_data *= scale_coeffs
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     if layout is None:
