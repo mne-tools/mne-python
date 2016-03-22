@@ -601,10 +601,10 @@ def test_read_write_epochs():
         epochs_no_bl_read = read_epochs(temp_fname_no_bl)
         assert_raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
         old_baseline = deepcopy(epochs_no_bl_read.baseline)
-        assert_true(isinstance(epochs_no_bl_read.apply_baseline(baseline,
-                                                                copy=True),
-                               _BaseEpochs))
-        assert_true(epochs_no_bl_read.baseline == baseline)
+        epochs_withbl = epochs_no_bl_read.apply_baseline(baseline, copy=True)
+        assert_true(isinstance(epochs_withbl, _BaseEpochs))
+        assert_true(epochs_withbl.baseline == baseline)
+        assert_false(epochs_no_bl_read.baseline)
         assert_true(str(epochs_read).startswith('<Epochs'))
 
         assert_array_equal(epochs_no_bl_read.times, epochs.times)
