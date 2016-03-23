@@ -2254,7 +2254,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     title = 'Detected components'
     if label is not None:
         title += ' of type ' + label
-    if template:
+    if not template:
         title = "Template"
 
     picks = list(range(len(data)))
@@ -2305,9 +2305,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
 
 
 @verbose
-def corrmap(icas, template, threshold="auto", label=None,
-            ch_type="eeg", plot=True, show=True, verbose=None, outlines='head',
-            layout=None, sensors=True, contours=6, cmap='RdBu_r'):
+def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
+            plot=True, show=True, verbose=None, outlines='head', layout=None,
+            sensors=True, contours=6, cmap='RdBu_r'):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
