@@ -48,6 +48,9 @@ Changelog
 
     - Add ``decim`` parameter to :func:`mne.time_frequency.cwt_morlet`, by `Jean-Remi King`_
 
+    - Add the ability to read events when importing raw EEGLAB files, by `Jona Sassenhagen`_.
+
+
 BUG
 ~~~
 
