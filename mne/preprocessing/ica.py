@@ -2249,11 +2249,13 @@ def _find_max_corrs(all_maps, target, threshold):
 
 
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
-                  layout, cmap, contours):
+                  layout, cmap, contours, template=True):
     """Customized ica.plot_components for corrmap"""
     title = 'Detected components'
     if label is not None:
         title += ' of type ' + label
+    if template:
+        title = "Template"
 
     picks = list(range(len(data)))
 
@@ -2283,8 +2285,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     if merge_grads:
         from ..channels.layout import _merge_grad_data
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
-        ttl = 'Subj. {0}, IC {1}'.format(subject, idx)
-        ax.set_title(ttl, fontsize=12)
+        if template:
+            ttl = 'Subj. {0}, IC {1}'.format(subject, idx)
+            ax.set_title(ttl, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
         plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
@@ -2411,14 +2414,21 @@ def corrmap(icas, template, threshold="auto", label=None,
 
     template_fig, labelled_ics = None, None
     if plot is True:
-        if is_subject:  # ideally, implement something for arr. template
+        if is_subject:
             ttl = 'Template from subj. {0}'.format(str(template[0]))
             template_fig = icas[template[0]].plot_components(
                 picks=template[1], ch_type=ch_type, title=ttl,
                 outlines=outlines, cmap=cmap, contours=contours, layout=layout,
                 show=show)
-            template_fig.subplots_adjust(top=0.8)
-            template_fig.canvas.draw()
+        else:
+            template_fig = _plot_corrmap([template], [0], [0], ch_type,
+                                         icas[0].copy(), "Template",
+                                         outlines=outlines, cmap=cmap,
+                                         contours=contours, layout=layout,
+                                         show=show, template=True)
+            template_fig.suptitle("Supplied template")
+        template_fig.subplots_adjust(top=0.8)
+        template_fig.canvas.draw()
 
     # first run: use user-selected map
     if isinstance(threshold, (int, float)):
