@@ -85,6 +85,8 @@ BUG
 
     - Remove measurement date from :class:`mne.io.Info` in :func:`mne.io.Raw.anonymize` by `Eric Larson`_
 
+    - Fix bug that caused synthetic ecg channel creation even if channel was specified for ECG peak detection in :func:`mne.preprocessing.create_ecg_epochs` by `Jaakko Leppakangas`_
+
 API
 ~~~
 
