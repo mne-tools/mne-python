@@ -48,7 +48,7 @@ def _get_events():
 
 
 def _get_picks(raw):
-    return [0, 1, 2, 6, 7, 8, 340, 341, 342]  # take a only few channels
+    return [0, 1, 2, 6, 7, 8, 306, 340, 341, 342]  # take a only few channels
 
 
 def _get_epochs():
