@@ -90,6 +90,7 @@ blockquote {
     border-style: solid;
     border-color: #2C3E50;
     margin: 5px;
+    padding: 0px 0px 0px 10px;
 }
 
 .span h2 {
