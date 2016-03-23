@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" Apply MaxFilter
+"""Apply MaxFilter
 
 Example usage:
 

@@ -83,7 +83,7 @@ From raw data to evoked data
 Now, launch `ipython`_ (Advanced Python shell) using the QT backend which best
 supported across systems::
 
-  $ ipython --pylab -qt
+  $ ipython --matplotlib=qt
 
 First, load the mne package:
 """

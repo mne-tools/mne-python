@@ -21,7 +21,8 @@
 
 MNE is a community-driven software package designed for **processing
 electroencephalography (EEG) and magnetoencephalography (MEG) data**
-providing comprehensive tools and workflows for:
+providing comprehensive tools and workflows for
+(:ref:`among other things <what_can_you_do>`):
 
 1. Preprocessing and denoising
 2. Source estimation

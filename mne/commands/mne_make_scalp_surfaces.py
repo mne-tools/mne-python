@@ -6,8 +6,7 @@
 #
 #          simplified bsd-3 license
 
-"""
-Create high-resolution head surfaces for coordinate alignment.
+"""Create high-resolution head surfaces for coordinate alignment.
 
 example usage: mne make_scalp_surfaces --overwrite --subject sample
 """
