@@ -12,7 +12,6 @@ from collections import namedtuple
 import numpy as np
 from numpy.testing import assert_raises
 
-
 from mne import io, read_events, Epochs
 from mne import pick_channels_evoked
 from mne.channels import read_layout
@@ -21,7 +20,8 @@ from mne.utils import run_tests_if_main
 
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
-from mne.viz.topo import _plot_update_evoked_topo_proj
+from mne.viz.utils import _fake_click
+from mne.viz.topo import _plot_update_evoked_topo_proj, iter_topography
 
 # Set our plotters to test mode
 import matplotlib
@@ -47,7 +47,7 @@ def _get_events():
 
 
 def _get_picks(raw):
-    return [0, 1, 2, 6, 7, 8, 340, 341, 342]  # take a only few channels
+    return [0, 1, 2, 6, 7, 8, 306, 340, 341, 342]  # take a only few channels
 
 
 def _get_epochs():
@@ -117,6 +117,9 @@ def test_plot_topo():
                      fig_background=np.zeros((4, 3, 3)), proj=True)
     picked_evoked.plot_topo(merge_grads=True)  # Test RMS plot of grad pairs
     plt.close('all')
+    for ax, idx in iter_topography(evoked.info):
+        ax.plot(evoked.data[idx], color='red')
+    plt.close('all')
 
 
 def test_plot_topo_image_epochs():
@@ -126,8 +129,9 @@ def test_plot_topo_image_epochs():
     title = 'ERF images - MNE sample data'
     epochs = _get_epochs()
     cmap = mne_analyze_colormap(format='matplotlib')
-    plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
-                           colorbar=True, title=title, cmap=cmap)
+    fig = plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
+                                 colorbar=True, title=title, cmap=cmap)
+    _fake_click(fig, fig.axes[2], (0.08, 0.64))
     plt.close('all')
 
 

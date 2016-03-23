@@ -48,6 +48,8 @@ Changelog
 
     - Add ``decim`` parameter to :func:`mne.time_frequency.cwt_morlet`, by `Jean-Remi King`_
 
+    - Add method :func:`mne.Epochs.plot_topo_image` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
@@ -86,6 +88,8 @@ BUG
     - Remove measurement date from :class:`mne.io.Info` in :func:`mne.io.Raw.anonymize` by `Eric Larson`_
 
     - Fix bug that caused synthetic ecg channel creation even if channel was specified for ECG peak detection in :func:`mne.preprocessing.create_ecg_epochs` by `Jaakko Leppakangas`_
+
+    - Fix bug with vmin and vmax when None is passed in :func:`mne.viz.plot_topo_image_epochs` by `Jaakko Leppakangas`_
 
 API
 ~~~

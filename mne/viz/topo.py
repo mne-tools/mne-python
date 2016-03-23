@@ -21,7 +21,7 @@ from ..utils import _clean_names, warn
 from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
-                    add_background_image, plt_show)
+                    add_background_image, plt_show, _setup_vmin_vmax)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -74,10 +74,9 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
                             axis_facecolor, axis_spinecolor, layout_scale)
 
 
-def _iter_topography(info, layout, on_pick, fig,
-                     fig_facecolor='k', axis_facecolor='k',
-                     axis_spinecolor='k', layout_scale=None,
-                     unified=False):
+def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
+                     axis_facecolor='k', axis_spinecolor='k',
+                     layout_scale=None, unified=False, img=False):
     """Private helper to iterate over topography
 
     Has the same parameters as iter_topography, plus:
@@ -138,9 +137,10 @@ def _iter_topography(info, layout, on_pick, fig,
                               pos[:, :2] + pos[:, 2:],
                               pos[:, :2] + pos[:, 2:] * [0, 1],
                               ], [1, 0, 2])
-        under_ax.add_collection(collections.PolyCollection(
-            verts, facecolor=axis_facecolor, edgecolor=axis_spinecolor,
-            linewidth=1.))
+        if not img:
+            under_ax.add_collection(collections.PolyCollection(
+                verts, facecolor=axis_facecolor, edgecolor=axis_spinecolor,
+                linewidth=1.))  # Not needed for image plots.
         for ax in axs:
             yield ax, ax._mne_ch_idx
 
@@ -149,7 +149,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, font_color='w', unified=False):
+               y_label=None, font_color='w', unified=False, img=False):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
 
@@ -176,7 +176,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                                     axis_spinecolor=border,
                                     axis_facecolor=axis_facecolor,
                                     fig_facecolor=fig_facecolor,
-                                    unified=unified)
+                                    unified=unified, img=img)
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
@@ -236,8 +236,8 @@ def _plot_topo_onpick(event, show_func):
 def _compute_scalings(bn, xlim, ylim):
     """Compute scale factors for a unified plot"""
     pos = bn.pos
-    bn.x_s = pos[2] / (xlim[0] - xlim[1])
-    bn.x_t = pos[0] - bn.x_s * xlim[1]
+    bn.x_s = pos[2] / (xlim[1] - xlim[0])
+    bn.x_t = pos[0] - bn.x_s * xlim[0]
     bn.y_s = pos[3] / (ylim[1] - ylim[0])
     bn.y_t = pos[1] - bn.y_s * ylim[0]
 
@@ -249,10 +249,12 @@ def _check_vlim(vlim):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True, cmap='RdBu_r', title=None):
+                colorbar=False, picker=True, cmap='RdBu_r', title=None,
+                hline=None):
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
+
     extent = (tmin, tmax, freq[0], freq[-1])
     img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
                     vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
@@ -275,9 +277,24 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
-                     color, times, vline=None, x_label=None,
-                     y_label=None, colorbar=False):
+def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
+                        ylim=None, tfr=None, freq=None, vline=None,
+                        x_label=None, y_label=None, colorbar=False,
+                        picker=True, cmap='RdBu_r', title=None, hline=None):
+    """Aux function to show multiple tfrs on topo using a single axes"""
+    _compute_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
+    ax = bn.ax
+    data_lines = bn.data_lines
+    extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax,
+              bn.y_t + bn.y_s * freq[0], bn.y_t + bn.y_s * freq[-1])
+    data_lines.append(ax.imshow(tfr[ch_idx], clip_on=True, clip_box=bn.pos,
+                                extent=extent, aspect="auto", origin="lower",
+                                vmin=vmin, vmax=vmax, cmap=cmap))
+
+
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
+                     times, vline=None, x_label=None, y_label=None,
+                     colorbar=False, hline=None):
     """Aux function to show time series on topo split across multiple axes"""
     import matplotlib.pyplot as plt
     picker_flag = False
@@ -291,6 +308,9 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     if vline:
         for x in vline:
             plt.axvline(x, color='w', linewidth=0.5)
+    if hline:
+        for y in hline:
+            plt.axhline(y, color='w', linewidth=0.5)
     if x_label is not None:
         plt.xlabel(x_label)
     if y_label is not None:
@@ -304,7 +324,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
 
 def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
                              color, times, vline=None, x_label=None,
-                             y_label=None, colorbar=False):
+                             y_label=None, colorbar=False, hline=None):
     """Aux function to show multiple time series on topo using a single axes"""
     import matplotlib.pyplot as plt
     if not (ylim and not any(v is None for v in ylim)):
@@ -322,22 +342,83 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     if vline:
         vline = np.array(vline) * bn.x_s + bn.x_t
         ax.vlines(vline, pos[1], pos[1] + pos[3], color='w', linewidth=0.5)
-    ax.hlines(bn.y_t, pos[0], pos[0] + pos[2], color='w', linewidth=0.5)
+    if hline:
+        hline = np.array(hline) * bn.y_s + bn.y_t
+        ax.hlines(hline, pos[0], pos[0] + pos[2], color='w', linewidth=0.5)
     if x_label is not None:
         ax.text(pos[0] + pos[2] / 2., pos[1], x_label,
                 horizontalalignment='center', verticalalignment='top')
     if y_label is not None:
         y_label = y_label[ch_idx] if isinstance(y_label, list) else y_label
         ax.text(pos[0], pos[1] + pos[3] / 2., y_label,
-                horizontalignment='right', verticalalignment='middel',
+                horizontalignment='right', verticalalignment='middle',
                 rotation=90)
     if colorbar:
         plt.colorbar()
 
 
+def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
+                     epochs=None, sigma=None, order=None, scalings=None,
+                     vline=None, x_label=None, y_label=None, colorbar=False,
+                     cmap='RdBu_r'):
+    """Aux function to plot erfimage on sensor topography"""
+    from scipy import ndimage
+    import matplotlib.pyplot as plt
+    this_data = data[:, ch_idx, :].copy()
+
+    if callable(order):
+        order = order(epochs.times, this_data)
+
+    if order is not None:
+        this_data = this_data[order]
+
+    if sigma > 0.:
+        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+
+    ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
+              origin='lower', vmin=vmin, vmax=vmax, picker=True, cmap=cmap,
+              interpolation='nearest')
+
+    ax = plt.gca()
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+    if y_label is not None:
+        ax.set_ylabel(y_label)
+    if colorbar:
+        plt.colorbar()
+
+
+def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
+                             data=None, epochs=None, sigma=None, order=None,
+                             scalings=None, vline=None, x_label=None,
+                             y_label=None, colorbar=False, cmap='RdBu_r'):
+    """Aux function to plot erfimage topography using a single axis"""
+    from scipy import ndimage
+    _compute_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
+    ax = bn.ax
+    data_lines = bn.data_lines
+    extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax, bn.y_t,
+              bn.y_t + bn.y_s * len(epochs.events))
+    this_data = data[:, ch_idx, :].copy()
+
+    if callable(order):
+        order = order(epochs.times, this_data)
+
+    if order is not None:
+        this_data = this_data[order]
+
+    if sigma > 0.:
+        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+
+    data_lines.append(ax.imshow(this_data, extent=extent, aspect='auto',
+                                origin='lower', vmin=vmin, vmax=vmax,
+                                picker=True, cmap=cmap,
+                                interpolation='nearest'))
+
+
 def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
-                      proj=False, vline=[0.0], fig_facecolor='k',
+                      proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
                       merge_grads=False, show=True):
     """Plot 2D topography of evoked responses.
@@ -379,6 +460,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         be shown.
     vline : list of floats | None
         The values at which to show a vertical line.
+    hline : list of floats | None
+        The values at which to show a horizontal line.
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
     fig_background : None | numpy ndarray
@@ -501,18 +584,17 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     data = [e.data for e in evoked]
     show_func = partial(_plot_timeseries_unified, data=data,
-                        color=color, times=times, vline=vline)
+                        color=color, times=times, vline=vline, hline=hline)
     click_func = partial(_plot_timeseries, data=data,
-                         color=color, times=times, vline=vline)
+                         color=color, times=times, vline=vline, hline=hline)
 
     fig = _plot_topo(info=info, times=times, show_func=show_func,
                      click_func=click_func, layout=layout,
                      colorbar=False, ylim=ylim_, cmap=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
-                     axis_facecolor=axis_facecolor,
-                     title=title, x_label='Time (s)', y_label=y_label,
-                     unified=True)
+                     axis_facecolor=axis_facecolor, title=title,
+                     x_label='Time (s)', y_label=y_label, unified=True)
 
     if fig_background is not None:
         add_background_image(fig, fig_background)
@@ -545,41 +627,6 @@ def _plot_update_evoked_topo_proj(params, bools):
             line.set_ydata(ax.y_t + ax.y_s * evoked.data[ax._mne_ch_idx])
 
     fig.canvas.draw()
-
-
-def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
-                     data=None, epochs=None, sigma=None,
-                     order=None, scalings=None, vline=None,
-                     x_label=None, y_label=None, colorbar=False,
-                     cmap='RdBu_r'):
-    """Aux function to plot erfimage on sensor topography"""
-    from scipy import ndimage
-    import matplotlib.pyplot as plt
-    this_data = data[:, ch_idx, :].copy()
-    ch_type = channel_type(epochs.info, ch_idx)
-    if ch_type not in scalings:
-        raise KeyError('%s channel type not in scalings' % ch_type)
-    this_data *= scalings[ch_type]
-
-    if callable(order):
-        order = order(epochs.times, this_data)
-
-    if order is not None:
-        this_data = this_data[order]
-
-    if sigma > 0.:
-        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
-
-    ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
-              origin='lower', vmin=vmin, vmax=vmax, picker=True,
-              cmap=cmap, interpolation='nearest')
-
-    if x_label is not None:
-        ax.set_xlabel(x_label)
-    if y_label is not None:
-        ax.set_ylabel(y_label)
-    if colorbar:
-        plt.colorbar()
 
 
 def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
@@ -638,23 +685,29 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     """
     scalings = _handle_default('scalings', scalings)
     data = epochs.get_data()
-    if vmin is None:
-        vmin = data.min()
-    if vmax is None:
-        vmax = data.max()
+    scale_coeffs = list()
+    for idx in range(epochs.info['nchan']):
+        ch_type = channel_type(epochs.info, idx)
+        scale_coeffs.append(scalings.get(ch_type, 1))
+    for epoch_data in data:
+        epoch_data *= np.asarray(scale_coeffs)[:, np.newaxis]
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+
     if layout is None:
         layout = find_layout(epochs.info)
 
+    show_func = partial(_erfimage_imshow_unified, scalings=scalings,
+                        order=order, data=data, epochs=epochs, sigma=sigma,
+                        cmap=cmap)
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
-                         data=data, epochs=epochs, sigma=sigma,
-                         cmap=cmap)
+                         data=data, epochs=epochs, sigma=sigma, cmap=cmap)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,
-                     show_func=erf_imshow, layout=layout,
+                     click_func=erf_imshow, show_func=show_func, layout=layout,
                      colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                      layout_scale=layout_scale, title=title,
-                     fig_facecolor=fig_facecolor,
-                     font_color=font_color, border=border,
-                     x_label='Time (s)', y_label='Epoch')
+                     fig_facecolor=fig_facecolor, font_color=font_color,
+                     border=border, x_label='Time (s)', y_label='Epoch',
+                     unified=True, img=True)
     plt_show(show)
     return fig

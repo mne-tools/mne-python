@@ -17,7 +17,7 @@ from ..io.pick import pick_types, _pick_data_channels, pick_info
 from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
-from .topo import _plot_topo, _plot_timeseries
+from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar,
                     _plot_raw_onscroll, _mouse_click, plt_show,
@@ -796,14 +796,18 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
         y_label = 'dB'
     else:
         y_label = 'Power'
-    plot_fun = partial(_plot_timeseries, data=[psds], color=color, times=freqs)
+    show_func = partial(_plot_timeseries_unified, data=[psds], color=color,
+                        times=freqs)
+    click_func = partial(_plot_timeseries, data=[psds], color=color,
+                         times=freqs)
     picks = _pick_data_channels(raw.info)
     info = pick_info(raw.info, picks)
 
-    fig = _plot_topo(info, times=freqs, show_func=plot_fun, layout=layout,
+    fig = _plot_topo(info, times=freqs, show_func=show_func,
+                     click_func=click_func, layout=layout,
                      axis_facecolor=axis_facecolor,
                      fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
-                     y_label=y_label)
+                     unified=True, y_label=y_label)
 
     try:
         plt_show(show, block=block)
