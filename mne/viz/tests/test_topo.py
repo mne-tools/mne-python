@@ -12,7 +12,6 @@ from collections import namedtuple
 import numpy as np
 from numpy.testing import assert_raises
 
-
 from mne import io, read_events, Epochs
 from mne import pick_channels_evoked
 from mne.channels import read_layout
@@ -22,7 +21,7 @@ from mne.utils import run_tests_if_main
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
 from mne.viz.utils import _fake_click
-from mne.viz.topo import _plot_update_evoked_topo_proj
+from mne.viz.topo import _plot_update_evoked_topo_proj, iter_topography
 
 # Set our plotters to test mode
 import matplotlib
@@ -117,6 +116,9 @@ def test_plot_topo():
     plot_evoked_topo(picked_evoked_eeg.copy(),
                      fig_background=np.zeros((4, 3, 3)), proj=True)
     picked_evoked.plot_topo(merge_grads=True)  # Test RMS plot of grad pairs
+    plt.close('all')
+    for ax, idx in iter_topography(evoked.info):
+        ax.plot(evoked.data[idx], color='red')
     plt.close('all')
 
 
