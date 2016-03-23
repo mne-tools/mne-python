@@ -289,7 +289,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
     ecg_epochs : instance of Epochs
         Data epoched around ECG r-peaks.
     """
-    not_has_ecg = 'ecg' not in raw
+    not_has_ecg = 'ecg' not in raw and ch_name is None
     if not_has_ecg:
         ecg, times = _make_ecg(raw, None, None, verbose)
 
