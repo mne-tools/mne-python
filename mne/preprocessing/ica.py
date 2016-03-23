@@ -2334,7 +2334,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     ----------
     icas : list of mne.preprocessing.ICA
         A list of fitted ICA objects.
-    template : tuple | ndarray
+    template : tuple | np.ndarray, shape (n_components,)
         Either a tuple with two elements (int, int) representing the list
         indices of the set from which the template should be chosen, and the
         template. E.g., if template=(1, 0), the first IC of the 2nd ICA object
