@@ -2331,10 +2331,13 @@ def corrmap(icas, template, threshold="auto", label=None,
     ----------
     icas : list of mne.preprocessing.ICA
         A list of fitted ICA objects.
-    template : tuple
-        A tuple with two elements (int, int) representing the list indices of
-        the set from which the template should be chosen, and the template.
-        E.g., if template=(1, 0), the first IC of the 2nd ICA object is used.
+    template : tuple | ndarray
+        Either a tuple with two elements (int, int) representing the list
+        indices of the set from which the template should be chosen, and the
+        template. E.g., if template=(1, 0), the first IC of the 2nd ICA object
+        is used.
+        Or a numpy array whose size corresponds to each IC map from the
+        supplied maps, in which case this map is chosen as the template.
     threshold : "auto" | list of float | float
         Correlation threshold for identifying ICs
         If "auto", search for the best map by trying all correlations between
@@ -2384,7 +2387,7 @@ def corrmap(icas, template, threshold="auto", label=None,
     Returns
     -------
     template_fig : fig
-        Figure showing the mean template.
+        Figure showing the template.
     labelled_ics : fig
         Figure showing the labelled ICs in all ICA decompositions.
     """
@@ -2396,20 +2399,30 @@ def corrmap(icas, template, threshold="auto", label=None,
 
     all_maps = [_get_ica_map(ica) for ica in icas]
 
-    target = all_maps[template[0]][template[1]]
+    if len(template) == 2:
+        target = all_maps[template[0]][template[1]]
+        is_subject = True
+    elif template.ndim == 1 and len(template) == all_maps[0].shape[1]:
+        target = template
+        is_subject = False
+    else:
+        raise ValueError("`template` must be a length-2 tuple or an array the "
+                         "size of the ICA maps.")
 
     template_fig, labelled_ics = None, None
     if plot is True:
-        ttl = 'Template from subj. {0}'.format(str(template[0]))
-        template_fig = icas[template[0]].plot_components(
-            picks=template[1], ch_type=ch_type, title=ttl, outlines=outlines,
-            cmap=cmap, contours=contours, layout=layout, show=show)
-        template_fig.subplots_adjust(top=0.8)
-        template_fig.canvas.draw()
+        if is_subject:  # ideally, implement something for arr. template
+            ttl = 'Template from subj. {0}'.format(str(template[0]))
+            template_fig = icas[template[0]].plot_components(
+                picks=template[1], ch_type=ch_type, title=ttl,
+                outlines=outlines, cmap=cmap, contours=contours, layout=layout,
+                show=show)
+            template_fig.subplots_adjust(top=0.8)
+            template_fig.canvas.draw()
 
     # first run: use user-selected map
     if isinstance(threshold, (int, float)):
-        if len(all_maps) == 0 or len(target) == 0:
+        if len(all_maps) == 0:
             logger.info('No component detected using find_outliers.'
                         ' Consider using threshold="auto"')
             return icas
