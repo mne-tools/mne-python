@@ -845,7 +845,6 @@ def plot_sensors(info):
         # text item, so we create a new one.
         ax.texts.pop(0)
         ax.text(pos[0], pos[1], pos[2], ch_name)
-
         fig.canvas.draw()
 
     ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True)
