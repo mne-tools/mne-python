@@ -14,16 +14,15 @@ import os.path as op
 
 from mayavi import mlab
 
+import mne
 from mne.io import Raw, read_raw_ctf, read_raw_bti, read_raw_kit
 from mne.datasets import sample, spm_face
 from mne.viz import plot_trans
 
 print(__doc__)
 
-bti_path = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'mne', 'io',
-                   'bti', 'tests', 'data')
-kit_path = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'mne', 'io',
-                   'kit', 'tests', 'data')
+bti_path = op.abspath(op.dirname(mne.__file__)) + '/io/bti/tests/data/'
+kit_path = op.abspath(op.dirname(mne.__file__)) + '/io/kit/tests/data/'
 raws = dict(
     Neuromag=Raw(sample.data_path() + '/MEG/sample/sample_audvis_raw.fif'),
     CTF_275=read_raw_ctf(spm_face.data_path() +

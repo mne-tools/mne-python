@@ -40,6 +40,8 @@ dependencies:
     - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
     - cd /home/ubuntu && git clone https://github.com/enthought/pyface.git && cd pyface && python setup.py develop;
     - pip install sphinx_bootstrap_theme PySurfer nilearn neo;
+
+  override:
     - cd /home/ubuntu/mne-python && python setup.py develop;
     - if [ "$CIRCLE_BRANCH" == "master" ]; then
         mkdir -p ~/mne_data;
