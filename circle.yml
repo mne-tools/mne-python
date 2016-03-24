@@ -45,6 +45,7 @@ dependencies:
         mkdir -p ~/mne_data;
         python -c "import mne; mne.datasets.sample.data_path(verbose=True);";
         python -c "import mne; mne.datasets.testing.data_path(verbose=True);";
+        python -c "import mne; mne.datasets.misc.data_path(verbose=True);";
         python -c "import mne; mne.datasets.spm_face.data_path(verbose=True);";
         python -c "import mne; mne.datasets.somato.data_path(verbose=True);";
         python -c "import mne; mne.datasets.brainstorm.bst_raw.data_path(verbose=True);" --accept-brainstorm-license;
