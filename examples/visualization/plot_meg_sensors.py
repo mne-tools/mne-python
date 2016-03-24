@@ -27,10 +27,10 @@ raws = dict(
     Neuromag=Raw(sample.data_path() + '/MEG/sample/sample_audvis_raw.fif'),
     CTF_275=read_raw_ctf(spm_face.data_path() +
                          '/MEG/spm/SPM_CTF_MEG_example_faces1_3D.ds'),
-    Magnes_3600wh=read_raw_bti(bti_path + 'test_pdf_linux',
-                               bti_path + 'test_config_linux',
-                               bti_path + 'test_hs_linux'),
-    KIT=read_raw_kit(kit_path + 'test.sqd'),
+    Magnes_3600wh=read_raw_bti(op.join(bti_path, 'test_pdf_linux'),
+                               op.join(bti_path, 'test_config_linux'),
+                               op.join(bti_path, 'test_hs_linux')),
+    KIT=read_raw_kit(op.join(kit_path, 'test.sqd')),
 )
 
 for system, raw in raws.items():
