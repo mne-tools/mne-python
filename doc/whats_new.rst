@@ -93,6 +93,8 @@ BUG
 
     - Fix bug with vmin and vmax when None is passed in :func:`mne.viz.plot_topo_image_epochs` by `Jaakko Leppakangas`_
 
+    - Fix bug with :func:`mne.label_sign_flip` (and :func:`mne.extract_label_time_course`) by `Natalie Klein`_ and `Eric Larson`_
+
 API
 ~~~
 
@@ -1452,3 +1454,5 @@ of commits):
 .. _Clemens Brunner: https://github.com/cle1109
 
 .. _Asish Panda: https://github.com/kaichogami
+
+.. _Natalie Klein: http://www.stat.cmu.edu/people/students/neklein

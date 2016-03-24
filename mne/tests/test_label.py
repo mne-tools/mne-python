@@ -16,7 +16,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
                  write_labels_to_annot, split_label, spatial_tris_connectivity,
                  read_surface)
-from mne.label import Label, _blend_colors
+from mne.label import Label, _blend_colors, label_sign_flip
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main, slow_test)
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
@@ -752,6 +752,24 @@ def test_grow_labels():
     l0 = l01 + l02
     l1 = l11 + l12
     assert_array_equal(l1.vertices, l0.vertices)
+
+
+@testing.requires_testing_data
+def test_label_sign_flip():
+    src = read_source_spaces(src_fname)
+    label = Label(vertices=src[0]['vertno'][:5], hemi='lh')
+    src[0]['nn'][label.vertices] = np.array(
+        [[1., 0., 0.],
+         [0.,  1., 0.],
+         [0,  0, 1.],
+         [1. / np.sqrt(2), 1. / np.sqrt(2), 0.],
+         [1. / np.sqrt(2), 1. / np.sqrt(2), 0.]])
+    known_flips = np.array([1, 1, np.nan, 1, 1])
+    idx = [0, 1, 3, 4]  # indices that are usable (third row is orthognoal)
+    flip = label_sign_flip(label, src)
+    # Need the abs here because the direction is arbitrary
+    assert_array_almost_equal(np.abs(np.dot(flip[idx], known_flips[idx])),
+                              len(idx))
 
 
 run_tests_if_main()
