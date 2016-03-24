@@ -753,5 +753,18 @@ def test_grow_labels():
     l1 = l11 + l12
     assert_array_equal(l1.vertices, l0.vertices)
 
+@testing.requires_testing_data
+def test_label_sign_flip():
+    src = mne.read_source_spaces(src_fname)
+    lh_vertno = src[0]['vertno']
+    label = mne.Label(vertices=lh_vertno[0:5],hemi='lh')
+    src[0]['nn'][lh_vertno[0:5]] = np.array([[1., 0., 0.],
+                                            [0.,  1., 0.],
+                                            [0.,  0., 1.],
+                                            [np.sqrt(2), np.sqrt(2), 0.],
+                                            [np.sqrt(2), np.sqrt(2), 0.]])
+    flip = mne.label_sign_flip(label, src)
+    # Don't understand the last part of the test
+    #assert_allclose(np.abs(np.dot(flip, [np.sqrt(2), np.sqrt(2), 0])), 1.)
 
 run_tests_if_main()
