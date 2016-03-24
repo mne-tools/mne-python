@@ -363,17 +363,20 @@ class ICA(ContainsMixin):
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
 
+        # this will be a copy
         data = raw[picks, start:stop][0]
+        # this will be a view
         if decim is not None:
-            data = data[:, ::decim].copy()
+            data = data[:, ::decim]
 
+        # this will make a copy
         if (reject is not None) or (flat is not None):
             data, self.drop_inds_ = _reject_data_segments(data, reject, flat,
                                                           decim, self.info,
                                                           tstep)
 
         self.n_samples_ = data.shape[1]
-
+        # this may operate inplace or make a copy
         data, self._pre_whitener = self._pre_whiten(data,
                                                     raw.info, picks)
 
@@ -403,12 +406,16 @@ class ICA(ContainsMixin):
             self.max_pca_components = len(picks)
             logger.info('Inferring max_pca_components from picks.')
 
+        # this should be a copy (picks a list of int)
         data = epochs.get_data()[:, picks]
+        # this will be a view
         if decim is not None:
-            data = data[:, :, ::decim].copy()
+            data = data[:, :, ::decim]
 
         self.n_samples_ = np.prod(data[:, 0, :].shape)
 
+        # This will make at least one copy (one from hstack, maybe one
+        # more from _pre_whiten)
         data, self._pre_whitener = \
             self._pre_whiten(np.hstack(data), epochs.info, picks)
 
