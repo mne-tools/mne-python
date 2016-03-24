@@ -814,3 +814,42 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
     except TypeError:  # not all versions have this
         plt_show(show)
     return fig
+
+
+def plot_sensors(info):
+    """Plot sensor positions in 3D.
+
+    Parameters
+    ----------
+    info : Instance of Info
+        Info structure containing the channel locations.
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure containing the 3D sensor topography.
+    """
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    pos = np.asarray([ch['loc'][:3] for ch in info['chs']])
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.text(0, 0, 0, '')
+
+    def onpick(event, pos):
+        ind = event.ind[0]  # Just take the first sensor.
+        ch_name = info['ch_names'][ind]
+        pos = pos[ind]
+
+        # XXX: Bug in matplotlib won't allow setting the position of existing
+        # text item, so we create a new one.
+        ax.texts.pop(0)
+        ax.text(pos[0], pos[1], pos[2], ch_name)
+
+        fig.canvas.draw()
+
+    ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True)
+    picker = partial(onpick, pos=pos)
+    fig.canvas.mpl_connect('pick_event', picker)
+    plt.show()
+    return fig

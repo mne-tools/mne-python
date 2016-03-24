@@ -38,7 +38,7 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, warn)
-from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
+from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, plot_sensors
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
@@ -1530,6 +1530,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  color=color, fig_facecolor=fig_facecolor,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, n_jobs=n_jobs, verbose=verbose)
+
+    def plot_sensors(self):
+        """
+        Plot sensor positions in 3D.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure containing the 3D sensor topography.
+        """
+        return plot_sensors(self.info)
 
     def time_as_index(self, times, use_first_samp=False, use_rounding=False):
         """Convert time to indices
