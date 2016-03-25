@@ -83,7 +83,8 @@ deployment:
   production:
     branch: master
     commands:
-      - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"
-      - cd ../mne-tools.github.io && git checkout master && git pull origin master && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
+      - cd ../mne-tools.github.io && git checkout master && git pull origin master
+      - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
+      - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
