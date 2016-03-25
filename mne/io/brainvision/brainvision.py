@@ -13,7 +13,7 @@ import time
 
 import numpy as np
 
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, deprecated
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
@@ -99,7 +99,21 @@ class RawBrainVision(_BaseRaw):
                             dtype=dtype, n_channels=n_data_ch,
                             trigger_ch=self._event_ch)
 
+    @deprecated('get_brainvision_events is deprecated and will be removed '
+                'in 0.13, use mne.find_events(raw, "STI014") to get properly '
+                'formatted events instead')
     def get_brainvision_events(self):
+        """Retrieve the events associated with the Brain Vision Raw object
+
+        Returns
+        -------
+        events : array, shape (n_events, 3)
+            Events, each row consisting of an (onset, duration, trigger)
+            sequence.
+        """
+        return self._get_brainvision_events()
+
+    def _get_brainvision_events(self):
         """Retrieve the events associated with the Brain Vision Raw object
 
         Returns
@@ -110,7 +124,20 @@ class RawBrainVision(_BaseRaw):
         """
         return self._events.copy()
 
+    @deprecated('set_brainvision_events is deprecated and will be removed '
+                'in 0.13')
     def set_brainvision_events(self, events):
+        """Set the events and update the synthesized stim channel
+
+        Parameters
+        ----------
+        events : array, shape (n_events, 3)
+            Events, each row consisting of an (onset, duration, trigger)
+            sequence.
+        """
+        return self._set_brainvision_events(events)
+
+    def _set_brainvision_events(self, events):
         """Set the events and update the synthesized stim channel
 
         Parameters

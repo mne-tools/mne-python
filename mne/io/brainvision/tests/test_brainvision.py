@@ -89,7 +89,7 @@ def test_events():
 
     # check that events are read and stim channel is synthesized correcly
     raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True)
-    events = raw.get_brainvision_events()
+    events = raw._get_brainvision_events()
     assert_array_equal(events, [[487, 1, 253],
                                 [497, 1, 255],
                                 [1770, 1, 254],
@@ -106,7 +106,7 @@ def test_events():
     # response triggers are shifted like they're supposed to be.
     raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
                                response_trig_shift=1000)
-    events = raw.get_brainvision_events()
+    events = raw._get_brainvision_events()
     assert_array_equal(events, [[487, 1, 253],
                                 [497, 1, 255],
                                 [1770, 1, 254],
@@ -123,7 +123,7 @@ def test_events():
     # response triggers are ignored.
     raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
                                response_trig_shift=None)
-    events = raw.get_brainvision_events()
+    events = raw._get_brainvision_events()
     assert_array_equal(events, [[487, 1, 253],
                                 [497, 1, 255],
                                 [1770, 1, 254],
@@ -139,7 +139,7 @@ def test_events():
     raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
                                response_trig_shift=None,
                                event_id={'Sync On': 5})
-    events = raw.get_brainvision_events()
+    events = raw._get_brainvision_events()
     assert_array_equal(events, [[487, 1, 253],
                                 [497, 1, 255],
                                 [1770, 1, 254],
@@ -163,7 +163,7 @@ def test_events():
     # modify events and check that stim channel is updated
     index = events[:, 2] == 255
     events = events[index]
-    raw.set_brainvision_events(events)
+    raw._set_brainvision_events(events)
     mne_events = find_events(raw, stim_channel='STI 014')
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 
@@ -171,7 +171,7 @@ def test_events():
     nchan = raw.info['nchan']
     ch_name = raw.info['chs'][-2]['ch_name']
     events = np.empty((0, 3))
-    raw.set_brainvision_events(events)
+    raw._set_brainvision_events(events)
     assert_equal(raw.info['nchan'], nchan)
     assert_equal(len(raw._data), nchan)
     assert_equal(raw.info['chs'][-2]['ch_name'], ch_name)
@@ -182,7 +182,7 @@ def test_events():
 
     # add events back in
     events = [[10, 1, 2]]
-    raw.set_brainvision_events(events)
+    raw._set_brainvision_events(events)
     assert_equal(raw.info['nchan'], nchan)
     assert_equal(len(raw._data), nchan)
     assert_equal(raw.info['chs'][-1]['ch_name'], 'STI 014')
