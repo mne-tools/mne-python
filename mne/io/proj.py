@@ -520,7 +520,8 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
                              '%s/%s of the original channels available may '
                              'be dangerous, consider recomputing and adding '
                              'projection vectors for channels that are '
-                             'eventually used'
+                             'eventually used. If this is intentional, '
+                             'consider using info.normalize_proj()'
                              % (p['desc'], psize, len(vecsel), orig_n))
                     this_vecs[:, v] /= psize
                     nonzero += 1
