@@ -1531,16 +1531,23 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, n_jobs=n_jobs, verbose=verbose)
 
-    def plot_sensors(self):
+    def plot_sensors(self, projection='3d', show=True):
         """
         Plot sensor positions in 3D.
+
+        Parameters
+        ----------
+        projection : str
+            Projection to use. Available options '3d', 'xy', 'yz', 'xz'.
+        show : bool
+            Show figure if True.
 
         Returns
         -------
         fig : instance of matplotlib figure
             Figure containing the 3D sensor topography.
         """
-        return plot_sensors(self.info)
+        return plot_sensors(self.info, projection=projection, show=show)
 
     def time_as_index(self, times, use_first_samp=False, use_rounding=False):
         """Convert time to indices
