@@ -417,7 +417,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return epochs
 
     @verbose
-    def apply_baseline(self, baseline, verbose=None):
+    def apply_baseline(self, baseline, copy=False, verbose=None):
         """Baseline correct epochs
 
         Parameters
@@ -428,6 +428,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             of the data is used and if b is None then b is set to the end of
             the interval. If baseline is equal to (None, None) all the time
             interval is used.
+        copy : bool
+            Should the object be modified, or a copy? If ``False``, modify
+            in place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -446,13 +449,16 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('`baseline=%s` is an invalid argument.'
                              % str(baseline))
 
-        data = self._data
-        picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+        epochs = self if not copy else self.copy()
+        data = epochs._data
+        picks = pick_types(epochs.info, meg=True, eeg=True, stim=False,
                            ref_meg=True, eog=True, ecg=True, seeg=True,
                            emg=True, bio=True, exclude=[])
         data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline,
                                     copy=False)
-        self.baseline = baseline
+        epochs.baseline = baseline
+
+        return epochs
 
     def _reject_setup(self, reject, flat):
         """Sets self._reject_time and self._channel_type_idx"""
