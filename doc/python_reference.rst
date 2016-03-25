@@ -360,6 +360,7 @@ Projections:
    ica_find_eog_events
    infomax
    maxwell_filter
+   oversampled_temporal_projection
    read_ica
    run_ica
    corrmap
