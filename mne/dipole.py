@@ -466,12 +466,14 @@ def _read_dipole_text(fname):
 # #############################################################################
 # Fitting
 
-def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
+def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1, extra=None):
     """Compute the forward solution and do other nice stuff"""
     B = _compute_forwards_meeg(rr, fwd_data, n_jobs, verbose=False)
     B = np.concatenate(B, axis=1)
     B_orig = B.copy()
 
+    if extra is not None:
+        B = np.dot(B, extra.T)
     # Apply projection and whiten (cov has projections already)
     B = np.dot(B, whitener.T)
 
@@ -509,10 +511,12 @@ def _make_guesses(surf_or_rad, r0, grid, exclude, mindist, n_jobs):
     return SourceSpaces([src])
 
 
-def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None):
+def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None,
+              extra=None):
     """Calculate the residual sum of squares"""
     if fwd_svd is None:
-        fwd = _dipole_forwards(fwd_data, whitener, rd[np.newaxis, :])[0]
+        fwd = _dipole_forwards(fwd_data, whitener, rd[np.newaxis, :],
+                               extra=extra)[0]
         uu, sing, vv = linalg.svd(fwd, overwrite_a=True, full_matrices=False)
     else:
         uu, sing, vv = fwd_svd
@@ -530,7 +534,8 @@ def _dipole_gof(uu, sing, vv, B, B2):
     return gof, one
 
 
-def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd, ori=None):
+def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd, ori=None,
+           extra=None):
     """Fit the dipole moment once the location is known"""
     if 'fwd' in fwd_data:
         # should be a single precomputed "guess" (i.e., fixed position)
@@ -544,7 +549,8 @@ def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd, ori=None):
         fwd_svd = fwd_data['fwd_svd'][0]
     else:
         fwd, fwd_orig, scales = _dipole_forwards(fwd_data, whitener,
-                                                 rd[np.newaxis, :])
+                                                 rd[np.newaxis, :],
+                                                 extra=extra)
         fwd_svd = None
     if ori is None:
         if fwd_svd is None:
@@ -572,14 +578,15 @@ def _compute_residual(proj_op, B_orig, fwd_orig, Q):
 
 
 def _fit_dipoles(fun, min_dist_to_inner_skull, data, times, guess_rrs,
-                 guess_data, fwd_data, whitener, proj_op, ori, n_jobs):
+                 guess_data, fwd_data, whitener, proj_op, ori, n_jobs,
+                 extra=None):
     """Fit a single dipole to the given whitened, projected data"""
     from scipy.optimize import fmin_cobyla
     parallel, p_fun, _ = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(p_fun(min_dist_to_inner_skull, B, t, guess_rrs,
                          guess_data, fwd_data, whitener, proj_op,
-                         fmin_cobyla, ori)
+                         fmin_cobyla, ori, extra=extra)
                    for B, t in zip(data.T, times))
     pos = np.array([r[0] for r in res])
     amp = np.array([r[1] for r in res])
@@ -704,7 +711,7 @@ def _sphere_constraint(rd, r0, R_adj):
 
 def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
                 guess_data, fwd_data, whitener, proj_op,
-                fmin_cobyla, ori):
+                fmin_cobyla, ori, extra=None):
     """Fit a single bit of data"""
     B = np.dot(whitener, B_orig)
 
@@ -726,10 +733,11 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
         warn('Zero field found for time %s' % t)
         return np.zeros(3), 0, np.zeros(3), 0, B
 
-    idx = np.argmin([_fit_eval(guess_rrs[[fi], :], B, B2, fwd_svd)
+    idx = np.argmin([_fit_eval(guess_rrs[[fi], :], B, B2, fwd_svd, extra=extra)
                      for fi, fwd_svd in enumerate(guess_data['fwd_svd'])])
     x0 = guess_rrs[idx]
-    fun = partial(_fit_eval, B=B, B2=B2, fwd_data=fwd_data, whitener=whitener)
+    fun = partial(_fit_eval, B=B, B2=B2, fwd_data=fwd_data, whitener=whitener,
+                  extra=extra)
 
     # Tested minimizers:
     #    Simplex, BFGS, CG, COBYLA, L-BFGS-B, Powell, SLSQP, TNC
@@ -745,7 +753,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 
     # Compute the dipole moment at the final point
     Q, gof, residual = _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig,
-                              rd_final, ori=ori)
+                              rd_final, ori=ori, extra=extra)
     amp = np.sqrt(np.dot(Q, Q))
     norm = 1. if amp == 0. else amp
     ori = Q / norm
@@ -763,7 +771,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 
 def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
                       guess_data, fwd_data, whitener, proj_op,
-                      fmin_cobyla, ori):
+                      fmin_cobyla, ori, extra=None):
     """Fit a data using a fixed position"""
     B = np.dot(whitener, B_orig)
     B2 = np.dot(B, B)
@@ -772,7 +780,7 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
         return np.zeros(3), 0, np.zeros(3), 0
     # Compute the dipole moment
     Q, gof, residual = _fit_Q(guess_data, whitener, proj_op, B, B2, B_orig,
-                              rd=None, ori=ori)
+                              rd=None, ori=ori, extra=extra)
     if ori is None:
         amp = np.sqrt(np.dot(Q, Q))
         norm = 1. if amp == 0. else amp
@@ -785,7 +793,7 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 
 @verbose
 def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
-               pos=None, ori=None, verbose=None):
+               pos=None, ori=None, extra=None, verbose=None):
     """Fit a dipole
 
     Parameters
@@ -825,6 +833,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
 
         .. versionadded:: 0.12
 
+    extra : ndarray, shape (n_channels, n_channels) | None
+        Extra multiplication factor to use on lead fields before fitting.
+        This is necessary e.g. if spatial denoising algorithms are used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1037,7 +1048,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     _prep_field_computation(guess_src['rr'], bem, fwd_data, n_jobs,
                             verbose=False)
     guess_fwd, guess_fwd_orig, guess_fwd_scales = _dipole_forwards(
-        fwd_data, whitener, guess_src['rr'], n_jobs=fit_n_jobs)
+        fwd_data, whitener, guess_src['rr'], n_jobs=fit_n_jobs,
+        extra=extra)
     # decompose ahead of time
     guess_fwd_svd = [linalg.svd(fwd, overwrite_a=False, full_matrices=False)
                      for fwd in np.array_split(guess_fwd,
@@ -1055,7 +1067,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     fun = _fit_dipole_fixed if fixed_position else _fit_dipole
     out = _fit_dipoles(
         fun, min_dist_to_inner_skull, data, times, guess_src['rr'],
-        guess_data, fwd_data, whitener, proj_op, ori, n_jobs)
+        guess_data, fwd_data, whitener, proj_op, ori, n_jobs,
+        extra=extra)
     if fixed_position and ori is not None:
         # DipoleFixed
         data = np.array([out[1], out[3]])
