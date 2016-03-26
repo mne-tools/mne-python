@@ -717,12 +717,11 @@ def test_filter():
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
 
-    raw_lp = raw.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2, copy=True)
-    raw_hp = raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2, copy=True)
-    raw_bp = raw.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks, n_jobs=2,
-                        copy=True)
-    raw_bs = raw.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2,
-                        copy=True)
+    filter_params = dict(picks=picks, n_jobs=2, copy=True)
+    raw_lp = raw.filter(0., 4.0 - 0.25, **filter_params)
+    raw_hp = raw_hp.filter(8.0 + 0.25, None, **filter_params)
+    raw_bp = raw.filter(4.0 + 0.25, 8.0 - 0.25, **filter_params)
+    raw_bs = raw.filter(8.0 + 0.25, 4.0 - 0.25, **filter_params)
 
     data, _ = raw[picks, :]
 
@@ -734,11 +733,10 @@ def test_filter():
     assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
     assert_array_almost_equal(data, bp_data + bs_data, sig_dec)
 
-    raw_lp_iir = raw.filter(0., 4.0, picks=picks, n_jobs=2, method='iir',
-                            copy=True)
-    raw_hp_iir = raw.filter(8.0, None, picks=picks, n_jobs=2, method='iir',
-                            copy=True)
-    raw_bp_iir = raw.filter(4.0, 8.0, picks=picks, method='iir', copy=True)
+    filter_params_iir = dict(picks=picks, n_jobs=2, copy=True, method='iir')
+    raw_lp_iir = raw.filter(0., 4.0, **filter_params_iir)
+    raw_hp_iir = raw.filter(8.0, None, **filter_params_iir)
+    raw_bp_iir = raw.filter(4.0, 8.0, **filter_params_iir)
     lp_data_iir, _ = raw_lp_iir[picks, :]
     hp_data_iir, _ = raw_hp_iir[picks, :]
     bp_data_iir, _ = raw_bp_iir[picks, :]
@@ -761,8 +759,7 @@ def test_filter():
     # do a very simple check on line filtering
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        raw_bs = raw.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2.
-                            copy=True)
+        raw_bs = raw.filter(60.0 + 0.5, 60.0 - 0.5, **filter_params)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy()
         raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
