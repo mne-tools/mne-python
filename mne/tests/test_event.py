@@ -68,19 +68,34 @@ def test_add_events():
 def test_merge_events():
     """Test event merging
     """
-    events = read_events(fname)  # Use as the gold standard
-    merges = [1, 2, 3, 4]
-    events_out = merge_events(events, merges, 1234)
-    events_out2 = events.copy()
-    for m in merges:
-        assert_true(not np.any(events_out[:, 2] == m))
-        events_out2[events[:, 2] == m, 2] = 1234
-    assert_array_equal(events_out, events_out2)
-    # test non-replacement functionality, should be sorted union of orig & new
-    events_out2 = merge_events(events, merges, 1234, False)
-    events_out = np.concatenate((events_out, events))
-    events_out = events_out[np.argsort(events_out[:, 0])]
-    assert_array_equal(events_out, events_out2)
+    events_orig = [[1, 0, 1], [3, 0, 2], [10, 0, 3], [20, 0, 4]]
+
+    events_replacement = \
+        [[1, 0, 12],
+         [3, 0, 12],
+         [10, 0, 34],
+         [20, 0, 34]]
+
+    events_no_replacement = \
+        [[1, 0, 1],
+         [1, 0, 12],
+         [1, 0, 1234],
+         [3, 0, 2],
+         [3, 0, 12],
+         [3, 0, 1234],
+         [10, 0, 3],
+         [10, 0, 34],
+         [10, 0, 1234],
+         [20, 0, 4],
+         [20, 0, 34],
+         [20, 0, 1234]]
+
+    for replace_events, events_good in [(True, events_replacement),
+                                        (False, events_no_replacement)]:
+        events = merge_events(events_orig, [1, 2], 12, replace_events)
+        events = merge_events(events, [3, 4], 34, replace_events)
+        events = merge_events(events, [1, 2, 3, 4], 1234, replace_events)
+        assert_array_equal(events, events_good)
 
 
 def test_io_events():
@@ -179,13 +194,13 @@ def test_find_events():
 
     assert_raises(TypeError, find_events, raw, mask="0")
     assert_array_equal(find_events(raw, shortest_event=1, mask=1),
-                       [[2,    0,    2], [4,    2,    4]])
+                       [[2, 0, 2], [4, 2, 4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=2),
-                       [[1,    0,    1], [3,    0,    1], [4,    1,    4]])
+                       [[1, 0, 1], [3, 0, 1], [4, 1, 4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=3),
-                       [[4,    0,    4]])
+                       [[4, 0, 4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=4),
-                       [[1,    0,    1], [2,    1,    2], [3,    2,    3]])
+                       [[1, 0, 1], [2, 1, 2], [3, 2, 3]])
 
     # test empty events channel
     raw._data[stim_channel_idx, :] = 0

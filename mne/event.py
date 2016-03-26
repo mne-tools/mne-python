@@ -662,17 +662,19 @@ def merge_events(events, ids, new_id, replace_events=True):
     new_events: array
         The new events
     """
+    events = np.asarray(events)
     events_out = events.copy()
-    where = np.empty(events.shape[0], dtype=bool)
+    idx_touched = []  # to keep track of the original events we can keep
     for col in [1, 2]:
-        where.fill(False)
         for i in ids:
-            where = (events[:, col] == i)
-            events_out[where, col] = new_id
+            mask = events[:, col] == i
+            events_out[mask, col] = new_id
+            idx_touched.append(np.where(mask)[0])
     if not replace_events:
-        events_out = events_out[where]
-        events_out = np.concatenate((events_out, events), axis=0)
-        events_out = events_out[np.argsort(events_out[:, 0])]
+        idx_touched = np.unique(np.concatenate(idx_touched))
+        events_out = np.concatenate((events_out, events[idx_touched]), axis=0)
+        # Now sort in lexical order
+        events_out = events_out[np.lexsort(list(events_out.T)[::-1])]
     return events_out
 
 
