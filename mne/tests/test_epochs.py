@@ -600,12 +600,13 @@ def test_read_write_epochs():
         epochs_read = read_epochs(temp_fname)
         epochs_no_bl_read = read_epochs(temp_fname_no_bl)
         assert_raises(ValueError, epochs.apply_baseline, baseline=[1, 2, 3])
-        epochs_withbl = epochs_no_bl_read.apply_baseline(baseline, copy=True)
-        assert_true(isinstance(epochs_withbl, _BaseEpochs))
-        assert_true(epochs_withbl.baseline == baseline)
+        epochs_with_bl = epochs_no_bl_read.apply_baseline(baseline, copy=True)
+        assert_true(isinstance(epochs_with_bl, _BaseEpochs))
+        assert_true(epochs_with_bl.baseline == baseline)
         assert_true(epochs_no_bl_read.baseline != baseline)
         assert_true(str(epochs_read).startswith('<Epochs'))
 
+        epochs_no_bl_read.apply_baseline(baseline, copy=False)
         assert_array_equal(epochs_no_bl_read.times, epochs.times)
         assert_array_almost_equal(epochs_read.get_data(), epochs.get_data())
         assert_array_almost_equal(epochs.get_data(),
