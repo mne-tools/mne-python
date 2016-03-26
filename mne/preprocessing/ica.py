@@ -2251,11 +2251,12 @@ def _find_max_corrs(all_maps, target, threshold):
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
                   layout, cmap, contours, template=True):
     """Customized ica.plot_components for corrmap"""
-    title = 'Detected components'
-    if label is not None:
-        title += ' of type ' + label
     if not template:
-        title = "Template"
+        title = 'Detected components'
+        if label is not None:
+            title += ' of type ' + label
+    else:
+        title = "Supplied template"
 
     picks = list(range(len(data)))
 
@@ -2354,8 +2355,9 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         Defaults to "auto".
     label : None | str
         If not None, categorised ICs are stored in a dictionary "labels_" under
-        the given name. Preexisting entries will be appended to
-        (excluding repeats), not overwritten. If None, a dry run is performed.
+        the given name. Preexisting entries will be appended to (excluding
+        repeats), not overwritten. If None, a dry run is performed and
+        the supplied ICs are not changed.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
             The channel type to plot. Defaults to 'eeg'.
     plot : bool
@@ -2426,7 +2428,6 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                                          outlines=outlines, cmap=cmap,
                                          contours=contours, layout=layout,
                                          show=show, template=True)
-            template_fig.suptitle("Supplied template")
         template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
