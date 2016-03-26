@@ -95,7 +95,7 @@ BUG
 
     - Fix bug with :func:`mne.label_sign_flip` (and :func:`mne.extract_label_time_course`) by `Natalie Klein`_ and `Eric Larson`_
 
-    - Add copy parameter in :func:`mne.Epochs.apply_baseline` method by `Jona Sassenhagen`_ and `Alex Gramfort`_
+    - Add copy parameter in :func:`mne.Epochs.apply_baseline` and :func:`mne.raw.filter` methods by `Jona Sassenhagen`_ and `Alex Gramfort`_
 
 API
 ~~~
