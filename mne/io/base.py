@@ -801,10 +801,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if h_freq is not None and not isinstance(h_freq, float):
             h_freq = float(h_freq)
 
-        if copy:
-          raw = self.copy()
-        else:
-          raw = self
+        raw = self.copy() if copy else self
 
         if not raw.preload:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
@@ -865,7 +862,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     iir_params=iir_params, picks=picks, n_jobs=n_jobs,
                     copy=False)
 
-          return raw
+        return raw
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='10s',
