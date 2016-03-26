@@ -753,8 +753,11 @@ def test_filter():
 
     # ... and that inplace changes are inplace
     raw_copy = raw.copy()
-    raw_copy.filter(None, 20.)
-    assert_equal(raw._data == raw_copy._data, False)
+    raw_copy2 = raw.copy()
+    raw_copy.filter(None, 20., **filter_params)
+    assert_equal(raw._data, raw_copy2._data)
+    assert_equal(raw.filter(None, 20., **filter_params)._data,
+                 raw_copy._data))
 
     # do a very simple check on line filtering
     with warnings.catch_warnings(record=True):
