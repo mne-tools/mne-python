@@ -719,7 +719,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length='10s',
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-               method='fft', iir_params=None, verbose=None):
+               method='fft', iir_params=None, copy=False, verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -778,6 +778,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Dictionary of parameters to use for IIR filtering.
             See mne.filter.construct_iir_filter for details. If iir_params
             is None and method="iir", 4th order Butterworth will be used.
+        copy : bool
+            If `True`, modify and return a copy. If `False`, modify in-place
+            and return the original object.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -798,11 +801,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if h_freq is not None and not isinstance(h_freq, float):
             h_freq = float(h_freq)
 
-        if not self.preload:
+        if copy:
+          raw = self.copy()
+        else:
+          raw = self
+
+        if not raw.preload:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
-            picks = _pick_data_or_ica(self.info)
+            picks = _pick_data_or_ica(raw.info)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
@@ -813,24 +821,24 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # and it's not a band-stop filter
             if h_freq is not None:
                 if (l_freq is None or l_freq < h_freq) and \
-                   (self.info["lowpass"] is None or
-                   h_freq < self.info['lowpass']):
-                        self.info['lowpass'] = h_freq
+                   (raw.info["lowpass"] is None or
+                   h_freq < raw.info['lowpass']):
+                        raw.info['lowpass'] = h_freq
             if l_freq is not None:
                 if (h_freq is None or l_freq < h_freq) and \
-                   (self.info["highpass"] is None or
-                   l_freq > self.info['highpass']):
-                        self.info['highpass'] = l_freq
+                   (raw.info["highpass"] is None or
+                   l_freq > raw.info['highpass']):
+                        raw.info['highpass'] = l_freq
         if l_freq is None and h_freq is not None:
             logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
-            low_pass_filter(self._data, fs, h_freq,
+            low_pass_filter(raw._data, fs, h_freq,
                             filter_length=filter_length,
                             trans_bandwidth=h_trans_bandwidth, method=method,
                             iir_params=iir_params, picks=picks, n_jobs=n_jobs,
                             copy=False)
         if l_freq is not None and h_freq is None:
             logger.info('High-pass filtering at %0.2g Hz' % l_freq)
-            high_pass_filter(self._data, fs, l_freq,
+            high_pass_filter(raw._data, fs, l_freq,
                              filter_length=filter_length,
                              trans_bandwidth=l_trans_bandwidth, method=method,
                              iir_params=iir_params, picks=picks, n_jobs=n_jobs,
@@ -839,7 +847,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if l_freq < h_freq:
                 logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
                             % (l_freq, h_freq))
-                self._data = band_pass_filter(
+                raw._data = band_pass_filter(
                     self._data, fs, l_freq, h_freq,
                     filter_length=filter_length,
                     l_trans_bandwidth=l_trans_bandwidth,
@@ -849,13 +857,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                             % (h_freq, l_freq))
-                self._data = band_stop_filter(
+                raw._data = band_stop_filter(
                     self._data, fs, h_freq, l_freq,
                     filter_length=filter_length,
                     l_trans_bandwidth=h_trans_bandwidth,
                     h_trans_bandwidth=l_trans_bandwidth, method=method,
                     iir_params=iir_params, picks=picks, n_jobs=n_jobs,
                     copy=False)
+
+          return raw
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='10s',
