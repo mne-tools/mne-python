@@ -97,7 +97,7 @@ BUG
 
     - Add copy parameter in :func:`mne.Epochs.apply_baseline` method by `Jona Sassenhagen`_ and `Alex Gramfort`_
 
-    - Fig bug in :func:`mne.merge_events` when using replace_events=False by `Alex Gramfort`_
+    - Fig bug in :func:`mne.merge_events` when using ``replace_events=False`` by `Alex Gramfort`_
 
 
 API
