@@ -118,9 +118,9 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     if tmax is not None and tmin is not None:
         if tmax < tmin:
             raise ValueError('tmax must be larger than tmin')
-    if epochs.baseline is None:
-        warn('Epochs are not baseline corrected, cross-spectral density may '
-             'be inaccurate')
+    if epochs.baseline is None and epochs.info['highpass'] < 0.1:
+        warn('Epochs are not baseline corrected or enough highpass filtered. '
+             'Cross-spectral density may be inaccurate.')
 
     if projs is None:
         projs = cp.deepcopy(epochs.info['projs'])
