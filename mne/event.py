@@ -647,7 +647,7 @@ def merge_events(events, ids, new_id, replace_events=True):
 
     Parameters
     ----------
-    events : array
+    events : array, shape (n_events_in, 3)
         Events.
     ids : array of int
         The ids of events to merge.
@@ -659,19 +659,47 @@ def merge_events(events, ids, new_id, replace_events=True):
 
     Returns
     -------
-    new_events: array
+    new_events: array, shape (n_events_out, 3)
         The new events
+
+    Examples
+    --------
+    Here is quick example of the behavior::
+
+        >>> events = [[134, 0, 1], [341, 0, 2], [502, 0, 3]]
+        >>> merge_events(events, [1, 2], 12, replace_events=True)
+        array([[134,   0,  12],
+               [341,   0,  12],
+               [502,   0,   3]])
+        >>> merge_events(events, [1, 2], 12, replace_events=False)
+        array([[134,   0,   1],
+               [134,   0,  12],
+               [341,   0,   2],
+               [341,   0,  12],
+               [502,   0,   3]])
+
+    Notes
+    -----
+    Rather than merging events you can use hierarchical event_id
+    in Epochs. For example, here::
+
+        >>> event_id = {'auditory/left': 1, 'auditory/right': 2}
+
+    And the condition 'auditory' would correspond to either 1 or 2.
     """
+    events = np.asarray(events)
     events_out = events.copy()
-    where = np.empty(events.shape[0], dtype=bool)
+    idx_touched = []  # to keep track of the original events we can keep
     for col in [1, 2]:
-        where.fill(False)
         for i in ids:
-            where = (events[:, col] == i)
-            events_out[where, col] = new_id
+            mask = events[:, col] == i
+            events_out[mask, col] = new_id
+            idx_touched.append(np.where(mask)[0])
     if not replace_events:
-        events_out = np.concatenate((events_out, events), axis=0)
-        events_out = events_out[np.argsort(events_out[:, 0])]
+        idx_touched = np.unique(np.concatenate(idx_touched))
+        events_out = np.concatenate((events_out, events[idx_touched]), axis=0)
+        # Now sort in lexical order
+        events_out = events_out[np.lexsort(events_out.T[::-1])]
     return events_out
 
 
