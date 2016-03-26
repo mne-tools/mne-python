@@ -27,7 +27,8 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag, read_tag_info
 from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
-                      pick_channels, pick_info, _pick_data_channels)
+                      pick_channels, pick_info, _pick_data_channels,
+                      _pick_aux_channels)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin
 from .bem import _check_origin
@@ -450,10 +451,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                              % str(baseline))
 
         epochs = self if not copy else self.copy()
+        picks = _pick_data_channels(epochs.info, exclude=[], with_ref_meg=True)
+        picks_aux = _pick_aux_channels(epochs.info, exclude=[])
+        picks = np.sort(np.concatenate((picks, picks_aux)))
+
         data = epochs._data
-        picks = pick_types(epochs.info, meg=True, eeg=True, stim=False,
-                           ref_meg=True, eog=True, ecg=True, seeg=True,
-                           emg=True, bio=True, exclude=[])
         data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline,
                                     copy=False)
         epochs.baseline = baseline

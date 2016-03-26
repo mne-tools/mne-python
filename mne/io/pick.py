@@ -667,6 +667,18 @@ def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
                       bio=False, include=[], exclude=exclude, selection=None)
 
 
+def _pick_aux_channels(info, exclude='bads'):
+    """Convenience function for picking only auxilary channels
+
+    Corresponds to EOG, ECG, EMG and BIO
+    """
+    return pick_types(info, meg=False, eeg=False, stim=False, eog=True,
+                      ecg=True, emg=True, ref_meg=False, misc=False,
+                      resp=False, chpi=False, exci=False, ias=False,
+                      syst=False, seeg=False, dipole=False, gof=False,
+                      bio=True, include=[], exclude=exclude, selection=None)
+
+
 def _pick_data_or_ica(info):
     """Convenience function for picking only data or ICA channels."""
     ch_names = [c['ch_name'] for c in info['chs']]
