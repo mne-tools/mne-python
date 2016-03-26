@@ -845,7 +845,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
                             % (l_freq, h_freq))
                 raw._data = band_pass_filter(
-                    self._data, fs, l_freq, h_freq,
+                    raw._data, fs, l_freq, h_freq,
                     filter_length=filter_length,
                     l_trans_bandwidth=l_trans_bandwidth,
                     h_trans_bandwidth=h_trans_bandwidth,
@@ -855,7 +855,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                             % (h_freq, l_freq))
                 raw._data = band_stop_filter(
-                    self._data, fs, h_freq, l_freq,
+                    raw._data, fs, h_freq, l_freq,
                     filter_length=filter_length,
                     l_trans_bandwidth=h_trans_bandwidth,
                     h_trans_bandwidth=l_trans_bandwidth, method=method,
