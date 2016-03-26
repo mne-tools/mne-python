@@ -719,7 +719,7 @@ def test_filter():
 
     filter_params = dict(picks=picks, n_jobs=2, copy=True)
     raw_lp = raw.filter(0., 4.0 - 0.25, **filter_params)
-    raw_hp = raw_hp.filter(8.0 + 0.25, None, **filter_params)
+    raw_hp = raw.filter(8.0 + 0.25, None, **filter_params)
     raw_bp = raw.filter(4.0 + 0.25, 8.0 - 0.25, **filter_params)
     raw_bs = raw.filter(8.0 + 0.25, 4.0 - 0.25, **filter_params)
 
