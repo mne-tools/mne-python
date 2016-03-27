@@ -764,14 +764,14 @@ def test_filter():
         warnings.simplefilter('always')
         raw_bs = raw.filter(60.0 + 0.5, 60.0 - 0.5, **filter_params)
         data_bs, _ = raw_bs[picks, :]
-        raw_notch = raw.copy()
-        raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
+        raw_notch = raw.notch_filter(60.0, picks=picks, n_jobs=2,
+                                     method='fft', copy=True)
     data_notch, _ = raw_notch[picks, :]
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 
     # now use the sinusoidal fitting
-    raw_notch = raw.copy()
-    raw_notch.notch_filter(None, picks=picks, n_jobs=2, method='spectrum_fit')
+    raw_notch = raw.notch_filter(None, picks=picks, n_jobs=2,
+                                 method='spectrum_fit', copy=True)
     data_notch, _ = raw_notch[picks, :]
     data, _ = raw[picks, :]
     assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)

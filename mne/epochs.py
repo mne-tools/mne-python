@@ -1606,6 +1606,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         epochs : instance of Epochs
             The resampled epochs object.
 
+        See Also
+        --------
+        mne.Epochs.savgol_filter
+        mne.io.Raw.resample
+
         Notes
         -----
         For some data, it may be more accurate to use npad=0 to reduce
@@ -1617,7 +1622,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if npad is None:
             npad = 100
             warn('npad is currently taken to be 100, but will be changed to '
-                 '"auto" in 0.12. Please set the value explicitly.',
+                 '"auto" in 0.13. Please set the value explicitly.',
                  DeprecationWarning)
 
         inst = self.copy() if copy else self

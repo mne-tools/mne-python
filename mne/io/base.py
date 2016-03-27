@@ -585,7 +585,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         the raw data to change.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
-        ``self.load_data()``.
+        or ``self.load_data()``.
 
         .. note:: If n_jobs > 1, more memory is required as
                   ``len(picks) * n_times`` additional time points need to
@@ -725,7 +725,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         of the Raw object is modified inplace.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
-        ``self.load_data()``.
+        or ``self.load_data()``.
 
         ``l_freq`` and ``h_freq`` are the frequencies below which and above
         which, respectively, to filter out of the data. Thus the uses are:
@@ -781,6 +781,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         copy : bool
             If ``True``, return a modified copy of original object. If
             ``False`` modify in-place and return the original object.
+
+            .. versionadded:: 0.12.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -793,6 +796,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         See Also
         --------
         mne.Epochs.savgol_filter
+        mne.io.Raw.notch_filter
+        mne.io.Raw.resample
         """
         fs = float(self.info['sfreq'])
         if l_freq == 0:
@@ -875,7 +880,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         "picks". By default the data of the Raw object is modified inplace.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
-        ``self.load_data()``.
+        or ``self.load_data()``.
 
         .. note:: If n_jobs > 1, more memory is required as
                   ``len(picks) * n_times`` additional time points need to
@@ -926,9 +931,21 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         copy : bool
             If ``True``, return a modified copy of original object. If
             ``False`` modify in-place and return the original object.
+
+            .. versionadded:: 0.12.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
+
+        Returns
+        -------
+        raw_filt : instance of Raw
+            The raw instance with filtered data.
+
+        See Also
+        --------
+        mne.io.Raw.filter
 
         Notes
         -----
@@ -949,6 +966,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
             method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
             p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False)
+        return raw
 
     @verbose
     def resample(self, sfreq, npad=None, window='boxcar', stim_picks=None,
@@ -956,7 +974,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Resample all channels.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
-        ``self.load_data()``.
+        or ``self.load_data()``.
 
         .. warning:: The intended purpose of this function is primarily to
                      speed up computations (e.g., projection calculation) when
@@ -965,9 +983,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      generally recommended not to epoch downsampled data,
                      but instead epoch and then downsample, as epoching
                      downsampled data jitters triggers.
-                     See here for an example:
-
-                         https://gist.github.com/Eric89GXL/01642cb3789992fbca59
+                     For more, see
+                     `this illustrative gist <https://gist.github.com/Eric89GXL/01642cb3789992fbca59>`_.
 
                      If resampling the continuous data is desired, it is
                      recommended to construct events using the original data.
@@ -1008,15 +1025,20 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         raw : instance of Raw
             The resampled version of the raw object.
 
+        See Also
+        --------
+        mne.io.Raw.filter
+        mne.Epochs.resample
+
         Notes
         -----
         For some data, it may be more accurate to use ``npad=0`` to reduce
         artifacts. This is dataset dependent -- check your data!
-        """
+        """  # noqa
         if npad is None:
             npad = 100
             warn('npad is currently taken to be 100, but will be changed to '
-                 '"auto" in 0.12. Please set the value explicitly.',
+                 '"auto" in 0.13. Please set the value explicitly.',
                  DeprecationWarning)
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')

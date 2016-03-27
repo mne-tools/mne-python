@@ -28,7 +28,7 @@ from ...utils import check_fname, logger, verbose, warn
 
 
 class Raw(_BaseRaw):
-    """Raw FIF data
+    """Raw data in FIF format
 
     Parameters
     ----------
@@ -458,7 +458,7 @@ class Raw(_BaseRaw):
 
         .. note:: The effect of the difference between the coil sizes on the
                   current estimates computed by the MNE software is very small.
-                  Therefore the use of mne_fix_mag_coil_types is not mandatory.
+                  Therefore the use of this function is not mandatory.
         """
         from ...channels import fix_mag_coil_types
         fix_mag_coil_types(self.info)
