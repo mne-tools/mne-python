@@ -717,17 +717,11 @@ def test_filter():
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
 
-    raw_lp = raw.copy()
-    raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2)
-
-    raw_hp = raw.copy()
-    raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2)
-
-    raw_bp = raw.copy()
-    raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
-
-    raw_bs = raw.copy()
-    raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2)
+    filter_params = dict(picks=picks, n_jobs=2, copy=True)
+    raw_lp = raw.filter(0., 4.0 - 0.25, **filter_params)
+    raw_hp = raw.filter(8.0 + 0.25, None, **filter_params)
+    raw_bp = raw.filter(4.0 + 0.25, 8.0 - 0.25, **filter_params)
+    raw_bs = raw.filter(8.0 + 0.25, 4.0 - 0.25, **filter_params)
 
     data, _ = raw[picks, :]
 
@@ -739,12 +733,10 @@ def test_filter():
     assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
     assert_array_almost_equal(data, bp_data + bs_data, sig_dec)
 
-    raw_lp_iir = raw.copy()
-    raw_lp_iir.filter(0., 4.0, picks=picks, n_jobs=2, method='iir')
-    raw_hp_iir = raw.copy()
-    raw_hp_iir.filter(8.0, None, picks=picks, n_jobs=2, method='iir')
-    raw_bp_iir = raw.copy()
-    raw_bp_iir.filter(4.0, 8.0, picks=picks, method='iir')
+    filter_params_iir = dict(picks=picks, n_jobs=2, copy=True, method='iir')
+    raw_lp_iir = raw.filter(0., 4.0, **filter_params_iir)
+    raw_hp_iir = raw.filter(8.0, None, **filter_params_iir)
+    raw_bp_iir = raw.filter(4.0, 8.0, **filter_params_iir)
     lp_data_iir, _ = raw_lp_iir[picks, :]
     hp_data_iir, _ = raw_hp_iir[picks, :]
     bp_data_iir, _ = raw_bp_iir[picks, :]
@@ -759,11 +751,18 @@ def test_filter():
     bp_data_iir, _ = raw_bp_iir[picks_meg[4:], :]
     assert_array_equal(data, bp_data_iir)
 
+    # ... and that inplace changes are inplace
+    raw_copy = raw.copy()
+    raw_copy2 = raw.copy()
+    raw_copy.filter(None, 20., picks=picks, n_jobs=2, copy=False)
+    assert_equal(raw._data, raw_copy2._data)
+    assert_equal(raw.filter(None, 20., **filter_params)._data,
+                 raw_copy._data)
+
     # do a very simple check on line filtering
-    raw_bs = raw.copy()
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
+        raw_bs = raw.filter(60.0 + 0.5, 60.0 - 0.5, **filter_params)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy()
         raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
