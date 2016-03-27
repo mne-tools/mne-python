@@ -228,8 +228,10 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     solver : str | function
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string (for now, only 'pinv'), in which case the
-        solver used is `dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T`.
+        matrix b; or a string. If `pinv`,  the solver used is
+        `dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T`. If `cholesky`
+        (recommended), use a Cholesky solver as implemented in sklearn.
+        Defaults to 'pinv'.
 
     Returns
     -------
@@ -246,6 +248,16 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     """
 
     if isinstance(solver, string_types):
+        if solver == 'cholesky':
+            try:
+                from sklearn.linear_model import Ridge
+                def solver(X, y):
+                    return Ridge(fit_intercept=False, copy_X=False, alpha=0.,
+                                 solver='cholesky').fit(X, y.T).coef_
+            except ImportError:
+                warn("Can't import from scikit-learn. Falling back to 'pinv'.")
+                solver == 'pinv'
+
         if solver == 'pinv':
             fast_dot = _get_fast_dot()
 
