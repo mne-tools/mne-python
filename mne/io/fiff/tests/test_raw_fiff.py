@@ -753,9 +753,8 @@ def test_filter():
 
     # ... and that inplace changes are inplace
     raw_copy = raw.copy()
-    raw_copy2 = raw.copy()
     raw_copy.filter(None, 20., picks=picks, n_jobs=2, copy=False)
-    assert_equal(raw._data, raw_copy2._data)
+    assert_true(raw._data[0, 0] != raw_copy._data[0, 0])
     assert_equal(raw.filter(None, 20., **filter_params)._data,
                  raw_copy._data)
 
