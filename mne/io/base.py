@@ -779,8 +779,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             See mne.filter.construct_iir_filter for details. If iir_params
             is None and method="iir", 4th order Butterworth will be used.
         copy : bool
-            If ``True``, return a modified copy. If ``False``, modify
-            in-place and return the original object.
+            If ``True``, return the modified original object. If ``False``,
+            modify in-place and return the original object.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
