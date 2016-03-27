@@ -42,8 +42,8 @@ def test_savgol_filter():
     match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
     mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
     assert_raises(ValueError, evoked.savgol_filter, evoked.info['sfreq'])
-    evoked.savgol_filter(h_freq)
-    data_filt = np.abs(fftpack.fft(evoked.data))
+    evoked_sg = evoked.savgol_filter(h_freq, copy=True)
+    data_filt = np.abs(fftpack.fft(evoked_sg.data))
     # decent in pass-band
     assert_allclose(np.mean(data[:, match_mask], 0),
                     np.mean(data_filt[:, match_mask], 0),
@@ -51,6 +51,8 @@ def test_savgol_filter():
     # suppression in stop-band
     assert_true(np.mean(data[:, mismatch_mask]) >
                 np.mean(data_filt[:, mismatch_mask]) * 5)
+    # original preserved
+    assert_allclose(data, np.abs(fftpack.fft(evoked.data)), atol=1e-16)
 
 
 def test_hash_evoked():

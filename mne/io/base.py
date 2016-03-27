@@ -1865,7 +1865,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 def _check_preload(raw, msg):
     """Helper to ensure data are preloaded"""
     if not raw.preload:
-        raise RuntimeError(msg + ' requires raw data needs to be loaded. Use '
+        raise RuntimeError(msg + ' requires raw data to be loaded. Use '
                            'preload=True (or string) in the constructor or '
                            'raw.load_data().')
 
