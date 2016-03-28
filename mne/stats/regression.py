@@ -249,10 +249,9 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
     if isinstance(solver, string_types):
         if solver == 'cholesky':
-            from scipy.sparse import csr_matrix.dot as s_dot
-
             def solver(X, y):
-                return linalg.solve(s_dot(X.T, X) , s_dot(X.T, y.T), sym_pos=True,
+                Xt = X.T
+                return linalg.solve(Xt.dot(X), Xt.dot(y.T), sym_pos=True,
                                     overwrite_a=True)
 
         elif solver == 'pinv':
