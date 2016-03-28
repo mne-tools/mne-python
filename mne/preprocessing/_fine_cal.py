@@ -246,7 +246,7 @@ def _adjust_coils(new_z, old_z, all_coils, cal_idx, return_subset):
     this_cosmag = np.dot(rot, all_coils[1][this_sl].T).T
     if return_subset:
         all_coils = (this_rmag, this_cosmag, np.zeros(this_rmag.shape[0], int),
-                     1, [True], {0: this_sl})
+                     1, np.array([True]), {0: this_sl})
         return all_coils
     else:
         all_coils[0][this_sl] = this_rmag
