@@ -155,7 +155,7 @@ def _fit_lm(data, design_matrix, names):
 
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
-                          decim=1, picks=None, solver='pinv'):
+                          decim=1, picks=None, solver='cholesky'):
     """Estimate regression-based evoked potentials/fields by linear modelling
 
     This models the full M/EEG time course, including correction for
@@ -228,10 +228,10 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     solver : str | function
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string. If `pinv`,  the solver used is
-        `dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T`. If `cholesky`
-        (recommended), use a Cholesky solver as implemented in sklearn.
-        Defaults to 'pinv'.
+        matrix b; or a string. If `pinv`, the solver used is
+        ``dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T``. If
+        `cholesky` (recommended), the used is ``linalg.solve(np.dot(X.T, X),
+        np.dot(X.T, y), sym_pos=True, overwrite_a=True)``.
 
     Returns
     -------
@@ -249,22 +249,20 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
     if isinstance(solver, string_types):
         if solver == 'cholesky':
-            try:
-                from sklearn.linear_model import Ridge
-                def solver(X, y):
-                    return Ridge(fit_intercept=False, copy_X=False, alpha=0.,
-                                 solver='cholesky').fit(X, y.T).coef_
-            except ImportError:
-                warn("Can't import from scikit-learn. Falling back to 'pinv'.")
-                solver == 'pinv'
+            from scipy.sparse import csr_matrix.dot as s_dot
 
-        if solver == 'pinv':
+            def solver(X, y):
+                return linalg.solve(s_dot(X.T, X) , s_dot(X.T, y.T), sym_pos=True,
+                                    overwrite_a=True)
+
+        elif solver == 'pinv':
             fast_dot = _get_fast_dot()
 
             # inv is slightly (~10%) faster, but pinv seemingly more stable
             def solver(X, Y):
                 return fast_dot(linalg.pinv(X.T.dot(X).todense()),
                                 X.T.dot(Y.T)).T
+
         else:
             raise ValueError("No such solver: {0}".format(solver))
 
