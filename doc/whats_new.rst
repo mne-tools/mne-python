@@ -97,8 +97,6 @@ BUG
 
     - Add copy parameter in :func:`mne.Epochs.apply_baseline` and :func:`mne.io.Raw.filter` methods by `Jona Sassenhagen`_ and `Alex Gramfort`_
 
-    - Replace pseudoinverse-based solver with Cholesky solver in :func:`mne.stats.regression.linear_regression_raw`, by `Jona Sassenhagen`_.
-
     - Fig bug in :func:`mne.merge_events` when using ``replace_events=False`` by `Alex Gramfort`_
 
 
@@ -128,6 +126,9 @@ API
     - The default ``picks=None`` in :func:`mne.io.Raw.filter` nows picks eeg, meg and seeg channels, by `Jean-Remi King`_
 
     - EOG, ECG and EMG channels are now plotted by default (if present in data) when using :func:`mne.viz.plot_evoked` by `Marijn van Vliet`_
+
+
+    - Replace pseudoinverse-based solver with much faster Cholesky solver in :func:`mne.stats.regression.linear_regression_raw`, by `Jona Sassenhagen`_.
 
     - CTF data reader now reads EEG locations from .pos file as HPI points by `Jaakko Leppakangas`_
 
