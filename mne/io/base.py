@@ -790,7 +790,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Returns
         -------
-        raw_filt : instance of Raw
+        raw : instance of Raw
             The raw instance with filtered data.
 
         See Also
@@ -940,7 +940,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Returns
         -------
-        raw_filt : instance of Raw
+        raw : instance of Raw
             The raw instance with filtered data.
 
         See Also
