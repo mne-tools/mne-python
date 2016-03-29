@@ -97,6 +97,8 @@ BUG
 
     - Add copy parameter in :func:`mne.Epochs.apply_baseline` and :func:`mne.io.Raw.filter` methods by `Jona Sassenhagen`_ and `Alex Gramfort`_
 
+    - Replace pseudoinverse-based solver with Cholesky solver in :func:`mne.stats.regression.linear_regression_raw`, by `Jona Sassenhagen`_.
+
     - Fig bug in :func:`mne.merge_events` when using ``replace_events=False`` by `Alex Gramfort`_
 
 
