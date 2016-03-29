@@ -1533,7 +1533,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def plot_sensors(self, projection='3d', show=True):
         """
-        Plot sensor positions in 3D.
+        Plot sensor positions.
 
         Parameters
         ----------
@@ -1546,6 +1546,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -------
         fig : instance of matplotlib figure
             Figure containing the 3D sensor topography.
+
+        Notes
+        -----
+
+        .. versionadded:: 0.12.0
+
         """
         return plot_sensors(self.info, projection=projection, show=show)
 

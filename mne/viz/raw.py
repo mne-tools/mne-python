@@ -817,7 +817,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
 
 
 def plot_sensors(info, projection='3d', show=True):
-    """Plot sensor positions in 3D.
+    """Plot sensor positions.
 
     Parameters
     ----------
@@ -831,7 +831,13 @@ def plot_sensors(info, projection='3d', show=True):
     Returns
     -------
     fig : instance of matplotlib figure
-        Figure containing the 3D sensor topography.
+        Figure containing the sensor topography.
+
+    Notes
+    -----
+
+    .. versionadded:: 0.12.0
+
     """
     if projection not in ['3d', 'xy', 'yz', 'xz']:
         raise ValueError("Projection must be one of ['3d', 'xy', 'yz', 'xz'].")
