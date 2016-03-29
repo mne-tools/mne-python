@@ -228,10 +228,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     solver : str | function
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string. If `pinv`, the solver used is
-        ``dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T``. If
-        `cholesky` (recommended), the used is ``linalg.solve(np.dot(X.T, X),
-        np.dot(X.T, y), sym_pos=True, overwrite_a=True)``.
+        matrix b; or a string. If str, must be `cholesky`, in which case the
+        solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
 
     Returns
     -------
@@ -252,15 +250,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
             def solver(X, y):
                 a = (X.T * X).toarray()
                 return linalg.solve(a, X.T * y.T, sym_pos=True,
-                                    overwrite_a=True).T
-
-        elif solver == 'pinv':
-            fast_dot = _get_fast_dot()
-
-            # inv is slightly (~10%) faster, but pinv seemingly more stable
-            def solver(X, Y):
-                return fast_dot(linalg.pinv(X.T.dot(X).todense()),
-                                X.T.dot(Y.T)).T
+                                    overwrite_a=True, overwrite_b=True).T
 
         else:
             raise ValueError("No such solver: {0}".format(solver))
