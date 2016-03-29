@@ -556,10 +556,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def __setitem__(self, item, value):
         """setting raw data content with python slicing"""
-        if not self.preload:
-            raise RuntimeError('Modifying data of Raw is only supported '
-                               'when preloading is used. Use preload=True '
-                               '(or string) in the constructor.')
+        _check_preload(self, 'Modifying data of Raw')
         sel, start, stop = self._parse_get_set_params(item)
         # set the data
         self._data[sel, start:stop] = value
@@ -567,7 +564,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def anonymize(self):
         """Anonymize data
 
-        This function will remove info['subject_info'] if it exists.
+        This function will remove ``raw.info['subject_info']`` if it exists.
 
         Returns
         -------
@@ -587,14 +584,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         the dtype parameter, which causes the data type used for representing
         the raw data to change.
 
-        The Raw object has to be constructed using preload=True (or string).
+        The Raw object has to have the data loaded e.g. with ``preload=True``
+        or ``self.load_data()``.
 
-        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-              additional time points need to be temporaily stored in memory.
+        .. note:: If n_jobs > 1, more memory is required as
+                  ``len(picks) * n_times`` additional time points need to
+                  be temporaily stored in memory.
 
-        Note: If the data type changes (dtype != None), more memory is required
-              since the original and the converted data needs to be stored in
-              memory.
+        .. note:: If the data type changes (dtype != None), more memory is
+                  required since the original and the converted data needs
+                  to be stored in memory.
 
         Parameters
         ----------
@@ -618,9 +617,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             as a member of ``kwargs``, it will be consumed and will override
             the default mne-python verbose level (see mne.verbose).
         """
-        if not self.preload:
-            raise RuntimeError('Raw data needs to be preloaded. Use '
-                               'preload=True (or string) in the constructor.')
+        _check_preload(self, 'raw.apply_function')
         if picks is None:
             picks = _pick_data_channels(self.info, exclude=[],
                                         with_ref_meg=False)
@@ -658,18 +655,19 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         channels defined in "picks" is computed, resulting in the envelope
         signal.
 
-        Note: DO NOT use envelope=True if you intend to compute an inverse
-              solution from the raw data. If you want to compute the
-              envelope in source space, use envelope=False and compute the
-              envelope after the inverse solution has been obtained.
+        .. warning: Do not use ``envelope=True`` if you intend to compute
+                    an inverse solution from the raw data. If you want to
+                    compute the envelope in source space, use
+                    ``envelope=False`` and compute the envelope after the
+                    inverse solution has been obtained.
 
-        Note: If envelope=False, more memory is required since the original
-              raw data as well as the analytic signal have temporarily to
-              be stored in memory.
+        .. note:: If envelope=False, more memory is required since the
+                  original raw data as well as the analytic signal have
+                  temporarily to be stored in memory.
 
-        Note: If n_jobs > 1 and envelope=True, more memory is required as
-              "len(picks) * n_times" additional time points need to be
-              temporaily stored in memory.
+        .. note:: If n_jobs > 1, more memory is required as
+                  ``len(picks) * n_times`` additional time points need to
+                  be temporaily stored in memory.
 
         Parameters
         ----------
@@ -723,24 +721,26 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
-        filter to the channels selected by "picks". The data of the Raw
-        object is modified inplace.
+        filter to the channels selected by ``picks``. By default the data
+        of the Raw object is modified inplace.
 
-        The Raw object has to be constructed using preload=True (or string).
+        The Raw object has to have the data loaded e.g. with ``preload=True``
+        or ``self.load_data()``.
 
-        l_freq and h_freq are the frequencies below which and above which,
-        respectively, to filter out of the data. Thus the uses are:
+        ``l_freq`` and ``h_freq`` are the frequencies below which and above
+        which, respectively, to filter out of the data. Thus the uses are:
 
             * ``l_freq < h_freq``: band-pass filter
             * ``l_freq > h_freq``: band-stop filter
             * ``l_freq is not None and h_freq is None``: high-pass filter
             * ``l_freq is None and h_freq is not None``: low-pass filter
 
-        If n_jobs > 1, more memory is required as "len(picks) * n_times"
-        additional time points need to be temporarily stored in memory.
+        ``self.info['lowpass']`` and ``self.info['highpass']`` are only
+        updated with picks=None.
 
-        self.info['lowpass'] and self.info['highpass'] are only updated
-        with picks=None.
+        .. note:: If n_jobs > 1, more memory is required as
+                  ``len(picks) * n_times`` additional time points need to
+                  be temporaily stored in memory.
 
         Parameters
         ----------
@@ -779,18 +779,26 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             See mne.filter.construct_iir_filter for details. If iir_params
             is None and method="iir", 4th order Butterworth will be used.
         copy : bool
-            If ``True``, return the modified original object. If ``False``,
-            modify in-place and return the original object.
+            If ``True``, return a modified copy of original object. If
+            ``False`` modify in-place and return the original object.
+
+            .. versionadded:: 0.12.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
 
+        Returns
+        -------
+        raw : instance of Raw
+            The raw instance with filtered data.
+
         See Also
         --------
         mne.Epochs.savgol_filter
+        mne.io.Raw.notch_filter
+        mne.io.Raw.resample
         """
-        if verbose is None:
-            verbose = self.verbose
         fs = float(self.info['sfreq'])
         if l_freq == 0:
             l_freq = None
@@ -802,10 +810,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             h_freq = float(h_freq)
 
         raw = self.copy() if copy else self
-
-        if not raw.preload:
-            raise RuntimeError('Raw data needs to be preloaded to filter. Use '
-                               'preload=True (or string) in the constructor.')
+        _check_preload(raw, 'raw.filter')
         if picks is None:
             picks = _pick_data_or_ica(raw.info)
             # let's be safe.
@@ -867,17 +872,19 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='10s',
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
-                     method='fft', iir_params=None,
-                     mt_bandwidth=None, p_value=0.05, verbose=None):
+                     method='fft', iir_params=None, mt_bandwidth=None,
+                     p_value=0.05, copy=False, verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
-        "picks". The data of the Raw object is modified inplace.
+        "picks". By default the data of the Raw object is modified inplace.
 
-        The Raw object has to be constructed using preload=True (or string).
+        The Raw object has to have the data loaded e.g. with ``preload=True``
+        or ``self.load_data()``.
 
-        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-              additional time points need to be temporaily stored in memory.
+        .. note:: If n_jobs > 1, more memory is required as
+                  ``len(picks) * n_times`` additional time points need to
+                  be temporaily stored in memory.
 
         Parameters
         ----------
@@ -921,44 +928,53 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             sinusoidal components to remove when method='spectrum_fit' and
             freqs=None. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
+        copy : bool
+            If ``True``, return a modified copy of original object. If
+            ``False`` modify in-place and return the original object.
+
+            .. versionadded:: 0.12.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
 
+        Returns
+        -------
+        raw : instance of Raw
+            The raw instance with filtered data.
+
+        See Also
+        --------
+        mne.io.Raw.filter
+
         Notes
         -----
-        For details, see mne.filter.notch_filter.
+        For details, see :func:`mne.filter.notch_filter`.
         """
-        if verbose is None:
-            verbose = self.verbose
-        fs = float(self.info['sfreq'])
+        raw = self.copy() if copy else self
+        fs = float(raw.info['sfreq'])
         if picks is None:
-            picks = _pick_data_or_ica(self.info)
+            picks = _pick_data_or_ica(raw.info)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
                                    'your Raw object. Please contact the '
                                    'MNE-Python developers.')
-        if not self.preload:
-            raise RuntimeError('Raw data needs to be preloaded to filter. Use '
-                               'preload=True (or string) in the constructor.')
-
-        self._data = notch_filter(self._data, fs, freqs,
-                                  filter_length=filter_length,
-                                  notch_widths=notch_widths,
-                                  trans_bandwidth=trans_bandwidth,
-                                  method=method, iir_params=iir_params,
-                                  mt_bandwidth=mt_bandwidth, p_value=p_value,
-                                  picks=picks, n_jobs=n_jobs, copy=False)
+        _check_preload(raw, 'raw.notch_filter')
+        raw._data = notch_filter(
+            raw._data, fs, freqs, filter_length=filter_length,
+            notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
+            method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
+            p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False)
+        return raw
 
     @verbose
     def resample(self, sfreq, npad=None, window='boxcar', stim_picks=None,
                  n_jobs=1, events=None, copy=False, verbose=None):
-        """Resample data channels.
+        """Resample all channels.
 
-        Resamples all channels.
-
-        The Raw object has to be constructed using preload=True (or string).
+        The Raw object has to have the data loaded e.g. with ``preload=True``
+        or ``self.load_data()``.
 
         .. warning:: The intended purpose of this function is primarily to
                      speed up computations (e.g., projection calculation) when
@@ -967,9 +983,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      generally recommended not to epoch downsampled data,
                      but instead epoch and then downsample, as epoching
                      downsampled data jitters triggers.
-                     See here for an example:
-
-                         https://gist.github.com/Eric89GXL/01642cb3789992fbca59
+                     For more, see
+                     `this illustrative gist <https://gist.github.com/Eric89GXL/01642cb3789992fbca59>`_.
 
                      If resampling the continuous data is desired, it is
                      recommended to construct events using the original data.
@@ -1010,15 +1025,20 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         raw : instance of Raw
             The resampled version of the raw object.
 
+        See Also
+        --------
+        mne.io.Raw.filter
+        mne.Epochs.resample
+
         Notes
         -----
-        For some data, it may be more accurate to use npad=0 to reduce
+        For some data, it may be more accurate to use ``npad=0`` to reduce
         artifacts. This is dataset dependent -- check your data!
-        """
+        """  # noqa
         if npad is None:
             npad = 100
             warn('npad is currently taken to be 100, but will be changed to '
-                 '"auto" in 0.12. Please set the value explicitly.',
+                 '"auto" in 0.13. Please set the value explicitly.',
                  DeprecationWarning)
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
@@ -1188,8 +1208,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             that only accepts raw files with buffers of the same size.
         proj : bool
             If True the data is saved with the projections applied (active).
-            Note: If apply_proj() was used to apply the projections,
-            the projectons will be active even if proj is False.
+
+            .. note:: If ``apply_proj()`` was used to apply the projections,
+                      the projectons will be active even if ``proj`` is False.
+
         fmt : str
             Format to use to save raw data. Valid options are 'double',
             'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
@@ -1208,7 +1230,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             parameter specifies the maximum size of each piece. If the
             parameter is an integer, it specifies the size in Bytes. It is
             also possible to pass a human-readable string, e.g., 100MB.
-            Note: Due to FIFF file limitations, the maximum split size is 2GB.
+
+            .. note:: Due to FIFF file limitations, the maximum split
+                      size is 2GB.
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -1836,6 +1861,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 buffer_size_sec = 10.0
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
+
+
+def _check_preload(raw, msg):
+    """Helper to ensure data are preloaded"""
+    if not raw.preload:
+        raise RuntimeError(msg + ' requires raw data to be loaded. Use '
+                           'preload=True (or string) in the constructor or '
+                           'raw.load_data().')
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
