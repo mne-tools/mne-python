@@ -16,7 +16,7 @@ from ..externals.six import string_types
 from ..source_estimate import SourceEstimate
 from ..epochs import _BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger, _reject_data_segments, _get_fast_dot, warn
+from ..utils import logger, _reject_data_segments, warn
 from ..io.pick import pick_types, pick_info
 from ..fixes import in1d
 
