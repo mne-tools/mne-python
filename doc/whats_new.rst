@@ -99,6 +99,7 @@ BUG
 
     - Fix bug in :func:`mne.merge_events` when using ``replace_events=False`` by `Alex Gramfort`_
 
+    - Fix bug in :class:`mne.Evoked` type setting in :func:`mne.stats.linear_regression_raw` by `Eric Larson`_ 
 
 API
 ~~~
@@ -128,7 +129,7 @@ API
     - EOG, ECG and EMG channels are now plotted by default (if present in data) when using :func:`mne.viz.plot_evoked` by `Marijn van Vliet`_
 
 
-    - Replace pseudoinverse-based solver with much faster Cholesky solver in :func:`mne.stats.regression.linear_regression_raw`, by `Jona Sassenhagen`_.
+    - Replace pseudoinverse-based solver with much faster Cholesky solver in :func:`mne.stats.linear_regression_raw`, by `Jona Sassenhagen`_.
 
     - CTF data reader now reads EEG locations from .pos file as HPI points by `Jaakko Leppakangas`_
 

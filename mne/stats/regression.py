@@ -228,8 +228,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     solver : str | function
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string. If str, must be `cholesky`, in which case the
-        solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
+        matrix b; or a string. If str, must be ``'cholesky'``, in which case
+        the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
 
     Returns
     -------
@@ -383,13 +383,12 @@ def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
     durations, primarily for `linear_regression_raw`. See there for an
     explanation of parameters and output."""
     evokeds = dict()
-    cum = 0
+    cumul = 0
     for cond in conds:
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
-        evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                    info=info, comment=cond,
-                                    tmin=tmin_ / float(info["sfreq"]),
-                                    nave=cond_length[cond],
-                                    kind='mean')  # nave and kind are
-        cum += tmax_ - tmin_                      # technically not correct
+        evokeds[cond] = EvokedArray(
+            coefs[:, cumul:cumul + tmax_ - tmin_], info=info, comment=cond,
+            tmin=tmin_ / float(info["sfreq"]), nave=cond_length[cond],
+            kind='average')  # nave and kind are technically incorrect
+        cumul += tmax_ - tmin_
     return evokeds

@@ -1519,21 +1519,24 @@ def test_epochs_proj_mixin():
 
 
 def test_delayed_epochs():
-    """Test delayed projection
-    """
+    """Test delayed projection on Epochs"""
     raw, events, picks = _get_data()
     events = events[:10]
     picks = np.concatenate([pick_types(raw.info, meg=True, eeg=True)[::22],
                             pick_types(raw.info, meg=False, eeg=False,
                                        ecg=True, eog=True)])
     picks = np.sort(picks)
+    raw.load_data().pick_channels([raw.ch_names[pick] for pick in picks],
+                                  copy=False)
+    raw.info.normalize_proj()
+    del picks
     raw.info['lowpass'] = 40.  # fake the LP info so no warnings
     for preload in (True, False):
         for proj in (True, False, 'delayed'):
             for decim in (1, 3):
                 for ii in range(2):
                     epochs = Epochs(raw, events, event_id, tmin, tmax,
-                                    picks=picks, proj=proj, reject=reject,
+                                    proj=proj, reject=reject,
                                     preload=preload, decim=decim)
                     if ii == 1:
                         epochs.load_data()

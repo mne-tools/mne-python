@@ -942,10 +942,12 @@ class EvokedArray(Evoked):
         self.picks = None
         self.verbose = verbose
         self._projector = None
-        if self.kind == 'average':
-            self._aspect_kind = _aspect_dict['average']
-        else:
-            self._aspect_kind = _aspect_dict['standard_error']
+        if not isinstance(self.kind, string_types):
+            raise TypeError('kind must be a string, not "%s"' % (type(kind),))
+        if self.kind not in _aspect_dict:
+            raise ValueError('unknown kind "%s", should be "average" or '
+                             '"standard_error"' % (self.kind,))
+        self._aspect_kind = _aspect_dict[self.kind]
 
 
 def _get_entries(fid, evoked_node):
