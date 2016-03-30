@@ -248,7 +248,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     if isinstance(solver, string_types):
         if solver == 'cholesky':
             def solver(X, y):
-                a = (X.T * X).toarray()
+                a = (X.T * X).toarray()  # dot product of sparse matrices
                 return linalg.solve(a, X.T * y.T, sym_pos=True,
                                     overwrite_a=True, overwrite_b=True).T
 
