@@ -1531,14 +1531,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, n_jobs=n_jobs, verbose=verbose)
 
-    def plot_sensors(self, projection='3d', show=True):
+    def plot_sensors(self, kind='topomap', show=True):
         """
         Plot sensor positions.
 
         Parameters
         ----------
-        projection : str
-            Projection to use. Available options '3d', 'xy', 'yz', 'xz'.
+        kind : str
+            Whether to plot the sensors as 3d or as topomap. Available options
+            'topomap', '3d'.
         show : bool
             Show figure if True.
 
@@ -1553,7 +1554,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         .. versionadded:: 0.12.0
 
         """
-        return plot_sensors(self.info, projection=projection, show=show)
+        return plot_sensors(self.info, kind=kind, show=show)
 
     def time_as_index(self, times, use_first_samp=False, use_rounding=False):
         """Convert time to indices

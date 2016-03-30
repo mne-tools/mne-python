@@ -136,8 +136,7 @@ def test_plot_sensors():
     raw = _get_raw()
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
-    for proj in ['layout', 'xy', 'yz', 'xz']:
-        raw.plot_sensors(proj)
+    raw.plot_sensors('topomap')
     plt.close('all')
 
 run_tests_if_main()

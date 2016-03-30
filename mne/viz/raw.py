@@ -18,12 +18,13 @@ from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
+from .topomap import _check_outlines
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar,
                     _plot_raw_onscroll, _mouse_click, plt_show,
                     _helper_raw_resize, _select_bads, _onclick_help)
 from ..defaults import _handle_default
-from ..channels import find_layout
+from ..channels.layout import _auto_topomap_coords
 
 
 def _plot_update_raw_proj(params, bools):
@@ -817,15 +818,16 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
     return fig
 
 
-def plot_sensors(info, projection='layout', show=True):
+def plot_sensors(info, kind='topomap', show=True):
     """Plot sensor positions.
 
     Parameters
     ----------
     info : Instance of Info
         Info structure containing the channel locations.
-    projection : str
-        Projection to use. Available options 'layout', 3d', 'xy', 'yz', 'xz'.
+    kind : str
+        Whether to plot the sensors as 3d or as topomap. Available options
+        'topomap', '3d'.
     show : bool
         Show figure if True.
 
@@ -840,22 +842,16 @@ def plot_sensors(info, projection='layout', show=True):
     .. versionadded:: 0.12.0
 
     """
-    if projection not in ['layout', '3d', 'xy', 'yz', 'xz']:
-        raise ValueError("Projection must be one of ['layout', '3d', 'xy', "
-                         "'yz', 'xz'].")
+    if kind not in ['topomap', '3d']:
+        raise ValueError("Kind must be 'topomap' or '3d'.")
     picks = _pick_data_channels(info, exclude=[])
-    pos = np.asarray([ch['loc'][:3] for ch in info['chs']])[picks]
+    if kind == 'topomap':
+        pos = _auto_topomap_coords(info, picks, True)
+    else:
+        pos = np.asarray([ch['loc'][:3] for ch in info['chs']])[picks]
     def_colors = _handle_default('color')
     colors = [def_colors[channel_type(info, i)] for i in picks]
     ch_names = np.array(info['ch_names'])[picks]
-    if projection == 'layout':
-        return find_layout(info).plot(show=show)
-    elif projection == 'xy':
-        pos = pos[:, :2]
-    elif projection == 'yz':
-        pos = pos[:, 1:]
-    elif projection == 'xz':
-        pos = pos[:, ::2]
     return _plot_sensors(pos, colors, ch_names, show)
 
 
@@ -884,11 +880,22 @@ def _plot_sensors(pos, colors, ch_names, show):
         ax = fig.gca(projection='3d')
         ax.text(0, 0, 0, '')
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors)
-
     else:
         ax = fig.add_subplot(111)
         ax.text(0, 0, '')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
+                            hspace=None)
+        pos, outlines = _check_outlines(pos, 'head')
+        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                          ['patch', 'autoshrink']])
+        for k, (x, y) in outlines_.items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=1, clip_on=False)
         ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors)
+
     picker = partial(onpick, pos=pos)
     fig.canvas.mpl_connect('pick_event', picker)
     plt_show(show)

@@ -9,6 +9,9 @@ from __future__ import print_function
 import copy
 import os.path as op
 import warnings
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -279,6 +282,10 @@ def test_find_layout():
 
     lout = find_layout(read_raw_kit(fname_kit_157).info)
     assert_true(lout.kind == 'KIT-157')
+    # Test plotting
+    import matplotlib.pyplot as plt
+    lout.plot()
+    plt.close('all')
 
 
 def test_box_size():
