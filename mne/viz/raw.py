@@ -23,6 +23,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _plot_raw_onscroll, _mouse_click, plt_show,
                     _helper_raw_resize, _select_bads, _onclick_help)
 from ..defaults import _handle_default
+from ..channels import find_layout
 
 
 def _plot_update_raw_proj(params, bools):
@@ -816,7 +817,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
     return fig
 
 
-def plot_sensors(info, projection='3d', show=True):
+def plot_sensors(info, projection='layout', show=True):
     """Plot sensor positions.
 
     Parameters
@@ -824,7 +825,7 @@ def plot_sensors(info, projection='3d', show=True):
     info : Instance of Info
         Info structure containing the channel locations.
     projection : str
-        Projection to use. Available options '3d', 'xy', 'yz', 'xz'.
+        Projection to use. Available options 'layout', 3d', 'xy', 'yz', 'xz'.
     show : bool
         Show figure if True.
 
@@ -839,19 +840,23 @@ def plot_sensors(info, projection='3d', show=True):
     .. versionadded:: 0.12.0
 
     """
-    if projection not in ['3d', 'xy', 'yz', 'xz']:
-        raise ValueError("Projection must be one of ['3d', 'xy', 'yz', 'xz'].")
+    if projection not in ['layout', '3d', 'xy', 'yz', 'xz']:
+        raise ValueError("Projection must be one of ['layout', '3d', 'xy', "
+                         "'yz', 'xz'].")
     picks = _pick_data_channels(info, exclude=[])
     pos = np.asarray([ch['loc'][:3] for ch in info['chs']])[picks]
     def_colors = _handle_default('color')
     colors = [def_colors[channel_type(info, i)] for i in picks]
-    if projection == 'xy':
+    ch_names = np.array(info['ch_names'])[picks]
+    if projection == 'layout':
+        return find_layout(info).plot(show=show)
+    elif projection == 'xy':
         pos = pos[:, :2]
     elif projection == 'yz':
         pos = pos[:, 1:]
     elif projection == 'xz':
         pos = pos[:, ::2]
-    return _plot_sensors(pos, colors, info['ch_names'], show)
+    return _plot_sensors(pos, colors, ch_names, show)
 
 
 def _plot_sensors(pos, colors, ch_names, show):
@@ -876,8 +881,10 @@ def _plot_sensors(pos, colors, ch_names, show):
 
     if pos.shape[1] == 3:
         ax = Axes3D(fig)
+        ax = fig.gca(projection='3d')
         ax.text(0, 0, 0, '')
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors)
+
     else:
         ax = fig.add_subplot(111)
         ax.text(0, 0, '')

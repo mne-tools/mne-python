@@ -86,6 +86,45 @@ class Layout(object):
         return '<Layout | %s - Channels: %s ...>' % (self.kind,
                                                      ', '.join(self.names[:3]))
 
+    def plot(self, show=True):
+        """Plot the sensor positions.
+
+        show : bool
+            Show figure if True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure containing the sensor topography.
+
+        Notes
+        -----
+
+        .. versionadded:: 0.12.0
+
+        """
+        import matplotlib.pyplot as plt
+        from ..viz.topomap import _check_outlines
+        from ..viz.utils import plt_show
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
+                            hspace=None)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        pos, outlines = _check_outlines(self.pos, 'head')
+        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                          ['patch', 'autoshrink']])
+        for k, (x, y) in outlines_.items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+        for ii, (p, ch_id) in enumerate(zip(pos, self.names)):
+            ax.annotate(ch_id, xy=(p[0], p[1]), horizontalalignment='center',
+                        fontsize=1, verticalalignment='top', size='x-small')
+        plt_show(show)
+        return fig
+
 
 def _read_lout(fname):
     """Aux function"""
