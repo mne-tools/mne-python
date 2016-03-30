@@ -99,6 +99,7 @@ BUG
 
     - Fix bug in :func:`mne.merge_events` when using ``replace_events=False`` by `Alex Gramfort`_
 
+    - Fix bug in :class:`mne.Evoked` type setting in :func:`mne.stats.linear_regression_raw` by `Eric Larson`_ 
 
 API
 ~~~

@@ -449,6 +449,10 @@ def test_array_epochs():
     assert_equal(evoked1.kind, evoked3.kind)
     assert_equal(evoked1.nave, evoked3.nave)
 
+    # test kind check
+    assert_raises(TypeError, EvokedArray, data1, info, tmin=0, kind=1)
+    assert_raises(ValueError, EvokedArray, data1, info, tmin=0, kind='mean')
+
     # test match between channels info and data
     ch_names = ['EEG %03d' % (i + 1) for i in range(19)]
     types = ['eeg'] * 19

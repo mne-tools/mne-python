@@ -383,13 +383,12 @@ def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
     durations, primarily for `linear_regression_raw`. See there for an
     explanation of parameters and output."""
     evokeds = dict()
-    cum = 0
+    cumul = 0
     for cond in conds:
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
-        evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                    info=info, comment=cond,
-                                    tmin=tmin_ / float(info["sfreq"]),
-                                    nave=cond_length[cond],
-                                    kind='mean')  # nave and kind are
-        cum += tmax_ - tmin_                      # technically not correct
+        evokeds[cond] = EvokedArray(
+           coefs[:, cumul:cumul + tmax_ - tmin_], info=info, comment=cond,
+           tmin=tmin_ / float(info["sfreq"]), nave=cond_length[cond],
+           kind='average')  # nave and kind are technically incorrect
+        cumul += tmax_ - tmin_
     return evokeds
