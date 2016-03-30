@@ -827,9 +827,9 @@ def plot_sensors(info, kind='topomap', show=True):
         Info structure containing the channel locations.
     kind : str
         Whether to plot the sensors as 3d or as topomap. Available options
-        'topomap', '3d'.
+        'topomap', '3d'. Defaults to 'topomap'.
     show : bool
-        Show figure if True.
+        Show figure if True. Defaults to True.
 
     Returns
     -------
@@ -880,11 +880,11 @@ def _plot_sensors(pos, colors, ch_names, bads, show):
     if pos.shape[1] == 3:
         ax = Axes3D(fig)
         ax = fig.gca(projection='3d')
-        ax.text(0, 0, 0, '')
+        ax.text(0, 0, 0, '', zorder=1)
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors)
     else:
         ax = fig.add_subplot(111)
-        ax.text(0, 0, '')
+        ax.text(0, 0, '', zorder=1)
         ax.set_xticks([])
         ax.set_yticks([])
         fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,

@@ -90,7 +90,7 @@ class Layout(object):
         """Plot the sensor positions.
 
         show : bool
-            Show figure if True.
+            Show figure if True. Defaults to True.
 
         Returns
         -------
@@ -104,8 +104,8 @@ class Layout(object):
 
         """
         import matplotlib.pyplot as plt
-        from ..viz.topomap import _check_outlines
-        from ..viz.utils import plt_show
+        from mne.viz.topomap import _check_outlines
+        from mne.viz.utils import plt_show
         fig = plt.figure()
         ax = fig.add_subplot(111)
         fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
@@ -121,7 +121,7 @@ class Layout(object):
             ax.plot(x, y, color='k', linewidth=1, clip_on=False)
         for ii, (p, ch_id) in enumerate(zip(pos, self.names)):
             ax.annotate(ch_id, xy=(p[0], p[1]), horizontalalignment='center',
-                        fontsize=1, verticalalignment='top', size='x-small')
+                        fontsize=1, verticalalignment='center', size='x-small')
         plt_show(show)
         return fig
 

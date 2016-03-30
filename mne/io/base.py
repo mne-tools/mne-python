@@ -1539,14 +1539,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         kind : str
             Whether to plot the sensors as 3d or as topomap. Available options
-            'topomap', '3d'.
+            'topomap', '3d'. Defaults to 'topomap'.
         show : bool
-            Show figure if True.
+            Show figure if True. Defaults to True.
 
         Returns
         -------
         fig : instance of matplotlib figure
-            Figure containing the 3D sensor topography.
+            Figure containing the sensor topography.
 
         Notes
         -----

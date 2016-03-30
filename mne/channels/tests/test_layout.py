@@ -217,6 +217,7 @@ def test_make_grid_layout():
 
 def test_find_layout():
     """Test finding layout"""
+    import matplotlib.pyplot as plt
     assert_raises(ValueError, find_layout, test_info, ch_type='meep')
 
     sample_info = Raw(fif_fname).info
@@ -283,7 +284,6 @@ def test_find_layout():
     lout = find_layout(read_raw_kit(fname_kit_157).info)
     assert_true(lout.kind == 'KIT-157')
     # Test plotting
-    import matplotlib.pyplot as plt
     lout.plot()
     plt.close('all')
 
