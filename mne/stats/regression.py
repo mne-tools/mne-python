@@ -387,8 +387,8 @@ def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
     for cond in conds:
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
         evokeds[cond] = EvokedArray(
-           coefs[:, cumul:cumul + tmax_ - tmin_], info=info, comment=cond,
-           tmin=tmin_ / float(info["sfreq"]), nave=cond_length[cond],
-           kind='average')  # nave and kind are technically incorrect
+            coefs[:, cumul:cumul + tmax_ - tmin_], info=info, comment=cond,
+            tmin=tmin_ / float(info["sfreq"]), nave=cond_length[cond],
+            kind='average')  # nave and kind are technically incorrect
         cumul += tmax_ - tmin_
     return evokeds

@@ -32,7 +32,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin
 from .bem import _check_origin
-from .evoked import EvokedArray, _aspect_rev
+from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
