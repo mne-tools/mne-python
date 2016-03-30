@@ -134,9 +134,9 @@ def test_plot_sensors():
     """Test plotting of sensor array."""
     import matplotlib.pyplot as plt
     raw = _get_raw()
-    fig = raw.plot_sensors()
+    fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
-    for proj in ['xy', 'yz', 'xz']:
+    for proj in ['layout', 'xy', 'yz', 'xz']:
         raw.plot_sensors(proj)
     plt.close('all')
 
