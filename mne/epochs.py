@@ -747,18 +747,16 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 data = np.sqrt(data / n_events)
 
         if not _do_std:
-            _aspect_kind = FIFF.FIFFV_ASPECT_AVERAGE
+            kind = 'average'
         else:
-            _aspect_kind = FIFF.FIFFV_ASPECT_STD_ERR
+            kind = 'standard_error'
             data /= np.sqrt(n_events)
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
-                                            _aspect_kind)
+                                            kind)
 
-    def _evoked_from_epoch_data(self, data, info, picks, n_events,
-                                aspect_kind):
+    def _evoked_from_epoch_data(self, data, info, picks, n_events, kind):
         """Helper to create an evoked object from epoch data"""
         info = deepcopy(info)
-        kind = _aspect_rev.get(str(aspect_kind), 'Unknown')
         evoked = EvokedArray(data, info, tmin=self.times[0],
                              comment=self.name, nave=n_events, kind=kind,
                              verbose=self.verbose)
@@ -3005,8 +3003,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         # Apply mapping
         data[meg_picks] = np.dot(mapping, data[good_picks])
     info_to['dev_head_t'] = recon_trans  # set the reconstruction transform
-    evoked = epochs._evoked_from_epoch_data(
-        data, info_to, picks, count, 'average')
+    evoked = epochs._evoked_from_epoch_data(data, info_to, picks,
+                                            n_events=count, kind='average')
     _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked

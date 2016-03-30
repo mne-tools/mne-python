@@ -228,8 +228,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     solver : str | function
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string. If str, must be `cholesky`, in which case the
-        solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
+        matrix b; or a string. If str, must be ``'cholesky'``, in which case
+        the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
 
     Returns
     -------

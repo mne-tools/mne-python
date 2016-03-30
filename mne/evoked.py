@@ -946,7 +946,7 @@ class EvokedArray(Evoked):
             raise TypeError('kind must be a string, not "%s"' % (type(kind),))
         if self.kind not in _aspect_dict:
             raise ValueError('unknown kind "%s", should be "average" or '
-                             '"standard_error"')
+                             '"standard_error"' % (self.kind,))
         self._aspect_kind = _aspect_dict[self.kind]
 
 
