@@ -850,12 +850,14 @@ def plot_sensors(info, kind='topomap', show=True):
     else:
         pos = np.asarray([ch['loc'][:3] for ch in info['chs']])[picks]
     def_colors = _handle_default('color')
-    colors = [def_colors[channel_type(info, i)] for i in picks]
     ch_names = np.array(info['ch_names'])[picks]
-    return _plot_sensors(pos, colors, ch_names, show)
+    bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
+    colors = ['red' if i in bads else def_colors[channel_type(info, i)] for i
+              in picks]
+    return _plot_sensors(pos, colors, ch_names, bads, show)
 
 
-def _plot_sensors(pos, colors, ch_names, show):
+def _plot_sensors(pos, colors, ch_names, bads, show):
     """Helper function for plotting sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
