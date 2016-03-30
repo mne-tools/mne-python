@@ -16,7 +16,7 @@ from ..externals.six import string_types
 from ..source_estimate import SourceEstimate
 from ..epochs import _BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger, _reject_data_segments, _get_fast_dot, warn
+from ..utils import logger, _reject_data_segments, warn
 from ..io.pick import pick_types, pick_info
 from ..fixes import in1d
 
@@ -155,7 +155,7 @@ def _fit_lm(data, design_matrix, names):
 
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
-                          decim=1, picks=None, solver='pinv'):
+                          decim=1, picks=None, solver='cholesky'):
     """Estimate regression-based evoked potentials/fields by linear modelling
 
     This models the full M/EEG time course, including correction for
@@ -228,8 +228,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     solver : str | function
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string (for now, only 'pinv'), in which case the
-        solver used is `dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T`.
+        matrix b; or a string. If str, must be `cholesky`, in which case the
+        solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
 
     Returns
     -------
@@ -246,13 +246,12 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     """
 
     if isinstance(solver, string_types):
-        if solver == 'pinv':
-            fast_dot = _get_fast_dot()
+        if solver == 'cholesky':
+            def solver(X, y):
+                a = (X.T * X).toarray()  # dot product of sparse matrices
+                return linalg.solve(a, X.T * y.T, sym_pos=True,
+                                    overwrite_a=True, overwrite_b=True).T
 
-            # inv is slightly (~10%) faster, but pinv seemingly more stable
-            def solver(X, Y):
-                return fast_dot(linalg.pinv(X.T.dot(X).todense()),
-                                X.T.dot(Y.T)).T
         else:
             raise ValueError("No such solver: {0}".format(solver))
 

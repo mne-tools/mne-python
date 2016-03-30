@@ -127,6 +127,9 @@ API
 
     - EOG, ECG and EMG channels are now plotted by default (if present in data) when using :func:`mne.viz.plot_evoked` by `Marijn van Vliet`_
 
+
+    - Replace pseudoinverse-based solver with much faster Cholesky solver in :func:`mne.stats.regression.linear_regression_raw`, by `Jona Sassenhagen`_.
+
     - CTF data reader now reads EEG locations from .pos file as HPI points by `Jaakko Leppakangas`_
 
     - Subselecting channels can now emit a warning if many channels have been subselected from projection vectors. We recommend only computing projection vertors for and applying projectors to channels that will be used in the final analysis. However, after picking a subset of channels, projection vectors can be renormalized with :func:`mne.io.Info.normalize_proj` if necessary to avoid warnings about subselection. Changes by `Eric Larson`_ and `Alex Gramfort`_.
