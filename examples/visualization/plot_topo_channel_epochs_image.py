@@ -39,6 +39,9 @@ raw.info['bads'] = ['MEG 2443', 'EEG 053']
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
                        exclude='bads')
 
+# Plot sensors in 3d
+raw.plot_sensors(kind='3d', picks=picks)
+
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,

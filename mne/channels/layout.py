@@ -112,7 +112,8 @@ class Layout(object):
                             hspace=None)
         ax.set_xticks([])
         ax.set_yticks([])
-        pos, outlines = _check_outlines(self.pos, 'head')
+        pos = [(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in self.pos]
+        pos, outlines = _check_outlines(pos, 'head')
         outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
                           ['patch', 'autoshrink']])
         for k, (x, y) in outlines_.items():
@@ -121,7 +122,7 @@ class Layout(object):
             ax.plot(x, y, color='k', linewidth=1, clip_on=False)
         for ii, (p, ch_id) in enumerate(zip(pos, self.names)):
             ax.annotate(ch_id, xy=(p[0], p[1]), horizontalalignment='center',
-                        fontsize=1, verticalalignment='center', size='x-small')
+                        verticalalignment='center', size='x-small')
         plt_show(show)
         return fig
 

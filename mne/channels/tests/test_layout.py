@@ -11,7 +11,6 @@ import os.path as op
 import warnings
 # Set our plotters to test mode
 import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -27,6 +26,7 @@ from mne.io import Raw, read_raw_kit, _empty_info
 from mne.io.constants import FIFF
 from mne.bem import fit_sphere_to_headshape
 from mne.utils import _TempDir
+matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')
 
