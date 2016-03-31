@@ -80,6 +80,7 @@ from .proj import (read_proj, write_proj, compute_proj_epochs,
 from .selection import read_selection
 from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
 from .channels import equalize_channels, rename_channels, find_layout
+from .report import Report
 
 from . import beamformer
 from . import channels

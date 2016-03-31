@@ -195,7 +195,7 @@ The suggested pipeline is ``proj=True`` in epochs (it's computationally cheaper 
 
 .. topic:: Examples:
 
-	* :ref:`example_visualization_plot_evoked_delayed_ssp.py`: Interactive SSP
-	* :ref:`example_visualization_plot_evoked_topomap_delayed_ssp.py`: Interactive SSP
-	* :ref:`example_visualization_plot_ssp_projs_topomaps.py`: SSP sensitivities in sensor space
-	* :ref:`example_visualization_plot_ssp_projs_sensitivity_map.py`: SSP sensitivities in source space
+	* :ref:`sphx_glr_auto_examples_visualization_plot_evoked_delayed_ssp.py`: Interactive SSP
+	* :ref:`sphx_glr_auto_examples_visualization_plot_evoked_topomap_delayed_ssp.py`: Interactive SSP
+	* :ref:`sphx_glr_auto_examples_visualization_plot_ssp_projs_topomaps.py`: SSP sensitivities in sensor space
+	* :ref:`sphx_glr_auto_examples_visualization_plot_ssp_projs_sensitivity_map.py`: SSP sensitivities in source space
