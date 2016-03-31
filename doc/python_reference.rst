@@ -220,6 +220,8 @@ Functions:
 Sample datasets
 ===============
 
+:py:mod:`mne.datasets`:
+
 :py:mod:`mne.datasets.sample`:
 
 .. automodule:: mne.datasets.sample
