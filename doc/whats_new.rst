@@ -54,6 +54,9 @@ Changelog
 
     - Add function :func:`mne.viz.plot_sensors` and methods :func:`mne.Epochs.plot_sensors`, :func:`mne.io.Raw.plot_sensors` and :func:`mne.Evoked.plot_sensors` for plotting sensor positions and :func:`mne.viz.plot_layout` and :func:`mne.channels.Layout.plot` for plotting layouts by `Jaakko Leppakangas`_
 
+    - Add epoch rejection based on annotated segments by `Jaakko Leppakangas`_
+
+
 BUG
 ~~~
 
