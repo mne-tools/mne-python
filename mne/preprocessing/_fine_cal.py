@@ -398,6 +398,7 @@ def write_fine_calibration(fname, calibration):
             # them out
             cal_line = np.concatenate([calibration['locs'][ci],
                                        calibration['imb_cals'][ci]]).round(6)
+            # Write string containing 1) channel, 2) loc info, 3) calib info
             cal_str = str(chan) + ' ' + ' '.join(map(lambda x: "%.6f" % x,
                                                      cal_line))
 
