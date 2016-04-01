@@ -106,8 +106,8 @@ def test_continuous_regression_no_overlap():
 
     # incremental solver
     incremental = linear_regression_raw(
-      raw, events, event_id, tmin=tmin, tmax=tmax, reject=None,
-      solver='incremental')
+        raw, events, event_id, tmin=tmin, tmax=tmax, reject=None,
+        solver='incremental')
 
     # Check that evokeds and revokeds are nearly equivalent
     for cond in event_id.keys():
