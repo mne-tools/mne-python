@@ -40,7 +40,7 @@ from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d, _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
-                  plot_epochs_image, plot_topo_image_epochs)
+                  plot_epochs_image, plot_topo_image_epochs, plot_sensors)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, object_hash, warn)
 from .externals.six import iteritems, string_types
@@ -1809,6 +1809,34 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         epochs.drop_epochs(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices
+
+    def plot_sensors(self, kind='topomap', ch_type=None, show=True):
+        """
+        Plot sensors positions.
+
+        Parameters
+        ----------
+        kind : str
+            Whether to plot the sensors as 3d or as topomap. Available options
+            'topomap', '3d'. Defaults to 'topomap'.
+        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
+            The channel type to plot. If None, then channels are chosen in the
+            order given above.
+        show : bool
+            Show figure if True. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure containing the sensor topography.
+
+        Notes
+        -----
+
+        .. versionadded:: 0.12.0
+
+        """
+        return plot_sensors(self.info, kind=kind, ch_type=ch_type, show=show)
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):

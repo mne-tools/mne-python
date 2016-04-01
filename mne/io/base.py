@@ -1531,7 +1531,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, n_jobs=n_jobs, verbose=verbose)
 
-    def plot_sensors(self, kind='topomap', picks=None, show=True):
+    def plot_sensors(self, kind='topomap', ch_type=None, show=True):
         """
         Plot sensors positions.
 
@@ -1540,9 +1540,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         kind : str
             Whether to plot the sensors as 3d or as topomap. Available options
             'topomap', '3d'. Defaults to 'topomap'.
-        picks : array-like of int | None
-            The indices of the channels to consider. If None, all the data
-            channels are plotted.
+        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
+            The channel type to plot. If None, then channels are chosen in the
+            order given above.
         show : bool
             Show figure if True. Defaults to True.
 
@@ -1557,7 +1557,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         .. versionadded:: 0.12.0
 
         """
-        return plot_sensors(self.info, kind=kind, picks=picks, show=show)
+        return plot_sensors(self.info, kind=kind, ch_type=ch_type, show=show)
 
     def time_as_index(self, times, use_first_samp=False, use_rounding=False):
         """Convert time to indices

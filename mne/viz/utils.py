@@ -17,7 +17,11 @@ import webbrowser
 import tempfile
 import numpy as np
 
+from ..channels.layout import _auto_topomap_coords
+from ..channels.channels import _contains_ch_type
+from ..defaults import _handle_default
 from ..io import show_fiff
+from ..io.pick import channel_type, channel_indices_by_type
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..fixes import _get_argrelmax
@@ -897,3 +901,102 @@ def _process_times(inst, times, n_peaks=None, few=False):
                            'than 20 time instants.')
 
     return times
+
+
+def plot_sensors(info, kind='topomap', ch_type=None, show=True):
+    """Plot sensors positions.
+
+    Parameters
+    ----------
+    info : Instance of Info
+        Info structure containing the channel locations.
+    kind : str
+        Whether to plot the sensors as 3d or as topomap. Available options
+        'topomap', '3d'. Defaults to 'topomap'.
+    ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
+        The channel type to plot. If None, then channels are chosen in the
+        order given above.
+    picks : array-like of int | None
+        The indices of the channels to consider. If None, all the data channels
+        are plotted.
+    show : bool
+        Show figure if True. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure containing the sensor topography.
+
+    Notes
+    -----
+
+    .. versionadded:: 0.12.0
+
+    """
+    if kind not in ['topomap', '3d']:
+        raise ValueError("Kind must be 'topomap' or '3d'.")
+    ch_indices = channel_indices_by_type(info)
+    if ch_type is None:
+        for type in ['mag', 'grad', 'eeg', 'seeg']:
+            if _contains_ch_type(info, type):
+                ch_type = type
+                break
+    picks = ch_indices[ch_type]
+    if kind == 'topomap':
+        pos = _auto_topomap_coords(info, picks, True)
+    else:
+        pos = np.asarray([ch['loc'][:3] for ch in info['chs']])[picks]
+    def_colors = _handle_default('color')
+    ch_names = np.array(info['ch_names'])[picks]
+    bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
+    colors = ['red' if i in bads else def_colors[channel_type(info, i)] for i
+              in picks]
+    return _plot_sensors(pos, colors, ch_names, show)
+
+
+def _plot_sensors(pos, colors, ch_names, show):
+    """Helper function for plotting sensors."""
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from .topomap import _check_outlines
+    fig = plt.figure()
+
+    def onpick(event, pos):
+        ind = event.ind[0]  # Just take the first sensor.
+        ch_name = ch_names[ind]
+        pos = pos[ind]
+
+        # XXX: Bug in matplotlib won't allow setting the position of existing
+        # text item, so we create a new one.
+        ax.texts.pop(0)
+        if len(pos) == 3:
+            ax.text(pos[0], pos[1], pos[2], ch_name)
+        else:
+            ax.text(pos[0], pos[1], ch_name)
+        fig.canvas.draw()
+
+    if pos.shape[1] == 3:
+        ax = Axes3D(fig)
+        ax = fig.gca(projection='3d')
+        ax.text(0, 0, 0, '', zorder=1)
+        ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors)
+    else:
+        ax = fig.add_subplot(111)
+        ax.text(0, 0, '', zorder=1)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
+                            hspace=None)
+        pos, outlines = _check_outlines(pos, 'head')
+        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                          ['patch', 'autoshrink']])
+        for k, (x, y) in outlines_.items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+        ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors)
+
+    picker = partial(onpick, pos=pos)
+    fig.canvas.mpl_connect('pick_event', picker)
+    plt_show(show)
+    return fig

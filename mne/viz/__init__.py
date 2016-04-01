@@ -6,7 +6,7 @@ from .topomap import (plot_evoked_topomap, plot_projs_topomap,
                       plot_epochs_psd_topomap)
 from .topo import plot_topo_image_epochs, iter_topography
 from .utils import (tight_layout, mne_analyze_colormap, compare_fiff,
-                    ClickableImage, add_background_image)
+                    ClickableImage, add_background_image, plot_sensors)
 from ._3d import (plot_sparse_source_estimates, plot_source_estimates,
                   plot_trans, plot_evoked_field, plot_dipole_locations)
 from .misc import (plot_cov, plot_bem, plot_events, plot_source_spectrogram,
@@ -17,7 +17,7 @@ from .evoked import (plot_evoked, plot_evoked_image, plot_evoked_white,
 from .circle import plot_connectivity_circle, circular_layout
 from .epochs import (plot_drop_log, plot_epochs, plot_epochs_psd,
                      plot_epochs_image)
-from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo, plot_sensors
+from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from .ica import plot_ica_scores, plot_ica_sources, plot_ica_overlay
 from .ica import _plot_sources_raw, _plot_sources_epochs
 from .montage import plot_montage

@@ -17,7 +17,7 @@ from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import check_fname, logger, verbose, object_hash, _time_mask, warn
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
-                  plot_evoked_image, plot_evoked_topo)
+                  plot_evoked_image, plot_evoked_topo, plot_sensors)
 from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
                          _animate_evoked_topomap)
 
@@ -640,6 +640,34 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return plot_evoked_joint(self, times=times, title=title, picks=picks,
                                  exclude=exclude, show=show, ts_args=ts_args,
                                  topomap_args=topomap_args)
+
+    def plot_sensors(self, kind='topomap', ch_type=None, show=True):
+        """
+        Plot sensors positions.
+
+        Parameters
+        ----------
+        kind : str
+            Whether to plot the sensors as 3d or as topomap. Available options
+            'topomap', '3d'. Defaults to 'topomap'.
+        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
+            The channel type to plot. If None, then channels are chosen in the
+            order given above.
+        show : bool
+            Show figure if True. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure containing the sensor topography.
+
+        Notes
+        -----
+
+        .. versionadded:: 0.12.0
+
+        """
+        return plot_sensors(self.info, kind=kind, ch_type=ch_type, show=show)
 
     def animate_topomap(self, ch_type='mag', times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True):
