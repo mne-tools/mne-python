@@ -86,7 +86,7 @@ Decoding relies on scikit-learn >= 0.15.
 
 To run the tests you will also need nose >= 0.10.
 and the MNE sample dataset (will be downloaded automatically
-when you run an example ... but be patient)
+when you run an example ... but be patient).
 
 To use NVIDIA CUDA for resampling and FFT FIR filtering, you will also need
 to install the NVIDIA CUDA SDK, pycuda, and scikits.cuda. The difficulty of this
