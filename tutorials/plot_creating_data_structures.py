@@ -19,7 +19,7 @@ import numpy as np
 # .. note:: for full documentation on the `Info` object, see
 #           :ref:`tut_info_objects`.
 #
-# Normally, :class:`mne.io.meas_info.Info` objects are created by the various
+# Normally, :class:`mne.io.Info` objects are created by the various
 # :ref:`data import functions <ch_convert>`.
 # However, if you wish to create one from scratch, you can use the
 # :func:`mne.create_info` function to initialize the minimally required
@@ -76,9 +76,9 @@ print(info)
 # ---------------------------------------------
 #
 # To create a :class:`mne.io.Raw` object from scratch, you can use the
-# :class:`mne.RawArray` class, which implements raw data that is backed by a
+# :class:`mne.io.RawArray` class, which implements raw data that is backed by a
 # numpy array.  Its constructor simply takes the data matrix and
-# :class:`mne.io.meas_info.Info` object:
+# :class:`mne.io.Info` object:
 
 # Generate some random data
 data = np.random.randn(5, 1000)

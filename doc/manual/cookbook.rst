@@ -274,7 +274,7 @@ segmentation.
           e.g. ``conductivities=[0.3]``.
 
 Using this model, the BEM solution can be computed using
-:func:`mne.make_bem_solution`` as::
+:func:`mne.make_bem_solution` as::
 
     >>> bem_sol = make_bem_solution(model)
     >>> write_bem_solution('sample-5120-5120-5120-bem-sol.fif', bem_sol)

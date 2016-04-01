@@ -180,7 +180,7 @@ and
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}|p{0.5\linewidth}|
 .. _CHDJDEDJ:
-.. table:: Coordinate transformations in FreeSurfer and MNE software packages. The symbols :math:`T_x` are defined in :ref:`CHDFFJIJ`. Note: mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.
+.. table:: Coordinate transformations in FreeSurfer and MNE software packages.
 
     +------------------------------+-------------------------------+--------------------------------------+
     | Transformation               | FreeSurfer                    | MNE                                  |
@@ -214,6 +214,8 @@ and
     |                              |                               | mne_make_cor_set if the input is in  |
     |                              |                               | mgz or mgh format.                   |
     +------------------------------+-------------------------------+--------------------------------------+
+
+.. note:: The symbols :math:`T_x` are defined in :ref:`CHDFFJIJ`. mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.
 
 .. _BJEBIBAI:
 
@@ -524,7 +526,7 @@ The columns of the tables contain the following data:
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _BGBBHGEC:
-.. table:: Normal coil descriptions. Note: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
+.. table:: Normal coil descriptions.
 
     +------+-------------------------+----+----------------------------------+----------------------+
     | Id   | Description             | n  | r/mm                             | w                    |
@@ -580,6 +582,8 @@ The columns of the tables contain the following data:
     |      | gradiometer measuring   |    | (+/-8.6, +/-8.6, 78.6)mm         | -1/4                 |
     |      | diagonal gradients      |    |                                  |                      |
     +------+-------------------------+----+----------------------------------+----------------------+
+
+.. note:: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.05\linewidth}|p{0.25\linewidth}|p{0.15\linewidth}|
 .. _CHDBDFJE:

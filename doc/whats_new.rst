@@ -16,7 +16,7 @@ Changelog
 
     - Animation for evoked topomap in :func:`mne.Evoked.animate_topomap` by `Jaakko Leppakangas`_
 
-    - Make :func:`mne.find_layout` more robust for KIT systems in the presence of bad or missing channels by `Jaakko Leppakangas`_
+    - Make :func:`mne.channels.find_layout` more robust for KIT systems in the presence of bad or missing channels by `Jaakko Leppakangas`_
 
     - Add raw movement compensation to :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
@@ -36,15 +36,15 @@ Changelog
 
     - Add command ``mne show_info`` to quickly show the measurement info from a .fif file from the terminal by `Alex Gramfort`_.
 
-    - Add creating forward operator for dipole object :func:`mne.forward.make_forward_dipole` by `Chris Bailey`_
+    - Add creating forward operator for dipole object :func:`mne.make_forward_dipole` by `Chris Bailey`_
 
     - Add reading of Elekta ``xfit`` fixed-position dipole time courses using :func:`mne.read_dipole` by `Eric Larson`_.
 
     - Accept :class:`mne.decoding.GeneralizationAcrossTime`'s ``scorer`` parameter to be a string that refers to a scikit-learn metric scorer by `Asish Panda`_.
 
-    - Add method :func:`mne.epochs.plot_image` calling :func:`mne.viz.epochs.plot_epochs_image` for better usability by `Asish Panda`_.
+    - Add method :func:`mne.Epochs.plot_image` calling :func:`mne.viz.plot_epochs_image` for better usability by `Asish Panda`_.
 
-    - Add reader for Neuroscan CNT files by `Jaakko Leppakangas`_
+    - Add :func:`mne.io.read_raw_cnt` for reading Neuroscan CNT files by `Jaakko Leppakangas`_
 
     - Add ``decim`` parameter to :func:`mne.time_frequency.cwt_morlet`, by `Jean-Remi King`_
 
@@ -246,7 +246,7 @@ Changelog
 
     - Add support for scaling and adjusting the number of channels/time per view by `Jaakko Leppakangas`_
 
-    - Add support to toggle the show/hide state of all sections with a single keypress ('t') in :class:`mne.report.Report` by `Mainak Jas`_
+    - Add support to toggle the show/hide state of all sections with a single keypress ('t') in :class:`mne.Report` by `Mainak Jas`_
 
     - Add support for BEM model creation :func:`mne.make_bem_model` by `Eric Larson`_
 
@@ -304,7 +304,7 @@ Changelog
 
     - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
 
-    - Add :func:`mne.report.Report.add_slider_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
+    - Add :func:`mne.Report.add_slider_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
 
 BUG
 ~~~
@@ -466,7 +466,7 @@ Changelog
 
    - Add ``evoked.as_type`` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Mainak Jas`_
 
-   - Add :func:`mne.report.Report.add_bem_to_section`, :func:`mne.report.Report.add_htmls_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
+   - Add :func:`mne.Report.add_bem_to_section`, :func:`mne.Report.add_htmls_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
 
    - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
 

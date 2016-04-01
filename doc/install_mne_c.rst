@@ -129,7 +129,7 @@ the three commands:
 
     $ export MNE_ROOT=<MNE>
     $ export MATLAB_ROOT=<Matlab>
-    $ $MNE_ROOT/bin/mne_setup_sh
+    $ . $MNE_ROOT/bin/mne_setup_sh
 
 with ``<MNE>`` replaced
 by the directory where you have installed the MNE software and ``<Matlab>`` is
