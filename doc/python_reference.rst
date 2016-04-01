@@ -38,6 +38,7 @@ Classes
    Label
    BiHemiLabel
    Transform
+   Report
    io.Info
    io.Projection
    preprocessing.ICA
@@ -53,7 +54,6 @@ Classes
    realtime.MockRtClient
    realtime.StimServer
    realtime.StimClient
-   report.Report
 
 Logging and Configuration
 =========================

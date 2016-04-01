@@ -246,7 +246,7 @@ Changelog
 
     - Add support for scaling and adjusting the number of channels/time per view by `Jaakko Leppakangas`_
 
-    - Add support to toggle the show/hide state of all sections with a single keypress ('t') in :class:`mne.report.Report` by `Mainak Jas`_
+    - Add support to toggle the show/hide state of all sections with a single keypress ('t') in :class:`mne.Report` by `Mainak Jas`_
 
     - Add support for BEM model creation :func:`mne.make_bem_model` by `Eric Larson`_
 
@@ -304,7 +304,7 @@ Changelog
 
     - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
 
-    - Add :func:`mne.report.Report.add_slider_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
+    - Add :func:`mne.Report.add_slider_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
 
 BUG
 ~~~
@@ -466,7 +466,7 @@ Changelog
 
    - Add ``evoked.as_type`` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Mainak Jas`_
 
-   - Add :func:`mne.report.Report.add_bem_to_section`, :func:`mne.report.Report.add_htmls_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
+   - Add :func:`mne.Report.add_bem_to_section`, :func:`mne.Report.add_htmls_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
 
    - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
 
