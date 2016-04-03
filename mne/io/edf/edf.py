@@ -439,7 +439,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         else:
             info['highpass'] = float(highpass[0])
     else:
-        info['highpass'] = float(np.min(highpass))
+        info['highpass'] = float(np.max(highpass))
         warn('Channels contain different highpass filters. Highest filter '
              'setting will be stored.')
 
