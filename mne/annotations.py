@@ -7,6 +7,8 @@ import time
 
 import numpy as np
 
+from .externals.six import string_types
+
 
 class Annotations(object):
     """Annotation object for annotating segments of raw data.
@@ -17,8 +19,9 @@ class Annotations(object):
         Annotation time onsets from the beginning of the recording.
     duration : array of float, shape (n_annotations,)
         Durations of the annotations.
-    description : array of str, shape (n_annotations,)
-        Array of strings containing description for each annotation.
+    description : array of str, shape (n_annotations,) | str
+        Array of strings containing description for each annotation. If a
+        string, all the annotations are given the same description.
     orig_time : float | int | instance of datetime | array of int | None
         A POSIX Timestamp, datetime or an array containing the timestamp as the
         first element and microseconds as the second element. Determines the
@@ -49,6 +52,8 @@ class Annotations(object):
         if onset.ndim != 1:
             raise ValueError('Onset must be a one dimensional array.')
         duration = np.array(duration)
+        if isinstance(description, string_types):
+            description = np.repeat(description, len(onset))
         if duration.ndim != 1:
             raise ValueError('Duration must be a one dimensional array.')
         if not (len(onset) == len(duration) == len(description)):

@@ -171,8 +171,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # uV (EEG channels)
-                          eog=250e-6 # uV (EOG channels)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
                           )
 
     flat : dict | None

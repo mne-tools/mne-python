@@ -116,7 +116,7 @@ class, see the :ref:`ica` section for more information.
 
 
 Epoching and evoked data
-========================
+------------------------
 
 Epoching of raw data is done using events, which define a ``t=0`` for your
 data chunks. Event times stamped to the acquisition software can be extracted
@@ -133,6 +133,19 @@ constructed using::
     >>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
     >>>                     proj=True, picks=picks, baseline=(None, 0),
     >>>                     preload=True, reject=reject)
+
+.. note:: The rejection thresholds (set with argument ``reject``) are defined
+          in T / m for gradiometers, T for magnetometers and V for EEG and EOG
+          channels.
+
+Annotations
+###
+
+The reject keyword of :class:`mne.Epochs` is used for rejecting bad epochs
+based on peak-to-peak thresholds. Bad segments of data can also be rejected
+by marking segments of raw data with annotations. See :ref:`annotations` for
+more information.
+
 
 Once the :class:`mne.Epochs` are constructed, they can be averaged to obtain
 :class:`mne.Evoked` data as::

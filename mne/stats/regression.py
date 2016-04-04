@@ -207,8 +207,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
             reject = dict(grad=4000e-12, # T / m (gradiometers)
                           mag=4e-11, # T (magnetometers)
-                          eeg=40e-5, # uV (EEG channels)
-                          eog=250e-5 # uV (EOG channels))
+                          eeg=40e-5, # V (EEG channels)
+                          eog=250e-5 # V (EOG channels))
 
     flat : None | dict
         or cleaning raw data before the regression is performed: set up

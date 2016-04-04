@@ -96,7 +96,7 @@ For further reading:
 
   .. raw:: html
 
-    <h2>Sensor-space Statistics</h2>
+    <h2>Sensor-space Analysis</h2>
 
   .. toctree::
     :maxdepth: 1
@@ -110,7 +110,7 @@ For further reading:
 
   .. raw:: html
 
-    <h2>Source-space Statistics</h2>
+    <h2>Source-space Analysis</h2>
 
   .. toctree::
     :maxdepth: 1
