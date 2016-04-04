@@ -90,7 +90,7 @@ For further reading:
     :maxdepth: 1
 
     auto_tutorials/plot_source_localization_basics.rst
-
+    auto_tutorials/plot_brainstorm_auditory.rst
 
 .. container:: span box
 

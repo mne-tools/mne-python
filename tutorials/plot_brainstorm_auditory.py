@@ -31,7 +31,7 @@ References
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: BSD (3-clause)
-
+from pyface.qt import QtCore, QtGui
 import numpy as np
 import os.path as op
 import csv
@@ -39,14 +39,19 @@ import csv
 import mne
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import Raw
+from mne.filter import notch_filter, low_pass_filter
 
 print(__doc__)
 
 
-# To reduce running time, the source space analysis is omitted. To run the
-# whole tutorial change this to True.
-run_source_space = False
+# To reduce memory consumption and running time, some of the steps are
+# precomputed. To run everything from scratch change this to False.
+use_precomputed = True
 
+##############################################################################
+# The data was collected with a CTF 275 system at 2400 Hz and low-pass
+# filtered at 600 Hz. Here the data and empty room data files are read to
+# construct instances of :class:`mne.ioRaw`.
 data_path = bst_auditory.data_path()
 
 subject = 'bst_auditory'
@@ -54,14 +59,13 @@ subjects_dir = data_path + '/subjects'
 raw_fnames = [data_path + '/MEG/bst_auditory/S01_AEF_20131218_0%s_raw.fif'
               % run_num for run_num in range(1, 3)]
 erm_fname = data_path + '/MEG/bst_auditory/S01_Noise_20131218_01_raw.fif'
-
-raw = Raw(raw_fnames, preload=True, add_eeg_ref=False)
-raw_erm = Raw(erm_fname, preload=True, add_eeg_ref=False)
+preload = not use_precomputed
+raw = Raw(raw_fnames, preload=preload, add_eeg_ref=False)
+raw_erm = Raw(erm_fname, preload=preload, add_eeg_ref=False)
 
 ##############################################################################
-# The data was collected with a CTF 275 system at 2400 Hz and low-pass
-# filtered at 600 Hz. Data channel array consisted of 274 MEG axial
-# gradiometers, 26 MEG reference sensors and 2 EEG electrodes (Cz and Pz).
+# Data channel array consisted of 274 MEG axial gradiometers, 26 MEG reference
+# sensors and 2 EEG electrodes (Cz and Pz).
 # In addition:
 #   - 1 stim channel for marking presentation times for the stimuli
 #   - 1 audio channel for the sent signal
@@ -75,7 +79,9 @@ raw_erm = Raw(erm_fname, preload=True, add_eeg_ref=False)
 raw.set_channel_types({'HEOG': 'eog', 'VEOG': 'eog', 'ECG': 'ecg'})
 
 # Leave out the two EEG channels for easier setup of source space.
-raw.pick_types(meg=True, eeg=False, stim=True, misc=True, eog=True, ecg=True)
+if not use_precomputed:
+    raw.pick_types(meg=True, eeg=False, stim=True, misc=True, eog=True,
+                   ecg=True)
 
 ##############################################################################
 # For noise reduction, a set of bad segments have been identified and stored
@@ -88,7 +94,7 @@ onsets = list()
 durations = list()
 descriptions = list()
 saccades = list()
-with open(data_path + '/MEG/bst_auditory/events_bad.csv', 'rb') as f:
+with open(data_path + '/MEG/bst_auditory/events_bad.csv', 'r') as f:
     reader = csv.reader(f)
     for row in reader:
         onsets.append(float(row[0]))
@@ -110,19 +116,18 @@ raw.annotations = annot
 ##############################################################################
 # Here we compute the saccade and EOG projectors for magnetometers and add
 # them to the raw data.
-raw_filt = raw.copy()
-raw_filt.filter(1., 15.)
-saccade_epochs = mne.Epochs(raw_filt, saccades, 1, 0., 0.5, preload=True,
+saccade_epochs = mne.Epochs(raw, saccades, 1, 0., 0.5, preload=True,
                             segment_reject=False)
 
 projs_saccade = mne.compute_proj_epochs(saccade_epochs, n_mag=1, n_eeg=0,
                                         desc_prefix='saccade')
 
-del raw_filt, saccade_epochs  # to save memory
-projs_eog, eog_events = mne.preprocessing.compute_proj_eog(raw, n_mag=1,
-                                                           n_eeg=0)
+mne.preprocessing.compute_proj_eog
+projs_eog, eog_events = mne.preprocessing.compute_proj_eog(raw.load_data(),
+                                                           n_mag=1, n_eeg=0)
 raw.add_proj(projs_saccade)
 raw.add_proj(projs_eog)
+del saccade_epochs
 
 ##############################################################################
 # Visually inspect the effects of projections. Click on 'proj' button at the
@@ -138,24 +143,28 @@ raw.plot(events=eog_events)
 # 60 Hz). Here we notch filter the data at 60, 120 and 180 to remove the
 # original 60 Hz artifact and the harmonics. The power spectra are plotted
 # before and after the filtering to show the effect. The drop after 600 Hz
-# appears because the data was filtered during the acquisition.
-meg_picks = mne.pick_types(raw.info, meg=True, eeg=False)
-raw.plot_psd(picks=meg_picks)
-notches = np.arange(60, 181, 60)
-raw.notch_filter(notches)
-raw_erm.notch_filter(notches)
-raw.plot_psd(picks=meg_picks)
+# appears because the data was filtered during the acquisition. To save time
+# and memory we do the filtering at evoked stage, which is not something you
+# usually do.
+if not use_precomputed:
+    meg_picks = mne.pick_types(raw.info, meg=True, eeg=False)
+    raw.plot_psd(picks=meg_picks)
+    notches = np.arange(60, 181, 60)
+    raw.notch_filter(notches)
+    raw_erm.notch_filter(notches)
+    raw.plot_psd(picks=meg_picks)
 
 ##############################################################################
 # We also lowpass filter the data at 100 Hz to remove the hf components.
-raw.filter(None, 100.)
-raw_erm.filter(None, 100.)
+if not use_precomputed:
+    raw.filter(None, 100.)
+    raw_erm.filter(None, 100.)
 
 ##############################################################################
 # Epoching and averaging.
 # First some parameters are defined and events extracted from the stimulus
 # channel (UPPT001). The rejection thresholds are defined as peak-to-peak
-# values and are defined in T / m for gradiometers, T for magnetometers and
+# values and are in T / m for gradiometers, T for magnetometers and
 # V for EOG and EEG channels.
 tmin, tmax = -0.1, 0.5
 event_id = dict(standard=1, deviant=2)
@@ -206,97 +215,121 @@ selection = np.concatenate([range(40), range(192, 232)])
 epochs_standard = epochs['standard'][selection]
 
 ##############################################################################
-# The averages for each conditions are computed and plotted. In both
-# conditions we can see the P50 and N100 responses. The mismatch negativity is
-# visible only in the deviant condition around 100-200 ms. P200 is also
-# visible around 170 ms in both conditions but much stronger in the standard
-# condition. P300 is visible in deviant condition only (decision making in
-# preparation of the button press).
-evoked_standard = epochs_standard.average()
-evoked_deviant = epochs['deviant'].average()
+# The averages for each conditions are computed.
+# Typical preprocessing step is the removal of power line artifact (50 Hz or
+# 60 Hz). Here we notch filter the data at 60, 120 and 180 to remove the
+# original 60 Hz artifact and the harmonics. Normally this would be done to
+# raw data (with :func:`mne.io.Raw.filter`), but to reduce memory consumption
+# of this tutorial, we do it at evoked stage.
+evoked_std = epochs_standard.average()
+evoked_dev = epochs['deviant'].average()
+if use_precomputed:
+    sfreq = evoked_std.info['sfreq']
+    nchan = evoked_std.info['nchan']
+    notches = [60, 120, 180]
+    for ch_idx in range(nchan):
+        evoked_std.data[ch_idx] = notch_filter(evoked_std.data[ch_idx], sfreq,
+                                               notches)
+        evoked_dev.data[ch_idx] = notch_filter(evoked_dev.data[ch_idx], sfreq,
+                                               notches)
+        evoked_std.data[ch_idx] = low_pass_filter(evoked_std.data[ch_idx],
+                                                  sfreq, 100)
+        evoked_dev.data[ch_idx] = low_pass_filter(evoked_dev.data[ch_idx],
+                                                  sfreq, 100)
 
-evoked_standard.plot(window_title='Standard', gfp=True)
-evoked_deviant.plot(window_title='Deviant', gfp=True)
+##############################################################################
+# Here we plot the ERF of standard and deviant conditions. In both conditions
+# we can see the P50 and N100 responses. The mismatch negativity is visible
+# only in the deviant condition around 100-200 ms. P200 is also visible around
+# 170 ms in both conditions but much stronger in the standard condition. P300
+# is visible in deviant condition only (decision making in preparation of the
+# button press).
+evoked_std.plot(window_title='Standard', gfp=True)
+evoked_dev.plot(window_title='Deviant', gfp=True)
 
 ##############################################################################
 # Show activations as topography figures.
 times = np.arange(0, 0.351, 0.025)
-evoked_standard.plot_topomap(times=times, title='Standard')
-evoked_deviant.plot_topomap(times=times, title='Deviant')
+evoked_std.plot_topomap(times=times, title='Standard')
+evoked_dev.plot_topomap(times=times, title='Deviant')
 
 ##############################################################################
 # We can see the MMN effect more clearly by looking at the difference between
 # the two conditions. P50 and N100 are no longer visible, but MMN/P200 and
 # P300 can be seen more clearly.
-evoked_difference = evoked_standard.copy()
-evoked_difference.data = evoked_deviant.data - evoked_standard.data
+evoked_difference = evoked_std.copy()
+evoked_difference.data = evoked_dev.data - evoked_std.data
 evoked_difference.plot(window_title='Difference', gfp=True)
 
 ##############################################################################
 # Source estimation.
-if run_source_space:
-
-##############################################################################
 # We compute the noise covariance matrix from the empty room measurement
 # and use it for the other runs.
-    reject = dict(mag=4e-12)
-    cov = mne.compute_raw_covariance(raw_erm, reject=reject)
-    cov.plot(raw_erm.info)
+reject = dict(mag=4e-12)
+cov = mne.compute_raw_covariance(raw_erm, reject=reject)
+cov.plot(raw_erm.info)
 
 ##############################################################################
-# To save time, we read the source space from a file, but it can also be
-# constructed with a function:
-# src = mne.setup_source_space(subject, subjects_dir=subjects_dir)
+# To save time and memory, we read the source space from a file. Set
+# ``use_precomputed=False`` to setup source space from scratch.
 # For more information: :ref:`CHDBBCEJ`, :class:`mne.setup_source_space`.
+if use_precomputed:
     src_fname = op.join(subjects_dir, 'bst_auditory', 'bem',
                         'bst_auditory-oct-6-src.fif')
     src = mne.read_source_spaces(src_fname)
+else:
+    src = mne.setup_source_space(subject, subjects_dir=subjects_dir,
+                                 overwrite=True)
 
 ##############################################################################
-# The transformation is read from a file. To coregister the data manually, see
-# :ref:`ch_interactive_analysis` or :func:`mne.gui.coregistration`.
-    trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
-                          'bst_auditory-trans.fif')
-    trans = mne.read_trans(trans_fname)
+# The transformation is read from a file. More information about coregistering
+# the data, see :ref:`ch_interactive_analysis` or
+# :func:`mne.gui.coregistration`.
+trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
+                      'bst_auditory-trans.fif')
+trans = mne.read_trans(trans_fname)
 
 ##############################################################################
-# The head surfaces are read from a file. Since the data only contains MEG
-# channels, we only need the inner skull surface for making the forward
-# solution. For more information: :ref:`create_bem_model`,
-# :func:`mne.bem.make_watershed_bem`.
+# To save time and memory, the forward solution is read from a file. Set
+# ``use_precomputed=False`` to build the forward solution from scratch.
+# The head surfaces for constructing a BEM solution are read from a file.
+# Since the data only contains MEG channels, we only need the inner skull
+# surface for making the forward solution. For more information:
+# :ref:`create_bem_model`, :func:`mne.bem.make_watershed_bem`.
+if use_precomputed:
+    fwd_fname = op.join(data_path, 'MEG', 'bst_auditory',
+                        'bst_auditory-meg-oct-6-fwd.fif')
+    fwd = mne.read_forward_solution(fwd_fname)
+else:
     surfs_fname = op.join(subjects_dir, 'bst_auditory', 'bem',
                           'bst_auditory-inner_skull.fif')
     surfs = mne.read_bem_surfaces(surfs_fname)
+
     bem = mne.make_bem_solution(surfs)
-    fwd = mne.make_forward_solution(evoked_standard.info, trans=trans, src=src,
-                                    bem=bem)
+    fwd = mne.make_forward_solution(evoked_std.info, trans=trans,
+                                    src=src, bem=bem)
 
 ##############################################################################
 # The sources are computed using dSPM method.
-    inv = mne.minimum_norm.make_inverse_operator(evoked_standard.info, fwd,
-                                                 cov)
-    snr = 3.0
-    lambda2 = 1.0 / snr ** 2
-    stc_standard = mne.minimum_norm.apply_inverse(evoked_standard, inv,
-                                                  lambda2, 'dSPM')
-    stc_deviant = mne.minimum_norm.apply_inverse(evoked_deviant, inv, lambda2,
-                                                 'dSPM')
-    stc_difference = mne.minimum_norm.apply_inverse(evoked_difference, inv,
-                                                    lambda2, 'dSPM')
+inv = mne.minimum_norm.make_inverse_operator(evoked_std.info, fwd, cov)
+snr = 3.0
+lambda2 = 1.0 / snr ** 2
+stc_standard = mne.minimum_norm.apply_inverse(evoked_std, inv, lambda2, 'dSPM')
+stc_deviant = mne.minimum_norm.apply_inverse(evoked_dev, inv, lambda2, 'dSPM')
+stc_difference = mne.minimum_norm.apply_inverse(evoked_difference, inv,
+                                                lambda2, 'dSPM')
 
 ##############################################################################
-# The source estimates are plotted on an inflated brain surface. You can
-# navigate in time by adjusting it on the time viewer.
-    brain = stc_standard.plot(subjects_dir=subjects_dir, subject=subject,
-                              surface='inflated', time_viewer=True,
-                              hemi='both')
-    brain.set_data_time_index(480)
+# The source estimates are plotted on an inflated brain surface. For
+# interactive controls over the image, use keyword ``time_viewer=True``.
+brain = stc_standard.plot(subjects_dir=subjects_dir, subject=subject,
+                          surface='inflated', time_viewer=False, hemi='both')
+brain.set_data_time_index(480)
 
-    brain = stc_deviant.plot(subjects_dir=subjects_dir, subject=subject,
-                             surface='inflated', time_viewer=True, hemi='both')
-    brain.set_data_time_index(480)
+brain = stc_deviant.plot(subjects_dir=subjects_dir, subject=subject,
+                         surface='inflated', time_viewer=False, hemi='both')
+brain.set_data_time_index(480)
 
-    brain = stc_difference.plot(subjects_dir=subjects_dir, subject=subject,
-                                surface='inflated', time_viewer=True,
-                                hemi='both')
-    brain.set_data_time_index(480)
+brain = stc_difference.plot(subjects_dir=subjects_dir, subject=subject,
+                            surface='inflated', time_viewer=False, hemi='both')
+brain.set_data_time_index(600)
