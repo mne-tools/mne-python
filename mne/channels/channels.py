@@ -337,6 +337,35 @@ class SetChannelsMixin(object):
         from .montage import _set_montage
         _set_montage(self.info, montage)
 
+    def plot_sensors(self, kind='topomap', ch_type=None, show=True):
+        """
+        Plot sensors positions.
+
+        Parameters
+        ----------
+        kind : str
+            Whether to plot the sensors as 3d or as topomap. Available options
+            'topomap', '3d'. Defaults to 'topomap'.
+        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
+            The channel type to plot. If None, then channels are chosen in the
+            order given above.
+        show : bool
+            Show figure if True. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure containing the sensor topography.
+
+        Notes
+        -----
+
+        .. versionadded:: 0.12.0
+
+        """
+        from ..viz.utils import plot_sensors
+        return plot_sensors(self.info, kind=kind, ch_type=ch_type, show=show)
+
 
 class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR

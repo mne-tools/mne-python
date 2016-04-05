@@ -916,9 +916,6 @@ def plot_sensors(info, kind='topomap', ch_type=None, show=True):
     ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
         The channel type to plot. If None, then channels are chosen in the
         order given above.
-    picks : array-like of int | None
-        The indices of the channels to consider. If None, all the data channels
-        are plotted.
     show : bool
         Show figure if True. Defaults to True.
 
@@ -949,8 +946,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, show=True):
     def_colors = _handle_default('color')
     ch_names = np.array(info['ch_names'])[picks]
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
-    colors = ['red' if i in bads else def_colors[channel_type(info, i)] for i
-              in picks]
+    colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
+              for i, pick in enumerate(picks)]
     return _plot_sensors(pos, colors, ch_names, show)
 
 

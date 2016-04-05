@@ -38,7 +38,7 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, warn)
-from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, plot_sensors
+from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
@@ -1530,34 +1530,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  color=color, fig_facecolor=fig_facecolor,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, n_jobs=n_jobs, verbose=verbose)
-
-    def plot_sensors(self, kind='topomap', ch_type=None, show=True):
-        """
-        Plot sensors positions.
-
-        Parameters
-        ----------
-        kind : str
-            Whether to plot the sensors as 3d or as topomap. Available options
-            'topomap', '3d'. Defaults to 'topomap'.
-        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
-            The channel type to plot. If None, then channels are chosen in the
-            order given above.
-        show : bool
-            Show figure if True. Defaults to True.
-
-        Returns
-        -------
-        fig : instance of matplotlib figure
-            Figure containing the sensor topography.
-
-        Notes
-        -----
-
-        .. versionadded:: 0.12.0
-
-        """
-        return plot_sensors(self.info, kind=kind, ch_type=ch_type, show=show)
 
     def time_as_index(self, times, use_first_samp=False, use_rounding=False):
         """Convert time to indices
