@@ -31,14 +31,14 @@ References
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: BSD (3-clause)
-from pyface.qt import QtCore, QtGui
+
 import numpy as np
 import os.path as op
 import csv
 
 import mne
 from mne.datasets.brainstorm import bst_auditory
-from mne.io import Raw
+from mne.io import read_raw_ctf
 from mne.filter import notch_filter, low_pass_filter
 
 print(__doc__)
@@ -51,18 +51,26 @@ use_precomputed = True
 ##############################################################################
 # The data was collected with a CTF 275 system at 2400 Hz and low-pass
 # filtered at 600 Hz. Here the data and empty room data files are read to
-# construct instances of :class:`mne.ioRaw`.
+# construct instances of :class:`mne.io.Raw`.
 data_path = bst_auditory.data_path()
 
 subject = 'bst_auditory'
-subjects_dir = data_path + '/subjects'
-raw_fnames = [data_path + '/MEG/bst_auditory/S01_AEF_20131218_0%s_raw.fif'
-              % run_num for run_num in range(1, 3)]
-erm_fname = data_path + '/MEG/bst_auditory/S01_Noise_20131218_01_raw.fif'
+subjects_dir = op.join(data_path, 'subjects')
+#raw_fnames = [data_path + '/MEG/bst_auditory/S01_AEF_20131218_0%s_raw.fif'
+#              % run_num for run_num in range(1, 3)]
+raw_fname1 = op.join(data_path, 'MEG', 'bst_auditory',
+                     'S01_AEF_20131218_01.ds')
+raw_fname2 = op.join(data_path, 'MEG', 'bst_auditory',
+                     'S01_AEF_20131218_02.ds')
+erm_fname = op.join(data_path, 'MEG', 'bst_auditory',
+                    'S01_Noise_20131218_01.ds')
 preload = not use_precomputed
-raw = Raw(raw_fnames, preload=preload, add_eeg_ref=False)
-raw_erm = Raw(erm_fname, preload=preload, add_eeg_ref=False)
+raw1 = read_raw_ctf(raw_fname1, preload=preload)
+raw2 = read_raw_ctf(raw_fname2, preload=preload)
 
+raw_erm = read_raw_ctf(erm_fname, preload=preload)
+
+raws = [raw1, raw2, raw_erm]
 ##############################################################################
 # Data channel array consisted of 274 MEG axial gradiometers, 26 MEG reference
 # sensors and 2 EEG electrodes (Cz and Pz).
@@ -76,58 +84,59 @@ raw_erm = Raw(erm_fname, preload=preload, add_eeg_ref=False)
 #   - 20 unused channels
 # The head tracking channels and the unused channels are marked as misc
 # channels. Here we define the EOG and ECG channels.
-raw.set_channel_types({'HEOG': 'eog', 'VEOG': 'eog', 'ECG': 'ecg'})
-
-# Leave out the two EEG channels for easier setup of source space.
-if not use_precomputed:
-    raw.pick_types(meg=True, eeg=False, stim=True, misc=True, eog=True,
-                   ecg=True)
+for raw in raws[:2]:
+    raw.set_channel_types({'HEOG': 'eog', 'VEOG': 'eog', 'ECG': 'ecg'})
+    if not use_precomputed:
+        # Leave out the two EEG channels for easier setup of source space.
+        raw.pick_types(meg=True, eeg=False, stim=True, misc=True, eog=True,
+                       ecg=True)
 
 ##############################################################################
 # For noise reduction, a set of bad segments have been identified and stored
-# in a csv file. The bad segments are later used to reject epochs that overlap
+# in csv files. The bad segments are later used to reject epochs that overlap
 # with them.
-# The file also contains some saccades from the second run. The saccades are
-# removed by using SSP. You can view the file with your favorite text editor.
+# The file for the second run also contains some saccades. The saccades are
+# removed by using SSP. You can view the files with your favorite text editor.
 
-onsets = list()
-durations = list()
-descriptions = list()
-saccades = list()
-with open(data_path + '/MEG/bst_auditory/events_bad.csv', 'r') as f:
-    reader = csv.reader(f)
-    for row in reader:
-        onsets.append(float(row[0]))
-        durations.append(float(row[1]))
-        descriptions.append(row[3])
-        if row[3] == 'saccade':  # Construct events for removal of saccades.
-            saccades.append([int(float(row[0])), 0, 1])
-saccades = np.asarray(saccades)
+for idx in [1, 2]:
+    onsets = list()
+    durations = list()
+    descriptions = list()
+    saccades = list()
+    with open(data_path + '/MEG/bst_auditory/events_bad_0%s.csv' % idx,
+              'r') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            onsets.append(int(row[0]))
+            durations.append(int(row[1]))
+            descriptions.append(row[3])
+            if row[3] == 'saccade':  # Events for removal of saccades.
+                saccades.append([int(row[0]), 0, 1])
+    saccades = np.asarray(saccades)
+    raw = raws[idx - 1]
+    onsets = raw.index_as_time(onsets)  # Conversion from samples to times.
+    durations = raw.index_as_time(durations)
 
-##############################################################################
-# Annotation start times and durations are made in seconds, so conversions
-# from sample numbers to seconds is needed:
-onsets = raw.index_as_time(onsets)
-durations = raw.index_as_time(durations)
-
-annot = mne.annotations.Annotations(onsets, durations, descriptions)
-raw.annotations = annot
+    annot = mne.annotations.Annotations(onsets, durations, descriptions)
+    raw.annotations = annot
 
 ##############################################################################
 # Here we compute the saccade and EOG projectors for magnetometers and add
-# them to the raw data.
-saccade_epochs = mne.Epochs(raw, saccades, 1, 0., 0.5, preload=True,
+# them to the raw data. To save memory, only EOG events from the second run
+# are used. The projectors are added to both runs.
+saccade_epochs = mne.Epochs(raw2, saccades, 1, 0., 0.5, preload=True,
                             segment_reject=False)
 
 projs_saccade = mne.compute_proj_epochs(saccade_epochs, n_mag=1, n_eeg=0,
                                         desc_prefix='saccade')
 
-mne.preprocessing.compute_proj_eog
-projs_eog, eog_events = mne.preprocessing.compute_proj_eog(raw.load_data(),
+cropped = raw2.crop(0.0, 200.0)
+projs_eog, eog_events = mne.preprocessing.compute_proj_eog(cropped.load_data(),
                                                            n_mag=1, n_eeg=0)
-raw.add_proj(projs_saccade)
-raw.add_proj(projs_eog)
-del saccade_epochs
+for raw in raws[:2]:
+    raw.add_proj(projs_saccade)
+    raw.add_proj(projs_eog)
+del saccade_epochs  # To save memory
 
 ##############################################################################
 # Visually inspect the effects of projections. Click on 'proj' button at the
@@ -136,7 +145,8 @@ del saccade_epochs
 # and saccades were added as annotations to the raw data, they are plotted as
 # well. You should also check that the EOG detection algorithm did it's job
 # and the events are well aligned with the blinks.
-raw.plot(events=eog_events)
+raw1.plot()
+raw2.plot(events=eog_events, block=True)
 
 ##############################################################################
 # Typical preprocessing step is the removal of power line artifact (50 Hz or
@@ -145,20 +155,20 @@ raw.plot(events=eog_events)
 # before and after the filtering to show the effect. The drop after 600 Hz
 # appears because the data was filtered during the acquisition. To save time
 # and memory we do the filtering at evoked stage, which is not something you
-# usually do.
+# usually would do.
 if not use_precomputed:
     meg_picks = mne.pick_types(raw.info, meg=True, eeg=False)
-    raw.plot_psd(picks=meg_picks)
+    raws[0].plot_psd(picks=meg_picks)
     notches = np.arange(60, 181, 60)
-    raw.notch_filter(notches)
-    raw_erm.notch_filter(notches)
-    raw.plot_psd(picks=meg_picks)
+    for raw in raws:
+        raw.notch_filter(notches)
+    raws[0].plot_psd(picks=meg_picks)
 
 ##############################################################################
 # We also lowpass filter the data at 100 Hz to remove the hf components.
 if not use_precomputed:
-    raw.filter(None, 100.)
-    raw_erm.filter(None, 100.)
+    for raw in raws:
+        raw.filter(None, 100.)
 
 ##############################################################################
 # Epoching and averaging.
@@ -170,28 +180,34 @@ tmin, tmax = -0.1, 0.5
 event_id = dict(standard=1, deviant=2)
 reject = dict(mag=4e-12, eog=250e-6)
 # find events
-events = mne.find_events(raw, stim_channel='UPPT001')
+events1 = mne.find_events(raw1, stim_channel='UPPT001')
+events2 = mne.find_events(raw2, stim_channel='UPPT001')
 
 ##############################################################################
 # The event timing is adjusted by comparing the trigger times on detected
 # sound onsets on channel UADC001-4408.
-sound_data = raw[mne.pick_channels(raw.ch_names, ['UADC001-4408'])][0][0]
-onsets = np.where(np.abs(sound_data) > 2. * np.std(sound_data))[0]
-min_diff = int(0.5 * raw.info['sfreq'])
-diffs = np.concatenate([[min_diff + 1], np.diff(onsets)])
-onsets = onsets[diffs > min_diff]
-assert len(onsets) == len(events)
-diffs = 1000. * (events[:, 0] - onsets) / raw.info['sfreq']
-print('Trigger delay removed (μ ± σ): %0.1f ± %0.1f ms'
-      % (np.mean(diffs), np.std(diffs)))
-events[:, 0] = onsets
+events_list = [events1, events2]
+for idx in [0, 1]:
+    raw = raws[idx]
+    events = events_list[idx]
+    sound_data = raw[mne.pick_channels(raw.ch_names, ['UADC001-4408'])][0][0]
+    onsets = np.where(np.abs(sound_data) > 2. * np.std(sound_data))[0]
+    min_diff = int(0.5 * raw.info['sfreq'])
+    diffs = np.concatenate([[min_diff + 1], np.diff(onsets)])
+    onsets = onsets[diffs > min_diff]
+    assert len(onsets) == len(events)
+    diffs = 1000. * (events[:, 0] - onsets) / raw.info['sfreq']
+    print('Trigger delay removed (μ ± σ): %0.1f ± %0.1f ms'
+          % (np.mean(diffs), np.std(diffs)))
+    events[:, 0] = onsets
 
 ##############################################################################
 # We mark a set of bad channels that seem noisier than others. This can also
 # be done interactively with ``raw.plot`` by clicking the channel name
 # (or the line). The marked channels are added as bad when the browser window
 # is closed.
-raw.info['bads'] = ['MLO52-4408', 'MRT51-4408', 'MLO42-4408', 'MLO43-4408']
+for raw in raws[:2]:
+    raw.info['bads'] = ['MLO52-4408', 'MRT51-4408', 'MLO42-4408', 'MLO43-4408']
 
 ##############################################################################
 # The epochs (trials) are created for MEG channels. Frist we find the picks
@@ -199,20 +215,23 @@ raw.info['bads'] = ['MLO52-4408', 'MRT51-4408', 'MLO42-4408', 'MLO43-4408']
 # The annotated bad segments are also used for removal of bad epochs by
 # default. To turn off rejection by bad segments (as was done earlier with
 # saccades) you can use keyword ``segment_reject=False``.
-picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+picks = mne.pick_types(raw1.info, meg=True, eeg=False, stim=False, eog=True,
                        exclude='bads')
 
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject, preload=False,
-                    proj=True)
+epochs1 = mne.Epochs(raw1, events1, event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), reject=reject, preload=False,
+                     proj=True)
+epochs2 = mne.Epochs(raw2, events2, event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), reject=reject, preload=False,
+                     proj=True)
 
 ##############################################################################
-# We only use first 40 good epochs from each run. Since some of the epochs
-# were rejected, the epoch indices don't respond to the original anymore. By
-# investigating the event timings, we conclude that the first epoch from the
-# second run corresponds to epoch number 192.
-selection = np.concatenate([range(40), range(192, 232)])
-epochs_standard = epochs['standard'][selection]
+# We only use first 40 good epochs from each run.
+epochs_standard = mne.concatenate_epochs([epochs1['standard'][range(40)],
+                                          epochs2['standard'][range(40)]])
+epochs_deviant = mne.concatenate_epochs([epochs1['deviant'],
+                                         epochs2['deviant']])
+
 
 ##############################################################################
 # The averages for each conditions are computed.
@@ -222,7 +241,8 @@ epochs_standard = epochs['standard'][selection]
 # raw data (with :func:`mne.io.Raw.filter`), but to reduce memory consumption
 # of this tutorial, we do it at evoked stage.
 evoked_std = epochs_standard.average()
-evoked_dev = epochs['deviant'].average()
+evoked_dev = epochs_deviant.average()
+del epochs_standard, epochs_deviant
 if use_precomputed:
     sfreq = evoked_std.info['sfreq']
     nchan = evoked_std.info['nchan']
@@ -309,27 +329,31 @@ else:
     fwd = mne.make_forward_solution(evoked_std.info, trans=trans,
                                     src=src, bem=bem)
 
-##############################################################################
-# The sources are computed using dSPM method.
 inv = mne.minimum_norm.make_inverse_operator(evoked_std.info, fwd, cov)
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-stc_standard = mne.minimum_norm.apply_inverse(evoked_std, inv, lambda2, 'dSPM')
-stc_deviant = mne.minimum_norm.apply_inverse(evoked_dev, inv, lambda2, 'dSPM')
-stc_difference = mne.minimum_norm.apply_inverse(evoked_difference, inv,
-                                                lambda2, 'dSPM')
 
 ##############################################################################
-# The source estimates are plotted on an inflated brain surface. For
-# interactive controls over the image, use keyword ``time_viewer=True``.
+# The sources are computed using dSPM method and plotted on an inflated brain
+# surface. For interactive controls over the image, use keyword
+# ``time_viewer=True``.
+# Standard condition.
+stc_standard = mne.minimum_norm.apply_inverse(evoked_std, inv, lambda2, 'dSPM')
 brain = stc_standard.plot(subjects_dir=subjects_dir, subject=subject,
                           surface='inflated', time_viewer=False, hemi='both')
 brain.set_data_time_index(480)
-
+del stc_standard, evoked_std
+##############################################################################
+# Deviant condition.
+stc_deviant = mne.minimum_norm.apply_inverse(evoked_dev, inv, lambda2, 'dSPM')
 brain = stc_deviant.plot(subjects_dir=subjects_dir, subject=subject,
                          surface='inflated', time_viewer=False, hemi='both')
 brain.set_data_time_index(480)
-
+del stc_deviant, evoked_dev
+##############################################################################
+# Difference.
+stc_difference = mne.minimum_norm.apply_inverse(evoked_difference, inv,
+                                                lambda2, 'dSPM')
 brain = stc_difference.plot(subjects_dir=subjects_dir, subject=subject,
                             surface='inflated', time_viewer=False, hemi='both')
 brain.set_data_time_index(600)

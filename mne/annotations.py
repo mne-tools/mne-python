@@ -99,7 +99,9 @@ def _onset_to_seconds(raw, onset):
     """Helper function for adjusting annotation onsets in relation to raw data.
     """
     meas_date = raw.info['meas_date']
-    if not np.isscalar(meas_date):
+    if meas_date is None:
+        meas_date = 0
+    elif not np.isscalar(meas_date):
         meas_date = meas_date[0] + meas_date[1] / 1000000.
     if raw.annotations.orig_time is None:
         orig_time = meas_date

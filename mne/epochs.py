@@ -2044,7 +2044,7 @@ class Epochs(_BaseEpochs):
                                             self._segment_reject)
         if isinstance(data, string_types):
             logger.info('   Rejecting epoch based on bad segment: %s' % data)
-            self.drop_log[idx].append(data)
+            self.drop_log[self.selection[idx]].append(data)
             return None
         else:
             return data
