@@ -1568,7 +1568,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  'epochs.tmax')
             tmax = self.tmax
 
-        tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+        tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
+                           raise_error=True)
         this_epochs = self if not copy else self.copy()
         this_epochs.times = this_epochs.times[tmask]
         this_epochs._raw_times = this_epochs._raw_times[tmask]
