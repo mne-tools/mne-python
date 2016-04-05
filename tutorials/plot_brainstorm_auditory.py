@@ -56,8 +56,7 @@ data_path = bst_auditory.data_path()
 
 subject = 'bst_auditory'
 subjects_dir = op.join(data_path, 'subjects')
-#raw_fnames = [data_path + '/MEG/bst_auditory/S01_AEF_20131218_0%s_raw.fif'
-#              % run_num for run_num in range(1, 3)]
+
 raw_fname1 = op.join(data_path, 'MEG', 'bst_auditory',
                      'S01_AEF_20131218_01.ds')
 raw_fname2 = op.join(data_path, 'MEG', 'bst_auditory',
@@ -122,21 +121,20 @@ for idx in [1, 2]:
 
 ##############################################################################
 # Here we compute the saccade and EOG projectors for magnetometers and add
-# them to the raw data. To save memory, only EOG events from the second run
-# are used. The projectors are added to both runs.
+# them to the raw data. The projectors are added to both runs.
 saccade_epochs = mne.Epochs(raw2, saccades, 1, 0., 0.5, preload=True,
                             segment_reject=False)
 
 projs_saccade = mne.compute_proj_epochs(saccade_epochs, n_mag=1, n_eeg=0,
                                         desc_prefix='saccade')
 
-cropped = raw2.crop(0.0, 200.0)
+cropped = raw2.crop(0.0, 200.0)  # Use only 200 s from 2. run to save memory.
 projs_eog, eog_events = mne.preprocessing.compute_proj_eog(cropped.load_data(),
                                                            n_mag=1, n_eeg=0)
 for raw in raws[:2]:
     raw.add_proj(projs_saccade)
     raw.add_proj(projs_eog)
-del saccade_epochs  # To save memory
+del saccade_epochs, cropped  # To save memory
 
 ##############################################################################
 # Visually inspect the effects of projections. Click on 'proj' button at the
@@ -210,7 +208,7 @@ for raw in raws[:2]:
     raw.info['bads'] = ['MLO52-4408', 'MRT51-4408', 'MLO42-4408', 'MLO43-4408']
 
 ##############################################################################
-# The epochs (trials) are created for MEG channels. Frist we find the picks
+# The epochs (trials) are created for MEG channels. First we find the picks
 # for MEG and EOG channels. Then the epochs are constructed using these picks.
 # The annotated bad segments are also used for removal of bad epochs by
 # default. To turn off rejection by bad segments (as was done earlier with
@@ -235,14 +233,16 @@ epochs_deviant = mne.concatenate_epochs([epochs1['deviant'],
 
 ##############################################################################
 # The averages for each conditions are computed.
+evoked_std = epochs_standard.average()
+evoked_dev = epochs_deviant.average()
+del epochs_standard, epochs_deviant
+
+##############################################################################
 # Typical preprocessing step is the removal of power line artifact (50 Hz or
 # 60 Hz). Here we notch filter the data at 60, 120 and 180 to remove the
 # original 60 Hz artifact and the harmonics. Normally this would be done to
 # raw data (with :func:`mne.io.Raw.filter`), but to reduce memory consumption
 # of this tutorial, we do it at evoked stage.
-evoked_std = epochs_standard.average()
-evoked_dev = epochs_deviant.average()
-del epochs_standard, epochs_deviant
 if use_precomputed:
     sfreq = evoked_std.info['sfreq']
     nchan = evoked_std.info['nchan']
@@ -263,7 +263,8 @@ if use_precomputed:
 # only in the deviant condition around 100-200 ms. P200 is also visible around
 # 170 ms in both conditions but much stronger in the standard condition. P300
 # is visible in deviant condition only (decision making in preparation of the
-# button press).
+# button press). You can view the topographies from a certain time span by
+# painting an area with clicking and holding the left mouse button.
 evoked_std.plot(window_title='Standard', gfp=True)
 evoked_dev.plot(window_title='Deviant', gfp=True)
 
@@ -276,7 +277,7 @@ evoked_dev.plot_topomap(times=times, title='Deviant')
 ##############################################################################
 # We can see the MMN effect more clearly by looking at the difference between
 # the two conditions. P50 and N100 are no longer visible, but MMN/P200 and
-# P300 can be seen more clearly.
+# P300 are emphasised.
 evoked_difference = evoked_std.copy()
 evoked_difference.data = evoked_dev.data - evoked_std.data
 evoked_difference.plot(window_title='Difference', gfp=True)
@@ -288,18 +289,6 @@ evoked_difference.plot(window_title='Difference', gfp=True)
 reject = dict(mag=4e-12)
 cov = mne.compute_raw_covariance(raw_erm, reject=reject)
 cov.plot(raw_erm.info)
-
-##############################################################################
-# To save time and memory, we read the source space from a file. Set
-# ``use_precomputed=False`` to setup source space from scratch.
-# For more information: :ref:`CHDBBCEJ`, :class:`mne.setup_source_space`.
-if use_precomputed:
-    src_fname = op.join(subjects_dir, 'bst_auditory', 'bem',
-                        'bst_auditory-oct-6-src.fif')
-    src = mne.read_source_spaces(src_fname)
-else:
-    src = mne.setup_source_space(subject, subjects_dir=subjects_dir,
-                                 overwrite=True)
 
 ##############################################################################
 # The transformation is read from a file. More information about coregistering
@@ -315,12 +304,15 @@ trans = mne.read_trans(trans_fname)
 # The head surfaces for constructing a BEM solution are read from a file.
 # Since the data only contains MEG channels, we only need the inner skull
 # surface for making the forward solution. For more information:
-# :ref:`create_bem_model`, :func:`mne.bem.make_watershed_bem`.
+# :ref:`CHDBBCEJ`, :class:`mne.setup_source_space`, :ref:`create_bem_model`,
+# :func:`mne.bem.make_watershed_bem`.
 if use_precomputed:
     fwd_fname = op.join(data_path, 'MEG', 'bst_auditory',
                         'bst_auditory-meg-oct-6-fwd.fif')
     fwd = mne.read_forward_solution(fwd_fname)
 else:
+    src = mne.setup_source_space(subject, subjects_dir=subjects_dir,
+                                 overwrite=True)
     surfs_fname = op.join(subjects_dir, 'bst_auditory', 'bem',
                           'bst_auditory-inner_skull.fif')
     surfs = mne.read_bem_surfaces(surfs_fname)
@@ -340,14 +332,16 @@ lambda2 = 1.0 / snr ** 2
 # Standard condition.
 stc_standard = mne.minimum_norm.apply_inverse(evoked_std, inv, lambda2, 'dSPM')
 brain = stc_standard.plot(subjects_dir=subjects_dir, subject=subject,
-                          surface='inflated', time_viewer=False, hemi='both')
+                          surface='inflated', time_viewer=False, hemi='both',
+                          views=['medial'])
 brain.set_data_time_index(480)
 del stc_standard, evoked_std
 ##############################################################################
 # Deviant condition.
 stc_deviant = mne.minimum_norm.apply_inverse(evoked_dev, inv, lambda2, 'dSPM')
 brain = stc_deviant.plot(subjects_dir=subjects_dir, subject=subject,
-                         surface='inflated', time_viewer=False, hemi='both')
+                         surface='inflated', time_viewer=False, hemi='both',
+                         views=['medial'])
 brain.set_data_time_index(480)
 del stc_deviant, evoked_dev
 ##############################################################################
@@ -355,5 +349,6 @@ del stc_deviant, evoked_dev
 stc_difference = mne.minimum_norm.apply_inverse(evoked_difference, inv,
                                                 lambda2, 'dSPM')
 brain = stc_difference.plot(subjects_dir=subjects_dir, subject=subject,
-                            surface='inflated', time_viewer=False, hemi='both')
+                            surface='inflated', time_viewer=False, hemi='both',
+                            views=['medial'])
 brain.set_data_time_index(600)
