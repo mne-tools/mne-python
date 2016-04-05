@@ -1934,7 +1934,7 @@ def create_slices(start, stop, step=None, length=1):
     return slices
 
 
-def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=False):
+def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
     """Helper to safely find sample boundaries"""
     orig_tmin = tmin
     orig_tmax = tmax
@@ -1949,7 +1949,7 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=False):
         sfreq = float(sfreq)
         tmin = int(round(tmin * sfreq)) / sfreq - 0.5 / sfreq
         tmax = int(round(tmax * sfreq)) / sfreq + 0.5 / sfreq
-    if tmin > tmax:
+    if raise_error and tmin > tmax:
         raise ValueError('tmin (%s) must be less than or equal to tmax (%s)'
                          % (orig_tmin, orig_tmax))
     mask = (times >= tmin)
