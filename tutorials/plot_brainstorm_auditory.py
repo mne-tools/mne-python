@@ -102,8 +102,8 @@ for idx in [1, 2]:
     durations = list()
     descriptions = list()
     saccades = list()
-    with open(data_path + '/MEG/bst_auditory/events_bad_0%s.csv' % idx,
-              'r') as f:
+    with open(op.join(data_path, 'MEG', 'bst_auditory',
+                      'events_bad_0%s.csv' % idx), 'r') as f:
         reader = csv.reader(f)
         for row in reader:
             onsets.append(int(row[0]))
@@ -127,24 +127,26 @@ saccade_epochs = mne.Epochs(raw2, saccades, 1, 0., 0.5, preload=True,
 
 projs_saccade = mne.compute_proj_epochs(saccade_epochs, n_mag=1, n_eeg=0,
                                         desc_prefix='saccade')
-
-cropped = raw2.crop(0.0, 200.0)  # Use only 200 s from 2. run to save memory.
-projs_eog, eog_events = mne.preprocessing.compute_proj_eog(cropped.load_data(),
-                                                           n_mag=1, n_eeg=0)
+if use_precomputed:
+    proj_fname = op.join(data_path, 'MEG', 'bst_auditory',
+                         'bst_auditory-eog-proj.fif')
+    projs_eog = mne.read_proj(proj_fname)[0]
+else:
+    projs_eog, _ = mne.preprocessing.compute_proj_eog(raw2.load_data(),
+                                                      n_mag=1, n_eeg=0)
 for raw in raws[:2]:
     raw.add_proj(projs_saccade)
     raw.add_proj(projs_eog)
-del saccade_epochs, cropped  # To save memory
+del saccade_epochs  # To save memory
 
 ##############################################################################
 # Visually inspect the effects of projections. Click on 'proj' button at the
 # bottom right corner to toggle the projectors on/off. EOG events can be
 # plotted by adding the event list as a keyword argument. As the bad segments
 # and saccades were added as annotations to the raw data, they are plotted as
-# well. You should also check that the EOG detection algorithm did it's job
-# and the events are well aligned with the blinks.
+# well.
 raw1.plot()
-raw2.plot(events=eog_events, block=True)
+raw2.plot(block=True)
 
 ##############################################################################
 # Typical preprocessing step is the removal of power line artifact (50 Hz or
@@ -324,7 +326,7 @@ else:
 inv = mne.minimum_norm.make_inverse_operator(evoked_std.info, fwd, cov)
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-
+del fwd
 ##############################################################################
 # The sources are computed using dSPM method and plotted on an inflated brain
 # surface. For interactive controls over the image, use keyword
@@ -332,7 +334,7 @@ lambda2 = 1.0 / snr ** 2
 # Standard condition.
 stc_standard = mne.minimum_norm.apply_inverse(evoked_std, inv, lambda2, 'dSPM')
 brain = stc_standard.plot(subjects_dir=subjects_dir, subject=subject,
-                          surface='inflated', time_viewer=False, hemi='both',
+                          surface='inflated', time_viewer=False, hemi='lh',
                           views=['medial'])
 brain.set_data_time_index(480)
 del stc_standard, evoked_std
@@ -340,7 +342,7 @@ del stc_standard, evoked_std
 # Deviant condition.
 stc_deviant = mne.minimum_norm.apply_inverse(evoked_dev, inv, lambda2, 'dSPM')
 brain = stc_deviant.plot(subjects_dir=subjects_dir, subject=subject,
-                         surface='inflated', time_viewer=False, hemi='both',
+                         surface='inflated', time_viewer=False, hemi='lh',
                          views=['medial'])
 brain.set_data_time_index(480)
 del stc_deviant, evoked_dev
@@ -349,6 +351,6 @@ del stc_deviant, evoked_dev
 stc_difference = mne.minimum_norm.apply_inverse(evoked_difference, inv,
                                                 lambda2, 'dSPM')
 brain = stc_difference.plot(subjects_dir=subjects_dir, subject=subject,
-                            surface='inflated', time_viewer=False, hemi='both',
+                            surface='inflated', time_viewer=False, hemi='lh',
                             views=['medial'])
 brain.set_data_time_index(600)
