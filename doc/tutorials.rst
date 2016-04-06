@@ -50,8 +50,6 @@ For further reading:
     auto_tutorials/plot_creating_data_structures.rst
     auto_tutorials/plot_info.rst
     auto_tutorials/plot_raw_objects.rst
-    auto_tutorials/plot_epochs_objects.rst
-    auto_tutorials/plot_epochs_to_data_frame.rst
 
 .. container:: span box
 
@@ -67,16 +65,22 @@ For further reading:
     tutorials/preprocessing/artifacts_suppression.rst
     auto_tutorials/plot_ica_from_raw.rst
 
-.. .. container:: span box
+.. container:: span box
 
-..  .. raw:: html
+  .. raw:: html
 
-..     <h2>Sensor-level analysis</h2>
+    <h2>Sensor-level analysis</h2>
 
-..   * Epoching and Averaging --TODO--
-..   * Time-Frequency analysis with multitapers --TODO
-..   * Connectivity study with phase-lag index --TODO--
-..   * Decoding --TODO--
+  ..   * Epoching and Averaging --TODO--
+  ..   * Time-Frequency analysis with multitapers --TODO
+  ..   * Connectivity study with phase-lag index --TODO--
+  ..   * Decoding --TODO--
+
+  .. toctree::
+    :maxdepth: 1
+
+    auto_tutorials/plot_epochs_objects.rst
+    auto_tutorials/plot_epochs_to_data_frame.rst
 
 .. container:: span box
 
@@ -84,11 +88,12 @@ For further reading:
 
     <h2>Source reconstruction</h2>
 
-  .. * noise/data covariance --TODO--
+  .. * data covariance --TODO--
 
   .. toctree::
     :maxdepth: 1
 
+    auto_tutorials/plot_compute_covariance.rst
     auto_tutorials/plot_source_localization_basics.rst
     auto_tutorials/plot_brainstorm_auditory.rst
 

@@ -67,7 +67,9 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'MNE'
-copyright = u'2012-%s, MNE Developers' % date.today().year
+td = date.today()
+copyright = u'2012-%s, MNE Developers. Last updated on %s' % (td.year,
+                                                              td.isoformat())
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

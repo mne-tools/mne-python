@@ -376,9 +376,10 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     raw : instance of Raw
         Raw data
     tmin : float
-        Beginning of time interval in seconds
+        Beginning of time interval in seconds. Defaults to 0.
     tmax : float | None (default None)
-        End of time interval in seconds
+        End of time interval in seconds. If None (default), use the end of the
+        recording.
     tstep : float (default 0.2)
         Length of data chunks for artefact rejection in seconds.
         Can also be None to use a single epoch of (tmax - tmin)
