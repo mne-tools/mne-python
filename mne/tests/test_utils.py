@@ -526,13 +526,19 @@ def test_time_mask():
     assert_equal(_time_mask(x - 1e-10, None, np.inf, sfreq=1000.).sum(), N)
     # non-uniformly spaced inputs
     x = np.array([4, 10])
-    assert_equal(_time_mask(x[:1], tmin=10, sfreq=1).sum(), 0)
+    assert_equal(_time_mask(x[:1], tmin=10, sfreq=1,
+                            raise_error=False).sum(), 0)
+    assert_equal(_time_mask(x[:1], tmin=11, tmax=12, sfreq=1,
+                            raise_error=False).sum(), 0)
     assert_equal(_time_mask(x, tmin=10, sfreq=1).sum(), 1)
     assert_equal(_time_mask(x, tmin=6, sfreq=1).sum(), 1)
     assert_equal(_time_mask(x, tmin=5, sfreq=1).sum(), 1)
     assert_equal(_time_mask(x, tmin=4.5001, sfreq=1).sum(), 1)
     assert_equal(_time_mask(x, tmin=4.4999, sfreq=1).sum(), 2)
     assert_equal(_time_mask(x, tmin=4, sfreq=1).sum(), 2)
+    # degenerate cases
+    assert_raises(ValueError, _time_mask, x[:1], tmin=11, tmax=12)
+    assert_raises(ValueError, _time_mask, x[:1], tmin=10, sfreq=1)
 
 
 def test_random_permutation():

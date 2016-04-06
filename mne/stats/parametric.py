@@ -323,7 +323,10 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
 
         df1, df2 = np.zeros(n_obs) + df1, np.zeros(n_obs) + df2
         if correction:
-            df1, df2 = [d[None, :] * eps for d in (df1, df2)]
+            # numerical imprecision can cause eps=0.99999999999999989
+            # even with a single category, so never let our degrees of
+            # freedom drop below 1.
+            df1, df2 = [np.maximum(d[None, :] * eps, 1.) for d in (df1, df2)]
 
         if return_pvals:
             pvals = f(df1, df2).sf(fvals)

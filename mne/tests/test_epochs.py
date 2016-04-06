@@ -1072,6 +1072,9 @@ def test_crop():
     assert_allclose(epochs.tmax, 1.0006410259015925, rtol=1e-12)
     epochs_crop = epochs.crop(-1, 1, copy=True)
     assert_allclose(epochs.times, epochs_crop.times, rtol=1e-12)
+    # Ensure we don't allow silly crops
+    assert_raises(ValueError, epochs.crop, 1000, 2000)
+    assert_raises(ValueError, epochs.crop, 0.1, 0)
 
 
 def test_resample():

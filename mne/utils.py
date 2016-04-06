@@ -1934,8 +1934,10 @@ def create_slices(start, stop, step=None, length=1):
     return slices
 
 
-def _time_mask(times, tmin=None, tmax=None, sfreq=None):
+def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
     """Helper to safely find sample boundaries"""
+    orig_tmin = tmin
+    orig_tmax = tmax
     tmin = -np.inf if tmin is None else tmin
     tmax = np.inf if tmax is None else tmax
     if not np.isfinite(tmin):
@@ -1947,8 +1949,15 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None):
         sfreq = float(sfreq)
         tmin = int(round(tmin * sfreq)) / sfreq - 0.5 / sfreq
         tmax = int(round(tmax * sfreq)) / sfreq + 0.5 / sfreq
+    if raise_error and tmin > tmax:
+        raise ValueError('tmin (%s) must be less than or equal to tmax (%s)'
+                         % (orig_tmin, orig_tmax))
     mask = (times >= tmin)
     mask &= (times <= tmax)
+    if raise_error and not mask.any():
+        raise ValueError('No samples remain when using tmin=%s and tmax=%s '
+                         '(original time bounds are [%s, %s])'
+                         % (orig_tmin, orig_tmax, times[0], times[-1]))
     return mask
 
 
