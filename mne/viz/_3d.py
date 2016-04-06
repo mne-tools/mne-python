@@ -324,7 +324,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
                          % ch_type)
 
-    show_head = True
+    show_head = (subject is not None)
     if isinstance(trans, string_types):
         if trans == 'auto':
             # let's try to do this in MRI coordinates so they're easy to plot
@@ -340,12 +340,13 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     del trans
 
     # both the head and helmet will be in MRI coordinates after this
+    meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     surfs = dict()
     if show_head:
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         surfs['head'] = get_head_surf(subject, source=source,
                                       subjects_dir=subjects_dir)
-    if ch_type is None or ch_type == 'meg':
+    if (ch_type is None and len(meg_picks) > 0) or ch_type == 'meg':
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
     if coord_frame == 'meg':
         surf_trans = combine_transforms(info['dev_head_t'], head_mri_t,
@@ -381,7 +382,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                 warn('EEG electrode locations not found. Cannot plot EEG '
                      'electrodes.')
     if meg_sensors:
-        meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
         coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
                        for pick in meg_picks]
         # Transform MEG coordinates from meg if necessary
@@ -402,10 +402,11 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             meg_rrs.append(rrs)
             meg_tris.append(tris + offset)
             offset += len(meg_rrs[-1])
-        meg_rrs = np.concatenate(meg_rrs, axis=0)
-        meg_tris = np.concatenate(meg_tris, axis=0)
         if len(meg_rrs) == 0:
             warn('MEG electrodes not found. Cannot plot MEG locations.')
+        else:
+            meg_rrs = np.concatenate(meg_rrs, axis=0)
+            meg_tris = np.concatenate(meg_tris, axis=0)
     if dig:
         ext_loc = np.array([d['r'] for d in info['dig']
                            if d['kind'] == FIFF.FIFFV_POINT_EXTRA])

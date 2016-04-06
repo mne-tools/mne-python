@@ -52,6 +52,8 @@ def test_head():
     surf_1 = get_head_surf('sample', subjects_dir=subjects_dir)
     surf_2 = get_head_surf('sample', 'head', subjects_dir=subjects_dir)
     assert_true(len(surf_1['rr']) < len(surf_2['rr']))  # BEM vs dense head
+    assert_raises(TypeError, get_head_surf, subject=None,
+                  subjects_dir=subjects_dir)
 
 
 def test_huge_cross():

@@ -10,6 +10,7 @@
 import os.path as op
 import warnings
 
+from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
 
@@ -107,11 +108,12 @@ def test_plot_evoked_field():
 def test_plot_trans():
     """Test plotting of -trans.fif files and MEG sensor layouts
     """
+    evoked = read_evokeds(evoked_fname)[0]
     with warnings.catch_warnings(record=True):  # 4D weight tables
         bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
                            preload=False).info
     infos = dict(
-        Neuromag=read_evokeds(evoked_fname)[0].info,
+        Neuromag=evoked.info,
         CTF=read_raw_ctf(ctf_fname).info,
         BTi=bti,
         KIT=read_raw_kit(sqd_fname).info,
@@ -131,6 +133,11 @@ def test_plot_trans():
                   subject='sample', subjects_dir=subjects_dir)
     # no-head version
     plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
+    # EEG only with strange options
+    with warnings.catch_warnings(record=True) as w:
+        plot_trans(evoked.pick_types(meg=False, eeg=True, copy=True).info,
+                   trans=trans_fname, meg_sensors=True)
+    assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
 
 
 @testing.requires_testing_data

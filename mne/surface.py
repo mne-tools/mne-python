@@ -59,6 +59,8 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
     """
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    if not isinstance(subject, string_types):
+        raise TypeError('subject must be a string, not %s' % (type(subject,)))
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
     if isinstance(source, string_types):
         source = [source]
