@@ -23,12 +23,13 @@ from matplotlib import pyplot as plt
 #  1. From a :class:`Raw <mne.io.RawFIF>` object, along with event times
 #  2. From an :class:`Epochs <mne.Epochs>` object that has been saved as a
 #     `.fif` file
-#  3. From scratch using :class:`EpochsArray <mne.EpochsArray>`
+#  3. From scratch using :class:`EpochsArray <mne.EpochsArray>`. See
+#     :ref:`tut_creating_data_structures`
 
+data_path = mne.datasets.sample.data_path()
 # Load a dataset that contains events
 raw = mne.io.RawFIF(
-    op.join(mne.datasets.sample.data_path(), 'MEG', 'sample',
-            'sample_audvis_raw.fif'))
+    op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif'))
 
 # If your raw object has a stim channel, you can construct an event array
 # easily
@@ -50,10 +51,6 @@ event_id = dict(left=1, right=2)
 # :func:`get_data <mne.Epochs.get_data>`. Alternatively, you can use
 # `preload=True`.
 #
-# Note that there are many options available when loading an
-# :class:`mne.Epochs` object.  For more detailed information, see (**LINK TO
-# EPOCHS LOADING TUTORIAL**)
-
 # Expose the raw data as epochs, cut from -0.1 s to 1.0 s relative to the event
 # onsets
 epochs = mne.Epochs(raw, events, event_id, tmin=-0.1, tmax=1,
@@ -90,8 +87,23 @@ for ep in epochs[:2]:
     print(ep)
 
 ###############################################################################
+# If you wish to save the epochs as a file, you can do it with
+# :func:`mne.Epochs.save`. To conform to MNE naming conventions, the
+# epochs file names should end with '-epo.fif'.
+epochs_fname = op.join(data_path, 'MEG', 'sample', 'sample-epo.fif')
+epochs.save(epochs_fname)
+
+###############################################################################
+# Later on you can read the epochs with :func:`mne.read_epochs`. For reading
+# EEGLAB epochs files see :func:`mne.read_epochs_eeglab`.
+epochs = mne.read_epochs(epochs_fname)
+
+###############################################################################
 # If you wish to look at the average across trial types, then you may do so,
-# creating an `Evoked` object in the process.
+# creating an :class:`Evoked <mne.Evoked>` object in the process. Instances
+# of `Evoked` are usually created by calling :func:`mne.Epochs.average`. For
+# creating `Evoked` from other data structures see :class:`mne.EvokedArray` and
+# :ref:`tut_creating_data_structures`.
 
 ev_left = epochs['left'].average()
 ev_right = epochs['right'].average()
