@@ -103,6 +103,8 @@ BUG
 
     - Fix bug in :class: `mne.io.edf.RawEDF` highpass filter setting to take max highpass to match warning message by `Teon Brooks`_
 
+    - Fix bugs with coordinane frame adjustments in :func:`mne.viz.plot_trans` by `Eric Larson`_
+
 API
 ~~~
 
