@@ -469,14 +469,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if segment_reject and self.annotations is not None:
             annot = self.annotations
             sfreq = self.info['sfreq']
-            for onset_idx, onset in enumerate(annot.onset):
-                onset = _onset_to_seconds(self, onset)
-                if stop / sfreq < onset:
-                    continue
-                elif start / sfreq > onset + annot.duration[onset_idx]:
-                    continue
-                elif annot.description[onset_idx].lower().startswith('bad'):
-                    descr = annot.description[onset_idx]
+            onset = _onset_to_seconds(self, annot.onset)
+            overlaps = np.where(onset < stop / sfreq)
+            overlaps = np.where(onset[overlaps] + annot.duration[overlaps] >
+                                start / sfreq)
+            for descr in annot.description[overlaps]:
+                if descr.lower().startswith('bad'):
                     return descr
         return self[picks, start:stop][0]
 

@@ -5,7 +5,7 @@ Brainstorm auditory tutorial dataset
 ====================================
 
 Here we compute the evoked from raw for the auditory Brainstorm
-tutorial dataset. For comparison, see:
+tutorial dataset. For comparison, see [1]_ and
 http://neuroimage.usc.edu/brainstorm/Tutorials/Auditory
 
 Experiment:
@@ -43,7 +43,7 @@ from mne.filter import notch_filter, low_pass_filter
 
 print(__doc__)
 
-
+##############################################################################
 # To reduce memory consumption and running time, some of the steps are
 # precomputed. To run everything from scratch change this to False.
 use_precomputed = True
@@ -86,7 +86,7 @@ raws = [raw1, raw2, raw_erm]
 for raw in raws[:2]:
     raw.set_channel_types({'HEOG': 'eog', 'VEOG': 'eog', 'ECG': 'ecg'})
     if not use_precomputed:
-        # Leave out the two EEG channels for easier setup of source space.
+        # Leave out the two EEG channels for easier computation of forward.
         raw.pick_types(meg=True, eeg=False, stim=True, misc=True, eog=True,
                        ecg=True)
 
@@ -231,7 +231,7 @@ epochs_standard = mne.concatenate_epochs([epochs1['standard'][range(40)],
                                           epochs2['standard'][range(40)]])
 epochs_deviant = mne.concatenate_epochs([epochs1['deviant'],
                                          epochs2['deviant']])
-
+del epochs1, epochs2
 
 ##############################################################################
 # The averages for each conditions are computed.
@@ -334,16 +334,14 @@ del fwd
 # Standard condition.
 stc_standard = mne.minimum_norm.apply_inverse(evoked_std, inv, lambda2, 'dSPM')
 brain = stc_standard.plot(subjects_dir=subjects_dir, subject=subject,
-                          surface='inflated', time_viewer=False, hemi='lh',
-                          views=['medial'])
+                          surface='inflated', time_viewer=False, hemi='lh')
 brain.set_data_time_index(480)
 del stc_standard, evoked_std
 ##############################################################################
 # Deviant condition.
 stc_deviant = mne.minimum_norm.apply_inverse(evoked_dev, inv, lambda2, 'dSPM')
 brain = stc_deviant.plot(subjects_dir=subjects_dir, subject=subject,
-                         surface='inflated', time_viewer=False, hemi='lh',
-                         views=['medial'])
+                         surface='inflated', time_viewer=False, hemi='lh')
 brain.set_data_time_index(480)
 del stc_deviant, evoked_dev
 ##############################################################################
@@ -351,6 +349,5 @@ del stc_deviant, evoked_dev
 stc_difference = mne.minimum_norm.apply_inverse(evoked_difference, inv,
                                                 lambda2, 'dSPM')
 brain = stc_difference.plot(subjects_dir=subjects_dir, subject=subject,
-                            surface='inflated', time_viewer=False, hemi='lh',
-                            views=['medial'])
+                            surface='inflated', time_viewer=False, hemi='lh')
 brain.set_data_time_index(600)
