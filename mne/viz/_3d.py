@@ -373,7 +373,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                 eeg_loc = apply_trans(invert_transform(info['dev_head_t']),
                                       eeg_loc)
             elif coord_frame == 'mri':
-                eeg_loc = apply_trans(invert_transform(head_mri_t), eeg_loc)
+                eeg_loc = apply_trans(head_mri_t, eeg_loc)
         else:
             # only warn if EEG explicitly requested, or EEG channels exist but
             # no locations are provided
