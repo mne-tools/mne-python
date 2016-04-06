@@ -583,7 +583,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return epoch
 
     def iter_evoked(self):
-        """Iterate over Evoked objects with nave=1
+        """Iterate epochs as a sequence of Evoked objects with n_epochs=1
         """
         self._current = 0
 
@@ -1411,17 +1411,17 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             yield x
 
     def next(self, return_event_id=False):
-        """To make iteration over epochs easy.
+        """Iterate over epoch data.
 
         Parameters
         ----------
         return_event_id : bool
-            If True, return both an epoch and and event_id.
+            If True, return both the epoch data and an event_id.
 
         Returns
         -------
-        epoch : instance of Epochs
-            The epoch.
+        epoch : numpy.ndarray
+            The epoch data (n_channels by n_times).
         event_id : int
             The event id. Only returned if ``return_event_id`` is ``True``.
         """
