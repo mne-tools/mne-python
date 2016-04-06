@@ -499,7 +499,8 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     """Create a BEM model for a subject
 
     .. note:: To get a single layer bem corresponding to the --homog flag in
-              the command line tool set the ``connectivity`` accordingly
+              the command line tool set the ``conductivity`` parameter
+              to a list/tuple with a single value (e.g. [0.3]).
 
     Parameters
     ----------
