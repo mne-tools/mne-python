@@ -32,11 +32,13 @@ References
 #
 # License: BSD (3-clause)
 
-import numpy as np
 import os.path as op
-import csv
+import pandas as pd
+import numpy as np
 
 import mne
+from mne import combine_evoked
+from mne.minimum_norm import apply_inverse
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
 from mne.filter import notch_filter, low_pass_filter
@@ -46,7 +48,7 @@ print(__doc__)
 ###############################################################################
 # To reduce memory consumption and running time, some of the steps are
 # precomputed. To run everything from scratch change this to False.
-use_precomputed = True
+use_precomputed = False
 
 ###############################################################################
 # The data was collected with a CTF 275 system at 2400 Hz and low-pass
@@ -92,25 +94,31 @@ if not use_precomputed:
 # in csv files. The bad segments are later used to reject epochs that overlap
 # with them.
 # The file for the second run also contains some saccades. The saccades are
-# removed by using SSP. You can view the files with your favorite text editor.
+# removed by using SSP. We use pandas to read the data from the csv files. You
+# can also view the files with your favorite text editor.
 
 onsets = list()
 durations = list()
 descriptions = list()
-saccades = list()
+saccades = np.zeros((0, 3))
 offset = raw._raw_lengths[0]
 for idx in [1, 2]:
-    with open(op.join(data_path, 'MEG', 'bst_auditory',
-                      'events_bad_0%s.csv' % idx), 'r') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            onsets.append(int(row[0]) + offset * (idx - 1))
-            durations.append(int(row[1]))
-            descriptions.append(row[3])
-            if row[3] == 'saccade':  # Events for removal of saccades.
-                sample = int(row[0]) + offset * (idx - 1)
-                saccades.append([sample, 0, 1])
-saccades = np.asarray(saccades)
+    csv_fname = op.join(data_path, 'MEG', 'bst_auditory',
+                        'events_bad_0%s.csv' % idx)
+    df = pd.read_csv(csv_fname, header=None,
+                     names=['onset', 'duration', 'id', 'label'])
+    print 'Events from run %s:' % idx
+    print df
+
+    df['onset'] += offset * (idx - 1)
+    onsets = np.concatenate([onsets, df['onset']])
+    durations = np.concatenate([durations, df['duration']])
+    descriptions = np.concatenate([descriptions, df['label']])
+
+    saccades = np.concatenate([saccades,
+                               df[df['label'] == 'saccade'].values[:, :3]])
+
+saccades = np.asarray(saccades, dtype=int)
 
 onsets = raw.index_as_time(onsets)  # Conversion from samples to times.
 durations = raw.index_as_time(durations)
@@ -123,7 +131,7 @@ del onsets, durations, descriptions
 # Here we compute the saccade and EOG projectors for magnetometers and add
 # them to the raw data. The projectors are added to both runs.
 saccade_epochs = mne.Epochs(raw, saccades, 1, 0., 0.5, preload=True,
-                            segment_reject=False)
+                            reject_by_annotation=False)
 
 projs_saccade = mne.compute_proj_epochs(saccade_epochs, n_mag=1, n_eeg=0,
                                         desc_prefix='saccade')
@@ -205,7 +213,7 @@ raw.info['bads'] = ['MLO52-4408', 'MRT51-4408', 'MLO42-4408', 'MLO43-4408']
 # for MEG and EOG channels. Then the epochs are constructed using these picks.
 # The epochs overlapping with annotated bad segments are also rejected by
 # default. To turn off rejection by bad segments (as was done earlier with
-# saccades) you can use keyword ``segment_reject=False``.
+# saccades) you can use keyword ``reject_by_annotation=False``.
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                        exclude='bads')
 
@@ -274,9 +282,11 @@ evoked_dev.plot_topomap(times=times, title='Deviant')
 # We can see the MMN effect more clearly by looking at the difference between
 # the two conditions. P50 and N100 are no longer visible, but MMN/P200 and
 # P300 are emphasised.
-evoked_difference = evoked_std.copy()
-evoked_difference.data = evoked_dev.data - evoked_std.data
+evoked_difference = combine_evoked([evoked_dev, evoked_std], weights=[1, -1])
 evoked_difference.plot(window_title='Difference', gfp=True)
+# = evoked_std.copy()
+#evoked_difference.data = evoked_dev.data - evoked_std.data
+#evoked_difference.plot(window_title='Difference', gfp=True)
 
 ###############################################################################
 # Source estimation.
@@ -315,6 +325,7 @@ else:
     surfs = mne.read_bem_surfaces(surfs_fname)
 
     bem = mne.make_bem_solution(surfs)
+
     fwd = mne.make_forward_solution(raw.info, trans=trans, src=src, bem=bem)
 
 inv = mne.minimum_norm.make_inverse_operator(raw.info, fwd, cov)
@@ -343,8 +354,7 @@ del stc_deviant, evoked_dev, brain
 
 ###############################################################################
 # Difference.
-stc_difference = mne.minimum_norm.apply_inverse(evoked_difference, inv,
-                                                lambda2, 'dSPM')
+stc_difference = apply_inverse(evoked_difference, inv, lambda2, 'dSPM')
 brain = stc_difference.plot(subjects_dir=subjects_dir, subject=subject,
                             surface='inflated', time_viewer=False, hemi='lh')
 brain.set_data_time_index(150)

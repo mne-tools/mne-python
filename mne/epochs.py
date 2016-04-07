@@ -1930,7 +1930,7 @@ class Epochs(_BaseEpochs):
         warn, if 'ignore' it will proceed silently. Note.
         If none of the event ids are found in the data, an error will be
         automatically generated irrespective of this parameter.
-    segment_reject : bool
+    reject_by_annotation : bool
         Whether to reject based on annotations. If True (default), epochs
         overlapping with segments whose description begins with ``'bad'`` are
         rejected. If False, no rejection based on annotations is performed.
@@ -2008,7 +2008,7 @@ class Epochs(_BaseEpochs):
                  baseline=(None, 0), picks=None, name='Unknown', preload=False,
                  reject=None, flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=True,
-                 on_missing='error', segment_reject=True, verbose=None):
+                 on_missing='error', reject_by_annotation=True, verbose=None):
         if not isinstance(raw, _BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
@@ -2017,7 +2017,7 @@ class Epochs(_BaseEpochs):
         # proj is on when applied in Raw
         proj = proj or raw.proj
 
-        self._segment_reject = segment_reject
+        self.reject_by_annotation = reject_by_annotation
         # call _BaseEpochs constructor
         super(Epochs, self).__init__(
             info, None, events, event_id, tmin, tmax, baseline=baseline,
@@ -2041,7 +2041,7 @@ class Epochs(_BaseEpochs):
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self._raw_times)
         data = self._raw._check_bad_segment(start, stop, self.picks,
-                                            self._segment_reject)
+                                            self.reject_by_annotation)
         if isinstance(data, string_types):
             logger.info('   Rejecting epoch based on bad segment: %s' % data)
             self.drop_log[self.selection[idx]].append(data)

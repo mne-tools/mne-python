@@ -441,7 +441,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         raise NotImplementedError
 
-    def _check_bad_segment(self, start, stop, picks, segment_reject=False):
+    def _check_bad_segment(self, start, stop, picks,
+                           reject_by_annotation=False):
         """Function for checking the data segment. If the slice is good,
         returns the data in desired range. If rejected based on
         annotation, returns description of the bad segment.
@@ -454,7 +455,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             End of the slice.
         picks : array of int
             Channel picks.
-        segment_reject : bool
+        reject_by_annotation : bool
             Whether to perform rejection based on annotations.
             False by default.
 
@@ -466,7 +467,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         if start < 0:
             return None
-        if segment_reject and self.annotations is not None:
+        if reject_by_annotation and self.annotations is not None:
             annot = self.annotations
             sfreq = self.info['sfreq']
             onset = _onset_to_seconds(self, annot.onset)
