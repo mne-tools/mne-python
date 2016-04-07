@@ -226,6 +226,9 @@ def test_picks_by_channels():
     assert_equal(len(pick_list), len(pick_list2))
     assert_equal(pick_list2[0][0], 'mag')
 
+    # pick_types type check
+    assert_raises(ValueError, raw.pick_types, eeg='string')
+
 
 def test_clean_info_bads():
     """Test cleaning info['bads'] when bad_channels are excluded """

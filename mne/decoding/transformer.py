@@ -71,8 +71,8 @@ class Scaler(TransformerMixin):
                                        exclude='bads')
         picks_list['grad'] = pick_types(self.info, meg='grad', ref_meg=False,
                                         exclude='bads')
-        picks_list['eeg'] = pick_types(self.info, eeg='grad', ref_meg=False,
-                                       exclude='bads')
+        picks_list['eeg'] = pick_types(self.info, eeg=True, ref_meg=False,
+                                       meg=False, exclude='bads')
 
         self.picks_list_ = picks_list
 

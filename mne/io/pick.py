@@ -264,6 +264,13 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         ref_meg = ('comps' in info and info['comps'] is not None and
                    len(info['comps']) > 0)
 
+    for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
+                  ias, syst, seeg, dipole, gof, bio):
+        if not isinstance(param, bool):
+            w = ('Parameters for all channel types (with the exception '
+                 'of "meg" and "ref_meg") must be of type bool, not {}.')
+            raise ValueError(w.format(type(param)))
+
     for k in range(nchan):
         kind = info['chs'][k]['kind']
         # XXX eventually we should de-duplicate this with channel_type!
