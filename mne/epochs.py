@@ -1637,7 +1637,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         inst = self.copy() if copy else self
 
         o_sfreq = inst.info['sfreq']
-        inst._data = resample(inst._data, sfreq, o_sfreq, npad,
+        inst._data = resample(inst._data, sfreq, o_sfreq, npad, window=window,
                               n_jobs=n_jobs)
         # adjust indirectly affected variables
         inst.info['sfreq'] = float(sfreq)
