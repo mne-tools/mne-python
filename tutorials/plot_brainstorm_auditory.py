@@ -196,7 +196,7 @@ events = mne.find_events(raw, stim_channel='UPPT001')
 ###############################################################################
 # The event timing is adjusted by comparing the trigger times on detected
 # sound onsets on channel UADC001-4408.
-sound_data = raw[mne.pick_channels(raw.ch_names, ['UADC001-4408'])][0][0]
+sound_data = raw[raw.ch_names.index('UADC001-4408')][0][0]
 onsets = np.where(np.abs(sound_data) > 2. * np.std(sound_data))[0]
 min_diff = int(0.5 * raw.info['sfreq'])
 diffs = np.concatenate([[min_diff + 1], np.diff(onsets)])
