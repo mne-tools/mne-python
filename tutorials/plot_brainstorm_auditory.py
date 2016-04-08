@@ -47,8 +47,10 @@ print(__doc__)
 
 ###############################################################################
 # To reduce memory consumption and running time, some of the steps are
-# precomputed. To run everything from scratch change this to False.
-use_precomputed = False
+# precomputed. To run everything from scratch change this to False. With
+# ``use_precomputed = False`` running time of this script can be several
+# minutes even on a fast computer.
+use_precomputed = True
 
 ###############################################################################
 # The data was collected with a CTF 275 system at 2400 Hz and low-pass
@@ -65,6 +67,11 @@ raw_fname2 = op.join(data_path, 'MEG', 'bst_auditory',
                      'S01_AEF_20131218_02.ds')
 erm_fname = op.join(data_path, 'MEG', 'bst_auditory',
                     'S01_Noise_20131218_01.ds')
+
+###############################################################################
+# In the memory saving mode we use ``preload=False`` and use the memory
+# efficient IO which loads the data on demand. However, filtering and some
+# other functions require the data to be preloaded in the memory.
 preload = not use_precomputed
 raw = read_raw_ctf(raw_fname1, preload=preload)
 mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=preload)])
@@ -284,9 +291,6 @@ evoked_dev.plot_topomap(times=times, title='Deviant')
 # P300 are emphasised.
 evoked_difference = combine_evoked([evoked_dev, evoked_std], weights=[1, -1])
 evoked_difference.plot(window_title='Difference', gfp=True)
-# = evoked_std.copy()
-#evoked_difference.data = evoked_dev.data - evoked_std.data
-#evoked_difference.plot(window_title='Difference', gfp=True)
 
 ###############################################################################
 # Source estimation.
@@ -318,17 +322,15 @@ if use_precomputed:
                         'bst_auditory-meg-oct-6-fwd.fif')
     fwd = mne.read_forward_solution(fwd_fname)
 else:
-    src = mne.setup_source_space(subject, subjects_dir=subjects_dir,
-                                 overwrite=True)
-    surfs_fname = op.join(subjects_dir, 'bst_auditory', 'bem',
-                          'bst_auditory-inner_skull.fif')
-    surfs = mne.read_bem_surfaces(surfs_fname)
+    src = mne.setup_source_space(subject, spacing='ico4',
+                                 subjects_dir=subjects_dir, overwrite=True)
+    model = mne.make_bem_model(subject=subject, ico=4, conductivity=[0.3],
+                               subjects_dir=subjects_dir)
+    bem = mne.make_bem_solution(model)
+    fwd = mne.make_forward_solution(evoked_std.info, trans=trans, src=src,
+                                    bem=bem)
 
-    bem = mne.make_bem_solution(surfs)
-
-    fwd = mne.make_forward_solution(raw.info, trans=trans, src=src, bem=bem)
-
-inv = mne.minimum_norm.make_inverse_operator(raw.info, fwd, cov)
+inv = mne.minimum_norm.make_inverse_operator(evoked_std.info, fwd, cov)
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 del fwd
