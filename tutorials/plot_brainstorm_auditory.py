@@ -104,10 +104,10 @@ if not use_precomputed:
 # removed by using SSP. We use pandas to read the data from the csv files. You
 # can also view the files with your favorite text editor.
 
-onsets = list()
-durations = list()
-descriptions = list()
-saccades = np.zeros((0, 3))
+onsets = pd.DataFrame()
+durations = pd.DataFrame()
+descriptions = pd.DataFrame()
+saccades = pd.DataFrame()
 offset = raw._raw_lengths[0]
 for idx in [1, 2]:
     csv_fname = op.join(data_path, 'MEG', 'bst_auditory',
@@ -118,20 +118,19 @@ for idx in [1, 2]:
     print(df)
 
     df['onset'] += offset * (idx - 1)
-    onsets = np.concatenate([onsets, df['onset']])
-    durations = np.concatenate([durations, df['duration']])
-    descriptions = np.concatenate([descriptions, df['label']])
-
-    saccades = np.concatenate([saccades,
-                               df[df['label'] == 'saccade'].values[:, :3]])
+    onsets = pd.concat([onsets, df['onset']])
+    durations = pd.concat([durations, df['duration']])
+    descriptions = pd.concat([descriptions, df['label']])
+    if idx == 2:  # Saccades from the second run as events.
+        saccades = df[df['label'] == 'saccade'].values[:, :3]
 
 saccades = np.asarray(saccades, dtype=int)
 
-onsets = raw.index_as_time(onsets)  # Conversion from samples to times.
-durations = raw.index_as_time(durations)
+onsets = raw.index_as_time(onsets).ravel()  # Conversion from samples to times.
+durations = raw.index_as_time(durations).ravel()
 
-annot = mne.annotations.Annotations(onsets, durations, descriptions)
-raw.annotations = annot
+annotations = mne.Annotations(onsets, durations, descriptions.values.ravel())
+raw.annotations = annotations
 del onsets, durations, descriptions
 
 ###############################################################################
