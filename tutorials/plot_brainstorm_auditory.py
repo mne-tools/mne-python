@@ -114,8 +114,8 @@ for idx in [1, 2]:
                         'events_bad_0%s.csv' % idx)
     df = pd.read_csv(csv_fname, header=None,
                      names=['onset', 'duration', 'id', 'label'])
-    print 'Events from run %s:' % idx
-    print df
+    print('Events from run {0}:'.format(idx))
+    print(df)
 
     df['onset'] += offset * (idx - 1)
     onsets = np.concatenate([onsets, df['onset']])
