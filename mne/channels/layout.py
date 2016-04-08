@@ -89,6 +89,8 @@ class Layout(object):
     def plot(self, show=True):
         """Plot the sensor positions.
 
+        Parameters
+        ----------
         show : bool
             Show figure if True. Defaults to True.
 
