@@ -326,16 +326,19 @@ Functions:
    plot_ica_scores
    plot_ica_overlay
    plot_epochs_image
+   plot_layout
    plot_montage
    plot_projs_topomap
    plot_raw
    plot_raw_psd
+   plot_sensors
    plot_snr_estimate
    plot_source_estimates
    plot_sparse_source_estimates
    plot_tfr_topomap
    plot_topo_image_epochs
    plot_topomap
+   plot_trans
    compare_fiff
    add_background_image
 

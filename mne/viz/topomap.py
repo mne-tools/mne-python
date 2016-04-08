@@ -1518,6 +1518,49 @@ def plot_psds_topomap(
     return fig
 
 
+def plot_layout(layout, show=True):
+    """Plot the sensor positions.
+
+    Parameters
+    ----------
+    layout : None | Layout
+        Layout instance specifying sensor positions.
+    show : bool
+        Show figure if True. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure containing the sensor topography.
+
+    Notes
+    -----
+
+    .. versionadded:: 0.12.0
+
+    """
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
+                        hspace=None)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    pos = [(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos]
+    pos, outlines = _check_outlines(pos, 'head')
+    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                      ['patch', 'autoshrink']])
+    for k, (x, y) in outlines_.items():
+        if 'mask' in k:
+            continue
+        ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+    for ii, (p, ch_id) in enumerate(zip(pos, layout.names)):
+        ax.annotate(ch_id, xy=(p[0], p[1]), horizontalalignment='center',
+                    verticalalignment='center', size='x-small')
+    plt_show(show)
+    return fig
+
+
 def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
               cmap, fig, layout=None):
     """Callback called from topomap for drawing average tfr over channels."""

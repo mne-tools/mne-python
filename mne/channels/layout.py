@@ -103,28 +103,8 @@ class Layout(object):
         .. versionadded:: 0.12.0
 
         """
-        import matplotlib.pyplot as plt
-        from mne.viz.topomap import _check_outlines
-        from mne.viz.utils import plt_show
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
-                            hspace=None)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        pos = [(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in self.pos]
-        pos, outlines = _check_outlines(pos, 'head')
-        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                          ['patch', 'autoshrink']])
-        for k, (x, y) in outlines_.items():
-            if 'mask' in k:
-                continue
-            ax.plot(x, y, color='k', linewidth=1, clip_on=False)
-        for ii, (p, ch_id) in enumerate(zip(pos, self.names)):
-            ax.annotate(ch_id, xy=(p[0], p[1]), horizontalalignment='center',
-                        verticalalignment='center', size='x-small')
-        plt_show(show)
-        return fig
+        from ..viz.topomap import plot_layout
+        return plot_layout(self, show=show)
 
 
 def _read_lout(fname):

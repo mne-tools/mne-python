@@ -926,6 +926,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, show=True):
 
     Notes
     -----
+    This function plots the sensor locations from the info structure using
+    matplotlib. For drawing the sensors using mayavi see
+    :func:`mne.viz.plot_trans`.
+    See also :func:`mne.viz.plot_layout`.
 
     .. versionadded:: 0.12.0
 
@@ -977,6 +981,8 @@ def _plot_sensors(pos, colors, ch_names, show):
         ax = fig.gca(projection='3d')
         ax.text(0, 0, 0, '', zorder=1)
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors)
+        ax.azim = 90
+        ax.elev = 0
     else:
         ax = fig.add_subplot(111)
         ax.text(0, 0, '', zorder=1)
