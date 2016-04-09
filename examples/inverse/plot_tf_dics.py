@@ -15,7 +15,6 @@ dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 # License: BSD (3-clause)
 
 import mne
-from mne.io import Raw
 from mne.event import make_fixed_length_events
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
@@ -35,7 +34,7 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 
 ###############################################################################
 # Read raw data
-raw = read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Pick a selection of magnetometer channels. A subset of all channels was used
@@ -65,7 +64,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     baseline=None, preload=True, proj=True, reject=reject)
 
 # Read empty room noise raw data
-raw_noise = read_raw_fif(noise_fname, preload=True)
+raw_noise = mne.io.read_raw_fif(noise_fname, preload=True)
 raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 raw_noise.pick_channels([raw_noise.ch_names[pick] for pick in picks])
 raw_noise.info.normalize_proj()

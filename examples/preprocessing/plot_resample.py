@@ -20,14 +20,13 @@ from __future__ import print_function
 from matplotlib import pyplot as plt
 
 import mne
-from mne.io import Raw
 from mne.datasets import sample
 
 ###############################################################################
 # Setting up data paths and loading raw data (skip some data for speed)
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-raw = read_raw_fif(raw_fname).crop(120, 240, copy=False).load_data()
+raw = mne.io.read_raw_fif(raw_fname).crop(120, 240, copy=False).load_data()
 
 ###############################################################################
 # Since downsampling reduces the timing precision of events, we recommend

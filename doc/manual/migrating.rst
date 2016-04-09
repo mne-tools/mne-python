@@ -19,7 +19,7 @@ and above which to filter out data.
 |                   | | eeglab;                                                    | | from mne import io,     :class:`Epochs <mne.Epochs>`                      |
 |                   |                                                              | | from mne.preprocessing import     :class:`ICA <mne.preprocessing.ICA>`    |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Import data       | EEG = pop_fileio(fname);                                     | | :func:`raw = io.read_raw_fif(fname) <mne.io.Raw>`                                  |
+| Import data       | EEG = pop_fileio(fname);                                     | | :func:`raw = io.read_raw_fif(fname) <mne.io.Raw>`                         |
 |                   |                                                              | | :func:`raw = io.read_raw_edf(fname) <mne.io.read_raw_edf>`                |
 |                   |                                                              | | :func:`raw = io.read_raw_eeglab(fname) <mne.io.read_raw_eeglab>`          |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
@@ -28,7 +28,7 @@ and above which to filter out data.
 | Run ICA           | EEG = pop_runica(EEG);                                       | :func:`ica.fit(raw) <mne.preprocessing.ICA.fit>`                            |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Epoch data        | | event_id = {'cond1', 'cond2'};                             | | :func:`events = mne.find_events(raw) <mne.find_events>`                   |
-|                   | | Epochs = pop_epochs(EEG, event_id, [tmin, tmax]) ;         | | :py:class:`event_id = dict(cond1=32, cond2=64) <dict>`                    |
+|                   | | Epochs = pop_epochs(EEG, event_id, [tmin, tmax]);          | | :py:class:`event_id = dict(cond1=32, cond2=64) <dict>`                    |
 |                   | |                                                            | | :class:`epochs = Epochs(raw, events, event_id, tmin, tmax) <mne.Epochs>`  |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
 | Selecting epochs  | Epochs = pop_epochs(EEG_epochs, {cond2});                    | :class:`epochs[cond2] <mne.Epochs>`                                         |

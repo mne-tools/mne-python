@@ -20,8 +20,6 @@ References
 # License: BSD (3-clause)
 
 import mne
-
-from mne.io import Raw
 from mne.preprocessing import ICA
 from mne.preprocessing.ica import corrmap
 from mne.datasets import sample
@@ -34,7 +32,7 @@ print(__doc__)
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.filter(1, 30, method='iir')
 picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True, ecg=False,
                        stim=False, exclude='bads')
