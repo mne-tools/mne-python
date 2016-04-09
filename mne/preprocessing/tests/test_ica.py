@@ -589,4 +589,12 @@ def test_ica_twice():
         ica2.fit(raw_new, picks=picks, decim=3)
         assert_equal(ica1.n_components_, ica2.n_components_)
 
+
+def test_fit_params():
+    """Test fit_params for ICA"""
+    assert_raises(ValueError, ICA, fit_params=dict(extended=True))
+    fit_params = {}
+    ICA(fit_params=fit_params)  # test no side effects
+    assert_equal(fit_params, {})
+
 run_tests_if_main()

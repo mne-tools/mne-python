@@ -221,6 +221,10 @@ class ICA(ContainsMixin):
 
         if fit_params is None:
             fit_params = {}
+        fit_params = deepcopy(fit_params)  # avoid side effects
+        if "extended" in fit_params:
+            raise ValueError("'extended' parameter provided. You should "
+                             "rather use method='extended-infomax'.")
         if method == 'fastica':
             update = {'algorithm': 'parallel', 'fun': 'logcosh',
                       'fun_args': None}
