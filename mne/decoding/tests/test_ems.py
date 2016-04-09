@@ -23,7 +23,7 @@ event_id = dict(aud_l=1, vis_l=3)
 @requires_sklearn
 def test_ems():
     """Test event-matched spatial filters"""
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
 
     # create unequal number of events
     events = read_events(event_name)

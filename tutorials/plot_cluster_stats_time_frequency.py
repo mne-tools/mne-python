@@ -44,7 +44,7 @@ tmin = -0.2
 tmax = 0.5
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []

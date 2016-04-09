@@ -31,7 +31,7 @@ event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 #   Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)[:30]
 
 channel = 'MEG 1332'  # include only this channel in analysis

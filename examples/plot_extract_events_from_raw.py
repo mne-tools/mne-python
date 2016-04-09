@@ -20,7 +20,7 @@ data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 
 # Reading events
-raw = Raw(fname)
+raw = read_raw_fif(fname)
 
 events = mne.find_events(raw, stim_channel='STI 014')
 

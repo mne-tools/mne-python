@@ -32,7 +32,7 @@ lambda2 = 1.0 / snr ** 2
 method = "sLORETA"  # use sLORETA method (could also be MNE or dSPM)
 
 # Load data
-raw = Raw(fname_raw)
+raw = read_raw_fif(fname_raw)
 inverse_operator = read_inverse_operator(fname_inv)
 label = mne.read_label(fname_label)
 

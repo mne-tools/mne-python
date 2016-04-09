@@ -17,7 +17,7 @@ print(__doc__)
 data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 
-raw = io.Raw(fname)
+raw = io.read_raw_fif(fname)
 
 include = []  # or stim channels ['STI 014']
 raw.info['bads'] += ['EEG 053']  # bads + 1 more

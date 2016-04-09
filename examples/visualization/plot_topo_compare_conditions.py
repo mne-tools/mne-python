@@ -37,7 +37,7 @@ tmin = -0.2
 tmax = 0.5
 
 #   Setup for reading the raw data
-raw = Raw(raw_fname)
+raw = read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)

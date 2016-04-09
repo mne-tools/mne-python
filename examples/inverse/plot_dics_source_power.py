@@ -31,7 +31,7 @@ subjects_dir = data_path + '/subjects'
 
 ###############################################################################
 # Read raw data
-raw = Raw(raw_fname)
+raw = read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Set picks

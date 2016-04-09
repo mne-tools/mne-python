@@ -18,7 +18,7 @@ MNE-Python can read data on-demand using the ``preload`` option provided in :ref
     from mne.datasets import sample
     data_path = sample.data_path()
     raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
 
 .. note:: Filtering does not work with ``preload=False``.
 

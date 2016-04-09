@@ -31,7 +31,7 @@ bem_fname = (data_path +
              '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif')
 
 # Load real data as the template
-raw = Raw(raw_fname).crop(0., 30., copy=False)  # 30 sec is enough
+raw = read_raw_fif(raw_fname).crop(0., 30., copy=False)  # 30 sec is enough
 
 ##############################################################################
 # Generate dipole time series

@@ -34,7 +34,7 @@ print(__doc__)
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = Raw(raw_fname, preload=True)
+raw = read_raw_fif(raw_fname, preload=True)
 raw.filter(1, 30, method='iir')
 picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True, ecg=False,
                        stim=False, exclude='bads')

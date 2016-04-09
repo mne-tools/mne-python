@@ -28,7 +28,7 @@ warnings.simplefilter('always')
 
 
 def make_epochs():
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
                        eog=False, exclude='bads')

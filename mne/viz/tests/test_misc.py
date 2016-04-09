@@ -41,7 +41,7 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 
 def _get_raw():
-    return io.Raw(raw_fname, preload=True)
+    return io.read_raw_fif(raw_fname, preload=True)
 
 
 def _get_events():

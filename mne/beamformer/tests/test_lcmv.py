@@ -40,7 +40,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
-    raw = mne.io.Raw(fname_raw, preload=True)
+    raw = mne.io.read_raw_fif(fname_raw, preload=True)
     forward = mne.read_forward_solution(fname_fwd)
     if all_forward:
         forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
@@ -267,7 +267,7 @@ def test_tf_lcmv():
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
-    raw = mne.io.Raw(fname_raw, preload=True)
+    raw = mne.io.read_raw_fif(fname_raw, preload=True)
     forward = mne.read_forward_solution(fname_fwd)
 
     event_id, tmin, tmax = 1, -0.2, 0.2

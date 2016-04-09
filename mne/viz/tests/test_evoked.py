@@ -38,7 +38,7 @@ layout = read_layout('Vectorview-all')
 
 
 def _get_raw():
-    return io.Raw(raw_fname, preload=False)
+    return io.read_raw_fif(raw_fname, preload=False)
 
 
 def _get_events():

@@ -35,7 +35,7 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 
 ###############################################################################
 # Read raw data, preload to allow filtering
-raw = Raw(raw_fname, preload=True)
+raw = read_raw_fif(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Pick a selection of magnetometer channels. A subset of all channels was used
@@ -73,7 +73,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     baseline=None, preload=False, reject=reject)
 
 # Read empty room noise, preload to allow filtering, and pick subselection
-raw_noise = Raw(noise_fname, preload=True)
+raw_noise = read_raw_fif(noise_fname, preload=True)
 raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 raw_noise.pick_types(meg='mag', eeg=False, eog=False, stim=False,
                      exclude='bads', selection=left_temporal_channels)

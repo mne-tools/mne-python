@@ -19,7 +19,7 @@ and above which to filter out data.
 |                   | | eeglab;                                                    | | from mne import io,     :class:`Epochs <mne.Epochs>`                      |
 |                   |                                                              | | from mne.preprocessing import     :class:`ICA <mne.preprocessing.ICA>`    |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+
-| Import data       | EEG = pop_fileio(fname);                                     | | :func:`raw = io.Raw(fname) <mne.io.Raw>`                                  |
+| Import data       | EEG = pop_fileio(fname);                                     | | :func:`raw = io.read_raw_fif(fname) <mne.io.Raw>`                                  |
 |                   |                                                              | | :func:`raw = io.read_raw_edf(fname) <mne.io.read_raw_edf>`                |
 |                   |                                                              | | :func:`raw = io.read_raw_eeglab(fname) <mne.io.read_raw_eeglab>`          |
 +-------------------+--------------------------------------------------------------+-----------------------------------------------------------------------------+

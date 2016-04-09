@@ -26,7 +26,7 @@ print(__doc__)
 # Load real data as templates
 data_path = sample.data_path()
 
-raw = Raw(data_path + '/MEG/sample/sample_audvis_raw.fif')
+raw = read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
 proj = read_proj(data_path + '/MEG/sample/sample_audvis_ecg_proj.fif')
 raw.info['projs'] += proj
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels

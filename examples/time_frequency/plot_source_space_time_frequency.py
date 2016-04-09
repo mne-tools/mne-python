@@ -29,7 +29,7 @@ fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 tmin, tmax, event_id = -0.2, 0.5, 1
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.find_events(raw, stim_channel='STI 014')
 inverse_operator = read_inverse_operator(fname_inv)
 

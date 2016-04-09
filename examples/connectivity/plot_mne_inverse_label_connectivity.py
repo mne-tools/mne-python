@@ -34,7 +34,7 @@ fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
-raw = Raw(fname_raw)
+raw = read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # Add a bad channel

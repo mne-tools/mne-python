@@ -39,7 +39,7 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, aud_r=2)
 
 # Setup for reading the raw data
-raw = mne.io.Raw(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 picks = mne.pick_types(raw.info, meg='mag', eeg=False, stim=False,

@@ -27,7 +27,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname, preload=True)
+raw = io.read_raw_fif(raw_fname, preload=True)
 events = mne.find_events(raw, 'STI 014')
 eog_event_id = 512
 eog_events = mne.preprocessing.find_eog_events(raw, eog_event_id)

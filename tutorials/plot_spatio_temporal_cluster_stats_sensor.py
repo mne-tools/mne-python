@@ -39,7 +39,7 @@ tmin = -0.2
 tmax = 0.5
 
 # Setup for reading the raw data
-raw = mne.io.Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.filter(1, 30)
 events = mne.read_events(event_fname)
 

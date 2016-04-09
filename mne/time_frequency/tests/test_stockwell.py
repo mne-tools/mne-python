@@ -22,7 +22,7 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
-raw = io.Raw(raw_fname, add_eeg_ref=False)
+raw = io.read_raw_fif(raw_fname, add_eeg_ref=False)
 event_name = op.join(base_dir, 'test-eve.fif')
 events = read_events(event_name)
 picks = pick_types(raw.info, meg=True, eeg=True, stim=True,

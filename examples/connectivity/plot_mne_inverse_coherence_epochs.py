@@ -37,7 +37,7 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
 label_lh = mne.read_label(fname_label_lh)
-raw = Raw(fname_raw)
+raw = read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # Add a bad channel
