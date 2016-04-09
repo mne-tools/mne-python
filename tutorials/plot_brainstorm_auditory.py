@@ -74,6 +74,7 @@ erm_fname = op.join(data_path, 'MEG', 'bst_auditory',
 # other functions require the data to be preloaded in the memory.
 preload = not use_precomputed
 raw = read_raw_ctf(raw_fname1, preload=preload)
+n_times_run1 = raw.n_times
 mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=preload)])
 raw_erm = read_raw_ctf(erm_fname, preload=preload)
 
@@ -104,11 +105,8 @@ if not use_precomputed:
 # removed by using SSP. We use pandas to read the data from the csv files. You
 # can also view the files with your favorite text editor.
 
-onsets = pd.DataFrame()
-durations = pd.DataFrame()
-descriptions = pd.DataFrame()
-saccades = pd.DataFrame()
-offset = raw._raw_lengths[0]
+annotations_df = pd.DataFrame()
+offset = n_times_run1
 for idx in [1, 2]:
     csv_fname = op.join(data_path, 'MEG', 'bst_auditory',
                         'events_bad_0%s.csv' % idx)
@@ -118,25 +116,23 @@ for idx in [1, 2]:
     print(df)
 
     df['onset'] += offset * (idx - 1)
-    onsets = pd.concat([onsets, df['onset']])
-    durations = pd.concat([durations, df['duration']])
-    descriptions = pd.concat([descriptions, df['label']])
-    if idx == 2:  # Saccades from the second run as events.
-        saccades = df[df['label'] == 'saccade'].values[:, :3]
+    annotations_df = pd.concat([annotations_df, df], axis=0)
 
-saccades = np.asarray(saccades, dtype=int)
+saccades_events = df[df['label'] == 'saccade'].values[:, :3].astype(int)
 
-onsets = raw.index_as_time(onsets).ravel()  # Conversion from samples to times.
-durations = raw.index_as_time(durations).ravel()
+# Conversion from samples to times:
+onsets = raw.index_as_time(annotations_df['onset'].values)
+durations = raw.index_as_time(annotations_df['duration'].values)
+descriptions = map(str, annotations_df['label'].values)
 
-annotations = mne.Annotations(onsets, durations, descriptions.values.ravel())
+annotations = mne.Annotations(onsets, durations, descriptions)
 raw.annotations = annotations
 del onsets, durations, descriptions
 
 ###############################################################################
 # Here we compute the saccade and EOG projectors for magnetometers and add
 # them to the raw data. The projectors are added to both runs.
-saccade_epochs = mne.Epochs(raw, saccades, 1, 0., 0.5, preload=True,
+saccade_epochs = mne.Epochs(raw, saccades_events, 1, 0., 0.5, preload=True,
                             reject_by_annotation=False)
 
 projs_saccade = mne.compute_proj_epochs(saccade_epochs, n_mag=1, n_eeg=0,
@@ -150,7 +146,7 @@ else:
                                                       n_mag=1, n_eeg=0)
 raw.add_proj(projs_saccade)
 raw.add_proj(projs_eog)
-del saccade_epochs, saccades, projs_eog, projs_saccade  # To save memory
+del saccade_epochs, saccades_events, projs_eog, projs_saccade  # To save memory
 
 ###############################################################################
 # Visually inspect the effects of projections. Click on 'proj' button at the
