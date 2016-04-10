@@ -18,6 +18,7 @@
 *.egg*
 *.tmproj
 *.png
+*.dat
 .DS_Store
 events.eve
 foo-lh.label
@@ -59,5 +60,5 @@ cover
 # PyCharm
 .idea/**
 
+# sublime
 *-e
-*.dat

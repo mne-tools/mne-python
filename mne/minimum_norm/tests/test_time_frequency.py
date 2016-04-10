@@ -135,7 +135,7 @@ def test_source_psd_epochs():
                     baseline=(None, 0), reject=reject)
 
     # only look at one epoch
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
     one_epochs = epochs[:1]
 
     inv = prepare_inverse_operator(inverse_operator, nave=1,
