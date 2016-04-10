@@ -15,7 +15,7 @@ raw_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 def test_maxfilter_io():
     """test maxfilter io"""
-    raw = io.Raw(raw_fname)
+    raw = io.read_raw_fif(raw_fname)
     mf = raw.info['proc_history'][1]['max_info']
 
     assert_true(mf['sss_info']['frame'], FIFF.FIFFV_COORD_HEAD)
@@ -40,7 +40,7 @@ def test_maxfilter_io():
 
 def test_maxfilter_get_rank():
     """test maxfilter rank lookup"""
-    raw = io.Raw(raw_fname)
+    raw = io.read_raw_fif(raw_fname)
     mf = raw.info['proc_history'][0]['max_info']
     rank1 = mf['sss_info']['nfree']
     rank2 = _get_sss_rank(mf)

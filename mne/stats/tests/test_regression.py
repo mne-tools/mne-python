@@ -37,7 +37,7 @@ def test_regression():
     event_id = dict(aud_l=1, aud_r=2)
 
     # Setup for reading the raw data
-    raw = mne.io.Raw(raw_fname)
+    raw = mne.io.read_raw_fif(raw_fname)
     events = mne.read_events(event_fname)[:10]
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                         baseline=(None, 0))
@@ -90,7 +90,7 @@ def test_continuous_regression_no_overlap():
     """Test regression without overlap correction, on real data"""
     tmin, tmax = -.1, .5
 
-    raw = mne.io.Raw(raw_fname, preload=True)
+    raw = mne.io.read_raw_fif(raw_fname, preload=True)
     raw.apply_proj()
     events = mne.read_events(event_fname)
     event_id = dict(audio_l=1, audio_r=2)

@@ -25,8 +25,9 @@ print(__doc__)
 data_path = op.join(mne.datasets.misc.data_path(verbose=True), 'movement')
 
 pos = mne.chpi.read_head_pos(op.join(data_path, 'simulated_quats.pos'))
-raw = mne.io.Raw(op.join(data_path, 'simulated_movement_raw.fif'))
-raw_stat = mne.io.Raw(op.join(data_path, 'simulated_stationary_raw.fif'))
+raw = mne.io.read_raw_fif(op.join(data_path, 'simulated_movement_raw.fif'))
+raw_stat = mne.io.read_raw_fif(op.join(data_path,
+                                       'simulated_stationary_raw.fif'))
 
 ##############################################################################
 # Process our simulated raw data (taking into account head movements)

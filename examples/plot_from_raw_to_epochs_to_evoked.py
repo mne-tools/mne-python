@@ -31,7 +31,7 @@ tmin, tmax = -0.2, 0.5
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
 
 #   Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Plot raw data

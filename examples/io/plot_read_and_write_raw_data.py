@@ -20,7 +20,7 @@ data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 
-raw = mne.io.Raw(fname)
+raw = mne.io.read_raw_fif(fname)
 
 # Set up pick list: MEG + STI 014 - bad channels
 want_meg = True

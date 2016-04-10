@@ -16,7 +16,6 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.beamformer import lcmv
 
 print(__doc__)
@@ -34,7 +33,7 @@ subjects_dir = data_path + '/subjects'
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
-raw = Raw(raw_fname, preload=True, proj=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True, proj=True)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 events = mne.read_events(event_fname)
 

@@ -24,7 +24,6 @@ import numpy as np
 
 import mne
 from mne.datasets.brainstorm import bst_raw
-from mne.io import Raw
 
 print(__doc__)
 
@@ -35,7 +34,7 @@ data_path = bst_raw.data_path()
 
 raw_fname = data_path + '/MEG/bst_raw/' + \
                         'subj001_somatosensory_20111109_01_AUX-f_raw.fif'
-raw = Raw(raw_fname, preload=True, add_eeg_ref=False)
+raw = mne.io.read_raw_fif(raw_fname, preload=True, add_eeg_ref=False)
 raw.plot()
 
 # set EOG channel

@@ -19,7 +19,7 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 def test_psd():
     """Tests the welch and multitaper PSD
     """
-    raw = io.Raw(raw_fname)
+    raw = io.read_raw_fif(raw_fname)
     picks_psd = [0, 1]
 
     # Populate raw with sinusoids
@@ -143,7 +143,7 @@ def test_psd():
 def test_compares_psd():
     """Test PSD estimation on raw for plt.psd and scipy.signal.welch
     """
-    raw = io.Raw(raw_fname)
+    raw = io.read_raw_fif(raw_fname)
 
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 

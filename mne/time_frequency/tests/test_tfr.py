@@ -40,7 +40,7 @@ def test_time_frequency():
     tmax = 0.498  # Allows exhaustive decimation testing
 
     # Setup for reading the raw data
-    raw = io.Raw(raw_fname)
+    raw = io.read_raw_fif(raw_fname)
     events = read_events(event_fname)
 
     include = []

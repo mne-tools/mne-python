@@ -36,7 +36,7 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 tmin, tmax, event_id = -0.2, 0.5, 2
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.find_events(raw, stim_channel='STI 014')
 inverse_operator = read_inverse_operator(fname_inv)
 

@@ -20,7 +20,6 @@ import mne
 import matplotlib.pyplot as plt
 import numpy as np
 
-from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
 from mne.beamformer import dics
@@ -37,7 +36,7 @@ subjects_dir = data_path + '/subjects'
 
 ###############################################################################
 # Read raw data
-raw = Raw(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 
 # Set picks

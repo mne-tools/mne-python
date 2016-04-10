@@ -12,7 +12,6 @@ The plot them to get an idea of the paradigm.
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 
 print(__doc__)
 
@@ -20,7 +19,7 @@ data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 
 # Reading events
-raw = Raw(fname)
+raw = mne.io.read_raw_fif(fname)
 
 events = mne.find_events(raw, stim_channel='STI 014')
 

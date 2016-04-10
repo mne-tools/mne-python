@@ -20,7 +20,7 @@ def _load_data():
     """Helper function to load data."""
     # It is more memory efficient to load data in a separate
     # function so it's loaded on-demand
-    raw = io.Raw(raw_fname, add_eeg_ref=False)
+    raw = io.read_raw_fif(raw_fname, add_eeg_ref=False)
     events = read_events(event_name)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude=[])
     # select every second channel for faster speed but compensate by using

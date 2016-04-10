@@ -130,7 +130,7 @@ print(raw_fname)
 #
 # Read data from file:
 
-raw = mne.io.Raw(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 print(raw)
 print(raw.info)
 

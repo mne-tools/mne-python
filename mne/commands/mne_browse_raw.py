@@ -84,7 +84,8 @@ def run():
         parser.print_help()
         sys.exit(1)
 
-    raw = mne.io.Raw(raw_in, preload=preload, allow_maxshield=maxshield)
+    raw = mne.io.read_raw_fif(raw_in, preload=preload,
+                              allow_maxshield=maxshield)
     if len(proj_in) > 0:
         projs = mne.read_proj(proj_in)
         raw.info['projs'] = projs

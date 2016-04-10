@@ -29,7 +29,7 @@ print(__doc__)
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = io.Raw(raw_fname, preload=True)
+raw = io.read_raw_fif(raw_fname, preload=True)
 raw.filter(1, 20)
 
 picks = mne.pick_types(raw.info, meg=True, exclude=[])

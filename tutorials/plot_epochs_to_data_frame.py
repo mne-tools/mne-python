@@ -103,7 +103,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
-raw = Raw(raw_fname)
+raw = read_raw_fif(raw_fname)
 
 # For simplicity we will only consider the first 10 epochs
 events = mne.read_events(event_fname)[:10]

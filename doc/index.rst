@@ -41,7 +41,7 @@ operating systems, as well as a MATLAB toolbox.
 .. code:: python
 
     >>> import mne  # doctest: +SKIP
-    >>> raw = mne.io.Raw('raw.fif', preload=True)  # load data  # doctest: +SKIP
+    >>> raw = mne.io.read_raw_fif('raw.fif', preload=True)  # load data  # doctest: +SKIP
     >>> raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels  # doctest: +SKIP
     >>> raw.filter(l_freq=None, h_freq=40.0)  # low-pass filter data  # doctest: +SKIP
     >>> # Extract epochs and save them:

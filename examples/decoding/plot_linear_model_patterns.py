@@ -44,7 +44,7 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname, preload=True)
+raw = io.read_raw_fif(raw_fname, preload=True)
 raw.filter(2, None, method='iir')  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 

@@ -31,7 +31,7 @@ proj_fname = data_path + '/MEG/sample/sample_audvis_eog_proj.fif'
 tmin, tmax = 0, 60  # use the first 60s of data
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # To save memory, crop the raw data before loading data

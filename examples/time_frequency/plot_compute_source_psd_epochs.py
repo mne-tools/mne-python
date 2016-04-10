@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.minimum_norm import read_inverse_operator, compute_source_psd_epochs
 
 print(__doc__)
@@ -37,7 +36,7 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
 label = mne.read_label(fname_label)
-raw = Raw(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # Set up pick list

@@ -29,7 +29,7 @@ event_id, tmin, tmax = 1, -0.1, 0.2
 
 
 def _get_raw(preload=False):
-    return io.Raw(raw_fname, preload=preload)
+    return io.read_raw_fif(raw_fname, preload=preload)
 
 
 def _get_events():
@@ -76,7 +76,7 @@ def test_plot_ica_sources():
     """Test plotting of ICA panel
     """
     import matplotlib.pyplot as plt
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     raw.crop(0, 1, copy=False)
     raw.load_data()
     picks = _get_picks(raw)

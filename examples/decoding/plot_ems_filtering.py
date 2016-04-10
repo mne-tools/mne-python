@@ -45,7 +45,7 @@ tmin = -0.2
 tmax = 0.5
 
 # Read data and create epochs
-raw = io.Raw(raw_fname, preload=True)
+raw = io.read_raw_fif(raw_fname, preload=True)
 raw.filter(1, 45)
 events = mne.read_events(event_fname)
 

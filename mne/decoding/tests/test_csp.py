@@ -27,7 +27,7 @@ start, stop = 0, 8
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
     """
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -87,7 +87,7 @@ def test_csp():
 def test_regularized_csp():
     """Test Common Spatial Patterns algorithm using regularized covariance
     """
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')

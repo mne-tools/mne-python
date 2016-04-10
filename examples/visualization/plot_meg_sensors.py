@@ -15,7 +15,7 @@ import os.path as op
 from mayavi import mlab
 
 import mne
-from mne.io import Raw, read_raw_ctf, read_raw_bti, read_raw_kit
+from mne.io import read_raw_fif, read_raw_ctf, read_raw_bti, read_raw_kit
 from mne.datasets import sample, spm_face
 from mne.viz import plot_trans
 
@@ -24,7 +24,8 @@ print(__doc__)
 bti_path = op.abspath(op.dirname(mne.__file__)) + '/io/bti/tests/data/'
 kit_path = op.abspath(op.dirname(mne.__file__)) + '/io/kit/tests/data/'
 raws = dict(
-    Neuromag=Raw(sample.data_path() + '/MEG/sample/sample_audvis_raw.fif'),
+    Neuromag=read_raw_fif(sample.data_path() +
+                          '/MEG/sample/sample_audvis_raw.fif'),
     CTF_275=read_raw_ctf(spm_face.data_path() +
                          '/MEG/spm/SPM_CTF_MEG_example_faces1_3D.ds'),
     Magnes_3600wh=read_raw_bti(op.join(bti_path, 'test_pdf_linux'),

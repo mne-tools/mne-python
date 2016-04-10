@@ -36,7 +36,7 @@ def test_tfr_with_inverse_operator():
     tmin, tmax, event_id = -0.2, 0.5, 1
 
     # Setup for reading the raw data
-    raw = io.Raw(fname_data)
+    raw = io.read_raw_fif(fname_data)
     events = find_events(raw, stim_channel='STI 014')
     inverse_operator = read_inverse_operator(fname_inv)
     inv = prepare_inverse_operator(inverse_operator, nave=1,
@@ -95,7 +95,7 @@ def test_tfr_with_inverse_operator():
 @testing.requires_testing_data
 def test_source_psd():
     """Test source PSD computation in label"""
-    raw = io.Raw(fname_data)
+    raw = io.read_raw_fif(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
     tmin, tmax = 0, 20  # seconds
@@ -116,7 +116,7 @@ def test_source_psd():
 def test_source_psd_epochs():
     """Test multi-taper source PSD computation in label from epochs"""
 
-    raw = io.Raw(fname_data)
+    raw = io.read_raw_fif(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
 

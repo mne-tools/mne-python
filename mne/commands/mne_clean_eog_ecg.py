@@ -38,7 +38,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
         raise Exception("EOG and ECG cannot be both disabled")
 
     # Reading fif File
-    raw_in = mne.io.Raw(in_fif_fname)
+    raw_in = mne.io.read_raw_fif(in_fif_fname)
 
     if in_fif_fname.endswith('_raw.fif') or in_fif_fname.endswith('-raw.fif'):
         prefix = in_fif_fname[:-8]

@@ -16,7 +16,6 @@ in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 # License: BSD (3-clause)
 
 import mne
-from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
 from mne.beamformer import dics_source_power
@@ -31,7 +30,7 @@ subjects_dir = data_path + '/subjects'
 
 ###############################################################################
 # Read raw data
-raw = Raw(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Set picks
