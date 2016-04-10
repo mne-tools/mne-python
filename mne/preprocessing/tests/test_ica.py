@@ -590,6 +590,7 @@ def test_ica_twice():
         assert_equal(ica1.n_components_, ica2.n_components_)
 
 
+@requires_sklearn
 def test_fit_params():
     """Test fit_params for ICA"""
     assert_raises(ValueError, ICA, fit_params=dict(extended=True))
