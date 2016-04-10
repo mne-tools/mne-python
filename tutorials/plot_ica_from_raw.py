@@ -16,7 +16,6 @@ Subsequently, artifact detection and rejection quality are assessed.
 import numpy as np
 
 import mne
-from mne.io import Raw
 from mne.preprocessing import ICA
 from mne.preprocessing import create_ecg_epochs, create_eog_epochs
 from mne.datasets import sample
@@ -27,7 +26,7 @@ from mne.datasets import sample
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.filter(1, 45, n_jobs=1)
 
 ###############################################################################

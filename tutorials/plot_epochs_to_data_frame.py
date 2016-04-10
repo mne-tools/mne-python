@@ -94,7 +94,6 @@ pandas doc sites: http://pandas.pydata.org/pandas-docs/stable/
 import mne
 import matplotlib.pyplot as plt
 import numpy as np
-from mne.io import Raw
 from mne.datasets import sample
 
 print(__doc__)
@@ -103,7 +102,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
-raw = read_raw_fif(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 
 # For simplicity we will only consider the first 10 epochs
 events = mne.read_events(event_fname)[:10]

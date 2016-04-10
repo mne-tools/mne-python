@@ -104,7 +104,7 @@ mne.set_log_level('INFO')
 # You can set the default level by setting the environment variable
 # "MNE_LOGGING_LEVEL", or by having mne-python write preferences to a file:
 
-mne.set_config('MNE_LOGGING_LEVEL','WARNING')
+mne.set_config('MNE_LOGGING_LEVEL', 'WARNING')
 
 ##############################################################################
 # Note that the location of the mne-python preferences file (for easier manual
@@ -119,7 +119,7 @@ mne.get_config_path()
 # Access raw data
 # ^^^^^^^^^^^^^^^
 
-from mne.datasets import sample
+from mne.datasets import sample  # noqa
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 print(raw_fname)
@@ -209,7 +209,8 @@ grad_picks = mne.pick_types(raw.info, meg='grad', eog=True, exclude='bads')
 baseline = (None, 0)  # means from the first instant to t = 0
 
 ##############################################################################
-# Define peak-to-peak rejection parameters for gradiometers, magnetometers and EOG:
+# Define peak-to-peak rejection parameters for gradiometers, magnetometers
+# and EOG:
 
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
@@ -233,7 +234,7 @@ print(epochs_data.shape)
 # Scipy supports read and write of matlab files. You can save your single
 # trials with:
 
-from scipy import io
+from scipy import io  # noqa
 io.savemat('epochs_data.mat', dict(epochs_data=epochs_data), oned_as='row')
 
 ##############################################################################
@@ -259,8 +260,8 @@ evoked.plot()
 #
 #   1. Extract the max value of each epoch
 
-max_in_each_epoch = [e.max() for e in epochs['aud_l']] # doctest:+ELLIPSIS
-print(max_in_each_epoch[:4]) # doctest:+ELLIPSIS
+max_in_each_epoch = [e.max() for e in epochs['aud_l']]  # doctest:+ELLIPSIS
+print(max_in_each_epoch[:4])  # doctest:+ELLIPSIS
 
 ##############################################################################
 # It is also possible to read evoked data stored in a fif file:
@@ -287,14 +288,14 @@ print(contrast)
 #
 # Define parameters:
 
-import numpy as np
+import numpy as np  # noqa
 n_cycles = 2  # number of cycles in Morlet wavelet
 freqs = np.arange(7, 30, 3)  # frequencies of interest
 
 ##############################################################################
 # Compute induced power and phase-locking values and plot gradiometers:
 
-from mne.time_frequency import tfr_morlet
+from mne.time_frequency import tfr_morlet  # noqa
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                         return_itc=True, decim=3, n_jobs=1)
 # power.plot()
@@ -305,7 +306,7 @@ power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
 #
 # Import the required functions:
 
-from mne.minimum_norm import apply_inverse, read_inverse_operator
+from mne.minimum_norm import apply_inverse, read_inverse_operator  # noqa
 
 ##############################################################################
 # Read the inverse operator:
@@ -339,7 +340,7 @@ label = mne.read_label(fname_label)
 ##############################################################################
 # Compute inverse solution during the first 15s:
 
-from mne.minimum_norm import apply_inverse_raw
+from mne.minimum_norm import apply_inverse_raw  # noqa
 start, stop = raw.time_as_index([0, 15])  # read the first 15s of data
 stc = apply_inverse_raw(raw, inverse_operator, lambda2, method, label,
                         start, stop)

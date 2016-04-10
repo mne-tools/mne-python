@@ -105,7 +105,7 @@ print(custom_raw)
 
 # Generate some random data: 10 epochs, 5 channels, 2 seconds per epoch
 sfreq = 100
-data = np.random.randn(10, 5, sfreq*2)
+data = np.random.randn(10, 5, sfreq * 2)
 
 # Initialize an info structure
 info = mne.create_info(
