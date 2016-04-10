@@ -831,6 +831,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                    (raw.info["highpass"] is None or
                    l_freq > raw.info['highpass']):
                         raw.info['highpass'] = l_freq
+        else:
+            if h_freq is not None or l_freq is not None:
+                logger.info('Filtering a subset of channels. The highpass and '
+                            'lowpass values in the measurement info will not '
+                            'be updated.')
+
         if l_freq is None and h_freq is not None:
             logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
             low_pass_filter(raw._data, fs, h_freq,
