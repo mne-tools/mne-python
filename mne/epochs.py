@@ -696,6 +696,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -------
         evoked : instance of Evoked
             The averaged epochs.
+            
+        Notes
+        -----
+        Computes an average of ALL epochs in the instance, even if
+        they correspond to different conditions. To average by condition,
+        do epochs[condition].average() for each condition separately.
         """
         return self._compute_mean_or_stderr(picks, 'ave')
 

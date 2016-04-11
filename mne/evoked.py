@@ -116,6 +116,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         fname : string
             Name of the file where to save the data.
+            
+        Notes
+        -----
+        An evoked object contains a single condition only. To write
+        multiple conditions into a single file, use mne.write_evokeds().
         """
         write_evokeds(fname, self)
 
