@@ -16,8 +16,10 @@ from mne.datasets import sample
 # inverse solution. For more information, see :ref:`BABDEEEB`.
 
 data_path = sample.data_path()
-erm = mne.io.Raw(op.join(data_path, 'MEG', 'sample', 'ernoise_raw.fif'))
-raw = mne.io.Raw(op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif'))
+erm_fname = op.join(data_path, 'MEG', 'sample', 'ernoise_raw.fif')
+erm = mne.io.read_raw_fif(erm_fname)
+raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+raw = mne.io.read_raw_fif(raw_fname)
 
 ###############################################################################
 # The definition of noise depends on the paradigm. In MEG it is quite common

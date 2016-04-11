@@ -71,7 +71,6 @@ For further reading:
 
     <h2>Sensor-level analysis</h2>
 
-  ..   * Epoching and Averaging --TODO--
   ..   * Time-Frequency analysis with multitapers --TODO
   ..   * Connectivity study with phase-lag index --TODO--
   ..   * Decoding --TODO--
@@ -81,6 +80,7 @@ For further reading:
 
     auto_tutorials/plot_epochs_objects.rst
     auto_tutorials/plot_epochs_to_data_frame.rst
+    auto_tutorials/plot_epoching_and_averaging.rst
 
 .. container:: span box
 
