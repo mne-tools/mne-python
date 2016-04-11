@@ -696,7 +696,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -------
         evoked : instance of Evoked
             The averaged epochs.
-            
+
         Notes
         -----
         Computes an average of all epochs in the instance, even if
