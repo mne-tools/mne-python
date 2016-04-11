@@ -92,6 +92,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Evoked response.
     verbose : bool, str, int, or None.
         See above.
+
+    Notes
+    -----
+    Evoked objects contain a single condition only.
+
     """
     @verbose
     def __init__(self, fname, condition=None, baseline=None, proj=True,
@@ -116,6 +121,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         fname : string
             Name of the file where to save the data.
+
+        Notes
+        -----
+        To write multiple conditions into a single file, use
+        :func:`mne.write_evokeds`.
         """
         write_evokeds(fname, self)
 
