@@ -699,7 +699,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             
         Notes
         -----
-        Computes an average of ALL epochs in the instance, even if
+        Computes an average of all epochs in the instance, even if
         they correspond to different conditions. To average by condition,
         do epochs[condition].average() for each condition separately.
         """
@@ -1992,6 +1992,7 @@ class Epochs(_BaseEpochs):
         list tag (e.g. ['audio', 'left'] selects 'audio/left' and
         'audio/center/left', but not 'audio/right').
 
+       
     See Also
     --------
     mne.epochs.combine_event_ids
