@@ -337,7 +337,8 @@ class SetChannelsMixin(object):
         from .montage import _set_montage
         _set_montage(self.info, montage)
 
-    def plot_sensors(self, kind='topomap', ch_type=None, show=True):
+    def plot_sensors(self, kind='topomap', ch_type=None, title=None,
+                     show_names=False, show=True):
         """
         Plot sensors positions.
 
@@ -349,6 +350,11 @@ class SetChannelsMixin(object):
         ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
             The channel type to plot. If None, then channels are chosen in the
             order given above.
+        title : str | None
+            Title for the figure. If None (default), equals to
+            ``'Sensor positions (%s)' % ch_type``.
+        show_names : bool
+            Whether to display all channel names. Defaults to False.
         show : bool
             Show figure if True. Defaults to True.
 
@@ -368,7 +374,8 @@ class SetChannelsMixin(object):
 
         """
         from ..viz.utils import plot_sensors
-        return plot_sensors(self.info, kind=kind, ch_type=ch_type, show=show)
+        return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
+                            show_names=show_names, show=show)
 
 
 class UpdateChannelsMixin(object):

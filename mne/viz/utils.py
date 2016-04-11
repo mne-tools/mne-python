@@ -903,7 +903,8 @@ def _process_times(inst, times, n_peaks=None, few=False):
     return times
 
 
-def plot_sensors(info, kind='topomap', ch_type=None, show=True):
+def plot_sensors(info, kind='topomap', ch_type=None, title=None,
+                 show_names=False, show=True):
     """Plot sensors positions.
 
     Parameters
@@ -916,6 +917,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, show=True):
     ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
         The channel type to plot. If None, then channels are chosen in the
         order given above.
+    title : str | None
+        Title for the figure. If None (default), equals to
+        ``'Sensor positions (%s)' % ch_type``.
+    show_names : bool
+        Whether to display all channel names. Defaults to False.
     show : bool
         Show figure if True. Defaults to True.
 
@@ -934,6 +940,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, show=True):
     .. versionadded:: 0.12.0
 
     """
+    if ch_type not in ['mag', 'grad', 'eeg', 'seeg']:
+        raise ValueError("ch_type must be one of ['mag', 'grad', 'eeg', "
+                         "'seeg']!")
     if kind not in ['topomap', '3d']:
         raise ValueError("Kind must be 'topomap' or '3d'.")
     ch_indices = channel_indices_by_type(info)
@@ -942,6 +951,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, show=True):
             if _contains_ch_type(info, type):
                 ch_type = type
                 break
+
     picks = ch_indices[ch_type]
     if kind == 'topomap':
         pos = _auto_topomap_coords(info, picks, True)
@@ -952,28 +962,31 @@ def plot_sensors(info, kind='topomap', ch_type=None, show=True):
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
               for i, pick in enumerate(picks)]
-    return _plot_sensors(pos, colors, ch_names, show)
+    title = 'Sensor positions (%s)' % ch_type if title is None else title
+    fig = _plot_sensors(pos, colors, ch_names, title, show_names, show)
+
+    return fig
 
 
-def _plot_sensors(pos, colors, ch_names, show):
+def _plot_sensors(pos, colors, ch_names, title, show_names, show):
     """Helper function for plotting sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from .topomap import _check_outlines
     fig = plt.figure()
 
-    def onpick(event, pos):
+    def onpick(event, pos, ch_names):
         ind = event.ind[0]  # Just take the first sensor.
         ch_name = ch_names[ind]
-        pos = pos[ind]
+        this_pos = pos[ind]
 
         # XXX: Bug in matplotlib won't allow setting the position of existing
         # text item, so we create a new one.
         ax.texts.pop(0)
-        if len(pos) == 3:
-            ax.text(pos[0], pos[1], pos[2], ch_name)
+        if len(this_pos) == 3:
+            ax.text(this_pos[0], this_pos[1], this_pos[2], ch_name)
         else:
-            ax.text(pos[0], pos[1], ch_name)
+            ax.text(this_pos[0], this_pos[1], ch_name)
         fig.canvas.draw()
 
     if pos.shape[1] == 3:
@@ -999,7 +1012,16 @@ def _plot_sensors(pos, colors, ch_names, show):
             ax.plot(x, y, color='k', linewidth=1, clip_on=False)
         ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors)
 
-    picker = partial(onpick, pos=pos)
-    fig.canvas.mpl_connect('pick_event', picker)
+    if show_names:
+        for idx in range(len(pos)):
+            this_pos = pos[idx]
+            if pos.shape[1] == 3:
+                ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
+            else:
+                ax.text(this_pos[0], this_pos[1], ch_names[idx])
+    else:
+        picker = partial(onpick, pos=pos, ch_names=ch_names)
+        fig.canvas.mpl_connect('pick_event', picker)
+    fig.suptitle(title)
     plt_show(show)
     return fig
