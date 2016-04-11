@@ -125,7 +125,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Notes
         -----
         To write multiple conditions into a single file, use 
-        :func: `mne.write_evokeds()`.
+        :func:`mne.write_evokeds`.
         """
         write_evokeds(fname, self)
 
