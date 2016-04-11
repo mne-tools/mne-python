@@ -61,7 +61,7 @@ def _update_raw_data(params):
         data[di] /= params['scalings'][params['types'][di]]
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
-            data[di] = np.minimum(data[di], 1.0)
+            data[di] /= float(max(data[di]))
     # clip
     if params['clipping'] == 'transparent':
         data[np.logical_or(data > 1, data < -1)] = np.nan
