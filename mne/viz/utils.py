@@ -940,9 +940,6 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     .. versionadded:: 0.12.0
 
     """
-    if ch_type not in ['mag', 'grad', 'eeg', 'seeg']:
-        raise ValueError("ch_type must be one of ['mag', 'grad', 'eeg', "
-                         "'seeg']!")
     if kind not in ['topomap', '3d']:
         raise ValueError("Kind must be 'topomap' or '3d'.")
     ch_indices = channel_indices_by_type(info)
@@ -951,7 +948,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
             if _contains_ch_type(info, type):
                 ch_type = type
                 break
-
+    elif ch_type not in ['mag', 'grad', 'eeg', 'seeg']:
+        raise ValueError("ch_type must be one of ['mag', 'grad', 'eeg', "
+                         "'seeg']!")
     picks = ch_indices[ch_type]
     if kind == 'topomap':
         pos = _auto_topomap_coords(info, picks, True)
