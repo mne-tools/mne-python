@@ -89,7 +89,6 @@ def get_score_funcs():
 
 
 class ICA(ContainsMixin):
-
     """M/EEG signal decomposition using Independent Component Analysis (ICA)
 
     This object can be used to estimate ICA components and then
@@ -104,6 +103,12 @@ class ICA(ContainsMixin):
         >> projs, raw.info['projs'] = raw.info['projs'], []
         >> ica.fit(raw)
         >> raw.info['projs'] = projs
+
+    .. note:: Methods implemented are FastICA (default), Infomax and
+              Extended-Infomax. Infomax can be quite sensitive to differences
+              in floating point arithmetic due to exponential non-linearty.
+              Extended-Infomax seems to be more stable in this respect
+              enhancing reproducibility and stability of results.
 
     Parameters
     ----------
