@@ -95,7 +95,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         
     Notes
     -----
-
     Evoked objects contain a single condition only.
     
     """
@@ -126,7 +125,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Notes
         -----
         To write multiple conditions into a single file, use 
-        mne.write_evokeds().
+        :func: `mne.write_evokeds()`.
         """
         write_evokeds(fname, self)
 
