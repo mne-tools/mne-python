@@ -468,12 +468,34 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                            ref_meg=False, exclude=[])
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
-                    preload=True, proj=False)
-    # This makes it equivalent to what we used to do, treating all epochs
-    # as if they were a single long one...
+                    preload=False, proj=False)
+    if isinstance(method, string_types) and method == 'empirical':
+        # potentially *much* more memory efficient to do it the iterative way
+        data = 0
+        n_samples = 0
+        mu = 0
+        # Read data in chunks
+        for raw_segment in epochs:
+            mu += raw_segment.sum(axis=1)
+            data += np.dot(raw_segment, raw_segment.T)
+            n_samples += raw_segment.shape[1]
+        _check_n_samples(n_samples, len(picks))
+        mu /= n_samples
+        data -= n_samples * mu[:, None] * mu[None, :]
+        data /= (n_samples - 1.0)
+        logger.info("Number of samples used : %d" % n_samples)
+        logger.info('[done]')
+        ch_names = [raw.info['ch_names'][k] for k in picks]
+        bads = [b for b in raw.info['bads'] if b in ch_names]
+        projs = cp.deepcopy(raw.info['projs'])
+        return Covariance(data, ch_names, bads, projs, nfree=n_samples)
+
+    # This makes it equivalent to what we used to do (and do above for
+    # empirical mode), treating all epochs as if they were a single long one
+    epochs.load_data()
     ch_means = epochs._data.mean(axis=0).mean(axis=1)
     epochs._data -= ch_means[np.newaxis, :, np.newaxis]
-    # fake this value so there are no complaints from compute_covariance...
+    # fake this value so there are no complaints from compute_covariance
     epochs.baseline = (None, None)
     return compute_covariance(epochs, keep_sample_mean=True, method=method,
                               method_params=method_params, cv=cv,
