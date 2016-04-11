@@ -106,7 +106,7 @@ class ICA(ContainsMixin):
 
     .. note:: Methods implemented are FastICA (default), Infomax and
               Extended-Infomax. Infomax can be quite sensitive to differences
-              in floating point arithmetic due to exponential non-linearty.
+              in floating point arithmetic due to exponential non-linearity.
               Extended-Infomax seems to be more stable in this respect
               enhancing reproducibility and stability of results.
 
