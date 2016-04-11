@@ -950,7 +950,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 break
     elif ch_type not in ['mag', 'grad', 'eeg', 'seeg']:
         raise ValueError("ch_type must be one of ['mag', 'grad', 'eeg', "
-                         "'seeg']!")
+                         "'seeg'] not %s!" % ch_type)
     picks = ch_indices[ch_type]
     if kind == 'topomap':
         pos = _auto_topomap_coords(info, picks, True)
