@@ -134,6 +134,7 @@ For further reading:
   .. toctree::
     :maxdepth: 1
 
+    auto_tutorials/plot_visualize_evoked.rst
     tutorials/report.rst
 
 .. container:: span box
