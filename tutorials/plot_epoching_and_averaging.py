@@ -91,6 +91,10 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True)
 # rejection thresholds are defined as peak-to-peak values within the epoch time
 # window. They are defined as T/m for gradiometers, T for magnetometers and V
 # for EEG and EOG electrodes.
+#
+# .. note:: In this tutorial, we don't preprocess the data. This is not
+#           something you would normally do. See our :ref:`tutorials` on
+#           preprocessing for more.
 baseline = (None, 0.0)
 reject = {'mag': 4e-12, 'eog': 200e-6}
 epochs = mne.Epochs(raw, events=events, event_id=event_id, tmin=tmin,
