@@ -226,7 +226,7 @@ of Nondirect rendering context ,
 software emulation is in effect and you should contact your local
 computer support to enable hardware acceleration for GLX. In some
 cases, this may require acquiring a new graphics display card. Fortunately,
-relatively high-performance OpenGL-capable graphics cards very inexpensive.
+relatively high-performance OpenGL-capable graphics cards are not expensive.
 
 There is also an utility mne_opengl_test to
 assess the graphics performance more quantitatively. This utility
