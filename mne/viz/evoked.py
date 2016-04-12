@@ -70,6 +70,7 @@ def _butterfly_on_button_press(event, params):
 def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     """Function for drawing topomaps from the selected area."""
     import matplotlib.pyplot as plt
+    ch_types = [type for type in ch_types if type in ('eeg', 'grad', 'mag')]
     vert_lines = list()
     if text is not None:
         text.set_visible(True)
@@ -214,7 +215,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             n_channel_types += 1
             ch_types_used.append(t)
 
-    axes_init = axes  # remember if axes where given as input
+    axes_init = axes  # remember if axes were given as input
 
     fig = None
     if axes is None:
