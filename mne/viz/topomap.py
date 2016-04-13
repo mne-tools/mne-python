@@ -319,6 +319,17 @@ def _check_outlines(pos, outlines, head_pos=None):
     return pos, outlines
 
 
+def _draw_outlines(ax, outlines):
+    """Helper for drawing the outlines for a topomap."""
+    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                      ['patch', 'autoshrink']])
+    for key, (x_coord, y_coord) in outlines_.items():
+        if 'mask' in key:
+            continue
+        ax.plot(x_coord, y_coord, color='k', linewidth=1, clip_on=False)
+    return outlines_
+
+
 def _griddata(x, y, v, xi, yi):
     """Aux function"""
     xy = x.ravel() + y.ravel() * -1j
@@ -573,12 +584,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         ax.plot(pos_x[idx], pos_y[idx], **mask_params)
 
     if isinstance(outlines, dict):
-        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                          ['patch', 'autoshrink']])
-        for k, (x, y) in outlines_.items():
-            if 'mask' in k:
-                continue
-            ax.plot(x, y, color='k', linewidth=linewidth, clip_on=False)
+        _draw_outlines(ax, outlines)
 
     if show_names:
         if names is None:
@@ -1548,14 +1554,9 @@ def plot_layout(layout, show=True):
     ax.set_yticks([])
     pos = [(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos]
     pos, outlines = _check_outlines(pos, 'head')
-    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                      ['patch', 'autoshrink']])
-    for k, (x, y) in outlines_.items():
-        if 'mask' in k:
-            continue
-        ax.plot(x, y, color='k', linewidth=1, clip_on=False)
-    for ii, (p, ch_id) in enumerate(zip(pos, layout.names)):
-        ax.annotate(ch_id, xy=(p[0], p[1]), horizontalalignment='center',
+    _draw_outlines(ax, outlines)
+    for ii, (this_pos, ch_id) in enumerate(zip(pos, layout.names)):
+        ax.annotate(ch_id, xy=this_pos[:2], horizontalalignment='center',
                     verticalalignment='center', size='x-small')
     plt_show(show)
     return fig
@@ -1719,12 +1720,8 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     for col in cont.collections:
         col.set_clip_path(patch_)
 
-    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                      ['patch', 'autoshrink']])
-    for k, (x, y) in outlines_.items():
-        if 'mask' in k:
-            continue
-        ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+    outlines_ = _draw_outlines(ax, outlines)
+
     params.update({'patch': patch_, 'outlines': outlines_})
     return tuple(items) + tuple(cont.collections)
 

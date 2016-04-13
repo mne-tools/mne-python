@@ -943,14 +943,15 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     if kind not in ['topomap', '3d']:
         raise ValueError("Kind must be 'topomap' or '3d'.")
     ch_indices = channel_indices_by_type(info)
+    allowed_types = ['mag', 'grad', 'eeg', 'seeg']
     if ch_type is None:
-        for type in ['mag', 'grad', 'eeg', 'seeg']:
+        for this_type in allowed_types:
             if _contains_ch_type(info, type):
-                ch_type = type
+                ch_type = this_type
                 break
-    elif ch_type not in ['mag', 'grad', 'eeg', 'seeg']:
-        raise ValueError("ch_type must be one of ['mag', 'grad', 'eeg', "
-                         "'seeg'] not %s!" % ch_type)
+    elif ch_type not in allowed_types:
+        raise ValueError("ch_type must be one of %s not %s!" % (allowed_types,
+                                                                ch_type))
     picks = ch_indices[ch_type]
     if kind == 'topomap':
         pos = _auto_topomap_coords(info, picks, True)
@@ -967,26 +968,28 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     return fig
 
 
+def _onpick_sensor(event, fig, ax, pos, ch_names):
+    """Callback for picked channel in plot_sensors."""
+    ind = event.ind[0]  # Just take the first sensor.
+    ch_name = ch_names[ind]
+    this_pos = pos[ind]
+
+    # XXX: Bug in matplotlib won't allow setting the position of existing
+    # text item, so we create a new one.
+    ax.texts.pop(0)
+    if len(this_pos) == 3:
+        ax.text(this_pos[0], this_pos[1], this_pos[2], ch_name)
+    else:
+        ax.text(this_pos[0], this_pos[1], ch_name)
+    fig.canvas.draw()
+
+
 def _plot_sensors(pos, colors, ch_names, title, show_names, show):
     """Helper function for plotting sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    from .topomap import _check_outlines
+    from .topomap import _check_outlines, _draw_outlines
     fig = plt.figure()
-
-    def onpick(event, pos, ch_names):
-        ind = event.ind[0]  # Just take the first sensor.
-        ch_name = ch_names[ind]
-        this_pos = pos[ind]
-
-        # XXX: Bug in matplotlib won't allow setting the position of existing
-        # text item, so we create a new one.
-        ax.texts.pop(0)
-        if len(this_pos) == 3:
-            ax.text(this_pos[0], this_pos[1], this_pos[2], ch_name)
-        else:
-            ax.text(this_pos[0], this_pos[1], ch_name)
-        fig.canvas.draw()
 
     if pos.shape[1] == 3:
         ax = Axes3D(fig)
@@ -1003,12 +1006,7 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, show):
         fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                             hspace=None)
         pos, outlines = _check_outlines(pos, 'head')
-        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                          ['patch', 'autoshrink']])
-        for k, (x, y) in outlines_.items():
-            if 'mask' in k:
-                continue
-            ax.plot(x, y, color='k', linewidth=1, clip_on=False)
+        _draw_outlines(ax, outlines)
         ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors)
 
     if show_names:
@@ -1019,7 +1017,8 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, show):
             else:
                 ax.text(this_pos[0], this_pos[1], ch_names[idx])
     else:
-        picker = partial(onpick, pos=pos, ch_names=ch_names)
+        picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
+                         ch_names=ch_names)
         fig.canvas.mpl_connect('pick_event', picker)
     fig.suptitle(title)
     plt_show(show)
