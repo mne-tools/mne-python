@@ -8,7 +8,6 @@ Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
          Denis Engemann <denis.engemann@gmail.com>
 
 """
-from pyface.qt import QtCore, QtGui
 import numpy as np
 import mne
 from mne.datasets import sample
