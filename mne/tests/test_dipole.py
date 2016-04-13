@@ -181,7 +181,7 @@ def test_dipole_fitting_fixed():
     assert_allclose(np.tile(pos[np.newaxis], (len(evoked.times), 1)),
                     dip_free.pos)
     assert_allclose(ori, dip_free.ori[t_idx])  # should find same ori
-    assert_true(np.dot(dip_free.ori, ori).mean() < 0.1)  # but few the same
+    assert_true(np.dot(dip_free.ori, ori).mean() < 0.9)  # but few the same
     assert_allclose(gof, dip_free.gof[t_idx])  # ... same gof
     assert_allclose(amp, dip_free.amplitude[t_idx])  # and same amp
     assert_allclose(resid, resid_free[:, [t_idx]])
