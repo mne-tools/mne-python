@@ -33,8 +33,8 @@ or governmental institution or entity which employs or is otherwise
 affiliated with such individual at the time of such download (the "Institution").
 
 - *License Grant.* Subject
-  to all of the terms and conditions of this Agreement,\he General
-  Hospital Corporation, d/b/a Massachusetts General Hospital]\he
+  to all of the terms and conditions of this Agreement, [The General
+  Hospital Corporation, d/b/a Massachusetts General Hospital] [The
   Brigham and Women's Hospital, Inc.] ("Licensor") hereby
   grants you a non-exclusive, non-transferable, non-sublicensable license
   under Licensor's rights in the Software to copy and use the binary
