@@ -946,7 +946,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     allowed_types = ['mag', 'grad', 'eeg', 'seeg']
     if ch_type is None:
         for this_type in allowed_types:
-            if _contains_ch_type(info, type):
+            if _contains_ch_type(info, this_type):
                 ch_type = this_type
                 break
     elif ch_type not in allowed_types:
