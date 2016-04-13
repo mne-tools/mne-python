@@ -39,10 +39,18 @@ fname_surf_lh = op.join(subjects_dir, 'sample', 'surf', 'lh.white')
 evoked = mne.read_evokeds(fname_ave, condition='Right Auditory',
                           baseline=(None, 0))
 evoked.pick_types(meg=True, eeg=False)
+evoked_full = evoked.copy()
 evoked.crop(0.07, 0.08)
 
 # Fit a dipole
 dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
+
+# Estimate the time course of a single dipole (the one that maximized GOF)
+# over the entire interval
+best_idx = np.argmax(dip.gof)
+dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,
+                           pos=dip.pos[best_idx], ori=dip.ori[best_idx])[0]
+dip_fixed.plot()
 
 # Plot the result in 3D brain
 dip.plot_locations(fname_trans, 'sample', subjects_dir)

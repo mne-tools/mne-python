@@ -12,7 +12,7 @@ from mne import (read_dipole, read_forward_solution,
                  SourceEstimate, write_evokeds, fit_dipole,
                  transform_surface_to, make_sphere_model, pick_types,
                  pick_info, EvokedArray, read_source_spaces, make_ad_hoc_cov,
-                 make_forward_solution)
+                 make_forward_solution, Dipole, DipoleFixed)
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
@@ -29,8 +29,8 @@ warnings.simplefilter('always')
 data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_dip = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
-fname_evo = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-ave.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
+fname_evo = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
+fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-1280-1280-1280-bem-sol.fif')
 fname_src = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -63,8 +63,7 @@ def _check_dipole(dip, n_dipoles):
 
 @testing.requires_testing_data
 def test_io_dipoles():
-    """Test IO for .dip files
-    """
+    """Test IO for .dip files"""
     tempdir = _TempDir()
     dipole = read_dipole(fname_dip)
     print(dipole)  # test repr
@@ -160,9 +159,52 @@ def test_dipole_fitting():
 
 
 @testing.requires_testing_data
+def test_dipole_fitting_fixed():
+    """Test dipole fitting with a fixed position"""
+    tpeak = 0.073
+    sphere = make_sphere_model(head_radius=0.1)
+    evoked = read_evokeds(fname_evo, baseline=(None, 0))[0]
+    evoked.pick_types(meg=True, copy=False)
+    t_idx = np.argmin(np.abs(tpeak - evoked.times))
+    evoked_crop = evoked.crop(tpeak, tpeak, copy=True)
+    assert_equal(len(evoked_crop.times), 1)
+    cov = read_cov(fname_cov)
+    dip_seq, resid = fit_dipole(evoked_crop, cov, sphere)
+    assert_true(isinstance(dip_seq, Dipole))
+    assert_equal(len(dip_seq.times), 1)
+    pos, ori, gof = dip_seq.pos[0], dip_seq.ori[0], dip_seq.gof[0]
+    amp = dip_seq.amplitude[0]
+    # Fix position, allow orientation to change
+    dip_free, resid_free = fit_dipole(evoked, cov, sphere, pos=pos)
+    assert_true(isinstance(dip_free, Dipole))
+    assert_allclose(dip_free.times, evoked.times)
+    assert_allclose(np.tile(pos[np.newaxis], (len(evoked.times), 1)),
+                    dip_free.pos)
+    assert_allclose(ori, dip_free.ori[t_idx])  # should find same ori
+    assert_true(np.dot(dip_free.ori, ori).mean() < 0.1)  # but few the same
+    assert_allclose(gof, dip_free.gof[t_idx])  # ... same gof
+    assert_allclose(amp, dip_free.amplitude[t_idx])  # and same amp
+    assert_allclose(resid, resid_free[:, [t_idx]])
+    # Fix position and orientation
+    dip_fixed, resid_fixed = fit_dipole(evoked, cov, sphere, pos=pos, ori=ori)
+    assert_true(isinstance(dip_fixed, DipoleFixed))
+    assert_allclose(dip_fixed.times, evoked.times)
+    assert_allclose(dip_fixed.info['chs'][0]['loc'][:3], pos)
+    assert_allclose(dip_fixed.info['chs'][0]['loc'][3:6], ori)
+    assert_allclose(dip_fixed.data[1, t_idx], gof)
+    assert_allclose(resid, resid_fixed[:, [t_idx]])
+    _check_roundtrip_fixed(dip_fixed)
+    # Degenerate conditions
+    assert_raises(ValueError, fit_dipole, evoked, cov, sphere, pos=[0])
+    assert_raises(ValueError, fit_dipole, evoked, cov, sphere, ori=[1, 0, 0])
+    assert_raises(ValueError, fit_dipole, evoked, cov, sphere, pos=[0, 0, 0],
+                  ori=[2, 0, 0])
+    assert_raises(ValueError, fit_dipole, evoked, cov, sphere, pos=[0.1, 0, 0])
+
+
+@testing.requires_testing_data
 def test_len_index_dipoles():
-    """Test len and indexing of Dipole objects
-    """
+    """Test len and indexing of Dipole objects"""
     dipole = read_dipole(fname_dip)
     d0 = dipole[0]
     d1 = dipole[:1]
@@ -225,8 +267,7 @@ def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
 
 @testing.requires_testing_data
 def test_accuracy():
-    """Test dipole fitting to sub-mm accuracy
-    """
+    """Test dipole fitting to sub-mm accuracy"""
     evoked = read_evokeds(fname_evo)[0].crop(0., 0.,)
     evoked.pick_types(meg=True, eeg=False)
     evoked.pick_channels([c for c in evoked.ch_names[::4]])
@@ -268,8 +309,13 @@ def test_accuracy():
 @testing.requires_testing_data
 def test_dipole_fixed():
     """Test reading a fixed-position dipole (from Xfit)"""
-    tempdir = _TempDir()
     dip = read_dipole(fname_xfit_dip)
+    _check_roundtrip_fixed(dip)
+
+
+def _check_roundtrip_fixed(dip):
+    """Helper to test roundtrip IO for fixed dipoles"""
+    tempdir = _TempDir()
     dip.save(op.join(tempdir, 'test-dip.fif.gz'))
     dip_read = read_dipole(op.join(tempdir, 'test-dip.fif.gz'))
     assert_allclose(dip_read.data, dip_read.data)
