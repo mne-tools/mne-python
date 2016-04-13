@@ -17,7 +17,7 @@ import mne
 # :ref:`tut_epoching_and_averaging` to get to this stage from raw data.
 data_path = mne.datasets.sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-evoked = mne.read_evokeds(fname, baseline=(None, 0))
+evoked = mne.read_evokeds(fname, baseline=(None, 0), proj=True)
 print(evoked)
 
 ###############################################################################
@@ -41,8 +41,13 @@ fig = left_auditory.plot()
 fig.tight_layout()
 
 ###############################################################################
-# Now let's make it a bit fancier.
-left_auditory.plot(spatial_colors=True, gfp=True)
+# Now let's make it a bit fancier and only use MEG channels. Many of the
+# MNE-functions include a ``picks`` parameter to include a selection of
+# channels. ``picks`` is simply a list of channel indices that you can easily
+# construct with :func:`mne.pick_types`. See also :func:`mne.pick_channels` and
+# :func:`mne.pick_channels_regexp`.
+picks = mne.pick_types(left_auditory.info, meg=True, eeg=False, eog=False)
+left_auditory.plot(spatial_colors=True, gfp=True, picks=picks)
 
 ###############################################################################
 # Notice the legend on the left. The colors would suggest that there may be two
@@ -53,8 +58,8 @@ left_auditory.plot(spatial_colors=True, gfp=True)
 right_auditory.plot_topomap()
 
 ###############################################################################
-# By default the topomaps are drawn from evenly spread out points of time of
-# the data. We can also define the times ourselves.
+# By default the topomaps are drawn from evenly spread out points of time over
+# the evoked data. We can also define the times ourselves.
 times = np.arange(0.05, 0.151, 0.05)
 right_auditory.plot_topomap(times=times, ch_type='mag')
 
