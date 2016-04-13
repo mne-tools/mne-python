@@ -37,7 +37,7 @@ sensmap_fname = op.join(sample_path,
                         'sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w')
 
 # sample dataset should be updated to reflect mne conventions
-eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
+eog_fname = op.join(sample_path, 'sample_audvis_eog-proj.fif')
 
 
 def test_bad_proj():

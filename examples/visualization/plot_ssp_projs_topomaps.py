@@ -19,11 +19,13 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
+ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg-proj.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
-evoked = read_evokeds(ave_fname, condition='Left Auditory')
-projs = read_proj(ecg_fname)
+evoked = read_evokeds(ave_fname, condition='Left Auditory',
+                      baseline=(None, 0.))
+# Omit the first 4 projectors as they are already included in the evoked data.
+projs = read_proj(ecg_fname)[4:]
 evoked.add_proj(projs)
 
 evoked.plot_projs_topomap()
