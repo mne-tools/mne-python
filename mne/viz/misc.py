@@ -569,3 +569,104 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     if show:
         fig.show(warn=False)
     return fig
+
+
+def plot_tfr_gfp(tfr, baseline=None, mode='mean', colors='auto',
+                 summarize=False, title=None, show=True):
+    """ Show time and frequency resolved global field power
+
+    Parameters
+    ----------
+    tfr : instance of AverageTFR
+        The MNE time frequency object.
+    baseline : None (default) or tuple of length 2
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used.
+    mode : None | 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or zscore (power is divided by standard
+        deviation of power during baseline after subtracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline)).
+        If None no baseline correction is applied.
+    colors : 'auto' | list like
+        The colors used to distinguish different frequency. If 'auto', a
+        sensitive default is guessed. If list-like, elements should be anything
+        that can be passed to `color` in plt.plot()
+    title : str | None
+        String for title. Defaults to None (blank/no title).
+    summarize : bool | list of 2-tuples of int
+        If False, all frequencies will be shown. If True, conventional
+        definitions of frequency bands will be used. If list of tuples,
+        tuples should be such that the first element is the low and the
+        second the high frequency. Defaults to False.
+    show : bool
+        Show the figure or leave it. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        The figure.
+    """
+    default_bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                     (12, 30, 'Beta'), (30, 45, 'Gamma')]
+    band_names = list()
+    import matplotlib.pyplot as plt
+    from mne.utils import _time_mask as _freq_mask
+    freqs = tfr.freqs
+
+    X = tfr.copy().apply_baseline(
+        baseline=baseline, mode=mode).data.std(0)  # first axis channels
+    X_new_std = None
+    X_new = None
+    if summarize is not False:  # mean and std across frequencies
+        X_new_std = list()
+        X_new = list()
+        if isinstance(summarize, list):
+            default_bands = summarize
+        fmin, fmax = tfr.freqs.min(), tfr.freqs.max()
+        for this_fmin, this_fmax, name in default_bands:
+            out_of_range = ((this_fmin < fmin and this_fmax < fmin) or
+                            (this_fmin > fmax and this_fmax > fmax))
+            if not out_of_range:
+                this_fmin = max(this_fmin, fmin)
+                this_fmax = min(this_fmax, fmax)
+                this_mask = _freq_mask(freqs, this_fmin, this_fmax)
+                X_new.append(X[this_mask].mean(0))
+                X_new_std.append(X[this_mask].std(0))
+                band_names.append(
+                    '%s (%d-%d Hz)' % (name, this_fmin, this_fmax))
+    else:
+        X_new = X
+        band_names = ['%02dHz' % freq for freq in freqs]
+
+    if colors == 'auto':
+        cmapper = getattr(plt.cm, 'plasma', plt.cm.hot)
+        arbitrary_thresh = 0.7
+        colors = cmapper(np.linspace(0, arbitrary_thresh, len(band_names)))
+
+    if isinstance(colors, (list, tuple, np.ndarray)):
+        if len(colors) != len(band_names):
+            raise ValueError('Number of colors does not match frequencies')
+
+    my_iter = enumerate(zip(band_names, X_new, colors))
+    times = tfr.times * 1000
+    fig = plt.figure()
+    if title is not None:
+        plt.title(title)
+    for ii, (band_name, signal, color) in my_iter:
+        plt.plot(times, signal, color=color, label=band_name)
+        if X_new_std is not None:
+            this_std = X_new_std[ii]
+            plt.fill_between(times, signal + this_std, signal - this_std,
+                             color=color, alpha=0.3)
+    plt.legend(loc='best')
+    plt.xlabel('Time [ms]')
+    plt.ylabel('%s %s' % (tfr.method, '[' + mode + ']' if baseline else ''))
+    if show:
+        plt.show()
+    return fig

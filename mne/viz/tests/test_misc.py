@@ -20,6 +20,7 @@ from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate)
 from mne.utils import requires_nibabel, run_tests_if_main, slow_test
+from mne.time_frequency.tfr import AverageTFR
 
 # Set our plotters to test mode
 import matplotlib
@@ -132,5 +133,25 @@ def test_plot_dipole_amplitudes():
     """
     dipoles = read_dipole(dip_fname)
     dipoles.plot_amplitudes(show=False)
+
+
+def test_plot_tfr_gfp():
+    """Test plotting of TFR data
+    """
+    raw = _get_raw()
+    times = np.linspace(-0.1, 0.1, 200)
+    n_freqs = 3
+    nave = 1
+    rng = np.random.RandomState(42)
+    data = rng.randn(len(raw.ch_names), n_freqs, len(times))
+    tfr = AverageTFR(raw.info, data, times, np.arange(n_freqs), nave)
+    tfr.plot_gfp()
+    tfr.plot_gfp(summarize=True)
+    tfr.plot_gfp(summarize=[(0, 1, 'foo-band')])
+    tfr.plot_gfp(summarize=False, colors=['r', 'b', 'g'])
+    assert_raises(ValueError,
+                  tfr.plot_gfp, summarize=False, colors=['r', 'b', 'g', 'y'])
+    assert_raises(ValueError,
+                  tfr.plot_gfp, summarize=True, colors=['r', 'b'])
 
 run_tests_if_main()
