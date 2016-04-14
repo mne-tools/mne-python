@@ -9,6 +9,8 @@ from __future__ import print_function
 import copy
 import os.path as op
 import warnings
+# Set our plotters to test mode
+import matplotlib
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -24,6 +26,7 @@ from mne.io import Raw, read_raw_kit, _empty_info
 from mne.io.constants import FIFF
 from mne.bem import fit_sphere_to_headshape
 from mne.utils import _TempDir
+matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')
 
@@ -214,6 +217,7 @@ def test_make_grid_layout():
 
 def test_find_layout():
     """Test finding layout"""
+    import matplotlib.pyplot as plt
     assert_raises(ValueError, find_layout, test_info, ch_type='meep')
 
     sample_info = Raw(fif_fname).info
@@ -279,6 +283,9 @@ def test_find_layout():
 
     lout = find_layout(read_raw_kit(fname_kit_157).info)
     assert_true(lout.kind == 'KIT-157')
+    # Test plotting
+    lout.plot()
+    plt.close('all')
 
 
 def test_box_size():

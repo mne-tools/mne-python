@@ -125,6 +125,8 @@ def test_plot_epochs():
         fig.canvas.close_event()  # closing and epoch dropping
         assert(n_epochs - 1 == len(epochs))
         plt.close('all')
+    epochs.plot_sensors()  # Test plot_sensors
+    plt.close('all')
 
 
 def test_plot_epochs_image():

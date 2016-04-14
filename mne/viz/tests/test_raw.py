@@ -38,8 +38,7 @@ def _get_events():
 
 
 def test_plot_raw():
-    """Test plotting of raw data
-    """
+    """Test plotting of raw data."""
     import matplotlib.pyplot as plt
     raw = _get_raw()
     events = _get_events()
@@ -99,8 +98,7 @@ def test_plot_raw():
 
 @requires_version('scipy', '0.10')
 def test_plot_raw_filtered():
-    """Test filtering of raw plots
-    """
+    """Test filtering of raw plots."""
     raw = _get_raw()
     assert_raises(ValueError, raw.plot, lowpass=raw.info['sfreq'] / 2.)
     assert_raises(ValueError, raw.plot, highpass=0)
@@ -114,8 +112,7 @@ def test_plot_raw_filtered():
 
 @requires_version('scipy', '0.12')
 def test_plot_raw_psd():
-    """Test plotting of raw psds
-    """
+    """Test plotting of raw psds."""
     import matplotlib.pyplot as plt
     raw = _get_raw()
     # normal mode
@@ -132,5 +129,14 @@ def test_plot_raw_psd():
     raw.plot_psd_topo()
     plt.close('all')
 
+
+def test_plot_sensors():
+    """Test plotting of sensor array."""
+    import matplotlib.pyplot as plt
+    raw = _get_raw()
+    fig = raw.plot_sensors('3d')
+    _fake_click(fig, fig.gca(), (-0.08, 0.67))
+    raw.plot_sensors('topomap')
+    plt.close('all')
 
 run_tests_if_main()

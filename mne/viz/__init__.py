@@ -3,10 +3,10 @@
 
 from .topomap import (plot_evoked_topomap, plot_projs_topomap,
                       plot_ica_components, plot_tfr_topomap, plot_topomap,
-                      plot_epochs_psd_topomap)
+                      plot_epochs_psd_topomap, plot_layout)
 from .topo import plot_topo_image_epochs, iter_topography
 from .utils import (tight_layout, mne_analyze_colormap, compare_fiff,
-                    ClickableImage, add_background_image)
+                    ClickableImage, add_background_image, plot_sensors)
 from ._3d import (plot_sparse_source_estimates, plot_source_estimates,
                   plot_trans, plot_evoked_field, plot_dipole_locations)
 from .misc import (plot_cov, plot_bem, plot_events, plot_source_spectrogram,

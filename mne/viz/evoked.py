@@ -24,7 +24,7 @@ from ..fixes import partial
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
-                      _prepare_topomap, _topomap_animation)
+                      _draw_outlines, _prepare_topomap, _topomap_animation)
 from ..channels import find_layout
 
 
@@ -151,12 +151,7 @@ def _plot_legend(pos, colors, axis, bads, outlines):
                    zorder=1)
 
     if isinstance(outlines, dict):
-        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                          ['patch', 'autoshrink']])
-        for k, (x, y) in outlines_.items():
-            if 'mask' in k:
-                continue
-            ax.plot(x, y, color='k', linewidth=1)
+        _draw_outlines(ax, outlines)
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,

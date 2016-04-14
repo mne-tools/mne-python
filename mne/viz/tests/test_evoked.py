@@ -132,5 +132,7 @@ def test_plot_evoked():
         evoked_sss.plot_white(cov)
         evoked_sss.plot_white(cov_fname)
         plt.close('all')
+    evoked.plot_sensors()  # Test plot_sensors
+    plt.close('all')
 
 run_tests_if_main()

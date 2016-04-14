@@ -337,6 +337,49 @@ class SetChannelsMixin(object):
         from .montage import _set_montage
         _set_montage(self.info, montage)
 
+    def plot_sensors(self, kind='topomap', ch_type=None, title=None,
+                     show_names=False, show=True):
+        """
+        Plot sensors positions.
+
+        Parameters
+        ----------
+        kind : str
+            Whether to plot the sensors as 3d or as topomap. Available options
+            'topomap', '3d'. Defaults to 'topomap'.
+        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
+            The channel type to plot. If None, then channels are chosen in the
+            order given above.
+        title : str | None
+            Title for the figure. If None (default), equals to
+            ``'Sensor positions (%s)' % ch_type``.
+        show_names : bool
+            Whether to display all channel names. Defaults to False.
+        show : bool
+            Show figure if True. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure containing the sensor topography.
+
+        See Also
+        --------
+        mne.viz.plot_layout
+
+        Notes
+        -----
+        This function plots the sensor locations from the info structure using
+        matplotlib. For drawing the sensors using mayavi see
+        :func:`mne.viz.plot_trans`.
+
+        .. versionadded:: 0.12.0
+
+        """
+        from ..viz.utils import plot_sensors
+        return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
+                            show_names=show_names, show=show)
+
 
 class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR

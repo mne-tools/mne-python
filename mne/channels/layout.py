@@ -86,6 +86,28 @@ class Layout(object):
         return '<Layout | %s - Channels: %s ...>' % (self.kind,
                                                      ', '.join(self.names[:3]))
 
+    def plot(self, show=True):
+        """Plot the sensor positions.
+
+        Parameters
+        ----------
+        show : bool
+            Show figure if True. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure containing the sensor topography.
+
+        Notes
+        -----
+
+        .. versionadded:: 0.12.0
+
+        """
+        from ..viz.topomap import plot_layout
+        return plot_layout(self, show=show)
+
 
 def _read_lout(fname):
     """Aux function"""
@@ -559,7 +581,7 @@ def _find_topomap_coords(info, picks, layout=None):
     return pos
 
 
-def _auto_topomap_coords(info, picks):
+def _auto_topomap_coords(info, picks, ignore_overlap=False):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
     The default is to use the electrode locations. The fallback option is to
     attempt using digitization points of kind FIFFV_POINT_EEG. This only works
@@ -634,7 +656,7 @@ def _auto_topomap_coords(info, picks):
 
     # Duplicate points cause all kinds of trouble during visualization
     dist = pdist(locs3d)
-    if np.min(dist) < 1e-10:
+    if np.min(dist) < 1e-10 and not ignore_overlap:
         problematic_electrodes = [
             chs[elec_i]['ch_name']
             for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]
