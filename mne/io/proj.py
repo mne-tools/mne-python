@@ -100,7 +100,7 @@ class ProjMixin(object):
             self.info['projs'] = projs
         else:
             self.info['projs'].extend(projs)
-
+        self.info['projs'] = _uniquify_projs(self.info['projs'], False, False)
         return self
 
     def add_eeg_average_proj(self):
@@ -250,10 +250,10 @@ class ProjMixin(object):
         return fig
 
 
-def _proj_equal(a, b):
+def _proj_equal(a, b, check_active=True):
     """ Test if two projectors are equal """
 
-    equal = (a['active'] == b['active'] and
+    equal = ((a['active'] == b['active'] or not check_active) and
              a['kind'] == b['kind'] and
              a['desc'] == b['desc'] and
              a['data']['col_names'] == b['data']['col_names'] and
@@ -762,11 +762,11 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
     return projector, info
 
 
-def _uniquify_projs(projs):
+def _uniquify_projs(projs, check_active=True, sort=True):
     """Aux function"""
     final_projs = []
     for proj in projs:  # flatten
-        if not any(_proj_equal(p, proj) for p in final_projs):
+        if not any(_proj_equal(p, proj, check_active) for p in final_projs):
             final_projs.append(proj)
 
     my_count = count(len(final_projs))
@@ -780,4 +780,4 @@ def _uniquify_projs(projs):
             sort_idx = next(my_count)
         return (sort_idx, x['desc'])
 
-    return sorted(final_projs, key=sorter)
+    return sorted(final_projs, key=sorter) if sort else final_projs

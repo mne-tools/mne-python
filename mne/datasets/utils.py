@@ -208,10 +208,10 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         brainstorm=None,
         fake='3194e9f7b46039bb050a74f3e1ae9908',
         misc='f0708d8914cf2692fee7b6c9f105e71c',
-        sample='2f81c690c2ce3ac0c03da4d316ca9936',
+        sample='1d5da3a809fded1ef5734444ab5bf857',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
         spm='f61041e3f3f2ba0def8a2ca71592cc41',
-        testing='ed18f23c961a54dda9331330c91e7590',
+        testing='f04a4937acb9982695e964126d4c62c6',
     )
     folder_origs = dict(  # not listed means None
         misc='mne-misc-data-%s' % releases['misc'],
