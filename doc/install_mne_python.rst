@@ -154,7 +154,7 @@ Once MNE-python is set up, you should try running:
 1. :ref:`Beginning tutorials <tutorials>`
 2. `More advanced examples <auto_examples/index.html>`_
 
-Along the way, make frequent use :ref:`api_reference` and
+Along the way, make frequent use of :ref:`api_reference` and
 :ref:`manual` to understand the capabilities of MNE.
 
 6. Optional advanced setup
@@ -174,7 +174,7 @@ If you want to use NVIDIA CUDA, you should install:
 2. `PyCUDA <http://wiki.tiker.net/PyCuda/Installation/>`_
 3. `skcuda <https://github.com/lebedov/scikits.cuda>`_
 
-For example, on Ubutnu 15.10, a combination of system packages and ``git``
+For example, on Ubuntu 15.10, a combination of system packages and ``git``
 packages can be used to install the CUDA stack:
 
 .. code-block:: bash

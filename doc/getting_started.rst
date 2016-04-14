@@ -63,32 +63,32 @@ To get started with MNE, visit the installation instructions for
 What can you do with MNE using Python?
 --------------------------------------
 
-   - **Raw data visualization** to visualize recordings, can also use
-     *mne_browse_raw* for extended functionality (see :ref:`ch_browse`)
+   - **Raw data visualization** to visualize recordings (see
+   :ref:`general_examples` for more).
    - **Epoching**: Define epochs, baseline correction, handle conditions etc.
-   - **Averaging** to get Evoked data
-   - **Compute SSP pojectors** to remove ECG and EOG artifacts
+   - **Averaging** to get Evoked data.
+   - **Compute SSP pojectors** to remove ECG and EOG artifacts.
    - **Compute ICA** to remove artifacts or select latent sources.
    - **Maxwell filtering** to remove environmental noise.
    - **Boundary Element Modeling**: single and three-layer BEM model
      creation and solution computation.
    - **Forward modeling**: BEM computation and mesh creation
-     (see :ref:`ch_forward`)
-   - **Linear inverse solvers** (dSPM, sLORETA, MNE, LCMV, DICS)
+     (see :ref:`ch_forward`).
+   - **Linear inverse solvers** (dSPM, sLORETA, MNE, LCMV, DICS).
    - **Sparse inverse solvers** (L1/L2 mixed norm MxNE, Gamma Map,
-     Time-Frequency MxNE, RAP-MUSIC)
-   - **Connectivity estimation** in sensor and source space
+     Time-Frequency MxNE, RAP-MUSIC).
+   - **Connectivity estimation** in sensor and source space.
    - **Visualization of sensor and source space data**
    - **Time-frequency** analysis with Morlet wavelets (induced power,
-     intertrial coherence, phase lock value) also in the source space
-   - **Spectrum estimation** using multi-taper method
-   - **Mixed Source Models** combining cortical and subcortical structures
+     intertrial coherence, phase lock value) also in the source space.
+   - **Spectrum estimation** using multi-taper method.
+   - **Mixed Source Models** combining cortical and subcortical structures.
    - **Dipole Fitting**
-   - **Decoding** multivariate pattern analyis of M/EEG topographies
+   - **Decoding** multivariate pattern analysis of M/EEG topographies.
    - **Compute contrasts** between conditions, between sensors, across
      subjects etc.
    - **Non-parametric statistics** in time, space and frequency
-     (including cluster-level)
+     (including cluster-level).
    - **Scripting** (batch and parallel computing)
 
 
