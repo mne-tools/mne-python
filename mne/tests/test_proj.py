@@ -36,8 +36,8 @@ fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 sensmap_fname = op.join(sample_path,
                         'sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w')
 
-# sample dataset should be updated to reflect mne conventions
 eog_fname = op.join(sample_path, 'sample_audvis_eog-proj.fif')
+ecg_fname = op.join(sample_path, 'sample_audvis_ecg-proj.fif')
 
 
 def test_bad_proj():
@@ -74,7 +74,8 @@ def test_sensitivity_maps():
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        proj_eog = read_proj(eog_fname)
+        projs = read_proj(eog_fname)
+        projs.extend(read_proj(ecg_fname))
     decim = 6
     for ch_type in ['eeg', 'grad', 'mag']:
         w = read_source_estimate(sensmap_fname % (ch_type, 'lh')).data
@@ -101,7 +102,7 @@ def test_sensitivity_maps():
             ends = ['4-lh', '5-lh', '6-lh', '7-lh']
             for mode, end in zip(modes, ends):
                 w = read_source_estimate(sensmap_fname % (ch_type, end)).data
-                stc = sensitivity_map(fwd, projs=proj_eog, mode=mode,
+                stc = sensitivity_map(fwd, projs=projs, mode=mode,
                                       ch_type=ch_type, exclude='bads')
                 assert_array_almost_equal(stc.data, w, decim)
 

@@ -629,9 +629,10 @@ def test_proj():
             raw.del_proj(0)
             assert_equal(len(raw.info['projs']), n_proj - 1)
             raw.add_proj(projs, remove_existing=False)
-            assert_equal(len(raw.info['projs']), 2 * n_proj - 1)
-            raw.add_proj(projs, remove_existing=True)
+            # Test that already existing projections are not added.
             assert_equal(len(raw.info['projs']), n_proj)
+            raw.add_proj(projs[:-1], remove_existing=True)
+            assert_equal(len(raw.info['projs']), n_proj - 1)
 
     # test apply_proj() with and without preload
     for preload in [True, False]:
