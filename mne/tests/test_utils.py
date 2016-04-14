@@ -21,7 +21,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
-                       check_fname)
+                       check_fname, requires_ftp)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -393,30 +393,38 @@ def test_deprecated():
     assert_true(len(w) == 1)
 
 
-@requires_good_network
-def test_fetch_file():
-    """Test file downloading
-    """
+def _test_fetch(url):
+    """Helper to test URL retrieval"""
     tempdir = _TempDir()
-    urls = ['http://google.com',
-            'ftp://ftp.openbsd.org/pub/OpenBSD/README']
     with ArgvSetter(disable_stderr=False):  # to capture stdout
-        for url in urls:
-            archive_name = op.join(tempdir, "download_test")
-            _fetch_file(url, archive_name, timeout=30., verbose=False,
-                        resume=False)
-            assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
-                          op.join(tempdir, 'test'), verbose=False)
-            resume_name = op.join(tempdir, "download_resume")
-            # touch file
-            with open(resume_name + '.part', 'w'):
-                os.utime(resume_name + '.part', None)
-            _fetch_file(url, resume_name, resume=True, timeout=30.,
-                        verbose=False)
-            assert_raises(ValueError, _fetch_file, url, archive_name,
-                          hash_='a', verbose=False)
-            assert_raises(RuntimeError, _fetch_file, url, archive_name,
-                          hash_='a' * 32, verbose=False)
+        archive_name = op.join(tempdir, "download_test")
+        _fetch_file(url, archive_name, timeout=30., verbose=False,
+                    resume=False)
+        assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
+                      op.join(tempdir, 'test'), verbose=False)
+        resume_name = op.join(tempdir, "download_resume")
+        # touch file
+        with open(resume_name + '.part', 'w'):
+            os.utime(resume_name + '.part', None)
+        _fetch_file(url, resume_name, resume=True, timeout=30.,
+                    verbose=False)
+        assert_raises(ValueError, _fetch_file, url, archive_name,
+                      hash_='a', verbose=False)
+        assert_raises(RuntimeError, _fetch_file, url, archive_name,
+                      hash_='a' * 32, verbose=False)
+
+
+@requires_good_network
+def test_fetch_file_html():
+    """Test file downloading over http"""
+    _test_fetch('http://google.com')
+
+
+@requires_ftp
+@requires_good_network
+def test_fetch_file_ftp():
+    """Test file downloading over ftp"""
+    _test_fetch('ftp://ftp.openbsd.org/pub/OpenBSD/README')
 
 
 def test_sum_squared():

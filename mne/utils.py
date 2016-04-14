@@ -787,6 +787,10 @@ requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
          '    raise ImportError')
+requires_ftp = partial(
+    requires_module, name='ftp downloading capability',
+    call='if int(os.environ.get("MNE_SKIP_FTP_TESTS", 0)):\n'
+         '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime',
                           call='import nitime')
 requires_traits = partial(requires_module, name='traits',
@@ -1175,6 +1179,8 @@ known_config_types = (
     'MNE_DATASETS_TESTING_PATH',
     'MNE_LOGGING_LEVEL',
     'MNE_MEMMAP_MIN_SIZE',
+    'MNE_SKIP_FTP_TESTS',
+    'MNE_SKIP_NETWORK_TESTS',
     'MNE_SKIP_TESTING_DATASET_TESTS',
     'MNE_STIM_CHANNEL',
     'MNE_USE_CUDA',
