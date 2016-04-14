@@ -100,7 +100,8 @@ class ProjMixin(object):
             self.info['projs'] = projs
         else:
             self.info['projs'].extend(projs)
-        self.info['projs'] = _uniquify_projs(self.info['projs'], False, False)
+        self.info['projs'] = _uniquify_projs(self.info['projs'],
+                                             check_active=False, sort=False)
         return self
 
     def add_eeg_average_proj(self):
