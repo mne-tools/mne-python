@@ -52,7 +52,7 @@ Changelog
 
     - Add the ability to read events when importing raw EEGLAB files, by `Jona Sassenhagen`_.
 
-    - Add function :func:`mne.viz.plot_sensors` and method ``plot_sensors`` for :class:`mne.Epochs`, :class:`mne.io.Raw` and :class:`mne.Evoked` for plotting sensor positions and :func:`mne.viz.plot_layout` and :func:`mne.channels.Layout.plot` for plotting layouts by `Jaakko Leppakangas`_
+    - Add function :func:`mne.viz.plot_sensors` and methods :func:`mne.Epochs.plot_sensors`, :func:`mne.io.Raw.plot_sensors` and :func:`mne.Evoked.plot_sensors` for plotting sensor positions and :func:`mne.viz.plot_layout` and :func:`mne.channels.Layout.plot` for plotting layouts by `Jaakko Leppakangas`_
 
 BUG
 ~~~

@@ -363,12 +363,15 @@ class SetChannelsMixin(object):
         fig : instance of matplotlib figure
             Figure containing the sensor topography.
 
+        See Also
+        --------
+        mne.viz.plot_layout
+
         Notes
         -----
         This function plots the sensor locations from the info structure using
         matplotlib. For drawing the sensors using mayavi see
         :func:`mne.viz.plot_trans`.
-        See also :func:`mne.viz.plot_layout`.
 
         .. versionadded:: 0.12.0
 
