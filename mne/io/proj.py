@@ -100,6 +100,7 @@ class ProjMixin(object):
             self.info['projs'] = projs
         else:
             self.info['projs'].extend(projs)
+        # We don't want to add projectors that are activated again.
         self.info['projs'] = _uniquify_projs(self.info['projs'],
                                              check_active=False, sort=False)
         return self
