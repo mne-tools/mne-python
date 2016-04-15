@@ -98,8 +98,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
         patient_id = int(patient_id) if patient_id.isdigit() else 0
         fid.seek(121)
         patient_name = read_str(fid, 20).split()
-        last_name = patient_name[0] if len(patient_name) > 0 else 'Unknown'
-        first_name = patient_name[-1] if len(patient_name) > 0 else 'Unknown'
+        last_name = patient_name[0] if len(patient_name) > 0 else ''
+        first_name = patient_name[-1] if len(patient_name) > 0 else ''
         fid.seek(2, 1)
         sex = read_str(fid, 1)
         if sex == 'M':
@@ -117,7 +117,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
             hand = None
         fid.seek(205)
         session_label = read_str(fid, 20)
-        session_label = 'CNT' if len(session_label) == 0 else session_label
         session_date = read_str(fid, 10)
         time = read_str(fid, 12)
         date = session_date.split('/')
