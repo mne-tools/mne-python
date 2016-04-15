@@ -174,7 +174,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # an updated version) and update the hash.
     archive_names = dict(
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
-        sample='MNE-sample-data-processed-1.tar.gz',
+        sample='MNE-sample-data-processed.tar.gz',
         somato='MNE-somato-data.tar.gz',
         spm='MNE-spm-face.tar.gz',
         testing='mne-testing-data-%s.tar.gz' % releases['testing'],
