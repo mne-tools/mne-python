@@ -97,9 +97,9 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
         patient_id = read_str(fid, 20)
         patient_id = int(patient_id) if patient_id.isdigit() else 0
         fid.seek(121)
-        patient_name = read_str(fid, 20)
-        last_name = patient_name[0]
-        first_name = patient_name[-1]
+        patient_name = read_str(fid, 20).split()
+        last_name = patient_name[0] if len(patient_name) > 0 else 'Unknown'
+        first_name = patient_name[-1] if len(patient_name) > 0 else 'Unknown'
         fid.seek(2, 1)
         sex = read_str(fid, 1)
         if sex == 'M':
@@ -117,27 +117,30 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
             hand = None
         fid.seek(205)
         session_label = read_str(fid, 20)
+        session_label = 'CNT' if len(session_label) == 0 else session_label
         session_date = read_str(fid, 10)
         time = read_str(fid, 12)
         date = session_date.split('/')
         if len(date) != 3:
-            warn('  Could not parse meas date from the header. '
-                 'Setting to 0...')
-            meas_date = 0
+            meas_date = -1
         else:
             if date[2].startswith('9'):
                 date[2] = '19' + date[2]
             elif len(date[2]) == 2:
                 date[2] = '20' + date[2]
             time = time.split(':')
-            # Assuming mm/dd/yy
-            date = datetime.datetime(int(date[2]), int(date[0]), int(date[1]),
-                                     int(time[0]), int(time[1]), int(time[2]))
-            meas_date = calendar.timegm(date.utctimetuple())
-            if meas_date < 0:
-                warn('  Could not parse meas date from the header. Setting to '
-                     '0...')
-                meas_date = 0
+            if len(time) == 3:
+                # Assuming mm/dd/yy
+                date = datetime.datetime(int(date[2]), int(date[0]),
+                                         int(date[1]), int(time[0]),
+                                         int(time[1]), int(time[2]))
+                meas_date = calendar.timegm(date.utctimetuple())
+            else:
+                meas_date = -1
+        if meas_date < 0:
+            warn('  Could not parse meas date from the header. Setting to '
+                 '[0, 0]...')
+            meas_date = 0
         fid.seek(370)
         n_channels = np.fromfile(fid, dtype='<u2', count=1)[0]
         fid.seek(376)

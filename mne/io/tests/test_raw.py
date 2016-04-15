@@ -9,7 +9,7 @@ from nose.tools import assert_equal, assert_true
 from mne import concatenate_raws
 from mne.datasets import testing
 from mne.io import Raw
-from mne.utils import _TempDir
+from mne.utils import _TempDir, string_types
 
 
 def _test_raw_reader(reader, test_preloading=True, **kwargs):
@@ -35,6 +35,9 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     rng = np.random.RandomState(0)
     if test_preloading:
         raw = reader(preload=True, **kwargs)
+        for value in raw.info.values():
+            if isinstance(value, string_types):
+                assert_true(len(value) != 0)
         # don't assume the first is preloaded
         buffer_fname = op.join(tempdir, 'buffer')
         picks = rng.permutation(np.arange(len(raw.ch_names) - 1))[:10]
