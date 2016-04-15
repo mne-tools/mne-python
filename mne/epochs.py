@@ -30,7 +30,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _pick_aux_channels)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
-from .io.base import _BaseRaw, ToDataFrameMixin
+from .io.base import _BaseRaw, ToDataFrameMixin, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale
@@ -140,7 +140,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
 
 class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   SetChannelsMixin, InterpolationMixin, FilterMixin,
-                  ToDataFrameMixin):
+                  ToDataFrameMixin, TimeMixin):
     """Abstract base class for Epochs-type classes
 
     This class provides basic functionality and should never be instantiated

@@ -37,7 +37,7 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose, _time_mask, warn)
+                     logger, verbose, _time_mask, warn, deprecated)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -46,7 +46,7 @@ from ..annotations import _combine_annotations
 
 
 class ToDataFrameMixin(object):
-    '''Class to add to_data_frame capabilities to certain classes.'''
+    """Class to add to_data_frame capabilities to certain classes."""
     def _get_check_picks(self, picks, picks_check):
         if picks is None:
             picks = list(range(self.info['nchan']))
@@ -200,6 +200,50 @@ class ToDataFrameMixin(object):
         if all(i in default_index for i in index):
             df.columns.name = 'signal'
         return df
+
+
+class TimeMixin(object):
+    """Class to add sfreq and time_as_index capabilities to certain classes."""
+
+    def time_as_index(self, times, use_first_samp=None, use_rounding=False):
+        """Convert time to indices
+
+        Parameters
+        ----------
+        times : list-like | float | int
+            List of numbers or a number representing points in time.
+        use_first_samp : boolean
+            This is deprecated and will be removed in 0.13.
+            If True, time is treated as relative to the session onset, else
+            as relative to the recording onset. Default is False.
+        use_rounding : boolean
+            If True, use rounding (instead of truncation) when converting
+            times to indicies. This can help avoid non-unique indices.
+
+        Returns
+        -------
+        index : ndarray
+            Indices corresponding to the times supplied.
+        """
+        from ..source_estimate import _BaseSourceEstimate
+        if use_first_samp is None:
+            use_first_samp = False
+        if isinstance(self, _BaseSourceEstimate):
+            sfreq = 1. / self.tstep
+        else:
+            sfreq = self.info['sfreq']
+        if use_first_samp:
+            warn('use_first_samp is deprecated, add raw.first_samp manually '
+                 'if first sample offset is required', DeprecationWarning)
+        index = (np.atleast_1d(times) - self.times[0]) * sfreq
+        if use_first_samp:
+            if not isinstance(self, _BaseRaw):
+                raise ValueError('use_first_samp is only supported for Raw, '
+                                 'and it is deprecated')
+            index -= self.first_samp
+        if use_rounding:
+            index = np.round(index)
+        return index.astype(int)
 
 
 def _check_fun(fun, d, *args, **kwargs):
@@ -1531,28 +1575,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, n_jobs=n_jobs, verbose=verbose)
 
-    def time_as_index(self, times, use_first_samp=False, use_rounding=False):
-        """Convert time to indices
-
-        Parameters
-        ----------
-        times : list-like | float | int
-            List of numbers or a number representing points in time.
-        use_first_samp : boolean
-            If True, time is treated as relative to the session onset, else
-            as relative to the recording onset.
-        use_rounding : boolean
-            If True, use rounding (instead of truncation) when converting
-            times to indicies. This can help avoid non-unique indices.
-
-        Returns
-        -------
-        index : ndarray
-            Indices corresponding to the times supplied.
-        """
-        return _time_as_index(times, self.info['sfreq'], self.first_samp,
-                              use_first_samp, use_rounding=use_rounding)
-
+    @deprecated('index_as_time is deprecated and will be removed in 0.13, '
+                'use raw.times[idx] (or raw.times[idx + raw.first_samp] '
+                'instead')
     def index_as_time(self, index, use_first_samp=False):
         """Convert indices to time
 
@@ -1888,45 +1913,6 @@ def _allocate_data(data, data_buffer, data_shape, dtype):
         else:
             data = np.zeros(data_shape, dtype=dtype)
     return data
-
-
-def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False,
-                   use_rounding=False):
-    """Convert time to indices
-
-    Parameters
-    ----------
-    times : list-like | float | int
-        List of numbers or a number representing points in time.
-    sfreq : float | int
-        Sample frequency.
-    first_samp : int
-       Index to use as first time point.
-    use_first_samp : boolean
-        If True, time is treated as relative to the session onset, else
-        as relative to the recording onset.
-    use_rounding : boolean
-        If True, use rounding (instead of truncation) when converting times to
-        indicies. This can help avoid non-unique indices.
-
-    Returns
-    -------
-    index : ndarray
-        Indices corresponding to the times supplied.
-
-    Notes
-    -----
-    np.round will return the nearest even number for values exactly between
-        two integers.
-    """
-    index = np.atleast_1d(times) * sfreq
-    index -= (first_samp if use_first_samp else 0)
-
-    # Round or truncate time indices
-    if use_rounding:
-        return np.round(index).astype(int)
-    else:
-        return index.astype(int)
 
 
 def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):

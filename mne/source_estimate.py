@@ -25,7 +25,7 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_)
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
-from .io.base import ToDataFrameMixin
+from .io.base import ToDataFrameMixin, TimeMixin
 from .externals.six.moves import zip
 from .externals.six import string_types
 from .externals.h5io import read_hdf5, write_hdf5
@@ -386,7 +386,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(ToDataFrameMixin, object):
+class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
     """Abstract base class for source estimates
 
     Parameters

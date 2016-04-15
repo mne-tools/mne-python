@@ -461,9 +461,16 @@ def test_array_epochs():
     assert_raises(ValueError, EvokedArray, data1, info, tmin=-0.01)
 
 
+def test_time_as_index():
+    """Test time as index"""
+    evoked = read_evokeds(fname, condition=0).crop(-.1, .1)
+    assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
+                       [0, len(evoked.times) - 1])
+    assert_raises(ValueError, evoked.time_as_index, -0.1, use_first_samp=True)
+
+
 def test_add_channels():
-    """Test evoked splitting / re-appending channel types
-    """
+    """Test evoked splitting / re-appending channel types"""
     evoked = read_evokeds(fname, condition=0)
     evoked.info['buffer_size_sec'] = None
     evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)

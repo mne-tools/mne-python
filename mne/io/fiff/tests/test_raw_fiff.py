@@ -1035,30 +1035,6 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 2], raw._data[2] * 1e15)
 
 
-@testing.requires_testing_data
-def test_raw_index_as_time():
-    """ Test index as time conversion"""
-    raw = Raw(fif_fname, preload=True)
-    t0 = raw.index_as_time([0], True)[0]
-    t1 = raw.index_as_time([100], False)[0]
-    t2 = raw.index_as_time([100], True)[0]
-    assert_equal(t2 - t1, t0)
-    # ensure we can go back and forth
-    t3 = raw.index_as_time(raw.time_as_index([0], True), True)
-    assert_array_almost_equal(t3, [0.0], 2)
-    t3 = raw.index_as_time(raw.time_as_index(raw.info['sfreq'], True), True)
-    assert_array_almost_equal(t3, [raw.info['sfreq']], 2)
-    t3 = raw.index_as_time(raw.time_as_index(raw.info['sfreq'], False), False)
-    assert_array_almost_equal(t3, [raw.info['sfreq']], 2)
-    i0 = raw.time_as_index(raw.index_as_time([0], True), True)
-    assert_equal(i0[0], 0)
-    i1 = raw.time_as_index(raw.index_as_time([100], True), True)
-    assert_equal(i1[0], 100)
-    # Have to add small amount of time because we truncate via int casting
-    i1 = raw.time_as_index(raw.index_as_time([100.0001], False), False)
-    assert_equal(i1[0], 100)
-
-
 def test_add_channels():
     """Test raw splitting / re-appending channel types
     """

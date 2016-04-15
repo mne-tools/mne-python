@@ -354,7 +354,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Generate time points to break up data into windows
     chunk_times = np.arange(times[0], times[-1], st_duration)
     read_lims = raw_sss.time_as_index(chunk_times)
-    len_last_buf = raw_sss.times[-1] - raw_sss.index_as_time(read_lims[-1])[0]
+    len_last_buf = raw_sss.times[-1] - raw_sss.times[read_lims[-1]]
     if len_last_buf == st_duration:
         read_lims = np.concatenate([read_lims, [len(raw_sss.times)]])
     else:
