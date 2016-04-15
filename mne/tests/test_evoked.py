@@ -244,10 +244,11 @@ def test_evoked_proj():
             n_proj = len(ave.info['projs'])
             ave.del_proj(0)
             assert_true(len(ave.info['projs']) == n_proj - 1)
+            # Test that already existing projections are not added.
             ave.add_proj(projs, remove_existing=False)
-            assert_true(len(ave.info['projs']) == 2 * n_proj - 1)
-            ave.add_proj(projs, remove_existing=True)
             assert_true(len(ave.info['projs']) == n_proj)
+            ave.add_proj(projs[:-1], remove_existing=True)
+            assert_true(len(ave.info['projs']) == n_proj - 1)
 
     ave = read_evokeds(fname, condition=0, proj=False)
     data = ave.data.copy()

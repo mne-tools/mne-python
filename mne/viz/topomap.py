@@ -117,7 +117,7 @@ def _plot_update_evoked_topomap(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
+def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
                        axes=None):
@@ -131,8 +131,9 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
         Layout instance specifying sensor positions (does not need to be
         specified for Neuromag data). Or a list of Layout if projections
         are from different sensor types.
-    cmap : matplotlib colormap
-        Colormap.
+    cmap : matplotlib colormap | None
+        Colormap to use. If None, 'Reds' is used for all positive data,
+        otherwise defaults to 'RdBu_r'.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be

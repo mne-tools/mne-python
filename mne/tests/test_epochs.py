@@ -1477,10 +1477,11 @@ def test_epochs_proj_mixin():
             n_proj = len(epochs.info['projs'])
             epochs.del_proj(0)
             assert_true(len(epochs.info['projs']) == n_proj - 1)
+            # Test that already existing projections are not added.
             epochs.add_proj(projs, remove_existing=False)
-            assert_true(len(epochs.info['projs']) == 2 * n_proj - 1)
-            epochs.add_proj(projs, remove_existing=True)
             assert_true(len(epochs.info['projs']) == n_proj)
+            epochs.add_proj(projs[:-1], remove_existing=True)
+            assert_true(len(epochs.info['projs']) == n_proj - 1)
 
     # catch no-gos.
     # wrong proj argument

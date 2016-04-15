@@ -21,7 +21,7 @@ data_path = sample.data_path()
 
 subjects_dir = data_path + '/subjects'
 fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
+ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg-proj.fif'
 
 fwd = read_forward_solution(fname, surf_ori=True)
 projs = read_proj(ecg_fname)

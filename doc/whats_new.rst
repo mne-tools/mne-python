@@ -107,6 +107,8 @@ BUG
 
     - Fix bugs with coordinane frame adjustments in :func:`mne.viz.plot_trans` by `Eric Larson`_
 
+    - Fix bug in colormap selection in :func:`mne.Evoked.plot_projs_topomap` by `Jaakko Leppakangas`_
+
 API
 ~~~
 

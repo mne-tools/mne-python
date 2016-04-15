@@ -26,7 +26,7 @@ print(__doc__)
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-proj_fname = data_path + '/MEG/sample/sample_audvis_eog_proj.fif'
+proj_fname = data_path + '/MEG/sample/sample_audvis_eog-proj.fif'
 
 tmin, tmax = 0, 60  # use the first 60s of data
 
