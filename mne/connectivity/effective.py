@@ -160,5 +160,3 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     logger.info('[PSI Estimation Done]')
 
     return psi, freqs, times, n_epochs, n_tapers
-
-
