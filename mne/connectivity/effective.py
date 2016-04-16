@@ -162,6 +162,3 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     return psi, freqs, times, n_epochs, n_tapers
 
 
-def 
-
-
