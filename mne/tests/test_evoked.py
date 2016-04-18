@@ -466,7 +466,6 @@ def test_time_as_index():
     evoked = read_evokeds(fname, condition=0).crop(-.1, .1)
     assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
                        [0, len(evoked.times) - 1])
-    assert_raises(ValueError, evoked.time_as_index, -0.1, use_first_samp=True)
 
 
 def test_add_channels():

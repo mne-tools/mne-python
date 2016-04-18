@@ -205,17 +205,13 @@ class ToDataFrameMixin(object):
 class TimeMixin(object):
     """Class to add sfreq and time_as_index capabilities to certain classes."""
 
-    def time_as_index(self, times, use_first_samp=None, use_rounding=False):
+    def time_as_index(self, times, use_rounding=False):
         """Convert time to indices
 
         Parameters
         ----------
         times : list-like | float | int
             List of numbers or a number representing points in time.
-        use_first_samp : boolean
-            This is deprecated and will be removed in 0.13.
-            If True, time is treated as relative to the session onset, else
-            as relative to the recording onset. Default is False.
         use_rounding : boolean
             If True, use rounding (instead of truncation) when converting
             times to indicies. This can help avoid non-unique indices.
@@ -226,21 +222,11 @@ class TimeMixin(object):
             Indices corresponding to the times supplied.
         """
         from ..source_estimate import _BaseSourceEstimate
-        if use_first_samp is None:
-            use_first_samp = False
         if isinstance(self, _BaseSourceEstimate):
             sfreq = 1. / self.tstep
         else:
             sfreq = self.info['sfreq']
-        if use_first_samp:
-            warn('use_first_samp is deprecated, add raw.first_samp manually '
-                 'if first sample offset is required', DeprecationWarning)
         index = (np.atleast_1d(times) - self.times[0]) * sfreq
-        if use_first_samp:
-            if not isinstance(self, _BaseRaw):
-                raise ValueError('use_first_samp is only supported for Raw, '
-                                 'and it is deprecated')
-            index -= self.first_samp
         if use_rounding:
             index = np.round(index)
         return index.astype(int)
@@ -258,7 +244,8 @@ def _check_fun(fun, d, *args, **kwargs):
 
 
 class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
-               SetChannelsMixin, InterpolationMixin, ToDataFrameMixin):
+               SetChannelsMixin, InterpolationMixin, ToDataFrameMixin,
+               TimeMixin):
     """Base class for Raw data
 
     Subclasses must provide the following methods:
@@ -1574,6 +1561,38 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  color=color, fig_facecolor=fig_facecolor,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, n_jobs=n_jobs, verbose=verbose)
+
+    def time_as_index(self, times, use_first_samp=None, use_rounding=False):
+        """Convert time to indices
+
+        Parameters
+        ----------
+        times : list-like | float | int
+            List of numbers or a number representing points in time.
+        use_first_samp : boolean
+            This is deprecated and will be removed in 0.13.
+            If True, time is treated as relative to the session onset, else
+            as relative to the recording onset. Default is False.
+        use_rounding : boolean
+            If True, use rounding (instead of truncation) when converting
+            times to indicies. This can help avoid non-unique indices.
+
+        Returns
+        -------
+        index : ndarray
+            Indices corresponding to the times supplied.
+        """
+        # Note: this entire class can be removed in 0.13 (proper method
+        # will be inherited from TimeMixin)
+        if use_first_samp is None:
+            use_first_samp = False
+        else:
+            warn('use_first_samp is deprecated, add raw.first_samp manually '
+                 'if first sample offset is required', DeprecationWarning)
+        index = super(_BaseRaw, self).time_as_index(times, use_rounding)
+        if use_first_samp:
+            index -= self.first_samp
+        return index
 
     @deprecated('index_as_time is deprecated and will be removed in 0.13, '
                 'use raw.times[idx] (or raw.times[idx + raw.first_samp] '
