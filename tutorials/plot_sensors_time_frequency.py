@@ -1,9 +1,11 @@
 """
-==============================================================
-Time-frequency representations on topographies for MEG sensors
-==============================================================
+=============================================
+Frequency and time-frequency sensors analysis
+=============================================
 
 Both average power and intertrial coherence are displayed.
+
+# XXX add frequency analysis
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>

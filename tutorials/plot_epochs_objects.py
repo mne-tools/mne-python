@@ -113,3 +113,6 @@ _ = f.suptitle('Left / Right', fontsize=20)
 _ = ev_left.plot(axes=axs[:, 0], show=False)
 _ = ev_right.plot(axes=axs[:, 1], show=False)
 plt.tight_layout()
+
+###############################################################################
+# To export and manipulate Epochs using Pandas see :ref:`tut_io_export_pandas`.

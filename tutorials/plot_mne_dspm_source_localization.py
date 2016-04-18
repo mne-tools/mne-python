@@ -1,8 +1,8 @@
 """
 .. _tut_inverse_basics:
 
-Basics of source localization
-=============================
+Source localization with MNE/dSPM/sLORETA
+=========================================
 
 Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
          Denis Engemann <denis.engemann@gmail.com>

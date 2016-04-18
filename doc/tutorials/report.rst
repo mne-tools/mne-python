@@ -1,8 +1,8 @@
 .. _mne_report_tutorial:
 
-=======================================
-Getting started with MNE report command
-=======================================
+===================================
+Getting started with MNE web report
+===================================
 
 This quick start will show you how to run the `mne report` command on the
 sample data set provided with MNE.

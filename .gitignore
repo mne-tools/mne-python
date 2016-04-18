@@ -58,3 +58,6 @@ cover
 
 # PyCharm
 .idea/**
+
+*-e
+*.dat
