@@ -10,14 +10,14 @@ import os.path as op
 import mne
 
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
-raw = mne.io.Raw(op.join(data_path, 'sample_audvis_raw.fif'))
+raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'))
 events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
 
 ###############################################################################
 # The visualization module (:mod:`mne.viz`) contains all the plotting functions
 # that work in combination with MNE data structures. Usually the easiest way to
 # use them is to call a method of the data container. All of the plotting
-# methods start with ``plot``. Let's try them out!
+# method names start with ``plot``. Let's try them out!
 #
 # To visually inspect your raw data, you can use the python equivalent of
 # ``mne_browse_raw``.
@@ -57,7 +57,8 @@ raw.plot_projs_topomap()
 # again.
 raw.plot()
 
-# Now click the `'proj'` button at the lower right corner of the browser
+###############################################################################
+# Now click the `proj` button at the lower right corner of the browser
 # window. A selection dialog should appear, where you can toggle the projectors
 # on and off. Notice that the first four are already applied to the data and
 # toggling them does not change the data. However the newly added projectors
@@ -67,6 +68,6 @@ raw.plot()
 # projectors.
 #
 # Raw container also lets us easily plot the overall and channel wise power
-# spectra over the raw data. See the API documentation for full documentation.
+# spectra over the raw data. See the API documentation for more info.
 raw.plot_psd()
 raw.plot_psd_topo()
