@@ -49,7 +49,7 @@ For further reading:
     :maxdepth: 1
 
     auto_tutorials/plot_python_intro.rst
-    tutorials/ten_things_about_mne.rst
+    tutorials/ten_facts_about_mne.rst
 
 .. container:: span box
 
