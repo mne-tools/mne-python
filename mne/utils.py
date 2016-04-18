@@ -67,8 +67,9 @@ def _check_copy_dep(inst, copy, kind='inst', default=False):
     """Check for copy deprecation for 0.13"""
     if copy is not None:
         warn('The copy parameter is deprecated and will be removed in 0.13, '
-             'and the behavior will be to operate in-place (like copy=False). '
-             'Use %s.copy() if necessary instead.' % kind, DeprecationWarning)
+             'where the behavior will be to operate in-place (like copy=False)'
+             '. In 0.12 the default is copy=%s. Use %s.copy() if necessary.'
+             % (kind, default), DeprecationWarning)
     else:
         copy = default
     return inst.copy() if copy else inst
