@@ -5,3 +5,68 @@ Visualize Raw data
 ==================
 
 """
+import os.path as op
+
+import mne
+
+data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
+raw = mne.io.Raw(op.join(data_path, 'sample_audvis_raw.fif'))
+events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
+
+###############################################################################
+# The visualization module (:mod:`mne.viz`) contains all the plotting functions
+# that work in combination with MNE data structures. Usually the easiest way to
+# use them is to call a method of the data container. All of the plotting
+# methods start with ``plot``. Let's try them out!
+#
+# To visually inspect your raw data, you can use the python equivalent of
+# ``mne_browse_raw``.
+raw.plot(block=True, events=events)
+
+###############################################################################
+# The channels are color coded by channel type. Generally MEG channels are
+# colored in different shades of blue, whereas EEG channels are black. The
+# channels are also sorted by channel type by default. If you want to use a
+# custom order for the channels, you can use ``order`` parameter of
+# :func:`raw.plot`. The scrollbar on right side of the browser window also
+# tells us that two of the channels are marked as ``bad``. Bad channels are
+# color coded gray. By clicking the lines or channel names on the left, you can
+# mark or unmark a bad channel interactively. You can use +/- keys to adjust
+# the scale (also = works for magnifying the data). Note that the initial
+# scaling factors can be set with parameter ``scalings``. With
+# ``pageup/pagedown`` and ``home/end`` keys you can adjust the amount of data
+# viewed at once. To see all the interactive features, hit ``?`` or click
+# ``help`` in the lower left corner of the browser window.
+#
+# We read the events from a file and passed it as a parameter when calling the
+# method. The events are plotted as vertical lines so you can see how they
+# align with the raw data.
+#
+# Now let's add some ssp projectors to the raw data. Here we read them from a
+# file and plot them.
+projs = mne.read_proj(op.join(data_path, 'sample_audvis_eog-proj.fif'))
+raw.add_proj(projs)
+raw.plot_projs_topomap()
+
+###############################################################################
+# The first three projectors that we see are the SSP vectors from empty room
+# measurements to compensate for the noise. The fourth one is the average EEG
+# reference. These are already applied to the data and can no longer be
+# removed. The next six are the EOG projections that we added. Every data
+# channel type has two projection vectors each. Let's try the raw browser
+# again.
+raw.plot()
+
+# Now click the `'proj'` button at the lower right corner of the browser
+# window. A selection dialog should appear, where you can toggle the projectors
+# on and off. Notice that the first four are already applied to the data and
+# toggling them does not change the data. However the newly added projectors
+# modify the data to get rid of the EOG artifacts. Note that toggling the
+# projectors here doesn't actually modify the data. This is purely for visually
+# inspecting the effect. See :func:`mne.io.Raw.del_proj` to actually remove the
+# projectors.
+#
+# Raw container also lets us easily plot the overall and channel wise power
+# spectra over the raw data. See the API documentation for full documentation.
+raw.plot_psd()
+raw.plot_psd_topo()
