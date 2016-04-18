@@ -43,7 +43,7 @@ def test_savgol_filter():
     match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
     mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
     assert_raises(ValueError, evoked.savgol_filter, evoked.info['sfreq'])
-    evoked_sg = evoked.savgol_filter(h_freq, copy=True)
+    evoked_sg = evoked.copy().savgol_filter(h_freq)
     data_filt = np.abs(fftpack.fft(evoked_sg.data))
     # decent in pass-band
     assert_allclose(np.mean(data[:, match_mask], 0),
@@ -308,7 +308,7 @@ def test_drop_channels_mixin():
     ch_names = evoked.ch_names[3:]
 
     ch_names_orig = evoked.ch_names
-    dummy = evoked.drop_channels(drop_ch, copy=True)
+    dummy = evoked.copy().drop_channels(drop_ch)
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, evoked.ch_names)
     assert_equal(len(ch_names_orig), len(evoked.data))
@@ -325,7 +325,7 @@ def test_pick_channels_mixin():
     ch_names = evoked.ch_names[:3]
 
     ch_names_orig = evoked.ch_names
-    dummy = evoked.pick_channels(ch_names, copy=True)
+    dummy = evoked.copy().pick_channels(ch_names)
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, evoked.ch_names)
     assert_equal(len(ch_names_orig), len(evoked.data))
@@ -477,14 +477,14 @@ def test_add_channels():
                  {'event_bits': np.array([256,   0, 256, 256])},
                  {'event_bits': np.array([512,   0, 512, 512])}]
     evoked.info['hpi_subsystem'] = dict(hpi_coils=hpi_coils, ncoil=2)
-    evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
-    evoked_meg = evoked.pick_types(meg=True, copy=True)
-    evoked_stim = evoked.pick_types(meg=False, stim=True, copy=True)
-    evoked_eeg_meg = evoked.pick_types(meg=True, eeg=True, copy=True)
-    evoked_new = evoked_meg.add_channels([evoked_eeg, evoked_stim], copy=True)
+    evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_meg = evoked.copy().pick_types(meg=True)
+    evoked_stim = evoked.copy().pick_types(meg=False, stim=True)
+    evoked_eeg_meg = evoked.copy().pick_types(meg=True, eeg=True)
+    evoked_new = evoked_meg.copy().add_channels([evoked_eeg, evoked_stim])
     assert_true(all(ch in evoked_new.ch_names
                     for ch in evoked_stim.ch_names + evoked_meg.ch_names))
-    evoked_new = evoked_meg.add_channels([evoked_eeg], copy=True)
+    evoked_new = evoked_meg.copy().add_channels([evoked_eeg])
 
     assert_true(ch in evoked_new.ch_names for ch in evoked.ch_names)
     assert_array_equal(evoked_new.data, evoked_eeg_meg.data)

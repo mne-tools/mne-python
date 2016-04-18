@@ -62,6 +62,18 @@ def nottest(f):
 ###############################################################################
 # RANDOM UTILITIES
 
+
+def _check_copy_dep(inst, copy, kind='inst', default=False):
+    """Check for copy deprecation for 0.13"""
+    if copy is not None:
+        warn('The copy parameter is deprecated and will be removed in 0.13, '
+             'and the behavior will be to operate in-place (like copy=False). '
+             'Use %s.copy() if necessary instead.' % kind, DeprecationWarning)
+    else:
+        copy = default
+    return inst.copy() if copy else inst
+
+
 def _get_call_line(in_verbose=False):
     """Helper to get the call line from within a function"""
     # XXX Eventually we could auto-triage whether in a `verbose` decorated
@@ -353,7 +365,7 @@ class _TempDir(str):
 
 
 def estimate_rank(data, tol='auto', return_singular=False,
-                  norm=True, copy=True):
+                  norm=True, copy=None):
     """Helper to estimate the rank of data
 
     This function will normalize the rows of the data (typically
@@ -377,8 +389,8 @@ def estimate_rank(data, tol='auto', return_singular=False,
         If True, data will be scaled by their estimated row-wise norm.
         Else data are assumed to be scaled. Defaults to True.
     copy : bool
-        If False, values in data will be modified in-place during
-        rank estimation (saves memory).
+        This parameter has been deprecated and will be removed in 0.13.
+        It is ignored in 0.12.
 
     Returns
     -------
@@ -388,12 +400,12 @@ def estimate_rank(data, tol='auto', return_singular=False,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    if copy is True:
-        data = data.copy()
+    if copy is not None:
+        warn('copy is deprecated and ignored. It will be removed in 0.13.')
     if norm is True:
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
-    s = linalg.svd(data, compute_uv=False, overwrite_a=True)
+    s = linalg.svd(data, compute_uv=False, overwrite_a=False)
     if isinstance(tol, string_types):
         if tol != 'auto':
             raise ValueError('tol must be "auto" or float')
@@ -2093,7 +2105,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
         bads = list(set((b for inst in all_inst for b in inst.info['bads'])))
         if bads:
             for inst in all_inst:
-                inst.drop_channels(bads, copy=False)
+                inst.drop_channels(bads)
 
     # make grand_average object using combine_[evoked/tfr]
     grand_average = combine(all_inst, weights='equal')

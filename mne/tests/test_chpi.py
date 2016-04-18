@@ -155,7 +155,7 @@ def test_calculate_chpi_positions():
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['r'] = np.ones(3)
-    raw_bad.crop(0, 1., copy=False)
+    raw_bad = raw_bad.crop(0, 1.)
     with warnings.catch_warnings(record=True):  # bad pos
         with catch_logging() as log_file:
             _calculate_chpi_positions(raw_bad, verbose=True)
@@ -177,10 +177,10 @@ def test_chpi_subtraction():
         filter_chpi(raw, include_line=False, verbose=True)
     assert_true('5 cHPI' in log.getvalue())
     # MaxFilter doesn't do quite as well as our algorithm with the last bit
-    raw.crop(0, 16, copy=False)
-    raw_c = Raw(sss_hpisubt_fname, preload=True).crop(0, 16, copy=False)
-    raw_c.pick_types(meg=True, eeg=True, eog=True, ecg=True, stim=True,
-                     misc=True, copy=False)  # remove cHPI status chans
+    raw = raw.crop(0, 16)
+    # remove cHPI status chans
+    raw_c = Raw(sss_hpisubt_fname).crop(0, 16).load_data().pick_types(
+        meg=True, eeg=True, eog=True, ecg=True, stim=True, misc=True)
     assert_meg_snr(raw, raw_c, 143, 624)
 
     # Degenerate cases
@@ -192,8 +192,7 @@ def test_chpi_subtraction():
     #           -o test_move_anon_ds2_raw.fif
     # it can strip out some values of info, which we emulate here:
     raw = Raw(chpi_fif_fname, allow_maxshield='yes')
-    raw.crop(0, 1, copy=False).load_data()
-    raw.resample(600., npad='auto')
+    raw = raw.crop(0, 1).load_data().resample(600., npad='auto')
     raw.info['buffer_size_sec'] = np.float64(2.)
     raw.info['lowpass'] = 200.
     del raw.info['maxshield']

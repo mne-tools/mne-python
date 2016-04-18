@@ -79,16 +79,16 @@ _ = plt.title('Sample channels')
 # channel names, types or time ranges.
 
 # Pull all MEG gradiometer channels:
-# Make sure to use copy==True or it will overwrite the data
-meg_only = raw.pick_types(meg=True, copy=True)
-eeg_only = raw.pick_types(meg=False, eeg=True, copy=True)
+# Make sure to use .copy() or it will overwrite the data
+meg_only = raw.copy().pick_types(meg=True)
+eeg_only = raw.copy().pick_types(meg=False, eeg=True)
 
 # The MEG flag in particular lets you specify a string for more specificity
-grad_only = raw.pick_types(meg='grad', copy=True)
+grad_only = raw.copy().pick_types(meg='grad')
 
 # Or you can use custom channel names
 pick_chans = ['MEG 0112', 'MEG 0111', 'MEG 0122', 'MEG 0123']
-specific_chans = raw.pick_channels(pick_chans, copy=True)
+specific_chans = raw.copy().pick_channels(pick_chans)
 print(meg_only, eeg_only, grad_only, specific_chans, sep='\n')
 
 ###############################################################################

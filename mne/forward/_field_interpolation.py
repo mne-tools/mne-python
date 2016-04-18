@@ -196,8 +196,8 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
                          ' locations of the destination channels will be used'
                          ' for interpolation.')
 
-    info_from = pick_info(evoked.info, pick_from, copy=True)
-    info_to = pick_info(evoked.info, pick_to, copy=True)
+    info_from = pick_info(evoked.info, pick_from)
+    info_to = pick_info(evoked.info, pick_to)
     mapping = _map_meg_channels(info_from, info_to, mode=mode)
 
     # compute evoked data by multiplying by the 'gain matrix' from
@@ -280,7 +280,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         logger.info('Prepare EEG mapping...')
     if len(picks) == 0:
         raise RuntimeError('cannot map, no channels found')
-    chs = pick_info(info, picks, copy=True)['chs']
+    chs = pick_info(info, picks)['chs']
 
     # create coil defs in head coordinates
     if ch_type == 'meg':

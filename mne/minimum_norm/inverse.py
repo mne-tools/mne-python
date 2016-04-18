@@ -39,6 +39,10 @@ class InverseOperator(dict):
     """InverseOperator class to represent info from inverse operator
     """
 
+    def copy(self):
+        """Return a copy of the InverseOperator"""
+        return InverseOperator(deepcopy(self))
+
     def __repr__(self):
         """Summarize inverse info instead of printing all"""
 
@@ -196,18 +200,18 @@ def read_inverse_operator(fname, verbose=None):
         #   The eigenleads and eigenfields
         #
         inv['eigen_leads_weighted'] = False
-        eigen_leads = _read_named_matrix(
-            fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS)
-        if eigen_leads is None:
+        inv['eigen_leads'] = _read_named_matrix(
+            fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS, transpose=True)
+        if inv['eigen_leads'] is None:
             inv['eigen_leads_weighted'] = True
-            eigen_leads = _read_named_matrix(
-                fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
-        if eigen_leads is None:
+            inv['eigen_leads'] = _read_named_matrix(
+                fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED,
+                transpose=True)
+        if inv['eigen_leads'] is None:
             raise ValueError('Eigen leads not found in inverse operator.')
         #
         #   Having the eigenleads as cols is better for the inverse calcs
         #
-        inv['eigen_leads'] = _transpose_named_matrix(eigen_leads, copy=False)
         inv['eigen_fields'] = _read_named_matrix(fid, invs,
                                                  FIFF.FIFF_MNE_INVERSE_FIELDS)
         logger.info('    [done]')
@@ -409,11 +413,12 @@ def write_inverse_operator(fname, inv, verbose=None):
     #   The eigenleads and eigenfields
     #
     if inv['eigen_leads_weighted']:
-        write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED,
-                           _transpose_named_matrix(inv['eigen_leads']))
+        kind = FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED
     else:
-        write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS,
-                           _transpose_named_matrix(inv['eigen_leads']))
+        kind = FIFF.FIFF_MNE_INVERSE_LEADS
+    _transpose_named_matrix(inv['eigen_leads'])
+    write_named_matrix(fid, kind, inv['eigen_leads'])
+    _transpose_named_matrix(inv['eigen_leads'])
 
     #
     #   Done!
@@ -506,7 +511,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
         raise ValueError('The number of averages should be positive')
 
     logger.info('Preparing the inverse operator for use...')
-    inv = deepcopy(orig)
+    inv = orig.copy()
     #
     #   Scale some of the stuff
     #

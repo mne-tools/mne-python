@@ -347,7 +347,7 @@ def _make_ecg(inst, start, stop, verbose=None):
     if isinstance(inst, _BaseRaw):
         ecg, times = inst[picks, start:stop]
     elif isinstance(inst, _BaseEpochs):
-        ecg = np.hstack(inst.crop(start, stop, copy=True).get_data())
+        ecg = np.hstack(inst.copy().crop(start, stop).get_data())
         times = inst.times
     elif isinstance(inst, Evoked):
         ecg = inst.data

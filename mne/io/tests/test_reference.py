@@ -76,8 +76,8 @@ def test_apply_reference():
     raw = Raw(fif_fname, preload=True)
 
     # Rereference raw data by creating a copy of original data
-    reref, ref_data = _apply_reference(raw, ref_from=['EEG 001', 'EEG 002'],
-                                       copy=True)
+    reref, ref_data = _apply_reference(
+        raw.copy(), ref_from=['EEG 001', 'EEG 002'])
     assert_true(reref.info['custom_ref_applied'])
     _test_reference(raw, reref, ref_data, ['EEG 001', 'EEG 002'])
 
@@ -89,8 +89,7 @@ def test_apply_reference():
     assert_array_equal(raw._data, reref._data)
 
     # Test that data is modified in place when copy=False
-    reref, ref_data = _apply_reference(raw, ['EEG 001', 'EEG 002'],
-                                       copy=False)
+    reref, ref_data = _apply_reference(raw, ['EEG 001', 'EEG 002'])
     assert_true(raw is reref)
 
     # Test re-referencing Epochs object
@@ -99,15 +98,15 @@ def test_apply_reference():
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True)
-    reref, ref_data = _apply_reference(epochs, ref_from=['EEG 001', 'EEG 002'],
-                                       copy=True)
+    reref, ref_data = _apply_reference(
+        epochs.copy(), ref_from=['EEG 001', 'EEG 002'])
     assert_true(reref.info['custom_ref_applied'])
     _test_reference(epochs, reref, ref_data, ['EEG 001', 'EEG 002'])
 
     # Test re-referencing Evoked object
     evoked = epochs.average()
-    reref, ref_data = _apply_reference(evoked, ref_from=['EEG 001', 'EEG 002'],
-                                       copy=True)
+    reref, ref_data = _apply_reference(
+        evoked.copy(), ref_from=['EEG 001', 'EEG 002'])
     assert_true(reref.info['custom_ref_applied'])
     _test_reference(evoked, reref, ref_data, ['EEG 001', 'EEG 002'])
 
@@ -154,9 +153,9 @@ def test_set_bipolar_reference():
     assert_true(reref.info['custom_ref_applied'])
 
     # Compare result to a manual calculation
-    a = raw.pick_channels(['EEG 001', 'EEG 002'], copy=True)
+    a = raw.copy().pick_channels(['EEG 001', 'EEG 002'])
     a = a._data[0, :] - a._data[1, :]
-    b = reref.pick_channels(['bipolar'], copy=True)._data[0, :]
+    b = reref.copy().pick_channels(['bipolar'])._data[0, :]
     assert_allclose(a, b)
 
     # Original channels should be replaced by a virtual one

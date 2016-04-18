@@ -15,7 +15,7 @@ from ..epochs import _BaseEpochs
 from ..utils import logger, warn
 
 
-def _apply_reference(inst, ref_from, ref_to=None, copy=True):
+def _apply_reference(inst, ref_from, ref_to=None):
     """Apply a custom EEG referencing scheme.
 
     Calculates a reference signal by taking the mean of a set of channels and
@@ -33,9 +33,6 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
     ref_to : list of str | None
         The names of the channels to apply the reference to. By default,
         all EEG channels are chosen.
-    copy : bool
-        Specifies whether the data will be copied (True) or modified in place
-        (False). Defaults to True.
 
     Returns
     -------
@@ -46,6 +43,8 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
     Notes
     -----
+    This function operates in-place.
+
     1. Do not use this function to apply an average reference. By default, an
        average reference projection has already been added upon loading raw
        data.
@@ -73,9 +72,6 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
     if ref_to is None:
         ref_to = [inst.ch_names[i] for i in eeg_idx]
-
-    if copy:
-        inst = inst.copy()
 
     # After referencing, existing SSPs might not be valid anymore.
     for i, proj in enumerate(inst.info['projs']):
@@ -262,7 +258,8 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
             return inst, None
     else:
         logger.info('Applying a custom EEG reference.')
-        return _apply_reference(inst, ref_channels, copy=copy)
+        inst = inst.copy() if copy else inst
+        return _apply_reference(inst, ref_channels)
 
 
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
@@ -373,7 +370,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Perform bipolar referencing
     for an, ca, name, info in zip(anode, cathode, ch_name, new_ch_info):
-        inst, _ = _apply_reference(inst, [ca], [an], copy=False)
+        _apply_reference(inst, [ca], [an])
         an_idx = inst.ch_names.index(an)
         inst.info['chs'][an_idx] = info
         inst.info['chs'][an_idx]['ch_name'] = name

@@ -967,7 +967,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         names = None
 
     data = tfr.data
-    data = rescale(data, tfr.times, baseline, mode, copy=True)
+    data = rescale(data.copy(), tfr.times, baseline, mode)
 
     # crop time
     itmin, itmax = None, None
@@ -1173,8 +1173,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     else:
         data = evoked.data
 
-    evoked = evoked.pick_channels([evoked.ch_names[pick] for pick in picks],
-                                  copy=True)
+    evoked = evoked.copy().pick_channels(
+        [evoked.ch_names[pick] for pick in picks])
 
     if axes is not None:
         if isinstance(axes, plt.Axes):

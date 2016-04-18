@@ -131,13 +131,13 @@ def test_simulate_raw_sphere():
     del raw_sim_3, raw_sim_4
 
     # make sure it works with EEG-only and MEG-only
-    raw_sim_meg = simulate_raw(raw.pick_types(meg=True, eeg=False, copy=True),
+    raw_sim_meg = simulate_raw(raw.copy().pick_types(meg=True, eeg=False),
                                stc, trans, src, sphere, cov=None,
                                ecg=True, blink=True, random_state=seed)
-    raw_sim_eeg = simulate_raw(raw.pick_types(meg=False, eeg=True, copy=True),
+    raw_sim_eeg = simulate_raw(raw.copy().pick_types(meg=False, eeg=True),
                                stc, trans, src, sphere, cov=None,
                                ecg=True, blink=True, random_state=seed)
-    raw_sim_meeg = simulate_raw(raw.pick_types(meg=True, eeg=True, copy=True),
+    raw_sim_meeg = simulate_raw(raw.copy().pick_types(meg=True, eeg=True),
                                 stc, trans, src, sphere, cov=None,
                                 ecg=True, blink=True, random_state=seed)
     assert_allclose(np.concatenate((raw_sim_meg[:][0], raw_sim_eeg[:][0])),

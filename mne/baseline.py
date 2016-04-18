@@ -7,7 +7,7 @@
 
 import numpy as np
 
-from .utils import logger, verbose
+from .utils import logger, verbose, _check_copy_dep
 
 
 def _log_rescale(baseline, mode='mean'):
@@ -24,7 +24,7 @@ def _log_rescale(baseline, mode='mean'):
 
 
 @verbose
-def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
+def rescale(data, times, baseline, mode='mean', copy=None, verbose=None):
     """Rescale aka baseline correct data
 
     Parameters
@@ -50,7 +50,9 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         logratio is the same an mean but in log-scale, zlogratio is the
         same as zscore but data is rendered in log-scale first.
     copy : bool
-        Operate on a copy of the data, or in place.
+        This parameter has been deprecated and will be removed in 0.13.
+        Use data.copy() instead.
+        Whether to return a new instance or modify in place.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -59,9 +61,8 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     data_scaled: array
         Array of same shape as data after rescaling.
     """
+    data = _check_copy_dep(data, copy, kind='data')
     _log_rescale(baseline, mode)
-    if copy:
-        data = data.copy()
     if baseline is None:
         return data
 

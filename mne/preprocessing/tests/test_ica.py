@@ -76,7 +76,7 @@ def test_ica_full_data_recovery():
                       method=method, max_iter=1)
             with warnings.catch_warnings(record=True):
                 ica.fit(raw, picks=list(range(n_channels)))
-            raw2 = ica.apply(raw, exclude=[], copy=True)
+            raw2 = ica.apply(raw.copy(), exclude=[])
             if ok:
                 assert_allclose(data[:n_channels], raw2._data[:n_channels],
                                 rtol=1e-10, atol=1e-15)
@@ -89,7 +89,7 @@ def test_ica_full_data_recovery():
                       n_pca_components=n_pca_components)
             with warnings.catch_warnings(record=True):
                 ica.fit(epochs, picks=list(range(n_channels)))
-            epochs2 = ica.apply(epochs, exclude=[], copy=True)
+            epochs2 = ica.apply(epochs.copy(), exclude=[])
             data2 = epochs2.get_data()[:, :n_channels]
             if ok:
                 assert_allclose(data_epochs[:, :n_channels], data2,
@@ -98,7 +98,7 @@ def test_ica_full_data_recovery():
                 diff = np.abs(data_epochs[:, :n_channels] - data2)
                 assert_true(np.max(diff) > 1e-14)
 
-            evoked2 = ica.apply(evoked, exclude=[], copy=True)
+            evoked2 = ica.apply(evoked.copy(), exclude=[])
             data2 = evoked2.data[:n_channels]
             if ok:
                 assert_allclose(data_evoked[:n_channels], data2,
@@ -129,7 +129,7 @@ def test_ica_rank_reduction():
 
         rank_before = raw.estimate_rank(picks=picks)
         assert_equal(rank_before, len(picks))
-        raw_clean = ica.apply(raw, copy=True)
+        raw_clean = ica.apply(raw.copy())
         rank_after = raw_clean.estimate_rank(picks=picks)
         # interaction between ICA rejection and PCA components difficult
         # to preduct. Rank_after often seems to be 1 higher then
@@ -255,7 +255,7 @@ def test_ica_core():
     # test for bug with whitener updating
     _pre_whitener = ica._pre_whitener.copy()
     epochs._data[:, 0, 10:15] *= 1e12
-    ica.apply(epochs, copy=True)
+    ica.apply(epochs.copy())
     assert_array_equal(_pre_whitener, ica._pre_whitener)
 
     # test expl. var threshold leading to empty sel

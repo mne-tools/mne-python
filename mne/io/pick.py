@@ -339,7 +339,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     return sel
 
 
-def pick_info(info, sel=[], copy=True):
+def pick_info(info, sel=(), copy=True):
     """Restrict an info structure to a selection of channels
 
     Parameters

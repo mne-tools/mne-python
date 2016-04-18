@@ -42,13 +42,16 @@ from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose,
-                     deprecated)
+                     deprecated, _check_copy_dep)
 from ..label import Label
 
 
 class Forward(dict):
     """Forward class to represent info from forward solution
     """
+    def copy(self):
+        """Copy the Forward instance"""
+        return Forward(deepcopy(self))
 
     def __repr__(self):
         """Summarize forward info instead of printing all"""
@@ -239,8 +242,8 @@ def _read_one(fid, node):
                                 FIFF.FIFF_NCHAN)
     try:
         one['sol'] = _read_named_matrix(fid, node,
-                                        FIFF.FIFF_MNE_FORWARD_SOLUTION)
-        one['sol'] = _transpose_named_matrix(one['sol'], copy=False)
+                                        FIFF.FIFF_MNE_FORWARD_SOLUTION,
+                                        transpose=True)
         one['_orig_sol'] = one['sol']['data'].copy()
     except Exception:
         logger.error('Forward solution data not found')
@@ -248,8 +251,8 @@ def _read_one(fid, node):
 
     try:
         fwd_type = FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD
-        one['sol_grad'] = _read_named_matrix(fid, node, fwd_type)
-        one['sol_grad'] = _transpose_named_matrix(one['sol_grad'], copy=False)
+        one['sol_grad'] = _read_named_matrix(fid, node, fwd_type,
+                                             transpose=True)
         one['_orig_sol_grad'] = one['sol_grad']['data'].copy()
     except Exception:
         one['sol_grad'] = None
@@ -580,8 +583,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         implies surf_ori=True.
     force_fixed : bool, optional (default False)
         Force fixed source orientation mode?
-    copy : bool, optional (default True)
-        If False, operation will be done in-place (modifying the input).
+    copy : bool
+        Whether to return a new instance or modify in place.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -590,8 +593,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : dict
         The modified forward solution.
     """
-    if copy is True:
-        fwd = deepcopy(fwd)
+    fwd = fwd.copy() if copy else fwd
 
     # We need to change these entries (only):
     # 1. source_nn
@@ -788,7 +790,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     if n_meg > 0:
         meg_solution = dict(data=sol[picks_meg], nrow=n_meg, ncol=n_col,
                             row_names=row_names_meg, col_names=[])
-        meg_solution = _transpose_named_matrix(meg_solution, copy=False)
+        _transpose_named_matrix(meg_solution)
         start_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
         write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, FIFF.FIFFV_MNE_MEG)
         write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, fwd['coord_frame'])
@@ -800,8 +802,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
             meg_solution_grad = dict(data=sol_grad[picks_meg],
                                      nrow=n_meg, ncol=n_col * 3,
                                      row_names=row_names_meg, col_names=[])
-            meg_solution_grad = _transpose_named_matrix(meg_solution_grad,
-                                                        copy=False)
+            _transpose_named_matrix(meg_solution_grad)
             write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD,
                                meg_solution_grad)
         end_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
@@ -812,7 +813,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     if n_eeg > 0:
         eeg_solution = dict(data=sol[picks_eeg], nrow=n_eeg, ncol=n_col,
                             row_names=row_names_eeg, col_names=[])
-        eeg_solution = _transpose_named_matrix(eeg_solution, copy=False)
+        _transpose_named_matrix(eeg_solution)
         start_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
         write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, FIFF.FIFFV_MNE_EEG)
         write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, fwd['coord_frame'])
@@ -824,8 +825,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
             eeg_solution_grad = dict(data=sol_grad[picks_eeg],
                                      nrow=n_eeg, ncol=n_col * 3,
                                      row_names=row_names_eeg, col_names=[])
-            eeg_solution_grad = _transpose_named_matrix(eeg_solution_grad,
-                                                        copy=False)
+            _transpose_named_matrix(eeg_solution_grad)
             write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD,
                                eeg_solution_grad)
         end_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)

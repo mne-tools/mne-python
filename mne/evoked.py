@@ -15,7 +15,8 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
-from .utils import check_fname, logger, verbose, object_hash, _time_mask, warn
+from .utils import (check_fname, logger, verbose, object_hash, _time_mask,
+                    warn, _check_copy_dep)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
@@ -112,7 +113,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # project and baseline correct
         if proj:
             self.apply_proj()
-        self.data = rescale(self.data, self.times, baseline, copy=False)
+        self.data = rescale(self.data, self.times, baseline)
 
     def save(self, fname):
         """Save dataset to file.
@@ -142,7 +143,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Channel names"""
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None, copy=False):
+    def crop(self, tmin=None, tmax=None, copy=None):
         """Crop data to a given time interval
 
         Parameters
@@ -152,9 +153,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         tmax : float | None
             End time of selection in seconds.
         copy : bool
-            If False epochs is cropped in place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
         """
-        inst = self if not copy else self.copy()
+        inst = _check_copy_dep(self, copy)
         mask = _time_mask(inst.times, tmin, tmax, sfreq=self.info['sfreq'])
         inst.times = inst.times[mask]
         inst.first = int(inst.times[0] * inst.info['sfreq'])

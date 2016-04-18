@@ -32,7 +32,7 @@ bem_fname = (data_path +
 
 # Load real data as the template
 raw = mne.io.read_raw_fif(raw_fname)
-raw = raw.crop(0., 30., copy=False)  # 30 sec is enough
+raw = raw.crop(0., 30.)  # 30 sec is enough
 
 ##############################################################################
 # Generate dipole time series

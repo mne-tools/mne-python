@@ -137,7 +137,7 @@ def test_make_field_map_meg():
     assert_raises(ValueError, _make_surface_mapping, info, surf, 'meg',
                   mode='foo')
     # no picks
-    evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
+    evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
     assert_raises(RuntimeError, _make_surface_mapping, evoked_eeg.info,
                   surf, 'meg')
     # bad surface def
@@ -219,14 +219,14 @@ def test_as_meg_type_evoked():
 
     # channel names
     ch_names = evoked.info['ch_names']
-    virt_evoked = evoked.pick_channels(ch_names=ch_names[:10:1], copy=True)
+    virt_evoked = evoked.copy().pick_channels(ch_names=ch_names[:10:1])
     virt_evoked.info.normalize_proj()
     virt_evoked = virt_evoked.as_type('mag')
     assert_true(all('_virtual' in ch for ch in virt_evoked.info['ch_names']))
 
     # pick from and to channels
-    evoked_from = evoked.pick_channels(ch_names=ch_names[2:10:3], copy=True)
-    evoked_to = evoked.pick_channels(ch_names=ch_names[0:10:3], copy=True)
+    evoked_from = evoked.copy().pick_channels(ch_names=ch_names[2:10:3])
+    evoked_to = evoked.copy().pick_channels(ch_names=ch_names[0:10:3])
 
     info_from, info_to = evoked_from.info, evoked_to.info
 

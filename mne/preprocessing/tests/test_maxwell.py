@@ -488,7 +488,7 @@ def test_spatiotemporal_maxwell():
         # onto the previous buffer if it's shorter than st_duration, we have to
         # crop the data here to compensate for Elekta's tSSS behavior.
         if st_duration == 10.:
-            tsss_bench.crop(0, st_duration, copy=False)
+            tsss_bench = tsss_bench.crop(0, st_duration)
 
         # Test sss computation at the standard head origin. Same cropping issue
         # as mentioned above.
@@ -666,7 +666,7 @@ def test_cross_talk():
     _assert_n_free(raw_sss, 68)
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04), ignore_ref=True)
     _assert_n_free(raw_sss, 70)
-    raw_missing = raw.crop(0, 0.1, copy=True).load_data().pick_channels(
+    raw_missing = raw.copy().crop(0, 0.1).load_data().pick_channels(
         [raw.ch_names[pi] for pi in pick_types(raw.info, meg=True,
                                                exclude=())[3:]])
     with warnings.catch_warnings(record=True) as w:
@@ -847,7 +847,7 @@ def test_all():
                mf_meg_origin,
                mf_head_origin)
     for ii, rf in enumerate(raw_fnames):
-        raw = Raw(rf, allow_maxshield='yes').crop(0., 1., copy=False)
+        raw = Raw(rf, allow_maxshield='yes').crop(0., 1.)
         with warnings.catch_warnings(record=True):  # head fit off-center
             sss_py = maxwell_filter(
                 raw, calibration=fine_cals[ii], cross_talk=ctcs[ii],
