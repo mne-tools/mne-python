@@ -1,4 +1,6 @@
 """
+.. _tut_artifacts_detect:
+
 Artifacts Detection
 ===================
 

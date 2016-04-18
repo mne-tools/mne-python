@@ -1,4 +1,7 @@
 """
+
+.. _tut_artifacts_correct_ica_ssp:
+
 Artifact Correction with ICA and SSP
 ====================================
 
