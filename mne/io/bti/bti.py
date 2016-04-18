@@ -796,7 +796,7 @@ def _read_ch_config(fid):
         chan['transform'] = read_transform(fid)
         chan['reserved'] = read_char(fid, BTI.FILE_CONF_CH_RESERVED)
 
-    elif ch_type in [BTI.CHTYPE_TRIGGER,  BTI.CHTYPE_EXTERNAL,
+    elif ch_type in [BTI.CHTYPE_TRIGGER, BTI.CHTYPE_EXTERNAL,
                      BTI.CHTYPE_UTILITY, BTI.CHTYPE_DERIVED]:
         chan['user_space_size'] = read_int32(fid)
         if ch_type == BTI.CHTYPE_TRIGGER:
@@ -1170,8 +1170,11 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     chs = []
 
     # Note that 'name' and 'chan_label' are not the same.
-    # We want the configured label if out IO parsed it.
-    bti_ch_names = [c.get('chan_label', c['name']) for c in bti_info['chs']]
+    # We want the configured label if out IO parsed it
+    # except for the MEG channels for which we keep the config name
+    bti_ch_names = [c.get('chan_label' if c['yaxis_label'] != 'T' else 'name',
+                          c['name']) for c in bti_info['chs']]
+
     neuromag_ch_names = _rename_channels(
         bti_ch_names, ecg_ch=ecg_ch, eog_ch=eog_ch)
     ch_mapping = zip(bti_ch_names, neuromag_ch_names)
