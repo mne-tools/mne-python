@@ -1054,6 +1054,11 @@ def test_crop():
     data2 = epochs2.get_data()
     assert_array_equal(data2, data_normal[:, :, tmask])
     assert_array_equal(data3, data_normal[:, :, tmask])
+    assert_array_equal(epochs.time_as_index([tmin, tmax], use_rounding=True),
+                       [0, len(epochs.times) - 1])
+    assert_array_equal(epochs3.time_as_index([tmin_window, tmax_window],
+                                             use_rounding=True),
+                       [0, len(epochs3.times) - 1])
 
     # test time info is correct
     epochs = EpochsArray(np.zeros((1, 1, 1000)), create_info(1, 1000., 'eeg'),
