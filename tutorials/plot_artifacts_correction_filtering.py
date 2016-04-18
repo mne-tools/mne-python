@@ -4,63 +4,97 @@
 Filtering and Resampling
 ========================
 
+Certain artifacts are restricted to certain frequencies and can therefore
+be fixed by filtering. An artifact that typically affects only some
+frequencies is due to the power line.
+
+Power-line noise is a noise created by the electrical network.
+It is composed of sharp peaks at 50Hz (or 60Hz depending on your
+geographical location). Some peaks may also be present at the harmonic
+frequencies, i.e. the integer multiples of
+the power-line frequency, e.g. 100Hz, 150Hz, ... (or 120Hz, 180Hz, ...).
 """
 
-# Down-sampling
-# -------------
-# When performing experiments where timing is critical, a signal with a high
-# sampling rate is desired. However, having a signal with a much higher sampling
-# rate than necessary needlessly consumes memory and slows down computations
-# operating on the data. To avoid that, you can down-sample your time series.
-#
-# Since down-sampling reduces the timing precision of events, we recommend first
-# extracting epochs and down-sampling the Epochs object::
-#
-#     >>> # Down-sampling to a new sampling frequency of 100 Hz
-#     >>> epochs_downsampled = epochs.resample(100, copy=True)
-#
-# .. figure:: ../../../../_images/sphx_glr_plot_resample_001.png
-#     :target: ../../auto_examples/time_frequency/plot_compute_raw_data_spectrum.html
-#     :scale: 50%
-#     :align: center
-#
-# .. topic:: Examples:
-#
-#     * :ref:`sphx_glr_auto_examples_time_frequency_plot_compute_raw_data_spectrum.py`
-#
-# Bandpass filtering
-# ------------------
-# Bandpass filtering is a classical step in preprocessing; it filters the data
-# with a bandpass filter to select the frequency range of interest::
-#
-#     >>> # bandpass filtering to the range [10, 50] Hz
-#     >>> raw.filter(10, 50)
+import numpy as np
+import mne
+from mne.datasets import sample
+
+data_path = sample.data_path()
+raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+proj_fname = data_path + '/MEG/sample/sample_audvis_eog_proj.fif'
+
+tmin, tmax = 0, 20  # use the first 60s of data
+
+# Setup for reading the raw data
+raw = mne.io.read_raw_fif(raw_fname)
+raw.info['bads'] = ['MEG 2443', 'EEG 053']  # bads + 2 more
+
+# To save memory, crop the raw data before loading data
+raw.crop(tmin, tmax, copy=False).load_data()
+
+fmin, fmax = 2, 300  # look at frequencies between 2 and 300Hz
+n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
+
+# Pick a subset of channels (here for speed reason)
+selection = mne.read_selection('Left-temporal')
+picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
+                       stim=False, exclude='bads', selection=selection)
+
+# Let's first check out all channel types
+raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 
 ###############################################################################
-# Removing power-line noise
-# -------------------------
+# Removing power-line noise with notch filtering
+# ----------------------------------------------
 #
-# Power-line noise is a noise created by the electrical network.
-# It is composed of sharp peaks at 50Hz (or 60Hz depending on your geographical location).
-# Some peaks may also be present at the harmonic frequencies, i.e. the integer multiples of
-# the power-line frequency, e.g. 100Hz, 150Hz, ... (or 120Hz, 180Hz, ...).
+# Removing power-line noise can be done with a Notch filter, directly on the
+# Raw object, specifying an array of frequency to be cut off:
+
+raw.notch_filter(np.arange(60, 241, 60), picks=picks)
+raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
+
+###############################################################################
+# Removing power-line noise with low-pas filtering
+# -------------------------------------------------
 #
-# Removing power-line noise can be done with a Notch filter, directly on the Raw object,
-# specifying an array of frequency to be cut off::
+# If you're only interested in low frequencies, below the peaks of power-line
+# noise you can simply low pass filter the data.
+
+raw.filter(None, 50.)  # low pass filtering below 50 Hz
+raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
+
+###############################################################################
+# High-pass filtering to remove slow drifts
+# -----------------------------------------
 #
-#     >>> raw.notch_filter(np.arange(60, 241, 60), picks=picks)
+# If you're only interested in low frequencies, below the peaks of power-line
+# noise you can simply high pass filter the data.
+
+raw.filter(1., None)  # low pass filtering above 1 Hz
+raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
+
+###############################################################################
+# To do the low-pass and high-pass filtering in one step you can do
+# a so-called *band-pass* filter by running
+
+raw.filter(1., 50.)  # band-pass filtering in the range 1 Hz - 50 Hz
+
+###############################################################################
+# Down-sampling (for performance reasons)
+# ---------------------------------------
 #
-# .. figure:: ../../../../_images/sphx_glr_plot_compute_raw_data_spectrum_002.png
-#     :target: ../../auto_examples/time_frequency/plot_compute_raw_data_spectrum.html
-#     :scale: 50%
-#     :align: center
+# When performing experiments where timing is critical, a signal with a high
+# sampling rate is desired. However, having a signal with a much higher
+# sampling rate than necessary needlessly consumes memory and slows down
+# computations operating on the data. To avoid that, you can down-sample
+# your time series.
 #
-# .. topic:: Examples:
-#
-#     * :ref:`sphx_glr_auto_examples_time_frequency_plot_compute_raw_data_spectrum.py`
-#
-# .. topic:: See also:
-#
-#     * :ref:`sphx_glr_auto_examples_preprocessing_plot_rereference_eeg.py`
-#     * :ref:`sphx_glr_auto_examples_preprocessing_plot_maxwell_filter.py`
-#     * :ref:`sphx_glr_auto_examples_preprocessing_plot_shift_evoked.py`
+# Data resampling can be done with *resample* methods.
+
+raw.resample(100, npad="auto")  # set sampling frequency to 100Hz
+raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
+
+###############################################################################
+# Since down-sampling reduces the timing precision of events, you might want to
+# first extract epochs and down-sampling the Epochs object. You can do this
+# using the func:`mne.Epochs.resample` method.
