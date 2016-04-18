@@ -1,21 +1,18 @@
 """
-=======================
-Maxwell filter raw data
-=======================
+=======================================
+Artifact correction with Maxwell filter
+=======================================
 
-This example shows how to process M/EEG data with Maxwell filtering
-in mne-python.
+This tutorial shows how to clean MEG data with Maxwell filtering.
+
+Maxwell filtering in MNE can be used to suppress sources of external
+intereference and compensate for subject head movements.
+
+See :ref:`maxwell` for more details.
 """
-# Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Mark Wronkiewicz <wronk.mark@gmail.com>
-#
-# License: BSD (3-clause)
 
 import mne
 from mne.preprocessing import maxwell_filter
-
-print(__doc__)
 
 data_path = mne.datasets.sample.data_path()
 
@@ -25,12 +22,14 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 ctc_fname = data_path + '/SSS/ct_sparse_mgh.fif'
 fine_cal_fname = data_path + '/SSS/sss_cal_mgh.dat'
 
+###############################################################################
 # Preprocess with Maxwell filtering
 raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443', 'EEG 053', 'MEG 1032', 'MEG 2313']  # set bads
 # Here we don't use tSSS (set st_duration) because MGH data is very clean
 raw_sss = maxwell_filter(raw, cross_talk=ctc_fname, calibration=fine_cal_fname)
 
+###############################################################################
 # Select events to extract epochs from, pick M/EEG channels, and plot evoked
 tmin, tmax = -0.2, 0.5
 event_id = {'Auditory/Left': 1}

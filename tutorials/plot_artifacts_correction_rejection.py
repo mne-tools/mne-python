@@ -96,7 +96,7 @@ evoked.plot(exclude=[])
 
 ###############################################################################
 # .. note::
-#     Interpolation is a linear operation that be performed also on
+#     Interpolation is a linear operation that can be performed also on
 #     Raw and Epochs objects.
 #
 # For more details on interpolation see the page :ref:`channel_interpolation`.
@@ -129,6 +129,7 @@ evoked.plot(exclude=[])
 
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
+###############################################################################
 # .. note::
 #    The rejection values can be highly data dependent. You should be careful
 #    when adjusting these values. Make sure not too many epochs are rejected
