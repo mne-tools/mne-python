@@ -109,6 +109,9 @@ def test_sensitivity_maps():
     # test corner case for EEG
     stc = sensitivity_map(fwd, projs=[make_eeg_average_ref_proj(fwd['info'])],
                           ch_type='eeg', exclude='bads')
+    # test corner case for projs being passed but no valid ones (#3135)
+    assert_raises(ValueError, sensitivity_map, fwd, projs=None, mode='angle')
+    assert_raises(RuntimeError, sensitivity_map, fwd, projs=[], mode='angle')
     # test volume source space
     fname = op.join(sample_path, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
     fwd = mne.read_forward_solution(fname)

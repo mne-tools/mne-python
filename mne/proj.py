@@ -343,15 +343,18 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         projs = eeg_ave if projs is None else projs + eeg_ave
 
     # Construct the projector
+    residual_types = ['angle', 'remaining', 'dampening']
     if projs is not None:
         proj, ncomp, U = make_projector(projs, fwd['sol']['row_names'],
                                         include_active=True)
         # do projection for most types
-        if mode not in ['angle', 'remaining', 'dampening']:
+        if mode not in residual_types:
             gain = np.dot(proj, gain)
-
+        elif ncomp == 0:
+            raise RuntimeError('No valid projectors found for channel type '
+                               '%s, cannot compute %s' % (ch_type, mode))
     # can only run the last couple methods if there are projectors
-    elif mode in ['angle', 'remaining', 'dampening']:
+    elif mode in residual_types:
         raise ValueError('No projectors used, cannot compute %s' % mode)
 
     n_sensors, n_dipoles = gain.shape
