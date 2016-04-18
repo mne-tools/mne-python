@@ -2308,7 +2308,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
 @verbose
 def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
             plot=True, show=True, verbose=None, outlines='head', layout=None,
-            sensors=True, contours=6, cmap='RdBu_r'):
+            sensors=True, contours=6, cmap=None):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
@@ -2369,8 +2369,9 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         Layout instance specifying sensor positions (does not need to be
         specified for Neuromag data). Or a list of Layout if projections
         are from different sensor types.
-    cmap : matplotlib colormap
-        Colormap.
+    cmap : None | matplotlib colormap
+        Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
+        otherwise to 'RdBu_r'.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
