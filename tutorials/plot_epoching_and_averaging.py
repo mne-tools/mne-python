@@ -1,8 +1,9 @@
 """
 .. _tut_epoching_and_averaging:
 
-Epoching and averaging
-======================
+Epoching and averaging (ERP/ERF)
+================================
+
 """
 import os.path as op
 import numpy as np

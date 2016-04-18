@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-===============
-Do a dipole fit
-===============
+==========================================
+Source localization with single dipole fit
+==========================================
 
 This shows how to fit a dipole using mne-python.
 

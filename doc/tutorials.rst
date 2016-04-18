@@ -2,6 +2,7 @@
 
 Tutorials
 =========
+
 Once you have
 :ref:`Python and MNE-Python up and running <install_python_and_mne_python>`,
 you can use these tutorials to get started processing MEG/EEG.
@@ -42,14 +43,13 @@ For further reading:
 
   .. raw:: html
 
-    <h2>Introduction to MNE data structures</h2>
+    <h2>Introduction to MNE and Python</h2>
  
   .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_creating_data_structures.rst
-    auto_tutorials/plot_info.rst
-    auto_tutorials/plot_raw_objects.rst
+    auto_tutorials/plot_python_intro.rst
+    tutorials/ten_things_about_mne.rst
 
 .. container:: span box
 
@@ -60,10 +60,15 @@ For further reading:
   .. toctree::
     :maxdepth: 1
 
-    tutorials/preprocessing/basic_preprocessing.rst
-    tutorials/preprocessing/data_selection.rst
-    tutorials/preprocessing/artifacts_suppression.rst
-    auto_tutorials/plot_ica_from_raw.rst
+    auto_tutorials/plot_intro_artifacts.rst
+    auto_tutorials/plot_artifacts_detection.rst
+    tutorials/preprocessing/filtering_resampling.rst
+    auto_tutorials/plot_artifacts_correction_filtering.rst
+    auto_tutorials/plot_artifacts_correction_rejection.rst
+    auto_tutorials/plot_artifacts_correction_ica_ssp.rst
+    auto_tutorials/plot_artifacts_correction_maxwell_filtering.rst
+    .. auto_tutorials/plot_ssp_from_raw.rst
+    .. auto_tutorials/plot_ica_from_raw.rst
 
 .. container:: span box
 
@@ -73,35 +78,64 @@ For further reading:
 
   ..   * Time-Frequency analysis with multitapers --TODO
   ..   * Connectivity study with phase-lag index --TODO--
-  ..   * Decoding --TODO--
 
   .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_epochs_objects.rst
-    auto_tutorials/plot_epochs_to_data_frame.rst
     auto_tutorials/plot_epoching_and_averaging.rst
+    auto_tutorials/plot_eeg_erp.rst
+    auto_tutorials/plot_sensors_time_frequency.rst
+    auto_tutorials/plot_sensors_decoding.rst
 
 .. container:: span box
 
   .. raw:: html
 
-    <h2>Source reconstruction</h2>
-
-  .. * data covariance --TODO--
+    <h2>Visualization and Reporting</h2>
 
   .. toctree::
     :maxdepth: 1
 
+    auto_tutorials/plot_visualize_raw.rst
+    auto_tutorials/plot_visualize_epochs.rst
+    auto_tutorials/plot_visualize_evoked.rst
+    tutorials/report.rst
+
+.. container:: span box
+
+  .. raw:: html
+
+    <h2>Manipulating Data Structures and Containers</h2>
+
+  .. toctree::
+    :maxdepth: 1
+
+    auto_tutorials/plot_raw_objects.rst
+    auto_tutorials/plot_epochs_objects.rst
+    auto_tutorials/plot_evoked_objects.rst
+    auto_tutorials/plot_creating_data_structures.rst
+    auto_tutorials/plot_info.rst
+
+.. container:: span box
+
+  .. raw:: html
+
+    <h2>Source-level analysis</h2>
+
+  .. toctree::
+    :maxdepth: 1
+
+    auto_tutorials/plot_forward.rst
     auto_tutorials/plot_compute_covariance.rst
-    auto_tutorials/plot_source_localization_basics.rst
+    auto_tutorials/plot_mne_dspm_source_localization.rst
+    auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_brainstorm_auditory.rst
 
 .. container:: span box
 
   .. raw:: html
 
-    <h2>Sensor-space Analysis</h2>
+    <h2>Sensor-space Univariate Statistics</h2>
 
   .. toctree::
     :maxdepth: 1
@@ -115,7 +149,7 @@ For further reading:
 
   .. raw:: html
 
-    <h2>Source-space Analysis</h2>
+    <h2>Source-space Univariate Statistics</h2>
 
   .. toctree::
     :maxdepth: 1
@@ -129,13 +163,12 @@ For further reading:
 
   .. raw:: html
 
-    <h2>Visualization and Reporting</h2>
+    <h2>Multivariate Statistics - Decoding</h2>
 
   .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_visualize_evoked.rst
-    tutorials/report.rst
+    auto_tutorials/plot_sensors_decoding.rst
 
 .. container:: span box
 
