@@ -82,6 +82,10 @@ plt.show()
 #
 # We now compute time-frequency representations (TFRs) from our Epochs.
 # We'll look at power and intertrial coherence (ITC).
+#
+# To this we'll use the function :func:`mne.time_frequency.tfr_morlet`
+# but you can also use :func:`mne.time_frequency.tfr_multitaper`
+# or :func:`mne.time_frequency.tfr_stockwell`.
 
 freqs = np.arange(6, 30, 3)  # define frequencies of interest
 n_cycles = freqs / 2.  # different number of cycle per frequency
@@ -91,6 +95,12 @@ power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
 ###############################################################################
 # Inspect power
 # -------------
+#
+# .. note::
+#     The generated figures are interactive. In the topo you can click
+#     on an image to visualize the data for one censor.
+#     You can also select a portion in the time-frequency plane to
+#     obtain a topomap for a certain time-frequency region.
 power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
 power.plot([82], baseline=(-0.5, 0), mode='logratio')
 
@@ -114,3 +124,9 @@ itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 #     Baseline correction can be applied to power or done in plots
 #     To illustrate the baseline correction in plots the next line is
 #     commented power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
+
+###############################################################################
+# Exercise
+# --------
+#
+#    - Visualize the itertrial coherence values as topomaps as done with power.
