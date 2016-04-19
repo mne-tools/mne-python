@@ -59,12 +59,12 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
         if surf_ori:
             # use copy here to leave our originals unmodified
             fwd = convert_forward_solution(fwd, surf_ori, copy=True)
-            fwd_py = convert_forward_solution(fwd, surf_ori, copy=True)
+            fwd_py = convert_forward_solution(fwd_py, surf_ori, copy=True)
 
-        for key in ['nchan', 'source_nn', 'source_rr', 'source_ori',
-                    'surf_ori', 'coord_frame', 'nsource']:
-            print(key)
-            assert_allclose(fwd_py[key], fwd[key], rtol=1e-4, atol=1e-7)
+        for key in ('nchan', 'source_rr', 'source_ori',
+                    'surf_ori', 'coord_frame', 'nsource', 'source_nn'):
+            assert_allclose(fwd_py[key], fwd[key], rtol=1e-4, atol=1e-7,
+                            err_msg='surf_ori=%s: %s' % (surf_ori, key))
         assert_allclose(fwd_py['mri_head_t']['trans'],
                         fwd['mri_head_t']['trans'], rtol=1e-5, atol=1e-8)
 
