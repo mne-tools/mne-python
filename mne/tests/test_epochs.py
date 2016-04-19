@@ -815,8 +815,10 @@ def test_evoked_io_from_epochs():
                         picks=picks, baseline=(None, 0), decim=5)
     assert_true(len(w) == 1)
     evoked = epochs.average()
+    evoked.info['proj_name'] = ''  # Test that empty string shortcuts to None.
     evoked.save(op.join(tempdir, 'evoked-ave.fif'))
     evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
+    assert_equal(evoked2.info['proj_name'], None)
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4,
                     atol=1 / evoked.info['sfreq'])
