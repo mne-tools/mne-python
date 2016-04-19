@@ -83,11 +83,14 @@ mne.viz.plot_trans(info, trans, subject=subject, dig=True,
 
 ###############################################################################
 # Compute Source Space
-# --------------------------------
+# --------------------
 #
 # The source space defines the position of the candidate source locations.
 # The following code compute such a cortical source space with
 # an OCT-6 resolution.
+#
+# See :ref:`setting_up_source_space` for details on source space definition
+# and spacing parameter.
 
 src = mne.setup_source_space(subject, spacing='oct6',
                              subjects_dir=subjects_dir,
