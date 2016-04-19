@@ -1,8 +1,8 @@
 """
 .. _tut_raw_objects:
 
-The :class:`Raw <mne.io.RawFIF>` data structure: continuous data
-================================================================
+The :class:`Raw <mne.io.Raw>` data structure: continuous data
+=============================================================
 """
 
 from __future__ import print_function
