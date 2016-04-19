@@ -78,6 +78,7 @@ if __name__ == "__main__":
                     'mne.externals',
                     'mne.externals.h5io',
                     'mne.externals.tempita',
+                    'mne.externals.pacpy',
                     'mne.io', 'mne.io.tests',
                     'mne.io.array', 'mne.io.array.tests',
                     'mne.io.brainvision', 'mne.io.brainvision.tests',
