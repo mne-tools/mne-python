@@ -1,9 +1,9 @@
 """
 
-.. _tut_artifacts_correct_ica_ssp:
+.. _tut_artifacts_correct_ica:
 
-Artifact Correction with ICA and SSP
-====================================
+Artifact Correction with ICA
+============================
 
 ICA finds directions in the feature space
 corresponding to projections with high non-Gaussianity. We thus obtain
@@ -25,7 +25,6 @@ from mne.datasets import sample
 from mne.preprocessing import ICA
 from mne.preprocessing import create_eog_epochs
 
-
 # getting some data ready
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -36,21 +35,26 @@ raw.filter(1, 40, n_jobs=2)  # 1Hz high pass is often helpful for fitting ICA
 picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                            stim=False, exclude='bads')
 
+###############################################################################
 # Before applying artifact correction please learn about your actual artifacts
-#     * :ref:`sphx_glr_auto_tutorials_plot_artifacts_detection.py`
+# by reading :ref:`tut_artifacts_detect`.
 
 ###############################################################################
 # Fit ICA
+# -------
+#
+# ICA parameters:
 
-# ICA parameters
 n_components = 25  # if float, select n_components by explained variance of PCA
 method = 'fastica'  # for comparison with EEGLAB try "extended-infomax" here
 decim = 3  # we need sufficient statistics, not all time points -> save time
 
+###############################################################################
 # Define the ICA object instance
 ica = ICA(n_components=n_components, method=method)
 print(ica)
 
+###############################################################################
 # we avoid fitting ICA on crazy environmental artifacts that would
 # dominate the variance and decomposition
 reject = dict(mag=5e-12, grad=4000e-13)
@@ -110,6 +114,7 @@ ica.exclude.extend(eog_inds)
 
 ##############################################################################
 # What if we don't have an EOG channel?
+# -------------------------------------
 #
 # 1) make a bipolar reference from frontal EEG sensors and use as virtual EOG
 # channel. This can be tricky though as you can only hope that the frontal
@@ -119,8 +124,9 @@ ica.exclude.extend(eog_inds)
 # In MNE-Python option 2 is easily achievable and it might be better,
 # so let's have a look at it.
 
-from mne.preprocessing.ica import corrmap
+from mne.preprocessing.ica import corrmap  # noqa
 
+##############################################################################
 # The idea behind corrmap is that artefact patterns are similar across subjects
 # and can thus be identified by correlating the different patterns resulting
 # from each solution with a template. The procedure is therefore
@@ -130,9 +136,8 @@ from mne.preprocessing.ica import corrmap
 # parts of the recording and then use a user-defined template from the first
 # part for detecting corresponding components in the other parts. The following
 # block of code in addresses this point and should not be copied, ok?
-
-
-# simulating a group of subjects or runs from a subject
+#
+# We'll start by simulating a group of subjects or runs from a subject
 
 start, stop = raw.index_as_time([raw.first_samp, raw.last_samp])
 intervals = np.linspace(start, stop, 4)
@@ -147,33 +152,41 @@ for ii, start in enumerate(intervals):
                            raw, start=start, stop=stop, reject=reject)
         icas.append(this_ica)
 
+##############################################################################
 # Do not copy this at home! You start by reading in a collections of ICA
 # solutions, something like
-
-# ica = [mne.preprocessing.read_ica(fname) for fname in ica_fnames]
+#
+# icas = [mne.preprocessing.read_ica(fname) for fname in ica_fnames]
 
 print(icas)
 
+##############################################################################
 # investiage our reference ICA, here we arbitrarily say it's the first
-
 reference_ica = icas[0]
 reference_ica.plot_components()
+
+##############################################################################
 # with random seed = 42 we see that IC number 10 from run 1 looks like an EOG
 
 reference_ica.plot_sources(eog_average, exclude=[9])
+
+##############################################################################
 # indeed it looks like an EOG, also in the average time course
 
+##############################################################################
 # So our template shall be a tuple like (reference_run_index, component_index):
 template = (0, 9)
 
+##############################################################################
 # now we can do the corrmap
 fig_template, fig_detected = corrmap(icas, template=template, label="blinks",
                                      show=True, threshold=.8, ch_type='mag')
 
+##############################################################################
 # Nice, we have found similar ICs from the other runs!
 # This is even nicer if we have 20 or 100 ICA solutions in a list.
-
+#
 # You can also use SSP for correcting for artifacts. It is a bit simpler,
 # faster but is less precise than ICA. And it requires that you
-# know the event timing of your artifact. See also:
-#     * :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ssp.py`
+# know the event timing of your artifact.
+# See :ref:`tut_artifacts_correct_ssp`.

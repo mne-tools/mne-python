@@ -6,8 +6,7 @@ EEG processing and Event Related Potentials (ERPs)
 
 For a generic introduction to the computation of ERP and ERF
 see :ref:`tut_epoching_and_averaging`. Here we cover the specifics
-of EEG, namely::
-
+of EEG, namely:
     - setting the reference
     - using standard montages :func:`mne.channels.Montage`
 
