@@ -37,8 +37,10 @@ a = [1, 2, 3, 4]
 print('This is the zeroth value in the list: %s'.format(a[0]))
 
 ###############################################################################
-# No need to reinvent the wheel. Scipy and Numpy are battle tested libraries
-# that have a vast variety of functions for your needs. Consult the
+# No need to reinvent the wheel. Scipy and Numpy are battle field tested
+# libraries that have a vast variety of functions for your needs. Consult the
 # documentation and remember, you can always ask the interpreter for help with
-# a question mark.
-# >>> np.arange?
+# a question mark at the end of a function::
+#
+#    >>> import numpy as np
+#    >>> np.arange?
