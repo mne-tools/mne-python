@@ -1,11 +1,14 @@
 """
-======================================================
-Create a forward operator and display sensitivity maps
-======================================================
+================================================
+Display sensitivity maps for EEG and MEG sensors
+================================================
 
 Sensitivity maps can be produced from forward operators that
 indicate how well different sensor types will be able to detect
 neural currents from different regions of the brain.
+
+To get started with forward modeling see ref:`tut_forward`.
+
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -20,21 +23,17 @@ print(__doc__)
 data_path = sample.data_path()
 
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
-src = data_path + '/subjects/sample/bem/sample-oct-6-src.fif'
-bem = data_path + '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
+fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
+
 subjects_dir = data_path + '/subjects'
 
-# Note that forward solutions can also be read with read_forward_solution
-fwd = mne.make_forward_solution(raw_fname, trans, src, bem,
-                                fname=None, meg=True, eeg=True, mindist=5.0,
-                                n_jobs=1, overwrite=True)
-
-# convert to surface orientation for better visualization
-fwd = mne.convert_forward_solution(fwd, surf_ori=True)
+# Read the forward solutions with surface orientation
+fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
 leadfield = fwd['sol']['data']
-
 print("Leadfield size : %d x %d" % leadfield.shape)
+
+###############################################################################
+# Compute sensitivity maps
 
 grad_map = mne.sensitivity_map(fwd, ch_type='grad', mode='fixed')
 mag_map = mne.sensitivity_map(fwd, ch_type='mag', mode='fixed')
