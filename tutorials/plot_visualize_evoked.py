@@ -1,9 +1,9 @@
 """
 .. _tut_viz_evoked:
 
-=======================
-Visualizing Evoked data
-=======================
+=====================
+Visualize Evoked data
+=====================
 """
 import os.path as op
 import numpy as np
