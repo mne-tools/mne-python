@@ -15,10 +15,6 @@ backend, such as:
 
 `%matplotlib qt` or `%matplotlib wx`
 """
-# Author: Eric Larson <larson.eric.d@gmail.com>
-#         Chris Bailey
-#
-# License: BSD (3-clause)
 
 from os import path as op
 import numpy as np
@@ -28,8 +24,6 @@ import mne
 from mne.forward import make_forward_dipole
 from mne.evoked import combine_evoked
 from mne.simulation import simulate_evoked
-
-print(__doc__)
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')

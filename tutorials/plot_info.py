@@ -1,8 +1,8 @@
 """
 .. _tut_info_objects:
 
-The :class:`Info <mne.io.meas_info.Info>` data structure
-========================================================
+The :class:`Info <mne.io.Info>` data structure
+==============================================
 """
 
 from __future__ import print_function
@@ -31,12 +31,15 @@ info = mne.io.read_info(
     op.join(mne.datasets.sample.data_path(), 'MEG', 'sample',
             'sample_audvis_raw.fif'), verbose=False)
 
+###############################################################################
 # List all the fields in the info object
 print('Keys in info dictionary:\n', info.keys())
 
+###############################################################################
 # Obtain the sampling rate of the data
 print(info['sfreq'], 'Hz')
 
+###############################################################################
 # List all information about the first data channel
 print(info['chs'][0])
 
@@ -45,20 +48,26 @@ print(info['chs'][0])
 # -----------------------------
 #
 # There are a number of convenience functions to obtain channel indices, given
-# an :class:`mne.io.meas_info.Info` object.
+# an :class:`mne.io.Info` object.
 
+###############################################################################
 # Get channel indices by name
 channel_indices = mne.pick_channels(info['ch_names'], ['MEG 0312', 'EEG 005'])
 
+###############################################################################
 # Get channel indices by regular expression
 channel_indices = mne.pick_channels_regexp(info['ch_names'], 'MEG *')
 
+###############################################################################
 # Get channel indices by type
 channel_indices = mne.pick_types(info, meg=True)  # MEG only
 channel_indices = mne.pick_types(info, eeg=True)  # EEG only
+
+###############################################################################
 # MEG gradiometers and EEG channels
 channel_indices = mne.pick_types(info, meg='grad', eeg=True)
 
+###############################################################################
 # Get a dictionary of channel indices, grouped by channel type
 channel_indices_by_type = mne.io.pick.channel_indices_by_type(info)
 print('The first three magnetometers:', channel_indices_by_type['mag'][:3])
@@ -71,6 +80,7 @@ print('The first three magnetometers:', channel_indices_by_type['mag'][:3])
 channel_type = mne.io.pick.channel_type(info, 75)
 print('Channel #75 is of type:', channel_type)
 
+###############################################################################
 # Channel types of a collection of channels
 meg_channels = mne.pick_types(info, meg=True)[:10]
 channel_types = [mne.io.pick.channel_type(info, ch) for ch in meg_channels]
