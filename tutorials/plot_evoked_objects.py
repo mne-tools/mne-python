@@ -21,9 +21,9 @@ print(evoked)
 ###############################################################################
 # Notice that the reader function returned a list of evoked instances. This is
 # because you can store multiple categories into a single file. Here we have
-# categories of ``['Left Auditory', 'Right Auditory', 'Left Visual', 'Right
-# Visual']`. We can also use ``condition`` parameter to read in only one
-# category.
+# categories of
+# ``['Left Auditory', 'Right Auditory', 'Left Visual', 'Right Visual']`. We can
+# also use ``condition`` parameter to read in only one category.
 l_aud = mne.read_evokeds(fname, condition='Left Auditory', baseline=(None, 0),
                          proj=True)
 print(l_aud)
@@ -62,9 +62,14 @@ df = l_aud.to_data_frame()
 print('Data from channel {0}:'.format(l_aud.ch_names[10]))
 print(data[10])
 
+###############################################################################
 # If you want to import evoked data from some other system and you have it in a
 # numpy array you can use :class:`mne.EvokedArray` for that. All you need is
 # the data and some info about the evoked data. For more information, see
 # :ref:`tut_creating_data_structures`.
 evoked = mne.EvokedArray(data, l_aud.info, tmin=l_aud.times[0])
 evoked.plot()
+
+###############################################################################
+# To write an evoked dataset to a file, use the :func:`mne.Evoked.save' method.
+# To save multiple categories to a single file, see :func:`mne.write_evokeds`.

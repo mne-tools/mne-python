@@ -53,8 +53,8 @@ left_auditory.plot(spatial_colors=True, gfp=True, picks=picks)
 # Notice the legend on the left. The colors would suggest that there may be two
 # separate sources for the signals. This wasn't obvious from the first figure.
 # Try painting the slopes with left mouse button. It should open a new window
-# with topomaps (scalp plots) of the painted area. There is also a function
-# for drawing topomaps separately.
+# with topomaps (scalp plots) of the average over the painted area. There is
+# also a function for drawing topomaps separately.
 right_auditory.plot_topomap()
 
 ###############################################################################
@@ -93,9 +93,17 @@ right_visual.plot_topomap(times=0.1, axes=ax[3], show=True)
 #
 # We can also combine the two kinds of plots to one. Notice the
 # ``topomap_args`` parameter of :func:`mne.Evoked.plot_joint`. You can pass
-# key-value pairs as a python dictionary that gets passed to the topomaps of
-# the joint plot.
+# key-value pairs as a python dictionary that gets passed as parameters to the
+# topomaps of the joint plot.
 right_auditory.plot_joint()
+
+###############################################################################
+# We can also plot the activations as images. The time runs along the x-axis
+# and the channels along the y-axis. The amplitudes are color coded so that
+# the amplitudes from negative to positive translates to shift from blue to
+# red. White means zero amplitude. You can use the ``cmap`` parameter to define
+# the color map yourself. The accepted values include all matplotlib colormaps.
+left_auditory.plot_image(picks=picks)
 
 ###############################################################################
 # Finally we plot the sensor data as a topographical view. In the simple case
