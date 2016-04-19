@@ -65,7 +65,8 @@ For further reading:
     tutorials/preprocessing/filtering_resampling.rst
     auto_tutorials/plot_artifacts_correction_filtering.rst
     auto_tutorials/plot_artifacts_correction_rejection.rst
-    auto_tutorials/plot_artifacts_correction_ica_ssp.rst
+    auto_tutorials/plot_artifacts_correction_ssp.rst
+    auto_tutorials/plot_artifacts_correction_ica.rst
     auto_tutorials/plot_artifacts_correction_maxwell_filtering.rst
     .. auto_tutorials/plot_ssp_from_raw.rst
     .. auto_tutorials/plot_ica_from_raw.rst
