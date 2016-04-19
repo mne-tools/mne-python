@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from itertools import product
 import os
 import os.path as op
 from subprocess import CalledProcessError
@@ -55,32 +56,41 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
     # check source spaces
     assert_equal(len(fwd['src']), len(fwd_py['src']))
     _compare_source_spaces(fwd['src'], fwd_py['src'], mode='approx')
-    for surf_ori in [False, True]:
-        if surf_ori:
-            # use copy here to leave our originals unmodified
-            fwd = convert_forward_solution(fwd, surf_ori, copy=True)
-            fwd_py = convert_forward_solution(fwd, surf_ori, copy=True)
+    for surf_ori, force_fixed in product([False, True], [False, True]):
+        # use copy here to leave our originals unmodified
+        fwd = convert_forward_solution(fwd, surf_ori, force_fixed,
+                                       copy=True)
+        fwd_py = convert_forward_solution(fwd_py, surf_ori, force_fixed,
+                                          copy=True)
+        check_src = n_src // 3 if force_fixed else n_src
 
-        for key in ['nchan', 'source_nn', 'source_rr', 'source_ori',
-                    'surf_ori', 'coord_frame', 'nsource']:
-            print(key)
-            assert_allclose(fwd_py[key], fwd[key], rtol=1e-4, atol=1e-7)
+        for key in ('nchan', 'source_rr', 'source_ori',
+                    'surf_ori', 'coord_frame', 'nsource'):
+            assert_allclose(fwd_py[key], fwd[key], rtol=1e-4, atol=1e-7,
+                            err_msg=key)
+        # In surf_ori=True only Z matters for source_nn
+        if surf_ori and not force_fixed:
+            ori_sl = slice(2, None, 3)
+        else:
+            ori_sl = slice(None)
+        assert_allclose(fwd_py['source_nn'][ori_sl], fwd['source_nn'][ori_sl],
+                        rtol=1e-4, atol=1e-6)
         assert_allclose(fwd_py['mri_head_t']['trans'],
                         fwd['mri_head_t']['trans'], rtol=1e-5, atol=1e-8)
 
-        assert_equal(fwd_py['sol']['data'].shape, (n_sensors, n_src))
+        assert_equal(fwd_py['sol']['data'].shape, (n_sensors, check_src))
         assert_equal(len(fwd['sol']['row_names']), n_sensors)
         assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
 
         # check MEG
-        assert_allclose(fwd['sol']['data'][:306],
-                        fwd_py['sol']['data'][:306],
+        assert_allclose(fwd['sol']['data'][:306, ori_sl],
+                        fwd_py['sol']['data'][:306, ori_sl],
                         rtol=meg_rtol, atol=meg_atol,
                         err_msg='MEG mismatch')
         # check EEG
         if fwd['sol']['data'].shape[0] > 306:
-            assert_allclose(fwd['sol']['data'][306:],
-                            fwd_py['sol']['data'][306:],
+            assert_allclose(fwd['sol']['data'][306:, ori_sl],
+                            fwd_py['sol']['data'][306:, ori_sl],
                             rtol=eeg_rtol, atol=eeg_atol,
                             err_msg='EEG mismatch')
 

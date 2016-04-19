@@ -17,7 +17,7 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess, slow_test,
                        requires_mne, requires_version, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.source_space import _get_mgz_header
+from mne.source_space import _get_mri_header, _get_mgz_header
 from mne.externals.six.moves import zip
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
                               _compare_source_spaces)
@@ -47,9 +47,8 @@ rng = np.random.RandomState(0)
 @requires_nibabel(vox2ras_tkr=True)
 def test_mgz_header():
     """Test MGZ header reading"""
-    import nibabel as nib
     header = _get_mgz_header(fname_mri)
-    mri_hdr = nib.load(fname_mri).get_header()
+    mri_hdr = _get_mri_header(fname_mri)
     assert_allclose(mri_hdr.get_data_shape(), header['dims'])
     assert_allclose(mri_hdr.get_vox2ras_tkr(), header['vox2ras_tkr'])
     assert_allclose(mri_hdr.get_ras2vox(), header['ras2vox'])
@@ -353,9 +352,9 @@ def test_setup_source_space():
         src_new = setup_source_space('sample', temp_name, spacing='oct6',
                                      subjects_dir=subjects_dir,
                                      overwrite=True, add_dist=False)
-    _compare_source_spaces(src, src_new, mode='approx')
+    _compare_source_spaces(src, src_new, mode='approx', nearest=False)
     src_new = read_source_spaces(temp_name)
-    _compare_source_spaces(src, src_new, mode='approx')
+    _compare_source_spaces(src, src_new, mode='approx', nearest=False)
 
     # all source points - no file writing
     src_new = setup_source_space('sample', None, spacing='all',
