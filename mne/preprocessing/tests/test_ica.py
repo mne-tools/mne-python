@@ -54,7 +54,7 @@ except:
 def test_ica_full_data_recovery():
     """Test recovery of full data when no source is rejected"""
     # Most basic recovery
-    raw = Raw(raw_fname).crop(0.5, stop, False)
+    raw = Raw(raw_fname).crop(0.5, stop)
     raw.load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -113,7 +113,7 @@ def test_ica_full_data_recovery():
 def test_ica_rank_reduction():
     """Test recovery ICA rank reduction"""
     # Most basic recovery
-    raw = Raw(raw_fname).crop(0.5, stop, False)
+    raw = Raw(raw_fname).crop(0.5, stop)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
@@ -141,7 +141,7 @@ def test_ica_rank_reduction():
 @requires_sklearn
 def test_ica_reset():
     """Test ICA resetting"""
-    raw = Raw(raw_fname).crop(0.5, stop, False)
+    raw = Raw(raw_fname).crop(0.5, stop)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
@@ -169,7 +169,7 @@ def test_ica_reset():
 @requires_sklearn
 def test_ica_core():
     """Test ICA on raw and epochs"""
-    raw = Raw(raw_fname).crop(1.5, stop, False)
+    raw = Raw(raw_fname).crop(1.5, stop)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -274,7 +274,7 @@ def test_ica_additional():
     """Test additional ICA functionality"""
     tempdir = _TempDir()
     stop2 = 500
-    raw = Raw(raw_fname).crop(1.5, stop, False)
+    raw = Raw(raw_fname).crop(1.5, stop)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -542,7 +542,7 @@ def test_ica_additional():
 @requires_sklearn
 def test_run_ica():
     """Test run_ica function"""
-    raw = Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = Raw(raw_fname, preload=True).crop(1.5, stop)
     params = []
     params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
@@ -557,7 +557,7 @@ def test_run_ica():
 @requires_sklearn
 def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection"""
-    raw = Raw(raw_fname).crop(1.5, stop, False)
+    raw = Raw(raw_fname).crop(1.5, stop)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -575,7 +575,7 @@ def test_ica_reject_buffer():
 @requires_sklearn
 def test_ica_twice():
     """Test running ICA twice"""
-    raw = Raw(raw_fname).crop(1.5, stop, False)
+    raw = Raw(raw_fname).crop(1.5, stop)
     raw.load_data()
     picks = pick_types(raw.info, meg='grad', exclude='bads')
     n_components = 0.9

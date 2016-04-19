@@ -609,7 +609,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         inst : instance of AverageTFR
             The modified instance.
         """
-        inst = _check_copy_dep(inst, copy)
+        inst = _check_copy_dep(self, copy)
         mask = _time_mask(inst.times, tmin, tmax, sfreq=self.info['sfreq'])
         inst.times = inst.times[mask]
         inst.data = inst.data[:, :, mask]

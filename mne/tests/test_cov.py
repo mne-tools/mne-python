@@ -122,8 +122,8 @@ def test_cov_estimation_on_raw():
 
         # test with a subset of channels
         picks = pick_channels(raw.ch_names, include=raw.ch_names[:5])
-        raw_pick = raw.pick_channels([raw.ch_names[pick] for pick in picks],
-                                     copy=True)
+        raw_pick = raw.copy().pick_channels(
+            [raw.ch_names[pick] for pick in picks])
         raw_pick.info.normalize_proj()
         cov = compute_raw_covariance(raw_pick, picks=picks, tstep=None,
                                      method=method)

@@ -164,7 +164,8 @@ def test_calculate_chpi_positions():
         assert_true('0/5 good' in line)
 
     # half the rate cuts off cHPI coils
-    raw.resample(300., npad='auto')
+    with warnings.catch_warnings(record=True):  # uint cast suggestion
+        raw.resample(300., npad='auto')
     assert_raises_regex(RuntimeError, 'above the',
                         _calculate_chpi_positions, raw)
 
@@ -192,7 +193,8 @@ def test_chpi_subtraction():
     #           -o test_move_anon_ds2_raw.fif
     # it can strip out some values of info, which we emulate here:
     raw = Raw(chpi_fif_fname, allow_maxshield='yes')
-    raw = raw.crop(0, 1).load_data().resample(600., npad='auto')
+    with warnings.catch_warnings(record=True):  # uint cast suggestion
+        raw = raw.crop(0, 1).load_data().resample(600., npad='auto')
     raw.info['buffer_size_sec'] = np.float64(2.)
     raw.info['lowpass'] = 200.
     del raw.info['maxshield']
