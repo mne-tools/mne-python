@@ -68,17 +68,12 @@ For further reading:
     auto_tutorials/plot_artifacts_correction_ssp.rst
     auto_tutorials/plot_artifacts_correction_ica.rst
     auto_tutorials/plot_artifacts_correction_maxwell_filtering.rst
-    .. auto_tutorials/plot_ssp_from_raw.rst
-    .. auto_tutorials/plot_ica_from_raw.rst
 
 .. container:: span box
 
   .. raw:: html
 
     <h2>Sensor-level analysis</h2>
-
-  ..   * Time-Frequency analysis with multitapers --TODO
-  ..   * Connectivity study with phase-lag index --TODO--
 
   .. toctree::
     :maxdepth: 1
