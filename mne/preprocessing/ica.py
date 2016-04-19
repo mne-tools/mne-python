@@ -2405,6 +2405,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
 
     all_maps = [_get_ica_map(ica) for ica in icas]
 
+    # check if template is an index to one IC in one ICA object, or an array
     if len(template) == 2:
         target = all_maps[template[0]][template[1]]
         is_subject = True
@@ -2417,13 +2418,13 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
 
     template_fig, labelled_ics = None, None
     if plot is True:
-        if is_subject:
+        if is_subject:  # plotting from an ICA object
             ttl = 'Template from subj. {0}'.format(str(template[0]))
             template_fig = icas[template[0]].plot_components(
                 picks=template[1], ch_type=ch_type, title=ttl,
                 outlines=outlines, cmap=cmap, contours=contours, layout=layout,
                 show=show)
-        else:
+        else:  # plotting an array
             template_fig = _plot_corrmap([template], [0], [0], ch_type,
                                          icas[0].copy(), "Template",
                                          outlines=outlines, cmap=cmap,
