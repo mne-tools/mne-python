@@ -12,7 +12,8 @@ import mne
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
 raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'))
 events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
-epochs = mne.Epochs(raw, events, [1, 2])
+picks = mne.pick_types(raw.info, meg='grad')
+epochs = mne.Epochs(raw, events, [1, 2], picks=picks)
 
 ###############################################################################
 # This tutorial focuses on visualization of epoched data. All of the functions
@@ -33,7 +34,19 @@ epochs.plot(block=True)
 #
 # Since we did no artifact correction or rejection, there are epochs
 # contaminated with blinks and saccades. For instance, epoch number 9 (see
-# numbering at the bottom) seems to be contaminated by a blink. This epoch can
-# be marked for rejection by clicking on top of the browser window. The epoch
-# should turn red when you click it. This means that it will be dropped as the
-# window is closed.
+# numbering at the bottom) seems to be contaminated by a blink (scroll to the
+# bottom to view the EOG channel). This epoch can be marked for rejection by
+# clicking on top of the browser window. The epoch should turn red when you
+# click it. This means that it will be dropped as the browser window is closed.
+# You should check out `help` at the lower left corner of the window for more
+# information about the interactive features.
+#
+# To plot individual channels as an image, where you see all the epochs at one
+# glance, you can use function :func:`mne.Epochs.plot_image`. It shows the
+# amplitude of the signal over all the epochs plus an average of the
+# activation.
+epochs.plot_image(97)
+
+# You also have functions for plotting channelwise information arranged into a
+# shape of the channel array,
+epochs.plot_topo_image(vmin=-450, vmax=450)
