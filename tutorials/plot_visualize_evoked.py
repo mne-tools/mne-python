@@ -112,3 +112,28 @@ left_auditory.plot_image(picks=picks)
 left_auditory.plot_topo()
 colors = 'yellow', 'green', 'red', 'blue'
 mne.viz.plot_evoked_topo(evoked, color=colors)
+
+###############################################################################
+# Visualizing field lines in 3D
+# -----------------------------
+#
+# We now compute the field maps to project MEG and EEG data to MEG helmet
+# and scalp surface.
+#
+# To do this we'll need coregistration information. See
+# :ref:`tut_forward` for more details.
+#
+# Here we just illustrate usage.
+
+subjects_dir = data_path + '/subjects'
+trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+
+maps = mne.make_field_map(left_auditory, trans=trans_fname, subject='sample',
+                          subjects_dir=subjects_dir, n_jobs=1)
+
+# explore several points in time
+field_map = left_auditory.plot_field(maps, time=.1)
+
+###############################################################################
+# .. note::
+#       If trans_fname is set to None then only MEG estimates can be visualized
