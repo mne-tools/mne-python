@@ -823,7 +823,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
 
     # Check that we have everything we need
     if nchan is None:
-        raise ValueError('Number of channels in not defined')
+        raise ValueError('Number of channels is not defined')
 
     if sfreq is None:
         raise ValueError('Sampling frequency is not defined')
