@@ -20,7 +20,7 @@ from mne import Epochs, read_events, pick_types
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
-from mne.preprocessing.ica import get_score_funcs, corrmap
+from mne.preprocessing.ica import get_score_funcs, corrmap, _get_ica_map
 from mne.io import Raw, Info
 from mne.tests.common import assert_naming
 from mne.utils import (catch_logging, _TempDir, requires_sklearn, slow_test,
@@ -313,11 +313,16 @@ def test_ica_additional():
 
     # test corrmap
     ica2 = ica.copy()
+    ica3 = ica.copy()
     corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks', plot=True,
             ch_type="mag")
     corrmap([ica, ica2], (0, 0), threshold=2, plot=False, show=False)
     assert_true(ica.labels_["blinks"] == ica2.labels_["blinks"])
     assert_true(0 in ica.labels_["blinks"])
+    template = _get_ica_map(ica)[0]
+    corrmap([ica, ica3], template, threshold='auto', label='blinks', plot=True,
+            ch_type="mag")
+    assert_true(ica2.labels_["blinks"] == ica3.labels_["blinks"])
     plt.close('all')
 
     # test warnings on bad filenames

@@ -2265,11 +2265,14 @@ def _find_max_corrs(all_maps, target, threshold):
 
 
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
-                  layout, cmap, contours):
+                  layout, cmap, contours, template=True):
     """Customized ica.plot_components for corrmap"""
-    title = 'Detected components'
-    if label is not None:
-        title += ' of type ' + label
+    if not template:
+        title = 'Detected components'
+        if label is not None:
+            title += ' of type ' + label
+    else:
+        title = "Supplied template"
 
     picks = list(range(len(data)))
 
@@ -2299,8 +2302,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     if merge_grads:
         from ..channels.layout import _merge_grad_data
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
-        ttl = 'Subj. {0}, IC {1}'.format(subject, idx)
-        ax.set_title(ttl, fontsize=12)
+        if template:
+            ttl = 'Subj. {0}, IC {1}'.format(subject, idx)
+            ax.set_title(ttl, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
         plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
@@ -2318,9 +2322,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
 
 
 @verbose
-def corrmap(icas, template, threshold="auto", label=None,
-            ch_type="eeg", plot=True, show=True, verbose=None, outlines='head',
-            layout=None, sensors=True, contours=6, cmap='RdBu_r'):
+def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
+            plot=True, show=True, verbose=None, outlines='head', layout=None,
+            sensors=True, contours=6, cmap=None):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
@@ -2347,10 +2351,13 @@ def corrmap(icas, template, threshold="auto", label=None,
     ----------
     icas : list of mne.preprocessing.ICA
         A list of fitted ICA objects.
-    template : tuple
-        A tuple with two elements (int, int) representing the list indices of
-        the set from which the template should be chosen, and the template.
-        E.g., if template=(1, 0), the first IC of the 2nd ICA object is used.
+    template : tuple | np.ndarray, shape (n_components,)
+        Either a tuple with two elements (int, int) representing the list
+        indices of the set from which the template should be chosen, and the
+        template. E.g., if template=(1, 0), the first IC of the 2nd ICA object
+        is used.
+        Or a numpy array whose size corresponds to each IC map from the
+        supplied maps, in which case this map is chosen as the template.
     threshold : "auto" | list of float | float
         Correlation threshold for identifying ICs
         If "auto", search for the best map by trying all correlations between
@@ -2364,8 +2371,9 @@ def corrmap(icas, template, threshold="auto", label=None,
         Defaults to "auto".
     label : None | str
         If not None, categorised ICs are stored in a dictionary "labels_" under
-        the given name. Preexisting entries will be appended to
-        (excluding repeats), not overwritten. If None, a dry run is performed.
+        the given name. Preexisting entries will be appended to (excluding
+        repeats), not overwritten. If None, a dry run is performed and
+        the supplied ICs are not changed.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
             The channel type to plot. Defaults to 'eeg'.
     plot : bool
@@ -2377,8 +2385,9 @@ def corrmap(icas, template, threshold="auto", label=None,
         Layout instance specifying sensor positions (does not need to be
         specified for Neuromag data). Or a list of Layout if projections
         are from different sensor types.
-    cmap : matplotlib colormap
-        Colormap.
+    cmap : None | matplotlib colormap
+        Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
+        otherwise to 'RdBu_r'.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
@@ -2400,7 +2409,7 @@ def corrmap(icas, template, threshold="auto", label=None,
     Returns
     -------
     template_fig : fig
-        Figure showing the mean template.
+        Figure showing the template.
     labelled_ics : fig
         Figure showing the labelled ICs in all ICA decompositions.
     """
@@ -2412,20 +2421,37 @@ def corrmap(icas, template, threshold="auto", label=None,
 
     all_maps = [_get_ica_map(ica) for ica in icas]
 
-    target = all_maps[template[0]][template[1]]
+    # check if template is an index to one IC in one ICA object, or an array
+    if len(template) == 2:
+        target = all_maps[template[0]][template[1]]
+        is_subject = True
+    elif template.ndim == 1 and len(template) == all_maps[0].shape[1]:
+        target = template
+        is_subject = False
+    else:
+        raise ValueError("`template` must be a length-2 tuple or an array the "
+                         "size of the ICA maps.")
 
     template_fig, labelled_ics = None, None
     if plot is True:
-        ttl = 'Template from subj. {0}'.format(str(template[0]))
-        template_fig = icas[template[0]].plot_components(
-            picks=template[1], ch_type=ch_type, title=ttl, outlines=outlines,
-            cmap=cmap, contours=contours, layout=layout, show=show)
+        if is_subject:  # plotting from an ICA object
+            ttl = 'Template from subj. {0}'.format(str(template[0]))
+            template_fig = icas[template[0]].plot_components(
+                picks=template[1], ch_type=ch_type, title=ttl,
+                outlines=outlines, cmap=cmap, contours=contours, layout=layout,
+                show=show)
+        else:  # plotting an array
+            template_fig = _plot_corrmap([template], [0], [0], ch_type,
+                                         icas[0].copy(), "Template",
+                                         outlines=outlines, cmap=cmap,
+                                         contours=contours, layout=layout,
+                                         show=show, template=True)
         template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
     # first run: use user-selected map
     if isinstance(threshold, (int, float)):
-        if len(all_maps) == 0 or len(target) == 0:
+        if len(all_maps) == 0:
             logger.info('No component detected using find_outliers.'
                         ' Consider using threshold="auto"')
             return icas
