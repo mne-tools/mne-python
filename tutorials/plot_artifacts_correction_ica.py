@@ -148,8 +148,8 @@ for ii, start in enumerate(intervals):
         stop = intervals[ii + 1]
         print('fitting ICA from {} to {} seconds'.format(start, stop))
         this_ica = ICA(n_components=n_components, method=method,
-                       random_state=seed).fit(
-                           raw, start=start, stop=stop, reject=reject)
+                       random_state=seed).fit(raw, start=start, stop=stop,
+                                              reject=reject)
         icas.append(this_ica)
 
 ##############################################################################
