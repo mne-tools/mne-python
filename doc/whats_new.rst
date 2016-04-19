@@ -109,6 +109,8 @@ BUG
 
     - Fix bug in colormap selection in :func:`mne.Evoked.plot_projs_topomap` by `Jaakko Leppakangas`_
 
+    - Fix bug in source normal adjustment that occurred when 1) patch information is available (e.g., when distances have been calculated) and 2) points are excluded from the source space (by inner skull distance) by `Eric Larson`_
+
 API
 ~~~
 

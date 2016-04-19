@@ -62,9 +62,13 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
             fwd_py = convert_forward_solution(fwd_py, surf_ori, copy=True)
 
         for key in ('nchan', 'source_rr', 'source_ori',
-                    'surf_ori', 'coord_frame', 'nsource', 'source_nn'):
+                    'surf_ori', 'coord_frame', 'nsource'):
             assert_allclose(fwd_py[key], fwd[key], rtol=1e-4, atol=1e-7,
-                            err_msg='surf_ori=%s: %s' % (surf_ori, key))
+                            err_msg=key)
+        # In surf_ori=True only Z matters for source_nn
+        ori_sl = slice(2, None, 3) if surf_ori else slice(None)
+        assert_allclose(fwd_py['source_nn'][ori_sl], fwd['source_nn'][ori_sl],
+                        rtol=1e-4, atol=1e-6)
         assert_allclose(fwd_py['mri_head_t']['trans'],
                         fwd['mri_head_t']['trans'], rtol=1e-5, atol=1e-8)
 
@@ -73,14 +77,14 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
         assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
 
         # check MEG
-        assert_allclose(fwd['sol']['data'][:306],
-                        fwd_py['sol']['data'][:306],
+        assert_allclose(fwd['sol']['data'][:306, ori_sl],
+                        fwd_py['sol']['data'][:306, ori_sl],
                         rtol=meg_rtol, atol=meg_atol,
                         err_msg='MEG mismatch')
         # check EEG
         if fwd['sol']['data'].shape[0] > 306:
-            assert_allclose(fwd['sol']['data'][306:],
-                            fwd_py['sol']['data'][306:],
+            assert_allclose(fwd['sol']['data'][306:, ori_sl],
+                            fwd_py['sol']['data'][306:, ori_sl],
                             rtol=eeg_rtol, atol=eeg_atol,
                             err_msg='EEG mismatch')
 

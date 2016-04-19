@@ -1127,9 +1127,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
     if use_nibabel is True and mode == 'freesurfer':
         use_nibabel = False
     if use_nibabel:
-        import nibabel as nib
-        img = nib.load(path)
-        hdr = img.get_header()
+        hdr = _get_mri_header(path)
         # read the MRI_VOXEL to RAS transform
         n_orig = hdr.get_vox2ras()
         # read the MRI_VOXEL to MRI transform
@@ -1809,6 +1807,16 @@ def _vol_vertex(width, height, jj, kk, pp):
     return jj + width * kk + pp * (width * height)
 
 
+def _get_mri_header(fname):
+    """Get MRI header using nibabel"""
+    import nibabel as nib
+    img = nib.load(fname)
+    try:
+        return img.header
+    except AttributeError:  # old nibabel
+        return img.get_header()
+
+
 def _get_mgz_header(fname):
     """Adapted from nibabel to quickly extract header info"""
     if not fname.endswith('.mgz'):
@@ -2030,6 +2038,9 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
             extras += [limit]
             logger.info('%d source space point%s omitted because of the '
                         '%6.1f-mm distance limit.' % tuple(extras))
+        # Adjust the patch inds as well if necessary
+        if s.get('patch_inds') is not None:
+            s['patch_inds'] = s['patch_inds'][~outside]
     logger.info('Thank you for waiting.')
 
 
@@ -2486,7 +2497,8 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
     return data_idx, from_vertices
 
 
-def _compare_source_spaces(src0, src1, mode='exact', dist_tol=1.5e-3):
+def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
+                           dist_tol=1.5e-3):
     """Compare two source spaces
 
     Note: this function is also used by forward/tests/test_make_forward.py
@@ -2525,27 +2537,29 @@ def _compare_source_spaces(src0, src1, mode='exact', dist_tol=1.5e-3):
         for name in ['seg_name']:
             if name in s0 or name in s1:
                 assert_equal(s0[name], s1[name], name)
-        if mode == 'exact':
-            for name in ['inuse', 'vertno', 'use_tris']:
-                assert_array_equal(s0[name], s1[name], err_msg=name)
-            # these fields will exist if patch info was added, these are
-            # not tested in mode == 'approx'
-            for name in ['nearest', 'nearest_dist']:
+        # these fields will exist if patch info was added
+        if nearest:
+            for name in ['nearest', 'nearest_dist', 'patch_inds']:
                 if s0[name] is None:
                     assert_true(s1[name] is None, name)
                 else:
                     assert_array_equal(s0[name], s1[name])
+            for name in ['pinfo']:
+                if s0[name] is None:
+                    assert_true(s1[name] is None, name)
+                else:
+                    assert_true(len(s0[name]) == len(s1[name]), name)
+                    for p1, p2 in zip(s0[name], s1[name]):
+                        assert_true(all(p1 == p2), name)
+        if mode == 'exact':
+            for name in ['inuse', 'vertno', 'use_tris']:
+                assert_array_equal(s0[name], s1[name], err_msg=name)
             for name in ['dist_limit']:
                 assert_true(s0[name] == s1[name], name)
             for name in ['dist']:
                 if s0[name] is not None:
                     assert_equal(s1[name].shape, s0[name].shape)
                     assert_true(len((s0['dist'] - s1['dist']).data) == 0)
-            for name in ['pinfo']:
-                if s0[name] is not None:
-                    assert_true(len(s0[name]) == len(s1[name]))
-                    for p1, p2 in zip(s0[name], s1[name]):
-                        assert_true(all(p1 == p2))
         else:  # 'approx' in mode:
             # deal with vertno, inuse, and use_tris carefully
             assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0],
