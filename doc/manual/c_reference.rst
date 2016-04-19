@@ -90,7 +90,8 @@ Software components
     |                            | see :ref:`BABCCEHF`                        |
     +----------------------------+--------------------------------------------+
     | `mne_setup_source_space`_  | A convenience script to create source space|
-    |                            | description file, see :ref:`CIHCHDAE`.     |
+    |                            | description file, see                      |
+    |                            | :ref:`setting_up_source_space`.            |
     +----------------------------+--------------------------------------------+
     | `mne_show_environment`_    | Show information about the production      |
     |                            | environment of a file.                     |
@@ -1810,7 +1811,7 @@ mne_inverse_operator
 
     Use an adaptive loose orientation constraint. This option can be
     only employed if the source spaces included in the forward solution
-    have the patch information computed, see :ref:`CIHCHDAE`.
+    have the patch information computed, see :ref:`setting_up_source_space`.
 
 ``--fwd <name>``
 
@@ -1954,7 +1955,7 @@ mne_inverse_operator
     statistics for the source space. Since this computation is time consuming,
     it is recommended that the patch statistics are precomputed and
     the source space file containing the patch information is employed
-    already when the forward solution is computed, see :ref:`CIHCHDAE` and :ref:`BABCHEJD`.
+    already when the forward solution is computed, see :ref:`setting_up_source_space` and :ref:`BABCHEJD`.
     For technical details of the patch information, please consult :ref:`CBBDBHDI`. This option is considered experimental at
     the moment.
 

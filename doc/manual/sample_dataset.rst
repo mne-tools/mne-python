@@ -144,7 +144,7 @@ The source space with a 5-mm grid spacing is set up by saying:
 ``mne_setup_source_space --ico -6``
 
 This command sets up the source-space related files in directory ``subjects/sample/bem`` as
-described in :ref:`CIHCHDAE`.
+described in :ref:`setting_up_source_space`.
 
 .. _CHDJDGBD:
 

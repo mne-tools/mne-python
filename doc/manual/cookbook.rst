@@ -175,7 +175,7 @@ The first processing stage is the creation of various surface
 reconstructions with FreeSurfer. The recommended FreeSurfer workflow
 is summarized on the `FreeSurfer wiki pages <https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction>`_.
 
-.. _CIHCHDAE:
+.. _setting_up_source_space:
 
 Setting up the source space
 ###########################

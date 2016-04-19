@@ -285,7 +285,7 @@ Cortical patch statistics
 =========================
 
 If the ``--cps`` option was used in source space
-creation (see :ref:`CIHCHDAE`) or if mne_add_patch_info described
+creation (see :ref:`setting_up_source_space`) or if mne_add_patch_info described
 in :ref:`mne_add_patch_info` was run manually the source space file
 will contain for each vertex of the cortical surface the information
 about the source space point closest to it as well as the distance
