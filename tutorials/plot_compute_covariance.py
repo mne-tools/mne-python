@@ -55,7 +55,7 @@ noise_cov_baseline.plot(epochs.info)
 
 ###############################################################################
 # How should I regularize the covariance matrix?
-# ---------------------------------------------
+# ----------------------------------------------
 #
 # The estimated covariance can be numerically
 # unstable and tends to induce correlations between estimated source amplitudes
