@@ -1,6 +1,6 @@
 import os.path as op
 
-from nose.tools import assert_true, assert_equal
+from nose.tools import assert_true, assert_equal, assert_raises
 
 from mne import read_selection
 from mne.io import read_raw_fif
@@ -24,7 +24,7 @@ def test_read_selection():
     for i, name in enumerate(sel_names):
         sel = read_selection(name)
         assert_true(ch_names[i] in sel)
-        sel_info = read_selection(name, spacing=raw.info)
+        sel_info = read_selection(name, info=raw.info)
         assert_equal(sel, sel_info)
 
     # test some combinations
@@ -42,9 +42,9 @@ def test_read_selection():
     ch_names_new = [ch.replace(' ', '') for ch in ch_names]
     raw_new = read_raw_fif(raw_new_fname)
     for i, name in enumerate(sel_names):
-        sel = read_selection(name, spacing='new')
+        sel = read_selection(name, info=raw_new.info)
         assert_true(ch_names_new[i] in sel)
-        sel_info = read_selection(name, spacing=raw_new.info)
-        assert_equal(sel, sel_info)
+
+    assert_raises(TypeError, read_selection, name, info='foo')
 
 run_tests_if_main()

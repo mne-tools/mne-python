@@ -9,11 +9,10 @@ from os import path
 from .io.meas_info import Info
 from . import pick_types
 from .utils import logger, verbose
-from .externals.six import string_types
 
 
 @verbose
-def read_selection(name, fname=None, spacing='old', verbose=None):
+def read_selection(name, fname=None, info=None, verbose=None):
     """Read channel selection from file
 
     By default, the selections used in mne_browse_raw are supported*.
@@ -45,10 +44,10 @@ def read_selection(name, fname=None, spacing='old', verbose=None):
         Name of the selection. If is a list, the selections are combined.
     fname : str
         Filename of the selection file (if None, built-in selections are used).
-    spacing : str or instance of Info
-        The spacing of channel names to return. Can be "old" for "MEG 0111"
-        or "new" for "MEG0111", or an instance of Info to infer from the
-        MEG channel names in info.
+    info : instance of Info
+        Measurement info file, which will be used to determine the spacing
+        of channel names to return, e.g. ``"MEG 0111"`` for old Neuromag
+        systems and "MEG0111" for new ones.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -61,13 +60,16 @@ def read_selection(name, fname=None, spacing='old', verbose=None):
     # convert name to list of string
     if not isinstance(name, (list, tuple)):
         name = [name]
-    if isinstance(spacing, string_types):
-        if spacing not in ('old', 'new'):
-            raise ValueError('spacing must be "old", "new", or an instance '
-                             'of Info')
-    elif isinstance(spacing, Info):
-        picks = pick_types(spacing, meg=True, exclude=())
-        spacing = 'old' if ' ' in spacing['ch_names'][picks[0]] else 'new'
+    if isinstance(info, Info):
+        picks = pick_types(info, meg=True, exclude=())
+        if len(picks) > 0 and ' ' not in info['ch_names'][picks[0]]:
+            spacing = 'new'
+        else:
+            spacing = 'old'
+    elif info is not None:
+        raise TypeError('info must be an instance of Info or None')
+    else:  # info is None
+        spacing = 'old'
 
     # use built-in selections by default
     if fname is None:
