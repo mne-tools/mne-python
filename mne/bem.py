@@ -1065,7 +1065,6 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
             surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
             cmd = ['mne_convert_surface', '--surf', surf_ws_out, '--mghmri',
                    T1_mgz, '--surfout', s, "--replacegeom"]
-            print(' '.join(cmd))
             run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
 
             # Create symbolic links
