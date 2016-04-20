@@ -16,7 +16,8 @@ from mne.preprocessing import compute_proj_ecg, compute_proj_eog
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = mne.io.read_raw_fif(raw_fname, preload=False)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw.pick_types(meg=True, ecg=True, eog=True, stim=True)
 
 ##############################################################################
 # Compute SSP projections
