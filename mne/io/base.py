@@ -443,9 +443,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def _check_bad_segment(self, start, stop, picks,
                            reject_by_annotation=False):
-        """Function for checking the data segment. If the slice is good,
-        returns the data in desired range. If rejected based on
-        annotation, returns description of the bad segment.
+        """Function for checking if data segment is bad.
+
+        If the slice is good, returns the data in desired range.
+        If rejected based on annotation, returns description of the
+        bad segment as a string.
 
         Parameters
         ----------

@@ -537,6 +537,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def _is_good_epoch(self, data, verbose=None):
         """Determine if epoch is good"""
+        if isinstance(data, string_types):
+            return False, [data]
         if data is None:
             return False, ['NO_DATA']
         n_times = len(self.times)
@@ -559,8 +561,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Note: operates inplace
         """
-        if epoch is None:
-            return None
+        if (epoch is None) or isinstance(epoch, string_types):
+            return epoch
 
         # Detrend
         if self.detrend is not None:
@@ -1286,8 +1288,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _project_epoch(self, epoch):
         """Helper to process a raw epoch based on the delayed param"""
         # whenever requested, the first epoch is being projected.
-        if epoch is None:  # can happen if t < 0
-            return None
+        if (epoch is None) or isinstance(epoch, string_types):
+            # can happen if t < 0 or reject based on annotations
+            return epoch
         proj = self._do_delayed_proj or self.proj
         if self._projector is not None and proj is True:
             epoch = np.dot(self._projector, epoch)
@@ -1351,14 +1354,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                         epoch = self._data[idx]
                 else:  # from disk
                     epoch_noproj = self._get_epoch_from_raw(idx)
-                    if epoch_noproj is None:  # Dropped due to bad segment
-                        continue
                     epoch_noproj = self._detrend_offset_decim(epoch_noproj)
                     epoch = self._project_epoch(epoch_noproj)
+
                 epoch_out = epoch_noproj if self._do_delayed_proj else epoch
-                is_good, offenders = self._is_good_epoch(epoch)
+                is_good, offending_reason = self._is_good_epoch(epoch)
                 if not is_good:
-                    self.drop_log[sel] += offenders
+                    self.drop_log[sel] += offending_reason
                     continue
                 good_idx.append(idx)
 
@@ -2028,7 +2030,14 @@ class Epochs(_BaseEpochs):
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
-        """Load one epoch from disk"""
+        """Load one epoch from disk
+
+        Returns
+        -------
+        data : array | str | None
+            If string it's details on rejection reason.
+            If None it means no data.
+        """
         if self._raw is None:
             # This should never happen, as raw=None only if preload=True
             raise ValueError('An error has occurred, no valid raw file found.'
@@ -2042,12 +2051,7 @@ class Epochs(_BaseEpochs):
         stop = start + len(self._raw_times)
         data = self._raw._check_bad_segment(start, stop, self.picks,
                                             self.reject_by_annotation)
-        if isinstance(data, string_types):
-            logger.info('   Rejecting epoch based on bad segment: %s' % data)
-            self.drop_log[self.selection[idx]].append(data)
-            return None
-        else:
-            return data
+        return data
 
 
 class EpochsArray(_BaseEpochs):
