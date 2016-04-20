@@ -431,6 +431,8 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                 dev_head_t=info['dev_head_t'], mri_file=trans, mri_id=mri_id,
                 meas_file=info_extra, meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'], mri_head_t=mri_head_t)
+    info._update_redundant()
+    info._check_consistency()
     logger.info('')
 
     megcoils, compcoils, megnames, meg_info = [], [], [], []
