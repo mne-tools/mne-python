@@ -1063,7 +1063,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
 def _prepare_write_tfr(tfr, condition):
     """Aux function"""
     return (condition, dict(times=tfr.times, freqs=tfr.freqs,
-                            data=tfr.data, info=tfr.info.to_dict(),
+                            data=tfr.data, info=tfr.info,
                             nave=tfr.nave, comment=tfr.comment,
                             method=tfr.method))
 
