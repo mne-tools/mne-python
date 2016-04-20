@@ -23,7 +23,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 proj_fname = data_path + '/MEG/sample/sample_audvis_eog_proj.fif'
 
-tmin, tmax = 0, 20  # use the first 60s of data
+tmin, tmax = 0, 20  # use the first 20s of data
 
 # Setup for reading the raw data (save memory by cropping the raw data
 # before loading it)
