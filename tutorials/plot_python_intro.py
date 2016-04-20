@@ -14,7 +14,7 @@ Introduction to Python
 #
 # * `SciPy lectures <http://scipy-lectures.github.io>`_
 # * `Learn X in Y minutes: Python <https://learnxinyminutes.com/docs/python/>`_
-# * `NumPy for MATLAB users <https://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_
+# * `NumPy for MATLAB users <https://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_  # noqa
 #
 # We highly recommend watching the Scipy videos and reading through these
 # sites to get a sense of how scientific computing is done in Python.
