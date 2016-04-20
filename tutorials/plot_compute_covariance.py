@@ -66,7 +66,8 @@ noise_cov_baseline.plot(epochs.info)
 # appropriate regularization.
 # In MNE-Python, regularization is done using advanced regularization methods
 # described in [1]_. For this the 'auto' option can be used. With this
-# option cross-validation will be used to learn the optimal regularization::
+# option cross-validation will be used to learn the optimal regularization:
+
 cov = mne.compute_covariance(epochs, tmax=0., method='auto')
 
 ###############################################################################
@@ -81,7 +82,8 @@ cov = mne.compute_covariance(epochs, tmax=0., method='auto')
 # sample.
 # Based on the same reasoning, the expected value for the global field power
 # (GFP) is 1 (calculation of the GFP should take into account the true degrees
-# of freedom, e.g. ``ddof=3`` with 2 active SSP vectors)::
+# of freedom, e.g. ``ddof=3`` with 2 active SSP vectors):
+
 evoked = epochs.average()
 evoked.plot_white(cov)
 
@@ -104,7 +106,8 @@ evoked.plot_white(cov)
 # introductory materials can be found `here <https://goo.gl/ElWrxe>`_.
 #
 # For expert use cases or debugging the alternative estimators can also be
-# compared::
+# compared:
+
 covs = mne.compute_covariance(epochs, tmax=0., method=('empirical', 'shrunk'),
                               return_estimators=True)
 evoked = epochs.average()
