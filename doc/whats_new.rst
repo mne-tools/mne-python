@@ -123,8 +123,6 @@ API
 
     - Deprecated function :func:`mne.time_frequency.multitaper_psd` and replaced by :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
-    - The `'ch_names'` and `'nchan'` fields of the :class:`mne.io.Info` class are now read-only and are automatically updated to accommodate changes in the `'chs'` field, by `Marijn van Vliet`_
-
     - The ``y_pred`` attribute in :func:`mne.decoding.GeneralizationAcrossTime` and :func:`mne.decoding.TimeDecoding` is now a numpy array, by `Jean-Remi King`_
 
     - The :func:`mne.bem.fit_sphere_to_headshape` function now default to ``dig_kinds='auto'`` which will use extra digitization points, falling back to extra plus eeg digitization points if there not enough extra points are available.
