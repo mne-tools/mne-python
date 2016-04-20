@@ -1307,13 +1307,15 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
     def __init__(self, picks=None, cv=5, clf=None, times=None,
                  predict_method='predict', predict_mode='cross-validation',
-                 scorer=None, n_jobs=1):
+                 scorer=None, score_mode='mean-across-folds', n_jobs=1):
         super(TimeDecoding, self).__init__(picks=picks, cv=cv, clf=clf,
                                            train_times=times,
                                            test_times='diagonal',
                                            predict_method=predict_method,
                                            predict_mode=predict_mode,
-                                           scorer=scorer, n_jobs=n_jobs)
+                                           scorer=scorer,
+                                           score_mode=score_mode,
+                                           n_jobs=n_jobs)
         self._clean_times()
 
     def __repr__(self):
