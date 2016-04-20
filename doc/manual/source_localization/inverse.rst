@@ -2,9 +2,9 @@
 
 .. _ch_mne:
 
-=====================
-The current estimates
-=====================
+==================================
+The minimum-norm current estimates
+==================================
 
 .. contents:: Contents
    :local:
@@ -13,12 +13,17 @@ The current estimates
 Overview
 ########
 
-This Chapter describes the computation of the minimum-norm
-estimates. This is accomplished with two programs: *mne_inverse_operator* and *mne_make_movie*.
-The chapter starts with a mathematical description of the method,
-followed by description of the two software modules. The interactive
-program for inspecting data and inverse solutions, mne_analyze ,
-is covered in :ref:`ch_interactive_analysis`.
+This page describes the mathematical concepts and the
+computation of the minimum-norm estimates.
+Using the UNIX commands this is accomplished with two programs:
+:ref:`mne_inverse_operator` and :ref:`mne_make_movie` or in Python
+using :func:`mne.minimum_norm.make_inverse_operator`
+and the ``apply`` functions. The use of these functions is
+presented in the tutorial :ref:`tut_inverse_mne_dspm`.
+
+The page starts with a mathematical description of the method.
+The interactive program for inspecting data and inverse solutions,
+:ref:`mne_analyze`, is covered in :ref:`ch_interactive_analysis`.
 
 .. _CBBDJFBJ:
 
@@ -124,7 +129,14 @@ such that :math:`\text{trace}(\tilde{G} R \tilde{G}^T) / \text{trace}(I) = 1`. W
 can approximate :math:`\lambda^2 \sim 1/SNR`, where SNR is
 the (power) signal-to-noise ratio of the whitened data.
 
-.. note:: The definition of the signal to noise-ratio/ :math:`\lambda^2` relationship    given above works nicely for the whitened forward solution. In the    un-whitened case scaling with the trace ratio :math:`\text{trace}(GRG^T) / \text{trace}(C)` does not make sense, since the diagonal elements summed have, in general,    different units of measure. For example, the MEG data are expressed    in T or T/m whereas the unit of EEG is Volts.
+.. note::
+    The definition of the signal to noise-ratio/ :math:`\lambda^2` relationship
+    given above works nicely for the whitened forward solution. In the
+    un-whitened case scaling with the trace ratio
+    :math:`\text{trace}(GRG^T) / \text{trace}(C)`
+    does not make sense, since the diagonal elements summed have, in general,
+    different units of measure. For example, the MEG data are expressed
+    in T or T/m whereas the unit of EEG is Volts.
 
 .. _CBBHEGAB:
 
