@@ -134,9 +134,9 @@ raw.plot(events=eog_events)  # To see the annotated segments.
 # As the data is epoched, all the epochs overlapping with segments whose
 # description starts with 'bad' are rejected by default. To turn rejection off,
 # use keyword argument ``reject_by_annotation=False`` when constructing
-# class:`mne.Epochs`. When working with neuromag data, the ``first_samp``
+# :class:`mne.Epochs`. When working with neuromag data, the ``first_samp``
 # offset of raw acquisition is also taken into account the same way as with
-# event lists. For more see class:`mne.Epochs` and :class:`mne.Annotations`.
+# event lists. For more see :class:`mne.Epochs` and :class:`mne.Annotations`.
 
 ###############################################################################
 # .. _rejecting_bad_epochs:
