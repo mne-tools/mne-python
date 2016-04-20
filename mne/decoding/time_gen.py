@@ -943,12 +943,11 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         Determines how the scorer is estimated:
 
             ``per-fold`` : returns the score obtained in each fold.
-            ``mean-across-folds`` : returns the average scores obtained in each
-                fold separately. This method is the most conventional.
+            ``mean-across-folds`` : returns the average of the per-fold scores.
             ``no-cv`` : returns score estimated across across all y_pred
                 independently of the cross-validation. This method is faster
-                but less conventional, and is not valid for estimating metrics
-                related to fold errors.
+                than ``mean-across-folds`` but less conventional, use at your
+                own risk.
 
         Defaults to 'mean-across-folds'.
     n_jobs : int
@@ -1255,12 +1254,11 @@ class TimeDecoding(_GeneralizationAcrossTime):
         Determines how the scorer is estimated:
 
             ``per-fold`` : returns the score obtained in each fold.
-            ``mean-across-folds`` : returns the average scores obtained in each
-                fold separately. This method is the most conventional.
+            ``mean-across-folds`` : returns the average of the per-fold scores.
             ``no-cv`` : returns score estimated across across all y_pred
                 independently of the cross-validation. This method is faster
-                but less conventional, and is not valid for estimating metrics
-                related to fold errors.
+                than ``mean-across-folds`` but less conventional, use at your
+                own risk.
 
         Defaults to 'mean-across-folds'.
     n_jobs : int
