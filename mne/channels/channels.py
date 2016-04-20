@@ -703,6 +703,7 @@ def rename_channels(info, mapping):
     info['bads'] = bads
     for ch, ch_name in zip(info['chs'], ch_names):
         ch['ch_name'] = ch_name
+    info._update_redundant()
     info._check_consistency()
 
 

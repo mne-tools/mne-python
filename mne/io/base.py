@@ -2339,8 +2339,8 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False):
 
             # raise error if positions are missing
             if missing_positions:
-                err = ("The following positions are missing from the montage "
-                       "definitions: %s. If those channels lack positions "
-                       "because they are EOG channels use the eog parameter."
-                       % str(missing_positions))
-                raise KeyError(err)
+                raise KeyError(
+                    "The following positions are missing from the montage "
+                    "definitions: %s. If those channels lack positions "
+                    "because they are EOG channels use the eog parameter."
+                    % str(missing_positions))

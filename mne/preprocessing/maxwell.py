@@ -655,6 +655,7 @@ def _copy_preload_add_channels(raw, add_channels):
                  cal=1e-4, coil_type=FIFF.FWD_COIL_UNKNOWN, loc=np.zeros(12))
             for ii in range(len(kinds))]
         raw.info['chs'].extend(chpi_chs)
+        raw.info._update_redundant()
         raw.info._check_consistency()
         assert raw._data.shape == (raw.info['nchan'], len(raw.times))
         # Return the pos picks

@@ -267,6 +267,7 @@ class RawEGI(_BaseRaw):
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
         info['chs'] = chs
+        info._update_redundant()
         _check_update_montage(info, montage)
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],

@@ -143,44 +143,22 @@ def test_info():
     assert_equal(info['nchan'], nchan)
     assert_equal(list(info['ch_names']), ch_names)
 
-    def _assignment_to_nchan(info):
-        info['nchan'] = 42
-    assert_raises(ValueError, _assignment_to_nchan, info)
-
-    def _assignment_to_ch_names(info):
-        info['ch_names'] = ['foo', 'bar']
-    assert_raises(ValueError, _assignment_to_ch_names, info)
-
-    def _del_nchan(info):
-        del info['nchan']
-    assert_raises(ValueError, _del_nchan, info)
-
-    def _del_ch_names(info):
-        del info['ch_names']
-    assert_raises(ValueError, _del_ch_names, info)
-
     # Deleting of regular fields should work
     info['foo'] = 'bar'
     del info['foo']
 
-    # Passing read only fields to the constructor
-    assert_raises(ValueError, Info, nchan=42)
-    assert_raises(ValueError, Info, ch_names=['foo', 'bar'])
-
-    # Test automatic updating of read-only fields
+    # Test updating of fields
     del info['chs'][-1]
+    info._update_redundant()
     assert_equal(info['nchan'], nchan - 1)
     assert_equal(list(info['ch_names']), ch_names[:-1])
 
     info['chs'][0]['ch_name'] = 'foo'
+    info._update_redundant()
     assert_equal(info['ch_names'][0], 'foo')
 
     # Test casting to and from a dict
     info_dict = dict(info)
-    info2 = Info(info_dict)
-    assert_equal(info, info2)
-
-    info_dict = info.to_dict()
     info2 = Info(info_dict)
     assert_equal(info, info2)
 
@@ -260,8 +238,8 @@ def test_make_dig_points():
                   dig_points[:, :2])
 
 
-def test_channel_name_list():
-    """Test the _ChannelNamesList object"""
+def test_redundant():
+    """Test some of the redundant properties of info"""
     # Indexing
     info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
     assert_equal(info['ch_names'][0], 'a')
@@ -278,29 +256,6 @@ def test_channel_name_list():
 
     # List should be read-only
     info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
-
-    def _test_assignment():
-        info['ch_names'][0] = 'foo'
-    assert_raises(RuntimeError, _test_assignment)
-
-    def _test_concatenation():
-        info['ch_names'] += ['foo']
-    assert_raises(RuntimeError, _test_concatenation)
-
-    def _test_appending():
-        info['ch_names'].append('foo')
-    assert_raises(RuntimeError, _test_appending)
-
-    def _test_removal():
-        del info['ch_names'][0]
-    assert_raises(AttributeError, _test_removal)
-
-    # Concatenation
-    assert_equal(info['ch_names'] + ['d'], ['a', 'b', 'c', 'd'])
-
-    # Representation
-    assert_equal(repr(info['ch_names']),
-                 "<ChannelNameList | 3 channels | a, b, c>")
 
 
 def test_merge_info():

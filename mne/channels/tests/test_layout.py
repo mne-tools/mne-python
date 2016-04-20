@@ -45,45 +45,25 @@ fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 fname_kit_157 = op.join(op.dirname(__file__), '..', '..',  'io', 'kit',
                         'tests', 'data', 'test.sqd')
 
-test_info = _empty_info(1000)
-test_info.update({
-    'chs': [{'cal': 1,
-             'ch_name': 'ICA 001',
-             'coil_type': 0,
-             'coord_Frame': 0,
-             'kind': 502,
-             'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
-                             dtype=np.float32),
-             'logno': 1,
-             'range': 1.0,
-             'scanno': 1,
-             'unit': -1,
-             'unit_mul': 0},
-            {'cal': 1,
-             'ch_name': 'ICA 002',
-             'coil_type': 0,
-             'coord_Frame': 0,
-             'kind': 502,
-             'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
-                             dtype=np.float32),
-             'logno': 2,
-             'range': 1.0,
-             'scanno': 2,
-             'unit': -1,
-             'unit_mul': 0},
-            {'cal': 0.002142000012099743,
-             'ch_name': 'EOG 061',
-             'coil_type': 1,
-             'coord_frame': 0,
-             'kind': 202,
-             'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
-                             dtype=np.float32),
-             'logno': 61,
-             'range': 1.0,
-             'scanno': 376,
-             'unit': 107,
-             'unit_mul': 0}],
-})
+
+def _get_test_info():
+    """Helper to make test info"""
+    test_info = _empty_info(1000)
+    loc = np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
+                   dtype=np.float32)
+    test_info['chs'] = [
+        {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_Frame': 0,
+         'kind': 502, 'loc': loc.copy(), 'logno': 1, 'range': 1.0, 'scanno': 1,
+         'unit': -1, 'unit_mul': 0},
+        {'cal': 1, 'ch_name': 'ICA 002', 'coil_type': 0, 'coord_Frame': 0,
+         'kind': 502, 'loc': loc.copy(), 'logno': 2, 'range': 1.0, 'scanno': 2,
+         'unit': -1, 'unit_mul': 0},
+        {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,
+         'coord_frame': 0, 'kind': 202, 'loc': loc.copy(), 'logno': 61,
+         'range': 1.0, 'scanno': 376, 'unit': 107, 'unit_mul': 0}]
+    test_info._update_redundant()
+    test_info._check_consistency()
+    return test_info
 
 
 def test_io_layout_lout():
@@ -198,7 +178,7 @@ def test_make_grid_layout():
     tmp_name = 'bar'
     lout_name = 'test_ica'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
-    layout = make_grid_layout(test_info)
+    layout = make_grid_layout(_get_test_info())
     layout.save(op.join(tempdir, tmp_name + '.lout'))
     lout_new = read_layout(kind=tmp_name, path=tempdir)
     assert_array_equal(lout_new.kind, tmp_name)
@@ -206,7 +186,7 @@ def test_make_grid_layout():
     assert_array_equal(lout_orig.names, lout_new.names)
 
     # Test creating grid layout with specified number of columns
-    layout = make_grid_layout(test_info, n_col=2)
+    layout = make_grid_layout(_get_test_info(), n_col=2)
     # Vertical positions should be equal
     assert_true(layout.pos[0, 1] == layout.pos[1, 1])
     # Horizontal positions should be unequal
@@ -218,7 +198,7 @@ def test_make_grid_layout():
 def test_find_layout():
     """Test finding layout"""
     import matplotlib.pyplot as plt
-    assert_raises(ValueError, find_layout, test_info, ch_type='meep')
+    assert_raises(ValueError, find_layout, _get_test_info(), ch_type='meep')
 
     sample_info = Raw(fif_fname).info
     grads = pick_types(sample_info, meg='grad')

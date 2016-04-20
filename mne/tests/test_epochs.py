@@ -1792,6 +1792,7 @@ def test_add_channels_epochs():
                   [epochs_meg, epochs_eeg[:2]])
 
     epochs_meg.info['chs'].pop(0)
+    epochs_meg.info._update_redundant()
     assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg, epochs_eeg])
 
@@ -1807,6 +1808,7 @@ def test_add_channels_epochs():
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
+    epochs_meg2.info._update_redundant()
     assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 

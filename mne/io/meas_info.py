@@ -4,11 +4,9 @@
 #
 # License: BSD (3-clause)
 
-import collections
 from copy import deepcopy
 from datetime import datetime as dt
 import os.path as op
-import itertools
 
 import numpy as np
 from scipy import linalg
@@ -25,7 +23,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..utils import logger, verbose, object_hash, warn
+from ..utils import logger, verbose, warn
 from ..fixes import Counter
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
@@ -49,76 +47,7 @@ def _summarize_str(st):
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
-class _ChannelNameList(collections.Sequence):
-    """A read-only list, used to provide convenient access to channel names.
-
-    This list is linked to an Info object. Any changes to the `chs` field of
-    this object are automatically reflected by this list.
-
-    Parameters
-    ----------
-    info : instance of Info
-        The Info structure containing the channel list.
-    """
-    def __init__(self, info):
-        self._channels = info['chs']
-
-    def __getitem__(self, index):
-        """Retrieve the name of the channel with the given index"""
-        if isinstance(index, slice):
-            return [ch['ch_name'] for ch in self._channels[index]]
-        else:
-            return self._channels[index]['ch_name']
-
-    def __len__(self):
-        """Length of the list"""
-        return len(self._channels)
-
-    def __eq__(self, other):
-        """Test for equality"""
-        if isinstance(other, _ChannelNameList):
-            return list(self) == list(other)
-        elif isinstance(other, list):
-            return list(self) == other
-        else:
-            raise ValueError('Cannot compare _ChannelNameList and %s'
-                             % type(other))
-
-    def __ne__(self, other):
-        """Test for non-equality"""
-        return not self.__eq__(other)
-
-    def __repr__(self):
-        """String representation"""
-        if len(self) < 10:
-            channels = ', '.join(self)
-        else:
-            channels = ', '.join(self[:5]) + ' ... ' + ', '.join(self[-5:])
-
-        return '<ChannelNameList | %d channels | %s>' % (len(self), channels)
-
-    def __add__(self, other):
-        """Return a list containing the channels names in both lists"""
-        return list(self) + list(other)
-
-    # Raise descriptive error when the user tries to modify this list.
-    _read_only_error = ("This list of channel names is read-only. It is "
-                        "automatically computed by the info object. "
-                        "Instead of modifying this list, make your "
-                        "modifications to the list of channels in the info "
-                        "object (info['chs']).")
-
-    def __setitem__(self, index, value):
-        raise RuntimeError(_ChannelNameList._read_only_error)
-
-    def __iadd__(self, value):
-        raise RuntimeError(_ChannelNameList._read_only_error)
-
-    def append(self, value):
-        raise RuntimeError(_ChannelNameList._read_only_error)
-
-
-class Info(collections.MutableMapping):
+class Info(dict):
     """Information about the recording.
 
     This data structure behaves like a dictionary. It contains all meta-data
@@ -221,23 +150,6 @@ class Info(collections.MutableMapping):
         processing logs inside of a raw file.
         See: :ref:`faq` for details.
     """
-    # These fields are read only and are computed from other fields
-    _read_only_fields = {
-        'nchan': lambda info: len(info['chs']),
-        'ch_names': lambda info: _ChannelNameList(info),
-    }
-
-    def __init__(self, *args, **kwargs):
-        self._store = dict()
-
-        # When initializing from a dict, silently ignore read-only fields.
-        # This is to keep backwards compatibility.
-        if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], dict):
-            for key, value in args[0].items():
-                if key not in Info._read_only_fields:
-                    self._store[key] = value
-        else:
-            self.update(dict(*args, **kwargs))
 
     def copy(self):
         """Copy the instance
@@ -247,28 +159,7 @@ class Info(collections.MutableMapping):
         info : instance of Info
             The copied info.
         """
-        return Info(self._store)
-
-    def to_dict(self):
-        """Obtain a version of this info object in the form of a plain Python
-        dict
-
-        While the Info object behaves like a dict, it is a subclass of
-        MutableMapping. Use this function to cast it to an actual dict. Be
-        aware that the read-only fields will become writable and will no longer
-        auto-update.
-
-        Notes
-        -----
-        - To cast the plain dict back to an instance of Info, use:
-          `mne.io.Info(info_dict)`
-        - Always use a propert instance of Info when calling MNE-Python
-          functions.
-        """
-        info_dict = dict(self)
-        # Convert non-standard fields
-        info_dict['ch_names'] = list(info_dict['ch_names'])
-        return info_dict
+        return Info(super(Info, self).copy())
 
     def normalize_proj(self):
         """(Re-)Normalize projection vectors after subselection
@@ -285,61 +176,6 @@ class Info(collections.MutableMapping):
         adequately capture the original signal of interest.
         """
         _normalize_proj(self)
-
-    def __getitem__(self, key):
-        """Retrieve a value from the data store
-
-        Parameters
-        ----------
-        key : str
-            The key associated with the value to retrieve
-
-        Returns
-        -------
-        value : object
-            The value associated with the key
-        """
-        try:
-            return Info._read_only_fields[key](self)
-        except KeyError:
-            return self._store[key]
-
-    def __setitem__(self, key, value):
-        """Store a value in the data store
-
-        Parameters
-        ----------
-        key : str
-            The key associated with the value for later retrieval
-        value : object
-            The value associated with the key
-        """
-        if key in Info._read_only_fields:
-            raise ValueError('The field %s is read only.' % key)
-        else:
-            self._store[key] = value
-
-    def __delitem__(self, key):
-        """Remove a value from the store
-
-        Parameters
-        ----------
-        key : str
-            The key associated with the value to remove
-        """
-        if key in Info._read_only_fields:
-            raise ValueError('The field %s is read only.' % key)
-        else:
-            del self._store[key]
-
-    # Make the read-only fields show up in info.items()
-    def __iter__(self):
-        return itertools.chain(self._store.keys(),
-                               Info._read_only_fields.keys())
-
-    # Read-only fields add to the length of the info object
-    def __len__(self):
-        return len(self._store) + len(Info._read_only_fields)
 
     def __repr__(self):
         """Summarize info instead of printing all"""
@@ -401,6 +237,14 @@ class Info(collections.MutableMapping):
         if len(missing) > 0:
             raise RuntimeError('bad channel(s) %s marked do not exist in info'
                                % (missing,))
+
+        chs = [ch['ch_name'] for ch in self['chs']]
+        if len(self['ch_names']) != len(chs) or any(
+                ch_1 != ch_2 for ch_1, ch_2 in zip(self['ch_names'], chs)) or \
+                self['nchan'] != len(chs):
+            raise RuntimeError('info channel name inconsistency detected, '
+                               'please notify mne-python developers')
+
         # make sure we have the proper datatypes
         for key in ('sfreq', 'highpass', 'lowpass'):
             if self.get(key) is not None:
@@ -414,8 +258,10 @@ class Info(collections.MutableMapping):
             raise RuntimeError('Channel names are not unique, found '
                                'duplicates for: %s' % dups)
 
-    def __hash__(self):
-        return object_hash(self._store)
+    def _update_redundant(self):
+        """Update the redundant entries"""
+        self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
+        self['nchan'] = len(self['chs'])
 
 
 def read_fiducials(fname):
@@ -1091,6 +937,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     #   All kinds of auxliary stuff
     info['dig'] = dig
     info['bads'] = bads
+    info._update_redundant()
     if clean_bads:
         info['bads'] = [b for b in bads if b in info['ch_names']]
     info['projs'] = projs
@@ -1100,7 +947,6 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['custom_ref_applied'] = custom_ref_applied
     info['xplotter_layout'] = xplotter_layout
     info._check_consistency()
-
     return info, meas
 
 
@@ -1465,6 +1311,7 @@ def _merge_info(infos, verbose=None):
     info['chs'] = []
     for this_info in infos:
         info['chs'].extend(this_info['chs'])
+    info._update_redundant()
     duplicates = set([ch for ch in info['ch_names']
                       if info['ch_names'].count(ch) > 1])
     if len(duplicates) > 0:
@@ -1565,6 +1412,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
+    info._update_redundant()
     if montage is not None:
         from ..channels.montage import (Montage, DigMontage, _set_montage,
                                         read_montage)
@@ -1580,6 +1428,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
                 raise TypeError('Montage must be an instance of Montage, '
                                 'DigMontage, a list of montages, or filepath, '
                                 'not %s.' % type(montage))
+    info._check_consistency()
     return info
 
 
@@ -1616,5 +1465,6 @@ def _empty_info(sfreq):
     info['highpass'] = 0.
     info['sfreq'] = float(sfreq)
     info['lowpass'] = info['sfreq'] / 2.
+    info._update_redundant()
     info._check_consistency()
     return info

@@ -38,7 +38,6 @@ class RawArray(_BaseRaw):
         if not isinstance(info, Info):
             raise TypeError('info must be an instance of Info, got %s'
                             % type(info))
-        info._check_consistency()  # make sure it's valid
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 

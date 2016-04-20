@@ -227,6 +227,8 @@ def test_inverse_operator_channel_ordering():
     randomiser.shuffle(new_order)
     evoked.data = evoked.data[new_order]
     evoked.info['chs'] = [evoked.info['chs'][n] for n in new_order]
+    evoked.info._update_redundant()
+    evoked.info._check_consistency()
 
     cov_ch_reorder = [c for c in evoked.info['ch_names']
                       if (c in noise_cov.ch_names)]

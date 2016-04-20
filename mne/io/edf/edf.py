@@ -464,7 +464,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
     if stim_channel is not None and not (annot and annotmap) and \
             tal_channel is None and n_samps[stim_channel] != int(max_samp):
         warn('Interpolating stim channel. Events may jitter.')
-
+    info._update_redundant()
     return info, edf_info
 
 

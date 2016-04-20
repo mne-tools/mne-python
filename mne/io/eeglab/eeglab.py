@@ -102,7 +102,6 @@ def _get_info(eeg, montage, eog=()):
         if ch['ch_name'] in eog or idx in eog:
             ch['coil_type'] = FIFF.FIFFV_COIL_NONE
             ch['kind'] = FIFF.FIFFV_EOG_CH
-
     return info
 
 
@@ -308,6 +307,7 @@ class RawEEGLAB(_BaseRaw):
                          loc=np.zeros(12), unit=FIFF.FIFF_UNIT_NONE,
                          unit_mul=0., coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
         info['chs'].append(stim_chan)
+        info._update_redundant()
 
         events = _read_eeglab_events(eeg, event_id=event_id,
                                      event_id_func=event_id_func)

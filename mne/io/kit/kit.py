@@ -208,6 +208,7 @@ class RawKIT(_BaseRaw):
             chan_info['loc'] = np.zeros(12)
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
             info['chs'].append(chan_info)
+            info._update_redundant()
         if self.preload:
             err = "Can't change stim channel after preloading data"
             raise NotImplementedError(err)
@@ -734,7 +735,7 @@ def get_kit_info(rawfile):
             chan_info['loc'] = np.zeros(12)
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             info['chs'].append(chan_info)
-
+    info._update_redundant()
     return info, sqd
 
 
