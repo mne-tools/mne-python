@@ -7,8 +7,8 @@ Artifact Correction with ICA
 
 ICA finds directions in the feature space
 corresponding to projections with high non-Gaussianity. We thus obtain
-a decomposition into independent components, and the artifact’s contribution is
-localized in only a small number of components.
+a decomposition into independent components, and the artifact's contribution
+is localized in only a small number of components.
 These components have to be correctly identified and removed.
 
 If EOG or ECG recordings are available, they can be used in ICA to
@@ -143,6 +143,7 @@ start, stop = raw.index_as_time([raw.first_samp, raw.last_samp])
 intervals = np.linspace(start, stop, 4)
 icas = list()
 seed = 42  # for reproducible results
+raw.pick_types(meg=True, eeg=False)  # take only MEG channels
 for ii, start in enumerate(intervals):
     if ii + 1 < len(intervals):
         stop = intervals[ii + 1]
