@@ -21,11 +21,11 @@ Introduction to Python
 #
 # Here are few bulletin points to familiarise yourself with python:
 #
-# Everything is dynamically typed. No need to initialize simple data
-# structures or variables.
+# Everything is dynamically typed. No need to declare simple data
+# structures or variables separately.
 a = 3
 print(type(a))
-b = [1, 2, 3]
+b = [1, 2.5, 'This is a string']
 print(type(b))
 c = 'Hello world!'
 print(type(c))
@@ -34,7 +34,7 @@ print(type(c))
 # If you come from a background of matlab, remember that indexing in python
 # starts from zero:
 a = [1, 2, 3, 4]
-print('This is the zeroth value in the list: %s'.format(a[0]))
+print('This is the zeroth value in the list: {}'.format(a[0]))
 
 ###############################################################################
 # No need to reinvent the wheel. Scipy and Numpy are battle field tested

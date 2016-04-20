@@ -14,7 +14,7 @@ from matplotlib import pyplot as plt
 ###############################################################################
 # Continuous data is stored in objects of type :class:`Raw <mne.io.RawFIF>`.
 # The core data structure is simply a 2D numpy array (channels × samples,
-# `._data`) combined with an :class:`Info <mne.io.meas_info.Info>` object
+# `._data`) combined with an :class:`Info <mne.io.Info>` object
 # (`.info`) (:ref:`tut_info_objects`.
 #
 # The most common way to load continuous data is from a .fif file. For more
@@ -38,7 +38,7 @@ print('channels x samples:', raw._data.shape)
 
 ###############################################################################
 # Information about the channels contained in the :class:`Raw <mne.io.RawFIF>`
-# object is contained in the :class:`Info <mne.io.meas_info.Info>` attribute.
+# object is contained in the :class:`Info <mne.io.Info>` attribute.
 # This is essentially a dictionary with a number of relevant fields (see
 # :ref:`tut_info_objects`).
 
@@ -121,7 +121,7 @@ print('Number of channels reduced from', raw.info['nchan'], 'to',
 # :class:`Raw <mne.io.RawFIF>` objects can be concatenated in time by using the
 # :func:`append <mne.io.RawFIF.append>` function. For this to work, they must
 # have the same number of channels and their :class:`Info
-# <mne.io.meas_info.Info>` structures should be compatible.
+# <mne.io.Info>` structures should be compatible.
 
 # Create multiple :class:`Raw <mne.io.RawFIF>` objects
 raw1 = raw.copy().crop(0, 10)

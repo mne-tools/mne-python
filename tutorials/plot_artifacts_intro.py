@@ -50,10 +50,11 @@ own preferences.
 
 
 For how to detect artifacts visually or automatically
-see ref:`tut_artifacts_detect`.
+see :ref:`tut_artifacts_detect`.
 
-For how to correct artifacts by rejection see ref:`tut_artifacts_reject`.
+For how to correct artifacts by rejection see :ref:`tut_artifacts_reject`.
 To discover how to correct certain artifacts by filtering see
-ref:`tut_artifacts_filtering` and to learn how to correct artifacts
-with subspace methods like SSP and ICA see ref:`tut_artifacts_ica_ssp`
+:ref:`tut_artifacts_filter` and to learn how to correct artifacts
+with subspace methods like SSP and ICA see :ref:`tut_artifacts_correct_ssp`
+and :ref:`tut_artifacts_correct_ica`.
 """

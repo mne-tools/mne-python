@@ -59,7 +59,7 @@ print(epochs)
 
 ###############################################################################
 # Epochs behave similarly to :class:`mne.io.Raw` objects. They have an
-# :class:`info <mne.io.meas_info.Info>` attribute that has all of the same
+# :class:`info <mne.io.Info>` attribute that has all of the same
 # information, as well as a number of attributes unique to the events contained
 # within the object.
 
