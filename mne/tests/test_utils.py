@@ -424,7 +424,7 @@ def test_fetch_file_html():
 @requires_good_network
 def test_fetch_file_ftp():
     """Test file downloading over ftp"""
-    _test_fetch('ftp://ftp.openbsd.org/pub/OpenBSD/README')
+    _test_fetch('ftp://speedtest.tele2.net/1KB.zip')
 
 
 def test_sum_squared():
