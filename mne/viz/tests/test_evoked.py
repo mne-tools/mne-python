@@ -57,8 +57,9 @@ def _get_epochs():
     # Use a subset of channels for plotting speed
     picks = picks[np.round(np.linspace(0, len(picks) - 1, n_chan)).astype(int)]
     picks[0] = 2  # make sure we have a magnetometer
-    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0))
+    with warnings.catch_warnings(record=True):  # proj
+        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
     epochs.info['bads'] = [epochs.ch_names[-1]]
     return epochs
 
