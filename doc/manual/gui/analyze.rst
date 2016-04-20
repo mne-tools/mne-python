@@ -1961,7 +1961,7 @@ of the dialog contains the following items:
 
     Regularize the noise covariance before using it in whitening by
     adding a multiple of an identity matrix to the diagonal. This is
-    discussed in more detail in :ref:`CBBHEGAB`. Especially if
+    discussed in more detail in :ref:`cov_regularization`. Especially if
     EEG is included in fitting it is advisable to enter a non-zero value
     (around 0.1) here.
 

@@ -58,7 +58,7 @@ Software components
     |                            | :ref:`CHDDIBAH`.                           |
     +----------------------------+--------------------------------------------+
     | `mne_inverse_operator`_    | Compute the inverse operator decomposition |
-    |                            | see :ref:`CBBDDBGF`.                       |
+    |                            | see :ref:`inverse_operator`.               |
     +----------------------------+--------------------------------------------+
     | `mne_make_movie`_          | Make movies in batch mode, see             |
     |                            | :ref:`CBBECEDE`.                           |
@@ -1526,7 +1526,7 @@ mne_do_inverse_operator
 ``--depth``
 
     Employ depth weighting with the standard settings. For details,
-    see :ref:`CBBDFJIE` and :ref:`CBBDDBGF`.
+    see :ref:`CBBDFJIE` and :ref:`inverse_operator`.
 
 ``--bad <*name*>``
 
@@ -1560,7 +1560,7 @@ mne_do_inverse_operator
 ``--megreg <*value*>``
 
     Regularize the MEG part of the noise-covariance matrix by this amount.
-    Suitable values are in the range 0.05...0.2. For details, see :ref:`CBBHEGAB`.
+    Suitable values are in the range 0.05...0.2. For details, see :ref:`cov_regularization`.
 
 ``--eegreg <*value*>``
 
@@ -1833,19 +1833,19 @@ mne_inverse_operator
 
     Regularize the planar gradiometer section (channels for which the unit
     of measurement is T/m) of the noise-covariance matrix by the given
-    amount. The value is restricted to the range 0...1. For details, see :ref:`CBBHEGAB`.
+    amount. The value is restricted to the range 0...1. For details, see :ref:`cov_regularization`.
 
 ``--magreg <value>``
 
     Regularize the magnetometer and axial gradiometer section (channels
     for which the unit of measurement is T) of the noise-covariance matrix
     by the given amount. The value is restricted to the range 0...1.
-    For details, see :ref:`CBBHEGAB`.
+    For details, see :ref:`cov_regularization`.
 
 ``--eegreg <value>``
 
     Regularize the EEG section of the noise-covariance matrix by the given
-    amount. The value is restricted to the range 0...1. For details, see :ref:`CBBHEGAB`.
+    amount. The value is restricted to the range 0...1. For details, see :ref:`cov_regularization`.
 
 ``--diagnoise``
 
