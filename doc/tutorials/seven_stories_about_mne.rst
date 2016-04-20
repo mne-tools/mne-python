@@ -153,7 +153,6 @@ code and avoiding to click it again. Second by documenting what you
 did. Reviewers are asking you to update your analysis that you actually
 finished 1 year ago? Luckily you have a script.
 
-
 7. Eighty percent or Python
 ---------------------------
 A related point is that MNE functions are there to make it fun to

@@ -11,7 +11,7 @@ import mne
 import os.path as op
 
 ###############################################################################
-# The :class:`Info <mne.io.meas_info.Info>` data object is typically created
+# The :class:`Info <mne.io.Info>` data object is typically created
 # when data is imported into MNE-Python and contains details such as:
 #
 #  - date, subject information, and other recording details
@@ -20,7 +20,7 @@ import os.path as op
 #  - digitized points
 #  - sensor–head coordinate transformation matrices
 #
-# and so forth. See the :class:`the API reference <mne.io.meas_info.Info>`
+# and so forth. See the :class:`the API reference <mne.io.Info>`
 # for a complete list of all data fields. Once created, this object is passed
 # around throughout the data analysis pipeline.
 #

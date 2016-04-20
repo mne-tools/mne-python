@@ -13,7 +13,7 @@ import numpy as np
 
 ###############################################################################
 # ------------------------------------------------------
-# Creating :class:`Info <mne.io.meas_info.Info>` objects
+# Creating :class:`Info <mne.io.Info>` objects
 # ------------------------------------------------------
 #
 # .. note:: for full documentation on the `Info` object, see
@@ -62,7 +62,7 @@ print(info)
 
 ###############################################################################
 # .. note:: When assigning new values to the fields of an
-#           :class:`mne.io.meas_info.Info` object, it is important that the
+#           :class:`mne.io.Info` object, it is important that the
 #           fields are consistent:
 #
 #           - The length of the channel information field `chs` must be
@@ -72,7 +72,7 @@ print(info)
 #             of the channel information contained in `chs`.
 #
 # ---------------------------------------------
-# Creating :class:`Raw <mne.io.RawFIF>` objects
+# Creating :class:`Raw <mne.io.Raw>` objects
 # ---------------------------------------------
 #
 # To create a :class:`mne.io.Raw` object from scratch, you can use the
