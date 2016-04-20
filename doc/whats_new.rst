@@ -12,7 +12,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - Add `overlay_times` parameter to :func:`mne.viz.plot_epochs_image` to be able to display for example reaction times on top of the images, by `Alex Gramfort`_
+    - Add ``overlay_times`` parameter to :func:`mne.viz.plot_epochs_image` to be able to display for example reaction times on top of the images, by `Alex Gramfort`_
 
     - Animation for evoked topomap in :func:`mne.Evoked.animate_topomap` by `Jaakko Leppakangas`_
 
@@ -38,7 +38,7 @@ Changelog
 
     - Add creating forward operator for dipole object :func:`mne.make_forward_dipole` by `Chris Bailey`_
 
-    - Add reading of Elekta ``xfit`` fixed-position dipole time courses using :func:`mne.read_dipole` by `Eric Larson`_.
+    - Add reading and estimation of fixed-position dipole time courses (similar to Elekta ``xfit``) using :func:`mne.read_dipole` and :func:`mne.fit_dipole` by `Eric Larson`_.
 
     - Accept :class:`mne.decoding.GeneralizationAcrossTime`'s ``scorer`` parameter to be a string that refers to a scikit-learn metric scorer by `Asish Panda`_.
 
@@ -64,13 +64,11 @@ BUG
 
     - :func:`mne.Epochs.plot_psd` no longer calls a Welch PSD, and instead uses a Multitaper method which is more appropriate for epochs. Flags for this function are passed to :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
-    - Time-cropping functions (e.g., :func:`mne.Epochs.crop`, :func:`mne.Evoked.crop`, :func:`mne.io.Raw.crop`, :func:`mne.SourceEstimate.crop`) made consistent with behavior of ``tmin`` and ``tmax`` of :class:`mne.Epochs`, where nearest sample is kept. For example, for MGH data acquired with ``sfreq=600.614990234``, constructing ``Epochs(..., tmin=-1, tmax=1)`` has bounds ``+/-1.00064103``, and now ``epochs.crop(-1, 1)`` will also have these bounds (previously they would have been ``+/-0.99897607``). This also has minor effects on functions that use cropping under the hood, such as :func:`mne.compute_covariance` and :func:`mne.connectivity.spectral_connectivity`.
+    - Time-cropping functions (e.g., :func:`mne.Epochs.crop`, :func:`mne.Evoked.crop`, :func:`mne.io.Raw.crop`, :func:`mne.SourceEstimate.crop`) made consistent with behavior of ``tmin`` and ``tmax`` of :class:`mne.Epochs`, where nearest sample is kept. For example, for MGH data acquired with ``sfreq=600.614990234``, constructing ``Epochs(..., tmin=-1, tmax=1)`` has bounds ``+/-1.00064103``, and now ``epochs.crop(-1, 1)`` will also have these bounds (previously they would have been ``+/-0.99897607``). Time cropping functions also no longer use relative tolerances when determining the boundaries. These changes have minor effects on functions that use cropping under the hood, such as :func:`mne.compute_covariance` and :func:`mne.connectivity.spectral_connectivity`. Changes by `Jaakko Leppakangas`_ and `Eric Larson`_
 
     - Fix EEG spherical spline interpolation code to account for average reference by `Mainak Jas`_ (`#2758 <https://github.com/mne-tools/mne-python/pull/2758>`_)
 
     - MEG projectors are removed after Maxwell filtering by `Eric Larson`_
-
-    - Time cropping functions no longer use relative tolerances when determining the boundaries by `Jaakko Leppakangas`_
 
     - Fix :func:`mne.decoding.TimeDecoding` to allow specifying ``clf`` by `Jean-Remi King`_
 
@@ -140,7 +138,6 @@ API
     - The default ``picks=None`` in :func:`mne.io.Raw.filter` nows picks eeg, meg and seeg channels, by `Jean-Remi King`_
 
     - EOG, ECG and EMG channels are now plotted by default (if present in data) when using :func:`mne.viz.plot_evoked` by `Marijn van Vliet`_
-
 
     - Replace pseudoinverse-based solver with much faster Cholesky solver in :func:`mne.stats.linear_regression_raw`, by `Jona Sassenhagen`_.
 
