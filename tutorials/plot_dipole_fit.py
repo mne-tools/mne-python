@@ -45,13 +45,6 @@ evoked.crop(0.07, 0.08)
 # Fit a dipole
 dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 
-# Estimate the time course of a single dipole (the one that maximized GOF)
-# over the entire interval
-best_idx = np.argmax(dip.gof)
-dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,
-                           pos=dip.pos[best_idx], ori=dip.ori[best_idx])[0]
-dip_fixed.plot()
-
 # Plot the result in 3D brain
 dip.plot_locations(fname_trans, 'sample', subjects_dir)
 
@@ -62,7 +55,8 @@ fwd, stc = make_forward_dipole(dip, fname_bem, evoked.info, fname_trans)
 pred_evoked = simulate_evoked(fwd, stc, evoked.info, None, snr=np.inf)
 
 # find time point with highes GOF to plot
-best_time = dip.times[np.argmax(dip.gof)]
+best_idx = np.argmax(dip.gof)
+best_time = dip.times[best_idx]
 # rememeber to create a subplot for the colorbar
 fig, axes = plt.subplots(nrows=1, ncols=4, figsize=[10., 3.4])
 vmin, vmax = -400, 400  # make sure each plot has same colour range
@@ -82,3 +76,10 @@ plot_params['colorbar'] = True
 diff.plot_topomap(time_format='Difference', axes=axes[2], **plot_params)
 plt.suptitle('Comparison of measured and predicted fields '
              'at {:.0f} ms'.format(best_time * 1000.), fontsize=16)
+
+###############################################################################
+# Estimate the time course of a single dipole with fixed position and
+# orientation (the one that maximized GOF)over the entire interval
+dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,
+                           pos=dip.pos[best_idx], ori=dip.ori[best_idx])[0]
+dip_fixed.plot()
