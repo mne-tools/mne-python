@@ -295,7 +295,7 @@ where the diagonal matrix :math:`\Pi` has
 elements :math:`\pi_k = \lambda_k \gamma_k` The predicted data is
 thus expressed as the weighted sum of the 'recolored eigenfields' in :math:`C^{^1/_2} U`.
 
-.. _CBBDBHDI:
+.. _patch_stats:
 
 Cortical patch statistics
 =========================
@@ -358,7 +358,7 @@ of the surface normal data:
   to fLOC except that the value given with the ``--loosevar`` option
   will be multiplied by :math:`\sigma_d`, defined above.
 
-.. _CBBDFJIE:
+.. _depth_weighting:
 
 Depth weighting
 ===============
@@ -378,7 +378,7 @@ the order of the depth weighting, specified with the ``--weightexp`` option
 to mne_inverse_operator . The
 maximal amount of depth weighting can be adjusted ``--weightlimit`` option.
 
-.. _CBBDIJHI:
+.. _mne_fmri_estimates:
 
 fMRI-guided estimates
 =====================

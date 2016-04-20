@@ -1526,7 +1526,7 @@ mne_do_inverse_operator
 ``--depth``
 
     Employ depth weighting with the standard settings. For details,
-    see :ref:`CBBDFJIE` and :ref:`inverse_operator`.
+    see :ref:`depth_weighting` and :ref:`inverse_operator`.
 
 ``--bad <*name*>``
 
@@ -1584,7 +1584,7 @@ mne_do_inverse_operator
     the cortical surface. The name of the file given is used as a stem of
     the w files. The actual files should be called <*name*> ``-lh.pri`` and <*name*> ``-rh.pri`` for
     the left and right hemisphere weight files, respectively. The application
-    of the weighting is discussed in :ref:`CBBDIJHI`.
+    of the weighting is discussed in :ref:`mne_fmri_estimates`.
 
 ``--fmrithresh <*value*>``
 
@@ -1864,17 +1864,17 @@ mne_inverse_operator
 
 ``--depth``
 
-    Employ depth weighting. For details, see :ref:`CBBDFJIE`.
+    Employ depth weighting. For details, see :ref:`depth_weighting`.
 
 ``--weightexp <value>``
 
     This parameter determines the steepness of the depth weighting function
-    (default = 0.8). For details, see :ref:`CBBDFJIE`.
+    (default = 0.8). For details, see :ref:`depth_weighting`.
 
 ``--weightlimit <value>``
 
     Maximum relative strength of the depth weighting (default = 10). For
-    details, see :ref:`CBBDFJIE`.
+    details, see :ref:`depth_weighting`.
 
 ``--fmri <name>``
 
@@ -1889,7 +1889,7 @@ mne_inverse_operator
     the cortical surface. The name of the file given is used as a stem of
     the w files. The actual files should be called <*name*> ``-lh.pri`` and <*name*> ``-rh.pri`` for
     the left and right hemsphere weight files, respectively. The application
-    of the weighting is discussed in :ref:`CBBDIJHI`.
+    of the weighting is discussed in :ref:`mne_fmri_estimates`.
 
 ``--fmrithresh <value>``
 
@@ -1956,7 +1956,7 @@ mne_inverse_operator
     it is recommended that the patch statistics are precomputed and
     the source space file containing the patch information is employed
     already when the forward solution is computed, see :ref:`setting_up_source_space` and :ref:`BABCHEJD`.
-    For technical details of the patch information, please consult :ref:`CBBDBHDI`. This option is considered experimental at
+    For technical details of the patch information, please consult :ref:`patch_stats`. This option is considered experimental at
     the moment.
 
 ``--inv <name>``
