@@ -274,7 +274,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         Information for each prepped MEG coil
     megnames : list of str
         Name of each prepped MEG coil
-    meginfo : Info
+    meginfo : instance of Info
         Information subselected for just the set of MEG coils
     """
 
@@ -489,7 +489,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info | str
+    info : instance of mne.Info | str
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).

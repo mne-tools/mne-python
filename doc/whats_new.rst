@@ -90,7 +90,7 @@ BUG
 
     - Fix ``info['lowpass']`` value for downsampled raw data by `Eric Larson`_
 
-    - Remove measurement date from :class:`mne.io.Info` in :func:`mne.io.Raw.anonymize` by `Eric Larson`_
+    - Remove measurement date from :class:`mne.Info` in :func:`mne.io.Raw.anonymize` by `Eric Larson`_
 
     - Fix bug that caused synthetic ecg channel creation even if channel was specified for ECG peak detection in :func:`mne.preprocessing.create_ecg_epochs` by `Jaakko Leppakangas`_
 
@@ -143,7 +143,7 @@ API
 
     - CTF data reader now reads EEG locations from .pos file as HPI points by `Jaakko Leppakangas`_
 
-    - Subselecting channels can now emit a warning if many channels have been subselected from projection vectors. We recommend only computing projection vertors for and applying projectors to channels that will be used in the final analysis. However, after picking a subset of channels, projection vectors can be renormalized with :func:`mne.io.Info.normalize_proj` if necessary to avoid warnings about subselection. Changes by `Eric Larson`_ and `Alex Gramfort`_.
+    - Subselecting channels can now emit a warning if many channels have been subselected from projection vectors. We recommend only computing projection vertors for and applying projectors to channels that will be used in the final analysis. However, after picking a subset of channels, projection vectors can be renormalized with :func:`mne.Info.normalize_proj` if necessary to avoid warnings about subselection. Changes by `Eric Larson`_ and `Alex Gramfort`_.
 
 .. _changes_0_11:
 

@@ -105,7 +105,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
 
     Parameters
     ----------
-    info : instance of io.meas_info.Info
+    info : instance of Info
         Measurement info.
     trans : dict
         The head<->MRI transformation, usually obtained using

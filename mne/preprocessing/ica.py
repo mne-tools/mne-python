@@ -182,7 +182,7 @@ class ICA(ContainsMixin):
         .exclude attribute. When saving the ICA also the indices are restored.
         Hence, artifact components once identified don't have to be added
         again. To dump this 'artifact memory' say: ica.exclude = []
-    info : None | instance of mne.io.meas_info.Info
+    info : None | instance of Info
         The measurement info copied from the object fitted.
     `n_samples_` : int
         the number of samples used on fit.

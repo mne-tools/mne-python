@@ -280,7 +280,7 @@ def _read_forward_meas_info(tree, fid):
 
     Returns
     -------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     """
     # This function assumes fid is being used as a context manager
@@ -862,7 +862,7 @@ def write_forward_meas_info(fid, info):
     ----------
     fid : file id
         The file id
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     """
     info._check_consistency()
@@ -1131,7 +1131,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info to generate the evoked.
     start : int, optional
         Index of first time sample (index not time is seconds).
@@ -1191,7 +1191,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : Instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     start : int, optional
         Index of first time sample (index not time is seconds).

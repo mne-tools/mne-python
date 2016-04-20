@@ -55,7 +55,7 @@ def _contains_ch_type(info, ch_type):
 
     Parameters
     ---------
-    info : instance of mne.io.Info
+    info : instance of Info
         The measurement information.
     ch_type : str
         the channel type to be checked for
