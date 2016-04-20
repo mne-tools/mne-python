@@ -60,7 +60,7 @@ For further reading:
   .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_intro_artifacts.rst
+    auto_tutorials/plot_artifacts_intro.rst
     auto_tutorials/plot_artifacts_detection.rst
     tutorials/preprocessing/filtering_resampling.rst
     auto_tutorials/plot_artifacts_correction_filtering.rst
@@ -106,9 +106,9 @@ For further reading:
   .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_raw_objects.rst
-    auto_tutorials/plot_epochs_objects.rst
-    auto_tutorials/plot_evoked_objects.rst
+    auto_tutorials/plot_object_raw.rst
+    auto_tutorials/plot_object_epochs.rst
+    auto_tutorials/plot_object_evoked.rst
     auto_tutorials/plot_creating_data_structures.rst
     auto_tutorials/plot_info.rst
 
@@ -136,10 +136,10 @@ For further reading:
   .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_cluster_methods_tutorial.rst
-    auto_tutorials/plot_spatio_temporal_cluster_stats_sensor.rst
-    auto_tutorials/plot_cluster_1samp_test_time_frequency.rst
-    auto_tutorials/plot_cluster_stats_time_frequency.rst
+    auto_tutorials/plot_stats_cluster_methods.rst
+    auto_tutorials/plot_stats_spatio_temporal_cluster_sensors.rst
+    auto_tutorials/plot_stats_cluster_1samp_test_time_frequency.rst
+    auto_tutorials/plot_stats_cluster_time_frequency.rst
 
 .. container:: span box
 
@@ -150,10 +150,10 @@ For further reading:
   .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_cluster_stats_time_frequency_repeated_measures_anova.rst
-    auto_tutorials/plot_cluster_stats_spatio_temporal_2samp.rst
-    auto_tutorials/plot_cluster_stats_spatio_temporal_repeated_measures_anova.rst
-    auto_tutorials/plot_cluster_stats_spatio_temporal.rst
+    auto_tutorials/plot_stats_cluster_time_frequency_repeated_measures_anova.rst
+    auto_tutorials/plot_stats_cluster_spatio_temporal_2samp.rst
+    auto_tutorials/plot_stats_cluster_spatio_temporal_repeated_measures_anova.rst
+    auto_tutorials/plot_stats_cluster_spatio_temporal.rst
 
 .. container:: span box
 

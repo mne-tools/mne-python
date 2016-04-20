@@ -134,7 +134,7 @@ Wanna do visualization?::
 
 Decoding?::
 
-    >>> from mne import decoding.
+    >>> from mne import decoding
 
 I'm sure you got it, so explore your intuitions when searching for
 a certain function.
