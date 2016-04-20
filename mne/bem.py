@@ -706,7 +706,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         If float, compute spherical shells for EEG using the given radius.
         If 'auto', estimate an approriate radius from the dig points in Info,
         If None, exclude shells.
-    info : instance of mne.io.meas_info.Info | None
+    info : instance of Info | None
         Measurement info. Only needed if ``r0`` or ``head_radius`` are
         ``'auto'``.
     relative_radii : array-like
@@ -808,7 +808,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info.
     dig_kinds : list of str | str
         Kind of digitization points to use in the fitting. These can be any

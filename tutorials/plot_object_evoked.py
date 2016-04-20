@@ -30,7 +30,7 @@ print(evoked)
 
 ###############################################################################
 # If you're gone through the tutorials of raw and epochs datasets, you're
-# probably already familiar with the :class:`Info <mne.io.Info>` attribute.
+# probably already familiar with the :class:`Info <mne.Info>` attribute.
 # There is nothing new or special with the ``evoked.info``. All the relevant
 # info is still there.
 print(evoked.info)

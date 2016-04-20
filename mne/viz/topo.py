@@ -38,7 +38,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     layout : instance of mne.layout.Layout | None
         The layout to use. If None, layout will be guessed

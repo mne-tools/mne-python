@@ -301,7 +301,7 @@ def make_ad_hoc_cov(info, verbose=None):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info.
     verbose : bool, str, int, or None (default None)
         If not None, override default verbose level (see mne.verbose).
@@ -1886,7 +1886,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     ----------
     data : np.ndarray of float, shape(n_channels, n_samples)
         The M/EEG signals.
-    info : mne.io.measurement_info.Info
+    info : Info
         The measurment info.
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
@@ -1935,7 +1935,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
     ----------
     data : np.ndarray of float, shape (n_channels, n_channels)
         The M/EEG covariance.
-    info : mne.io.measurement_info.Info
+    info : Info
         The measurment info.
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the

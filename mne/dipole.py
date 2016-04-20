@@ -250,7 +250,7 @@ class DipoleFixed(object):
 
     Parameters
     ----------
-    info : instance of io.Info
+    info : instance of Info
         The measurement info.
     data : array, shape (n_channels, n_times)
         The dipole data.

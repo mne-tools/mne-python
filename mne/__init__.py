@@ -29,7 +29,8 @@ from .io.pick import (pick_types, pick_channels,
                       pick_channels_evoked, pick_info)
 from .io.base import concatenate_raws
 from .chpi import get_chpi_positions
-from .io.meas_info import create_info
+from .io.meas_info import create_info, Info
+from .io.proj import Projection
 from .io.kit import read_epochs_kit
 from .io.eeglab import read_epochs_eeglab
 from .bem import (make_sphere_model, make_bem_model, make_bem_solution,

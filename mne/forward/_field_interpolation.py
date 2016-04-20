@@ -111,9 +111,9 @@ def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
 
     Parameters
     ----------
-    info_from : mne.io.MeasInfo
+    info_from : instance of Info
         The measurement data to interpolate from.
-    info_to : mne.io.MeasInfo
+    info_to : instance of Info
         The measurement info to interpolate to.
     mode : str
         Either `'accurate'` or `'fast'`, determines the quality of the
@@ -223,7 +223,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 
     Parameters
     ----------
-    info : instance of io.meas_info.Info
+    info : instance of Info
         Measurement info.
     surf : dict
         The surface to map the data to. The required fields are `'rr'`,
