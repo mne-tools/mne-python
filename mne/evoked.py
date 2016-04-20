@@ -759,12 +759,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             (DC) detrend, 1 is a linear detrend.
         picks : array-like of int | None
             If None only MEG, EEG and SEEG channels are detrended.
+
+        Returns
+        -------
+        evoked : instance of Evoked
         """
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
                                stim=False, eog=False, ecg=False, emg=False,
                                seeg=True, bio=True, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
+        
+        return self
 
     def copy(self):
         """Copy the instance of evoked
