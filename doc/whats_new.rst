@@ -121,6 +121,9 @@ BUG
 
     - Fix bug when merging info that has a field with list of dicts by `Jaakko Leppakangas`_
 
+    - Change default scoring method of :func:`mne.decoding.GeneralizationAcrossTime` and :func:`mne.decoding.TimeDecoding` to estimate the scores within the cross-validation as in scikit-learn. The method can be changed with the ``score_mode`` parameter by `Jean-Remi King`_
+
+
 API
 ~~~
 
