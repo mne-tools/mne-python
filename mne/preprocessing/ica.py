@@ -750,6 +750,8 @@ class ICA(ContainsMixin):
                         add_channels]
         info['bads'] = [ch_names[k] for k in self.exclude]
         info['projs'] = []  # make sure projections are removed.
+        info._update_redundant()
+        info._check_consistency()
 
     @verbose
     def score_sources(self, inst, target=None, score_func='pearsonr',
