@@ -6,6 +6,7 @@ Rejecting bad data (channels and segments)
 
 """
 
+import numpy as np
 import mne
 from mne.datasets import sample
 
@@ -107,8 +108,35 @@ evoked.plot(exclude=[])
 # Marking bad raw segments with annotations
 # -----------------------------------------
 #
-# XXX : TODO after brainstorm PR is merged
+# MNE provides an :class:`mne.Annotations` class that can be used to mark
+# segments of raw data and to reject epochs that overlap with bad segments
+# of data. The annotations are automatically synchronized with raw data as
+# long as the timestamps of raw data and annotations are in sync.
 #
+# See :ref:`sphx_glr_auto_tutorials_plot_brainstorm_auditory.py`
+# for a long example exploiting the annotations for artifact removal.
+#
+# The instances of annotations are created by providing a list of onsets and
+# offsets with descriptions for each segment. The onsets and offsets are marked
+# as seconds. ``onset`` refers to time from start of the data. ``offset`` is
+# the duration of the annotation. The instance of :class:`mne.Annotations`
+# can be added as an attribute of :class:`mne.io.Raw`.
+
+eog_events = mne.preprocessing.find_eog_events(raw)
+n_blinks = len(eog_events)
+# Center to cover the whole blink with full duration of 0.5s:
+onset = raw.index_as_time(eog_events[:, 0]) - 0.25
+duration = np.repeat(0.5, n_blinks)
+raw.annotations = mne.Annotations(onset, duration, ['bad blink'] * n_blinks)
+raw.plot(events=eog_events)  # To see the annotated segments.
+
+###############################################################################
+# As the data is epoched, all the epochs overlapping with segments whose
+# description starts with 'bad' are rejected by default. To turn rejection off,
+# use keyword argument ``reject_by_annotation=False`` when constructing
+# class:`mne.Epochs`. When working with neuromag data, the ``first_samp``
+# offset of raw acquisition is also taken into account the same way as with
+# event lists. For more see class:`mne.Epochs` and :class:`mne.Annotations`.
 
 ###############################################################################
 # .. _rejecting_bad_epochs:
@@ -147,7 +175,8 @@ baseline = (None, 0)  # means from the first instant to t = 0
 picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
                            stim=False, exclude='bads')
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks_meg, baseline=baseline, reject=reject)
+                    picks=picks_meg, baseline=baseline, reject=reject,
+                    reject_by_annotation=True)
 
 ###############################################################################
 # We then drop/reject the bad epochs
