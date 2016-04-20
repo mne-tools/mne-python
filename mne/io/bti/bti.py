@@ -1301,6 +1301,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
              'the 4D "print_table" routine.')
 
     # check that the info is complete
+    info._update_redundant()
     info._check_consistency()
     return info, bti_info
 

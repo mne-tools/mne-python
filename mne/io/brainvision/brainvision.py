@@ -462,6 +462,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     # for stim channel
     mrk_fname = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
+    info._update_redundant()
     info._check_consistency()
     return info, fmt, order, mrk_fname, montage
 

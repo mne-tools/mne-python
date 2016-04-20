@@ -317,6 +317,7 @@ def _read_forward_meas_info(tree, fid):
             tag = read_tag(fid, pos)
             chs.append(tag.data)
     info['chs'] = chs
+    info._update_redundant()
 
     #   Get the MRI <-> head coordinate transformation
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)

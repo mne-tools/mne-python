@@ -627,6 +627,7 @@ def _set_montage(info, montage, update_ch_names=False):
                            'coord_frame': FIFF.FIFFV_COORD_HEAD,
                            'coil_type': FIFF.FIFFV_COIL_EEG}
                 info['chs'].append(ch_info)
+            info._update_redundant()
 
         if not _contains_ch_type(info, 'eeg'):
             raise ValueError('No EEG channels found.')

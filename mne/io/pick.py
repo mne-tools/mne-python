@@ -359,6 +359,7 @@ def pick_info(info, sel=[], copy=True):
         raise ValueError('No channels match the selection.')
 
     info['chs'] = [info['chs'][k] for k in sel]
+    info._update_redundant()
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
 
     comps = deepcopy(info['comps'])
@@ -372,7 +373,7 @@ def pick_info(info, sel=[], copy=True):
         c['data']['row_names'] = row_names
         c['data']['data'] = c['data']['data'][row_idx]
     info['comps'] = comps
-
+    info._check_consistency()
     return info
 
 
@@ -493,6 +494,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
 
     # Pick the appropriate channel names from the info-dict using sel_info
     fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
+    fwd['info']._update_redundant()
     fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]
 
     if fwd['sol_grad'] is not None:
@@ -649,8 +651,8 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
         Channels to be excluded/excluded. If allow_bads, and chs=="bads",
         this will be the bad channels found in 'info'.
     """
-    from .meas_info import Info, _ChannelNameList
-    if not isinstance(chs, (list, tuple, np.ndarray, _ChannelNameList)):
+    from .meas_info import Info
+    if not isinstance(chs, (list, tuple, np.ndarray)):
         if allow_bads is True:
             if not isinstance(info, Info):
                 raise ValueError('Supply an info object if allow_bads is true')
