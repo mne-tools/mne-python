@@ -111,6 +111,8 @@ BUG
 
     - Fix bug in source normal adjustment that occurred when 1) patch information is available (e.g., when distances have been calculated) and 2) points are excluded from the source space (by inner skull distance) by `Eric Larson`_
 
+    - Change default scoring method of :func:`mne.decoding.GeneralizationAcrossTime` and :func:`mne.decoding.TimeDecoding` to estimate the scores within the cross-validation as in scikit-learn. The method can be changed with the ``score_mode`` parameter by `Jean-Remi King`_
+
 API
 ~~~
 
@@ -137,7 +139,6 @@ API
     - The default ``picks=None`` in :func:`mne.io.Raw.filter` nows picks eeg, meg and seeg channels, by `Jean-Remi King`_
 
     - EOG, ECG and EMG channels are now plotted by default (if present in data) when using :func:`mne.viz.plot_evoked` by `Marijn van Vliet`_
-
 
     - Replace pseudoinverse-based solver with much faster Cholesky solver in :func:`mne.stats.linear_regression_raw`, by `Jona Sassenhagen`_.
 
