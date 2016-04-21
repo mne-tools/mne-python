@@ -286,7 +286,7 @@ class EpochsKIT(_BaseEpochs):
         in the drop log.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
-        the keys can later be used to acces associated events. Example:
+        the keys can later be used to access associated events. Example:
         dict(auditory=1, visual=3). If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, all events will be used with
@@ -810,7 +810,7 @@ def read_epochs_kit(input_fname, events, event_id=None,
         by event_id, they will be marked as 'IGNORED' in the drop log.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
-        the keys can later be used to acces associated events. Example:
+        the keys can later be used to access associated events. Example:
         dict(auditory=1, visual=3). If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, all events will be used with

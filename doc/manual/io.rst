@@ -223,7 +223,7 @@ from available analog trigger channel data by specifying the following parameter
 
 - A list of trigger channels (stim) or default triggers with order: '<' | '>'
   Channel-value correspondence when converting KIT trigger channels to a
-  Neuromag-style stim channel. By default, we assume the first eight miscellaneous
+  Neuromag-style stim channel. By default, we assume the first eight miscellanous
   channels are trigger channels. For '<', the largest values are assigned
   to the first channel (little endian; default). For '>', the largest values are
   assigned to the last channel (big endian). Can also be specified as a list of

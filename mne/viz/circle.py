@@ -318,7 +318,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         nodes_n_con[i] += 1
         nodes_n_con[j] += 1
 
-    # initalize random number generator so plot is reproducible
+    # initialize random number generator so plot is reproducible
     rng = np.random.mtrand.RandomState(seed=0)
 
     n_con = len(indices[0])

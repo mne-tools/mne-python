@@ -187,7 +187,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         with each unique event encoded with a different integer.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict, the keys can later be used
-        to acces associated events.
+        to access associated events.
         Example::
 
             {"auditory":1, "visual":3}
@@ -371,7 +371,7 @@ class EpochsEEGLAB(_BaseEpochs):
         with each unique event encoded with a different integer.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
-        the keys can later be used to acces associated events. Example:
+        the keys can later be used to access associated events. Example:
         dict(auditory=1, visual=3). If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, the event_id is constructed from the
