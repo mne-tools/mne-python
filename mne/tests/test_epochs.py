@@ -270,7 +270,7 @@ def test_reject():
                                           [1], ['BAD'])
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=[0],
                             reject=None, preload=preload)
-            epochs.drop_bad_epochs()
+            epochs.drop_bad()
             assert_equal(len(events) - 1, len(epochs.events))
             assert_equal(epochs.drop_log[0][0], 'BAD')
             raw.annotations = None

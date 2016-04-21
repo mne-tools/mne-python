@@ -180,7 +180,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 
 ###############################################################################
 # We then drop/reject the bad epochs
-epochs.drop_bad_epochs()
+epochs.drop_bad()
 
 ###############################################################################
 # And plot the so-called *drop log* that details the reason for which some
