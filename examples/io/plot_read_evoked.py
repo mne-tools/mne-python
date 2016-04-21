@@ -3,6 +3,7 @@
 Reading and writing an evoked file
 ==================================
 
+This script shows how to read and write evoked datasets.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -29,3 +30,7 @@ evoked.plot(exclude=[])
 
 # Show result as a 2D image (x: time, y: channels, color: amplitude)
 evoked.plot_image(exclude=[])
+
+###############################################################################
+# Use :func:`mne.Evoked.save` or :func:`mne.write_evokeds` to write the evoked
+# responses to a file.

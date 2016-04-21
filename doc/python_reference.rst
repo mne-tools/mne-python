@@ -307,6 +307,7 @@ Functions:
 
    circular_layout
    mne_analyze_colormap
+   plot_bem
    plot_connectivity_circle
    plot_cov
    plot_dipole_amplitudes

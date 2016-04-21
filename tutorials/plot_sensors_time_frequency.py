@@ -129,4 +129,5 @@ itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 # Exercise
 # --------
 #
-#    - Visualize the itertrial coherence values as topomaps as done with power.
+#    - Visualize the intertrial coherence values as topomaps as done with
+#      power.

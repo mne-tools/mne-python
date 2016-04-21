@@ -38,7 +38,6 @@ For further reading:
           advanced configuration options, e.g. to specify a custom
           location for storing the datasets.
 
-
 .. container:: span box
 
   .. raw:: html
