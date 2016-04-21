@@ -15,27 +15,28 @@ from .utils import logger, verbose
 def read_selection(name, fname=None, info=None, verbose=None):
     """Read channel selection from file
 
-    By default, the selections used in mne_browse_raw are supported*.
+    By default, the selections used in ``mne_browse_raw`` are supported.
     Additional selections can be added by specifying a selection file (e.g.
-    produced using mne_browse_raw) using the fname parameter.
+    produced using ``mne_browse_raw``) using the ``fname`` parameter.
 
-    The name parameter can be a string or a list of string. The returned
+    The ``name`` parameter can be a string or a list of string. The returned
     selection will be the combination of all selections in the file where
     (at least) one element in name is a substring of the selection name in
-    the file. For example, "name = ['temporal', 'Right-frontal']" will produce
-    a comination of "Left-temporal", "Right-temporal", and "Right-frontal".
+    the file. For example, ``name=['temporal', 'Right-frontal']`` will produce
+    a comination of ``'Left-temporal'``, ``'Right-temporal'``, and
+    ``'Right-frontal'``.
 
     The included selections are:
 
-        * ``Vertex``
-        * ``Left-temporal``
-        * ``Right-temporal``
-        * ``Left-parietal``
-        * ``Right-parietal``
-        * ``Left-occipital``
-        * ``Right-occipital``
-        * ``Left-frontal``
-        * ``Right-frontal``
+        * ``'Vertex'``
+        * ``'Left-temporal'``
+        * ``'Right-temporal'``
+        * ``'Left-parietal'``
+        * ``'Right-parietal'``
+        * ``'Left-occipital'``
+        * ``'Right-occipital'``
+        * ``'Left-frontal'``
+        * ``'Right-frontal'``
 
 
     Parameters
@@ -46,8 +47,8 @@ def read_selection(name, fname=None, info=None, verbose=None):
         Filename of the selection file (if None, built-in selections are used).
     info : instance of Info
         Measurement info file, which will be used to determine the spacing
-        of channel names to return, e.g. ``"MEG 0111"`` for old Neuromag
-        systems and "MEG0111" for new ones.
+        of channel names to return, e.g. ``'MEG 0111'`` for old Neuromag
+        systems and ``'MEG0111'`` for new ones.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -67,7 +68,8 @@ def read_selection(name, fname=None, info=None, verbose=None):
         else:
             spacing = 'old'
     elif info is not None:
-        raise TypeError('info must be an instance of Info or None')
+        raise TypeError('info must be an instance of Info or None, not %s'
+                        % (type(info),))
     else:  # info is None
         spacing = 'old'
 
