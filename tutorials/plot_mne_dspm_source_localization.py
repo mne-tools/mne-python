@@ -9,12 +9,14 @@ inverse method such as MNE/dSPM/sLORETA on evoked/raw/epochs data.
 
 """
 import numpy as np
+import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import (make_inverse_operator, apply_inverse,
                               write_inverse_operator)
 
-##############################################################################
+###############################################################################
 # Process MEG data
 
 data_path = sample.data_path()
@@ -35,7 +37,7 @@ reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=baseline, reject=reject)
 
-##############################################################################
+###############################################################################
 # Compute regularized noise covariance
 # ------------------------------------
 #
@@ -46,7 +48,7 @@ noise_cov = mne.compute_covariance(
 
 fig_cov, fig_spectra = mne.viz.plot_cov(noise_cov, raw.info)
 
-##############################################################################
+###############################################################################
 # Compute the evoked response
 # ---------------------------
 
@@ -57,7 +59,7 @@ evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag')
 # Show whitening
 evoked.plot_white(noise_cov)
 
-##############################################################################
+###############################################################################
 # Inverse modeling: MNE/dSPM on evoked and raw data
 # -------------------------------------------------
 
@@ -77,7 +79,7 @@ inverse_operator = make_inverse_operator(info, fwd, noise_cov,
 write_inverse_operator('sample_audvis-meg-oct-6-inv.fif',
                        inverse_operator)
 
-##############################################################################
+###############################################################################
 # Compute inverse solution
 # ------------------------
 
@@ -89,16 +91,32 @@ stc = apply_inverse(evoked, inverse_operator, lambda2,
 
 del fwd, inverse_operator, epochs  # to save memory
 
-##############################################################################
-# Let's now visualize
+###############################################################################
+# Visualization
+# -------------
+# View activation time-series
+
+plt.plot(1e3 * stc.times, stc.data[::100, :].T)
+plt.xlabel('time (ms)')
+plt.ylabel('%s value' % method)
+plt.show()
+
+###############################################################################
+# Here we use peak getter to move visualization to the time point of the peak
+# and draw a marker at the maximum peak vertex.
+
+vertno_max, time_idx = stc.get_peak(hemi='rh', time_as_index=True)
 
 subjects_dir = data_path + '/subjects'
 brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir)
-brain.set_data_time_index(45)
+
+brain.set_data_time_index(time_idx)
+brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue',
+               scale_factor=0.6)
 brain.scale_data_colormap(fmin=8, fmid=12, fmax=15, transparent=True)
 brain.show_view('lateral')
 
-##############################################################################
+###############################################################################
 # Morph data to average brain
 # ---------------------------
 
@@ -106,11 +124,11 @@ stc_fsaverage = stc.morph(subject_to='fsaverage', subjects_dir=subjects_dir)
 
 brain_fsaverage = stc_fsaverage.plot(surface='inflated', hemi='rh',
                                      subjects_dir=subjects_dir)
-brain_fsaverage.set_data_time_index(45)
+brain_fsaverage.set_data_time_index(time_idx)
 brain_fsaverage.scale_data_colormap(fmin=8, fmid=12, fmax=15, transparent=True)
 brain_fsaverage.show_view('lateral')
 
-##############################################################################
+###############################################################################
 # Exercise
 # --------
 #    - By changing the method parameter to 'sloreta' recompute the source
