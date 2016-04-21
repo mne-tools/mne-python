@@ -1072,22 +1072,20 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             show=show)
 
     @deprecated('drop_bad_epochs method has been renamed drop_bad. '
-                'drop_bad_epochs method will be removed in 0.14')
+                'drop_bad_epochs method will be removed in 0.13')
     def drop_bad_epochs(self, reject='existing', flat='existing'):
-        """Drop bad epochs without retaining the epochs data.
-
-        .. Warning:: This method has been renamed. See drop_bad
-        """
+        """Drop bad epochs without retaining the epochs data"""
         return self.drop_bad(reject, flat)
 
-    def drop_bad(self, reject='existing', flat='existing'):
+    @verbose
+    def drop_bad(self, reject='existing', flat='existing', verbose=None):
         """Drop bad epochs without retaining the epochs data.
 
         Should be used before slicing operations.
 
-        .. Warning:: Operation is slow since all epochs have to be read from
-            disk. To avoid reading epochs from disk multiple times, initialize
-            Epochs object with preload=True.
+        .. warning:: This operation is slow since all epochs have to be read
+                     from disk. To avoid reading epochs from disk multiple
+                     times, use :func:`mne.Epochs.load_data()`.
 
         Parameters
         ----------
@@ -1102,6 +1100,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             are floats that set the minimum acceptable peak-to-peak amplitude.
             If flat is None then no rejection is done. If 'existing',
             then the flat parameters set at instantiation are used.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs with bad epochs dropped. Operates in-place.
 
         Notes
         -----
@@ -1121,6 +1127,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('reject and flat, if strings, must be "existing"')
         self._reject_setup(reject, flat)
         self._get_data(out=False)
+        return self
 
     def drop_log_stats(self, ignore=('IGNORED',)):
         """Compute the channel stats based on a drop_log from Epochs.
@@ -1244,25 +1251,23 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  overlay_times=overlay_times)
 
     @deprecated('drop_bad method has been renamed drop_bad. '
-                'drop_bad method will be removed in 0.14')
-    @verbose
+                'drop_bad method will be removed in 0.13')
     def drop_epochs(self, indices, reason='USER', verbose=None):
-        """Drop epochs based on indices or boolean mask
-
-        Deprecated: See the drop method.
-        """
+        """Drop epochs based on indices or boolean mask"""
         return self.drop(indices, reason, verbose)
 
     @verbose
     def drop(self, indices, reason='USER', verbose=None):
         """Drop epochs based on indices or boolean mask
 
-        Note that the indices refer to the current set of undropped epochs
-        rather than the complete set of dropped and undropped epochs.
-        They are therefore not necessarily consistent with any external indices
-        (e.g., behavioral logs). To drop epochs based on external criteria,
-        do not use the preload=True flag when constructing an Epochs object,
-        and call this method before calling the drop_bad method.
+        .. note:: The indices refer to the current set of undropped epochs
+                  rather than the complete set of dropped and undropped epochs.
+                  They are therefore not necessarily consistent with any
+                  external indices (e.g., behavioral logs). To drop epochs
+                  based on external criteria, do not use the ``preload=True``
+                  flag when constructing an Epochs object, and call this
+                  method before calling the :func:`mne.Epochs.drop_bad` or
+                  :func:`mne.Epochs.load_data` methods.
 
         Parameters
         ----------
@@ -1275,7 +1280,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Default: 'USER'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-            Defaults to raw.verbose.
+            Defaults to self.verbose.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs with indices dropped. Operates in-place.
         """
         indices = np.atleast_1d(indices)
 
@@ -1300,6 +1310,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         count = len(indices)
         logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
+        return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
         """Method to get a given epoch from disk"""
@@ -1573,7 +1584,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Returns
         -------
-        epochs : Epochs instance
+        epochs : instance of Epochs
             The cropped epochs.
 
         Notes
@@ -2720,7 +2731,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
 
     Returns
     -------
-    epochs : Epochs
+    epochs : instance of Epochs
         Concatenated epochs.
     """
     if not all(e.preload for e in epochs_list):
