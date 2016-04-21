@@ -2108,6 +2108,8 @@ class EpochsArray(_BaseEpochs):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
+    proj : bool | 'delayed'
+        Apply SSP projection vectors. See :class:`mne.Epochs` for details.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -2120,7 +2122,7 @@ class EpochsArray(_BaseEpochs):
     @verbose
     def __init__(self, data, info, events, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, baseline=None, verbose=None):
+                 reject_tmax=None, baseline=None, proj=True, verbose=None):
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
@@ -2133,6 +2135,7 @@ class EpochsArray(_BaseEpochs):
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
+        info = deepcopy(info)  # do not modify original info
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
@@ -2140,7 +2143,7 @@ class EpochsArray(_BaseEpochs):
                                           tmax, baseline, reject=reject,
                                           flat=flat, reject_tmin=reject_tmin,
                                           reject_tmax=reject_tmax, decim=1,
-                                          add_eeg_ref=False)
+                                          add_eeg_ref=False, proj=proj)
         if len(events) != in1d(self.events[:, 2],
                                list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
