@@ -23,7 +23,7 @@ def read_selection(name, fname=None, info=None, verbose=None):
     selection will be the combination of all selections in the file where
     (at least) one element in name is a substring of the selection name in
     the file. For example, ``name=['temporal', 'Right-frontal']`` will produce
-    a comination of ``'Left-temporal'``, ``'Right-temporal'``, and
+    a combination of ``'Left-temporal'``, ``'Right-temporal'``, and
     ``'Right-frontal'``.
 
     The included selections are:
