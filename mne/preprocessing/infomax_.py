@@ -71,17 +71,17 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         If random_state is already a np.random.RandomState instance, use
         random_state as random number generator.
     blowup : float
-        The maximum difference allowed between two succesive estimations of the
-        unmixing matrix. Defaults to 1e4
+        The maximum difference allowed between two successive estimations of
+        the unmixing matrix. Defaults to 1e4
     blowup_fac : float
         The factor by which the learning rate will be reduced if the
-        difference between two succesive estimations of the
+        difference between two successive estimations of the
         unmixing matrix exceededs ``blowup``:
             l_rate *= blowup_fac
         Defaults to 0.5
     n_small_angle : int | None
         The maximum number of allowed steps in which the angle between two
-        succesive estimations of the unmixing matrix is less than
+        successive estimations of the unmixing matrix is less than
         ``anneal_deg``.
         If None, this parameter is not taken into account to stop the
         iterations.

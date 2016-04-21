@@ -24,7 +24,7 @@ raw = mne.io.read_raw_fif(fname)
 # information about the times. In this tutorial we use the stimulus channel to
 # define the events. Let's look at the raw data.
 order = np.arange(raw.info['nchan'])
-order[9] = 312  # We exchange the plotting orded of two channels
+order[9] = 312  # We exchange the plotting order of two channels
 order[312] = 9  # to show the trigger channel as the 10th channel.
 raw.plot(n_channels=10, order=order, block=True)
 

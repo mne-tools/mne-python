@@ -739,7 +739,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         partitions = _get_partitions_from_connectivity(connectivity, n_times)
     else:
         partitions = None
-    logger.info('Running intial clustering')
+    logger.info('Running initial clustering')
     out = _find_clusters(T_obs, threshold, tail, connectivity,
                          max_step=max_step, include=include,
                          partitions=partitions, t_power=t_power,

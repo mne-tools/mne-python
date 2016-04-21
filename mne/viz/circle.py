@@ -275,7 +275,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     plt.xticks([])
     plt.yticks([])
 
-    # Set y axes limit, add additonal space if requested
+    # Set y axes limit, add additional space if requested
     plt.ylim(0, 10 + padding)
 
     # Remove the black axes border which may obscure the labels

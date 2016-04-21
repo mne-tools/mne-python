@@ -122,7 +122,7 @@ pos = mne.find_layout(epochs.info).pos
 
 # loop over significant clusters
 for i_clu, clu_idx in enumerate(good_cluster_inds):
-    # unpack cluster infomation, get unique indices
+    # unpack cluster information, get unique indices
     time_inds, space_inds = np.squeeze(clusters[clu_idx])
     ch_inds = np.unique(space_inds)
     time_inds = np.unique(time_inds)

@@ -320,7 +320,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     # bring the original back, whatever coord frame it was in
     fmd['surf'] = orig_surf
 
-    # Remove some unecessary fields
+    # Remove some unnecessary fields
     del fmd['self_dots']
     del fmd['surface_dots']
     del fmd['int_rad']

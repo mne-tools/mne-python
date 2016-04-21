@@ -131,7 +131,7 @@ API
 
     - Added default parameters in Epochs class namely ``event_id=None``, ``tmin=-0.2`` and ``tmax=0.5``.
 
-    - To unify and extend the behavior of :func:`mne.comupute_raw_covariance` relative to :func:`mne.compute_covariance`, the default parameter ``tstep=0.2`` now discards any epochs at the end of the :class:`mne.io.Raw` instance that are not the full ``tstep`` duration. This will slighly change the computation of :func:`mne.compute_raw_covaraince`, but should only potentially have a big impact if the :class:`mne.io.Raw` instance is short relative to ``tstep`` and the last, too short (now discarded) epoch contained data inconsistent with the epochs that preceded it.
+    - To unify and extend the behavior of :func:`mne.comupute_raw_covariance` relative to :func:`mne.compute_covariance`, the default parameter ``tstep=0.2`` now discards any epochs at the end of the :class:`mne.io.Raw` instance that are not the full ``tstep`` duration. This will slightly change the computation of :func:`mne.compute_raw_covaraince`, but should only potentially have a big impact if the :class:`mne.io.Raw` instance is short relative to ``tstep`` and the last, too short (now discarded) epoch contained data inconsistent with the epochs that preceded it.
 
     - The default ``picks=None`` in :func:`mne.io.Raw.filter` nows picks eeg, meg and seeg channels, by `Jean-Remi King`_
 
@@ -529,7 +529,7 @@ BUG
 
    - Add functionality to determine plot limits automatically or by data percentiles by `Mark Wronkiewicz`_
 
-   - Fix bug in mne.io.edf where the channel offsets were ommitted in the voltage calculations by `Teon Brooks`_
+   - Fix bug in mne.io.edf where the channel offsets were omitted in the voltage calculations by `Teon Brooks`_
 
    - Decouple section ordering in command-line from python interface for mne-report by `Mainak Jas`_
 

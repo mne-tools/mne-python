@@ -469,7 +469,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Title. If None (default), no title is displayed.
         mask : ndarray of bool, shape (n_channels, n_times) | None
             The channels to be marked as significant at a given time point.
-            Indicies set to `True` will be considered. Defaults to None.
+            Indices set to `True` will be considered. Defaults to None.
         mask_params : dict | None
             Additional plotting parameters for plotting significant sensors.
             Default (None) equals:
@@ -604,7 +604,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             finds time points automatically by checking for 3 local
             maxima in Global Field Power. Defaults to "peaks".
         title : str
-            The title. If ``None``, supress printing channel type. Defaults to
+            The title. If ``None``, suppress printing channel type. Defaults to
             an empty string.
         picks : array-like of int | None
             The indices of channels to plot. If ``None``, show all. Defaults

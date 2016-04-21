@@ -336,7 +336,7 @@ def _make_ecg(inst, start, stop, verbose=None):
     """Create ECG signal from cross channel average
     """
     if not any(c in inst for c in ['mag', 'grad']):
-        raise ValueError('Unable to generate artifical ECG channel')
+        raise ValueError('Unable to generate artificial ECG channel')
     for ch in ['mag', 'grad']:
         if ch in inst:
             break
