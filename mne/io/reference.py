@@ -274,7 +274,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     channels will be dropped.
 
     Multiple anodes and cathodes can be specified, in which case multiple
-    vitual channels will be created. The 1st anode will be subtracted from the
+    virtual channels will be created. The 1st anode will be subtracted from the
     1st cathode, the 2nd anode from the 2nd cathode, etc.
 
     By default, the virtual channels will be annotated with channel info of

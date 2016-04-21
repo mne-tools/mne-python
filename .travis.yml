@@ -73,7 +73,6 @@ install:
         cp codespell-1.8/codespell.py ~/miniconda/envs/testenv/bin;
         rm v1.8.tar.gz;
         rm -r codespell-1.8;
-        which codespell.py;
       fi;
     - pip install -q coveralls nose-timer
     # check our versions for the major packages
