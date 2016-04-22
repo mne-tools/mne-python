@@ -419,6 +419,7 @@ def _make_guesses(surf_or_rad, r0, grid, exclude, mindist, n_jobs):
                        _coord_frame_name(surf['coord_frame'])))
     else:
         radius = surf_or_rad[0]
+        radius = 0.1 if not np.isfinite(radius) else radius
         logger.info('Making a spherical guess space with radius %7.1f mm...'
                     % (1000 * radius))
         surf = _get_ico_surface(3)
@@ -820,7 +821,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         r0 = bem['r0']
         logger.info('Sphere model      : origin at (% 7.2f % 7.2f % 7.2f) mm'
                     % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2]))
-        if 'layers' in bem:
+        if len(bem.get('layers', [])) > 0:
             R = bem['layers'][0]['rad']
         else:
             R = np.inf

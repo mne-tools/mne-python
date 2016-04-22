@@ -220,8 +220,9 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
         raise TypeError('bem must be a string or ConductorModel')
     if bem['is_sphere']:
         logger.info('Using the sphere model.\n')
-        if len(bem['layers']) == 0:
-            raise RuntimeError('Spherical model has zero layers')
+        if len(bem['layers']) == 0 and neeg > 0:
+            raise RuntimeError('Spherical model has zero shells, cannot use '
+                               'with EEG data')
         if bem['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError('Spherical model is not in head coordinates')
     else:
