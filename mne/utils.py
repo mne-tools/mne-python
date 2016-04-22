@@ -565,7 +565,7 @@ class deprecated(object):
         return deprecation_wrapped
 
     def _update_doc(self, olddoc):
-        newdoc = "DEPRECATED"
+        newdoc = ".. warning:: DEPRECATED"
         if self.extra:
             newdoc = "%s: %s" % (newdoc, self.extra)
         if olddoc:

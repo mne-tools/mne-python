@@ -54,7 +54,7 @@ epochs.plot(title='Auditory left/right')
 
 # Look at channels that caused dropped events, showing that the subject's
 # blinks were likely to blame for most epochs being dropped
-epochs.drop_bad_epochs()
+epochs.drop_bad()
 epochs.plot_drop_log(subject='sample')
 
 # Average epochs and get evoked data corresponding to the left stimulation

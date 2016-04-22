@@ -43,6 +43,7 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, object_hash, warn)
+from .utils import deprecated
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
@@ -1070,14 +1071,21 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             border=border, fig_facecolor=fig_facecolor, font_color=font_color,
             show=show)
 
+    @deprecated('drop_bad_epochs method has been renamed drop_bad. '
+                'drop_bad_epochs method will be removed in 0.13')
     def drop_bad_epochs(self, reject='existing', flat='existing'):
+        """Drop bad epochs without retaining the epochs data"""
+        return self.drop_bad(reject, flat)
+
+    @verbose
+    def drop_bad(self, reject='existing', flat='existing', verbose=None):
         """Drop bad epochs without retaining the epochs data.
 
         Should be used before slicing operations.
 
-        .. Warning:: Operation is slow since all epochs have to be read from
-            disk. To avoid reading epochs from disk multiple times, initialize
-            Epochs object with preload=True.
+        .. warning:: This operation is slow since all epochs have to be read
+                     from disk. To avoid reading epochs from disk multiple
+                     times, use :func:`mne.Epochs.load_data()`.
 
         Parameters
         ----------
@@ -1092,6 +1100,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             are floats that set the minimum acceptable peak-to-peak amplitude.
             If flat is None then no rejection is done. If 'existing',
             then the flat parameters set at instantiation are used.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs with bad epochs dropped. Operates in-place.
 
         Notes
         -----
@@ -1111,6 +1127,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('reject and flat, if strings, must be "existing"')
         self._reject_setup(reject, flat)
         self._get_data(out=False)
+        return self
 
     def drop_log_stats(self, ignore=('IGNORED',)):
         """Compute the channel stats based on a drop_log from Epochs.
@@ -1164,7 +1181,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if not self._bad_dropped:
             raise ValueError("You cannot use plot_drop_log since bad "
                              "epochs have not yet been dropped. "
-                             "Use epochs.drop_bad_epochs().")
+                             "Use epochs.drop_bad().")
 
         from .viz import plot_drop_log
         return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
@@ -1233,16 +1250,24 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  cmap=cmap, fig=fig,
                                  overlay_times=overlay_times)
 
-    @verbose
+    @deprecated('drop_epochs method has been renamed drop. '
+                'drop_epochs method will be removed in 0.13')
     def drop_epochs(self, indices, reason='USER', verbose=None):
+        """Drop epochs based on indices or boolean mask"""
+        return self.drop(indices, reason, verbose)
+
+    @verbose
+    def drop(self, indices, reason='USER', verbose=None):
         """Drop epochs based on indices or boolean mask
 
-        Note that the indices refer to the current set of undropped epochs
-        rather than the complete set of dropped and undropped epochs.
-        They are therefore not necessarily consistent with any external indices
-        (e.g., behavioral logs). To drop epochs based on external criteria,
-        do not use the preload=True flag when constructing an Epochs object,
-        and call this method before calling the drop_bad_epochs method.
+        .. note:: The indices refer to the current set of undropped epochs
+                  rather than the complete set of dropped and undropped epochs.
+                  They are therefore not necessarily consistent with any
+                  external indices (e.g., behavioral logs). To drop epochs
+                  based on external criteria, do not use the ``preload=True``
+                  flag when constructing an Epochs object, and call this
+                  method before calling the :func:`mne.Epochs.drop_bad` or
+                  :func:`mne.Epochs.load_data` methods.
 
         Parameters
         ----------
@@ -1255,7 +1280,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Default: 'USER'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-            Defaults to raw.verbose.
+            Defaults to self.verbose.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs with indices dropped. Operates in-place.
         """
         indices = np.atleast_1d(indices)
 
@@ -1280,6 +1310,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         count = len(indices)
         logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
+        return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
         """Method to get a given epoch from disk"""
@@ -1340,7 +1371,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 data[idx] = epoch_out
         else:
             # bads need to be dropped, this might occur after a preload
-            # e.g., when calling drop_bad_epochs w/new params
+            # e.g., when calling drop_bad w/new params
             good_idx = []
             n_out = 0
             assert n_events == len(self.selection)
@@ -1408,7 +1439,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise RuntimeError('Since bad epochs have not been dropped, the '
                                'length of the Epochs is not known. Load the '
                                'Epochs with preload=True, or call '
-                               'Epochs.drop_bad_epochs(). To find the number '
+                               'Epochs.drop_bad(). To find the number '
                                'of events in the Epochs, use '
                                'len(Epochs.events).')
         return len(self.events)
@@ -1553,7 +1584,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Returns
         -------
-        epochs : Epochs instance
+        epochs : instance of Epochs
             The cropped epochs.
 
         Notes
@@ -1682,7 +1713,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
-        self.drop_bad_epochs()
+        self.drop_bad()
         total_size = self[0].get_data().nbytes * len(self)
         n_parts = int(np.ceil(total_size / float(split_size)))
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
@@ -1756,7 +1787,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if len(event_ids) == 0:
             raise ValueError('event_ids must have at least one element')
         if not epochs._bad_dropped:
-            epochs.drop_bad_epochs()
+            epochs.drop_bad()
         # figure out how to equalize
         eq_inds = list()
 
@@ -1810,7 +1841,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         indices = _get_drop_indices(event_times, method)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
-        epochs.drop_epochs(indices, reason='EQUALIZED_COUNT')
+        epochs.drop(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices
 
@@ -1964,7 +1995,7 @@ class Epochs(_BaseEpochs):
         'NO_DATA' or 'TOO_SHORT' if epoch didn't contain enough data;
         names of channels that exceeded the amplitude threshold;
         'EQUALIZED_COUNTS' (see equalize_event_counts);
-        or 'USER' for user-defined reasons (see drop_epochs).
+        or 'USER' for user-defined reasons (see drop method).
     verbose : bool, str, int, or None
         See above.
 
@@ -2151,7 +2182,7 @@ class EpochsArray(_BaseEpochs):
         for ii, e in enumerate(self._data):
             # This is safe without assignment b/c there is no decim
             self._detrend_offset_decim(e)
-        self.drop_bad_epochs()
+        self.drop_bad()
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
@@ -2245,11 +2276,11 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     # make sure bad epochs are dropped
     for e in epochs_list:
         if not e._bad_dropped:
-            e.drop_bad_epochs()
+            e.drop_bad()
     event_times = [e.events[:, 0] for e in epochs_list]
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):
-        e.drop_epochs(inds, reason='EQUALIZED_COUNT')
+        e.drop(inds, reason='EQUALIZED_COUNT')
 
 
 def _get_drop_indices(event_times, method):
@@ -2607,7 +2638,7 @@ class EpochsFIF(_BaseEpochs):
             name=name, proj=proj, add_eeg_ref=add_eeg_ref,
             preload_at_end=False, on_missing='ignore', selection=selection,
             drop_log=drop_log, verbose=verbose)
-        # use the private property instead of drop_bad_epochs so that epochs
+        # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
 
@@ -2703,7 +2734,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
 
     Returns
     -------
-    epochs : Epochs
+    epochs : instance of Epochs
         Concatenated epochs.
     """
     if not all(e.preload for e in epochs_list):
@@ -2807,7 +2838,7 @@ def _finish_concat(info, data, events, event_id, tmin, tmax, baseline,
                       baseline=baseline, add_eeg_ref=False,
                       selection=selection, drop_log=drop_log,
                       proj=False, on_missing='ignore', verbose=verbose)
-    out.drop_bad_epochs()
+    out.drop_bad()
     return out
 
 

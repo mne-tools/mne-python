@@ -42,7 +42,7 @@ print('Number of events:', len(events))
 print('Unique event codes:', np.unique(events[:, 2]))
 
 # Specify event codes of interest with descriptive labels
-event_id = dict(left=1, right=2)
+event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 
 ###############################################################################
 # Now, we can create an :class:`mne.Epochs` object with the events we've
@@ -71,7 +71,7 @@ print(epochs.events[:3], epochs.event_id, sep='\n\n')
 # `event_id` then you may index with strings instead.
 
 print(epochs[1:5])
-print(epochs['right'])
+print(epochs['aud_r'])
 
 ###############################################################################
 # It is also possible to iterate through :class:`Epochs <mne.Epochs>` objects
@@ -85,6 +85,25 @@ for i in range(3):
 # These will be arrays
 for ep in epochs[:2]:
     print(ep)
+
+###############################################################################
+# You can manually remove epochs from the Epochs object by using
+# :func:`epochs.drop(idx) <mne.Epochs.drop>`, or by using rejection or flat
+# thresholds with :func:`epochs.drop_bad(reject, flat) <mne.Epochs.drop_bad>`.
+# You can also inspect the reason why epochs were dropped by looking at the
+# list stored in ``epochs.drop_log`` or plot them with
+# :func:`epochs.plot_drop_log() <mne.Epochs.plot_drop_log>`. The indices
+# from the original set of events are stored in ``epochs.selection``.
+
+epochs.drop([0], reason='User reason')
+epochs.drop_bad(reject=dict(grad=2500e-13, mag=4e-12, eog=200e-6), flat=None)
+print(epochs.drop_log)
+epochs.plot_drop_log()
+print('Selection from original events:\n%s' % epochs.selection)
+print('Removed events (from numpy setdiff1d):\n%s'
+      % (np.setdiff1d(np.arange(len(events)), epochs.selection).tolist(),))
+print('Removed events (from list comprehension -- should match!):\n%s'
+      % ([li for li, log in enumerate(epochs.drop_log) if len(log) > 0]))
 
 ###############################################################################
 # If you wish to save the epochs as a file, you can do it with
@@ -105,11 +124,11 @@ epochs = mne.read_epochs(epochs_fname)
 # creating `Evoked` from other data structures see :class:`mne.EvokedArray` and
 # :ref:`tut_creating_data_structures`.
 
-ev_left = epochs['left'].average()
-ev_right = epochs['right'].average()
+ev_left = epochs['aud_l'].average()
+ev_right = epochs['aud_r'].average()
 
 f, axs = plt.subplots(3, 2, figsize=(10, 5))
-_ = f.suptitle('Left / Right', fontsize=20)
+_ = f.suptitle('Left / Right auditory', fontsize=20)
 _ = ev_left.plot(axes=axs[:, 0], show=False)
 _ = ev_right.plot(axes=axs[:, 1], show=False)
 plt.tight_layout()

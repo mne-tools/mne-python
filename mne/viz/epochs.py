@@ -249,6 +249,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     plt.ylabel('% of epochs rejected')
     plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
     plt.grid(True, axis='y')
+    tight_layout(pad=1, fig=fig)
     plt_show(show)
     return fig
 
@@ -300,7 +301,7 @@ def _epochs_navigation_onclick(event, params):
         here = -1
     elif event.inaxes == p['reject-quit'].ax:
         if p['reject_idx']:
-            p['epochs'].drop_epochs(p['reject_idx'])
+            p['epochs'].drop(p['reject_idx'])
         plt.close(p['fig'])
         plt.close(event.inaxes.get_figure())
 
@@ -398,7 +399,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     with home/end and page down/page up keys. Butterfly plot can be toggled
     with ``b`` key. Right mouse click adds a vertical line to the plot.
     """
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
     scalings = _handle_default('scalings_plot_raw', scalings)
 
     projs = epochs.info['projs']
@@ -1343,7 +1344,7 @@ def _onpick(event, params):
 
 def _close_event(event, params):
     """Function to drop selected bad epochs. Called on closing of the plot."""
-    params['epochs'].drop_epochs(params['bads'])
+    params['epochs'].drop(params['bads'])
     params['epochs'].info['bads'] = params['info']['bads']
     logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
 

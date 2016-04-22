@@ -68,7 +68,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
     else:
         epochs = epochs[conditions]
 
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
 
     if len(conditions) != 2:
         raise ValueError('Currently this function expects exactly 2 '

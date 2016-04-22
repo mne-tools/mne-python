@@ -204,8 +204,8 @@ def test_reject():
             # no rejection
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             preload=preload)
-            assert_raises(ValueError, epochs.drop_bad_epochs, reject='foo')
-            epochs.drop_bad_epochs()
+            assert_raises(ValueError, epochs.drop_bad, reject='foo')
+            epochs.drop_bad()
             assert_equal(len(epochs), len(events))
             assert_array_equal(epochs.selection, np.arange(len(events)))
             assert_array_equal(epochs.drop_log, [[]] * 7)
@@ -216,7 +216,7 @@ def test_reject():
             # with rejection
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             reject=reject, preload=preload)
-            epochs.drop_bad_epochs()
+            epochs.drop_bad()
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.selection, selection)
             assert_array_equal(epochs.drop_log, drop_log)
@@ -225,10 +225,10 @@ def test_reject():
             # rejection post-hoc
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             preload=preload)
-            epochs.drop_bad_epochs()
+            epochs.drop_bad()
             assert_equal(len(epochs), len(events))
             assert_array_equal(epochs.get_data(), data_7[proj])
-            epochs.drop_bad_epochs(reject)
+            epochs.drop_bad(reject)
             assert_equal(len(epochs), len(events) - 4)
             assert_equal(len(epochs), len(epochs.get_data()))
             assert_array_equal(epochs.selection, selection)
@@ -239,21 +239,21 @@ def test_reject():
             reject_part = dict(grad=1100e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             reject=reject_part, preload=preload)
-            epochs.drop_bad_epochs()
+            epochs.drop_bad()
             assert_equal(len(epochs), len(events) - 1)
-            epochs.drop_bad_epochs(reject)
+            epochs.drop_bad(reject)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.selection, selection)
             assert_array_equal(epochs.drop_log, drop_log)
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # ensure that thresholds must become more stringent, not less
-            assert_raises(ValueError, epochs.drop_bad_epochs, reject_part)
+            assert_raises(ValueError, epochs.drop_bad, reject_part)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
-            epochs.drop_bad_epochs(flat=dict(mag=1.))
+            epochs.drop_bad(flat=dict(mag=1.))
             assert_equal(len(epochs), 0)
-            assert_raises(ValueError, epochs.drop_bad_epochs,
+            assert_raises(ValueError, epochs.drop_bad,
                           flat=dict(mag=0.))
 
             # rejection of subset of trials (ensure array ownership)
@@ -261,7 +261,7 @@ def test_reject():
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             reject=None, preload=preload)
             epochs = epochs[:-1]
-            epochs.drop_bad_epochs(reject=reject)
+            epochs.drop_bad(reject=reject)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
@@ -270,7 +270,7 @@ def test_reject():
                                           [1], ['BAD'])
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=[0],
                             reject=None, preload=preload)
-            epochs.drop_bad_epochs()
+            epochs.drop_bad()
             assert_equal(len(events) - 1, len(epochs.events))
             assert_equal(epochs.drop_log[0][0], 'BAD')
             raw.annotations = None
@@ -485,7 +485,7 @@ def test_read_epochs_bad_events():
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks, baseline=(None, 0))
     assert_true(repr(epochs))  # test repr
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
     assert_true(repr(epochs))
     with warnings.catch_warnings(record=True):
         evoked = epochs.average()
@@ -658,7 +658,7 @@ def test_read_write_epochs():
         # test equalizing loaded one (drop_log property)
         epochs_read4.equalize_event_counts(epochs.event_id)
 
-        epochs.drop_epochs([1, 2], reason='can we recover orig ID?')
+        epochs.drop([1, 2], reason='can we recover orig ID?')
         epochs.save(temp_fname)
         epochs_read5 = read_epochs(temp_fname, preload=preload)
         assert_array_equal(epochs_read5.selection, epochs.selection)
@@ -911,7 +911,7 @@ def test_reject_epochs():
     reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-9, eog=150e-9)
     epochs = Epochs(raw_2, events1, event_id, tmin, tmax, baseline=(None, 0),
                     reject=reject_crazy, flat=flat)
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
 
     assert_true(all('MEG 2442' in e for e in epochs.drop_log))
     assert_true(all('MEG 2443' not in e for e in epochs.drop_log))
@@ -985,7 +985,7 @@ def test_indexing_slicing():
                          reject=reject, flat=flat)
 
         if not preload:
-            epochs2.drop_bad_epochs()
+            epochs2.drop_bad()
 
         # using slicing
         epochs2_sliced = epochs2[start_index:end_index]
@@ -1279,7 +1279,7 @@ def test_epoch_eq():
     # equalizing epochs objects
     epochs_1 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     epochs_2 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
-    epochs_1.drop_bad_epochs()  # make sure drops are logged
+    epochs_1.drop_bad()  # make sure drops are logged
     assert_true(len([l for l in epochs_1.drop_log if not l]) ==
                 len(epochs_1.events))
     drop_log1 = epochs_1.drop_log = [[] for _ in range(len(epochs_1.events))]
@@ -1300,7 +1300,7 @@ def test_epoch_eq():
     # equalizing conditions
     epochs = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
                     tmin, tmax, picks=picks, reject=reject)
-    epochs.drop_bad_epochs()  # make sure drops are logged
+    epochs.drop_bad()  # make sure drops are logged
     assert_true(len([l for l in epochs.drop_log if not l]) ==
                 len(epochs.events))
     drop_log1 = deepcopy(epochs.drop_log)
@@ -1620,9 +1620,9 @@ def test_drop_epochs():
     events1 = events[events[:, 2] == event_id]
 
     # Bound checks
-    assert_raises(IndexError, epochs.drop_epochs, [len(epochs.events)])
-    assert_raises(IndexError, epochs.drop_epochs, [-1])
-    assert_raises(ValueError, epochs.drop_epochs, [[1, 2], [3, 4]])
+    assert_raises(IndexError, epochs.drop, [len(epochs.events)])
+    assert_raises(IndexError, epochs.drop, [-1])
+    assert_raises(ValueError, epochs.drop, [[1, 2], [3, 4]])
 
     # Test selection attribute
     assert_array_equal(epochs.selection,
@@ -1633,7 +1633,7 @@ def test_drop_epochs():
 
     selection = epochs.selection.copy()
     n_events = len(epochs.events)
-    epochs.drop_epochs([2, 4], reason='d')
+    epochs.drop([2, 4], reason='d')
     assert_equal(epochs.drop_log_stats(), 2. / n_events * 100)
     assert_equal(len(epochs.drop_log), len(events))
     assert_equal([epochs.drop_log[k]
