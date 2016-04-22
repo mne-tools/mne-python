@@ -148,6 +148,8 @@ API
 
     - Rename and deprecate :func:`mne.Epochs.drop_bad_epochs` to :func:`mne.Epochs.drop_bad`, and :func:`mne.Epochs.drop_epochs` to :func:`mne.Epochs.drop` by `Alex Gramfort`_.
 
+    - The C wrapper :func:`mne.do_forward_solution` has been deprecated in favor of the native Python version :func:`mne.make_forward_solution` by `Eric Larson`_
+
 .. _changes_0_11:
 
 Version 0.11
