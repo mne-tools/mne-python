@@ -717,7 +717,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
         params['fig_proj'].canvas.draw()
 
 
-def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
+def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
                       show=True, block=False, n_jobs=1, verbose=None):

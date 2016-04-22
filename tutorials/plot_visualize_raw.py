@@ -75,7 +75,16 @@ raw.plot()
 # inspecting the effect. See :func:`mne.io.Raw.del_proj` to actually remove the
 # projectors.
 #
-# Raw container also lets us easily plot the overall and channel wise power
-# spectra over the raw data. See the API documentation for more info.
+# Raw container also lets us easily plot the power spectra over the raw data.
+# See the API documentation for more info.
 raw.plot_psd()
-raw.plot_psd_topo()
+
+###############################################################################
+# Plotting channel wise power spectra is just as easy. The layout is inferred
+# from the data by default when plotting topo plots. This works for most data,
+# but it is also possible to define the layouts by hand. Here we select a
+# layout with only magnetometer channels and plot it. Then we plot the channel
+# wise spectra of first 30 seconds of the data.
+layout = mne.channels.read_layout('Vectorview-mag')
+layout.plot()
+raw.plot_psd_topo(tmax=30., fmin=5., fmax=60., n_fft=1024, layout=layout)

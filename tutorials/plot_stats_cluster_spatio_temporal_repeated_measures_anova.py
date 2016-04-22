@@ -181,6 +181,7 @@ n_conditions = 4
 # Note. for further details on this ANOVA function consider the
 # corresponding
 # :ref:`time frequency tutorial <tut_stats_cluster_sensor_rANOVA_tfr>`.
+
 def stat_fun(*args):
     return f_mway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
                      effects=effects, return_pvals=return_pvals)[0]

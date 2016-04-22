@@ -46,17 +46,17 @@ raw.info['bads'] = ['MEG 2443']
 # Recommended ways to identify bad channels are:
 #
 # - Observe the quality of data during data
-#     acquisition and make notes of observed malfunctioning channels to
-#     your measurement protocol sheet.
+#   acquisition and make notes of observed malfunctioning channels to
+#   your measurement protocol sheet.
 #
 # - View the on-line averages and check the condition of the channels.
 #
 # - Compute preliminary off-line averages with artifact rejection,
-#     SSP/ICA, and EEG average electrode reference computation
-#     off and check the condition of the channels.
+#   SSP/ICA, and EEG average electrode reference computation
+#   off and check the condition of the channels.
 #
 # - View raw data with :func:`mne.io.Raw.plot` without SSP/ICA
-#     enabled and identify bad channels.
+#   enabled and identify bad channels.
 #
 # .. note::
 #     Setting the bad channels should be done as early as possible in the
