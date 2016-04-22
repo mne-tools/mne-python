@@ -188,6 +188,7 @@ effects = 'A:B'
 # The following function catches the list input and swaps the first and
 # the second dimension and finally calls the ANOVA function.
 
+
 def stat_fun(*args):
     return f_mway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
                      effects=effects, return_pvals=False)[0]
