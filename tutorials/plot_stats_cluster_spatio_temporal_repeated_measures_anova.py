@@ -39,6 +39,7 @@ print(__doc__)
 
 ###############################################################################
 # Set parameters
+# --------------
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -53,6 +54,7 @@ events = mne.read_events(event_fname)
 
 ###############################################################################
 # Read epochs for all channels, removing a bad one
+# ------------------------------------------------
 raw.info['bads'] += ['MEG 2443']
 picks = mne.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 # we'll load all four conditions that make up the 'two ways' of our ANOVA
@@ -68,7 +70,7 @@ epochs.equalize_event_counts(event_id, copy=False)
 
 ###############################################################################
 # Transform to source space
-
+# -------------------------
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
@@ -94,13 +96,14 @@ tstep = conditions[0].tstep
 
 ###############################################################################
 # Transform to common cortical space
-
-#    Normally you would read in estimates across several subjects and morph
-#    them to the same cortical space (e.g. fsaverage). For example purposes,
-#    we will simulate this by just having each "subject" have the same
-#    response (just noisy in source space) here.
-
-# we'll only consider the left hemisphere in this example.
+# ----------------------------------
+#
+# Normally you would read in estimates across several subjects and morph them
+# to the same cortical space (e.g. fsaverage). For example purposes, we will
+# simulate this by just having each "subject" have the same response (just
+# noisy in source space) here.
+#
+# We'll only consider the left hemisphere in this tutorial.
 n_vertices_sample, n_times = conditions[0].lh_data.shape
 n_subjects = 7
 print('Simulating data for %d subjects.' % n_subjects)
@@ -111,12 +114,13 @@ X = randn(n_vertices_sample, n_times, n_subjects, 4) * 10
 for ii, condition in enumerate(conditions):
     X[:, :, :, ii] += condition.lh_data[:, :, np.newaxis]
 
-#    It's a good idea to spatially smooth the data, and for visualization
-#    purposes, let's morph these to fsaverage, which is a grade 5 source space
-#    with vertices 0:10242 for each hemisphere. Usually you'd have to morph
-#    each subject's data separately (and you might want to use morph_data
-#    instead), but here since all estimates are on 'sample' we can use one
-#    morph matrix for all the heavy lifting.
+###############################################################################
+# It's a good idea to spatially smooth the data, and for visualization
+# purposes, let's morph these to fsaverage, which is a grade 5 source space
+# with vertices 0:10242 for each hemisphere. Usually you'd have to morph
+# each subject's data separately (and you might want to use morph_data
+# instead), but here since all estimates are on 'sample' we can use one
+# morph matrix for all the heavy lifting.
 fsave_vertices = [np.arange(10242), np.array([], int)]  # right hemi is empty
 morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
                                  fsave_vertices, 20, subjects_dir)
@@ -128,32 +132,35 @@ print('Morphing data.')
 X = morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 
-#    Now we need to prepare the group matrix for the ANOVA statistic.
-#    To make the clustering function work correctly with the
-#    ANOVA function X needs to be a list of multi-dimensional arrays
-#    (one per condition) of shape: samples (subjects) x time x space
-
-X = np.transpose(X, [2, 1, 0, 3])  # First we permute dimensions
-# finally we split the array into a list a list of conditions
-# and discard the empty dimension resulting from the split using numpy squeeze
+###############################################################################
+# Now we need to prepare the group matrix for the ANOVA statistic. To make the
+# clustering function work correctly with the ANOVA function X needs to be a
+# list of multi-dimensional arrays (one per condition) of shape: samples
+# (subjects) x time x space.
+#
+# First we permute dimensions, then split the array into a list of conditions
+# and discard the empty dimension resulting from the split using numpy squeeze.
+X = np.transpose(X, [2, 1, 0, 3])  #
 X = [np.squeeze(x) for x in np.split(X, 4, axis=-1)]
 
 ###############################################################################
 # Prepare function for arbitrary contrast
-
+# ---------------------------------------
 # As our ANOVA function is a multi-purpose tool we need to apply a few
 # modifications to integrate it with the clustering function. This
 # includes reshaping data, setting default arguments and processing
 # the return values. For this reason we'll write a tiny dummy function.
-
+#
 # We will tell the ANOVA how to interpret the data matrix in terms of
 # factors. This is done via the factor levels argument which is a list
 # of the number factor levels for each factor.
 factor_levels = [2, 2]
 
+###############################################################################
 # Finally we will pick the interaction effect by passing 'A:B'.
-# (this notation is borrowed from the R formula language)
-effects = 'A:B'  # Without this also the main effects will be returned.
+# (this notation is borrowed from the R formula language). Without this also
+# the main effects will be returned.
+effects = 'A:B'
 # Tell the ANOVA not to compute p-values which we don't need for clustering
 return_pvals = False
 
@@ -161,26 +168,30 @@ return_pvals = False
 n_times = X[0].shape[1]
 n_conditions = 4
 
-
+###############################################################################
 # A stat_fun must deal with a variable number of input arguments.
+#
+# Inside the clustering function each condition will be passed as flattened
+# array, necessitated by the clustering procedure. The ANOVA however expects an
+# input array of dimensions: subjects X conditions X observations (optional).
+#
+# The following function catches the list input and swaps the first and the
+# second dimension, and finally calls ANOVA.
+#
+# Note. for further details on this ANOVA function consider the
+# corresponding
+# :ref:`time frequency tutorial <tut_stats_cluster_sensor_rANOVA_tfr>`.
 def stat_fun(*args):
-    # Inside the clustering function each condition will be passed as
-    # flattened array, necessitated by the clustering procedure.
-    # The ANOVA however expects an input array of dimensions:
-    # subjects X conditions X observations (optional).
-    # The following expression catches the list input
-    # and swaps the first and the second dimension, and finally calls ANOVA.
     return f_mway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
                      effects=effects, return_pvals=return_pvals)[0]
     # get f-values only.
-    # Note. for further details on this ANOVA function consider the
-    # corresponding time frequency example.
 
 ###############################################################################
 # Compute clustering statistic
-
-#    To use an algorithm optimized for spatio-temporal clustering, we
-#    just pass the spatial connectivity matrix (instead of spatio-temporal)
+# ----------------------------
+#
+# To use an algorithm optimized for spatio-temporal clustering, we
+# just pass the spatial connectivity matrix (instead of spatio-temporal).
 
 source_space = grade_to_tris(5)
 # as we only have one hemisphere we need only need half the connectivity
@@ -208,6 +219,7 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 
 ###############################################################################
 # Visualize the clusters
+# ----------------------
 
 print('Visualizing clusters.')
 

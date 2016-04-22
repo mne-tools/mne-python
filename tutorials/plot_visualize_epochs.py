@@ -48,7 +48,7 @@ epochs.plot(block=True)
 epochs.plot_image(97)
 
 # You also have functions for plotting channelwise information arranged into a
-# shape of the channel array, The image plotting uses automatic scaling by
+# shape of the channel array. The image plotting uses automatic scaling by
 # default, but noisy channels and different channel types can cause the scaling
 # to be a bit off. Here we define the limits by hand.
 epochs.plot_topo_image(vmin=-200, vmax=200, title='ERF images')

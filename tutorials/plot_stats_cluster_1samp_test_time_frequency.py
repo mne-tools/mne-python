@@ -35,6 +35,7 @@ print(__doc__)
 
 ###############################################################################
 # Set parameters
+# --------------
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_id = 1
@@ -99,6 +100,7 @@ epochs_power = np.log10(epochs_power)  # take log of ratio
 
 ###############################################################################
 # Compute statistic
+# -----------------
 threshold = 2.5
 T_obs, clusters, cluster_p_values, H0 = \
     permutation_cluster_1samp_test(epochs_power, n_permutations=100,
@@ -106,6 +108,7 @@ T_obs, clusters, cluster_p_values, H0 = \
 
 ###############################################################################
 # View time-frequency plots
+# -------------------------
 plt.clf()
 plt.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
 plt.subplot(2, 1, 1)

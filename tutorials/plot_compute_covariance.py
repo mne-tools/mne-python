@@ -20,6 +20,7 @@ raw_empty_room_fname = op.join(
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(raw_fname)
+raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 ###############################################################################
 # The definition of noise depends on the paradigm. In MEG it is quite common
@@ -53,8 +54,12 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.0,
 noise_cov_baseline = mne.compute_covariance(epochs)
 
 ###############################################################################
-# Plot the covariance matrices.
-noise_cov.plot(raw_empty_room.info)
+# Plot the covariance matrices
+# ----------------------------
+#
+# Try setting proj to False to see the effect. Notice that the projectors in
+# epochs are already applied, so ``proj`` parameter has no effect.
+noise_cov.plot(raw_empty_room.info, proj=True)
 noise_cov_baseline.plot(epochs.info)
 
 ###############################################################################

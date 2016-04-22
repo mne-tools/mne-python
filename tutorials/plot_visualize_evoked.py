@@ -25,10 +25,10 @@ print(evoked)
 # of the categories by passing the argument ``condition`` to
 # :func:`mne.read_evokeds`. To make things more simple for this tutorial, we
 # read each instance to a variable.
-evoked_laud = evoked[0]
-evoked_raud = evoked[1]
-evoked_lvis = evoked[2]
-evoked_rvis = evoked[3]
+evoked_l_aud = evoked[0]
+evoked_r_aud = evoked[1]
+evoked_l_vis = evoked[2]
+evoked_r_vis = evoked[3]
 
 ###############################################################################
 # Let's start with a simple one. Here we plot event related potentials / fields
@@ -36,7 +36,7 @@ evoked_rvis = evoked[3]
 # set the exclude parameter to show the bad channels in red. All plotting
 # functions of MNE-python return a handle to the figure instance. When we have
 # the handle, we can customise the plots to our liking.
-fig = evoked_laud.plot(exclude=())
+fig = evoked_l_aud.plot(exclude=())
 
 # We can get rid of the empty space with a simple function call.
 fig.tight_layout()
@@ -47,8 +47,8 @@ fig.tight_layout()
 # channels. ``picks`` is simply a list of channel indices that you can easily
 # construct with :func:`mne.pick_types`. See also :func:`mne.pick_channels` and
 # :func:`mne.pick_channels_regexp`.
-picks = mne.pick_types(evoked_laud.info, meg=True, eeg=False, eog=False)
-evoked_laud.plot(spatial_colors=True, gfp=True, picks=picks)
+picks = mne.pick_types(evoked_l_aud.info, meg=True, eeg=False, eog=False)
+evoked_l_aud.plot(spatial_colors=True, gfp=True, picks=picks)
 
 ###############################################################################
 # Notice the legend on the left. The colors would suggest that there may be two
@@ -56,17 +56,17 @@ evoked_laud.plot(spatial_colors=True, gfp=True, picks=picks)
 # Try painting the slopes with left mouse button. It should open a new window
 # with topomaps (scalp plots) of the average over the painted area. There is
 # also a function for drawing topomaps separately.
-evoked_raud.plot_topomap()
+evoked_r_aud.plot_topomap()
 
 ###############################################################################
 # By default the topomaps are drawn from evenly spread out points of time over
 # the evoked data. We can also define the times ourselves.
 times = np.arange(0.05, 0.151, 0.05)
-evoked_raud.plot_topomap(times=times, ch_type='mag')
+evoked_r_aud.plot_topomap(times=times, ch_type='mag')
 
 ###############################################################################
 # Or we can automatically select the peaks.
-evoked_raud.plot_topomap(times='peaks', ch_type='mag')
+evoked_r_aud.plot_topomap(times='peaks', ch_type='mag')
 
 ###############################################################################
 # You can take a look at the documentation of :func:`mne.Evoked.plot_topomap`
@@ -77,10 +77,10 @@ evoked_raud.plot_topomap(times='peaks', ch_type='mag')
 # axes in a single figure and plot all of our evoked categories next to each
 # other.
 fig, ax = plt.subplots(1, 5)
-evoked_laud.plot_topomap(times=0.1, axes=ax[0], show=False)
-evoked_raud.plot_topomap(times=0.1, axes=ax[1], show=False)
-evoked_lvis.plot_topomap(times=0.1, axes=ax[2], show=False)
-evoked_rvis.plot_topomap(times=0.1, axes=ax[3], show=True)
+evoked_l_aud.plot_topomap(times=0.1, axes=ax[0], show=False)
+evoked_r_aud.plot_topomap(times=0.1, axes=ax[1], show=False)
+evoked_l_vis.plot_topomap(times=0.1, axes=ax[2], show=False)
+evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
 
 ###############################################################################
 # Notice that we created five axes, but had only four categories. The fifth
@@ -98,7 +98,7 @@ evoked_rvis.plot_topomap(times=0.1, axes=ax[3], show=True)
 # topomaps of the joint plot. Here we disable the plotting of sensor locations
 # in the topomaps
 topomap_args = dict(sensors=False)
-evoked_raud.plot_joint(topomap_args=topomap_args)
+evoked_r_aud.plot_joint(topomap_args=topomap_args)
 
 ###############################################################################
 # We can also plot the activations as images. The time runs along the x-axis
@@ -106,14 +106,14 @@ evoked_raud.plot_joint(topomap_args=topomap_args)
 # the amplitudes from negative to positive translates to shift from blue to
 # red. White means zero amplitude. You can use the ``cmap`` parameter to define
 # the color map yourself. The accepted values include all matplotlib colormaps.
-evoked_laud.plot_image(picks=picks)
+evoked_l_aud.plot_image(picks=picks)
 
 ###############################################################################
 # Finally we plot the sensor data as a topographical view. In the simple case
 # we plot only left auditory responses, and then we plot them all in the same
 # figure for comparison. Click on the individual plots to open them bigger.
 title = 'MNE sample data (condition : %s)'
-evoked_laud.plot_topo(title=title % evoked_laud.comment)
+evoked_l_aud.plot_topo(title=title % evoked_l_aud.comment)
 colors = 'yellow', 'green', 'red', 'blue'
 mne.viz.plot_evoked_topo(evoked, color=colors,
                          title=title % 'Left/Right Auditory/Visual')
@@ -133,12 +133,12 @@ mne.viz.plot_evoked_topo(evoked, color=colors,
 subjects_dir = data_path + '/subjects'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 
-maps = mne.make_field_map(evoked_laud, trans=trans_fname, subject='sample',
+maps = mne.make_field_map(evoked_l_aud, trans=trans_fname, subject='sample',
                           subjects_dir=subjects_dir, n_jobs=1)
 
 # explore several points in time
-field_map = evoked_laud.plot_field(maps, time=.1)
+field_map = evoked_l_aud.plot_field(maps, time=.1)
 
 ###############################################################################
 # .. note::
-#       If trans_fname is set to None then only MEG estimates can be visualized
+#     If trans_fname is set to None then only MEG estimates can be visualized.

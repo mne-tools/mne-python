@@ -28,6 +28,7 @@ print(__doc__)
 
 ###############################################################################
 # Set parameters
+# --------------
 data_path = sample.data_path()
 stc_fname = data_path + '/MEG/sample/sample_audvis-meg-lh.stc'
 subjects_dir = data_path + '/subjects'
@@ -58,9 +59,10 @@ X2 = np.abs(X2)  # only magnitude
 
 ###############################################################################
 # Compute statistic
-
-#    To use an algorithm optimized for spatio-temporal clustering, we
-#    just pass the spatial connectivity matrix (instead of spatio-temporal)
+# -----------------
+#
+# To use an algorithm optimized for spatio-temporal clustering, we
+# just pass the spatial connectivity matrix (instead of spatio-temporal)
 print('Computing connectivity.')
 connectivity = spatial_tris_connectivity(grade_to_tris(5))
 
@@ -85,6 +87,7 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 
 ###############################################################################
 # Visualize the clusters
+# ----------------------
 
 print('Visualizing clusters.')
 
