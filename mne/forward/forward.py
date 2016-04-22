@@ -42,7 +42,7 @@ from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose,
-                     deprecated, _check_copy_dep)
+                     deprecated)
 from ..label import Label
 
 
