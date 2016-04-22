@@ -1461,7 +1461,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         raise ValueError('meas must be string, Raw, Epochs, or Evoked')
 
     if meas_data is not None:
-        meas = op.join(temp_dir, 'evoked.fif')
+        meas = op.join(temp_dir, 'evoked-ave.fif')
         write_evokeds(meas, meas_data)
 
     # deal with trans/mri
