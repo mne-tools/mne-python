@@ -92,12 +92,18 @@ for ep in epochs[:2]:
 # thresholds with :func:`epochs.drop_bad(reject, flat) <mne.Epochs.drop_bad>`.
 # You can also inspect the reason why epochs were dropped by looking at the
 # list stored in ``epochs.drop_log`` or plot them with
-# :func:`epochs.plot_drop_log() <mne.Epochs.plot_drop_log>`.
+# :func:`epochs.plot_drop_log() <mne.Epochs.plot_drop_log>`. The indices
+# from the original set of events are stored in ``epochs.selection``.
 
 epochs.drop([0], reason='User reason')
 epochs.drop_bad(reject=dict(grad=2500e-13, mag=4e-12, eog=200e-6), flat=None)
 print(epochs.drop_log)
 epochs.plot_drop_log()
+print('Selection from original events:\n%s' % epochs.selection)
+print('Removed events (from numpy setdiff1d):\n%s'
+      % (np.setdiff1d(np.arange(len(events)), epochs.selection).tolist(),))
+print('Removed events (from list comprehension -- should match!):\n%s'
+      % ([li for li, log in enumerate(epochs.drop_log) if len(log) > 0]))
 
 ###############################################################################
 # If you wish to save the epochs as a file, you can do it with

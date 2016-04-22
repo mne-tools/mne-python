@@ -1250,8 +1250,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  cmap=cmap, fig=fig,
                                  overlay_times=overlay_times)
 
-    @deprecated('drop_bad method has been renamed drop_bad. '
-                'drop_bad method will be removed in 0.13')
+    @deprecated('drop_epochs method has been renamed drop. '
+                'drop_epochs method will be removed in 0.13')
     def drop_epochs(self, indices, reason='USER', verbose=None):
         """Drop epochs based on indices or boolean mask"""
         return self.drop(indices, reason, verbose)
