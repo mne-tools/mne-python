@@ -69,8 +69,9 @@ def _contains_ch_type(info, ch_type):
         raise ValueError('`ch_type` is of class {actual_class}. It must be '
                          '`str`'.format(actual_class=type(ch_type)))
 
+    meg_extras = ['mag', 'grad', 'planar1', 'planar2']
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
-                                  if key != 'meg'] + ['mag', 'grad'])
+                                  if key != 'meg'] + meg_extras)
     if ch_type not in valid_channel_types:
         raise ValueError('ch_type must be one of %s, not "%s"'
                          % (valid_channel_types, ch_type))
