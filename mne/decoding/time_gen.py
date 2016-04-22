@@ -8,7 +8,7 @@
 import numpy as np
 import copy
 
-from ..io.pick import pick_types
+from ..io.pick import _pick_data_channels
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import warn, check_version
@@ -620,9 +620,7 @@ def _check_epochs_input(epochs, y, picks=None):
 
     # Pick channels
     if picks is None:  # just use good data channels
-        picks = pick_types(epochs.info, meg=True, eeg=True, seeg=True,
-                           eog=False, ecg=False, misc=False, stim=False,
-                           ref_meg=False, exclude='bads')
+        picks = _pick_data_channels(epochs.info, with_ref_meg=False)
     if isinstance(picks, (list, np.ndarray)):
         picks = np.array(picks, dtype=np.int)
     else:

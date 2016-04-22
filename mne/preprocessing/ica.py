@@ -22,7 +22,7 @@ from .infomax_ import infomax
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
 from ..io.pick import (pick_types, pick_channels, pick_info,
-                       _pick_data_channels)
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
 from ..io.write import (write_double_matrix, write_string,
                         write_name_list, write_int, start_block,
                         end_block)
@@ -263,8 +263,7 @@ class ICA(ContainsMixin):
               hasattr(self, 'n_components_') else
               'no dimension reduction')
         if self.info is not None:
-            ch_fit = ['"%s"' % c for c in ['mag', 'grad', 'eeg', 'seeg']
-                      if c in self]
+            ch_fit = ['"%s"' % c for c in _DATA_CH_TYPES_SPLIT if c in self]
             s += ', channels used: {0}'.format('; '.join(ch_fit))
         if self.exclude:
             s += ', %i sources marked for exclusion' % len(self.exclude)
@@ -299,7 +298,7 @@ class ICA(ContainsMixin):
             within ``start`` and ``stop`` are used.
         reject : dict | None
             Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'seeg' | 'eog' | 'ecg'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg'.
             If reject is None then no rejection is done. Example::
 
                 reject = dict(grad=4000e-13, # T / m (gradiometers)
@@ -311,8 +310,8 @@ class ICA(ContainsMixin):
             It only applies if `inst` is of type Raw.
         flat : dict | None
             Rejection parameters based on flatness of signal.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'seeg' | 'eog' | 'ecg', and
-            values are floats that set the minimum acceptable peak-to-peak
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg'.
+            Values are floats that set the minimum acceptable peak-to-peak
             amplitude. If flat is None then no rejection is done.
             It only applies if `inst` is of type Raw.
         tstep : float
@@ -441,17 +440,16 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = pick_info(info, picks)
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in ['mag', 'grad', 'eeg', 'seeg']:
+            for ch_type in _DATA_CH_TYPES_SPLIT:
                 if _contains_ch_type(info, ch_type):
                     if ch_type == 'seeg':
-                        this_picks = pick_types(info, meg=False, eeg=False,
-                                                seeg=True)
+                        this_picks = pick_types(info, meg=False, seeg=True)
+                    elif ch_type == 'ecog':
+                        this_picks = pick_types(info, meg=False, ecog=True)
                     elif ch_type == 'eeg':
-                        this_picks = pick_types(info, meg=False, eeg=True,
-                                                seeg=False)
+                        this_picks = pick_types(info, meg=False, eeg=True)
                     else:
-                        this_picks = pick_types(info, meg=ch_type, eeg=False,
-                                                seeg=False)
+                        this_picks = pick_types(info, meg=ch_type)
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
         elif not has_pre_whitener and self.noise_cov is not None:

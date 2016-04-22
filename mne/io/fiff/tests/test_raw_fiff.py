@@ -779,15 +779,15 @@ def test_filter():
 
 def test_filter_picks():
     """Test filtering default channel picks"""
-    ch_types = ['mag', 'grad', 'eeg', 'seeg', 'misc', 'stim']
+    ch_types = ['mag', 'grad', 'eeg', 'seeg', 'misc', 'stim', 'ecog']
     info = create_info(ch_names=ch_types, ch_types=ch_types, sfreq=256)
     raw = RawArray(data=np.zeros((len(ch_types), 1000)), info=info)
 
     # -- Deal with meg mag grad exception
-    ch_types = ('misc', 'stim', 'meg', 'eeg', 'seeg')
+    ch_types = ('misc', 'stim', 'meg', 'eeg', 'seeg', 'ecog')
 
     # -- Filter data channels
-    for ch_type in ('mag', 'grad', 'eeg', 'seeg'):
+    for ch_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog'):
         picks = dict((ch, ch == ch_type) for ch in ch_types)
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
         raw_ = raw.pick_types(copy=True, **picks)
@@ -795,7 +795,7 @@ def test_filter_picks():
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             raw_.filter(10, 30)
-            assert_true(len(w) == 1)
+        assert_true(any(['Attenuation' in str(ww.message) for ww in w]))
 
     # -- Error if no data channel
     for ch_type in ('misc', 'stim'):

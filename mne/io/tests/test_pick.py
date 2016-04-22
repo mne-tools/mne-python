@@ -91,18 +91,19 @@ def test_pick_channels_regexp():
     assert_array_equal(pick_channels_regexp(ch_names, 'MEG *'), [0, 1, 2])
 
 
-@testing.requires_testing_data
-def test_pick_seeg():
-    """Test picking with SEEG
+def test_pick_seeg_ecog():
+    """Test picking with sEEG and ECoG
     """
-    names = 'A1 A2 Fz O OTp1 OTp2 OTp3'.split()
-    types = 'mag mag eeg eeg seeg seeg seeg'.split()
+    names = 'A1 A2 Fz O OTp1 OTp2 E1 OTp3 E2 E3'.split()
+    types = 'mag mag eeg eeg seeg seeg ecog seeg ecog ecog'.split()
     info = create_info(names, 1024., types)
     idx = channel_indices_by_type(info)
+    print(idx)
     assert_array_equal(idx['mag'], [0, 1])
     assert_array_equal(idx['eeg'], [2, 3])
-    assert_array_equal(idx['seeg'], [4, 5, 6])
-    assert_array_equal(pick_types(info, meg=False, seeg=True), [4, 5, 6])
+    assert_array_equal(idx['seeg'], [4, 5, 7])
+    assert_array_equal(idx['ecog'], [6, 8, 9])
+    assert_array_equal(pick_types(info, meg=False, seeg=True), [4, 5, 7])
     for i, t in enumerate(types):
         assert_equal(channel_type(info, i), types[i])
     raw = RawArray(np.zeros((len(names), 10)), info)
@@ -110,7 +111,7 @@ def test_pick_seeg():
     epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
     e_seeg = evoked.pick_types(meg=False, seeg=True, copy=True)
-    for l, r in zip(e_seeg.ch_names, names[4:]):
+    for l, r in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
         assert_equal(l, r)
     # Deal with constant debacle
     raw = Raw(fname_mc)
