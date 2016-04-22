@@ -615,7 +615,6 @@ Functions:
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
-   do_forward_solution
    make_bem_model
    make_bem_solution
    make_forward_dipole

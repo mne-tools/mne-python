@@ -534,16 +534,12 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     fwd : instance of Forward
         The forward solution.
 
-    See Also
-    --------
-    do_forward_solution
-
     Notes
     -----
     Some of the forward solution calculation options from the C code
     (e.g., `--grad`, `--fixed`) are not implemented here. For those,
-    consider using the C command line tools or the Python wrapper
-    `do_forward_solution`.
+    consider using the C command line tools, or request that they
+    be added to the MNE-Python.
     """
     # Currently not (sup)ported:
     # 1. --grad option (gradients of the field, not used much)
