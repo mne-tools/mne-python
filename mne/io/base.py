@@ -214,7 +214,7 @@ class TimeMixin(object):
             List of numbers or a number representing points in time.
         use_rounding : boolean
             If True, use rounding (instead of truncation) when converting
-            times to indicies. This can help avoid non-unique indices.
+            times to indices. This can help avoid non-unique indices.
 
         Returns
         -------
@@ -1615,7 +1615,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             as relative to the recording onset. Default is False.
         use_rounding : boolean
             If True, use rounding (instead of truncation) when converting
-            times to indicies. This can help avoid non-unique indices.
+            times to indices. This can help avoid non-unique indices.
 
         Returns
         -------

@@ -60,7 +60,7 @@ mne.viz.tight_layout()
 ###############################################################################
 # When resampling epochs is unwanted or impossible, for example when the data
 # doesn't fit into memory or your analysis pipeline doesn't involve epochs at
-# all, the alternative approach is to resample the continous data. This
+# all, the alternative approach is to resample the continuous data. This
 # can also be done on non-preloaded data.
 
 # Resample to 300 Hz

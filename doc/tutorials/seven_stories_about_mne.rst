@@ -11,7 +11,7 @@ in part from the Elekta software that is shipped with its MEG systems.
 Ah yes, the FIFF is Elektas Functional Imaging File Format that goes
 along with `.fif` file extensions and is natively used by its MEG systems.
 For these reasons the MNE software is internally relying on the FIFF files.
-Today the situation is a bit different though. MNE is nowadays developped
+Today the situation is a bit different though. MNE is nowadays developed
 mostly in Python by an international team of researchers from diverse
 laboratories and has widened its scope. MNE supports advanced sensor space
 analyses for EEG, temporal ICA, many different file formats and many other
@@ -54,7 +54,7 @@ you want. Indeed the structures that MNE is using provide so called
 methods. These are nothing but functions that are configured to take
 the data and the meta-data of the object as parameters. Sounds
 complicated, but it's actually simplifying your life as you will see
-below. Whether you consider Raw objects that describe continous data,
+below. Whether you consider Raw objects that describe continuous data,
 Epochs objects describing segmented single trial data, or Evoked objects
 describing averaged data, all have in common that they share certain methods.
 

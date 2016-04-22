@@ -721,8 +721,8 @@ def plot_evoked_white(evoked, noise_cov, show=True):
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     """helper to plot_evoked_white
 
-    Additional Paramter
-    -------------------
+    Additional Parameters
+    ---------------------
     scalings : dict | None
         The rescaling method to be applied to improve the accuracy of rank
         estimaiton. If dict, it will override the following default values
@@ -939,7 +939,7 @@ def plot_snr_estimate(evoked, inv, show=True):
     lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
     ax.plot([0, 0], lims[2:], 'k:')
     ax.plot(lims[:2], [0, 0], 'k:')
-    # Colors are "bluish green" and "vermillion" taken from:
+    # Colors are "bluish green" and "vermilion" taken from:
     #  http://bconnelly.net/2013/10/creating-colorblind-friendly-figures/
     ax.plot(evoked.times, snr_est, color=[0.0, 0.6, 0.5])
     ax.plot(evoked.times, snr, color=[0.8, 0.4, 0.0])
@@ -983,7 +983,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         finds time points automatically by checking for 3 local maxima in
         Global Field Power. Defaults to "peaks".
     title : str | None
-        The title. If `None`, supress printing channel type. Defaults to ''.
+        The title. If `None`, suppress printing channel type. Defaults to ''.
     picks : array-like of int | None
         The indices of channels to plot. If None show all. Defaults to None.
     exclude : None | list of str | 'bads'

@@ -36,7 +36,7 @@ including:
     * Raw movement compensation
       (using head positions estimated by MaxFilter)
     * cHPI subtraction (see :func:`mne.chpi.filter_chpi`)
-    * Handling of 3D (in additon to 1D) fine calibration files
+    * Handling of 3D (in addition to 1D) fine calibration files
     * Epoch-based movement compensation as described in [1]_ through
       :func:`mne.epochs.average_movements`
     * **Experimental** processing of data from (un-compensated)

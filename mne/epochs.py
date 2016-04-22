@@ -978,7 +978,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         n_jobs : int
             Number of jobs to run in parallel.
         normalize : bool
-            If True, each band will be devided by the total power. Defaults to
+            If True, each band will be divided by the total power. Defaults to
             False.
         cbar_fmt : str
             The colorbar format. Defaults to '%0.3f'.

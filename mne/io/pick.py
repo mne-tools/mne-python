@@ -677,7 +677,7 @@ def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
 
 
 def _pick_aux_channels(info, exclude='bads'):
-    """Convenience function for picking only auxilary channels
+    """Convenience function for picking only auxiliary channels
 
     Corresponds to EOG, ECG, EMG and BIO
     """

@@ -76,7 +76,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
                          len(conditions))
 
     ev = epochs.events[:, 2]
-    # special care to avoid path dependant mappings and orders
+    # special care to avoid path dependent mappings and orders
     conditions = list(sorted(conditions))
     cond_idx = [np.where(ev == epochs.event_id[k])[0] for k in conditions]
 

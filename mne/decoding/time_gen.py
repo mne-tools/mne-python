@@ -1438,7 +1438,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         return fig
 
     def _prep_times(self):
-        """Auxiliary function to allow compability with GAT"""
+        """Auxiliary function to allow compatibility with GAT"""
         self.test_times = 'diagonal'
         if hasattr(self, 'times'):
             self.train_times = self.times
@@ -1455,7 +1455,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
             self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
 
     def _clean_times(self):
-        """Auxiliary function to allow compability with GAT"""
+        """Auxiliary function to allow compatibility with GAT"""
         if hasattr(self, 'train_times'):
             self.times = self.train_times
         if hasattr(self, 'train_times_'):

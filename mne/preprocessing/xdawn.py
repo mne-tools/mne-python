@@ -158,7 +158,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
     """Implementation of the Xdawn Algorithm.
 
     Xdawn is a spatial filtering method designed to improve the signal
-    to signal + noise ratio (SSNR) of the ERP responses. Xdawn was originaly
+    to signal + noise ratio (SSNR) of the ERP responses. Xdawn was originally
     designed for P300 evoked potential by enhancing the target response with
     respect to the non-target response. This implementation is a generalization
     to any type of ERP.
@@ -348,11 +348,11 @@ class Xdawn(TransformerMixin, ContainsMixin):
             The kind of event to apply. if None, a dict of inst will be return
             one for each type of event xdawn has been fitted.
         include : array_like of int | None (default None)
-            The indices refering to columns in the ummixing matrix. The
+            The indices referring to columns in the ummixing matrix. The
             components to be kept. If None, the first n_components (as defined
             in the Xdawn constructor) will be kept.
         exclude : array_like of int | None (default None)
-            The indices refering to columns in the ummixing matrix. The
+            The indices referring to columns in the ummixing matrix. The
             components to be zeroed out. If None, all the components except the
             first n_components will be exclude.
 

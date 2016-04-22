@@ -116,7 +116,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     rates = np.array([60. * len(cev) / (len(ecg) / float(sfreq))
                       for cev in clean_events])
 
-    # now find heart rates that seem reasonable (infant thru adult athlete)
+    # now find heart rates that seem reasonable (infant through adult athlete)
     idx = np.where(np.logical_and(rates <= 160., rates >= 40.))[0]
     if len(idx) > 0:
         ideal_rate = np.median(rates[idx])  # get close to the median
@@ -336,7 +336,7 @@ def _make_ecg(inst, start, stop, verbose=None):
     """Create ECG signal from cross channel average
     """
     if not any(c in inst for c in ['mag', 'grad']):
-        raise ValueError('Unable to generate artifical ECG channel')
+        raise ValueError('Unable to generate artificial ECG channel')
     for ch in ['mag', 'grad']:
         if ch in inst:
             break

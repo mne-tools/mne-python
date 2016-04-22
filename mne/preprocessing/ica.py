@@ -1077,10 +1077,10 @@ class ICA(ContainsMixin):
         inst : instance of Raw, Epochs or Evoked
             The data to be processed.
         include : array_like of int.
-            The indices refering to columns in the ummixing matrix. The
+            The indices referring to columns in the ummixing matrix. The
             components to be kept.
         exclude : array_like of int.
-            The indices refering to columns in the ummixing matrix. The
+            The indices referring to columns in the ummixing matrix. The
             components to be zeroed out.
         n_pca_components : int | float | None
             The number of PCA components to be kept, either absolute (int)

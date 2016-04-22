@@ -64,7 +64,7 @@ def _read_header(fid):
             info['event_codes'].append(event_codes)
         info['event_codes'] = np.array(info['event_codes'])
     else:
-        raise NotImplementedError('Only continous files are supported')
+        raise NotImplementedError('Only continuous files are supported')
     info['unsegmented'] = unsegmented
     info['dtype'], info['orig_format'] = {2: ('>i2', 'short'),
                                           4: ('>f4', 'float'),

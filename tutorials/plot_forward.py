@@ -139,9 +139,9 @@ bem = mne.make_bem_solution(model)
 ###############################################################################
 # Note that the BEM does not involve any use of the trans file. The BEM
 # only depends on the head geometry and conductivities.
-# It is therefore independant from the MEG data and the head position.
+# It is therefore independent from the MEG data and the head position.
 #
-# Let's now compute the forward operator, commonly refered to as the
+# Let's now compute the forward operator, commonly referred to as the
 # gain or leadfield matrix.
 #
 # See :func:`mne.make_forward_solution` for details on parameters meaning.

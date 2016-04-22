@@ -2221,21 +2221,21 @@ Thresholding
 ``--fthresh <*value*>``
 
     Specifies the threshold for the displayed colormaps. At the threshold,
-    the overlayed color will be equal to the background surface color.
+    the overlaid color will be equal to the background surface color.
     For currents, the value will be multiplied by :math:`1^{-10}`.
     The default value is 8.
 
 ``--fmid <*value*>``
 
     Specifies the midpoint for the displayed colormaps. At this value, the
-    overlayed color will be read (positive values) or blue (negative values).
+    overlaid color will be read (positive values) or blue (negative values).
     For currents, the value will be multiplied by :math:`1^{-10}`.
     The default value is 15.
 
 ``--fmax <*value*>``
 
     Specifies the maximum point for the displayed colormaps. At this value,
-    the overlayed color will bright yellow (positive values) or light
+    the overlaid color will bright yellow (positive values) or light
     blue (negative values). For currents, the value will be multiplied
     by :math:`1^{-10}`. The default value is 20.
 

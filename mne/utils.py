@@ -1898,7 +1898,7 @@ def md5sum(fname, block_size=1048576):  # 2 ** 20
     Returns
     -------
     hash_ : str
-        The hexidecimal digest of the hash.
+        The hexadecimal digest of the hash.
     """
     md5 = hashlib.md5()
     with open(fname, 'rb') as fid:

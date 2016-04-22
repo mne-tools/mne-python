@@ -1075,7 +1075,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         Title. If None (default), no title is displayed.
     mask : ndarray of bool, shape (n_channels, n_times) | None
         The channels to be marked as significant at a given time point.
-        Indicies set to `True` will be considered. Defaults to None.
+        Indices set to `True` will be considered. Defaults to None.
     mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
         Default (None) equals::
@@ -1376,7 +1376,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     n_jobs : int
         Number of jobs to run in parallel.
     normalize : bool
-        If True, each band will be devided by the total power. Defaults to
+        If True, each band will be divided by the total power. Defaults to
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.
@@ -1464,7 +1464,7 @@ def plot_psds_topomap(
         following the application of `agg_fun`. Only valid if normalize is
         False.
     normalize : bool
-        If True, each band will be devided by the total power. Defaults to
+        If True, each band will be divided by the total power. Defaults to
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.
