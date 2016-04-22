@@ -337,9 +337,9 @@ class _GeneralizationAcrossTime(object):
             The scores estimated by ``scorer_`` at each training time and each
             testing time (e.g. mean accuracy of ``predict(X)``). Note that the
             number of testing times per training time need not be regular;
-            else, np.shape(scores) = (n_train_time, n_test_time). If score_mode
-            is 'complete', np.shape(scores) = (n_train_time, n_test_time,
-            n_folds).
+            else, np.shape(scores) = (n_train_time, n_test_time). If
+            ``score_mode`` is 'complete', np.shape(scores) = (n_train_time,
+            n_test_time, n_folds).
         """
         import sklearn.metrics
         from sklearn.base import is_classifier
@@ -934,11 +934,10 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
                 each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
 
-        Default: 'cross-validation'
+        Defaults to 'cross-validation'.
     scorer : object | None | str
-        scikit-learn Scorer instance or str type indicating the name of
-        the scorer such as `accuracy`, `roc_auc`. If None, set to
-        accuracy_score.
+        scikit-learn Scorer instance or str type indicating the name of the
+        scorer such as `accuracy`, `roc_auc`. If None, set to accuracy_score.
     score_mode : {'per-fold', 'mean-across-folds', 'no-cv'}
         Determines how the scorer is estimated:
 
@@ -1014,11 +1013,13 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     """  # noqa
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_method='predict',
-                 predict_mode='cross-validation', scorer=None, n_jobs=1):
+                 predict_mode='cross-validation', scorer=None,
+                 score_mode='mean-across-folds', n_jobs=1):
         super(GeneralizationAcrossTime, self).__init__(
             picks=picks, cv=cv, clf=clf, train_times=train_times,
             test_times=test_times, predict_method=predict_method,
-            predict_mode=predict_mode, scorer=scorer, n_jobs=n_jobs)
+            predict_mode=predict_mode, scorer=scorer, score_mode=score_mode,
+            n_jobs=n_jobs)
 
     def __repr__(self):
         s = ''
@@ -1245,11 +1246,10 @@ class TimeDecoding(_GeneralizationAcrossTime):
                 each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
 
-        Default: 'cross-validation'
+        Defaults to 'cross-validation'.
     scorer : object | None | str
-        scikit-learn Scorer instance or str type indicating the
-        name of the scorer such as `accuracy`, `roc_auc`. If None,
-        set to accuracy_score.
+        scikit-learn Scorer instance or str type indicating the name of the
+        scorer such as `accuracy`, `roc_auc`. If None, set to accuracy_score.
     score_mode : {'per-fold', 'mean-across-folds', 'no-cv'}
         Determines how the scorer is estimated:
 
