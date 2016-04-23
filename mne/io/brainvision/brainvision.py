@@ -221,8 +221,8 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
             if mtype.lower().startswith('response'):
                 if response_trig_shift is not None:
                     trigger += response_trig_shift
-            else:
-                trigger = None
+                else:
+                    trigger = None
         if trigger:
             events.append((onset, duration, trigger))
         else:
