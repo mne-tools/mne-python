@@ -186,5 +186,5 @@ mne.write_evokeds('/tmp/tmp-ave.fif', all_evokeds)
 
 # If Evokeds objects are stored in a dictionary, they can be retrieved by name.
 
-all_evokeds = dict(cond, epochs[cond] for cond in event_id)  # dict comp.
+all_evokeds = dict((cond, epochs[cond]) for cond in event_id)  # dict comp.
 print(all_evokeds["auditory/left"])
