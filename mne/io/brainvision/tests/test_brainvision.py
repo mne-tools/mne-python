@@ -157,6 +157,11 @@ def test_events():
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, response_trig_shift=np.nan)
 
+    # Test that both response_trig_shit and event_id can be set
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True,
+                               response_trig_shift=100,
+                               event_id={'Sync On': 5})
+
     mne_events = find_events(raw, stim_channel='STI 014')
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 
