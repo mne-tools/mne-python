@@ -139,10 +139,10 @@ evoked_custom.plot_topomap(times=[0.1], size=3., title=title)
 # First, we create an Epochs object containing 4 conditions.
 
 event_id = {'left/auditory': 1, 'right/auditory': 2,
-            'left/visual':3, 'right/visual': 4}
+            'left/visual': 3, 'right/visual': 4}
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
                      reject=reject)
-epochs = mne.Epochs(raw_no_ref, **epochs_params)
+epochs = mne.Epochs(raw_custom, **epochs_params)
 
 print(epochs)
 
