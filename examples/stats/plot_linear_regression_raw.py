@@ -3,13 +3,13 @@
 Regression on continuous data (rER[P/F])
 ========================================
 
-This demonstrates how rERPs/regressing the continuous data is a
+This demonstrates how rER[P/F]s - regressing the continuous data - is a
 generalisation of traditional averaging. If all preprocessing steps
-are the same and if no overlap between epochs exists and if all
+are the same, no overlap between epochs exists, and if all
 predictors are binary, regression is virtually identical to traditional
 averaging.
 If overlap exists and/or predictors are continuous, traditional averaging
-is inapplicable, but regression can estimate, including those of
+is inapplicable, but regression can estimate effects, including those of
 continuous predictors.
 
 rERPs are described in:
@@ -31,7 +31,7 @@ from mne.stats.regression import linear_regression_raw
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True).pick_types(
-    meg='grad', stim=True, eeg=False).filter(1, 30, method='iir')
+    meg='grad', stim=True, eeg=False).filter(1, None, method='iir')
 
 # Set up events
 events = mne.find_events(raw)
