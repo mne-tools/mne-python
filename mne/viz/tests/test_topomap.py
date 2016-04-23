@@ -60,6 +60,7 @@ def test_plot_topomap():
     res = 16
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
+
     # Test animation
     _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
                                      butterfly=False)
@@ -108,6 +109,14 @@ def test_plot_topomap():
     assert_true(all('MEG' not in x.get_text()
                     for x in subplot.get_children()
                     if isinstance(x, matplotlib.text.Text)))
+
+    # Plot array
+    for ch_type in ('mag', 'grad'):
+        evoked_ = evoked.copy().pick_types(eeg=False, meg=type)
+        plot_topomap(evoked_.data[0, :], evoked_.info)
+    # fail with multiple channel types
+    assert_raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
+
 
     # Test title
     def get_texts(p):
