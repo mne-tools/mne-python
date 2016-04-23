@@ -138,8 +138,8 @@ evoked_custom.plot_topomap(times=[0.1], size=3., title=title)
 # Evoked objects support basic arithmetic.
 # First, we create an Epochs object containing 4 conditions.
 
-event_id = {'left/auditory': 1, 'right/auditory':2,
-           'left/visual':3, 'right/visual':4}
+event_id = {'left/auditory': 1, 'right/auditory': 2,
+            'left/visual':3, 'right/visual': 4}
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
                      reject=reject)
 epochs = mne.Epochs(raw_no_ref, **epochs_params)
@@ -155,7 +155,7 @@ left, right = epochs["left"].average(), epochs["right"].average()
 
 (left - right).plot_joint()  # create and plot difference ERP
 
-################################################################################
+###############################################################################
 # Note that by default, this is a trial-weighted average. If you have
 # imbalanced trial numbers, consider either equalizing the number of events per
 # condition (using ``Epochs.equalize_event_counts``), or the ``combine_evoked``
@@ -175,7 +175,7 @@ all_evokeds = [aud_l, aud_r, vis_l, vis_r]
 # Then, we construct and plot an unweighted average of left vs. right trials.
 mne.combine_evoked(all_evokeds, weights=(1, -1, 1, -1)).plot_joint()
 
-################################################################################
+###############################################################################
 # Often, it makes sense to store Evoked objects in a dictionary or a list -
 # either different conditions, or different subjects.
 
@@ -186,5 +186,5 @@ mne.write_evokeds('/tmp/tmp-ave.fif', all_evokeds)
 
 # If Evokeds objects are stored in a dictionary, they can be retrieved by name.
 
-all_evokeds = dict(cond, epochs[cond] for cond in event_id)  # a dict comprehension
+all_evokeds = dict(cond, epochs[cond] for cond in event_id)  # dict comp.
 print(all_evokeds["auditory/left"])
