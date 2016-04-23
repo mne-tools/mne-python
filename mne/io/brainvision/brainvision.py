@@ -233,7 +233,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         warn("Currently, {0} trigger(s) will be dropped, such as {1}. "
              "Consider using ``event_id`` to parse triggers that "
              "do not follow the 'S105' (etc.) pattern.".format(
-                 len(dropped), dropped[:5])
+                 len(dropped), dropped[:5]))
 
     events = np.array(events).reshape(-1, 3)
     return events
