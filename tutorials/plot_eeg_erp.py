@@ -138,7 +138,6 @@ evoked_custom.plot_topomap(times=[0.1], size=3., title=title)
 # Evoked objects support basic arithmetic.
 # First, we create an Epochs object containing 4 conditions.
 
- Computing a difference between two conditions.
 event_id = {'left/auditory': 1, 'right/auditory':2,
            'left/visual':3, 'right/visual':4}
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
