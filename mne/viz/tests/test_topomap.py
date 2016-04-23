@@ -112,11 +112,10 @@ def test_plot_topomap():
 
     # Plot array
     for ch_type in ('mag', 'grad'):
-        evoked_ = evoked.copy().pick_types(eeg=False, meg=type)
-        plot_topomap(evoked_.data[0, :], evoked_.info)
+        evoked_ = evoked.copy().pick_types(eeg=False, meg=ch_type)
+        plot_topomap(evoked_.data[:, 0], evoked_.info)
     # fail with multiple channel types
     assert_raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
-
 
     # Test title
     def get_texts(p):

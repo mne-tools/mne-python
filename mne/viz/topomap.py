@@ -29,6 +29,7 @@ from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 from ..io.meas_info import Info
 
+
 def _prepare_topo_plot(inst, ch_type, layout):
     """"Aux Function"""
     info = inst.copy() if isinstance(inst, Info) else copy.deepcopy(inst.info)
@@ -479,22 +480,23 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         pick_info(pos.copy(), picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
-        ch_type = {channel_type(pos, idx) for idx, _ in enumerate(pos["chs"])}
+        ch_type = set(channel_type(pos, idx)
+                      for idx, _ in enumerate(pos["chs"]))
+        info_help = ("Pick Info with e.g. ``mne.pick_info`` and "
+                     "``mne.channels.channel_indices_by_type``.")
         if len(ch_type) > 1:
-            infohelp = ("Pick Info with e.g. ``mne.pick_info`` and "
-                        "``mne.channels.channel_indices_by_type``.")
-            raise ValueError("Multiple channel types in Info structure. "
-                             + infohelp)
+            raise ValueError("Multiple channel types in Info structure. " +
+                             info_help)
         elif len(pos["chs"]) != data.shape[0]:
             raise ValueError("Number of channels in Info and Data does not "
-                             "match. " + infohelp)
+                             "match. " + info_help)
         else:
             ch_type = ch_type.pop()
 
         if any(type in ch_type for type in ('planar', 'grad')):
             # deal with grad pairs
-            from ..channels.layout import (_merge_grad_data,
-                _pair_grad_sensors, find_layout)
+            from ..channels.layout import (_merge_grad_data, find_layout,
+                                           _pair_grad_sensors)
             picks, pos = _pair_grad_sensors(pos, find_layout(pos))
             data = _merge_grad_data(data[picks]).squeeze()
         else:
