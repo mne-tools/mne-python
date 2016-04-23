@@ -170,8 +170,8 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     fname : str
         vmrk file to be read.
     event_id : dict | None
-        The id of special events to consider. If dict, the keys will be mapped to
-        trigger values on the stimulus channel. Example:
+        The id of special events to consider. If dict, the keys will be mapped
+        to trigger values on the stimulus channel. Example:
         {'SyncStatus': 1; 'Pulse Artifact': 3}. If empty dict (default),
         only stimulus events are added to the stimulus channel.
     response_trig_shift : int | None
