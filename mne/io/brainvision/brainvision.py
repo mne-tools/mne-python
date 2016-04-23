@@ -215,7 +215,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
             trigger = event_id[mdesc]
         else:
             try:
-                trigger = int(re.findall('[A-Za-z]\s?(\d+)',mdesc)[0])
+                trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
             except IndexError:
                 trigger = None
             if mtype.lower().startswith('response'):
