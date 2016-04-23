@@ -830,7 +830,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
             if len(R) == 0:
                 raise RuntimeError('No MEG channels found, but MEG-only '
                                    'sphere model used')
-            R = np.min(np.linalg.norm(R, axis=1))  # use dist to sensors
+            R = np.min(np.sqrt(np.sum(R * R, axis=1)))  # use dist to sensors
             kind = 'max_rad'
         logger.info('Sphere model      : origin at (% 7.2f % 7.2f % 7.2f) mm, '
                     '%s = %6.1f mm'
