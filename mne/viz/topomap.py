@@ -493,7 +493,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         else:
             ch_type = ch_type.pop()
 
-        if any(type in ch_type for type in ('planar', 'grad')):
+        if any(type_ in ch_type for type_ in ('planar', 'grad')):
             # deal with grad pairs
             from ..channels.layout import (_merge_grad_data, find_layout,
                                            _pair_grad_sensors)
