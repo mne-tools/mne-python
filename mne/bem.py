@@ -736,7 +736,15 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
             if param != 'auto':
                 raise ValueError('%s, if str, must be "auto" not "%s"'
                                  % (name, param))
-
+    relative_radii = np.array(relative_radii, float).ravel()
+    sigmas = np.array(sigmas, float).ravel()
+    if len(relative_radii) != len(sigmas):
+        raise ValueError('relative_radii length (%s) must match that of '
+                         'sigmas (%s)' % (len(relative_radii),
+                                          len(sigmas)))
+    if len(sigmas) == 0 and head_radius is not None:
+            raise ValueError('sigmas must be supplied if head_radius is not '
+                             'None')
     if (isinstance(r0, string_types) and r0 == 'auto') or \
        (isinstance(head_radius, string_types) and head_radius == 'auto'):
         if info is None:
@@ -786,7 +794,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
                            sphere['lambda'][k]))
         logger.info('Set up EEG sphere model with scalp radius %7.1f mm\n'
                     % (1000 * head_radius,))
-    return ConductorModel(sphere)
+    return sphere
 
 
 # #############################################################################

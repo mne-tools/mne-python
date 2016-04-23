@@ -271,39 +271,41 @@ def test_accuracy():
     evoked = read_evokeds(fname_evo)[0].crop(0., 0.,)
     evoked.pick_types(meg=True, eeg=False)
     evoked.pick_channels([c for c in evoked.ch_names[::4]])
-    bem = make_sphere_model('auto', 0.09, evoked.info,
-                            relative_radii=(0.999, 0.998, 0.997, 0.995))
-    src = read_source_spaces(fname_src)
+    for rad, perc_90 in zip((0.09, None), (0.002, 0.004)):
+        bem = make_sphere_model('auto', rad, evoked.info,
+                                relative_radii=(0.999, 0.998, 0.997, 0.995))
+        src = read_source_spaces(fname_src)
 
-    fwd = make_forward_solution(evoked.info, None, src, bem)
-    fwd = convert_forward_solution(fwd, force_fixed=True)
-    vertices = [src[0]['vertno'], src[1]['vertno']]
-    n_vertices = sum(len(v) for v in vertices)
-    amp = 10e-9
-    data = np.eye(n_vertices + 1)[:n_vertices]
-    data[-1, -1] = 1.
-    data *= amp
-    stc = SourceEstimate(data, vertices, 0., 1e-3, 'sample')
-    sim = simulate_evoked(fwd, stc, evoked.info, cov=None, snr=np.inf)
+        fwd = make_forward_solution(evoked.info, None, src, bem)
+        fwd = convert_forward_solution(fwd, force_fixed=True)
+        vertices = [src[0]['vertno'], src[1]['vertno']]
+        n_vertices = sum(len(v) for v in vertices)
+        amp = 10e-9
+        data = np.eye(n_vertices + 1)[:n_vertices]
+        data[-1, -1] = 1.
+        data *= amp
+        stc = SourceEstimate(data, vertices, 0., 1e-3, 'sample')
+        sim = simulate_evoked(fwd, stc, evoked.info, cov=None, snr=np.inf)
 
-    cov = make_ad_hoc_cov(evoked.info)
-    dip = fit_dipole(sim, cov, bem, min_dist=0.001)[0]
+        cov = make_ad_hoc_cov(evoked.info)
+        dip = fit_dipole(sim, cov, bem, min_dist=0.001)[0]
 
-    ds = []
-    for vi in range(n_vertices):
-        if vi < len(vertices[0]):
-            hi = 0
-            vertno = vi
-        else:
-            hi = 1
-            vertno = vi - len(vertices[0])
-        vertno = src[hi]['vertno'][vertno]
-        rr = src[hi]['rr'][vertno]
-        d = np.sqrt(np.sum((rr - dip.pos[vi]) ** 2))
-        ds.append(d)
-    # make sure that our median is sub-mm and the large majority are very close
-    # (we expect some to be off by a bit e.g. because they are radial)
-    assert_true((np.percentile(ds, [50, 90]) < [0.0005, 0.002]).all())
+        ds = []
+        for vi in range(n_vertices):
+            if vi < len(vertices[0]):
+                hi = 0
+                vertno = vi
+            else:
+                hi = 1
+                vertno = vi - len(vertices[0])
+            vertno = src[hi]['vertno'][vertno]
+            rr = src[hi]['rr'][vertno]
+            d = np.sqrt(np.sum((rr - dip.pos[vi]) ** 2))
+            ds.append(d)
+        # make sure that our median is sub-mm and the large majority are very
+        # close (we expect some to be off by a bit e.g. because they are
+        # radial)
+        assert_true((np.percentile(ds, [50, 90]) < [0.0005, perc_90]).all())
 
 
 @testing.requires_testing_data

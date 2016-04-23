@@ -818,12 +818,23 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                     % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2], 1000 * R))
     else:
         r0 = bem['r0']
-        logger.info('Sphere model      : origin at (% 7.2f % 7.2f % 7.2f) mm'
-                    % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2]))
-        if 'layers' in bem:
+        if len(bem.get('layers', [])) > 0:
             R = bem['layers'][0]['rad']
-        else:
-            R = np.inf
+            kind = 'rad'
+        else:  # MEG-only
+            # Use the minimum distance to the MEG sensors as the radius then
+            R = np.dot(linalg.inv(info['dev_head_t']['trans']),
+                       np.hstack([r0, [1.]]))[:3]  # r0 -> device
+            R = R - [info['chs'][pick]['loc'][:3]
+                     for pick in pick_types(info, meg=True, exclude=[])]
+            if len(R) == 0:
+                raise RuntimeError('No MEG channels found, but MEG-only '
+                                   'sphere model used')
+            R = np.min(np.sqrt(np.sum(R * R, axis=1)))  # use dist to sensors
+            kind = 'max_rad'
+        logger.info('Sphere model      : origin at (% 7.2f % 7.2f % 7.2f) mm, '
+                    '%s = %6.1f mm'
+                    % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2], kind, R))
         inner_skull = [R, r0]  # NB sphere model defined in head frame
     r0_mri = apply_trans(invert_transform(mri_head_t)['trans'],
                          r0[np.newaxis, :])[0]
