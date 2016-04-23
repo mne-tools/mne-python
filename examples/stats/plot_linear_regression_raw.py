@@ -21,24 +21,19 @@ considerations. Psychophysiology, 52(2), 169-189.
 #
 # License: BSD (3-clause)
 
-%matplotlib inline
 import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
 from mne.stats.regression import linear_regression_raw
 
-# Preprocess data
+# Load and preprocess data
 data_path = sample.data_path()
-# Load and filter data, set up epochs
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+raw = mne.io.read_raw_fif(raw_fname, preload=True).pick_types(
+    meg='grad', stim=True, eeg=False).filter(1, 30, method='iir').apply_proj()
 
-# Use just the first 4 minutes to save memory
-raw = mne.io.read_raw_fif(raw_fname, preload=True).filter(
-  1, None, method='iir').apply_proj()
-
-picks = mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads')
-
+# Set up events
 events = mne.find_events(raw)
 event_id = {'Aud/L': 1, 'Aud/R': 2}
 tmin, tmax = -.1, .5
@@ -46,13 +41,11 @@ tmin, tmax = -.1, .5
 # regular epoching
 picks = mne.pick_types(raw.info, meg=True)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=None,
-                    baseline=None, preload=True, picks=picks,
-                    verbose=False)
+                    baseline=None, preload=True, verbose=False)
 
 # rERF
 evokeds = linear_regression_raw(raw, events=events, event_id=event_id,
-                                reject=None, tmin=tmin, tmax=tmax,
-                                picks=picks)
+                                reject=None, tmin=tmin, tmax=tmax)
 # linear_regression_raw returns a dict of evokeds
 # select conditions similarly to mne.Epochs objects
 
