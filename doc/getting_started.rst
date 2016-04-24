@@ -63,11 +63,11 @@ To get started with MNE, visit the installation instructions for
 What can you do with MNE using Python?
 --------------------------------------
 
-   - **Raw data visualization** to visualize recordings (see
-   :ref:`general_examples` for more).
+   - **Raw data visualization** to visualize recordings
+     (see :ref:`general_examples` for more).
    - **Epoching**: Define epochs, baseline correction, handle conditions etc.
    - **Averaging** to get Evoked data.
-   - **Compute SSP pojectors** to remove ECG and EOG artifacts.
+   - **Compute SSP projectors** to remove ECG and EOG artifacts.
    - **Compute ICA** to remove artifacts or select latent sources.
    - **Maxwell filtering** to remove environmental noise.
    - **Boundary Element Modeling**: single and three-layer BEM model
