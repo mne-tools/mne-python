@@ -32,7 +32,7 @@ from ..io.meas_info import Info
 
 def _prepare_topo_plot(inst, ch_type, layout):
     """"Aux Function"""
-    info = deepcopy(inst if isinstance(inst, Info) else inst.info)
+    info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
     if layout is None and ch_type is not 'eeg':
         from ..channels import find_layout
