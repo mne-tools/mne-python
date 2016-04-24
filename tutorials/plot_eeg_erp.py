@@ -11,8 +11,6 @@ of EEG, namely:
     - using standard montages :func:`mne.channels.Montage`
     - Evoked arithmetic (e.g. differences)
 
-XXX : ROI plots?
-
 """
 
 import mne
