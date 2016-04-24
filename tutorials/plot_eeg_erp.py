@@ -9,7 +9,7 @@ see :ref:`tut_epoching_and_averaging`. Here we cover the specifics
 of EEG, namely:
     - setting the reference
     - using standard montages :func:`mne.channels.Montage`
-    - Evoked arithmetics (e.g. differences)
+    - Evoked arithmetic (e.g. differences)
 
 XXX : ROI plots?
 
@@ -142,7 +142,7 @@ event_id = {'left/auditory': 1, 'right/auditory': 2,
             'left/visual': 3, 'right/visual': 4}
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
                      reject=reject)
-epochs = mne.Epochs(raw_custom, **epochs_params)
+epochs = mne.Epochs(raw, **epochs_params)
 
 print(epochs)
 
