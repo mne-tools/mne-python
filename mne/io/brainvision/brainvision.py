@@ -226,7 +226,8 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         if trigger:
             events.append((onset, duration, trigger))
         else:
-            dropped.append(mdesc)
+            if len(mdesc) > 0:
+                dropped.append(mdesc)
 
     if len(dropped) > 0:
         dropped = list(set(dropped))
