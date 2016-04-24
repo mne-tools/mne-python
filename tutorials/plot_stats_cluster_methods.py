@@ -73,6 +73,7 @@ print(__doc__)
 
 ###############################################################################
 # Set parameters
+# --------------
 width = 40
 n_subjects = 10
 signal_mean = 100
@@ -86,7 +87,9 @@ n_permutations = 1024  # number of clustering permutations (1024 for exact)
 
 ###############################################################################
 # Construct simulated data
-#    Make the connectivity matrix just next-neighbor spatially
+# ------------------------
+#
+# Make the connectivity matrix just next-neighbor spatially
 n_src = width * width
 connectivity = grid_to_graph(width, width)
 
@@ -106,14 +109,19 @@ for si in range(X.shape[0]):
 
 ###############################################################################
 # Do some statistics
-
-#    Note that X needs to be a multi-dimensional array of shape
-#    samples (subjects) x time x space, so we permute dimensions
+# ------------------
+#
+# .. note::
+#     X needs to be a multi-dimensional array of shape
+#     samples (subjects) x time x space, so we permute dimensions:
 X = X.reshape((n_subjects, 1, n_src))
 
-#    Now let's do some clustering using the standard method. Note that not
-#    specifying a connectivity matrix implies grid-like connectivity, which
-#    we want here:
+###############################################################################
+# Now let's do some clustering using the standard method.
+#
+# .. note::
+#     Not specifying a connectivity matrix implies grid-like connectivity,
+#     which we want here:
 T_obs, clusters, p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold,
                                        connectivity=connectivity,
@@ -164,7 +172,7 @@ ps_tfce_hat = -np.log10(p_values.reshape((width, width)))
 
 ###############################################################################
 # Visualize results
-
+# -----------------
 fig = plt.figure(facecolor='w')
 
 x, y = np.mgrid[0:width, 0:width]

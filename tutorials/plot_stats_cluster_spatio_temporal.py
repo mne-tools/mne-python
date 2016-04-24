@@ -34,6 +34,7 @@ print(__doc__)
 
 ###############################################################################
 # Set parameters
+# --------------
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -48,6 +49,7 @@ events = mne.read_events(event_fname)
 
 ###############################################################################
 # Read epochs for all channels, removing a bad one
+# ------------------------------------------------
 raw.info['bads'] += ['MEG 2443']
 picks = mne.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 event_id = 1  # L auditory
@@ -65,6 +67,7 @@ equalize_epoch_counts([epochs1, epochs2])
 
 ###############################################################################
 # Transform to source space
+# -------------------------
 
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 snr = 3.0
@@ -89,13 +92,17 @@ tstep = condition1.tstep
 
 ###############################################################################
 # Transform to common cortical space
-
-#    Normally you would read in estimates across several subjects and morph
-#    them to the same cortical space (e.g. fsaverage). For example purposes,
-#    we will simulate this by just having each "subject" have the same
-#    response (just noisy in source space) here. Note that for 7 subjects
-#    with a two-sided statistical test, the minimum significance under a
-#    permutation test is only p = 1/(2 ** 6) = 0.015, which is large.
+# ----------------------------------
+#
+# Normally you would read in estimates across several subjects and morph
+# them to the same cortical space (e.g. fsaverage). For example purposes,
+# we will simulate this by just having each "subject" have the same
+# response (just noisy in source space) here.
+#
+# .. note::
+#     Note that for 7 subjects with a two-sided statistical test, the minimum
+#     significance under a permutation test is only p = 1/(2 ** 6) = 0.015,
+#     which is large.
 n_vertices_sample, n_times = condition1.data.shape
 n_subjects = 7
 print('Simulating data for %d subjects.' % n_subjects)
@@ -106,12 +113,13 @@ X = randn(n_vertices_sample, n_times, n_subjects, 2) * 10
 X[:, :, :, 0] += condition1.data[:, :, np.newaxis]
 X[:, :, :, 1] += condition2.data[:, :, np.newaxis]
 
-#    It's a good idea to spatially smooth the data, and for visualization
-#    purposes, let's morph these to fsaverage, which is a grade 5 source space
-#    with vertices 0:10242 for each hemisphere. Usually you'd have to morph
-#    each subject's data separately (and you might want to use morph_data
-#    instead), but here since all estimates are on 'sample' we can use one
-#    morph matrix for all the heavy lifting.
+###############################################################################
+# It's a good idea to spatially smooth the data, and for visualization
+# purposes, let's morph these to fsaverage, which is a grade 5 source space
+# with vertices 0:10242 for each hemisphere. Usually you'd have to morph
+# each subject's data separately (and you might want to use morph_data
+# instead), but here since all estimates are on 'sample' we can use one
+# morph matrix for all the heavy lifting.
 fsave_vertices = [np.arange(10242), np.arange(10242)]
 morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
                                  fsave_vertices, 20, subjects_dir)
@@ -123,18 +131,20 @@ print('Morphing data.')
 X = morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 2)
 
-#    Finally, we want to compare the overall activity levels in each condition,
-#    the diff is taken along the last axis (condition). The negative sign makes
-#    it so condition1 > condition2 shows up as "red blobs" (instead of blue).
+###############################################################################
+# Finally, we want to compare the overall activity levels in each condition,
+# the diff is taken along the last axis (condition). The negative sign makes
+# it so condition1 > condition2 shows up as "red blobs" (instead of blue).
 X = np.abs(X)  # only magnitude
 X = X[:, :, :, 0] - X[:, :, :, 1]  # make paired contrast
 
 
 ###############################################################################
 # Compute statistic
-
-#    To use an algorithm optimized for spatio-temporal clustering, we
-#    just pass the spatial connectivity matrix (instead of spatio-temporal)
+# -----------------
+#
+# To use an algorithm optimized for spatio-temporal clustering, we
+# just pass the spatial connectivity matrix (instead of spatio-temporal)
 print('Computing connectivity.')
 connectivity = spatial_tris_connectivity(grade_to_tris(5))
 
@@ -156,7 +166,7 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 
 ###############################################################################
 # Visualize the clusters
-
+# ----------------------
 print('Visualizing clusters.')
 
 #    Now let's build a convenient representation of each cluster, where each

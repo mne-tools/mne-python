@@ -17,7 +17,9 @@ events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
 # The visualization module (:mod:`mne.viz`) contains all the plotting functions
 # that work in combination with MNE data structures. Usually the easiest way to
 # use them is to call a method of the data container. All of the plotting
-# method names start with ``plot``. Let's try them out!
+# method names start with ``plot``. If you're using Ipython console, you can
+# just write ``raw.plot`` and ask the interpreter for suggestions with a
+# ``tab`` key.
 #
 # To visually inspect your raw data, you can use the python equivalent of
 # ``mne_browse_raw``.
@@ -42,6 +44,12 @@ raw.plot(block=True, events=events)
 # method. The events are plotted as vertical lines so you can see how they
 # align with the raw data.
 #
+# We can check where the channels reside with ``plot_sensors``. Notice that
+# this method (along with many other MNE plotting functions) is callable using
+# any MNE data container where the channel information is available.
+raw.plot_sensors(kind='3d', ch_type='mag')
+
+###############################################################################
 # Now let's add some ssp projectors to the raw data. Here we read them from a
 # file and plot them.
 projs = mne.read_proj(op.join(data_path, 'sample_audvis_eog-proj.fif'))
@@ -67,7 +75,16 @@ raw.plot()
 # inspecting the effect. See :func:`mne.io.Raw.del_proj` to actually remove the
 # projectors.
 #
-# Raw container also lets us easily plot the overall and channel wise power
-# spectra over the raw data. See the API documentation for more info.
+# Raw container also lets us easily plot the power spectra over the raw data.
+# See the API documentation for more info.
 raw.plot_psd()
-raw.plot_psd_topo()
+
+###############################################################################
+# Plotting channel wise power spectra is just as easy. The layout is inferred
+# from the data by default when plotting topo plots. This works for most data,
+# but it is also possible to define the layouts by hand. Here we select a
+# layout with only magnetometer channels and plot it. Then we plot the channel
+# wise spectra of first 30 seconds of the data.
+layout = mne.channels.read_layout('Vectorview-mag')
+layout.plot()
+raw.plot_psd_topo(tmax=30., fmin=5., fmax=60., n_fft=1024, layout=layout)

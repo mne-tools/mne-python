@@ -38,7 +38,6 @@ For further reading:
           advanced configuration options, e.g. to specify a custom
           location for storing the datasets.
 
-
 .. container:: span box
 
   .. raw:: html
@@ -60,7 +59,6 @@ For further reading:
   .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_artifacts_intro.rst
     auto_tutorials/plot_artifacts_detection.rst
     tutorials/preprocessing/filtering_resampling.rst
     auto_tutorials/plot_artifacts_correction_filtering.rst

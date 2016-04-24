@@ -39,6 +39,7 @@ print(__doc__)
 
 ###############################################################################
 # Set parameters
+# --------------
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
@@ -66,14 +67,15 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     picks=picks, baseline=(None, 0),
                     reject=reject)
 
-# make sure all conditions have the same counts, as the ANOVA expects a
-# fully balanced data matrix and does not forgive imbalances that generously
-# (risk of type-I error)
+###############################################################################
+# We have to make sure all conditions have the same counts, as the ANOVA
+# expects a fully balanced data matrix and does not forgive imbalances that
+# generously (risk of type-I error).
 epochs.equalize_event_counts(event_id, copy=False)
 # Time vector
 times = 1e3 * epochs.times  # change unit to ms
 
-# Factor to downs-sample the temporal dimension of the PSD computed by
+# Factor to down-sample the temporal dimension of the PSD computed by
 # single_trial_power.
 decim = 2
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
@@ -81,8 +83,10 @@ sfreq = raw.info['sfreq']  # sampling in Hz
 n_cycles = frequencies / frequencies[0]
 baseline_mask = times[::decim] < 0
 
-# now create TFR representations for all conditions
-epochs_power = []
+###############################################################################
+# Create TFR representations for all conditions
+# ---------------------------------------------
+epochs_power = list()
 for condition in [epochs[k].get_data()[:, 97:98, :] for k in event_id]:
     this_power = single_trial_power(condition, sfreq=sfreq,
                                     frequencies=frequencies, n_cycles=n_cycles,
@@ -96,12 +100,15 @@ for condition in [epochs[k].get_data()[:, 97:98, :] for k in event_id]:
 
 ###############################################################################
 # Setup repeated measures ANOVA
+# -----------------------------
+#
+# We will tell the ANOVA how to interpret the data matrix in terms of factors.
+# This is done via the factor levels argument which is a list of the number
+# factor levels for each factor.
 
 n_conditions = len(epochs.event_id)
 n_replications = epochs.events.shape[0] / n_conditions
-# we will tell the ANOVA how to interpret the data matrix in terms of
-# factors. This done via the factor levels argument which is a list
-# of the number factor levels for each factor.
+
 factor_levels = [2, 2]  # number of levels in each factor
 effects = 'A*B'  # this is the default signature for computing all effects
 # Other possible options are 'A' or 'B' for the corresponding main effects
@@ -110,8 +117,9 @@ effects = 'A*B'  # this is the default signature for computing all effects
 n_frequencies = len(frequencies)
 n_times = len(times[::decim])
 
+###############################################################################
 # Now we'll assemble the data matrix and swap axes so the trial replications
-# are the first dimension and the conditions are the second dimension
+# are the first dimension and the conditions are the second dimension.
 data = np.swapaxes(np.asarray(epochs_power), 1, 0)
 # reshape last two dimensions in one mass-univariate observation-vector
 data = data.reshape(n_replications, n_conditions, n_frequencies * n_times)
@@ -119,16 +127,27 @@ data = data.reshape(n_replications, n_conditions, n_frequencies * n_times)
 # so we have replications * conditions * observations:
 print(data.shape)
 
-# while the iteration scheme used above for assembling the data matrix
+###############################################################################
+# While the iteration scheme used above for assembling the data matrix
 # makes sure the first two dimensions are organized as expected (with A =
 # modality and B = location):
 #
-#           A1B1 A1B2 A2B1 B2B2
-# trial 1   1.34 2.53 0.97 1.74
-# trial ... .... .... .... ....
-# trial 56  2.45 7.90 3.09 4.76
+# .. table::
+#
+# ===== ==== ==== ==== ====
+# trial A1B1 A1B2 A2B1 B2B2
+# ===== ==== ==== ==== ====
+# 1     1.34 2.53 0.97 1.74
+# ...   .... .... .... ....
+# 56    2.45 7.90 3.09 4.76
+# ===== ==== ==== ==== ====
 #
 # Now we're ready to run our repeated measures ANOVA.
+#
+# Note. As we treat trials as subjects, the test only accounts for
+# time locked responses despite the 'induced' approach.
+# For analysis for induced power at the group level averaged TRFs
+# are required.
 
 fvals, pvals = f_mway_rm(data, factor_levels, effects=effects)
 
@@ -152,33 +171,28 @@ for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
     plt.title(r"Time-locked response for '%s' (%s)" % (effect_label, ch_name))
     plt.show()
 
-# Note. As we treat trials as subjects, the test only accounts for
-# time locked responses despite the 'induced' approach.
-# For analysis for induced power at the group level averaged TRFs
-# are required.
-
-
 ###############################################################################
 # Account for multiple comparisons using FDR versus permutation clustering test
-
+# -----------------------------------------------------------------------------
+#
 # First we need to slightly modify the ANOVA function to be suitable for
 # the clustering procedure. Also want to set some defaults.
 # Let's first override effects to confine the analysis to the interaction
 effects = 'A:B'
 
-
+###############################################################################
 # A stat_fun must deal with a variable number of input arguments.
+# Inside the clustering function each condition will be passed as flattened
+# array, necessitated by the clustering procedure. The ANOVA however expects an
+# input array of dimensions: subjects X conditions X observations (optional).
+# The following function catches the list input and swaps the first and
+# the second dimension and finally calls the ANOVA function.
+
+
 def stat_fun(*args):
-    # Inside the clustering function each condition will be passed as
-    # flattened array, necessitated by the clustering procedure.
-    # The ANOVA however expects an input array of dimensions:
-    # subjects X conditions X observations (optional).
-    # The following expression catches the list input and swaps the first and
-    # the second dimension and finally calls the ANOVA function.
     return f_mway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
                      effects=effects, return_pvals=False)[0]
     # The ANOVA returns a tuple f-values and p-values, we will pick the former.
-
 
 pthresh = 0.00001  # set threshold rather high to save some time
 f_thresh = f_threshold_mway_rm(n_replications, factor_levels, effects,
@@ -189,7 +203,9 @@ T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
     epochs_power, stat_fun=stat_fun, threshold=f_thresh, tail=tail, n_jobs=1,
     n_permutations=n_permutations, buffer_size=None)
 
+###############################################################################
 # Create new stats image with only significant clusters
+# -----------------------------------------------------
 good_clusers = np.where(cluster_p_values < .05)[0]
 T_obs_plot = np.ma.masked_array(T_obs,
                                 np.invert(clusters[np.squeeze(good_clusers)]))
@@ -205,7 +221,9 @@ plt.title('Time-locked response for \'modality by location\' (%s)\n'
           ' cluster-level corrected (p <= 0.05)' % ch_name)
 plt.show()
 
-# now using FDR
+###############################################################################
+# Now using FDR
+# -------------
 mask, _ = fdr_correction(pvals[2])
 T_obs_plot2 = np.ma.masked_array(T_obs, np.invert(mask))
 

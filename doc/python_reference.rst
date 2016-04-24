@@ -42,6 +42,7 @@ Classes
    Info
    Projection
    preprocessing.ICA
+   preprocessing.Xdawn
    decoding.CSP
    decoding.Scaler
    decoding.EpochsVectorizer
@@ -307,6 +308,7 @@ Functions:
 
    circular_layout
    mne_analyze_colormap
+   plot_bem
    plot_connectivity_circle
    plot_cov
    plot_dipole_amplitudes
@@ -884,6 +886,8 @@ Statistics
    linear_regression
    linear_regression_raw
    f_mway_rm
+   f_threshold_mway_rm
+   summarize_clusters_stc
 
 Functions to compute connectivity (adjacency) matrices for cluster-level statistics
 

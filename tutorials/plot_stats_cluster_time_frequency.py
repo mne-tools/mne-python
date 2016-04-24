@@ -80,6 +80,7 @@ data_condition_2 = data_condition_2[:, 97:98, :]
 # Time vector
 times = 1e3 * epochs_condition_1.times  # change unit to ms
 
+###############################################################################
 # Factor to downsample the temporal dimension of the PSD computed by
 # single_trial_power.  Decimation occurs after frequency decomposition and can
 # be used to reduce memory usage (and possibly comptuational time of downstream
@@ -101,6 +102,7 @@ epochs_power_2 = single_trial_power(data_condition_2, sfreq=sfreq,
 epochs_power_1 = epochs_power_1[:, 0, :, :]  # only 1 channel to get 3D matrix
 epochs_power_2 = epochs_power_2[:, 0, :, :]  # only 1 channel to get 3D matrix
 
+###############################################################################
 # Compute ratio with baseline power (be sure to correct time vector with
 # decimation factor)
 baseline_mask = times[::decim] < 0

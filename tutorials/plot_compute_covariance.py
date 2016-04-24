@@ -15,11 +15,12 @@ from mne.datasets import sample
 # construct a noise covariance matrix that can be used when computing the
 # inverse solution. For more information, see :ref:`BABDEEEB`.
 data_path = sample.data_path()
-raw_emtpy_room_fname = op.join(
+raw_empty_room_fname = op.join(
     data_path, 'MEG', 'sample', 'ernoise_raw.fif')
-raw_emtpy_room = mne.io.read_raw_fif(raw_emtpy_room_fname)
+raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(raw_fname)
+raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 ###############################################################################
 # The definition of noise depends on the paradigm. In MEG it is quite common
@@ -31,9 +32,13 @@ raw = mne.io.read_raw_fif(raw_fname)
 # useful if you use resting state as a noise baseline. Here we use the whole
 # empty room recording to compute the noise covariance (tmax=None is the same
 # as the end of the recording, see :func:`mne.compute_raw_covariance`).
-noise_cov = mne.compute_raw_covariance(raw_emtpy_room, tmin=0, tmax=None)
+noise_cov = mne.compute_raw_covariance(raw_empty_room, tmin=0, tmax=None)
 
 ###############################################################################
+# Now that you the covariance matrix in a python object you can save it to a
+# file with :func:`mne.write_cov`. Later you can read it back to a python
+# object using :func:`mne.read_cov`.
+#
 # You can also use the pre-stimulus baseline to estimate the noise covariance.
 # First we have to construct the epochs. When computing the covariance, you
 # should use baseline correction when constructing the epochs. Otherwise the
@@ -49,8 +54,12 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.0,
 noise_cov_baseline = mne.compute_covariance(epochs)
 
 ###############################################################################
-# Plot the covariance matrices.
-noise_cov.plot(raw_emtpy_room.info)
+# Plot the covariance matrices
+# ----------------------------
+#
+# Try setting proj to False to see the effect. Notice that the projectors in
+# epochs are already applied, so ``proj`` parameter has no effect.
+noise_cov.plot(raw_empty_room.info, proj=True)
 noise_cov_baseline.plot(epochs.info)
 
 ###############################################################################
@@ -62,7 +71,7 @@ noise_cov_baseline.plot(epochs.info)
 # and the number of samples available. The MNE manual therefore suggests to
 # regularize the noise covariance matrix (see
 # :ref:`CBBHEGAB`), especially if only few samples are available. Unfortunately
-# it is not easy to tell the effective number of samples, hence, to chose the
+# it is not easy to tell the effective number of samples, hence, to choose the
 # appropriate regularization.
 # In MNE-Python, regularization is done using advanced regularization methods
 # described in [1]_. For this the 'auto' option can be used. With this
@@ -119,7 +128,7 @@ evoked.plot_white(covs)
 
 ###############################################################################
 # References
-# ==========
+# ----------
 #
 # .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
 #     covariance estimation and spatial whitening of MEG and EEG signals,

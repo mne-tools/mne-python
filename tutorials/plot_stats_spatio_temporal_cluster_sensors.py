@@ -29,8 +29,8 @@ from mne.channels import read_ch_connectivity
 print(__doc__)
 
 ###############################################################################
-
 # Set parameters
+# --------------
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -45,6 +45,7 @@ events = mne.read_events(event_fname)
 
 ###############################################################################
 # Read epochs for the channel of interest
+# ---------------------------------------
 
 picks = mne.pick_types(raw.info, meg='mag', eog=True)
 
@@ -61,7 +62,8 @@ X = [np.transpose(x, (0, 2, 1)) for x in X]  # transpose for clustering
 
 
 ###############################################################################
-# load FieldTrip neighbor definition to setup sensor connectivity
+# Load FieldTrip neighbor definition to setup sensor connectivity
+# ---------------------------------------------------------------
 connectivity, ch_names = read_ch_connectivity('neuromag306mag')
 
 print(type(connectivity))  # it's a sparse matrix!
@@ -74,6 +76,7 @@ plt.title('Between-sensor adjacency')
 
 ###############################################################################
 # Compute permutation statistic
+# -----------------------------
 #
 # How does it work? We use clustering to `bind` together features which are
 # similar. Our features are the magnetic fields measured over our sensor
@@ -102,12 +105,13 @@ cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
 T_obs, clusters, p_values, _ = cluster_stats
 good_cluster_inds = np.where(p_values < p_accept)[0]
 
-# Note. The same functions works with source estimate. The only differences
+###############################################################################
+# Note. The same functions work with source estimate. The only differences
 # are the origin of the data, the size, and the connectivity definition.
 # It can be used for single trials or for groups of subjects.
-
-###############################################################################
+#
 # Visualize clusters
+# ------------------
 
 # configure variables for visualization
 times = epochs.times * 1e3
@@ -182,12 +186,11 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     fig.subplots_adjust(bottom=.05)
     plt.show()
 
-"""
-Exercises
-----------
-
-- What is the smallest p-value you can obtain, given the finite number of
-   permutations?
-- use an F distribution to compute the threshold by traditional significance
-   levels. Hint: take a look at ```scipy.stats.distributions.f```
-"""
+###############################################################################
+# Exercises
+# ----------
+#
+# - What is the smallest p-value you can obtain, given the finite number of
+#    permutations?
+# - use an F distribution to compute the threshold by traditional significance
+#    levels. Hint: take a look at ``scipy.stats.distributions.f``
