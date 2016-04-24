@@ -31,13 +31,12 @@ evoked_l_vis = evoked[2]
 evoked_r_vis = evoked[3]
 
 ###############################################################################
-###############################################################################
 # Let's start with a simple one. We plot event related potentials / fields
 # (ERP/ERF). The bad channels are not plotted by default. Here we explicitly
 # set the exclude parameter to show the bad channels in red. All plotting
 # functions of MNE-python return a handle to the figure instance. When we have
 # the handle, we can customise the plots to our liking.
-fig = evoked_l_aud.plot()
+fig = evoked_l_aud.plot(exclude=())
 
 ###############################################################################
 # All plotting functions of MNE-python returns a handle to the figure instance.
