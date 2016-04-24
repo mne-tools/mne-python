@@ -9,6 +9,7 @@ see :ref:`tut_epoching_and_averaging`. Here we cover the specifics
 of EEG, namely:
     - setting the reference
     - using standard montages :func:`mne.channels.Montage`
+    - Evoked arithmetic (e.g. differences)
 
 XXX : ROI plots?
 
@@ -93,7 +94,7 @@ print(montage)
 raw_no_ref, _ = mne.io.set_eeg_reference(raw, [])
 
 ###############################################################################
-# We next define Epochs and compute en ERP for the left auditory condition.
+# We next define Epochs and compute an ERP for the left auditory condition.
 reject = dict(eeg=180e-6, eog=150e-6)
 event_id, tmin, tmax = {'left/auditory': 1}, -0.2, 0.5
 events = mne.read_events(event_fname)
@@ -128,3 +129,65 @@ del raw_custom  # save memory
 title = 'EEG Custom reference'
 evoked_custom.plot(titles=dict(eeg=title))
 evoked_custom.plot_topomap(times=[0.1], size=3., title=title)
+
+###############################################################################
+# Evoked arithmetics
+# ------------------
+#
+# Trial subsets from Epochs can be selected using 'tags' separated by '/'.
+# Evoked objects support basic arithmetic.
+# First, we create an Epochs object containing 4 conditions.
+
+event_id = {'left/auditory': 1, 'right/auditory': 2,
+            'left/visual': 3, 'right/visual': 4}
+epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
+                     reject=reject)
+epochs = mne.Epochs(raw, **epochs_params)
+
+print(epochs)
+
+###############################################################################
+# Next, we create averages of stimulation-left vs stimulation-right trials.
+# We can use basic arithmetic to, for example, construct and plot
+# difference ERPs.
+
+left, right = epochs["left"].average(), epochs["right"].average()
+
+(left - right).plot_joint()  # create and plot difference ERP
+
+###############################################################################
+# Note that by default, this is a trial-weighted average. If you have
+# imbalanced trial numbers, consider either equalizing the number of events per
+# condition (using ``Epochs.equalize_event_counts``), or the ``combine_evoked``
+# function.
+# As an example, first, we create individual ERPs for each condition.
+
+aud_l = epochs["auditory", "left"].average()
+aud_r = epochs["auditory", "right"].average()
+vis_l = epochs["visual", "left"].average()
+vis_r = epochs["visual", "right"].average()
+
+all_evokeds = [aud_l, aud_r, vis_l, vis_r]
+
+# This could have been much simplified with a list comprehension:
+# all_evokeds = [epochs[cond] for cond in event_id]
+
+# Then, we construct and plot an unweighted average of left vs. right trials.
+mne.combine_evoked(all_evokeds, weights=(1, -1, 1, -1)).plot_joint()
+
+###############################################################################
+# Often, it makes sense to store Evoked objects in a dictionary or a list -
+# either different conditions, or different subjects.
+
+# If they are stored in a list, they can be easily averaged, for example,
+# for a grand average across subjects (or conditions).
+grand_average = mne.grand_average(all_evokeds)
+mne.write_evokeds('/tmp/tmp-ave.fif', all_evokeds)
+
+# If Evokeds objects are stored in a dictionary, they can be retrieved by name.
+all_evokeds = dict((cond, epochs[cond]) for cond in event_id)  # dict comp.
+print(all_evokeds["auditory/left"])
+
+# Besides for explicit access, this can be used for example to set titles.
+for cond in all_evokeds:
+    all_evokeds[cond].plot_joint(title=cond)

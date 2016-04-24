@@ -31,14 +31,17 @@ evoked_l_vis = evoked[2]
 evoked_r_vis = evoked[3]
 
 ###############################################################################
-# Let's start with a simple one. Here we plot event related potentials / fields
+# Let's start with a simple one. We plot event related potentials / fields
 # (ERP/ERF). The bad channels are not plotted by default. Here we explicitly
 # set the exclude parameter to show the bad channels in red. All plotting
 # functions of MNE-python return a handle to the figure instance. When we have
 # the handle, we can customise the plots to our liking.
 fig = evoked_l_aud.plot(exclude=())
 
-# We can get rid of the empty space with a simple function call.
+###############################################################################
+# All plotting functions of MNE-python returns a handle to the figure instance.
+# When we have the handle, we can customise the plots to our liking. We can get
+# rid of the empty space with a simple function call.
 fig.tight_layout()
 
 ###############################################################################
@@ -47,6 +50,9 @@ fig.tight_layout()
 # channels. ``picks`` is simply a list of channel indices that you can easily
 # construct with :func:`mne.pick_types`. See also :func:`mne.pick_channels` and
 # :func:`mne.pick_channels_regexp`.
+# Using ``spatial_colors=True``, the individual channel lines are color coded
+# to show the sensor positions - specifically, the x, y, and z locations of
+# the sensors are transformed into R, G and B values.
 picks = mne.pick_types(evoked_l_aud.info, meg=True, eeg=False, eog=False)
 evoked_l_aud.plot(spatial_colors=True, gfp=True, picks=picks)
 
@@ -56,7 +62,7 @@ evoked_l_aud.plot(spatial_colors=True, gfp=True, picks=picks)
 # Try painting the slopes with left mouse button. It should open a new window
 # with topomaps (scalp plots) of the average over the painted area. There is
 # also a function for drawing topomaps separately.
-evoked_r_aud.plot_topomap()
+evoked_l_aud.plot_topomap()
 
 ###############################################################################
 # By default the topomaps are drawn from evenly spread out points of time over
@@ -70,7 +76,7 @@ evoked_r_aud.plot_topomap(times='peaks', ch_type='mag')
 
 ###############################################################################
 # You can take a look at the documentation of :func:`mne.Evoked.plot_topomap`
-# or simply write ``evoked_raud.plot_topomap?`` in your python console to
+# or simply write ``evoked_r_aud.plot_topomap?`` in your python console to
 # see the different parameters you can pass to this function. Most of the
 # plotting functions also accept ``axes`` parameter. With that, you can
 # customise your plots even further. First we shall create a set of matplotlib
@@ -92,13 +98,20 @@ evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
 # using for your python session. See http://matplotlib.org/users/shell.html for
 # more information.
 #
-# We can also combine the two kinds of plots to one. Notice the
-# ``topomap_args`` parameter of :func:`mne.Evoked.plot_joint`. You can pass
-# key-value pairs as a python dictionary that gets passed as parameters to the
-# topomaps of the joint plot. Here we disable the plotting of sensor locations
-# in the topomaps
+# We can also combine the two kinds of plots to on using the ``plot_joint``
+# method of Evoked objects. Notice the ``topomap_args`` and ``ts_args``
+# parameters of :func:`mne.Evoked.plot_joint`.
+# You can pass key-value pairs as a python dictionary that gets passed as
+# parameters to the topomaps and time series of the joint plot.
+evoked_r_aud.plot_joint()
+
+# For slightly more elaborate plots, use these ``topomap_args`` and ``ts_args``
+# arguments. Here, topomaps at specific time points (70 and 105 msec) are
+# shown, sensors are not plotted, and the Global Field Power is shown:
+ts_args = dict(gfp=True)
 topomap_args = dict(sensors=False)
-evoked_r_aud.plot_joint(topomap_args=topomap_args)
+evoked_r_aud.plot_joint(title='right auditory', times=[.07, .105],
+                        ts_args=ts_args, topomap_args=topomap_args)
 
 ###############################################################################
 # We can also plot the activations as images. The time runs along the x-axis
@@ -106,7 +119,7 @@ evoked_r_aud.plot_joint(topomap_args=topomap_args)
 # the amplitudes from negative to positive translates to shift from blue to
 # red. White means zero amplitude. You can use the ``cmap`` parameter to define
 # the color map yourself. The accepted values include all matplotlib colormaps.
-evoked_l_aud.plot_image(picks=picks)
+evoked_r_aud.plot_image(picks=picks)
 
 ###############################################################################
 # Finally we plot the sensor data as a topographical view. In the simple case

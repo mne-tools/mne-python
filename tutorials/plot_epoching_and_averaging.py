@@ -82,7 +82,8 @@ raw.plot(events=events, n_channels=10, order=order)
 # offsets in relation to the events. Here we make epochs that collect the data
 # from 200 ms before to 500 ms after the event.
 tmin, tmax = -0.2, 0.5
-event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
+event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
+            'Visual/Left': 3, 'Visual/Right': 4}
 # Only pick MEG and EOG channels.
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True)
 
@@ -139,6 +140,16 @@ epochs.plot_drop_log()
 picks = mne.pick_types(epochs.info, meg=True, eog=True)
 evoked_left = epochs['Auditory/Left'].average(picks=picks)
 evoked_right = epochs['Auditory/Right'].average(picks=picks)
+
+###############################################################################
+# Notice we have used forward slashes ('/') to separate the factors of the
+# conditions of the experiment. We can use these 'tags' to select for example
+# all left trials (both visual left and auditory right) ...
+
+epochs_left = epochs['Left']
+
+# ... or to select a very specific subset. This is the same as above:
+evoked_left = epochs['Auditory', 'Left'].average(picks=picks)
 
 ###############################################################################
 # Finally, let's plot the evoked responses.
