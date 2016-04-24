@@ -185,6 +185,9 @@ grand_average = mne.grand_average(all_evokeds)
 mne.write_evokeds('/tmp/tmp-ave.fif', all_evokeds)
 
 # If Evokeds objects are stored in a dictionary, they can be retrieved by name.
-
 all_evokeds = dict((cond, epochs[cond]) for cond in event_id)  # dict comp.
 print(all_evokeds["auditory/left"])
+
+# Besides for explicit access, this can be used for example to set titles.
+for cond in all_evokeds:
+    all_evokeds[cond].plot_joint(title=cond)
