@@ -32,7 +32,7 @@ from ..io.meas_info import Info
 
 def _prepare_topo_plot(inst, ch_type, layout):
     """"Aux Function"""
-    info = inst.copy() if isinstance(inst, Info) else copy.deepcopy(inst.info)
+    info = deepcopy(inst if isinstance(inst, Info) else inst.info)
 
     if layout is None and ch_type is not 'eeg':
         from ..channels import find_layout
@@ -386,14 +386,14 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     Parameters
     ----------
-    data : array, length = n_chan
+    data : array, shape (n_chan,)
         The data values to plot.
-    pos : array, shape = (n_chan, 2) | Info
+    pos : array, shape (n_chan, 2) | instance of Info
         Location information for the data points(/channels).
         If an array, for each data point, the x and y coordinates.
         If an Info object, it must contain only one data type and
-        exactly `len(data)` channels, and the x/y coordinates will be inferred
-        from this Info object.
+        exactly `len(data)` data channels, and the x/y coordinates will
+        be inferred from this Info object.
     vmin : float | callable | None
         The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -477,13 +477,13 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     if isinstance(pos, Info):  # infer pos from Info object
         picks = _pick_data_channels(pos)  # pick only data channels
-        pick_info(pos.copy(), picks)
+        pos = pick_info(pos, picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
         ch_type = set(channel_type(pos, idx)
                       for idx, _ in enumerate(pos["chs"]))
-        info_help = ("Pick Info with e.g. ``mne.pick_info`` and "
-                     "``mne.channels.channel_indices_by_type``.")
+        info_help = ("Pick Info with e.g. mne.pick_info and "
+                     "mne.channels.channel_indices_by_type.")
         if len(ch_type) > 1:
             raise ValueError("Multiple channel types in Info structure. " +
                              info_help)
@@ -500,7 +500,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             picks, pos = _pair_grad_sensors(pos, find_layout(pos))
             data = _merge_grad_data(data[picks]).squeeze()
         else:
-            picks = range(data.shape[0])
+            picks = list(range(data.shape[0]))
             pos = _find_topomap_coords(pos, picks=picks)
 
     if data.ndim > 1:
