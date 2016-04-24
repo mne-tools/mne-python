@@ -488,7 +488,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             raise ValueError("Multiple channel types in Info structure. " +
                              info_help)
         elif len(pos["chs"]) != data.shape[0]:
-            raise ValueError("Number of channels in the Info object and
+            raise ValueError("Number of channels in the Info object and "
                              "the data array does not match. " + info_help)
         else:
             ch_type = ch_type.pop()
