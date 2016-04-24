@@ -938,7 +938,8 @@ class ICA(ContainsMixin):
             if threshold is None:
                 threshold = 0.25
             if isinstance(inst, _BaseRaw):
-                sources = self.get_sources(create_ecg_epochs(inst)).get_data()
+                sources = self.get_sources(create_ecg_epochs(
+                  inst, ch_name)).get_data()
             elif isinstance(inst, _BaseEpochs):
                 sources = self.get_sources(inst).get_data()
             else:
