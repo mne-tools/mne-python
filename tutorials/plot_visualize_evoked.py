@@ -155,4 +155,4 @@ field_map = evoked_l_aud.plot_field(maps, time=.1)
 
 ###############################################################################
 # .. note::
-#       If trans_fname is set to None then only MEG estimates can be visualized
+#     If trans_fname is set to None then only MEG estimates can be visualized.
