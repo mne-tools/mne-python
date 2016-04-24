@@ -498,7 +498,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             from ..channels.layout import (_merge_grad_data, find_layout,
                                            _pair_grad_sensors)
             picks, pos = _pair_grad_sensors(pos, find_layout(pos))
-            data = _merge_grad_data(data[picks]).squeeze()
+            data = _merge_grad_data(data[picks]).reshape(-1)
         else:
             picks = list(range(data.shape[0]))
             pos = _find_topomap_coords(pos, picks=picks)
