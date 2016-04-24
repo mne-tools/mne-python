@@ -106,8 +106,8 @@ def test_events():
                                     [6000, 1, 255],
                                     [6620, 1, 254],
                                     [6630, 1, 255]])
-        assert_equal(len(w), 1)  # for dropping string Sync event
-    
+        assert_equal(len(w), 1)  # for dropping Sync & R255 events
+
     # check that events are read and stim channel is synthesized correcly and
     # response triggers are shifted like they're supposed to be.
     with warnings.catch_warnings(record=True) as w:
@@ -126,7 +126,7 @@ def test_events():
                                     [6000, 1, 1255],
                                     [6620, 1, 254],
                                     [6630, 1, 255]])
-        assert_equal(len(w), 1)  # for dropping string Sync event
+        assert_equal(len(w), 1)  # for dropping Sync & R255 events
 
     # check that events are read and stim channel is synthesized correcly and
     # response triggers are ignored.
@@ -145,7 +145,7 @@ def test_events():
                                     [4946, 1, 255],
                                     [6620, 1, 254],
                                     [6630, 1, 255]])
-        assert_equal(len(w), 1)  # for dropping string Sync event
+        assert_equal(len(w), 1)  # for dropping Sync & R255 events
 
     # check that events are read properly when event_id is specified for
     # auxiliary events
@@ -166,7 +166,7 @@ def test_events():
                                     [6620, 1, 254],
                                     [6630, 1, 255],
                                     [7630, 1, 5]])
-        assert_equal(len(w), 0)  # parsing the Sync event
+        assert_equal(len(w), 1)  # parsing Sync event, missing R255
 
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, eog=eog,
                   preload=True, response_trig_shift=0.1)
@@ -179,11 +179,11 @@ def test_events():
         read_raw_brainvision(vhdr_path, eog=eog, preload=False,
                              response_trig_shift=100,
                              event_id={'Sync On': 5})
-    
+
         mne_events = find_events(raw, stim_channel='STI 014')
         assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
         assert_equal(len(w), 0)  # parsing the Sync event
-    
+
     # modify events and check that stim channel is updated
     index = events[:, 2] == 255
     events = events[index]
