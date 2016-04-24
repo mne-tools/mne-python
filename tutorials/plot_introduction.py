@@ -8,8 +8,8 @@ Basic MEG and EEG data processing
 MNE-Python reimplements most of MNE-C's (the original MNE command line utils)
 functionality and offers transparent scripting.
 On top of that it extends MNE-C's functionality considerably
-(customize events, compute contrasts, group statistics, time-frequency analysis,
-EEG-sensor space analyses, etc.) It uses the same files as standard
+(customize events, compute contrasts, group statistics, time-frequency
+analysis, EEG-sensor space analyses, etc.) It uses the same files as standard
 MNE unix commands: no need to convert your files to a new system or database.
 
 What you can do with MNE Python
