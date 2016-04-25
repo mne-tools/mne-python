@@ -302,7 +302,7 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
     n_obs = data.shape[2]
     n_replications = data.shape[0]
 
-    # pute last axis in fornt to 'iterate' over mass univariate instances.
+    # put last axis in front to 'iterate' over mass univariate instances.
     data = np.rollaxis(data, 2)
     fvalues, pvalues = [], []
     for c_, df1, df2 in _iter_contrasts(n_replications, factor_levels,
