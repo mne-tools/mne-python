@@ -694,7 +694,7 @@ def _pick_aux_channels(info, exclude='bads'):
     Corresponds to EOG, ECG, EMG and BIO
     """
     return pick_types(info, meg=False, eog=True, ecg=True, emg=True, bio=True,
-                      exclude=exclude)
+                      ref_meg=False, exclude=exclude)
 
 
 def _pick_data_or_ica(info):
