@@ -888,19 +888,19 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     train_times : dict | None
         A dictionary to configure the training times:
 
-            ``slices`` : ndarray, shape (n_clfs,)
+            * ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
-            ``start`` : float
+            * ``start`` : float
                 Time at which to start decoding (in seconds).
                 Defaults to min(epochs.times).
-            ``stop`` : float
+            * ``stop`` : float
                 Maximal time at which to stop decoding (in seconds).
                 Defaults to max(times).
-            ``step`` : float
+            * ``step`` : float
                 Duration separating the start of subsequent classifiers (in
                 seconds). Defaults to one time sample.
-            ``length`` : float
+            * ``length`` : float
                 Duration of each classifier (in seconds).
                 Defaults to one time sample.
 
@@ -911,7 +911,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         each classifier is trained.
         If set to None, predictions are made at all time points.
         If set to dict, the dict should contain ``slices`` or be contructed in
-        a similar way to train_times::
+        a similar way to train_times:
 
             ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
@@ -927,12 +927,12 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
 
-            ``cross-validation`` : estimates a single prediction per sample
+            * ``cross-validation`` : estimates a single prediction per sample
                 based on the unique independent classifier fitted in the
                 cross-validation.
 
-            ``mean-prediction`` : estimates k predictions per sample, based on
-                each of the k-fold cross-validation classifiers, and average
+            * ``mean-prediction`` : estimates k predictions per sample, based
+                on each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
 
         Defaults to 'cross-validation'.
@@ -942,11 +942,12 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     score_mode : {'per-fold', 'mean-across-folds', 'no-cv'}
         Determines how the scorer is estimated:
 
-            ``per-fold`` : returns the score obtained in each fold.
+            * ``per-fold`` : returns the score obtained in each fold.
 
-            ``mean-across-folds`` : returns the average of the per-fold scores.
+            * ``mean-across-folds`` : returns the average of the per-fold
+                scores.
 
-            ``no-cv`` : returns score estimated across across all y_pred
+            * ``no-cv`` : returns score estimated across across all y_pred
                 independently of the cross-validation. This method is faster
                 than ``mean-across-folds`` but less conventional, use at your
                 own risk.
@@ -966,10 +967,11 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     train_times_ : dict
         A dictionary that configures the training times:
 
-            ``slices`` : ndarray, shape (n_clfs,)
+            * ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
-            ``times`` : ndarray, shape (n_clfs,)
+
+            * ``times`` : ndarray, shape (n_clfs,)
                 The training times (in seconds).
 
     test_times_ : dict
@@ -1246,12 +1248,12 @@ class TimeDecoding(_GeneralizationAcrossTime):
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
 
-            ``cross-validation`` : estimates a single prediction per sample
+            * ``cross-validation`` : estimates a single prediction per sample
                 based on the unique independent classifier fitted in the
                 cross-validation.
 
-            ``mean-prediction`` : estimates k predictions per sample, based on
-                each of the k-fold cross-validation classifiers, and average
+            * ``mean-prediction`` : estimates k predictions per sample, based
+                on each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
 
         Defaults to 'cross-validation'.
@@ -1261,11 +1263,12 @@ class TimeDecoding(_GeneralizationAcrossTime):
     score_mode : {'per-fold', 'mean-across-folds', 'no-cv'}
         Determines how the scorer is estimated:
 
-            ``per-fold`` : returns the score obtained in each fold.
+            * ``per-fold`` : returns the score obtained in each fold.
 
-            ``mean-across-folds`` : returns the average of the per-fold scores.
+            * ``mean-across-folds`` : returns the average of the per-fold
+                scores.
 
-            ``no-cv`` : returns score estimated across across all y_pred
+            * ``no-cv`` : returns score estimated across across all y_pred
                 independently of the cross-validation. This method is faster
                 than ``mean-across-folds`` but less conventional, use at your
                 own risk.
@@ -1285,10 +1288,11 @@ class TimeDecoding(_GeneralizationAcrossTime):
     times_ : dict
         A dictionary that configures the training times:
 
-            ``slices`` : ndarray, shape (n_clfs,)
+            * ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
-            ``times`` : ndarray, shape (n_clfs,)
+
+            * ``times`` : ndarray, shape (n_clfs,)
                 The training times (in seconds).
 
     cv_ : CrossValidation object
