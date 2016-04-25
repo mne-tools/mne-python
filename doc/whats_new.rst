@@ -60,6 +60,8 @@ Changelog
 
     - Add option for ``proj`` in :class:`mne.EpochsArray` by `Eric Larson`_
 
+    - Enable the usage of :func:`mne.viz.topomap.plot_topomap` with an :class:`mne.io.Info` instance for location information, by `Jona Sassenhagen`_.
+
 BUG
 ~~~
 
