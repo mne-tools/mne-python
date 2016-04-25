@@ -7,12 +7,12 @@ body {
 }
 
 a {
-    color: #08C;
+    color: rgb(41, 122, 204);
     text-decoration: none;
 }
 
 a:hover {
-    color: rgb(102,178,255);
+    color: rgb(102, 179, 255);
 }
 
 h2 a {
@@ -40,12 +40,12 @@ blockquote {
 }
 
 code {
-    color: #49759c !important;
-    background-color: #f3f5f9 !important;
+    color: rgb(61, 107, 153) !important;
+    background-color: rgb(230, 242, 255) !important;
 }
 
 .devbar {
-    background-color: rgb(255, 100, 100);
+    background-color: rgb(230, 57, 57);
     color: white;
     font-weight:bold;
     text-align: center;
@@ -54,7 +54,13 @@ code {
 }
 
 .devbar a {
-    color: rgb(0, 0, 0);
+    color: rgb(255, 238, 0);
+    text-decoration: none;
+}
+
+.devbar a:hover {
+    color: black;
+    text-decoration: underline;
 }
 
 #navbar a:hover {
@@ -66,13 +72,13 @@ code {
 }
 
 .note {
-    background-color: rgb(210,255,255);
+    background-color: rgb(204, 230, 255);
     color: rgb(0, 0, 0);
     border: none;
 }
 
 .note pre {
-    background-color: rgb(255,255,255);
+    background-color: rgb(242, 249, 255);
 }
 
 blockquote {
@@ -86,13 +92,35 @@ blockquote {
     height: 230px;
     float: left;
     border-radius: 20px;
-    background: #f3f5f9;
+    background: rgb(242, 249, 255);
     border-style: solid;
-    border-color: #2C3E50;
+    border-color: rgb(143, 173, 204);
     margin: 5px;
     padding: 0px 0px 0px 10px;
 }
 
 .span h2 {
-    background: #f3f5f9;
+    background: rgb(242, 249, 255);
+}
+
+.span.box code {
+    background-color: rgb(204, 230, 255) !important;
+}
+
+/* OVERRIDES */
+.sphx-glr-download {
+    background-color: rgb(204, 230, 255);
+    border-radius: 10px;
+    border-style: solid;
+    border-color: rgb(143, 173, 204);
+}
+.highlight pre {
+    background-color: rgb(242, 249, 255) !important;
+}
+.warning {
+    background-color: rgb(230, 57, 57);
+    color: white;
+}
+.warning a {
+    color: rgb(255, 238, 0);
 }
