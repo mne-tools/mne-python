@@ -729,7 +729,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     return events
 
 
-def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
+def make_fixed_length_events(raw, id, start=0, stop=None, duration=1., first_samp=True):
     """Make a set of events separated by a fixed duration
 
     Parameters
@@ -745,6 +745,11 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
         of the recording.
     duration: float
         The duration to separate events by.
+    first_samp: bool
+        If True (default), times will be adjusted for first_samp. The default
+        behavior is desirable if times are arbitrary, as in resting data. Use 
+        False if times are based on events from find_events, as these have already 
+        been adjusted for first_samp.
 
     Returns
     -------
@@ -752,7 +757,8 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
         The new events.
     """
     start = raw.time_as_index(start)
-    start = start[0] + raw.first_samp
+    if first_samp:
+        start = start[0] + raw.first_samp
     if stop is not None:
         stop = raw.time_as_index(stop)
         stop = min([stop[0] + raw.first_samp, raw.last_samp + 1])
