@@ -92,7 +92,7 @@ print(evoked.info['bads'])
 evoked.interpolate_bads(reset_bads=False)
 
 ###############################################################################
-# Let's the cleaned data
+# Let's plot the cleaned data
 evoked.plot(exclude=[])
 
 ###############################################################################

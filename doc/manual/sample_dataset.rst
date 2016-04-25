@@ -409,7 +409,7 @@ Another piece of information derived from the raw data file
 is the estimate for the noise-covariance matrix, which can be computed
 with the command:
 
-``mne_process_raw --raw sample_audvis_raw.fif `` ``--lowpass 40 --projon `` ``--savecovtag -cov --cov audvis.cov``
+``mne_process_raw --raw sample_audvis_raw.fif --lowpass 40 --projon --savecovtag -cov --cov audvis.cov``
 
 Using the definitions in ``audvis.cov`` , this command
 will create the noise-covariance matrix file ``sample_audvis-cov.fif`` .

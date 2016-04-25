@@ -1,10 +1,14 @@
-.. _ch_convert:
 
 .. contents:: Contents
    :local:
    :depth: 2
 
-Here we describe the data reading and conversion utilities included
+.. _ch_convert:
+
+Importing MEG data
+##################
+
+This section describes the data reading and conversion utilities included
 with the MNE software. The cheatsheet below summarizes the different
 file formats supported by MNE software.
 
@@ -30,12 +34,6 @@ Electrode locations   EEGLAB loc, locs, eloc     Misc       :func:`mne.channels.
     EEG data can be found in :mod:`mne.io` and start with `read_raw_`. All
     supported data formats can be read in MNE-Python directly without first
     saving it to fif.
-
-Importing MEG data
-##################
-
-This section describes reading and converting of various MEG data formats.
-
 
 Elekta NeuroMag (.fif)
 ======================

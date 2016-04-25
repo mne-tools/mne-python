@@ -44,6 +44,8 @@ print(info['sfreq'], 'Hz')
 print(info['chs'][0])
 
 ###############################################################################
+# .. _picking_channels:
+#
 # Obtaining subsets of channels
 # -----------------------------
 #

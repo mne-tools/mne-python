@@ -1,8 +1,9 @@
-.. _channel_interpolation:
 
 .. contents:: Contents
     :local:
     :depth: 2
+
+.. _channel_interpolation:
 
 Repairing bad channels
 ######################

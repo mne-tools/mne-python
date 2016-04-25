@@ -1,8 +1,9 @@
-.. _decoding:
 
 .. contents:: Contents
    :local:
    :depth: 3
+
+.. _decoding:
 
 Decoding
 ########
