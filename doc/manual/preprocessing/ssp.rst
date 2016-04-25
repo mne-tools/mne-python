@@ -89,7 +89,7 @@ Since the signal-space projection modifies the signal vectors
 originating in the brain, it is necessary to apply the projection
 to the forward solution in the course of inverse computations. This
 is accomplished by mne_inverse_operator as
-described in :ref:`CBBDDBGF`. For more information on SSP,
+described in :ref:`inverse_operator`. For more information on SSP,
 please consult the references listed in :ref:`CEGIEEBB`.
 
 .. _CACFGIEC:

@@ -237,17 +237,15 @@ The following changes have been made in mne_inverse_operator :
 mne_compute_raw_inverse
 =======================
 
-This utility is now documented in :ref:`CBBCGHAH`. The
-utility mne_make_raw_inverse_operator has
-been removed from the software.
+This utility is now documented in :ref:`computing_inverse`. The
+utility mne_make_raw_inverse_operator has been removed from the software.
 
 Time range settings
 ===================
 
 The tools mne_compute_raw_inverse , mne_convert_mne_data ,
-and mne_compute_mne no longer
-have command-line options to restrict the time range of evoked data
-input.
+and mne_compute_mne no longer have command-line options to restrict
+the time range of evoked data input.
 
 mne_change_baselines
 ====================

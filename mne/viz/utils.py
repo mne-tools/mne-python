@@ -333,7 +333,10 @@ def _prepare_trellis(n_cells, max_col):
     fig, axes = plt.subplots(nrow, ncol, figsize=(7.4, 1.5 * nrow + 1))
     axes = [axes] if ncol == nrow == 1 else axes.flatten()
     for ax in axes[n_cells:]:  # hide unused axes
-        ax.set_visible(False)
+        # XXX: Previously done by ax.set_visible(False), but because of mpl
+        # bug, we just hide the frame.
+        from .topomap import _hide_frame
+        _hide_frame(ax)
     return fig, axes
 
 

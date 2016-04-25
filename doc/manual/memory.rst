@@ -1,8 +1,9 @@
-.. _memory:
 
 .. contents:: Contents
    :local:
    :depth: 3
+
+.. _memory:
 
 Memory-efficient IO
 ###################

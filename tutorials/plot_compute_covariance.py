@@ -70,9 +70,9 @@ noise_cov_baseline.plot(epochs.info)
 # unstable and tends to induce correlations between estimated source amplitudes
 # and the number of samples available. The MNE manual therefore suggests to
 # regularize the noise covariance matrix (see
-# :ref:`CBBHEGAB`), especially if only few samples are available. Unfortunately
-# it is not easy to tell the effective number of samples, hence, to choose the
-# appropriate regularization.
+# :ref:`cov_regularization`), especially if only few samples are available.
+# Unfortunately it is not easy to tell the effective number of samples, hence,
+# to choose the appropriate regularization.
 # In MNE-Python, regularization is done using advanced regularization methods
 # described in [1]_. For this the 'auto' option can be used. With this
 # option cross-validation will be used to learn the optimal regularization:

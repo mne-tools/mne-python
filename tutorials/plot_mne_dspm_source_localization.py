@@ -71,7 +71,7 @@ fwd = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # Restrict forward solution as necessary for MEG
 fwd = mne.pick_types_forward(fwd, meg=True, eeg=False)
 
-# make an M/EEG, MEG-only, and EEG-only inverse operators
+# make an MEG inverse operator
 info = evoked.info
 inverse_operator = make_inverse_operator(info, fwd, noise_cov,
                                          loose=0.2, depth=0.8)

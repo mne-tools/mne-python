@@ -60,7 +60,6 @@ For further reading:
     :maxdepth: 1
 
     auto_tutorials/plot_artifacts_detection.rst
-    tutorials/preprocessing/filtering_resampling.rst
     auto_tutorials/plot_artifacts_correction_filtering.rst
     auto_tutorials/plot_artifacts_correction_rejection.rst
     auto_tutorials/plot_artifacts_correction_ssp.rst

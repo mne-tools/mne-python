@@ -64,7 +64,6 @@ and class usage information.
       :maxdepth: 1
 
       source_localization/forward
-      source_localization/covariance
       source_localization/inverse
       source_localization/morph
 

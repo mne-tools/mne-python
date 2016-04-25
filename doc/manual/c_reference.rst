@@ -43,7 +43,7 @@ Software components
     |                            | :ref:`mne_make_movie`.                     |
     +----------------------------+--------------------------------------------+
     | `mne_compute_raw_inverse`_ | Compute the inverse solution from raw data |
-    |                            | see :ref:`CBBCGHAH`.                       |
+    |                            | see :ref:`computing_inverse`.              |
     +----------------------------+--------------------------------------------+
     | `mne_convert_mne_data`_    | Convert MNE data files to other file       |
     |                            | formats.                                   |
@@ -58,10 +58,10 @@ Software components
     |                            | :ref:`CHDDIBAH`.                           |
     +----------------------------+--------------------------------------------+
     | `mne_inverse_operator`_    | Compute the inverse operator decomposition |
-    |                            | see :ref:`CBBDDBGF`.                       |
+    |                            | see :ref:`inverse_operator`.               |
     +----------------------------+--------------------------------------------+
     | `mne_make_movie`_          | Make movies in batch mode, see             |
-    |                            | :ref:`CBBECEDE`.                           |
+    |                            | :ref:`movies_and_snapshots`.               |
     +----------------------------+--------------------------------------------+
     | `mne_make_source_space`_   | Create a *fif* source space description    |
     |                            | file, see :ref:`BEHCGJDD`.                 |
@@ -682,7 +682,7 @@ mne_compute_mne
 
 This program is gradually becoming obsolete. All of its functions will
 be eventually included to :ref:`mne_make_movie`,
-see :ref:`CBBECEDE`. At this time, :ref:`mne_compute_mne` is
+see :ref:`movies_and_snapshots`. At this time, :ref:`mne_compute_mne` is
 still needed to produce time-collapsed w files unless you are willing
 to write a Matlab script of your own for this purpose.
 
@@ -909,7 +909,7 @@ mne_compute_raw_inverse
 
     Specifies a label file to process. For each label file, the values
     of the computed estimates stored in a fif file. For more details,
-    see :ref:`CBBHJDAI`. The label files are produced by tksurfer
+    see :ref:`implementation_details`. The label files are produced by tksurfer
     or mne_analyze and specify regions
     of interests (ROIs). A label file name should end with ``-lh.label`` for
     left-hemisphere ROIs and with ``-rh.label`` for right-hemisphere
@@ -929,7 +929,7 @@ mne_compute_raw_inverse
 ``--align_z``
 
     Instructs the program to try to align the waveform signs within
-    the label. For more information, see :ref:`CBBHJDAI`. This
+    the label. For more information, see :ref:`implementation_details`. This
     flag will not have any effect if the inverse operator has been computed
     with the strict orientation constraint active.
 
@@ -1526,7 +1526,7 @@ mne_do_inverse_operator
 ``--depth``
 
     Employ depth weighting with the standard settings. For details,
-    see :ref:`CBBDFJIE` and :ref:`CBBDDBGF`.
+    see :ref:`depth_weighting` and :ref:`inverse_operator`.
 
 ``--bad <*name*>``
 
@@ -1560,7 +1560,7 @@ mne_do_inverse_operator
 ``--megreg <*value*>``
 
     Regularize the MEG part of the noise-covariance matrix by this amount.
-    Suitable values are in the range 0.05...0.2. For details, see :ref:`CBBHEGAB`.
+    Suitable values are in the range 0.05...0.2. For details, see :ref:`cov_regularization`.
 
 ``--eegreg <*value*>``
 
@@ -1584,7 +1584,7 @@ mne_do_inverse_operator
     the cortical surface. The name of the file given is used as a stem of
     the w files. The actual files should be called <*name*> ``-lh.pri`` and <*name*> ``-rh.pri`` for
     the left and right hemisphere weight files, respectively. The application
-    of the weighting is discussed in :ref:`CBBDIJHI`.
+    of the weighting is discussed in :ref:`mne_fmri_estimates`.
 
 ``--fmrithresh <*value*>``
 
@@ -1833,19 +1833,19 @@ mne_inverse_operator
 
     Regularize the planar gradiometer section (channels for which the unit
     of measurement is T/m) of the noise-covariance matrix by the given
-    amount. The value is restricted to the range 0...1. For details, see :ref:`CBBHEGAB`.
+    amount. The value is restricted to the range 0...1. For details, see :ref:`cov_regularization`.
 
 ``--magreg <value>``
 
     Regularize the magnetometer and axial gradiometer section (channels
     for which the unit of measurement is T) of the noise-covariance matrix
     by the given amount. The value is restricted to the range 0...1.
-    For details, see :ref:`CBBHEGAB`.
+    For details, see :ref:`cov_regularization`.
 
 ``--eegreg <value>``
 
     Regularize the EEG section of the noise-covariance matrix by the given
-    amount. The value is restricted to the range 0...1. For details, see :ref:`CBBHEGAB`.
+    amount. The value is restricted to the range 0...1. For details, see :ref:`cov_regularization`.
 
 ``--diagnoise``
 
@@ -1864,17 +1864,17 @@ mne_inverse_operator
 
 ``--depth``
 
-    Employ depth weighting. For details, see :ref:`CBBDFJIE`.
+    Employ depth weighting. For details, see :ref:`depth_weighting`.
 
 ``--weightexp <value>``
 
     This parameter determines the steepness of the depth weighting function
-    (default = 0.8). For details, see :ref:`CBBDFJIE`.
+    (default = 0.8). For details, see :ref:`depth_weighting`.
 
 ``--weightlimit <value>``
 
     Maximum relative strength of the depth weighting (default = 10). For
-    details, see :ref:`CBBDFJIE`.
+    details, see :ref:`depth_weighting`.
 
 ``--fmri <name>``
 
@@ -1889,7 +1889,7 @@ mne_inverse_operator
     the cortical surface. The name of the file given is used as a stem of
     the w files. The actual files should be called <*name*> ``-lh.pri`` and <*name*> ``-rh.pri`` for
     the left and right hemsphere weight files, respectively. The application
-    of the weighting is discussed in :ref:`CBBDIJHI`.
+    of the weighting is discussed in :ref:`mne_fmri_estimates`.
 
 ``--fmrithresh <value>``
 
@@ -1956,7 +1956,7 @@ mne_inverse_operator
     it is recommended that the patch statistics are precomputed and
     the source space file containing the patch information is employed
     already when the forward solution is computed, see :ref:`setting_up_source_space` and :ref:`BABCHEJD`.
-    For technical details of the patch information, please consult :ref:`CBBDBHDI`. This option is considered experimental at
+    For technical details of the patch information, please consult :ref:`patch_stats`. This option is considered experimental at
     the moment.
 
 ``--inv <name>``

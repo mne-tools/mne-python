@@ -38,7 +38,7 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..viz.utils import (_prepare_trellis, tight_layout, plt_show,
                          _setup_vmin_vmax)
 from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
-                           plot_topomap)
+                           plot_topomap, _hide_frame)
 
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
@@ -2313,9 +2313,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
                      res=64, axis=ax, cmap=cmap, outlines=outlines,
                      image_mask=None, contours=contours, show=False,
                      image_interp='bilinear')[0]
-        ax.set_yticks([])
-        ax.set_xticks([])
-        ax.set_frame_on(False)
+        _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.8)
     fig.canvas.draw()
