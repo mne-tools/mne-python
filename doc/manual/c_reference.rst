@@ -43,7 +43,7 @@ Software components
     |                            | :ref:`mne_make_movie`.                     |
     +----------------------------+--------------------------------------------+
     | `mne_compute_raw_inverse`_ | Compute the inverse solution from raw data |
-    |                            | see :ref:`CBBCGHAH`.                       |
+    |                            | see :ref:`computing_inverse`.              |
     +----------------------------+--------------------------------------------+
     | `mne_convert_mne_data`_    | Convert MNE data files to other file       |
     |                            | formats.                                   |
@@ -61,7 +61,7 @@ Software components
     |                            | see :ref:`inverse_operator`.               |
     +----------------------------+--------------------------------------------+
     | `mne_make_movie`_          | Make movies in batch mode, see             |
-    |                            | :ref:`CBBECEDE`.                           |
+    |                            | :ref:`movies_and_snapshots`.               |
     +----------------------------+--------------------------------------------+
     | `mne_make_source_space`_   | Create a *fif* source space description    |
     |                            | file, see :ref:`BEHCGJDD`.                 |
@@ -682,7 +682,7 @@ mne_compute_mne
 
 This program is gradually becoming obsolete. All of its functions will
 be eventually included to :ref:`mne_make_movie`,
-see :ref:`CBBECEDE`. At this time, :ref:`mne_compute_mne` is
+see :ref:`movies_and_snapshots`. At this time, :ref:`mne_compute_mne` is
 still needed to produce time-collapsed w files unless you are willing
 to write a Matlab script of your own for this purpose.
 
@@ -909,7 +909,7 @@ mne_compute_raw_inverse
 
     Specifies a label file to process. For each label file, the values
     of the computed estimates stored in a fif file. For more details,
-    see :ref:`CBBHJDAI`. The label files are produced by tksurfer
+    see :ref:`implementation_details`. The label files are produced by tksurfer
     or mne_analyze and specify regions
     of interests (ROIs). A label file name should end with ``-lh.label`` for
     left-hemisphere ROIs and with ``-rh.label`` for right-hemisphere
@@ -929,7 +929,7 @@ mne_compute_raw_inverse
 ``--align_z``
 
     Instructs the program to try to align the waveform signs within
-    the label. For more information, see :ref:`CBBHJDAI`. This
+    the label. For more information, see :ref:`implementation_details`. This
     flag will not have any effect if the inverse operator has been computed
     with the strict orientation constraint active.
 

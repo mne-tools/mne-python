@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut_raw_objects:
 
@@ -98,20 +99,18 @@ eeg, times = eeg_only[0, :int(sfreq * 2)]
 meg, times = meg_only[0, :int(sfreq * 2)]
 a1.plot(times, meg[0])
 a2.plot(times, eeg[0])
+del eeg, meg, meg_only, grad_only, eeg_only, data, specific_chans
 
 ###############################################################################
 # You can restrict the data to a specific time range
-
-restricted = raw.crop(5, 7)  # in seconds
-print('New time range from', restricted.times.min(), 's to',
-      restricted.times.max(), 's')
+raw = raw.crop(0, 50)  # in seconds
+print('New time range from', raw.times.min(), 's to', raw.times.max(), 's')
 
 ###############################################################################
 # And drop channels by name
-
-restricted = restricted.drop_channels(['MEG 0241', 'EEG 001'])
-print('Number of channels reduced from', raw.info['nchan'], 'to',
-      restricted.info['nchan'])
+nchan = raw.info['nchan']
+raw = raw.drop_channels(['MEG 0241', 'EEG 001'])
+print('Number of channels reduced from', nchan, 'to', raw.info['nchan'])
 
 ###############################################################################
 # --------------------------------------------------
@@ -126,7 +125,7 @@ print('Number of channels reduced from', raw.info['nchan'], 'to',
 # Create multiple :class:`Raw <mne.io.RawFIF>` objects
 raw1 = raw.copy().crop(0, 10)
 raw2 = raw.copy().crop(10, 20)
-raw3 = raw.copy().crop(20, 100)
+raw3 = raw.copy().crop(20, 40)
 
 # Concatenate in time (also works without preloading)
 raw1.append([raw2, raw3])

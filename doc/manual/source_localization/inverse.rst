@@ -460,7 +460,7 @@ described in :ref:`mne_solution`. It is normally invoked from the convenience
 script :ref:`mne_do_inverse_operator`. 
 
 
-.. _CBBECEDE:
+.. _movies_and_snapshots:
 
 Producing movies and snapshots
 ##############################
@@ -476,7 +476,7 @@ process, see :ref:`ch_morph`, and read into Matlab using the MNE
 Matlab toolbox, see :ref:`ch_matlab`.
 
 
-.. _CBBCGHAH:
+.. _computing_inverse:
 
 Computing inverse from raw and evoked data
 ##########################################
@@ -490,7 +490,7 @@ or converted to Matlab format using either :ref:`mne_convert_mne_data`,
 :ref:`mne_raw2mat`, or :ref:`mne_epochs2mat`. See
 :ref:`mne_compute_raw_inverse` for command-line options.
 
-.. _CBBHJDAI:
+.. _implementation_details:
 
 Implementation details
 ======================
