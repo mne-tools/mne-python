@@ -34,7 +34,7 @@ when saving data to disk as it consumes less space.
 
 However, if the users save intermediate results to disk, they should be aware
 that this may lead to loss in precision. The reason is that writing to disk is
-32-bit by default and the typecasting to 64-bit does not recover the lost
+32-bit by default and then typecasting to 64-bit does not recover the lost
 precision. In case you would like to retain the 64-bit accuracy, there are two
 possibilities:
 
