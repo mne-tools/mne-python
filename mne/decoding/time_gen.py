@@ -102,7 +102,7 @@ class _GeneralizationAcrossTime(object):
     def fit(self, epochs, y=None):
         """Train a classifier on each specified time slice.
 
-        Note. This function sets the ``picks_``, ``ch_names``, ``cv_``,
+        .. note:: This function sets the ``picks_``, ``ch_names``, ``cv_``,
         ``y_train``, ``train_times_`` and ``estimators_`` attributes.
 
         Parameters
@@ -314,11 +314,11 @@ class _GeneralizationAcrossTime(object):
 
         Calls ``predict()`` if it has not been already.
 
-        Note. The function updates the ``scorer_``, ``scores_``, and
+        .. note:: The function updates the ``scorer_``, ``scores_``, and
         ``y_true_`` attributes.
 
-        Note. If `predict_mode` is 'mean-prediction', `score_mode` is
-        automatically set to `no-cv`.
+        .. note:: If ``predict_mode`` is 'mean-prediction', ``score_mode`` is
+        automatically set to 'no-cv'.
 
         Parameters
         ----------
@@ -368,8 +368,8 @@ class _GeneralizationAcrossTime(object):
             (self.predict_mode == 'mean-prediction') and
             (self.score_mode != 'no-cv')
         ):
-            warn("`score_mode` changed from %s set to" % self.score_mode +
-                 "'no-cv' because `predict_mode` is 'mean-prediction'.")
+            warn("`score_mode` changed from %s set to 'no-cv' because "
+                 "`predict_mode` is 'mean-prediction'." % self.score_mode)
             score_mode = 'no-cv'
         self.scorer_ = self.scorer
         if self.scorer_ is None:
@@ -930,6 +930,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             ``cross-validation`` : estimates a single prediction per sample
                 based on the unique independent classifier fitted in the
                 cross-validation.
+
             ``mean-prediction`` : estimates k predictions per sample, based on
                 each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
@@ -937,12 +938,14 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         Defaults to 'cross-validation'.
     scorer : object | None | str
         scikit-learn Scorer instance or str type indicating the name of the
-        scorer such as `accuracy`, `roc_auc`. If None, set to accuracy_score.
+        scorer such as ``accuracy``, ``roc_auc``. If None, set to ``accuracy``.
     score_mode : {'per-fold', 'mean-across-folds', 'no-cv'}
         Determines how the scorer is estimated:
 
             ``per-fold`` : returns the score obtained in each fold.
+
             ``mean-across-folds`` : returns the average of the per-fold scores.
+
             ``no-cv`` : returns score estimated across across all y_pred
                 independently of the cross-validation. This method is faster
                 than ``mean-across-folds`` but less conventional, use at your
@@ -1216,15 +1219,19 @@ class TimeDecoding(_GeneralizationAcrossTime):
             ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
+
             ``start`` : float
                 Time at which to start decoding (in seconds). By default,
                 min(epochs.times).
+
             ``stop`` : float
                 Maximal time at which to stop decoding (in seconds). By
                 default, max(times).
+
             ``step`` : float
                 Duration separating the start of subsequent classifiers (in
                 seconds). By default, equals one time sample.
+
             ``length`` : float
                 Duration of each classifier (in seconds). By default, equals
                 one time sample.
@@ -1242,6 +1249,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
             ``cross-validation`` : estimates a single prediction per sample
                 based on the unique independent classifier fitted in the
                 cross-validation.
+
             ``mean-prediction`` : estimates k predictions per sample, based on
                 each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
@@ -1249,12 +1257,14 @@ class TimeDecoding(_GeneralizationAcrossTime):
         Defaults to 'cross-validation'.
     scorer : object | None | str
         scikit-learn Scorer instance or str type indicating the name of the
-        scorer such as `accuracy`, `roc_auc`. If None, set to accuracy_score.
+        scorer such as ``accuracy``, ``roc_auc``. If None, set to ``accuracy``.
     score_mode : {'per-fold', 'mean-across-folds', 'no-cv'}
         Determines how the scorer is estimated:
 
             ``per-fold`` : returns the score obtained in each fold.
+
             ``mean-across-folds`` : returns the average of the per-fold scores.
+
             ``no-cv`` : returns score estimated across across all y_pred
                 independently of the cross-validation. This method is faster
                 than ``mean-across-folds`` but less conventional, use at your
@@ -1346,7 +1356,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     def fit(self, epochs, y=None):
         """Train a classifier on each specified time slice.
 
-        Note. This function sets the ``picks_``, ``ch_names``, ``cv_``,
+        .. note:: This function sets the ``picks_``, ``ch_names``, ``cv_``,
         ``y_train``, ``train_times_`` and ``estimators_`` attributes.
 
         Parameters
@@ -1404,11 +1414,11 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
         Calls ``predict()`` if it has not been already.
 
-        Note. The function updates the ``scorer_``, ``scores_``, and
+        .. note:: The function updates the ``scorer_``, ``scores_``, and
         ``y_true_`` attributes.
 
-        Note. If `predict_mode` is 'mean-prediction', `score_mode` is
-        automatically set to `no-cv`.
+        .. note:: If ``predict_mode`` is 'mean-prediction', ``score_mode`` is
+        automatically set to 'no-cv'.
 
         Parameters
         ----------
