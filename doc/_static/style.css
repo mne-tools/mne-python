@@ -124,3 +124,10 @@ blockquote {
 .warning a {
     color: rgb(255, 238, 0);
 }
+dt:target, .highlighted {
+    background-color: rgb(255, 238, 0);
+}
+dt:target code {
+    color: inherit !important;
+    background-color: inherit !important;
+}
