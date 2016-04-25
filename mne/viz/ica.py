@@ -18,7 +18,7 @@ from .utils import (tight_layout, _prepare_trellis, _select_bads,
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from .topomap import _prepare_topo_plot, plot_topomap
+from .topomap import _prepare_topo_plot, plot_topomap, _hide_frame
 from ..utils import warn
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
@@ -815,9 +815,7 @@ def _label_clicked(pos, params):
             ax.set_title('IC #%03d ' % ii + ch_type, fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
             plot_topomap(data_.flatten(), pos, axis=ax, show=False)
-            ax.set_yticks([])
-            ax.set_xticks([])
-            ax.set_frame_on(False)
+            _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
