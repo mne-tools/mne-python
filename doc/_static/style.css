@@ -45,7 +45,7 @@ code {
 }
 
 .devbar {
-    background-color: rgb(230, 57, 57);
+    background-color: rgb(242, 80, 80);
     color: white;
     font-weight:bold;
     text-align: center;
@@ -64,7 +64,7 @@ code {
 }
 
 #navbar a:hover {
-    color: rgb(255,2,16);
+    color: rgb(242, 80, 80);
 }
 
 .note a {
@@ -113,6 +113,7 @@ blockquote {
     border-radius: 10px;
     border-style: solid;
     border-color: rgb(143, 173, 204);
+    max-width: 55ex;
 }
 .highlight pre {
     background-color: rgb(242, 249, 255) !important;
@@ -131,3 +132,4 @@ dt:target code {
     color: inherit !important;
     background-color: inherit !important;
 }
+
