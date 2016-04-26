@@ -99,13 +99,14 @@ evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
 # more information.
 #
 # We can also combine the two kinds of plots to on using the ``plot_joint``
-# method of Evoked objects. Notice the ``topomap_args`` and ``ts_args``
-# parameters of :func:`mne.Evoked.plot_joint`.
-# You can pass key-value pairs as a python dictionary that gets passed as
-# parameters to the topomaps and time series of the joint plot.
-evoked_r_aud.plot_joint()
-
-# For slightly more elaborate plots, use these ``topomap_args`` and ``ts_args``
+# method of Evoked objects. Called as-is (``evoked.plot_joint()``), this
+# function should give a stylish and informative display of spatio-temporal
+# dynamics. Also note the ``topomap_args`` and ``ts_args`` parameters of
+# :func:`mne.Evoked.plot_joint`. You can pass key-value pairs as a python
+# dictionary that gets passed as parameters to the topomaps
+# (:func:`mne.Evoked.plot_topomap)`and time series (:func:`mne.Evoked.plot`)
+# of the joint plot.
+# For specific styling, use these ``topomap_args`` and ``ts_args``
 # arguments. Here, topomaps at specific time points (70 and 105 msec) are
 # shown, sensors are not plotted, and the Global Field Power is shown:
 ts_args = dict(gfp=True)
