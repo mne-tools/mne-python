@@ -125,7 +125,7 @@ evoked.plot(exclude=[])
 eog_events = mne.preprocessing.find_eog_events(raw)
 n_blinks = len(eog_events)
 # Center to cover the whole blink with full duration of 0.5s:
-onset = raw.index_as_time(eog_events[:, 0]) - 0.25
+onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25
 duration = np.repeat(0.5, n_blinks)
 raw.annotations = mne.Annotations(onset, duration, ['bad blink'] * n_blinks)
 raw.plot(events=eog_events)  # To see the annotated segments.
