@@ -80,7 +80,7 @@ def test_concat():
     # we trim the file to save lots of memory and some time
     tempdir = _TempDir()
     raw = read_raw_fif(test_fif_fname)
-    raw = raw.crop(0, 2.)
+    raw.crop(0, 2., copy=False)
     test_name = op.join(tempdir, 'test_raw.fif')
     raw.save(test_name)
     # now run the standard test
@@ -93,9 +93,9 @@ def test_hash_raw():
     """
     raw = read_raw_fif(fif_fname)
     assert_raises(RuntimeError, raw.__hash__)
-    raw = Raw(fif_fname).crop(0, 0.5)
+    raw = Raw(fif_fname).crop(0, 0.5, copy=False)
     raw.load_data()
-    raw_2 = Raw(fif_fname).crop(0, 0.5)
+    raw_2 = Raw(fif_fname).crop(0, 0.5, copy=False)
     raw_2.load_data()
     assert_equal(hash(raw), hash(raw_2))
     # do NOT use assert_equal here, failing output is terrible
@@ -121,7 +121,7 @@ def test_subject_info():
     """Test reading subject information
     """
     tempdir = _TempDir()
-    raw = Raw(fif_fname).crop(0, 1)
+    raw = Raw(fif_fname).crop(0, 1, copy=False)
     assert_true(raw.info['subject_info'] is None)
     # fake some subject data
     keys = ['id', 'his_id', 'last_name', 'first_name', 'birthday', 'sex',
@@ -215,7 +215,7 @@ def test_output_formats():
     tols = [1e-4, 1e-7, 1e-7, 1e-15]
 
     # let's fake a raw file with different formats
-    raw = Raw(test_fif_fname).crop(0, 1)
+    raw = Raw(test_fif_fname).crop(0, 1, copy=False)
 
     temp_file = op.join(tempdir, 'raw.fif')
     for ii, (fmt, tol) in enumerate(zip(formats, tols)):
@@ -665,7 +665,7 @@ def test_proj():
 
     tempdir = _TempDir()
     out_fname = op.join(tempdir, 'test_raw.fif')
-    raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002)
+    raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002, copy=False)
     raw.pick_types(meg=False, eeg=True)
     raw.info['projs'] = [raw.info['projs'][-1]]
     raw._data.fill(0)
@@ -823,7 +823,7 @@ def test_crop():
     tmins /= sfreq
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
-        raws[ri] = raw.copy().crop(tmin, tmax)
+        raws[ri] = raw.copy().crop(tmin, tmax, copy=False)
     all_raw_2 = concatenate_raws(raws, preload=False)
     assert_equal(raw.first_samp, all_raw_2.first_samp)
     assert_equal(raw.last_samp, all_raw_2.last_samp)
@@ -837,11 +837,11 @@ def test_crop():
     # going in revere order so the last fname is the first file (need it later)
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
-        raws[ri] = raw.copy().crop(tmin, tmax)
+        raws[ri] = raw.copy().crop(tmin, tmax, copy=False)
     # test concatenation of split file
     all_raw_1 = concatenate_raws(raws, preload=False)
 
-    all_raw_2 = raw.copy().crop(0, None)
+    all_raw_2 = raw.copy().crop(0, None, copy=False)
     for ar in [all_raw_1, all_raw_2]:
         assert_equal(raw.first_samp, ar.first_samp)
         assert_equal(raw.last_samp, ar.last_samp)
@@ -852,7 +852,7 @@ def test_crop():
     info = create_info(1, 1000)
     raw = RawArray(data, info)
     for tmin in range(0, 1001, 100):
-        raw1 = raw.crop(tmin=tmin, tmax=tmin + 2)
+        raw1 = raw.copy().crop(tmin=tmin, tmax=tmin + 2, copy=False)
         assert_equal(raw1[:][0].shape, (1, 2001))
 
 
@@ -861,7 +861,7 @@ def test_resample():
     """Test resample (with I/O and multiple files)
     """
     tempdir = _TempDir()
-    raw = Raw(fif_fname).crop(0, 3)
+    raw = Raw(fif_fname).crop(0, 3, copy=False)
     raw.load_data()
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
@@ -1038,7 +1038,7 @@ def test_to_data_frame():
 def test_add_channels():
     """Test raw splitting / re-appending channel types
     """
-    raw = Raw(test_fif_fname).crop(0, 1).load_data()
+    raw = Raw(test_fif_fname).crop(0, 1, copy=False).load_data()
     raw_nopre = Raw(test_fif_fname, preload=False)
     raw_eeg_meg = raw.copy().pick_types(meg=True, eeg=True)
     raw_eeg = raw.copy().pick_types(meg=False, eeg=True)
@@ -1059,7 +1059,7 @@ def test_add_channels():
     # Now test errors
     raw_badsf = raw_eeg.copy()
     raw_badsf.info['sfreq'] = 3.1415927
-    raw_eeg = raw_eeg.crop(.5)
+    raw_eeg.crop(.5, copy=False)
 
     assert_raises(AssertionError, raw_meg.add_channels, [raw_nopre])
     assert_raises(RuntimeError, raw_meg.add_channels, [raw_badsf])

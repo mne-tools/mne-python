@@ -55,7 +55,7 @@ def _make_stc(raw, src):
 def _get_data():
     """Helper to get some starting data"""
     # raw with ECG channel
-    raw = Raw(raw_fname).crop(0., 5.0).load_data()
+    raw = Raw(raw_fname).crop(0., 5.0, copy=False).load_data()
     data_picks = pick_types(raw.info, meg=True, eeg=True)
     other_picks = pick_types(raw.info, meg=False, stim=True, eog=True)
     picks = np.sort(np.concatenate((data_picks[::16], other_picks)))

@@ -107,7 +107,7 @@ def _assert_n_free(raw_sss, lower, upper=None):
 def test_movement_compensation():
     """Test movement compensation"""
     temp_dir = _TempDir()
-    lims = (0, 4)
+    lims = (0, 4, False)
     raw = Raw(raw_fname, allow_maxshield='yes', preload=True).crop(*lims)
     head_pos = read_head_pos(pos_fname)
 
@@ -348,7 +348,7 @@ def test_multipolar_bases():
 def test_basic():
     """Test Maxwell filter basic version"""
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1.)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., copy=False)
     raw_err = Raw(raw_fname, proj=True, allow_maxshield='yes')
     raw_erm = Raw(erm_fname, allow_maxshield='yes')
     assert_raises(RuntimeError, maxwell_filter, raw_err)
@@ -422,7 +422,7 @@ def test_maxwell_filter_additional():
     raw_fname = op.join(data_path, 'SSS', file_name + '_raw.fif')
 
     # Use 2.0 seconds of data to get stable cov. estimate
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 2.)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 2., copy=False)
 
     # Get MEG channels, compute Maxwell filtered data
     raw.load_data()
@@ -488,7 +488,7 @@ def test_spatiotemporal_maxwell():
         # onto the previous buffer if it's shorter than st_duration, we have to
         # crop the data here to compensate for Elekta's tSSS behavior.
         if st_duration == 10.:
-            tsss_bench = tsss_bench.crop(0, st_duration)
+            tsss_bench.crop(0, st_duration, copy=False)
 
         # Test sss computation at the standard head origin. Same cropping issue
         # as mentioned above.
@@ -524,7 +524,8 @@ def test_spatiotemporal_maxwell():
 def test_spatiotemporal_only():
     """Test tSSS-only processing"""
     # Load raw testing data
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0, 2).load_data()
+    raw = Raw(raw_fname,
+              allow_maxshield='yes').crop(0, 2, copy=False).load_data()
     picks = pick_types(raw.info, meg='mag', exclude=())
     power = np.sqrt(np.sum(raw[picks][0] ** 2))
     # basics
@@ -576,7 +577,7 @@ def test_fine_calibration():
     """Test Maxwell filter fine calibration"""
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1.)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., copy=False)
     sss_fine_cal = Raw(sss_fine_cal_fname)
 
     # Test 1D SSS fine calibration
@@ -646,7 +647,7 @@ def test_regularization():
 @testing.requires_testing_data
 def test_cross_talk():
     """Test Maxwell filter cross-talk cancellation"""
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1.)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., copy=False)
     raw.info['bads'] = bads
     sss_ctc = Raw(sss_ctc_fname)
     raw_sss = maxwell_filter(raw, cross_talk=ctc_fname,
@@ -681,7 +682,7 @@ def test_cross_talk():
 @testing.requires_testing_data
 def test_head_translation():
     """Test Maxwell filter head translation"""
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1.)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., copy=False)
     # First try with an unchanged destination
     raw_sss = maxwell_filter(raw, destination=raw_fname,
                              origin=mf_head_origin, regularize=None,

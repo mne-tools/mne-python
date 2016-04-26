@@ -435,7 +435,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     # needed.
     if times is not None:
         times = times[::decim]
-    power = rescale(power, times, baseline, baseline_mode)
+    power = rescale(power, times, baseline, baseline_mode, copy=False)
     return power
 
 
@@ -496,9 +496,8 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     """Aux Function to prepare tfr computation"""
     from ..viz.utils import _setup_vmin_vmax
 
-    if baseline is not None:
-        data = data.copy()
-    data = rescale(data, times, baseline, mode)
+    copy = baseline is not None
+    data = rescale(data, times, baseline, mode, copy=copy)
 
     # crop time
     itmin, itmax = None, None
@@ -934,7 +933,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-        self.data = rescale(self.data, self.times, baseline, mode)
+        self.data = rescale(self.data, self.times, baseline, mode,
+                            copy=False)
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean',

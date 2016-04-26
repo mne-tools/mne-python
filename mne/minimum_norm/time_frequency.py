@@ -141,7 +141,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
 
         # Run baseline correction
         power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
-                        verbose=False)
+                        copy=False, verbose=False)
 
         tmin = epochs.times[0]
         tstep = float(decim) / Fs
@@ -366,7 +366,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                                                prepared=False)
 
     # Run baseline correction
-    power = rescale(power, epochs.times[::decim], baseline, baseline_mode)
+    power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
+                    copy=False)
     return power, plv
 
 

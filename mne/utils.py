@@ -65,12 +65,12 @@ def nottest(f):
 
 def _check_copy_dep(inst, copy, kind='inst', default=False):
     """Check for copy deprecation for 0.13"""
-    if copy is not None:
+    if copy or (copy is None and default is True):
         warn('The copy parameter is deprecated and will be removed in 0.13, '
              'where the behavior will be to operate in-place (like copy=False)'
              '. In 0.12 the default is copy=%s. Use %s.copy() if necessary.'
-             % (kind, default), DeprecationWarning)
-    else:
+             % (default, kind), DeprecationWarning)
+    if copy is None:
         copy = default
     return inst.copy() if copy else inst
 
@@ -403,10 +403,11 @@ def estimate_rank(data, tol='auto', return_singular=False,
     """
     if copy is not None:
         warn('copy is deprecated and ignored. It will be removed in 0.13.')
+    data = data.copy()  # operate on a copy
     if norm is True:
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
-    s = linalg.svd(data, compute_uv=False, overwrite_a=False)
+    s = linalg.svd(data, compute_uv=False, overwrite_a=True)
     if isinstance(tol, string_types):
         if tol != 'auto':
             raise ValueError('tol must be "auto" or float')

@@ -1061,13 +1061,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
         window : string or tuple
-            Window to use in resampling. See scipy.signal.resample.
+            Frequency-domain window to use in resampling.
+            See :func:`scipy.signal.resample`.
         stim_picks : array of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
-            mne.pick_types(raw.info, meg=False, stim=True, exclude=[]).
+            :func:`mne.pick_types`.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
             is installed properly and CUDA is initialized.
@@ -1132,7 +1133,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         for ri in range(len(inst._raw_lengths)):
             data_chunk = inst._data[:, offsets[ri]:offsets[ri + 1]]
             new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
-                                     n_jobs=n_jobs))
+                                     window=window, n_jobs=n_jobs))
             new_ntimes = new_data[ri].shape[1]
 
             # In empirical testing, it was faster to resample all channels

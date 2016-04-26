@@ -461,7 +461,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         picks = np.sort(np.concatenate((picks, picks_aux)))
 
         data = epochs._data
-        data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline)
+        data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline,
+                                    copy=False)
         epochs.baseline = baseline
 
         return epochs
@@ -578,7 +579,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            ref_meg=True, eog=True, ecg=True, seeg=True,
                            emg=True, bio=True, ecog=True, exclude=[])
         epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
-                               verbose=False)
+                               copy=False, verbose=False)
 
         # handle offset
         if self._offset is not None:

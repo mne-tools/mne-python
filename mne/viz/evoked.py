@@ -772,7 +772,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
-    evoked.copy().pick_channels([evoked.ch_names[k] for k in picks])
+    evoked.pick_channels([evoked.ch_names[k] for k in picks])
     # important to re-pick. will otherwise crash on systems with ref channels
     # as first sensor block
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,

@@ -82,7 +82,7 @@ def test_average_movements():
     origin = (0., 0., 0.04)
     raw = Raw(fname_raw_move, allow_maxshield='yes')
     raw.info['bads'] += ['MEG2443']  # mark some bad MEG channel
-    raw = raw.crop(*crop).load_data()
+    raw.crop(*crop, copy=False).load_data()
     raw.filter(None, 20, method='iir')
     events = make_fixed_length_events(raw, event_id)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
@@ -128,7 +128,7 @@ def test_average_movements():
     assert_allclose(evoked_move_non.data[meg_picks],
                     evoked_move_all.data[meg_picks])
     # compare to averaged movecomp version (should be fairly similar)
-    raw_sss = Raw(fname_raw_movecomp_sss).crop(*crop).load_data()
+    raw_sss = Raw(fname_raw_movecomp_sss).crop(*crop, copy=False).load_data()
     raw_sss.filter(None, 20, method='iir')
     picks_sss = pick_types(raw_sss.info, meg=True, eeg=True, stim=True,
                            ecg=True, eog=True, exclude=())
@@ -655,7 +655,7 @@ def test_read_write_epochs():
         epochs_read4 = epochs_read3.copy()
         assert_array_almost_equal(epochs_read4.get_data(), data)
         # test equalizing loaded one (drop_log property)
-        epochs_read4.equalize_event_counts(epochs.event_id)
+        epochs_read4.equalize_event_counts(epochs.event_id, copy=False)
 
         epochs.drop([1, 2], reason='can we recover orig ID?')
         epochs.save(temp_fname)
@@ -1304,7 +1304,7 @@ def test_epoch_eq():
                 len(epochs.events))
     drop_log1 = deepcopy(epochs.drop_log)
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
-    epochs = epochs.equalize_event_counts(['a', 'b'])[0]
+    epochs.equalize_event_counts(['a', 'b'], copy=False)
     # undo the eq logging
     drop_log2 = [[] if l == ['EQUALIZED_COUNT'] else l for l in
                  epochs.drop_log]
@@ -1318,20 +1318,20 @@ def test_epoch_eq():
     assert_true(new_shapes[3] == new_shapes[3])
     # now with two conditions collapsed
     old_shapes = new_shapes
-    epochs = epochs.equalize_event_counts([['a', 'b'], 'c'])[0]
+    epochs.equalize_event_counts([['a', 'b'], 'c'], copy=False)
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(new_shapes[0] + new_shapes[1] == new_shapes[2])
     assert_true(new_shapes[3] == old_shapes[3])
-    assert_raises(KeyError, epochs.equalize_event_counts, [1, 'a'])
+    assert_raises(KeyError, epochs.equalize_event_counts, [1, 'a'], copy=False)
 
     # now let's combine conditions
     old_shapes = new_shapes
-    epochs = epochs.equalize_event_counts([['a', 'b'], ['c', 'd']])[0]
+    epochs.equalize_event_counts([['a', 'b'], ['c', 'd']], copy=False)
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(old_shapes[0] + old_shapes[1] == new_shapes[0] + new_shapes[1])
     assert_true(new_shapes[0] + new_shapes[1] == new_shapes[2] + new_shapes[3])
     assert_raises(ValueError, combine_event_ids, epochs, ['a', 'b'],
-                  {'ab': 1})
+                  {'ab': 1}, copy=False)
 
     combine_event_ids(epochs, ['a', 'b'], {'ab': 12}, copy=False)
     caught = 0
@@ -1340,7 +1340,7 @@ def test_epoch_eq():
             epochs[key]
         except KeyError:
             caught += 1
-    assert_raises(Exception, caught == 2)
+    assert_equal(caught, 2)
     assert_true(not np.any(epochs.events[:, 2] == 1))
     assert_true(not np.any(epochs.events[:, 2] == 2))
     epochs = combine_event_ids(epochs, ['c', 'd'], {'cd': 34})
@@ -1353,13 +1353,14 @@ def test_epoch_eq():
     epochs = Epochs(raw, events, {'a/x': 1, 'b/x': 2, 'a/y': 3, 'b/y': 4},
                     tmin, tmax, picks=picks, reject=reject)
     cond1, cond2 = ['a', ['b/x', 'b/y']], [['a/x', 'a/y'], 'b']
-    es = [epochs.equalize_event_counts(c)[0] for c in (cond1, cond2)]
+    es = [epochs.copy().equalize_event_counts(c, copy=False)[0]
+          for c in (cond1, cond2)]
     assert_array_equal(es[0].events[:, 0], es[1].events[:, 0])
     cond1, cond2 = ['a', ['b', 'b/y']], [['a/x', 'a/y'], 'x']
     for c in (cond1, cond2):  # error b/c tag and id mix/non-orthogonal tags
-        assert_raises(ValueError, epochs.equalize_event_counts, c)
+        assert_raises(ValueError, epochs.equalize_event_counts, c, copy=False)
     assert_raises(KeyError, epochs.equalize_event_counts,
-                  ["a/no_match", "b"])
+                  ["a/no_match", "b"], copy=False)
 
 
 def test_access_by_name():

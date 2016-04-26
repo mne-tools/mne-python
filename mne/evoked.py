@@ -113,7 +113,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # project and baseline correct
         if proj:
             self.apply_proj()
-        self.data = rescale(self.data, self.times, baseline)
+        self.data = rescale(self.data, self.times, baseline, copy=False)
 
     def save(self, fname):
         """Save dataset to file.
