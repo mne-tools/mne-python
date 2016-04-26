@@ -97,4 +97,4 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 ###############################################################################
 # Since down-sampling reduces the timing precision of events, you might want to
 # first extract epochs and down-sampling the Epochs object. You can do this
-# using the func:`mne.Epochs.resample` method.
+# using the :func:`mne.Epochs.resample` method.

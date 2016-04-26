@@ -82,18 +82,21 @@ ica.plot_scores(scores, exclude=eog_inds)  # look at r scores of components
 # component got detected by our correlation analysis (red).
 
 ica.plot_sources(eog_average, exclude=eog_inds)  # look at source time course
+
+###############################################################################
 # That component is also showing a prototypical average vertical EOG time
 # course.
-
+#
 # Pay attention to the labels, a customized read-out of the ica.labels_
 print(ica.labels_)
+
+###############################################################################
 # These labels were used by the plotters and are added automatically
 # by artifact detection functions. You can also manually edit them to annotate
 # components.
-
-# now let's see how we would modify our signals if we would remove this
+#
+# Now let's see how we would modify our signals if we would remove this
 # component from the data
-
 ica.plot_overlay(eog_average, exclude=eog_inds, show=False)
 # red -> before, black -> after. Yes! We remove quite a lot!
 
@@ -110,9 +113,9 @@ ica.exclude.extend(eog_inds)
 # ica.save('my-ica.fif')
 # ica = read_ica('my-ica.fif')
 
+###############################################################################
 # Exercise: find and remove ECG artifacts using ICA!
-
-##############################################################################
+#
 # What if we don't have an EOG channel?
 # -------------------------------------
 #
@@ -126,7 +129,7 @@ ica.exclude.extend(eog_inds)
 
 from mne.preprocessing.ica import corrmap  # noqa
 
-##############################################################################
+###############################################################################
 # The idea behind corrmap is that artefact patterns are similar across subjects
 # and can thus be identified by correlating the different patterns resulting
 # from each solution with a template. The procedure is therefore
@@ -153,37 +156,34 @@ for ii, start in enumerate(intervals):
                                               reject=reject)
         icas.append(this_ica)
 
-##############################################################################
+###############################################################################
 # Do not copy this at home! You start by reading in a collections of ICA
 # solutions, something like
 #
-# icas = [mne.preprocessing.read_ica(fname) for fname in ica_fnames]
-
+# ``icas = [mne.preprocessing.read_ica(fname) for fname in ica_fnames]``
 print(icas)
 
-##############################################################################
-# investiage our reference ICA, here we arbitrarily say it's the first
+###############################################################################
+# Investigate our reference ICA, here we arbitrarily say it's the first.
 reference_ica = icas[0]
 reference_ica.plot_components()
 
-##############################################################################
-# with random seed = 42 we see that IC number 10 from run 1 looks like an EOG
+###############################################################################
+# With random seed = 42 we see that IC number 13 from run 1 looks like an EOG.
+reference_ica.plot_sources(eog_average, exclude=[12])
 
-reference_ica.plot_sources(eog_average, exclude=[9])
-
-##############################################################################
-# indeed it looks like an EOG, also in the average time course
-
-##############################################################################
+###############################################################################
+# Indeed it looks like an EOG, also in the average time course.
+#
 # So our template shall be a tuple like (reference_run_index, component_index):
-template = (0, 9)
+template = (0, 12)
 
-##############################################################################
-# now we can do the corrmap
+###############################################################################
+# Now we can do the corrmap.
 fig_template, fig_detected = corrmap(icas, template=template, label="blinks",
                                      show=True, threshold=.8, ch_type='mag')
 
-##############################################################################
+###############################################################################
 # Nice, we have found similar ICs from the other runs!
 # This is even nicer if we have 20 or 100 ICA solutions in a list.
 #
