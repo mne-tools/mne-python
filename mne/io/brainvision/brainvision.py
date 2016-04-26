@@ -56,7 +56,7 @@ class RawBrainVision(_BaseRaw):
         typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider - that is, events that don't
-        follow the normal Brainvision trigger format ('SXX' etc).
+        follow the normal Brainvision trigger format ('SXXX').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus events are added to the
@@ -172,7 +172,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         vmrk file to be read.
     event_id : dict | None
         The id of special events to consider - that is, events that don't
-        follow the normal Brainvision trigger format ('SXX' etc).
+        follow the normal Brainvision trigger format ('SXXX').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus events are added to the
@@ -519,7 +519,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         typically another value or None will be necessary.
     event_id : dict | None
         The id of special events to consider - that is, events that don't
-        follow the normal Brainvision trigger format ('SXX' etc).
+        follow the normal Brainvision trigger format ('SXXX').
         If dict, the keys will be mapped to trigger values on the stimulus
         channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
         or an empty dict (default), only stimulus events are added to the
