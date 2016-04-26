@@ -98,7 +98,7 @@ evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
 # using for your python session. See http://matplotlib.org/users/shell.html for
 # more information.
 #
-# We can also combine the two kinds of plots to on using the ``plot_joint``
+# We can combine the two kinds of plots in one figure using the ``plot_joint``
 # method of Evoked objects. Called as-is (``evoked.plot_joint()``), this
 # function should give a stylish and informative display of spatio-temporal
 # dynamics. Also note the ``topomap_args`` and ``ts_args`` parameters of
