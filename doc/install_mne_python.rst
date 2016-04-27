@@ -254,9 +254,7 @@ Troubleshooting
 ###############
 
 If you run into trouble when visualizing source estimates (or anything else
-using mayavi), you can try setting ETS_TOOLKIT environment variable.
-
-.. code-block:: bash
+using mayavi), you can try setting ETS_TOOLKIT environment variable::
 
     >>> import os
     >>> os.environ['ETS_TOOLKIT'] = 'qt4'
@@ -264,14 +262,12 @@ using mayavi), you can try setting ETS_TOOLKIT environment variable.
 
 This will tell Traits that we will use Qt with PyQt bindings.
 
-If you get an error saying:
+If you get an error saying::
 
     ValueError: API 'QDate' has already been set to version 1
 
 you have run into a conflict with Traits. You can work around this by telling
-the interpreter to use QtGui and QtCore from pyface.
-
-.. code-block:: bash
+the interpreter to use QtGui and QtCore from pyface::
 
     >>> from pyface.qt import QtGui, QtCore
 
