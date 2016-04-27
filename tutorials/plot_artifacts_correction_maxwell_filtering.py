@@ -36,7 +36,7 @@ event_id = {'Auditory/Left': 1}
 events = mne.find_events(raw, 'STI 014')
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                        include=[], exclude='bads')
-ylims = {"grad":(-200, 250), "mag":(-600, 700)}
+ylims = {"grad": (-200, 250), "mag": (-600, 700)}
 for r, kind in zip((raw, raw_sss), ('Raw data', 'Maxwell filtered data')):
     epochs = mne.Epochs(r, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), reject=dict(eog=150e-6),
