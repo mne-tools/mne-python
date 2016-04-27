@@ -777,10 +777,10 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1., first_sam
     if n_events == 0:
         raise ValueError('No events produced, check the values of start, stop, and duration') 
     events = np.c_[ts, np.zeros(n_events, dtype=int),
-                   id * np.ones(n_events, dtype=int)]    
-    return events       
-    
-    
+                   id * np.ones(n_events, dtype=int)]
+    return events
+
+
 def concatenate_events(events, first_samps, last_samps):
     """Concatenate event lists in a manner compatible with
     concatenate_raws
