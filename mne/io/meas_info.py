@@ -1195,7 +1195,8 @@ def _is_equal_dict(dicts):
     is_equal = []
     for d in tests:
         k0, v0 = d[0]
-        if isinstance(v0, list) and isinstance(v0[0], dict):
+        if (isinstance(v0, (list, np.ndarray)) and len(v0) > 0 and
+                isinstance(v0[0], dict)):
             for k, v in d:
                 is_equal.append((k0 == k) and _is_equal_dict(v))
         else:
