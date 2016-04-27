@@ -276,3 +276,6 @@ the interpreter to use QtGui and QtCore from pyface.
     >>> from pyface.qt import QtGui, QtCore
 
 This line should be added before any imports from mne-python.
+
+For more information, see
+http://docs.enthought.com/mayavi/mayavi/building_applications.html.
