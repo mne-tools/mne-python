@@ -104,7 +104,7 @@ evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
 # dynamics. Also note the ``topomap_args`` and ``ts_args`` parameters of
 # :func:`mne.Evoked.plot_joint`. You can pass key-value pairs as a python
 # dictionary that gets passed as parameters to the topomaps
-# (:func:`mne.Evoked.plot_topomap)`and time series (:func:`mne.Evoked.plot`)
+# (:func:`mne.Evoked.plot_topomap`) and time series (:func:`mne.Evoked.plot`)
 # of the joint plot.
 # For specific styling, use these ``topomap_args`` and ``ts_args``
 # arguments. Here, topomaps at specific time points (70 and 105 msec) are
