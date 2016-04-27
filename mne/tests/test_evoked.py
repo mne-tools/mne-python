@@ -20,7 +20,8 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.epochs import EpochsArray
 from mne.tests.common import assert_naming
-from mne.utils import _TempDir, requires_pandas, slow_test, requires_version
+from mne.utils import (_TempDir, requires_pandas, slow_test, requires_version,
+                       run_tests_if_main)
 from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')
@@ -472,6 +473,9 @@ def test_add_channels():
     """Test evoked splitting / re-appending channel types"""
     evoked = read_evokeds(fname, condition=0)
     evoked.info['buffer_size_sec'] = None
+    hpi_coils = [{'event_bits': np.array([256,   0, 256, 256])},
+                 {'event_bits': np.array([512,   0, 512, 512])}]
+    evoked.info['hpi_subsystem'] = dict(hpi_coils=hpi_coils, ncoil=2)
     evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
     evoked_meg = evoked.pick_types(meg=True, copy=True)
     evoked_stim = evoked.pick_types(meg=False, stim=True, copy=True)
@@ -495,3 +499,6 @@ def test_add_channels():
     assert_raises(AssertionError, evoked_meg.add_channels, [evoked_eeg])
     assert_raises(ValueError, evoked_meg.add_channels, [evoked_meg])
     assert_raises(AssertionError, evoked_meg.add_channels, evoked_badsf)
+
+
+run_tests_if_main()
