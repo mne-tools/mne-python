@@ -250,3 +250,29 @@ our visualization capabilities. Please refer to the
 `PySurfer installation page <https://pysurfer.github.io/install.html>`_
 for up to date information.
 
+Troubleshooting
+###############
+
+If you run into trouble when visualizing source estimates (or anything else
+using mayavi), you can try setting ETS_TOOLKIT environment variable.
+
+.. code-block:: bash
+
+    >>> import os
+    >>> os.environ['ETS_TOOLKIT'] = 'qt4'
+    >>> os.environ['QT_API'] = 'pyqt'
+
+This will tell Traits that we will use Qt with PyQt bindings.
+
+If you get an error saying:
+
+    ValueError: API 'QDate' has already been set to version 1
+
+you have run into a conflict with Traits. You can work around this by telling
+the interpreter to use QtGui and QtCore from pyface.
+
+.. code-block:: bash
+
+    >>> from pyface.qt import QtGui, QtCore
+
+This line should be added before any imports from mne-python.
