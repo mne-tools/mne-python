@@ -233,7 +233,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
     if not len(axes) == n_channel_types:
         raise ValueError('Number of axes (%g) must match number of channel '
-                         'types (%g)' % (len(axes), n_channel_types))
+                         'types (%d: %s)' % (len(axes), n_channel_types,
+                                             sorted(ch_types_used)))
 
     # instead of projecting during each iteration let's use the mixin here.
     if proj is True and evoked.proj is not True:

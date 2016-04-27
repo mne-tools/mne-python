@@ -121,8 +121,8 @@ for idx in [1, 2]:
 saccades_events = df[df['label'] == 'saccade'].values[:, :3].astype(int)
 
 # Conversion from samples to times:
-onsets = raw.index_as_time(annotations_df['onset'].values)
-durations = raw.index_as_time(annotations_df['duration'].values)
+onsets = annotations_df['onset'].values / raw.info['sfreq']
+durations = annotations_df['duration'].values / raw.info['sfreq']
 descriptions = map(str, annotations_df['label'].values)
 
 annotations = mne.Annotations(onsets, durations, descriptions)
