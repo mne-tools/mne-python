@@ -4,6 +4,7 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
 # Authors : Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #           Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
+#           Clement Moutard <clement.moutard@polytechnique.org>
 #
 # License : BSD (3-clause)
 
@@ -192,10 +193,16 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
         # XXX JRK: full wavelet decomposition needs to be implemented
         raise ValueError('`full` decomposition with convolution is currently' +
                          ' not supported.')
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    elif not isinstance(decim, slice):
+        raise(TypeError, '`decim` must be int or slice, got %s instead'
+                         % type(decim))
     X = np.asarray(X)
 
     # Precompute wavelets for given frequency range to save time
     n_signals, n_times = X.shape
+    n_times_out = X[:, decim].shape[1]
     n_freqs = len(Ws)
 
     Ws_max_size = max(W.size for W in Ws)
@@ -212,10 +219,6 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
                              'Reduce the number of cycles.')
         if use_fft:
             fft_Ws[i] = fftn(W, [fsize])
-
-    # Decimating is performed after centering the convolution, and can
-    # therefore lead to one extra time sample.
-    n_times_out = n_times // decim + bool(n_times % decim)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
@@ -234,14 +237,15 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
             if mode == "valid":
                 sz = abs(W.size - n_times) + 1
                 offset = (n_times - sz) / 2
-                this_slice = slice(offset // decim, (offset + sz) // decim)
+                this_slice = slice(offset // decim.step,
+                                   (offset + sz) // decim.step)
                 if use_fft:
                     ret = _centered(ret, sz)
-                tfr[ii, this_slice] = ret[::decim]
+                tfr[ii, this_slice] = ret[decim]
             else:
                 if use_fft:
                     ret = _centered(ret, n_times)
-                tfr[ii, :] = ret[::decim]
+                tfr[ii, :] = ret[decim]
         yield tfr
 
 
@@ -266,8 +270,13 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
         Number of cycles. Fixed number or one per frequency.
     zero_mean : bool
         Make sure the wavelets are zero mean.
-    decim : int
-        Decimation factor applied after time-frequency decomposition.
+    decim : int | slice
+        To reduce memory usage, slice on the time axis for which the
+        time-frequency decomposition is returned after being calculated
+        for all the time samples.
+        If decim is an integer, it corresponds to the decimation factor
+        similar to slice(None, None, decim).
+        Note that this is brute force decimation, no anti-aliasing is done.
         Defaults to 1.
 
     Returns
@@ -281,8 +290,12 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     """
     mode = 'same'
     # mode = "valid"
-    n_signals, n_times = X.shape
-    decim = int(decim)
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    elif not isinstance(decim, slice):
+        raise(TypeError, '`decim` must be int or slice, got %s instead'
+                         % type(decim))
+    n_signals, n_times = X[:, decim].shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
@@ -310,8 +323,13 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     mode : 'same' | 'valid' | 'full'
         Convention for convolution. 'full' is currently not implemented with
         `use_fft=False`. Defaults to 'same'.
-    decim : int
-        Decimation factor applied after time-frequency decomposition.
+    decim : int | slice
+        To reduce memory usage, slice on the time axis for which the
+        time-frequency decomposition is returned after being calculated
+        for all the time samples.
+        If decim is an integer, it corresponds to the decimation factor
+        similar to slice(None, None, decim).
+        Note that this is brute force decimation, no anti-aliasing is done.
         Defaults to 1.
 
     Returns
@@ -324,7 +342,12 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     mne.time_frequency.cwt_morlet : Compute time-frequency decomposition
                                     with Morlet wavelets
     """
-    n_signals, n_times = X[:, ::decim].shape
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    elif not isinstance(decim, slice):
+        raise(TypeError, '`decim` must be int or slice, got %s instead'
+                         % type(decim))
+    n_signals, n_times = X[:, decim].shape
 
     coefs = _cwt(X, Ws, mode, decim=decim, use_fft=use_fft)
 
@@ -338,8 +361,12 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 def _time_frequency(X, Ws, use_fft, decim):
     """Aux of time_frequency for parallel computing over channels
     """
-    n_epochs, n_times = X.shape
-    n_times = n_times // decim + bool(n_times % decim)
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    elif not isinstance(decim, slice):
+        raise(TypeError, '`decim` must be int or slice, got %s instead'
+                         % type(decim))
+    n_epochs, n_times = X[:, decim].shape
     n_frequencies = len(Ws)
     psd = np.zeros((n_frequencies, n_times))  # PSD
     plf = np.zeros((n_frequencies, n_times), np.complex)  # phase lock
@@ -390,8 +417,14 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
         power = [power - mean(power_baseline)] / std(power_baseline))
     times : array
         Required to define baseline
-    decim : int
-        Temporal decimation factor
+    decim : int | slice
+        To reduce memory usage, slice on the time axis for which the
+        time-frequency decomposition is returned after being calculated
+        for all the time samples.
+        If decim is an integer, it corresponds to the decimation factor
+        similar to slice(None, None, decim).
+        Note that this is brute force decimation, no anti-aliasing is done.
+        Defaults to 1.
     n_jobs : int
         The number of epochs to process at the same time
     zero_mean : bool
@@ -404,9 +437,14 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     power : 4D array
         Power estimate (Epochs x Channels x Frequencies x Timepoints).
     """
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    elif not isinstance(decim, slice):
+        raise(TypeError, '`decim` must be int or slice, got %s instead'
+                         % type(decim))
     mode = 'same'
     n_frequencies = len(frequencies)
-    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
+    n_epochs, n_channels, n_times = data[:, :, decim].shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
@@ -434,7 +472,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     # Run baseline correction.  Be sure to decimate the times array as well if
     # needed.
     if times is not None:
-        times = times[::decim]
+        times = times[decim]
     power = rescale(power, times, baseline, baseline_mode, copy=False)
     return power
 
@@ -458,8 +496,14 @@ def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
         convolutions.
     n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency.
-    decim: int
-        Temporal decimation factor
+    decim : int | slice
+        To reduce memory usage, slice on the time axis for which the
+        time-frequency decomposition is returned after being calculated
+        for all the time samples.
+        If decim is an integer, it corresponds to the decimation factor
+        similar to slice(None, None, decim).
+        Note that this is brute force decimation, no anti-aliasing is done.
+        Defaults to 1.
     n_jobs : int
         The number of CPUs used in parallel. All CPUs are used in -1.
         Requires joblib package.
@@ -474,8 +518,13 @@ def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     phase_lock : 2D array
         Phase locking factor in [0, 1] (Channels x Frequencies x Timepoints)
     """
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    elif not isinstance(decim, slice):
+        raise(TypeError, '`decim` must be int or slice, got %s instead'
+                         % type(decim))
     n_frequencies = len(frequencies)
-    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
+    n_epochs, n_channels, n_times = data[:, :, decim].shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
@@ -1147,8 +1196,8 @@ def read_tfrs(fname, condition=None):
 
 
 @verbose
-def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
-               return_itc=True, decim=1, n_jobs=1, picks=None, verbose=None):
+def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
+               n_jobs=1, picks=None, verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets
 
     Parameters
@@ -1164,8 +1213,14 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
         Must be ``False`` for evoked data.
-    decim : int
-        The decimation factor on the time axis. To reduce memory usage.
+    decim : int | slice
+        To reduce memory usage, slice on the time axis for which the
+        time-frequency decomposition is returned after being calculated
+        for all the time samples.
+        If decim is an integer, it corresponds to the decimation factor
+        similar to slice(None, None, decim).
+        Note that this is brute force decimation, no anti-aliasing is done.
+        Defaults to 1.
     n_jobs : int
         The number of jobs to run in parallel.
     picks : array-like of int | None
@@ -1186,6 +1241,11 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     --------
     tfr_multitaper, tfr_stockwell
     """
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    elif not isinstance(decim, slice):
+        raise(TypeError, '`decim` must be int or slice, got %s instead'
+                         % type(decim))
     data = _get_data(inst, return_itc)
     info = inst.info
 
@@ -1197,7 +1257,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
                                     n_cycles=n_cycles, n_jobs=n_jobs,
                                     use_fft=use_fft, decim=decim,
                                     zero_mean=True)
-    times = inst.times[::decim].copy()
+    times = inst.times[decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
     if return_itc:
@@ -1243,8 +1303,14 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
         convolutions. Defaults to True.
     n_cycles : float | np.ndarray shape (n_frequencies,)
         Number of cycles. Fixed number or one per frequency. Defaults to 7.
-    decim: int
-        Temporal decimation factor. Defaults to 1.
+    decim : int | slice
+        To reduce memory usage, slice on the time axis for which the
+        time-frequency decomposition is returned after being calculated
+        for all the time samples.
+        If decim is an integer, it corresponds to the decimation factor
+        similar to slice(None, None, decim).
+        Note that this is brute force decimation, no anti-aliasing is done.
+        Defaults to 1.
     n_jobs : int
         The number of CPUs used in parallel. All CPUs are used in -1.
         Requires joblib package. Defaults to 1.
@@ -1260,7 +1326,13 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     itc : np.ndarray, shape (n_channels, n_frequencies, n_times)
         Phase locking value.
     """
-    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    elif not isinstance(decim, slice):
+        raise(TypeError, '`decim` must be int or slice, got %s instead'
+                         % type(decim))
+    n_epochs, n_channels, n_times_out = data[:, :, decim].shape
+    n_times = data[:, :, ::decim.step].shape[2]
     logger.info('Data is %d trials and %d channels', n_epochs, n_channels)
     n_frequencies = len(frequencies)
     logger.info('Multitaper time-frequency analysis for %d frequencies',
@@ -1275,13 +1347,13 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     if n_times <= n_times_wavelets:
         warn('Time windows are as long or longer than the epoch. Consider '
              'reducing n_cycles.')
-    psd = np.zeros((n_channels, n_frequencies, n_times))
-    itc = np.zeros((n_channels, n_frequencies, n_times))
+    psd = np.zeros((n_channels, n_frequencies, n_times_out))
+    itc = np.zeros((n_channels, n_frequencies, n_times_out))
     parallel, my_time_frequency, _ = parallel_func(_time_frequency,
                                                    n_jobs)
     for m in range(n_taps):
-        psd_itc = parallel(my_time_frequency(data[:, c, :],
-                                             Ws[m], use_fft, decim)
+        psd_itc = parallel(my_time_frequency(data[:, c, :], Ws[m], use_fft,
+                                             decim)
                            for c in range(n_channels))
         for c, (psd_c, itc_c) in enumerate(psd_itc):
             psd[c, :, :] += psd_c
@@ -1293,8 +1365,8 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
 
 @verbose
 def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
-                   use_fft=True, return_itc=True, decim=1, n_jobs=1,
-                   picks=None, verbose=None):
+                   use_fft=True, return_itc=True, decim=1,
+                   n_jobs=1, picks=None, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS wavelets
 
     Parameters
@@ -1320,8 +1392,12 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
         Defaults to True.
-    decim : int
-        The decimation factor on the time axis. To reduce memory usage.
+    decim : int | slice
+        To reduce memory usage, slice on the time axis for which the
+        time-frequency decomposition is returned after being calculated
+        for all the time samples.
+        If decim is an integer, it corresponds to the decimation factor
+        similar to slice(None, None, decim).
         Note than this is brute force decimation, no anti-aliasing is done.
         Defaults to 1.
     n_jobs : int
@@ -1348,7 +1424,11 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     -----
     .. versionadded:: 0.9.0
     """
-
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    elif not isinstance(decim, slice):
+        raise(TypeError, '`decim` must be int or slice, got %s instead'
+                         % type(decim))
     data = _get_data(inst, return_itc)
     info = inst.info
 
@@ -1361,7 +1441,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                                     use_fft=use_fft, decim=decim,
                                     n_jobs=n_jobs, zero_mean=True,
                                     verbose='INFO')
-    times = inst.times[::decim].copy()
+    times = inst.times[decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave,
                      method='mutlitaper-power')

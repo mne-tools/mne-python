@@ -73,6 +73,8 @@ def test_time_frequency():
     assert_raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
+    power_, itc_ = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
+                              use_fft=True, return_itc=True, decim=slice(0, 2))
     # Test picks argument
     power_picks, itc_picks = tfr_morlet(epochs_nopicks, freqs=freqs,
                                         n_cycles=n_cycles, use_fft=True,
@@ -98,6 +100,8 @@ def test_time_frequency():
     assert_equal(itc.nave, nave)
     assert_true(power.data.shape == (len(picks), len(freqs), len(times)))
     assert_true(power.data.shape == itc.data.shape)
+    assert_true(power_.data.shape == (len(picks), len(freqs), 2))
+    assert_true(power_.data.shape == itc_.data.shape)
     assert_true(np.sum(itc.data >= 1) == 0)
     assert_true(np.sum(itc.data <= 0) == 0)
 
@@ -133,11 +137,22 @@ def test_time_frequency():
     Fs = raw.info['sfreq']  # sampling in Hz
     tfr = cwt_morlet(data[0], Fs, freqs, use_fft=True, n_cycles=2)
     assert_true(tfr.shape == (len(picks), len(freqs), len(times)))
+    tfr2 = cwt_morlet(data[0], Fs, freqs, use_fft=True, n_cycles=2,
+                      decim=slice(0, 2))
+    assert_true(tfr2.shape == (len(picks), len(freqs), 2))
 
     single_power = single_trial_power(data, Fs, freqs, use_fft=False,
                                       n_cycles=2)
+    single_power2 = single_trial_power(data, Fs, freqs, use_fft=False,
+                                       n_cycles=2, decim=slice(0, 2))
 
     assert_array_almost_equal(np.mean(single_power), power.data)
+    # XXX cmoutard: does it make any sense to average single_power across
+    # all the dimensions and not just across epochs ? Because here we
+    # compare a numpy.float64 and a numpy.ndarray
+    # Below is a less conservative test for the decim argument.
+    assert_array_almost_equal(np.mean(single_power2, axis=0),
+                              power.data[:, :, :2])
 
     power_pick = power.pick_channels(power.ch_names[:10:2])
     assert_equal(len(power_pick.ch_names), len(power.ch_names[:10:2]))
@@ -162,6 +177,12 @@ def test_time_frequency():
                                     decim=decim)
             assert_equal(power.data.shape[2],
                          np.ceil(float(len(times)) / decim))
+    freqs = range(50, 55)
+    decim = 2
+    _, n_chan, n_time = data.shape
+    tfr = cwt_morlet(data[0, :, :], sfreq=epochs.info['sfreq'],
+                     freqs=freqs, decim=decim)
+    assert_equal(tfr.shape, (n_chan, len(freqs), n_time // decim))
 
     # Test cwt modes
     Ws = morlet(512, [10, 20], n_cycles=2)
@@ -174,6 +195,13 @@ def test_time_frequency():
                               use_fft=use_fft, mode=mode)
                 continue
             cwt(data[0, :, :], Ws, use_fft=use_fft, mode=mode)
+
+    # Test decim parameter checks
+    assert_raises(TypeError, single_trial_power, data, Fs, freqs,
+                  use_fft=False, n_cycles=2, decim=None)
+    assert_raises(TypeError, tfr_morlet, epochs, freqs=freqs,
+                  n_cycles=n_cycles, use_fft=True, return_itc=True,
+                  decim='decim')
 
 
 def test_dpsswavelet():
@@ -223,6 +251,8 @@ def test_tfr_multitaper():
     freqs = np.arange(5, 100, 3, dtype=np.float)
     power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                 time_bandwidth=4.0)
+    power2, itc2 = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
+                                  time_bandwidth=4.0, decim=slice(0, 2))
     picks = np.arange(len(ch_names))
     power_picks, itc_picks = tfr_multitaper(epochs, freqs=freqs,
                                             n_cycles=freqs / 2.,
@@ -245,6 +275,12 @@ def test_tfr_multitaper():
     assert_true(tmax > 0.3 and tmax < 0.7)
     assert_false(np.any(itc.data < 0.))
     assert_true(fmax > 40 and fmax < 60)
+    assert_true(power2.data.shape == (len(picks), len(freqs), 2))
+    assert_true(power2.data.shape == itc2.data.shape)
+
+    # Test decim parameter checks
+    assert_raises(TypeError, tfr_multitaper, epochs, freqs=freqs,
+                  n_cycles=freqs / 2., time_bandwidth=4.0, decim=(1,))
 
 
 def test_crop():
