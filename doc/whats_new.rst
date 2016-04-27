@@ -117,6 +117,8 @@ BUG
 
     - Fix bug in source normal adjustment that occurred when 1) patch information is available (e.g., when distances have been calculated) and 2) points are excluded from the source space (by inner skull distance) by `Eric Larson`_
 
+    - Fix bug when merging info that has a field with list of dicts by `Jaakko Leppakangas`_
+
 API
 ~~~
 
