@@ -1967,6 +1967,13 @@ def test_array_epochs():
     epochs = EpochsArray(data_1, info, events=events_1, event_id=1,
                          tmin=-0.2, baseline=(None, 0))
 
+    # default events
+    epochs = EpochsArray(data_1, info)
+    assert_array_equal(epochs.events[:, 0], range(len(data_1)))
+    assert_array_equal(epochs.events[:, 1], np.zeros(len(data_1)))
+    assert_array_equal(epochs.events[:, 2], np.ones(len(data_1)))
+
+
 
 def test_concatenate_epochs():
     """Test concatenate epochs"""
