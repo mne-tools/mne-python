@@ -729,8 +729,8 @@ def shift_time_events(events, ids, tshift, sfreq):
     return events
 
 
-def make_fixed_length_events(raw, id, start=0, stop=None, duration=1., 
-                            first_samp=True):
+def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
+                             first_samp=True):
     """Make a set of events separated by a fixed duration
 
     Parameters
@@ -758,16 +758,16 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
     new_events : array
         The new events.
     """
-    start = raw.time_as_index(start)
+    start = raw.time_as_index(start)[0]
     if stop is not None:
-        stop = raw.time_as_index(stop)
+        stop = raw.time_as_index(stop)[0]
     else:
-        stop = [raw.last_samp + 1]
+        stop = raw.last_samp + 1
     if first_samp:
-        start = start[0] + raw.first_samp
-        stop = min([stop[0] + raw.first_samp, raw.last_samp + 1])
+        start = start + raw.first_samp
+        stop = min([stop + raw.first_samp, raw.last_samp + 1])
     else:
-        stop = min([stop[0], len(raw.times)])
+        stop = min([stop, len(raw.times)])
     if not isinstance(id, int):
         raise ValueError('id must be an integer')
     # Make sure we don't go out the end of the file:
@@ -777,7 +777,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
     n_events = len(ts)
     if n_events == 0:
         raise ValueError('No events produced, check the values of start, '
-                        'stop, and duration')
+                         'stop, and duration')
     events = np.c_[ts, np.zeros(n_events, dtype=int),
                    id * np.ones(n_events, dtype=int)]
     return events
