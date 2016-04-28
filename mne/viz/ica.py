@@ -120,7 +120,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     elif isinstance(inst, Evoked):
         sources = ica.get_sources(inst)
         if start is not None or stop is not None:
-            inst = inst.crop(start, stop, copy=True)
+            inst = inst.copy().crop(start, stop)
         fig = _plot_ica_sources_evoked(
             evoked=sources, picks=picks, exclude=exclude, title=title,
             labels=getattr(ica, 'labels_', None), show=show)
@@ -473,18 +473,18 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         start_compare, stop_compare = _check_start_stop(inst, start, stop)
         data, times = inst[picks, start_compare:stop_compare]
 
-        raw_cln = ica.apply(inst, exclude=exclude, start=start, stop=stop,
-                            copy=True)
+        raw_cln = ica.apply(inst.copy(), exclude=exclude,
+                            start=start, stop=stop)
         data_cln, _ = raw_cln[picks, start_compare:stop_compare]
         fig = _plot_ica_overlay_raw(data=data, data_cln=data_cln,
                                     times=times * 1e3, title=title,
                                     ch_types_used=ch_types_used, show=show)
     elif isinstance(inst, Evoked):
         if start is not None and stop is not None:
-            inst = inst.crop(start, stop, copy=True)
+            inst = inst.copy().crop(start, stop)
         if picks is not None:
             inst.pick_channels([inst.ch_names[p] for p in picks])
-        evoked_cln = ica.apply(inst, exclude=exclude, copy=True)
+        evoked_cln = ica.apply(inst.copy(), exclude=exclude)
         fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,
                                        title=title, show=show)
 
@@ -814,7 +814,7 @@ def _label_clicked(pos, params):
         for ii, data_ in zip(ic_idx, this_data):
             ax.set_title('IC #%03d ' % ii + ch_type, fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
-            plot_topomap(data_.flatten(), pos, axis=ax, show=False)
+            plot_topomap(data_.flatten(), pos, axes=ax, show=False)
             _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)

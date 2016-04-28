@@ -160,7 +160,7 @@ class Info(dict):
         info : instance of Info
             The copied info.
         """
-        return Info(super(Info, self).copy())
+        return Info(deepcopy(self))
 
     def normalize_proj(self):
         """(Re-)Normalize projection vectors after subselection

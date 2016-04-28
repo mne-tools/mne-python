@@ -17,11 +17,11 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask, warn
+from ..utils import (logger, verbose, _time_mask, warn, check_fname,
+                     _check_copy_dep)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
-from ..utils import check_fname
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar, plt_show
 from ..externals.h5io import write_hdf5, read_hdf5
@@ -281,8 +281,7 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     """
     mode = 'same'
     # mode = "valid"
-    n_signals, n_times = X.shape
-    decim = int(decim)
+    n_signals, n_times = X[:, ::decim].shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
@@ -589,7 +588,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
     def ch_names(self):
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None, copy=False):
+    def crop(self, tmin=None, tmax=None, copy=None):
         """Crop data to a given time interval
 
         Parameters
@@ -599,9 +598,16 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         tmax : float | None
             End time of selection in seconds.
         copy : bool
-            If False epochs is cropped in place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
+
+        Returns
+        -------
+        inst : instance of AverageTFR
+            The modified instance.
         """
-        inst = self if not copy else self.copy()
+        inst = _check_copy_dep(self, copy)
         mask = _time_mask(inst.times, tmin, tmax, sfreq=self.info['sfreq'])
         inst.times = inst.times[mask]
         inst.data = inst.data[:, :, mask]
@@ -926,7 +932,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-        self.data = rescale(self.data, self.times, baseline, mode, copy=False)
+        self.data = rescale(self.data, self.times, baseline, mode,
+                            copy=False)
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean',

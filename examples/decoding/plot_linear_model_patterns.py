@@ -55,9 +55,9 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 labels = epochs.events[:, -1]
 
 # get MEG and EEG data
-meg_epochs = epochs.pick_types(meg=True, eeg=False, copy=True)
+meg_epochs = epochs.copy().pick_types(meg=True, eeg=False)
 meg_data = meg_epochs.get_data().reshape(len(labels), -1)
-eeg_epochs = epochs.pick_types(meg=False, eeg=True, copy=True)
+eeg_epochs = epochs.copy().pick_types(meg=False, eeg=True)
 eeg_data = eeg_epochs.get_data().reshape(len(labels), -1)
 
 ###############################################################################

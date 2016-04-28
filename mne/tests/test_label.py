@@ -690,10 +690,8 @@ def test_morph():
         # this should throw an error because the label has all zero values
         assert_raises(ValueError, label.morph, 'sample', 'fsaverage')
         label.values.fill(1)
-        label.morph(None, 'fsaverage', 5, grade, subjects_dir, 1,
-                    copy=False)
-        label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2,
-                    copy=False)
+        label = label.morph(None, 'fsaverage', 5, grade, subjects_dir, 1)
+        label = label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2)
         assert_true(np.mean(in1d(label_orig.vertices, label.vertices)) == 1.0)
         assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
         vals.append(label.vertices)

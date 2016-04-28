@@ -50,7 +50,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         logratio is the same an mean but in log-scale, zlogratio is the
         same as zscore but data is rendered in log-scale first.
     copy : bool
-        Operate on a copy of the data, or in place.
+        Whether to return a new instance or modify in place.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -59,9 +59,8 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     data_scaled: array
         Array of same shape as data after rescaling.
     """
+    data = data.copy() if copy else data
     _log_rescale(baseline, mode)
-    if copy:
-        data = data.copy()
     if baseline is None:
         return data
 

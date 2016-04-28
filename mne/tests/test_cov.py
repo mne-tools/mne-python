@@ -122,8 +122,8 @@ def test_cov_estimation_on_raw():
 
         # test with a subset of channels
         picks = pick_channels(raw.ch_names, include=raw.ch_names[:5])
-        raw_pick = raw.pick_channels([raw.ch_names[pick] for pick in picks],
-                                     copy=True)
+        raw_pick = raw.copy().pick_channels(
+            [raw.ch_names[pick] for pick in picks])
         raw_pick.info.normalize_proj()
         cov = compute_raw_covariance(raw_pick, picks=picks, tstep=None,
                                      method=method)
@@ -132,7 +132,7 @@ def test_cov_estimation_on_raw():
         cov = compute_raw_covariance(raw_pick, picks=picks, method=method)
         assert_snr(cov.data, cov_mne.data[picks][:, picks], 90)  # cutoff samps
         # make sure we get a warning with too short a segment
-        raw_2 = Raw(raw_fname).crop(0, 1)
+        raw_2 = Raw(raw_fname).crop(0, 1, copy=False)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             cov = compute_raw_covariance(raw_2, method=method)

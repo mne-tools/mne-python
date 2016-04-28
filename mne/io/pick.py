@@ -339,7 +339,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     return sel
 
 
-def pick_info(info, sel=[], copy=True):
+def pick_info(info, sel=(), copy=True):
     """Restrict an info structure to a selection of channels
 
     Parameters
@@ -678,7 +678,7 @@ _PICK_TYPES_DATA_DICT = dict(
     meg=True, eeg=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True)
-_PICK_TYPES_KEYS = tuple(_PICK_TYPES_DATA_DICT.keys())
+_PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
 _DATA_CH_TYPES_SPLIT = ['mag', 'grad', 'eeg', 'seeg', 'ecog']
 
 

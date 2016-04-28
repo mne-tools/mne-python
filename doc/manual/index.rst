@@ -13,167 +13,143 @@ and class usage information.
    :local:
    :depth: 1
 
-.. container:: span box
+.. raw:: html
 
-   .. raw:: html
+   <h2>Cookbook</h2>
+   A quick run-through of the basic steps involved in M/EEG source analysis.
 
-      <h2>Cookbook</h2>
-      A quick run-through of the basic steps involved in M/EEG source analysis.
+.. toctree::
+   :maxdepth: 2
 
-   .. toctree::
-      :maxdepth: 2
+   cookbook
 
-      cookbook
+.. raw:: html
 
-.. container:: span box
+   <h2>Reading your data</h2>
+   How to get your raw data loaded in MNE.
 
-   .. raw:: html
+.. toctree::
+   :maxdepth: 1
 
-      <h2>Reading your data</h2>
-      How to get your raw data loaded in MNE.
+   io
+   memory
 
-   .. toctree::
-      :maxdepth: 1
+.. raw:: html
 
-      io
-      memory
+   <h2>Preprocessing</h2>
+   Dealing with artifacts and noise sources in data.
 
-.. container:: span box
+.. toctree::
+   :maxdepth: 1
 
-   .. raw:: html
+   preprocessing/ica
+   preprocessing/maxwell
+   preprocessing/ssp
+   channel_interpolation
 
-      <h2>Preprocessing</h2>
-      Dealing with artifacts and noise sources in data.
+.. raw:: html
 
-   .. toctree::
-      :maxdepth: 1
+   <h2>Source localization</h2>
+   Projecting raw data into source (brain) space.
 
-      preprocessing/ica
-      preprocessing/maxwell
-      preprocessing/ssp
-      channel_interpolation
+.. toctree::
+   :maxdepth: 1
 
-.. container:: span box
+   source_localization/forward
+   source_localization/inverse
+   source_localization/morph
 
-   .. raw:: html
+.. raw:: html
 
-      <h2>Source localization</h2>
-      Projecting raw data into source (brain) space.
+   <h2>Time-frequency analysis</h2>
+   Decomposing time-domain signals into time-frequency representations.
 
-   .. toctree::
-      :maxdepth: 1
+.. toctree::
+   :maxdepth: 2
 
-      source_localization/forward
-      source_localization/inverse
-      source_localization/morph
+   time_frequency
 
-.. container:: span box
+.. raw:: html
 
-   .. raw:: html
+   <h2>Statistics</h2>
+   Using parametric and non-parametric tests with M/EEG data.
 
-      <h2>Time-frequency analysis</h2>
-      Decomposing time-domain signals into time-frequency representations.
+.. toctree::
+   :maxdepth: 2
 
-   .. toctree::
-      :maxdepth: 2
+   statistics
 
-      time_frequency
+.. raw:: html
 
-.. container:: span box
+   <h2>Decoding</h2>
 
-   .. raw:: html
+.. toctree::
+   :maxdepth: 2
 
-      <h2>Statistics</h2>
-      Using parametric and non-parametric tests with M/EEG data.
+   decoding
 
-   .. toctree::
-      :maxdepth: 2
+.. raw:: html
 
-      statistics
+   <h2>Datasets</h2>
+   How to use dataset fetchers for public data
 
-.. container:: span box
+.. toctree::
+   :maxdepth: 2
 
-   .. raw:: html
+   datasets_index
 
-      <h2>Decoding</h2>
+.. raw:: html
 
-   .. toctree::
-      :maxdepth: 2
+   <h2>Migrating</h2>
 
-      decoding
+.. toctree::
+   :maxdepth: 1
 
-.. container:: span box
+   migrating
 
-   .. raw:: html
+.. raw:: html
 
-      <h2>Datasets</h2>
-      How to use dataset fetchers for public data
+   <h2>Pitfalls</h2>
 
-   .. toctree::
-      :maxdepth: 2
+.. toctree::
+   :maxdepth: 2
 
-      datasets_index
+   pitfalls
 
-.. container:: span box
+.. raw:: html
 
-   .. raw:: html
+   <h2>C Tools</h2>
 
-      <h2>Migrating</h2>
+Additional information about various MNE-C tools.
 
-   .. toctree::
-      :maxdepth: 1
+.. toctree::
+   :maxdepth: 1
 
-      migrating
+   c_reference
+   gui/analyze
+   gui/browse
 
-   .. raw:: html
+.. raw:: html
 
-      <h2>Pitfalls</h2>
+   <h2>MATLAB Tools</h2>
+   Information about the MATLAB toolbox.
 
-   .. toctree::
-      :maxdepth: 2
+.. toctree::
+   :maxdepth: 2
 
-      pitfalls
+   matlab
 
-.. container:: span box
+.. raw:: html
 
-   .. raw:: html
+   <h2>Appendices</h2>
 
-      <h2>C Tools</h2>
+More details about our implementations and software.
 
-   Additional information about various MNE-C tools.
+.. toctree::
+   :maxdepth: 1
 
-   .. toctree::
-      :maxdepth: 1
-
-      c_reference
-      gui/analyze
-      gui/browse
-
-.. container:: span box
-
-   .. raw:: html
-
-      <h2>MATLAB Tools</h2>
-      Information about the MATLAB toolbox.
-
-   .. toctree::
-      :maxdepth: 2
-
-      matlab
-
-.. container:: span box
-
-   .. raw:: html
-
-      <h2>Appendices</h2>
-
-   More details about our implementations and software.
-
-   .. toctree::
-      :maxdepth: 1
-
-      appendix/bem_model
-      appendix/martinos
-      appendix/c_misc
-      appendix/c_release_notes
-      appendix/c_EULA
+   appendix/bem_model
+   appendix/martinos
+   appendix/c_misc
+   appendix/c_release_notes
+   appendix/c_EULA

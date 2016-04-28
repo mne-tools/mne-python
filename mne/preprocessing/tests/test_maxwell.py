@@ -107,7 +107,7 @@ def _assert_n_free(raw_sss, lower, upper=None):
 def test_movement_compensation():
     """Test movement compensation"""
     temp_dir = _TempDir()
-    lims = (0, 4)
+    lims = (0, 4, False)
     raw = Raw(raw_fname, allow_maxshield='yes', preload=True).crop(*lims)
     head_pos = read_head_pos(pos_fname)
 
@@ -348,7 +348,7 @@ def test_multipolar_bases():
 def test_basic():
     """Test Maxwell filter basic version"""
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., False)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., copy=False)
     raw_err = Raw(raw_fname, proj=True, allow_maxshield='yes')
     raw_erm = Raw(erm_fname, allow_maxshield='yes')
     assert_raises(RuntimeError, maxwell_filter, raw_err)
@@ -422,7 +422,7 @@ def test_maxwell_filter_additional():
     raw_fname = op.join(data_path, 'SSS', file_name + '_raw.fif')
 
     # Use 2.0 seconds of data to get stable cov. estimate
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 2., False)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 2., copy=False)
 
     # Get MEG channels, compute Maxwell filtered data
     raw.load_data()
@@ -458,7 +458,7 @@ def test_maxwell_filter_additional():
 @testing.requires_testing_data
 def test_bads_reconstruction():
     """Test Maxwell filter reconstruction of bad channels"""
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., False)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1.)
     raw.info['bads'] = bads
     raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None,
                              bad_condition='ignore')
@@ -524,7 +524,8 @@ def test_spatiotemporal_maxwell():
 def test_spatiotemporal_only():
     """Test tSSS-only processing"""
     # Load raw testing data
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0, 2).load_data()
+    raw = Raw(raw_fname,
+              allow_maxshield='yes').crop(0, 2, copy=False).load_data()
     picks = pick_types(raw.info, meg='mag', exclude=())
     power = np.sqrt(np.sum(raw[picks][0] ** 2))
     # basics
@@ -576,7 +577,7 @@ def test_fine_calibration():
     """Test Maxwell filter fine calibration"""
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., False)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., copy=False)
     sss_fine_cal = Raw(sss_fine_cal_fname)
 
     # Test 1D SSS fine calibration
@@ -619,7 +620,7 @@ def test_regularization():
                   sss_samp_reg_in_fname)
     comp_tols = [0, 1, 4]
     for ii, rf in enumerate(raw_fnames):
-        raw = Raw(rf, allow_maxshield='yes').crop(0., 1., False)
+        raw = Raw(rf, allow_maxshield='yes').crop(0., 1.)
         sss_reg_in = Raw(sss_fnames[ii])
 
         # Test "in" regularization
@@ -646,7 +647,7 @@ def test_regularization():
 @testing.requires_testing_data
 def test_cross_talk():
     """Test Maxwell filter cross-talk cancellation"""
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., False)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., copy=False)
     raw.info['bads'] = bads
     sss_ctc = Raw(sss_ctc_fname)
     raw_sss = maxwell_filter(raw, cross_talk=ctc_fname,
@@ -666,7 +667,7 @@ def test_cross_talk():
     _assert_n_free(raw_sss, 68)
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04), ignore_ref=True)
     _assert_n_free(raw_sss, 70)
-    raw_missing = raw.crop(0, 0.1, copy=True).load_data().pick_channels(
+    raw_missing = raw.copy().crop(0, 0.1).load_data().pick_channels(
         [raw.ch_names[pi] for pi in pick_types(raw.info, meg=True,
                                                exclude=())[3:]])
     with warnings.catch_warnings(record=True) as w:
@@ -681,12 +682,12 @@ def test_cross_talk():
 @testing.requires_testing_data
 def test_head_translation():
     """Test Maxwell filter head translation"""
-    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., False)
+    raw = Raw(raw_fname, allow_maxshield='yes').crop(0., 1., copy=False)
     # First try with an unchanged destination
     raw_sss = maxwell_filter(raw, destination=raw_fname,
                              origin=mf_head_origin, regularize=None,
                              bad_condition='ignore')
-    assert_meg_snr(raw_sss, Raw(sss_std_fname).crop(0., 1., False), 200.)
+    assert_meg_snr(raw_sss, Raw(sss_std_fname).crop(0., 1.), 200.)
     # Now with default
     with warnings.catch_warnings(record=True):
         with catch_logging() as log:
@@ -847,7 +848,7 @@ def test_all():
                mf_meg_origin,
                mf_head_origin)
     for ii, rf in enumerate(raw_fnames):
-        raw = Raw(rf, allow_maxshield='yes').crop(0., 1., copy=False)
+        raw = Raw(rf, allow_maxshield='yes').crop(0., 1.)
         with warnings.catch_warnings(record=True):  # head fit off-center
             sss_py = maxwell_filter(
                 raw, calibration=fine_cals[ii], cross_talk=ctcs[ii],

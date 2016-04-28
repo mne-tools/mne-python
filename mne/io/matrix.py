@@ -10,19 +10,16 @@ from .write import (write_int, start_block, end_block, write_float_matrix,
 from ..utils import logger, verbose
 
 
-def _transpose_named_matrix(mat, copy=True):
-    """Transpose mat inplace (no copy)
-    """
-    if copy is True:
-        mat = mat.copy()
+def _transpose_named_matrix(mat):
+    """Transpose mat inplace (no copy)"""
     mat['nrow'], mat['ncol'] = mat['ncol'], mat['nrow']
     mat['row_names'], mat['col_names'] = mat['col_names'], mat['row_names']
     mat['data'] = mat['data'].T
-    return mat
 
 
 @verbose
-def _read_named_matrix(fid, node, matkind, indent='    ', verbose=None):
+def _read_named_matrix(fid, node, matkind, indent='    ', transpose=False,
+                       verbose=None):
     """Read named matrix from the given node
 
     Parameters
@@ -33,6 +30,8 @@ def _read_named_matrix(fid, node, matkind, indent='    ', verbose=None):
         The node in the tree.
     matkind : int
         The type of matrix.
+    transpose : bool
+        If True, transpose the matrix. Default is False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -84,6 +83,8 @@ def _read_named_matrix(fid, node, matkind, indent='    ', verbose=None):
 
     mat = dict(nrow=nrow, ncol=ncol, row_names=row_names, col_names=col_names,
                data=data)
+    if transpose:
+        _transpose_named_matrix(mat)
     return mat
 
 

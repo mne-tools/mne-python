@@ -329,7 +329,7 @@ def make_grid_layout(info, picks=None, n_col=None):
         if n_col * n_row < size:  # jump to the next full square
             n_row += 1
     else:
-        n_row = np.ceil(size / float(n_col))
+        n_row = int(np.ceil(size / float(n_col)))
 
     # setup position grid
     x, y = np.meshgrid(np.linspace(-0.5, 0.5, n_col),

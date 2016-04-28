@@ -84,8 +84,8 @@ def test_plot_topo():
                       topomap_args=dict(colorbar=True, times=[0.]))
 
     warnings.simplefilter('always', UserWarning)
-    picked_evoked = evoked.pick_channels(evoked.ch_names[:3], copy=True)
-    picked_evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
+    picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
+    picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
     picked_evoked_eeg.pick_channels(picked_evoked_eeg.ch_names[:3])
 
     # test scaling

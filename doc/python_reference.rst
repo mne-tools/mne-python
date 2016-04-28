@@ -25,6 +25,7 @@ Classes
 
    io.Raw
    io.RawFIF
+   io.RawArray
    Annotations
    Epochs
    Evoked
@@ -44,15 +45,16 @@ Classes
    preprocessing.ICA
    preprocessing.Xdawn
    decoding.CSP
-   decoding.Scaler
    decoding.EpochsVectorizer
    decoding.FilterEstimator
-   decoding.PSDEstimator
    decoding.GeneralizationAcrossTime
+   decoding.PSDEstimator
+   decoding.Scaler
    decoding.TimeDecoding
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
+   realtime.FieldTripClient
    realtime.StimServer
    realtime.StimClient
 
@@ -942,12 +944,13 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
-   Scaler
-   EpochsVectorizer
-   PSDEstimator
-   FilterEstimator
    CSP
+   EpochsVectorizer
+   FilterEstimator
    GeneralizationAcrossTime
+   PSDEstimator
+   Scaler
+   TimeDecoding
 
 Realtime
 ========
@@ -970,6 +973,7 @@ Classes:
    FieldTripClient
    StimServer
    StimClient
+
 
 MNE-Report
 ==========

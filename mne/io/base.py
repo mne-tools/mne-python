@@ -35,7 +35,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
 from ..fixes import in1d
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
-                     _check_pandas_index_arguments,
+                     _check_pandas_index_arguments, _check_copy_dep,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, warn, deprecated)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
@@ -788,7 +788,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length='10s',
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-               method='fft', iir_params=None, copy=False, verbose=None):
+               method='fft', iir_params=None, verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -849,12 +849,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Dictionary of parameters to use for IIR filtering.
             See mne.filter.construct_iir_filter for details. If iir_params
             is None and method="iir", 4th order Butterworth will be used.
-        copy : bool
-            If ``True``, return a modified copy of original object. If
-            ``False`` modify in-place and return the original object.
-
-            .. versionadded:: 0.12.0
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -879,11 +873,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             l_freq = float(l_freq)
         if h_freq is not None and not isinstance(h_freq, float):
             h_freq = float(h_freq)
-
-        raw = self.copy() if copy else self
-        _check_preload(raw, 'raw.filter')
+        _check_preload(self, 'raw.filter')
         if picks is None:
-            picks = _pick_data_or_ica(raw.info)
+            picks = _pick_data_or_ica(self.info)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
@@ -894,14 +886,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # and it's not a band-stop filter
             if h_freq is not None:
                 if (l_freq is None or l_freq < h_freq) and \
-                   (raw.info["lowpass"] is None or
-                   h_freq < raw.info['lowpass']):
-                        raw.info['lowpass'] = h_freq
+                   (self.info["lowpass"] is None or
+                   h_freq < self.info['lowpass']):
+                        self.info['lowpass'] = h_freq
             if l_freq is not None:
                 if (h_freq is None or l_freq < h_freq) and \
-                   (raw.info["highpass"] is None or
-                   l_freq > raw.info['highpass']):
-                        raw.info['highpass'] = l_freq
+                   (self.info["highpass"] is None or
+                   l_freq > self.info['highpass']):
+                        self.info['highpass'] = l_freq
         else:
             if h_freq is not None or l_freq is not None:
                 logger.info('Filtering a subset of channels. The highpass and '
@@ -910,14 +902,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if l_freq is None and h_freq is not None:
             logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
-            low_pass_filter(raw._data, fs, h_freq,
+            low_pass_filter(self._data, fs, h_freq,
                             filter_length=filter_length,
                             trans_bandwidth=h_trans_bandwidth, method=method,
                             iir_params=iir_params, picks=picks, n_jobs=n_jobs,
                             copy=False)
         if l_freq is not None and h_freq is None:
             logger.info('High-pass filtering at %0.2g Hz' % l_freq)
-            high_pass_filter(raw._data, fs, l_freq,
+            high_pass_filter(self._data, fs, l_freq,
                              filter_length=filter_length,
                              trans_bandwidth=l_trans_bandwidth, method=method,
                              iir_params=iir_params, picks=picks, n_jobs=n_jobs,
@@ -926,8 +918,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if l_freq < h_freq:
                 logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
                             % (l_freq, h_freq))
-                raw._data = band_pass_filter(
-                    raw._data, fs, l_freq, h_freq,
+                self._data = band_pass_filter(
+                    self._data, fs, l_freq, h_freq,
                     filter_length=filter_length,
                     l_trans_bandwidth=l_trans_bandwidth,
                     h_trans_bandwidth=h_trans_bandwidth,
@@ -936,21 +928,20 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                             % (h_freq, l_freq))
-                raw._data = band_stop_filter(
-                    raw._data, fs, h_freq, l_freq,
+                self._data = band_stop_filter(
+                    self._data, fs, h_freq, l_freq,
                     filter_length=filter_length,
                     l_trans_bandwidth=h_trans_bandwidth,
                     h_trans_bandwidth=l_trans_bandwidth, method=method,
                     iir_params=iir_params, picks=picks, n_jobs=n_jobs,
                     copy=False)
-
-        return raw
+        return self
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='10s',
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=None, mt_bandwidth=None,
-                     p_value=0.05, copy=False, verbose=None):
+                     p_value=0.05, verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -1005,12 +996,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             sinusoidal components to remove when method='spectrum_fit' and
             freqs=None. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
-        copy : bool
-            If ``True``, return a modified copy of original object. If
-            ``False`` modify in-place and return the original object.
-
-            .. versionadded:: 0.12.0
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -1028,26 +1013,25 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         For details, see :func:`mne.filter.notch_filter`.
         """
-        raw = self.copy() if copy else self
-        fs = float(raw.info['sfreq'])
+        fs = float(self.info['sfreq'])
         if picks is None:
-            picks = _pick_data_or_ica(raw.info)
+            picks = _pick_data_or_ica(self.info)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
                                    'your Raw object. Please contact the '
                                    'MNE-Python developers.')
-        _check_preload(raw, 'raw.notch_filter')
-        raw._data = notch_filter(
-            raw._data, fs, freqs, filter_length=filter_length,
+        _check_preload(self, 'raw.notch_filter')
+        self._data = notch_filter(
+            self._data, fs, freqs, filter_length=filter_length,
             notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
             method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
             p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False)
-        return raw
+        return self
 
     @verbose
     def resample(self, sfreq, npad=None, window='boxcar', stim_picks=None,
-                 n_jobs=1, events=None, copy=False, verbose=None):
+                 n_jobs=1, events=None, copy=None, verbose=None):
         """Resample all channels.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
@@ -1077,13 +1061,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
         window : string or tuple
-            Window to use in resampling. See scipy.signal.resample.
+            Frequency-domain window to use in resampling.
+            See :func:`scipy.signal.resample`.
         stim_picks : array of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
-            mne.pick_types(raw.info, meg=False, stim=True, exclude=[]).
+            :func:`mne.pick_types`.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
             is installed properly and CUDA is initialized.
@@ -1117,10 +1102,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             warn('npad is currently taken to be 100, but will be changed to '
                  '"auto" in 0.13. Please set the value explicitly.',
                  DeprecationWarning)
-        if not self.preload:
-            raise RuntimeError('Can only resample preloaded data')
-
-        inst = self.copy() if copy else self
+        _check_preload(self, 'raw.resample')
+        inst = _check_copy_dep(self, copy)
 
         # When no event object is supplied, some basic detection of dropped
         # events is performed to generate a warning. Finding events can fail
@@ -1150,7 +1133,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         for ri in range(len(inst._raw_lengths)):
             data_chunk = inst._data[:, offsets[ri]:offsets[ri + 1]]
             new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
-                                     n_jobs=n_jobs))
+                                     window=window, n_jobs=n_jobs))
             new_ntimes = new_data[ri].shape[1]
 
             # In empirical testing, it was faster to resample all channels
@@ -1197,14 +1180,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             )
             return inst, events
 
-    def crop(self, tmin=0.0, tmax=None, copy=True):
+    def crop(self, tmin=0.0, tmax=None, copy=None):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
         that the new tmin is assumed to be t=0 for all subsequently called
         functions (e.g., time_as_index, or Epochs). New first_samp and
-        last_samp are set accordingly. And data are modified in-place when
-        called with copy=False.
+        last_samp are set accordingly.
 
         Parameters
         ----------
@@ -1213,14 +1195,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         tmax : float | None
             New end time in seconds of the data (cannot exceed data duration).
         copy : bool
-            If False Raw is cropped in place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
 
         Returns
         -------
         raw : instance of Raw
             The cropped raw object.
         """
-        raw = self.copy() if copy is True else self
+        raw = _check_copy_dep(self, copy, default=True)
         max_time = (raw.n_times - 1) / raw.info['sfreq']
         if tmax is None:
             tmax = max_time
@@ -1731,9 +1715,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         data = self[picks, tslice][0]
         out = _estimate_rank_meeg_signals(
             data, pick_info(self.info, picks),
-            scalings=scalings, tol=tol, return_singular=return_singular,
-            copy=False)
-
+            scalings=scalings, tol=tol, return_singular=return_singular)
         return out
 
     @property
@@ -2141,7 +2123,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     #    Measurement info
     #
-    info = pick_info(info, sel, copy=True)
+    info = pick_info(info, sel)
 
     #
     #  Create the file and save the essentials
