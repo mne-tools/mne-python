@@ -597,10 +597,11 @@ class Label(object):
 
         Parameters
         ----------
-        parts : int >= 2 | tuple of str
-            A sequence of strings specifying label names for the new labels
-            (from posterior to anterior), or the number of new labels to create
-            (default is 2). If a number is specified, names of the new labels
+        parts : int >= 2 | tuple of str | str
+            Number of labels to create (default is 2), or tuple of strings
+            specifying label names for new labels (from posterior to anterior),
+            or 'contiguous' to split the label into connected components.
+            If a number or 'contiguous' is specified, names of the new labels
             will be the input label's name with div1, div2 etc. appended.
         subject : None | str
             Subject which this label belongs to (needed to locate surface file;
@@ -621,11 +622,16 @@ class Label(object):
 
         Notes
         -----
-        Works by finding the label's principal eigen-axis on the spherical
-        surface, projecting all label vertex coordinates onto this axis and
-        dividing them at regular spatial intervals.
+        The spatial split Works by finding the label's principal eigen-axis on
+        the spherical surface, projecting all label vertex coordinates onto
+        this axis and dividing them at regular spatial intervals. The
+        'contiguous' split works by finding all connections (edges) and
+        assigning cooresponding nodes to sets.
         """
-        return split_label(self, parts, subject, subjects_dir, freesurfer)
+        if parts == 'contiguous':
+            return split_label_contig(self, subject, subjects_dir)
+        else:
+            return split_label(self, parts, subject, subjects_dir, freesurfer)
 
     def get_vertices_used(self, vertices=None):
         """Get the source space's vertices inside the label
@@ -897,6 +903,139 @@ def write_label(filename, label, verbose=None):
     return label
 
 
+def _prep_label_split(label, subject=None, subjects_dir=None):
+    """Helper to get label and subject information prior to label spliting"""
+
+    # If necessary, find the label
+    if isinstance(label, BiHemiLabel):
+        raise TypeError("Can only split labels restricted to one hemisphere.")
+    elif isinstance(label, string_types):
+        label = read_label(label)
+
+    # Find the subject
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    if label.subject is None and subject is None:
+        raise ValueError("The subject needs to be specified.")
+    elif subject is None:
+        subject = label.subject
+    elif label.subject is None:
+        pass
+    elif subject != label.subject:
+        raise ValueError("The label specifies a different subject (%r) from "
+                         "the subject parameter (%r)."
+                         % label.subject, subject)
+
+    return label, subject, subjects_dir
+
+
+def split_label_contig(label, subject=None, subjects_dir=None):
+    """Split label into contiguous regions
+
+    Parameters
+    ----------
+    label : Label | str
+        Label which is to be split (Label object or path to a label file).
+    subject : None | str
+        Subject which this label belongs to (needed to locate surface file;
+        should only be specified if it is not specified in the label).
+    subjects_dir : None | str
+        Path to SUBJECTS_DIR if it is not set in the environment.
+
+    Returns
+    -------
+    labels : list of Label
+        The contiguous labels, in order of decending size.
+    """
+    label, subject, subjects_dir = _prep_label_split(label, subject,
+                                                     subjects_dir)
+
+    # Find the spherical surface
+    surf_fname = '.'.join((label.hemi, 'sphere'))
+    surf_path = os.path.join(subjects_dir, subject, "surf", surf_fname)
+    surface_points, surface_tris = read_surface(surf_path)
+
+    label_divs = []  # List of contiguous sets of dipoles/nodes
+    verts = set(label.vertices)
+    tris = np.array([[0, 1, 2], [3, 4, 5], [3, 0, 1], [6, 7, 8]])
+    # Compute edges from `tris` and take upper triangle to avoid repeat edges
+    edges = triu(mesh_edges(tris), format='csr')
+
+    #
+    # Throw out edges if both verts are not in the list of verts in the label
+    #
+    coo_edges = edges.tocoo()
+    for (e_x, e_y) in zip(coo_edges.row, coo_edges.col):
+        if len(verts.intersection(set([e_x, e_y]))) < 2:
+            edges[e_x, e_y] = 0
+
+    edges.eliminate_zeros()
+
+    #
+    # Loop over each node, get its neighbors, and assign membership to all
+    #
+    for vi in verts:
+        # Make set of node and it's neighbors
+        neighbor_set = set([vi] + list(edges.getrow(vi).indices))
+        print 'Assigning neighbor set: ' + str(neighbor_set)
+        assign_membership(label_divs, neighbor_set)
+
+    #
+    # Assign membership of nodes to label divisions
+    #
+
+    # Look for potential overlap with existing label divisions
+    membership = []
+    for di, div in enumerate(label_divs):
+        if len(neighbors.intersection(div)) > 0: membership.append(di)
+
+    # If node connects to an existing div, assign it to that div
+    if len(membership) > 0:
+        label_divs[membership[0]].update(neighbors)
+
+        # If node connects to 2+ divs, combine them all into one
+        # Could also do this once after all nodes memberships are compiled
+        if membership > 1:
+            for mi in sorted(membership[1:], reverse=True):
+                label_divs[membership[0]].update(label_divs.pop(mi))
+
+    # If edge doesn't connect to existing div, create a new one
+    else:
+        print 'Creating new blob with: ' + str(neighbors)
+        label_divs.append(neighbors)
+
+    #
+    # Create Label objects
+    #
+    n_parts = len(label_divs)
+    if label.name.endswith(('lh', 'rh')):
+        basename = label.name[:-3]
+        name_ext = label.name[-3:]
+    else:
+        basename = label.name
+        name_ext = ''
+    name_pattern = "%s_div%%i%s" % (basename, name_ext)
+    names = tuple(name_pattern % i for i in range(1, n_parts + 1))
+
+    # colors
+    if label.color is None:
+        colors = (None,) * n_parts
+    else:
+        colors = _split_colors(label.color, n_parts)
+
+    labels = []
+    for idx, name, color in zip(range(n_parts), names, colors):
+        vert = label_divs[idx]
+        pos = label.pos[vert]
+        values = label.values[vert]
+        hemi = label.hemi
+        comment = label.comment
+        lbl = Label(vert, pos, values, hemi, comment, name, None, subject,
+                    color)
+        labels.append(lbl)
+
+    return labels
+
+
 def split_label(label, parts=2, subject=None, subjects_dir=None,
                 freesurfer=False):
     """Split a Label into two or more parts
@@ -933,11 +1072,9 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     projecting all label vertex coordinates onto this axis and dividing them at
     regular spatial intervals.
     """
-    # find the label
-    if isinstance(label, BiHemiLabel):
-        raise TypeError("Can only split labels restricted to one hemisphere.")
-    elif isinstance(label, string_types):
-        label = read_label(label)
+
+    label, subject, subjects_dir = _prep_label_split(label, subject,
+                                                     subjects_dir)
 
     # find the parts
     if np.isscalar(parts):
@@ -956,19 +1093,6 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
 
     if n_parts < 2:
         raise ValueError("Can't split label into %i parts" % n_parts)
-
-    # find the subject
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    if label.subject is None and subject is None:
-        raise ValueError("The subject needs to be specified.")
-    elif subject is None:
-        subject = label.subject
-    elif label.subject is None:
-        pass
-    elif subject != label.subject:
-        raise ValueError("The label specifies a different subject (%r) from "
-                         "the subject parameter (%r)."
-                         % label.subject, subject)
 
     # find the spherical surface
     surf_fname = '.'.join((label.hemi, 'sphere'))
