@@ -411,7 +411,7 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
     Returns
     -------
     B : ndarray, shape (n_dipoles * 3, n_sensors)
-        Foward solution for a set of sensors
+        Forward solution for a set of sensors
     """
     # Both MEG and EEG have the inifinite-medium potentials
     # This could be just vectorized, but eats too much memory, so instead we
@@ -479,7 +479,7 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
     Returns
     -------
     B : ndarray, (n_dipoles * 3, n_sensors)
-        Foward solution for sensors due to volume currents
+        Forward solution for sensors due to volume currents
     """
 
     # Doing work of 'fwd_bem_pot_calc' in MNE-C
@@ -681,7 +681,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
         Boundary Element Model information
     fwd_data : dict
         Dict containing sensor information. Gets updated here with BEM and
-        sensor information for later foward calculations
+        sensor information for later forward calculations
     n_jobs : int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
@@ -801,7 +801,7 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
                     '(free orientations)...'
                     % (coil_type.upper(), len(rr),
                        '' if len(rr) == 1 else 's'))
-        # Calculate foward solution using spherical or BEM model
+        # Calculate forward solution using spherical or BEM model
         B = fun(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
                 coil_type)
 

@@ -144,7 +144,7 @@ def test_dics():
     assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     # Test whether correct number of trials was returned
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
     assert_true(len(epochs.events) == len(stcs))
 
     # Average the single trial estimates

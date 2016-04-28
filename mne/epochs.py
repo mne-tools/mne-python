@@ -28,7 +28,7 @@ from .io.tag import read_tag, read_tag_info
 from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
-                      _pick_aux_channels)
+                      _pick_aux_channels, _DATA_CH_TYPES_SPLIT)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin, TimeMixin
 from .bem import _check_origin
@@ -43,6 +43,7 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, object_hash, warn)
+from .utils import deprecated
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
@@ -537,6 +538,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @verbose
     def _is_good_epoch(self, data, verbose=None):
         """Determine if epoch is good"""
+        if isinstance(data, string_types):
+            return False, [data]
         if data is None:
             return False, ['NO_DATA']
         n_times = len(self.times)
@@ -559,8 +562,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Note: operates inplace
         """
-        if epoch is None:
-            return None
+        if (epoch is None) or isinstance(epoch, string_types):
+            return epoch
 
         # Detrend
         if self.detrend is not None:
@@ -570,7 +573,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # Baseline correct
         picks = pick_types(self.info, meg=True, eeg=True, stim=False,
                            ref_meg=True, eog=True, ecg=True, seeg=True,
-                           emg=True, bio=True, exclude=[])
+                           emg=True, bio=True, ecog=True, exclude=[])
         epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
                                copy=False, verbose=False)
 
@@ -624,9 +627,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         logger.info('Subtracting Evoked from Epochs')
         if evoked is None:
-            picks = pick_types(self.info, meg=True, eeg=True,
-                               stim=False, eog=False, ecg=False, seeg=True,
-                               emg=False, bio=False, exclude=[])
+            picks = _pick_data_channels(self.info, exclude=[])
             evoked = self.average(picks)
 
         # find the indices of the channels to use
@@ -639,7 +640,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             diff_idx = [self.ch_names.index(ch) for ch in diff_ch]
             diff_types = [channel_type(self.info, idx) for idx in diff_idx]
             bad_idx = [diff_types.index(t) for t in diff_types if t in
-                       ['grad', 'mag', 'eeg', 'seeg']]
+                       _DATA_CH_TYPES_SPLIT]
             if len(bad_idx) > 0:
                 bad_str = ', '.join([diff_ch[ii] for ii in bad_idx])
                 raise ValueError('The following data channels are missing '
@@ -689,7 +690,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         picks : array-like of int | None
-            If None only MEG, EEG and SEEG channels are kept
+            If None only MEG, EEG, SEEG, and ECoG channels are kept
             otherwise the channels indices in picks are kept.
 
         Returns
@@ -711,7 +712,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         picks : array-like of int | None
-            If None only MEG, EEG and SEEG channels are kept
+            If None only MEG, EEG, SEEG, and ECoG channels are kept
             otherwise the channels indices in picks are kept.
 
         Returns
@@ -976,7 +977,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         n_jobs : int
             Number of jobs to run in parallel.
         normalize : bool
-            If True, each band will be devided by the total power. Defaults to
+            If True, each band will be divided by the total power. Defaults to
             False.
         cbar_fmt : str
             The colorbar format. Defaults to '%0.3f'.
@@ -1068,14 +1069,21 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             border=border, fig_facecolor=fig_facecolor, font_color=font_color,
             show=show)
 
+    @deprecated('drop_bad_epochs method has been renamed drop_bad. '
+                'drop_bad_epochs method will be removed in 0.13')
     def drop_bad_epochs(self, reject='existing', flat='existing'):
+        """Drop bad epochs without retaining the epochs data"""
+        return self.drop_bad(reject, flat)
+
+    @verbose
+    def drop_bad(self, reject='existing', flat='existing', verbose=None):
         """Drop bad epochs without retaining the epochs data.
 
         Should be used before slicing operations.
 
-        .. Warning:: Operation is slow since all epochs have to be read from
-            disk. To avoid reading epochs from disk multiple times, initialize
-            Epochs object with preload=True.
+        .. warning:: This operation is slow since all epochs have to be read
+                     from disk. To avoid reading epochs from disk multiple
+                     times, use :func:`mne.Epochs.load_data()`.
 
         Parameters
         ----------
@@ -1090,6 +1098,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             are floats that set the minimum acceptable peak-to-peak amplitude.
             If flat is None then no rejection is done. If 'existing',
             then the flat parameters set at instantiation are used.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs with bad epochs dropped. Operates in-place.
 
         Notes
         -----
@@ -1109,6 +1125,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('reject and flat, if strings, must be "existing"')
         self._reject_setup(reject, flat)
         self._get_data(out=False)
+        return self
 
     def drop_log_stats(self, ignore=('IGNORED',)):
         """Compute the channel stats based on a drop_log from Epochs.
@@ -1162,7 +1179,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if not self._bad_dropped:
             raise ValueError("You cannot use plot_drop_log since bad "
                              "epochs have not yet been dropped. "
-                             "Use epochs.drop_bad_epochs().")
+                             "Use epochs.drop_bad().")
 
         from .viz import plot_drop_log
         return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
@@ -1231,16 +1248,24 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  cmap=cmap, fig=fig,
                                  overlay_times=overlay_times)
 
-    @verbose
+    @deprecated('drop_epochs method has been renamed drop. '
+                'drop_epochs method will be removed in 0.13')
     def drop_epochs(self, indices, reason='USER', verbose=None):
+        """Drop epochs based on indices or boolean mask"""
+        return self.drop(indices, reason, verbose)
+
+    @verbose
+    def drop(self, indices, reason='USER', verbose=None):
         """Drop epochs based on indices or boolean mask
 
-        Note that the indices refer to the current set of undropped epochs
-        rather than the complete set of dropped and undropped epochs.
-        They are therefore not necessarily consistent with any external indices
-        (e.g., behavioral logs). To drop epochs based on external criteria,
-        do not use the preload=True flag when constructing an Epochs object,
-        and call this method before calling the drop_bad_epochs method.
+        .. note:: The indices refer to the current set of undropped epochs
+                  rather than the complete set of dropped and undropped epochs.
+                  They are therefore not necessarily consistent with any
+                  external indices (e.g., behavioral logs). To drop epochs
+                  based on external criteria, do not use the ``preload=True``
+                  flag when constructing an Epochs object, and call this
+                  method before calling the :func:`mne.Epochs.drop_bad` or
+                  :func:`mne.Epochs.load_data` methods.
 
         Parameters
         ----------
@@ -1253,7 +1278,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Default: 'USER'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-            Defaults to raw.verbose.
+            Defaults to self.verbose.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs with indices dropped. Operates in-place.
         """
         indices = np.atleast_1d(indices)
 
@@ -1278,6 +1308,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         count = len(indices)
         logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
+        return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
         """Method to get a given epoch from disk"""
@@ -1286,8 +1317,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _project_epoch(self, epoch):
         """Helper to process a raw epoch based on the delayed param"""
         # whenever requested, the first epoch is being projected.
-        if epoch is None:  # can happen if t < 0
-            return None
+        if (epoch is None) or isinstance(epoch, string_types):
+            # can happen if t < 0 or reject based on annotations
+            return epoch
         proj = self._do_delayed_proj or self.proj
         if self._projector is not None and proj is True:
             epoch = np.dot(self._projector, epoch)
@@ -1337,7 +1369,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 data[idx] = epoch_out
         else:
             # bads need to be dropped, this might occur after a preload
-            # e.g., when calling drop_bad_epochs w/new params
+            # e.g., when calling drop_bad w/new params
             good_idx = []
             n_out = 0
             assert n_events == len(self.selection)
@@ -1353,10 +1385,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     epoch_noproj = self._get_epoch_from_raw(idx)
                     epoch_noproj = self._detrend_offset_decim(epoch_noproj)
                     epoch = self._project_epoch(epoch_noproj)
+
                 epoch_out = epoch_noproj if self._do_delayed_proj else epoch
-                is_good, offenders = self._is_good_epoch(epoch)
+                is_good, offending_reason = self._is_good_epoch(epoch)
                 if not is_good:
-                    self.drop_log[sel] += offenders
+                    self.drop_log[sel] += offending_reason
                     continue
                 good_idx.append(idx)
 
@@ -1404,7 +1437,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise RuntimeError('Since bad epochs have not been dropped, the '
                                'length of the Epochs is not known. Load the '
                                'Epochs with preload=True, or call '
-                               'Epochs.drop_bad_epochs(). To find the number '
+                               'Epochs.drop_bad(). To find the number '
                                'of events in the Epochs, use '
                                'len(Epochs.events).')
         return len(self.events)
@@ -1549,7 +1582,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Returns
         -------
-        epochs : Epochs instance
+        epochs : instance of Epochs
             The cropped epochs.
 
         Notes
@@ -1635,7 +1668,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         inst = self.copy() if copy else self
 
         o_sfreq = inst.info['sfreq']
-        inst._data = resample(inst._data, sfreq, o_sfreq, npad,
+        inst._data = resample(inst._data, sfreq, o_sfreq, npad, window=window,
                               n_jobs=n_jobs)
         # adjust indirectly affected variables
         inst.info['sfreq'] = float(sfreq)
@@ -1678,7 +1711,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
-        self.drop_bad_epochs()
+        self.drop_bad()
         total_size = self[0].get_data().nbytes * len(self)
         n_parts = int(np.ceil(total_size / float(split_size)))
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
@@ -1752,7 +1785,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if len(event_ids) == 0:
             raise ValueError('event_ids must have at least one element')
         if not epochs._bad_dropped:
-            epochs.drop_bad_epochs()
+            epochs.drop_bad()
         # figure out how to equalize
         eq_inds = list()
 
@@ -1806,7 +1839,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         indices = _get_drop_indices(event_times, method)
         # need to re-index indices
         indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
-        epochs.drop_epochs(indices, reason='EQUALIZED_COUNT')
+        epochs.drop(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices
 
@@ -1880,8 +1913,8 @@ class Epochs(_BaseEpochs):
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # uV (EEG channels)
-                          eog=250e-6 # uV (EOG channels)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
                           )
 
     flat : dict | None
@@ -1928,6 +1961,10 @@ class Epochs(_BaseEpochs):
         warn, if 'ignore' it will proceed silently. Note.
         If none of the event ids are found in the data, an error will be
         automatically generated irrespective of this parameter.
+    reject_by_annotation : bool
+        Whether to reject based on annotations. If True (default), epochs
+        overlapping with segments whose description begins with ``'bad'`` are
+        rejected. If False, no rejection based on annotations is performed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -1956,7 +1993,7 @@ class Epochs(_BaseEpochs):
         'NO_DATA' or 'TOO_SHORT' if epoch didn't contain enough data;
         names of channels that exceeded the amplitude threshold;
         'EQUALIZED_COUNTS' (see equalize_event_counts);
-        or 'USER' for user-defined reasons (see drop_epochs).
+        or 'USER' for user-defined reasons (see drop method).
     verbose : bool, str, int, or None
         See above.
 
@@ -2002,7 +2039,7 @@ class Epochs(_BaseEpochs):
                  baseline=(None, 0), picks=None, name='Unknown', preload=False,
                  reject=None, flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=True,
-                 on_missing='error', verbose=None):
+                 on_missing='error', reject_by_annotation=True, verbose=None):
         if not isinstance(raw, _BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
@@ -2011,6 +2048,7 @@ class Epochs(_BaseEpochs):
         # proj is on when applied in Raw
         proj = proj or raw.proj
 
+        self.reject_by_annotation = reject_by_annotation
         # call _BaseEpochs constructor
         super(Epochs, self).__init__(
             info, None, events, event_id, tmin, tmax, baseline=baseline,
@@ -2021,7 +2059,14 @@ class Epochs(_BaseEpochs):
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
-        """Load one epoch from disk"""
+        """Load one epoch from disk
+
+        Returns
+        -------
+        data : array | str | None
+            If string it's details on rejection reason.
+            If None it means no data.
+        """
         if self._raw is None:
             # This should never happen, as raw=None only if preload=True
             raise ValueError('An error has occurred, no valid raw file found.'
@@ -2033,7 +2078,9 @@ class Epochs(_BaseEpochs):
         first_samp = self._raw.first_samp
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self._raw_times)
-        return None if start < 0 else self._raw[self.picks, start:stop][0]
+        data = self._raw._check_bad_segment(start, stop, self.picks,
+                                            self.reject_by_annotation)
+        return data
 
 
 class EpochsArray(_BaseEpochs):
@@ -2067,8 +2114,8 @@ class EpochsArray(_BaseEpochs):
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # uV (EEG channels)
-                          eog=250e-6 # uV (EOG channels)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
                           )
 
     flat : dict | None
@@ -2090,6 +2137,8 @@ class EpochsArray(_BaseEpochs):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
+    proj : bool | 'delayed'
+        Apply SSP projection vectors. See :class:`mne.Epochs` for details.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -2102,7 +2151,7 @@ class EpochsArray(_BaseEpochs):
     @verbose
     def __init__(self, data, info, events, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, baseline=None, verbose=None):
+                 reject_tmax=None, baseline=None, proj=True, verbose=None):
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
@@ -2115,6 +2164,7 @@ class EpochsArray(_BaseEpochs):
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
+        info = deepcopy(info)  # do not modify original info
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
@@ -2122,7 +2172,7 @@ class EpochsArray(_BaseEpochs):
                                           tmax, baseline, reject=reject,
                                           flat=flat, reject_tmin=reject_tmin,
                                           reject_tmax=reject_tmax, decim=1,
-                                          add_eeg_ref=False)
+                                          add_eeg_ref=False, proj=proj)
         if len(events) != in1d(self.events[:, 2],
                                list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
@@ -2130,7 +2180,7 @@ class EpochsArray(_BaseEpochs):
         for ii, e in enumerate(self._data):
             # This is safe without assignment b/c there is no decim
             self._detrend_offset_decim(e)
-        self.drop_bad_epochs()
+        self.drop_bad()
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
@@ -2224,11 +2274,11 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     # make sure bad epochs are dropped
     for e in epochs_list:
         if not e._bad_dropped:
-            e.drop_bad_epochs()
+            e.drop_bad()
     event_times = [e.events[:, 0] for e in epochs_list]
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):
-        e.drop_epochs(inds, reason='EQUALIZED_COUNT')
+        e.drop(inds, reason='EQUALIZED_COUNT')
 
 
 def _get_drop_indices(event_times, method):
@@ -2586,7 +2636,7 @@ class EpochsFIF(_BaseEpochs):
             name=name, proj=proj, add_eeg_ref=add_eeg_ref,
             preload_at_end=False, on_missing='ignore', selection=selection,
             drop_log=drop_log, verbose=verbose)
-        # use the private property instead of drop_bad_epochs so that epochs
+        # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
 
@@ -2682,7 +2732,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
 
     Returns
     -------
-    epochs : Epochs
+    epochs : instance of Epochs
         Concatenated epochs.
     """
     if not all(e.preload for e in epochs_list):
@@ -2786,7 +2836,7 @@ def _finish_concat(info, data, events, event_id, tmin, tmax, baseline,
                       baseline=baseline, add_eeg_ref=False,
                       selection=selection, drop_log=drop_log,
                       proj=False, on_missing='ignore', verbose=verbose)
-    out.drop_bad_epochs()
+    out.drop_bad()
     return out
 
 
@@ -2831,7 +2881,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         event sample numbers in ``epochs.events``). Can be ``None``
         if data have not been decimated or resampled.
     picks : array-like of int | None
-        If None only MEG, EEG and SEEG channels are kept
+        If None only MEG, EEG, SEEG, and ECoG channels are kept
         otherwise the channels indices in picks are kept.
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head

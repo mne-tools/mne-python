@@ -179,7 +179,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     Our algorithm has the following enhancements:
 
         * Double floating point precision
-        * Handling of 3D (in additon to 1D) fine calibration files
+        * Handling of 3D (in addition to 1D) fine calibration files
         * Automated processing of split (-1.fif) and concatenated files
         * Epoch-based movement compensation as described in [1]_ through
           :func:`mne.epochs.average_movements`
@@ -655,6 +655,7 @@ def _copy_preload_add_channels(raw, add_channels):
                  cal=1e-4, coil_type=FIFF.FWD_COIL_UNKNOWN, loc=np.zeros(12))
             for ii in range(len(kinds))]
         raw.info['chs'].extend(chpi_chs)
+        raw.info._update_redundant()
         raw.info._check_consistency()
         assert raw._data.shape == (raw.info['nchan'], len(raw.times))
         # Return the pos picks

@@ -215,7 +215,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info (e.g., raw.info).
     radius : float
         Viewport radius as a fraction of main figure height. Defaults to 0.5.
@@ -290,7 +290,7 @@ def make_grid_layout(info, picks=None, n_col=None):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info | None
+    info : instance of Info | None
         Measurement info (e.g., raw.info). If None, default names will be
         employed.
     picks : array-like of int | None
@@ -365,7 +365,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
         The channel type for selecting single channel layouts.
@@ -554,7 +554,7 @@ def _find_topomap_coords(info, picks, layout=None):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info.
     picks : list of int
         Channel indices to generate topomap coords for.
@@ -589,7 +589,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     picks : list of int
         The channel indices to generate topomap coords for.
@@ -710,7 +710,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         An info dictionary containing channel information.
     layout : Layout | None
         The layout if available. Defaults to None.

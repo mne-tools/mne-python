@@ -185,7 +185,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
                     picks=picks, reject=reject, flat=flat, proj=True)
 
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
     if epochs.events.shape[0] < 1:
         warn('No good epochs found, returning None for projs')
         return None, events

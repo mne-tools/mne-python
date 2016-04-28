@@ -301,7 +301,7 @@ def make_ad_hoc_cov(info, verbose=None):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info.
     verbose : bool, str, int, or None (default None)
         If not None, override default verbose level (see mne.verbose).
@@ -376,9 +376,10 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     raw : instance of Raw
         Raw data
     tmin : float
-        Beginning of time interval in seconds
+        Beginning of time interval in seconds. Defaults to 0.
     tmax : float | None (default None)
-        End of time interval in seconds
+        End of time interval in seconds. If None (default), use the end of the
+        recording.
     tstep : float (default 0.2)
         Length of data chunks for artefact rejection in seconds.
         Can also be None to use a single epoch of (tmax - tmin)
@@ -391,8 +392,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # uV (EEG channels)
-                          eog=250e-6 # uV (EOG channels)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
                           )
 
     flat : dict | None (default None)
@@ -1885,7 +1886,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     ----------
     data : np.ndarray of float, shape(n_channels, n_samples)
         The M/EEG signals.
-    info : mne.io.measurement_info.Info
+    info : Info
         The measurment info.
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
@@ -1934,7 +1935,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
     ----------
     data : np.ndarray of float, shape (n_channels, n_channels)
         The M/EEG covariance.
-    info : mne.io.measurement_info.Info
+    info : Info
         The measurment info.
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the

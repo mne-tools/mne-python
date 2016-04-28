@@ -13,13 +13,14 @@ import numpy as np
 
 ###############################################################################
 # ------------------------------------------------------
-# Creating :class:`Info <mne.io.meas_info.Info>` objects
+# Creating :class:`Info <mne.Info>` objects
 # ------------------------------------------------------
 #
 # .. note:: for full documentation on the `Info` object, see
-#           :ref:`tut_info_objects`.
+#           :ref:`tut_info_objects`. See also
+#           :ref:`sphx_glr_auto_examples_io_plot_objects_from_arrays.py`.
 #
-# Normally, :class:`mne.io.Info` objects are created by the various
+# Normally, :class:`mne.Info` objects are created by the various
 # :ref:`data import functions <ch_convert>`.
 # However, if you wish to create one from scratch, you can use the
 # :func:`mne.create_info` function to initialize the minimally required
@@ -62,7 +63,7 @@ print(info)
 
 ###############################################################################
 # .. note:: When assigning new values to the fields of an
-#           :class:`mne.io.meas_info.Info` object, it is important that the
+#           :class:`mne.Info` object, it is important that the
 #           fields are consistent:
 #
 #           - The length of the channel information field `chs` must be
@@ -72,13 +73,13 @@ print(info)
 #             of the channel information contained in `chs`.
 #
 # ---------------------------------------------
-# Creating :class:`Raw <mne.io.RawFIF>` objects
+# Creating :class:`Raw <mne.io.Raw>` objects
 # ---------------------------------------------
 #
 # To create a :class:`mne.io.Raw` object from scratch, you can use the
 # :class:`mne.io.RawArray` class, which implements raw data that is backed by a
 # numpy array.  Its constructor simply takes the data matrix and
-# :class:`mne.io.Info` object:
+# :class:`mne.Info` object:
 
 # Generate some random data
 data = np.random.randn(5, 1000)

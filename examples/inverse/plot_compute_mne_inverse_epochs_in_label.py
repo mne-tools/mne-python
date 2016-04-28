@@ -73,7 +73,7 @@ stc_evoked_label = stc_evoked.in_label(label)
 # Mean across trials but not across vertices in label
 mean_stc = sum(stcs) / len(stcs)
 
-# compute sign flip to avoid signal cancelation when averaging signed values
+# compute sign flip to avoid signal cancellation when averaging signed values
 flip = mne.label_sign_flip(label, inverse_operator['src'])
 
 label_mean = np.mean(mean_stc.data, axis=0)

@@ -18,7 +18,8 @@ from scipy import linalg
 
 from ..baseline import rescale
 from ..io.constants import FIFF
-from ..io.pick import pick_types, _picks_by_type
+from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
+                       _pick_data_channels)
 from ..utils import _clean_names, _time_mask, verbose, logger, warn
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
@@ -26,11 +27,12 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
+from ..io.meas_info import Info
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
     """"Aux Function"""
-    info = copy.deepcopy(inst.info)
+    info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
     if layout is None and ch_type is not 'eeg':
         from ..channels import find_layout
@@ -41,6 +43,8 @@ def _prepare_topo_plot(inst, ch_type, layout):
     clean_ch_names = _clean_names(info['ch_names'])
     for ii, this_ch in enumerate(info['chs']):
         this_ch['ch_name'] = clean_ch_names[ii]
+    info._update_redundant()
+    info._check_consistency()
 
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
@@ -382,10 +386,14 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     Parameters
     ----------
-    data : array, length = n_points
+    data : array, shape (n_chan,)
         The data values to plot.
-    pos : array, shape = (n_points, 2)
-        For each data point, the x and y coordinates.
+    pos : array, shape (n_chan, 2) | instance of Info
+        Location information for the data points(/channels).
+        If an array, for each data point, the x and y coordinates.
+        If an Info object, it must contain only one data type and
+        exactly `len(data)` data channels, and the x/y coordinates will
+        be inferred from this Info object.
     vmin : float | callable | None
         The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -466,6 +474,35 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     from matplotlib.widgets import RectangleSelector
 
     data = np.asarray(data)
+
+    if isinstance(pos, Info):  # infer pos from Info object
+        picks = _pick_data_channels(pos)  # pick only data channels
+        pos = pick_info(pos, picks)
+
+        # check if there is only 1 channel type, and n_chans matches the data
+        ch_type = set(channel_type(pos, idx)
+                      for idx, _ in enumerate(pos["chs"]))
+        info_help = ("Pick Info with e.g. mne.pick_info and "
+                     "mne.channels.channel_indices_by_type.")
+        if len(ch_type) > 1:
+            raise ValueError("Multiple channel types in Info structure. " +
+                             info_help)
+        elif len(pos["chs"]) != data.shape[0]:
+            raise ValueError("Number of channels in the Info object and "
+                             "the data array does not match. " + info_help)
+        else:
+            ch_type = ch_type.pop()
+
+        if any(type_ in ch_type for type_ in ('planar', 'grad')):
+            # deal with grad pairs
+            from ..channels.layout import (_merge_grad_data, find_layout,
+                                           _pair_grad_sensors)
+            picks, pos = _pair_grad_sensors(pos, find_layout(pos))
+            data = _merge_grad_data(data[picks]).reshape(-1)
+        else:
+            picks = list(range(data.shape[0]))
+            pos = _find_topomap_coords(pos, picks=picks)
+
     if data.ndim > 1:
         raise ValueError("Data needs to be array of shape (n_sensors,); got "
                          "shape %s." % str(data.shape))
@@ -1073,7 +1110,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         Title. If None (default), no title is displayed.
     mask : ndarray of bool, shape (n_channels, n_times) | None
         The channels to be marked as significant at a given time point.
-        Indicies set to `True` will be considered. Defaults to None.
+        Indices set to `True` will be considered. Defaults to None.
     mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
         Default (None) equals::
@@ -1374,7 +1411,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     n_jobs : int
         Number of jobs to run in parallel.
     normalize : bool
-        If True, each band will be devided by the total power. Defaults to
+        If True, each band will be divided by the total power. Defaults to
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.
@@ -1462,7 +1499,7 @@ def plot_psds_topomap(
         following the application of `agg_fun`. Only valid if normalize is
         False.
     normalize : bool
-        If True, each band will be devided by the total power. Defaults to
+        If True, each band will be divided by the total power. Defaults to
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.

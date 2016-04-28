@@ -198,9 +198,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
                      'loc': np.zeros(12)}
         inst.info['chs'].append(chan_info)
+        inst.info._update_redundant()
     if isinstance(inst, _BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
-
+    inst.info._check_consistency()
     return inst
 
 
@@ -273,7 +274,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     channels will be dropped.
 
     Multiple anodes and cathodes can be specified, in which case multiple
-    vitual channels will be created. The 1st anode will be substracted from the
+    virtual channels will be created. The 1st anode will be subtracted from the
     1st cathode, the 2nd anode from the 2nd cathode, etc.
 
     By default, the virtual channels will be annotated with channel info of
@@ -377,6 +378,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         inst.info['chs'][an_idx] = info
         inst.info['chs'][an_idx]['ch_name'] = name
         logger.info('Bipolar channel added as "%s".' % name)
+    inst.info._update_redundant()
 
     # Drop cathode channels
     inst.drop_channels(cathode)

@@ -1,8 +1,9 @@
-.. _memory:
 
 .. contents:: Contents
    :local:
    :depth: 3
+
+.. _memory:
 
 Memory-efficient IO
 ###################
@@ -38,7 +39,7 @@ has been loaded with ``preload=True``. Preloading is also supported for :func:`m
 
 .. warning:: This comes with a caveat. When ``preload=False``, data rejection based on peak-to-peak thresholds is executed when the data is loaded from disk, *not* when the ``Epochs`` object is created.
 
-To explicitly reject artifacts with ``preload=False``, use the function :func:`mne.Epochs.drop_bad_epochs`.
+To explicitly reject artifacts with ``preload=False``, use the function :func:`mne.Epochs.drop_bad`.
 
 Loading data explicitly
 =======================

@@ -249,7 +249,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc):
     info.update(filename=input_fname, meas_date=np.array([meas_date, 0]),
                 description=str(session_label), buffer_size_sec=10., bads=bads,
                 subject_info=subject_info, chs=chs)
-    info._check_consistency()
+    info._update_redundant()
     return info, cnt_info
 
 

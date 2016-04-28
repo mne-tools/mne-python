@@ -8,7 +8,7 @@
 import numpy as np
 import copy
 
-from ..io.pick import pick_types
+from ..io.pick import _pick_data_channels
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import warn, check_version
@@ -651,9 +651,7 @@ def _check_epochs_input(epochs, y, picks=None):
 
     # Pick channels
     if picks is None:  # just use good data channels
-        picks = pick_types(epochs.info, meg=True, eeg=True, seeg=True,
-                           eog=False, ecg=False, misc=False, stim=False,
-                           ref_meg=False, exclude='bads')
+        picks = _pick_data_channels(epochs.info, with_ref_meg=False)
     if isinstance(picks, (list, np.ndarray)):
         picks = np.array(picks, dtype=np.int)
     else:
@@ -1495,7 +1493,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         return fig
 
     def _prep_times(self):
-        """Auxiliary function to allow compability with GAT"""
+        """Auxiliary function to allow compatibility with GAT"""
         self.test_times = 'diagonal'
         if hasattr(self, 'times'):
             self.train_times = self.times
@@ -1512,7 +1510,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
             self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
 
     def _clean_times(self):
-        """Auxiliary function to allow compability with GAT"""
+        """Auxiliary function to allow compatibility with GAT"""
         if hasattr(self, 'train_times'):
             self.times = self.train_times
         if hasattr(self, 'train_times_'):

@@ -28,7 +28,7 @@ def channel_type(info, idx):
     -------
     type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
            'ref_meg' | 'resp' | 'exci' | 'ias' | 'syst' | 'misc'
-           'seeg' | 'bio' | 'chpi' | 'dipole' | 'gof'
+           'seeg' | 'bio' | 'chpi' | 'dipole' | 'gof' | 'ecog'
         Type of channel
     """
     kind = info['chs'][idx]['kind']
@@ -72,6 +72,8 @@ def channel_type(info, idx):
         return 'dipole'
     elif kind == FIFF.FIFFV_GOODNESS_FIT:
         return 'gof'
+    elif kind == FIFF.FIFFV_ECOG_CH:
+        return 'ecog'
     raise Exception('Unknown channel type')
 
 
@@ -178,7 +180,7 @@ def _check_meg_type(meg, allow_auto=False):
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
-               gof=False, bio=False, include=[], exclude='bads',
+               gof=False, bio=False, ecog=False, include=[], exclude='bads',
                selection=None):
     """Pick channels by type and names
 
@@ -226,6 +228,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         Dipole goodness of fit channels.
     bio : bool
         Bio channels.
+    ecog : bool
+        Electrocorticography channels.
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -265,7 +269,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                    len(info['comps']) > 0)
 
     for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
-                  ias, syst, seeg, dipole, gof, bio):
+                  ias, syst, seeg, dipole, gof, bio, ecog):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception '
                  'of "meg" and "ref_meg") must be of type bool, not {}.')
@@ -310,6 +314,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         elif kind == FIFF.FIFFV_GOODNESS_FIT and gof:
             pick[k] = True
         elif kind == FIFF.FIFFV_BIO_CH and bio:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_ECOG_CH and ecog:
             pick[k] = True
 
     # restrict channels to selection if provided
@@ -359,6 +365,7 @@ def pick_info(info, sel=[], copy=True):
         raise ValueError('No channels match the selection.')
 
     info['chs'] = [info['chs'][k] for k in sel]
+    info._update_redundant()
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
 
     comps = deepcopy(info['comps'])
@@ -372,7 +379,7 @@ def pick_info(info, sel=[], copy=True):
         c['data']['row_names'] = row_names
         c['data']['data'] = c['data']['data'][row_idx]
     info['comps'] = comps
-
+    info._check_consistency()
     return info
 
 
@@ -493,6 +500,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
 
     # Pick the appropriate channel names from the info-dict using sel_info
     fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
+    fwd['info']._update_redundant()
     fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]
 
     if fwd['sol_grad'] is not None:
@@ -506,7 +514,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
 
 
 def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
-                       include=[], exclude=[]):
+                       ecog=False, include=[], exclude=[]):
     """Pick by channel type and names from a forward operator
 
     Parameters
@@ -523,6 +531,8 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
         If True include CTF / 4D reference channels
     seeg : bool
         If True include stereotactic EEG channels
+    ecog : bool
+        If True include electrocorticography channels
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -535,7 +545,7 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
         Forward solution restricted to selected channel types.
     """
     info = orig['info']
-    sel = pick_types(info, meg, eeg, ref_meg=ref_meg, seeg=seeg,
+    sel = pick_types(info, meg, eeg, ref_meg=ref_meg, seeg=seeg, ecog=ecog,
                      include=include, exclude=exclude)
     if len(sel) == 0:
         raise ValueError('No valid channels found')
@@ -547,9 +557,8 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
 def channel_indices_by_type(info):
     """Get indices of channels by type
     """
-    idx = dict(grad=[], mag=[], eeg=[], seeg=[], eog=[], ecg=[], stim=[],
-               emg=[], ref_meg=[], misc=[], resp=[], chpi=[], exci=[], ias=[],
-               syst=[], bio=[])
+    idx = dict((key, list()) for key in _PICK_TYPES_KEYS if key != 'meg')
+    idx.update(mag=list(), grad=list())
     for k, ch in enumerate(info['chs']):
         for key in idx.keys():
             if channel_type(info, k) == key:
@@ -649,8 +658,8 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
         Channels to be excluded/excluded. If allow_bads, and chs=="bads",
         this will be the bad channels found in 'info'.
     """
-    from .meas_info import Info, _ChannelNameList
-    if not isinstance(chs, (list, tuple, np.ndarray, _ChannelNameList)):
+    from .meas_info import Info
+    if not isinstance(chs, (list, tuple, np.ndarray)):
         if allow_bads is True:
             if not isinstance(info, Info):
                 raise ValueError('Supply an info object if allow_bads is true')
@@ -665,25 +674,27 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
     return chs
 
 
+_PICK_TYPES_DATA_DICT = dict(
+    meg=True, eeg=True, stim=False, eog=False, ecg=False, emg=False,
+    misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
+    seeg=True, dipole=False, gof=False, bio=False, ecog=True)
+_PICK_TYPES_KEYS = tuple(_PICK_TYPES_DATA_DICT.keys())
+_DATA_CH_TYPES_SPLIT = ['mag', 'grad', 'eeg', 'seeg', 'ecog']
+
+
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
     """Convenience function for picking only data channels."""
-    return pick_types(info, meg=True, eeg=True, stim=False, eog=False,
-                      ecg=False, emg=False, ref_meg=with_ref_meg, misc=False,
-                      resp=False, chpi=False, exci=False, ias=False,
-                      syst=False, seeg=True, dipole=False, gof=False,
-                      bio=False, include=[], exclude=exclude, selection=None)
+    return pick_types(info, ref_meg=with_ref_meg, include=[], exclude=exclude,
+                      selection=None, **_PICK_TYPES_DATA_DICT)
 
 
 def _pick_aux_channels(info, exclude='bads'):
-    """Convenience function for picking only auxilary channels
+    """Convenience function for picking only auxiliary channels
 
     Corresponds to EOG, ECG, EMG and BIO
     """
-    return pick_types(info, meg=False, eeg=False, stim=False, eog=True,
-                      ecg=True, emg=True, ref_meg=False, misc=False,
-                      resp=False, chpi=False, exci=False, ias=False,
-                      syst=False, seeg=False, dipole=False, gof=False,
-                      bio=True, include=[], exclude=exclude, selection=None)
+    return pick_types(info, meg=False, eog=True, ecg=True, emg=True, bio=True,
+                      ref_meg=False, exclude=exclude)
 
 
 def _pick_data_or_ica(info):

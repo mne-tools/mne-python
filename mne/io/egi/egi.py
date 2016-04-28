@@ -64,7 +64,7 @@ def _read_header(fid):
             info['event_codes'].append(event_codes)
         info['event_codes'] = np.array(info['event_codes'])
     else:
-        raise NotImplementedError('Only continous files are supported')
+        raise NotImplementedError('Only continuous files are supported')
     info['unsegmented'] = unsegmented
     info['dtype'], info['orig_format'] = {2: ('>i2', 'short'),
                                           4: ('>f4', 'float'),
@@ -267,6 +267,7 @@ class RawEGI(_BaseRaw):
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
         info['chs'] = chs
+        info._update_redundant()
         _check_update_montage(info, montage)
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],

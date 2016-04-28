@@ -111,9 +111,9 @@ def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
 
     Parameters
     ----------
-    info_from : mne.io.MeasInfo
+    info_from : instance of Info
         The measurement data to interpolate from.
-    info_to : mne.io.MeasInfo
+    info_to : instance of Info
         The measurement info to interpolate to.
     mode : str
         Either `'accurate'` or `'fast'`, determines the quality of the
@@ -198,7 +198,7 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
 
     info_from = pick_info(evoked.info, pick_from, copy=True)
     info_to = pick_info(evoked.info, pick_to, copy=True)
-    mapping = _map_meg_channels(info_from, info_to, mode='fast')
+    mapping = _map_meg_channels(info_from, info_to, mode=mode)
 
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
@@ -211,7 +211,8 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
     # change channel names to emphasize they contain interpolated data
     for ch in evoked.info['chs']:
         ch['ch_name'] += '_virtual'
-
+    evoked.info._update_redundant()
+    evoked.info._check_consistency()
     return evoked
 
 
@@ -222,7 +223,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 
     Parameters
     ----------
-    info : instance of io.meas_info.Info
+    info : instance of Info
         Measurement info.
     surf : dict
         The surface to map the data to. The required fields are `'rr'`,
@@ -319,7 +320,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     # bring the original back, whatever coord frame it was in
     fmd['surf'] = orig_surf
 
-    # Remove some unecessary fields
+    # Remove some unnecessary fields
     del fmd['self_dots']
     del fmd['surface_dots']
     del fmd['int_rad']
@@ -419,7 +420,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
 
     for this_type, this_surf in zip(types, surfs):
         this_map = _make_surface_mapping(evoked.info, this_surf, this_type,
-                                         trans, n_jobs=n_jobs, origin=origin)
+                                         trans, n_jobs=n_jobs, origin=origin,
+                                         mode=mode)
         surf_maps.append(this_map)
 
     return surf_maps

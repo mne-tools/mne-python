@@ -706,7 +706,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         If float, compute spherical shells for EEG using the given radius.
         If 'auto', estimate an approriate radius from the dig points in Info,
         If None, exclude shells.
-    info : instance of mne.io.meas_info.Info | None
+    info : instance of Info | None
         Measurement info. Only needed if ``r0`` or ``head_radius`` are
         ``'auto'``.
     relative_radii : array-like
@@ -736,7 +736,15 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
             if param != 'auto':
                 raise ValueError('%s, if str, must be "auto" not "%s"'
                                  % (name, param))
-
+    relative_radii = np.array(relative_radii, float).ravel()
+    sigmas = np.array(sigmas, float).ravel()
+    if len(relative_radii) != len(sigmas):
+        raise ValueError('relative_radii length (%s) must match that of '
+                         'sigmas (%s)' % (len(relative_radii),
+                                          len(sigmas)))
+    if len(sigmas) == 0 and head_radius is not None:
+            raise ValueError('sigmas must be supplied if head_radius is not '
+                             'None')
     if (isinstance(r0, string_types) and r0 == 'auto') or \
        (isinstance(head_radius, string_types) and head_radius == 'auto'):
         if info is None:
@@ -786,7 +794,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
                            sphere['lambda'][k]))
         logger.info('Set up EEG sphere model with scalp radius %7.1f mm\n'
                     % (1000 * head_radius,))
-    return ConductorModel(sphere)
+    return sphere
 
 
 # #############################################################################
@@ -808,7 +816,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info.
     dig_kinds : list of str | str
         Kind of digitization points to use in the fitting. These can be any

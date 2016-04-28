@@ -75,8 +75,8 @@ def test_set_channel_types():
     mapping = {'EOG 061': 'xxx'}
     assert_raises(ValueError, raw.set_channel_types, mapping)
     # Test changing type if in proj (avg eeg ref here)
-    mapping = {'EEG 060': 'eog', 'EEG 059': 'ecg', 'EOG 061': 'seeg',
-               'MEG 2441': 'eeg', 'MEG 2443': 'eeg'}
+    mapping = {'EEG 058': 'ecog', 'EEG 059': 'ecg', 'EEG 060': 'eog',
+               'EOG 061': 'seeg', 'MEG 2441': 'eeg', 'MEG 2443': 'eeg'}
     assert_raises(RuntimeError, raw.set_channel_types, mapping)
     # Test type change
     raw2 = Raw(raw_fname, add_eeg_ref=False)
@@ -89,14 +89,18 @@ def test_set_channel_types():
     assert_true(len(w) >= 1, msg=[str(ww.message) for ww in w])
     assert_true(all('The unit for channel' in str(ww.message) for ww in w))
     info = raw2.info
-    assert_true(info['chs'][374]['ch_name'] == 'EEG 060')
-    assert_true(info['chs'][374]['kind'] == FIFF.FIFFV_EOG_CH)
-    assert_true(info['chs'][374]['unit'] == FIFF.FIFF_UNIT_V)
-    assert_true(info['chs'][374]['coil_type'] == FIFF.FIFFV_COIL_NONE)
+    assert_true(info['chs'][372]['ch_name'] == 'EEG 058')
+    assert_true(info['chs'][372]['kind'] == FIFF.FIFFV_ECOG_CH)
+    assert_true(info['chs'][372]['unit'] == FIFF.FIFF_UNIT_V)
+    assert_true(info['chs'][372]['coil_type'] == FIFF.FIFFV_COIL_EEG)
     assert_true(info['chs'][373]['ch_name'] == 'EEG 059')
     assert_true(info['chs'][373]['kind'] == FIFF.FIFFV_ECG_CH)
     assert_true(info['chs'][373]['unit'] == FIFF.FIFF_UNIT_V)
     assert_true(info['chs'][373]['coil_type'] == FIFF.FIFFV_COIL_NONE)
+    assert_true(info['chs'][374]['ch_name'] == 'EEG 060')
+    assert_true(info['chs'][374]['kind'] == FIFF.FIFFV_EOG_CH)
+    assert_true(info['chs'][374]['unit'] == FIFF.FIFF_UNIT_V)
+    assert_true(info['chs'][374]['coil_type'] == FIFF.FIFFV_COIL_NONE)
     assert_true(info['chs'][375]['ch_name'] == 'EOG 061')
     assert_true(info['chs'][375]['kind'] == FIFF.FIFFV_SEEG_CH)
     assert_true(info['chs'][375]['unit'] == FIFF.FIFF_UNIT_V)

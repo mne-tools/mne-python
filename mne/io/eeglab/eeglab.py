@@ -102,7 +102,6 @@ def _get_info(eeg, montage, eog=()):
         if ch['ch_name'] in eog or idx in eog:
             ch['coil_type'] = FIFF.FIFFV_COIL_NONE
             ch['kind'] = FIFF.FIFFV_EOG_CH
-
     return info
 
 
@@ -188,7 +187,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         with each unique event encoded with a different integer.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict, the keys can later be used
-        to acces associated events.
+        to access associated events.
         Example::
 
             {"auditory":1, "visual":3}
@@ -308,6 +307,7 @@ class RawEEGLAB(_BaseRaw):
                          loc=np.zeros(12), unit=FIFF.FIFF_UNIT_NONE,
                          unit_mul=0., coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
         info['chs'].append(stim_chan)
+        info._update_redundant()
 
         events = _read_eeglab_events(eeg, event_id=event_id,
                                      event_id_func=event_id_func)
@@ -371,7 +371,7 @@ class EpochsEEGLAB(_BaseEpochs):
         with each unique event encoded with a different integer.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
-        the keys can later be used to acces associated events. Example:
+        the keys can later be used to access associated events. Example:
         dict(auditory=1, visual=3). If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, the event_id is constructed from the
@@ -395,8 +395,8 @@ class EpochsEEGLAB(_BaseEpochs):
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # uV (EEG channels)
-                          eog=250e-6 # uV (EOG channels)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
                           )
     flat : dict | None
         Rejection parameters based on flatness of signal.

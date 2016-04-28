@@ -64,7 +64,7 @@ tmin_plot, tmax_plot = -0.3, 0.5  # s
 # parameters passed here are used to create epochs from filtered data. However,
 # reading epochs without preloading means that bad epoch rejection is delayed
 # until later. To perform bad epoch rejection based on the reject parameter
-# passed here, run epochs.drop_bad_epochs(). This is done automatically in
+# passed here, run epochs.drop_bad(). This is done automatically in
 # tf_lcmv to reject bad epochs based on unfiltered data.
 event_id = 1
 events = mne.read_events(event_fname)

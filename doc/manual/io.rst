@@ -1,10 +1,14 @@
-.. _ch_convert:
 
 .. contents:: Contents
    :local:
    :depth: 2
 
-Here we describe the data reading and conversion utilities included
+.. _ch_convert:
+
+Importing MEG data
+##################
+
+This section describes the data reading and conversion utilities included
 with the MNE software. The cheatsheet below summarizes the different
 file formats supported by MNE software.
 
@@ -30,12 +34,6 @@ Electrode locations   EEGLAB loc, locs, eloc     Misc       :func:`mne.channels.
     EEG data can be found in :mod:`mne.io` and start with `read_raw_`. All
     supported data formats can be read in MNE-Python directly without first
     saving it to fif.
-
-Importing MEG data
-##################
-
-This section describes reading and converting of various MEG data formats.
-
 
 Elekta NeuroMag (.fif)
 ======================
@@ -223,7 +221,7 @@ from available analog trigger channel data by specifying the following parameter
 
 - A list of trigger channels (stim) or default triggers with order: '<' | '>'
   Channel-value correspondence when converting KIT trigger channels to a
-  Neuromag-style stim channel. By default, we assume the first eight miscellanous
+  Neuromag-style stim channel. By default, we assume the first eight miscellaneous
   channels are trigger channels. For '<', the largest values are assigned
   to the first channel (little endian; default). For '>', the largest values are
   assigned to the last channel (big endian). Can also be specified as a list of

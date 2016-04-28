@@ -134,30 +134,13 @@ To check that everything went fine, in ipython, type::
 
 If you get a new prompt with no error messages, you should be good to go!
 
-4. Familiarize yourself with Python
-###################################
+A good place to start is on our :ref:`tutorials` page or with our
+:ref:`general_examples`.
 
-Here are a few great resources:
-
-* `SciPy lectures <http://scipy-lectures.github.io>`_
-* `Learn X in Y minutes: Python <https://learnxinyminutes.com/docs/python/>`_
-* `NumPy for MATLAB users <https://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_
-
-We highly recommend watching the Scipy videos and reading through these
-sites to get a sense of how scientific computing is done in Python.
-
-5. Run some MNE-Python examples
-###############################
-
-Once MNE-python is set up, you should try running:
-
-1. :ref:`Beginning tutorials <tutorials>`
-2. `More advanced examples <auto_examples/index.html>`_
-
-Along the way, make frequent use :ref:`api_reference` and
+Along the way, make frequent use of :ref:`api_reference` and
 :ref:`manual` to understand the capabilities of MNE.
 
-6. Optional advanced setup
+4. Optional advanced setup
 ##########################
 
 .. _CUDA:
@@ -174,7 +157,7 @@ If you want to use NVIDIA CUDA, you should install:
 2. `PyCUDA <http://wiki.tiker.net/PyCuda/Installation/>`_
 3. `skcuda <https://github.com/lebedov/scikits.cuda>`_
 
-For example, on Ubutnu 15.10, a combination of system packages and ``git``
+For example, on Ubuntu 15.10, a combination of system packages and ``git``
 packages can be used to install the CUDA stack:
 
 .. code-block:: bash

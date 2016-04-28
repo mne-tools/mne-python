@@ -38,7 +38,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     layout : instance of mne.layout.Layout | None
         The layout to use. If None, layout will be guessed
@@ -520,6 +520,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             chs.append(ch)
         info['chs'] = chs
         info['bads'] = list()  # bads dropped on pair_grad_sensors
+        info._update_redundant()
+        info._check_consistency()
         new_picks = list()
         for e in evoked:
             data = _merge_grad_data(e.data[picks]) * scalings['grad']

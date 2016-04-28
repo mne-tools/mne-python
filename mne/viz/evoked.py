@@ -70,6 +70,7 @@ def _butterfly_on_button_press(event, params):
 def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
     """Function for drawing topomaps from the selected area."""
     import matplotlib.pyplot as plt
+    ch_types = [type for type in ch_types if type in ('eeg', 'grad', 'mag')]
     vert_lines = list()
     if text is not None:
         text.set_visible(True)
@@ -186,7 +187,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     units = _handle_default('units', units)
     # Valid data types ordered for consistency
     valid_channel_types = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
-                           'dipole', 'gof', 'bio']
+                           'dipole', 'gof', 'bio', 'ecog']
 
     if picks is None:
         picks = list(range(info['nchan']))
@@ -214,7 +215,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             n_channel_types += 1
             ch_types_used.append(t)
 
-    axes_init = axes  # remember if axes where given as input
+    axes_init = axes  # remember if axes were given as input
 
     fig = None
     if axes is None:
@@ -232,7 +233,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
     if not len(axes) == n_channel_types:
         raise ValueError('Number of axes (%g) must match number of channel '
-                         'types (%g)' % (len(axes), n_channel_types))
+                         'types (%d: %s)' % (len(axes), n_channel_types,
+                                             sorted(ch_types_used)))
 
     # instead of projecting during each iteration let's use the mixin here.
     if proj is True and evoked.proj is not True:
@@ -720,8 +722,8 @@ def plot_evoked_white(evoked, noise_cov, show=True):
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     """helper to plot_evoked_white
 
-    Additional Paramter
-    -------------------
+    Additional Parameters
+    ---------------------
     scalings : dict | None
         The rescaling method to be applied to improve the accuracy of rank
         estimaiton. If dict, it will override the following default values
@@ -938,7 +940,7 @@ def plot_snr_estimate(evoked, inv, show=True):
     lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
     ax.plot([0, 0], lims[2:], 'k:')
     ax.plot(lims[:2], [0, 0], 'k:')
-    # Colors are "bluish green" and "vermillion" taken from:
+    # Colors are "bluish green" and "vermilion" taken from:
     #  http://bconnelly.net/2013/10/creating-colorblind-friendly-figures/
     ax.plot(evoked.times, snr_est, color=[0.0, 0.6, 0.5])
     ax.plot(evoked.times, snr, color=[0.8, 0.4, 0.0])
@@ -982,7 +984,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         finds time points automatically by checking for 3 local maxima in
         Global Field Power. Defaults to "peaks".
     title : str | None
-        The title. If `None`, supress printing channel type. Defaults to ''.
+        The title. If `None`, suppress printing channel type. Defaults to ''.
     picks : array-like of int | None
         The indices of channels to plot. If None show all. Defaults to None.
     exclude : None | list of str | 'bads'
@@ -1039,7 +1041,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         evoked.drop_channels(exclude)
 
     info = evoked.info
-    data_types = ['eeg', 'grad', 'mag', 'seeg']
+    data_types = ['eeg', 'grad', 'mag', 'seeg', 'ecog']
     ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
 
     # if multiple sensor types: one plot per channel type, recursive call

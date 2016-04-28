@@ -565,7 +565,7 @@ class deprecated(object):
         return deprecation_wrapped
 
     def _update_doc(self, olddoc):
-        newdoc = "DEPRECATED"
+        newdoc = ".. warning:: DEPRECATED"
         if self.extra:
             newdoc = "%s: %s" % (newdoc, self.extra)
         if olddoc:
@@ -786,6 +786,10 @@ requires_PIL = partial(requires_module, name='PIL',
 requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
+         '    raise ImportError')
+requires_ftp = partial(
+    requires_module, name='ftp downloading capability',
+    call='if int(os.environ.get("MNE_SKIP_FTP_TESTS", 0)):\n'
          '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime',
                           call='import nitime')
@@ -1176,6 +1180,8 @@ known_config_types = (
     'MNE_FORCE_SERIAL',
     'MNE_LOGGING_LEVEL',
     'MNE_MEMMAP_MIN_SIZE',
+    'MNE_SKIP_FTP_TESTS',
+    'MNE_SKIP_NETWORK_TESTS',
     'MNE_SKIP_TESTING_DATASET_TESTS',
     'MNE_STIM_CHANNEL',
     'MNE_USE_CUDA',
@@ -1892,7 +1898,7 @@ def md5sum(fname, block_size=1048576):  # 2 ** 20
     Returns
     -------
     hash_ : str
-        The hexidecimal digest of the hash.
+        The hexadecimal digest of the hash.
     """
     md5 = hashlib.md5()
     with open(fname, 'rb') as fid:

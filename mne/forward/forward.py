@@ -25,15 +25,15 @@ from ..io.tree import dir_tree_find
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
-from ..io.meas_info import read_bad_channels
+from ..io.meas_info import read_bad_channels, write_info
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_ch_info, write_name_list,
                         write_string, start_file, end_file, write_id)
 from ..io.base import _BaseRaw
-from ..evoked import Evoked, write_evokeds, EvokedArray
-from ..epochs import Epochs, _BaseEpochs
+from ..evoked import Evoked, EvokedArray
+from ..epochs import _BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi,
                             _write_source_spaces_to_fid)
@@ -41,7 +41,8 @@ from ..source_estimate import VolSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
-                     run_subprocess, check_fname, logger, verbose)
+                     run_subprocess, check_fname, logger, verbose,
+                     deprecated)
 from ..label import Label
 
 
@@ -280,7 +281,7 @@ def _read_forward_meas_info(tree, fid):
 
     Returns
     -------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     """
     # This function assumes fid is being used as a context manager
@@ -317,6 +318,7 @@ def _read_forward_meas_info(tree, fid):
             tag = read_tag(fid, pos)
             chs.append(tag.data)
     info['chs'] = chs
+    info._update_redundant()
 
     #   Get the MRI <-> head coordinate transformation
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
@@ -862,7 +864,7 @@ def write_forward_meas_info(fid, info):
     ----------
     fid : file id
         The file id
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     """
     info._check_consistency()
@@ -1131,7 +1133,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info to generate the evoked.
     start : int, optional
         Index of first time sample (index not time is seconds).
@@ -1191,7 +1193,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : Instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     start : int, optional
         Index of first time sample (index not time is seconds).
@@ -1359,6 +1361,8 @@ def restrict_forward_to_label(fwd, labels):
     return fwd_out
 
 
+@deprecated('do_forward_solution is deprecated and will be removed in 0.13, '
+            'use make_forward_solution instead')
 @verbose
 def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
                         mindist=None, bem=None, mri=None, trans=None,
@@ -1366,6 +1370,85 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
                         mricoord=False, overwrite=False, subjects_dir=None,
                         verbose=None):
     """Calculate a forward solution for a subject using MNE-C routines
+
+    This function wraps to mne_do_forward_solution, so the mne
+    command-line tools must be installed and accessible from Python.
+
+    Parameters
+    ----------
+    subject : str
+        Name of the subject.
+    meas : Raw | Epochs | Evoked | str
+        If Raw or Epochs, a temporary evoked file will be created and
+        saved to a temporary directory. If str, then it should be a
+        filename to a file with measurement information the mne
+        command-line tools can understand (i.e., raw or evoked).
+    fname : str | None
+        Destination forward solution filename. If None, the solution
+        will be created in a temporary directory, loaded, and deleted.
+    src : str | None
+        Source space name. If None, the MNE default is used.
+    spacing : str
+        The spacing to use. Can be ``'#'`` for spacing in mm, ``'ico#'`` for a
+        recursively subdivided icosahedron, or ``'oct#'`` for a recursively
+        subdivided octahedron (e.g., ``spacing='ico4'``). Default is 7 mm.
+    mindist : float | str | None
+        Minimum distance of sources from inner skull surface (in mm).
+        If None, the MNE default value is used. If string, 'all'
+        indicates to include all points.
+    bem : str | None
+        Name of the BEM to use (e.g., "sample-5120-5120-5120"). If None
+        (Default), the MNE default will be used.
+    mri : str | None
+        The name of the trans file in FIF format.
+        If None, trans must not be None.
+    trans : dict | str | None
+        File name of the trans file in text format.
+        If None, mri must not be None.
+    eeg : bool
+        If True (Default), include EEG computations.
+    meg : bool
+        If True (Default), include MEG computations.
+    fixed : bool
+        If True, make a fixed-orientation forward solution (Default:
+        False). Note that fixed-orientation inverses can still be
+        created from free-orientation forward solutions.
+    grad : bool
+        If True, compute the gradient of the field with respect to the
+        dipole coordinates as well (Default: False).
+    mricoord : bool
+        If True, calculate in MRI coordinates (Default: False).
+    overwrite : bool
+        If True, the destination file (if it exists) will be overwritten.
+        If False (default), an error will be raised if the file exists.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    forward.make_forward_solution
+
+    Returns
+    -------
+    fwd : dict
+        The generated forward solution.
+    """
+    return _do_forward_solution(subject, meas, fname, src, spacing,
+                                mindist, bem, mri, trans, eeg, meg, fixed,
+                                grad, mricoord, overwrite, subjects_dir,
+                                verbose)
+
+
+def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
+                         mindist=None, bem=None, mri=None, trans=None,
+                         eeg=True, meg=True, fixed=False, grad=False,
+                         mricoord=False, overwrite=False, subjects_dir=None,
+                         verbose=None):
+    """Calculate a forward solution for a subject using MNE-C routines
+
+    This is kept around for testing purposes.
 
     This function wraps to mne_do_forward_solution, so the mne
     command-line tools must be installed and accessible from Python.
@@ -1444,24 +1527,15 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         raise ValueError('subject must be a string')
 
     # check for meas to exist as string, or try to make evoked
-    meas_data = None
     if isinstance(meas, string_types):
         if not op.isfile(meas):
             raise IOError('measurement file "%s" could not be found' % meas)
-    elif isinstance(meas, _BaseRaw):
-        events = np.array([[0, 0, 1]], dtype=np.int)
-        end = 1. / meas.info['sfreq']
-        meas_data = Epochs(meas, events, 1, 0, end, proj=False).average()
-    elif isinstance(meas, _BaseEpochs):
-        meas_data = meas.average()
-    elif isinstance(meas, Evoked):
-        meas_data = meas
+    elif isinstance(meas, (_BaseRaw, _BaseEpochs, Evoked)):
+        meas_file = op.join(temp_dir, 'info.fif')
+        write_info(meas_file, meas.info)
+        meas = meas_file
     else:
         raise ValueError('meas must be string, Raw, Epochs, or Evoked')
-
-    if meas_data is not None:
-        meas = op.join(temp_dir, 'evoked.fif')
-        write_evokeds(meas, meas_data)
 
     # deal with trans/mri
     if mri is not None and trans is not None:

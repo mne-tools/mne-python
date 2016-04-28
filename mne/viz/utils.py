@@ -333,7 +333,10 @@ def _prepare_trellis(n_cells, max_col):
     fig, axes = plt.subplots(nrow, ncol, figsize=(7.4, 1.5 * nrow + 1))
     axes = [axes] if ncol == nrow == 1 else axes.flatten()
     for ax in axes[n_cells:]:  # hide unused axes
-        ax.set_visible(False)
+        # XXX: Previously done by ax.set_visible(False), but because of mpl
+        # bug, we just hide the frame.
+        from .topomap import _hide_frame
+        _hide_frame(ax)
     return fig, axes
 
 
@@ -568,21 +571,13 @@ def _plot_raw_onkey(event, params):
         params['plot_fun']()
     elif event.key == 'pageup':
         n_channels = params['n_channels'] + 1
-        offset = params['ax'].get_ylim()[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        params['ax'].set_yticks(params['offsets'])
-        params['vsel_patch'].set_height(n_channels)
+        _setup_browser_offsets(params, n_channels)
         _channels_changed(params, len(params['info']['ch_names']))
     elif event.key == 'pagedown':
         n_channels = params['n_channels'] - 1
         if n_channels == 0:
             return
-        offset = params['ax'].get_ylim()[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        params['ax'].set_yticks(params['offsets'])
-        params['vsel_patch'].set_height(n_channels)
+        _setup_browser_offsets(params, n_channels)
         if len(params['lines']) > n_channels:  # remove line from view
             params['lines'][n_channels].set_xdata([])
             params['lines'][n_channels].set_ydata([])
@@ -705,6 +700,17 @@ def _onclick_help(event, params):
         fig_help.show(warn=False)
     except Exception:
         pass
+
+
+def _setup_browser_offsets(params, n_channels):
+    """Aux function for computing viewport height and adjusting offsets."""
+    ylim = [n_channels * 2 + 1, 0]
+    offset = ylim[0] / n_channels
+    params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+    params['n_channels'] = n_channels
+    params['ax'].set_yticks(params['offsets'])
+    params['ax'].set_ylim(ylim)
+    params['vsel_patch'].set_height(n_channels)
 
 
 class ClickableImage(object):

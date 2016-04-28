@@ -39,9 +39,10 @@ Classes
    BiHemiLabel
    Transform
    Report
-   io.Info
-   io.Projection
+   Info
+   Projection
    preprocessing.ICA
+   preprocessing.Xdawn
    decoding.CSP
    decoding.Scaler
    decoding.EpochsVectorizer
@@ -307,6 +308,7 @@ Functions:
 
    circular_layout
    mne_analyze_colormap
+   plot_bem
    plot_connectivity_circle
    plot_cov
    plot_dipole_amplitudes
@@ -541,6 +543,7 @@ Sensor Space Data
    pick_channels_regexp
    pick_types
    pick_types_forward
+   pick_info
    read_epochs
    read_reject_parameters
    read_selection
@@ -614,7 +617,6 @@ Functions:
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
-   do_forward_solution
    make_bem_model
    make_bem_solution
    make_forward_dipole
@@ -884,6 +886,8 @@ Statistics
    linear_regression
    linear_regression_raw
    f_mway_rm
+   f_threshold_mway_rm
+   summarize_clusters_stc
 
 Functions to compute connectivity (adjacency) matrices for cluster-level statistics
 

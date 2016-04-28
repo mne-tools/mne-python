@@ -1,5 +1,4 @@
 
-
 .. _ch_matlab:
 
 ==============
@@ -1171,12 +1170,12 @@ The documented structures are:
     |                     |             | source orientations).                                    |
     +---------------------+-------------+----------------------------------------------------------+
     | sing                | double      | The singular values, *i.e.*, the diagonal values of      |
-    |                     | (nchan)     | :math:`\Lambda`, see :ref:`CHDBEHBC`.                    |
+    |                     | (nchan)     | :math:`\Lambda`, see :ref:`mne_solution`.                |
     +---------------------+-------------+----------------------------------------------------------+
-    | eigen_leads         | double      | The matrix :math:`V`, see :ref:`CHDBEHBC`.               |
+    | eigen_leads         | double      | The matrix :math:`V`, see :ref:`mne_solution`.           |
     |                     | (:,nchan)   |                                                          |
     +---------------------+-------------+----------------------------------------------------------+
-    | eigen_fields        | double      | The matrix :math:`U^T`, see :ref:`CHDBEHBC`.             |
+    | eigen_fields        | double      | The matrix :math:`U^T`, see :ref:`mne_solution`.         |
     |                     | (nchan,     |                                                          |
     |                     | nchan)      |                                                          |
     +---------------------+-------------+----------------------------------------------------------+
@@ -1201,8 +1200,8 @@ The documented structures are:
     |                     |             | factors. Dimension is either nsource (fixed source       |
     |                     |             | orientations) or 3*nsource (all source orientations).    |
     +---------------------+-------------+----------------------------------------------------------+
-    | reginv              | double      | The diagonal matrix :math:`\Gamma`, see :ref:`CHDBEHBC`. |
-    |                     | (nchan)     |                                                          |
+    | reginv              | double      | The diagonal matrix :math:`\Gamma`, see                  |
+    |                     | (nchan)     | :ref:`mne_solution`.                                     |
     +---------------------+-------------+----------------------------------------------------------+
     | noisenorm           | double(:)   | A sparse matrix containing the noise normalization       |
     |                     |             | factors. Dimension is either nsource (fixed source       |

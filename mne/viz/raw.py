@@ -13,7 +13,8 @@ from functools import partial
 import numpy as np
 
 from ..externals.six import string_types
-from ..io.pick import pick_types, _pick_data_channels, pick_info
+from ..io.pick import (pick_types, _pick_data_channels, pick_info,
+                       _PICK_TYPES_KEYS)
 from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
@@ -21,8 +22,10 @@ from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar,
                     _plot_raw_onscroll, _mouse_click, plt_show,
-                    _helper_raw_resize, _select_bads, _onclick_help)
+                    _helper_raw_resize, _select_bads, _onclick_help,
+                    _setup_browser_offsets)
 from ..defaults import _handle_default
+from ..annotations import _onset_to_seconds
 
 
 def _plot_update_raw_proj(params, bools):
@@ -59,7 +62,8 @@ def _update_raw_data(params):
         data[di] /= params['scalings'][params['types'][di]]
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
-            data[di] = np.minimum(data[di], 1.0)
+            norm = float(max(data[di]))
+            data[di] /= norm if norm > 0 else 1.
     # clip
     if params['clipping'] == 'transparent':
         data[np.logical_or(data > 1, data < -1)] = np.nan
@@ -235,12 +239,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-    for t in ['eeg', 'seeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
-              'misc', 'chpi', 'syst', 'ias', 'exci', 'bio']:
-        pick_kwargs[t] = True
-        inds += [pick_types(raw.info, **pick_kwargs)]
-        types += [t] * len(inds[-1])
-        pick_kwargs[t] = False
+    for key in _PICK_TYPES_KEYS:
+        if key != 'meg':
+            pick_kwargs[key] = True
+            inds += [pick_types(raw.info, **pick_kwargs)]
+            types += [key] * len(inds[-1])
+            pick_kwargs[key] = False
     inds = np.concatenate(inds).astype(int)
     if not len(inds) == len(info['ch_names']):
         raise RuntimeError('Some channels not classified, please report '
@@ -297,7 +301,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if raw.annotations is not None:
         segments = list()
         segment_colors = dict()
-        meas_date = info['meas_date']
         # sort the segments by start time
         order = raw.annotations.onset.argsort(axis=0)
         descriptions = raw.annotations.description[order]
@@ -309,19 +312,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             else:
                 segment_colors[key] = plt.cm.summer(color_vals[idx])
         params['segment_colors'] = segment_colors
-        if not np.isscalar(meas_date):
-            meas_date = meas_date[0]
         for idx, onset in enumerate(raw.annotations.onset[order]):
-            if raw.annotations.orig_time is None:
-                if np.isscalar(info['meas_date']):
-                    orig_time = raw.info['meas_date']
-                else:
-                    orig_time = (raw.info['meas_date'][0] +
-                                 raw.info['meas_date'][1] / 1000000.)
-            else:
-                orig_time = raw.annotations.orig_time
-            annot_start = (orig_time - meas_date + onset -
-                           raw.first_samp / info['sfreq'])
+            annot_start = _onset_to_seconds(raw, onset)
             annot_end = annot_start + raw.annotations.duration[order][idx]
             segments.append([annot_start, annot_end])
             ylim = params['ax_hscroll'].get_ylim()
@@ -601,22 +593,16 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax_vscroll.set_title('Ch.')
 
     # make shells for plotting traces
-    ylim = [n_channels * 2 + 1, 0]
-    offset = ylim[0] / n_channels
-    offsets = np.arange(n_channels) * offset + (offset / 2.)
-    ax.set_yticks(offsets)
-    ax.set_ylim(ylim)
+    _setup_browser_offsets(params, n_channels)
     ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
                 False)
 
-    params['offsets'] = offsets
-    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5,
-                               zorder=1)[0]
+    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     vertline_color = (0., 0.75, 0.)
-    params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
-                                    zorder=0)[0]
+    params['ax_vertline'] = ax.plot([0, 0], ax.get_ylim(),
+                                    color=vertline_color, zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
     params['vertline_t'] = ax_hscroll.text(0, 1, '', color=vertline_color,
                                            va='bottom', ha='right')
@@ -702,6 +688,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
     if 'segments' in params:
         while len(params['ax'].collections) > 0:
             params['ax'].collections.pop(0)
+            params['ax'].texts.pop(0)
         segments = params['segments']
         times = params['times']
         ylim = params['ax'].get_ylim()
@@ -716,6 +703,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
             segment_color = params['segment_colors'][dscr]
             params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
                                        alpha=0.3)
+            params['ax'].text((start + end) / 2., ylim[0], dscr, ha='center')
 
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
@@ -730,7 +718,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
         params['fig_proj'].canvas.draw()
 
 
-def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
+def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
                       show=True, block=False, n_jobs=1, verbose=None):

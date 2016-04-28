@@ -162,7 +162,7 @@ How should I regularize the covariance matrix?
 The estimated covariance can be numerically
 unstable and tends to induce correlations between estimated source amplitudes
 and the number of samples available. The MNE manual therefore suggests to regularize the noise covariance matrix (see
-:ref:`CBBHEGAB`), especially if only few samples are available. Unfortunately
+:ref:`cov_regularization`), especially if only few samples are available. Unfortunately
 it is not easy to tell the effective number of samples, hence, to chose the appropriate regularization.
 In MNE-Python, regularization is done using advanced regularization methods
 described in [1]_. For this the 'auto' option can be used. With this
@@ -234,13 +234,3 @@ For data sizes in between, we advise testing to determine which is best,
 although some developers choose to always use
 :func:`mne.SourceEstimate.morph_precomputed` since it will rarely take
 a long time.
-
-References
-==========
-
-.. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-    covariance estimation and spatial whitening of MEG and EEG signals,
-    vol. 108, 328-342, NeuroImage.
-
-.. [2] Taulu, S., Simola, J., Kajola, M., 2005. Applications of the signal
-   space separation method. IEEE Trans. Signal Proc. 53, 3359–3372.

@@ -22,7 +22,7 @@ from .infomax_ import infomax
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
 from ..io.pick import (pick_types, pick_channels, pick_info,
-                       _pick_data_channels)
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
 from ..io.write import (write_double_matrix, write_string,
                         write_name_list, write_int, start_block,
                         end_block)
@@ -38,7 +38,7 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..viz.utils import (_prepare_trellis, tight_layout, plt_show,
                          _setup_vmin_vmax)
 from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
-                           plot_topomap)
+                           plot_topomap, _hide_frame)
 
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
@@ -182,7 +182,7 @@ class ICA(ContainsMixin):
         .exclude attribute. When saving the ICA also the indices are restored.
         Hence, artifact components once identified don't have to be added
         again. To dump this 'artifact memory' say: ica.exclude = []
-    info : None | instance of mne.io.meas_info.Info
+    info : None | instance of Info
         The measurement info copied from the object fitted.
     `n_samples_` : int
         the number of samples used on fit.
@@ -263,7 +263,7 @@ class ICA(ContainsMixin):
               hasattr(self, 'n_components_') else
               'no dimension reduction')
         if self.info is not None:
-            ch_fit = ['"%s"' % c for c in ['mag', 'grad', 'eeg'] if c in self]
+            ch_fit = ['"%s"' % c for c in _DATA_CH_TYPES_SPLIT if c in self]
             s += ', channels used: {0}'.format('; '.join(ch_fit))
         if self.exclude:
             s += ', %i sources marked for exclusion' % len(self.exclude)
@@ -298,21 +298,21 @@ class ICA(ContainsMixin):
             within ``start`` and ``stop`` are used.
         reject : dict | None
             Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg'.
             If reject is None then no rejection is done. Example::
 
                 reject = dict(grad=4000e-13, # T / m (gradiometers)
                               mag=4e-12, # T (magnetometers)
-                              eeg=40e-6, # uV (EEG channels)
-                              eog=250e-6 # uV (EOG channels)
+                              eeg=40e-6, # V (EEG channels)
+                              eog=250e-6 # V (EOG channels)
                               )
 
             It only applies if `inst` is of type Raw.
         flat : dict | None
             Rejection parameters based on flatness of signal.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-            are floats that set the minimum acceptable peak-to-peak amplitude.
-            If flat is None then no rejection is done.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg'.
+            Values are floats that set the minimum acceptable peak-to-peak
+            amplitude. If flat is None then no rejection is done.
             It only applies if `inst` is of type Raw.
         tstep : float
             Length of data chunks for artifact rejection in seconds.
@@ -386,8 +386,7 @@ class ICA(ContainsMixin):
 
         self.n_samples_ = data.shape[1]
         # this may operate inplace or make a copy
-        data, self._pre_whitener = self._pre_whiten(data,
-                                                    raw.info, picks)
+        data, self._pre_whitener = self._pre_whiten(data, raw.info, picks)
 
         self._fit(data, self.max_pca_components, 'raw')
 
@@ -441,12 +440,16 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = pick_info(info, picks)
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in ['mag', 'grad', 'eeg']:
+            for ch_type in _DATA_CH_TYPES_SPLIT:
                 if _contains_ch_type(info, ch_type):
-                    if ch_type == 'eeg':
+                    if ch_type == 'seeg':
+                        this_picks = pick_types(info, meg=False, seeg=True)
+                    elif ch_type == 'ecog':
+                        this_picks = pick_types(info, meg=False, ecog=True)
+                    elif ch_type == 'eeg':
                         this_picks = pick_types(info, meg=False, eeg=True)
                     else:
-                        this_picks = pick_types(info, meg=ch_type, eeg=False)
+                        this_picks = pick_types(info, meg=ch_type)
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
         elif not has_pre_whitener and self.noise_cov is not None:
@@ -750,6 +753,8 @@ class ICA(ContainsMixin):
                         add_channels]
         info['bads'] = [ch_names[k] for k in self.exclude]
         info['projs'] = []  # make sure projections are removed.
+        info._update_redundant()
+        info._check_consistency()
 
     @verbose
     def score_sources(self, inst, target=None, score_func='pearsonr',
@@ -1075,10 +1080,10 @@ class ICA(ContainsMixin):
         inst : instance of Raw, Epochs or Evoked
             The data to be processed.
         include : array_like of int.
-            The indices refering to columns in the ummixing matrix. The
+            The indices referring to columns in the ummixing matrix. The
             components to be kept.
         exclude : array_like of int.
-            The indices refering to columns in the ummixing matrix. The
+            The indices referring to columns in the ummixing matrix. The
             components to be zeroed out.
         n_pca_components : int | float | None
             The number of PCA components to be kept, either absolute (int)
@@ -2311,9 +2316,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
                      res=64, axis=ax, cmap=cmap, outlines=outlines,
                      image_mask=None, contours=contours, show=False,
                      image_interp='bilinear')[0]
-        ax.set_yticks([])
-        ax.set_xticks([])
-        ax.set_frame_on(False)
+        _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.8)
     fig.canvas.draw()

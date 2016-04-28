@@ -33,7 +33,7 @@ KIT.UNIT_MUL = 0  # default is 0 mne_manual p.273
 
 # gain: 0:x1, 1:x2, 2:x5, 3:x10, 4:x20, 5:x50, 6:x100, 7:x200
 KIT.GAINS = [1, 2, 5, 10, 20, 50, 100, 200]
-# BEF options: 0:THRU, 1:50Hz, 2:60Hz, 3:50Hz
+# BEF options: 0:THROUGH, 1:50Hz, 2:60Hz, 3:50Hz
 KIT.BEFS = [0, 50, 60, 50]
 
 # coreg constants

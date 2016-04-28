@@ -42,7 +42,7 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import find_events, concatenate_events
-from ..annotations import _combine_annotations
+from ..annotations import _combine_annotations, _onset_to_seconds
 
 
 class ToDataFrameMixin(object):
@@ -214,7 +214,7 @@ class TimeMixin(object):
             List of numbers or a number representing points in time.
         use_rounding : boolean
             If True, use rounding (instead of truncation) when converting
-            times to indicies. This can help avoid non-unique indices.
+            times to indices. This can help avoid non-unique indices.
 
         Returns
         -------
@@ -440,6 +440,46 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The compensation + projection + cals matrix, if applicable.
         """
         raise NotImplementedError
+
+    def _check_bad_segment(self, start, stop, picks,
+                           reject_by_annotation=False):
+        """Function for checking if data segment is bad.
+
+        If the slice is good, returns the data in desired range.
+        If rejected based on annotation, returns description of the
+        bad segment as a string.
+
+        Parameters
+        ----------
+        start : int
+            First sample of the slice.
+        stop : int
+            End of the slice.
+        picks : array of int
+            Channel picks.
+        reject_by_annotation : bool
+            Whether to perform rejection based on annotations.
+            False by default.
+
+        Returns
+        -------
+        data : array | str
+            Data in the desired range (good segment) or description of the bad
+            segment.
+        """
+        if start < 0:
+            return None
+        if reject_by_annotation and self.annotations is not None:
+            annot = self.annotations
+            sfreq = self.info['sfreq']
+            onset = _onset_to_seconds(self, annot.onset)
+            overlaps = np.where(onset < stop / sfreq)
+            overlaps = np.where(onset[overlaps] + annot.duration[overlaps] >
+                                start / sfreq)
+            for descr in annot.description[overlaps]:
+                if descr.lower().startswith('bad'):
+                    return descr
+        return self[picks, start:stop][0]
 
     @verbose
     def load_data(self, verbose=None):
@@ -1575,7 +1615,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             as relative to the recording onset. Default is False.
         use_rounding : boolean
             If True, use rounding (instead of truncation) when converting
-            times to indicies. This can help avoid non-unique indices.
+            times to indices. This can help avoid non-unique indices.
 
         Returns
         -------
@@ -1770,10 +1810,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             None, preload=True or False is inferred using the preload status
             of the raw files passed in.
         """
-        from .fiff.raw import Raw
-        from .kit.kit import RawKIT
-        from .edf.edf import RawEDF
-
         if not isinstance(raws, list):
             raws = [raws]
 
@@ -1790,9 +1826,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 preload = False
 
-        if not preload and not isinstance(self, (Raw, RawKIT, RawEDF)):
-            raise RuntimeError('preload must be True to concatenate '
-                               'files unless they are FIF, KIT, or EDF')
         if preload is False:
             if self.preload:
                 self._data = None
@@ -2306,8 +2339,8 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False):
 
             # raise error if positions are missing
             if missing_positions:
-                err = ("The following positions are missing from the montage "
-                       "definitions: %s. If those channels lack positions "
-                       "because they are EOG channels use the eog parameter."
-                       % str(missing_positions))
-                raise KeyError(err)
+                raise KeyError(
+                    "The following positions are missing from the montage "
+                    "definitions: %s. If those channels lack positions "
+                    "because they are EOG channels use the eog parameter."
+                    % str(missing_positions))

@@ -94,6 +94,10 @@ def test_make_sphere_model():
     info = read_info(fname_raw)
     assert_raises(ValueError, make_sphere_model, 'foo', 'auto', info)
     assert_raises(ValueError, make_sphere_model, 'auto', 'auto', None)
+    assert_raises(ValueError, make_sphere_model, 'auto', 'auto', info,
+                  relative_radii=(), sigmas=())
+    assert_raises(ValueError, make_sphere_model, 'auto', 'auto', info,
+                  relative_radii=(1,))  # wrong number of radii
     # here we just make sure it works -- the functionality is actually
     # tested more extensively e.g. in the forward and dipole code
     bem = make_sphere_model('auto', 'auto', info)

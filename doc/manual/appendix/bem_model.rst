@@ -15,7 +15,7 @@ Creating the BEM meshes
 Using the watershed algorithm
 #############################
 
-The watershed algorithm\egonne *et al.*,
+The watershed algorithm [Segonne *et al.*,
 2004] is part of the FreeSurfer software.
 The name of the program is mri_watershed .
 Its use in the MNE environment is facilitated by the script `mne_watershed_bem`.
@@ -59,7 +59,7 @@ that they are collected at the same time with the MPRAGEs or at
 least with the same scanner. For easy co-registration, the images
 should have FOV, matrix, slice thickness, gap, and slice orientation
 as the MPRAGE data. For information on suitable pulse sequences,
-see reference\. Fischl *et al.* and J. Jovicich *et
+see reference [B. Fischl *et al.* and J. Jovicich *et
 al.*, 2006] in :ref:`CEGEGDEI`. At the Martinos
 Center, use of the 1.5-T Avanto scanner (Bay 2) is recommended for
 best results.

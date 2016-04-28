@@ -259,7 +259,7 @@ Creating a surface-based source space
 The fif format source space files containing the dipole locations
 and orientations are created with the utility :ref:`mne_make_source_space`.
 This utility is usually invoked by the convenience script :ref:`mne_setup_source_space`,
-see :ref:`CIHCHDAE`.
+see :ref:`setting_up_source_space`.
 
 
 .. _BJEFEHJI:

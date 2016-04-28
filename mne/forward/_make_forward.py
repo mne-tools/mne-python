@@ -220,8 +220,9 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
         raise TypeError('bem must be a string or ConductorModel')
     if bem['is_sphere']:
         logger.info('Using the sphere model.\n')
-        if len(bem['layers']) == 0:
-            raise RuntimeError('Spherical model has zero layers')
+        if len(bem['layers']) == 0 and neeg > 0:
+            raise RuntimeError('Spherical model has zero shells, cannot use '
+                               'with EEG data')
         if bem['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError('Spherical model is not in head coordinates')
     else:
@@ -274,7 +275,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         Information for each prepped MEG coil
     megnames : list of str
         Name of each prepped MEG coil
-    meginfo : Info
+    meginfo : instance of Info
         Information subselected for just the set of MEG coils
     """
 
@@ -431,6 +432,8 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                 dev_head_t=info['dev_head_t'], mri_file=trans, mri_id=mri_id,
                 meas_file=info_extra, meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'], mri_head_t=mri_head_t)
+    info._update_redundant()
+    info._check_consistency()
     logger.info('')
 
     megcoils, compcoils, megnames, meg_info = [], [], [], []
@@ -489,7 +492,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info | str
+    info : instance of mne.Info | str
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
@@ -532,16 +535,12 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     fwd : instance of Forward
         The forward solution.
 
-    See Also
-    --------
-    do_forward_solution
-
     Notes
     -----
     Some of the forward solution calculation options from the C code
     (e.g., `--grad`, `--fixed`) are not implemented here. For those,
-    consider using the C command line tools or the Python wrapper
-    `do_forward_solution`.
+    consider using the C command line tools, or request that they
+    be added to the MNE-Python.
     """
     # Currently not (sup)ported:
     # 1. --grad option (gradients of the field, not used much)

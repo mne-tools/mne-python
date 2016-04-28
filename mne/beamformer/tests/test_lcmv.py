@@ -172,7 +172,7 @@ def test_lcmv():
                         reg=0.01, return_generator=True)
     assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
     assert_true(len(epochs.events) == len(stcs))
 
     # average the single trial estimates
@@ -288,7 +288,7 @@ def test_tf_lcmv():
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                         baseline=None, preload=False,
                         reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
 
     freq_bins = [(4, 12), (15, 40)]
     time_windows = [(-0.1, 0.1), (0.0, 0.2)]

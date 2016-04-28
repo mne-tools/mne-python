@@ -297,7 +297,7 @@ def test_io():
     tfr3 = read_tfrs(fname, condition='test-A')
     assert_equal(tfr.comment, tfr3.comment)
 
-    assert_true(isinstance(tfr.info, io.meas_info.Info))
+    assert_true(isinstance(tfr.info, mne.Info))
 
     tfrs = read_tfrs(fname, condition=None)
     assert_equal(len(tfrs), 2)
