@@ -281,7 +281,7 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     """
     mode = 'same'
     # mode = "valid"
-    n_signals, n_times = X.shape
+    n_signals, n_times = X[:, ::decim].shape
     decim = int(decim)
 
     # Precompute wavelets for given frequency range to save time
