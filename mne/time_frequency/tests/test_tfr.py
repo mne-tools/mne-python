@@ -162,6 +162,12 @@ def test_time_frequency():
                                     decim=decim)
             assert_equal(power.data.shape[2],
                          np.ceil(float(len(times)) / decim))
+    freqs = range(50, 55)
+    decim = 2
+    _, n_chan, n_time = data.shape
+    tfr = cwt_morlet(data[0, :, :], sfreq=epochs.info['sfreq'],
+                     freqs=freqs, decim=decim)
+    assert_equal(tfr.shape, (n_chan, len(freqs), n_time // decim))
 
     # Test cwt modes
     Ws = morlet(512, [10, 20], n_cycles=2)
