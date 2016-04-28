@@ -33,7 +33,8 @@ _kind_dict = dict(
     eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
     mag=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3, FIFF.FIFF_UNIT_T),
     grad=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_PLANAR_T1, FIFF.FIFF_UNIT_T_M),
-    ref_meg=(FIFF.FIFFV_REF_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3, FIFF.FIFF_UNIT_T),
+    ref_meg=(FIFF.FIFFV_REF_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3,
+             FIFF.FIFF_UNIT_T),
     misc=(FIFF.FIFFV_MISC_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_NONE),
     stim=(FIFF.FIFFV_STIM_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     eog=(FIFF.FIFFV_EOG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
@@ -185,8 +186,6 @@ class Info(dict):
         non_empty = 0
         for k, v in self.items():
             if k in ['bads', 'ch_names']:
-                if not isinstance(v, list):
-                    v = list(v)
                 entr = (', '.join(b for ii, b in enumerate(v) if ii < 10)
                         if v else '0 items')
                 if len(entr) >= 56:
@@ -1371,7 +1370,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
     ch_types : list of str | str
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
-        'seeg', 'mag', 'eeg', 'ref_meg' or 'grad'.
+        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg' or 'grad'.
         If str, then all channels are assumed to be of the same type.
     montage : None | str | Montage | DigMontage | list
         A montage containing channel positions. If str or Montage is

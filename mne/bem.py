@@ -1003,6 +1003,9 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         Change the preflood height
     show : bool
         Show surfaces to visually inspect all three BEM surfaces (recommended).
+
+        .. versionadded:: 0.12
+
     verbose : bool, str or None
         If not None, override default verbose level
 
@@ -1011,6 +1014,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     .. versionadded:: 0.10
     """
     from .surface import read_surface
+    from .viz.misc import plot_bem
     env, mri_dir = _prepare_env(subject, subjects_dir,
                                 requires_freesurfer=True,
                                 requires_mne=True)[:2]
@@ -1079,7 +1083,8 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
         if skip_symlink:
             logger.info("Unable to create all symbolic links to .surf files "
-                        "in bem folder. Use --overwrite option to recreate them.")
+                        "in bem folder. Use --overwrite option to recreate "
+                        "them.")
             dest = op.join(bem_dir, 'watershed')
         else:
             logger.info("Symbolic links to .surf files created in bem folder")

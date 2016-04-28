@@ -562,7 +562,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
     if order is None:
-        order = ['eeg', 'seeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim',
+        order = ['eeg', 'seeg', 'ecog', 'eog', 'ecg', 'emg', 'ref_meg', 'stim',
                  'resp', 'misc', 'chpi', 'syst', 'ias', 'exci']
     for ch_type in order:
         pick_kwargs[ch_type] = True
@@ -943,7 +943,7 @@ def _handle_picks(epochs):
                            exclude=[])
     else:
         picks = pick_types(epochs.info, meg=True, eeg=True, eog=True, ecg=True,
-                           seeg=True, ref_meg=False, exclude=[])
+                           seeg=True, ecog=True, ref_meg=False, exclude=[])
     return picks
 
 
