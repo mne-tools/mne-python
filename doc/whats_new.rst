@@ -121,6 +121,8 @@ BUG
 
     - Fix bug in source normal adjustment that occurred when 1) patch information is available (e.g., when distances have been calculated) and 2) points are excluded from the source space (by inner skull distance) by `Eric Larson`_
 
+    - Change default scoring method of :func:`mne.decoding.GeneralizationAcrossTime` and :func:`mne.decoding.TimeDecoding` to estimate the scores within the cross-validation as in scikit-learn. The method can be changed with the ``score_mode`` parameter by `Jean-Remi King`_
+
     - Fix bug when merging info that has a field with list of dicts by `Jaakko Leppakangas`_
     
     - The BTI/4D reader now considers user defined channel labels instead of the hard-ware names, however only for channels other than MEG. By `Denis Engemann`_ and `Alex Gramfort`_.
@@ -161,6 +163,8 @@ API
     - Rename and deprecate :func:`mne.Epochs.drop_bad_epochs` to :func:`mne.Epochs.drop_bad`, and :func:`mne.Epochs.drop_epochs` to :func:`mne.Epochs.drop` by `Alex Gramfort`_.
 
     - The C wrapper :func:`mne.do_forward_solution` has been deprecated in favor of the native Python version :func:`mne.make_forward_solution` by `Eric Larson`_
+
+    - The ``event`` parameter of :func:`mne.epochs.EpochsArray` is set by defaults to chronological time-samples and event values of 1, by `Jean-Remi King`_
 
 .. _changes_0_11:
 
