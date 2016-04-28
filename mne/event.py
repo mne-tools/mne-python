@@ -729,7 +729,8 @@ def shift_time_events(events, ids, tshift, sfreq):
     return events
 
 
-def make_fixed_length_events(raw, id, start=0, stop=None, duration=1., first_samp=True):
+def make_fixed_length_events(raw, id, start=0, stop=None, duration=1., 
+                            first_samp=True):
     """Make a set of events separated by a fixed duration
 
     Parameters
@@ -747,9 +748,9 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1., first_sam
         The duration to separate events by.
     first_samp: bool
         If True (default), times will have raw.first_samp added to them, as
-        in :func:`mne.find_events`. This behavior is not desirable if the 
-        returned events will be combined with event times that already 
-        have ``raw.first_samp`` added to them, e.g. event times that come 
+        in :func:`mne.find_events`. This behavior is not desirable if the
+        returned events will be combined with event times that already
+        have ``raw.first_samp`` added to them, e.g. event times that come
         from :func:`mne.find_events`.
 
     Returns
@@ -761,10 +762,10 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1., first_sam
     if stop is not None:
         stop = raw.time_as_index(stop)
     else:
-        stop = [raw.last_samp + 1]    
+        stop = [raw.last_samp + 1]
     if first_samp:
         start = start[0] + raw.first_samp
-        stop = min([stop[0] + raw.first_samp, raw.last_samp + 1])  
+        stop = min([stop[0] + raw.first_samp, raw.last_samp + 1])
     else:
         stop = min([stop[0], len(raw.times)])
     if not isinstance(id, int):
@@ -775,7 +776,8 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1., first_sam
     ts = np.arange(start, stop + 1, raw.info['sfreq'] * duration).astype(int)
     n_events = len(ts)
     if n_events == 0:
-        raise ValueError('No events produced, check the values of start, stop, and duration') 
+        raise ValueError('No events produced, check the values of start, '
+                        'stop, and duration')
     events = np.c_[ts, np.zeros(n_events, dtype=int),
                    id * np.ones(n_events, dtype=int)]
     return events
