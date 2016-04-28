@@ -928,12 +928,35 @@ def _prep_label_split(label, subject=None, subjects_dir=None):
     return label, subject, subjects_dir
 
 
-def split_label_contig(label, subject=None, subjects_dir=None):
-    """Split label into contiguous regions
+def _assign_split_membership(label_divs, neighbors):
+    """Helper to assign membership of a list of nodes to label components"""
+
+    # Find overlap between new node neighbors and existing label divisions
+    membership = []
+    for di, div in enumerate(label_divs):
+        if len(neighbors.intersection(div)) > 0: membership.append(di)
+
+    # If node connects to an existing div, assign it to that div
+    if len(membership) > 0:
+        label_divs[membership[0]].update(neighbors)
+
+        # If node connects to 2+ divs, combine them all into one division
+        # (Could also do this once after all nodes memberships are compiled)
+        if membership > 1:
+            for mi in sorted(membership[1:], reverse=True):
+                label_divs[membership[0]].update(label_divs.pop(mi))
+
+    # If edge doesn't connect to existing div, create a new one
+    else:
+        label_divs.append(neighbors)
+
+
+def split_label_contig(label_to_split, subject=None, subjects_dir=None):
+    """Split label into contiguous regions (i.e., connected components)
 
     Parameters
     ----------
-    label : Label | str
+    label_to_split : Label | str
         Label which is to be split (Label object or path to a label file).
     subject : None | str
         Subject which this label belongs to (needed to locate surface file;
@@ -946,90 +969,65 @@ def split_label_contig(label, subject=None, subjects_dir=None):
     labels : list of Label
         The contiguous labels, in order of decending size.
     """
-    label, subject, subjects_dir = _prep_label_split(label, subject,
-                                                     subjects_dir)
+    # Convert to correct input if necessary
+    label_to_split, subject, subjects_dir = _prep_label_split(label_to_split,
+                                                              subject,
+                                                              subjects_dir)
 
-    # Find the spherical surface
-    surf_fname = '.'.join((label.hemi, 'sphere'))
-    surf_path = os.path.join(subjects_dir, subject, "surf", surf_fname)
+    # Find the spherical surface to get vertices and tris
+    surf_fname = '.'.join((label_to_split.hemi, 'sphere'))
+    surf_path = os.path.join(subjects_dir, subject, 'surf', surf_fname)
     surface_points, surface_tris = read_surface(surf_path)
 
     label_divs = []  # List of contiguous sets of dipoles/nodes
-    verts = set(label.vertices)
-    tris = np.array([[0, 1, 2], [3, 4, 5], [3, 0, 1], [6, 7, 8]])
+    verts = set(label_to_split.vertices)
     # Compute edges from `tris` and take upper triangle to avoid repeat edges
-    edges = triu(mesh_edges(tris), format='csr')
+    edges = sparse.triu(mesh_edges(surface_tris), format='csr')
 
-    #
-    # Throw out edges if both verts are not in the list of verts in the label
-    #
+    # Throw out edges if both verts don't belong to the label
     coo_edges = edges.tocoo()
     for (e_x, e_y) in zip(coo_edges.row, coo_edges.col):
         if len(verts.intersection(set([e_x, e_y]))) < 2:
             edges[e_x, e_y] = 0
-
     edges.eliminate_zeros()
 
-    #
     # Loop over each node, get its neighbors, and assign membership to all
-    #
     for vi in verts:
         # Make set of node and it's neighbors
         neighbor_set = set([vi] + list(edges.getrow(vi).indices))
-        print 'Assigning neighbor set: ' + str(neighbor_set)
-        assign_membership(label_divs, neighbor_set)
+        _assign_split_membership(label_divs, neighbor_set)
 
-    #
-    # Assign membership of nodes to label divisions
-    #
-
-    # Look for potential overlap with existing label divisions
-    membership = []
-    for di, div in enumerate(label_divs):
-        if len(neighbors.intersection(div)) > 0: membership.append(di)
-
-    # If node connects to an existing div, assign it to that div
-    if len(membership) > 0:
-        label_divs[membership[0]].update(neighbors)
-
-        # If node connects to 2+ divs, combine them all into one
-        # Could also do this once after all nodes memberships are compiled
-        if membership > 1:
-            for mi in sorted(membership[1:], reverse=True):
-                label_divs[membership[0]].update(label_divs.pop(mi))
-
-    # If edge doesn't connect to existing div, create a new one
-    else:
-        print 'Creating new blob with: ' + str(neighbors)
-        label_divs.append(neighbors)
-
-    #
-    # Create Label objects
-    #
+    # Construct label division names
     n_parts = len(label_divs)
-    if label.name.endswith(('lh', 'rh')):
-        basename = label.name[:-3]
-        name_ext = label.name[-3:]
+    if label_to_split.name.endswith(('lh', 'rh')):
+        basename = label_to_split.name[:-3]
+        name_ext = label_to_split.name[-3:]
     else:
-        basename = label.name
+        basename = label_to_split.name
         name_ext = ''
     name_pattern = "%s_div%%i%s" % (basename, name_ext)
     names = tuple(name_pattern % i for i in range(1, n_parts + 1))
 
-    # colors
-    if label.color is None:
+    # Colors
+    if label_to_split.color is None:
         colors = (None,) * n_parts
     else:
-        colors = _split_colors(label.color, n_parts)
+        colors = _split_colors(label_to_split.color, n_parts)
 
+    # Sort label divisions by their size (in vertices)
+    label_divs.sort(key=lambda x: len(x), reverse=True)
     labels = []
-    for idx, name, color in zip(range(n_parts), names, colors):
-        vert = label_divs[idx]
-        pos = label.pos[vert]
-        values = label.values[vert]
-        hemi = label.hemi
-        comment = label.comment
-        lbl = Label(vert, pos, values, hemi, comment, name, None, subject,
+    for div, name, color in zip(label_divs, names, colors):
+        # Get indices of dipoles within this division of the label
+        verts = np.array(sorted(list(div)))
+        vert_indices = in1d(label_to_split.vertices, verts, assume_unique=True)
+
+        # Set label attributes
+        pos = label_to_split.pos[vert_indices]
+        values = label_to_split.values[vert_indices]
+        hemi = label_to_split.hemi
+        comment = label_to_split.comment
+        lbl = Label(verts, pos, values, hemi, comment, name, None, subject,
                     color)
         labels.append(lbl)
 
