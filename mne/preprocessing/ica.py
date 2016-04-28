@@ -2313,7 +2313,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
         plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
-                     res=64, axis=ax, cmap=cmap, outlines=outlines,
+                     res=64, axes=ax, cmap=cmap, outlines=outlines,
                      image_mask=None, contours=contours, show=False,
                      image_interp='bilinear')[0]
         _hide_frame(ax)

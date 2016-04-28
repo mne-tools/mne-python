@@ -148,7 +148,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     fig.suptitle(title, fontsize=14)
 
     # plot average test statistic and mark significant sensors
-    image, _ = plot_topomap(f_map, pos, mask=mask, axis=ax_topo,
+    image, _ = plot_topomap(f_map, pos, mask=mask, axes=ax_topo,
                             cmap='Reds', vmin=np.min, vmax=np.max)
 
     # advanced matplotlib for showing image with figure and colorbar

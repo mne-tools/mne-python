@@ -233,7 +233,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
 
         if len(idx):
             plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
-                         sensors=sensors, res=res, axis=axes[proj_idx],
+                         sensors=sensors, res=res, axes=axes[proj_idx],
                          outlines=outlines, contours=contours,
                          image_interp=image_interp, show=False)
             if colorbar:
@@ -378,10 +378,10 @@ def _plot_sensors(pos_x, pos_y, sensors, ax):
 
 
 def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
-                 res=64, axis=None, names=None, show_names=False, mask=None,
+                 res=64, axes=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
                  contours=6, image_interp='bilinear', show=True,
-                 head_pos=None, onselect=None):
+                 head_pos=None, onselect=None, axis=None):
     """Plot a topographic map as image
 
     Parameters
@@ -411,8 +411,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         used (via .add_artist). Defaults to True.
     res : int
         The resolution of the topomap image (n pixels along each side).
-    axis : instance of Axis | None
-        The axis to plot to. If None, the current axis will be used.
+    axes : instance of Axes | None
+        The axes to plot to. If None, the current axes will be used.
     names : list | None
         List of channel names. If None, channel names are not plotted.
     show_names : bool | callable
@@ -441,7 +441,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         automated shrinking of the positions due to points outside the outline.
         Alternatively, a matplotlib patch object can be passed for advanced
         masking options, either directly or as a function that returns patches
-        (required for multi-axis plots). If None, nothing will be drawn.
+        (required for multi-axes plots). If None, nothing will be drawn.
         Defaults to 'head'.
     image_mask : ndarray of bool, shape (res, res) | None
         The image mask to cover the interpolated surface. If None, it will be
@@ -462,6 +462,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
+    axis : instance of Axes | None
+        Deprecated. Will be removed in 0.13. Use ``axes`` instead.
 
     Returns
     -------
@@ -538,7 +540,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
 
-    ax = axis if axis else plt.gca()
+    if axis is not None:
+        axes = axis
+        warn('axis parameter is deprecated and will be removed in 0.13. '
+             'Use axes instead.', DeprecationWarning)
+    ax = axes if axes else plt.gca()
     pos_x, pos_y = _prepare_topomap(pos, ax)
     if outlines is None:
         xmin, xmax = pos_x.min(), pos_x.max()
@@ -829,7 +835,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
-                          res=res, axis=ax, cmap=cmap, outlines=outlines,
+                          res=res, axes=ax, cmap=cmap, outlines=outlines,
                           image_mask=image_mask, contours=contours,
                           image_interp=image_interp, show=False)[0]
         if colorbar:
@@ -1015,7 +1021,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                                  layout=layout)
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
-                         axis=ax, cmap=cmap, image_interp='bilinear',
+                         axes=ax, cmap=cmap, image_interp='bilinear',
                          contours=False, names=names, show_names=show_names,
                          show=False, onselect=selection_callback)
 
@@ -1268,7 +1274,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                               sensors=sensors, res=res, names=names,
                               show_names=show_names, cmap=cmap,
                               mask=mask_[:, idx] if mask is not None else None,
-                              mask_params=mask_params, axis=axes[idx],
+                              mask_params=mask_params, axes=axes[idx],
                               outlines=outlines, image_mask=image_mask,
                               contours=contours, image_interp=image_interp,
                               show=False)
@@ -1325,7 +1331,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
 
     if title is not None:
         ax.set_title(title, fontsize=10)
-    im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axis=ax,
+    im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axes=ax,
                          cmap=cmap, image_interp='bilinear', contours=False,
                          show=False)
 

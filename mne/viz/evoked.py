@@ -103,7 +103,7 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
             title = ch_type
         data = np.average(data, axis=1)
         axarr[0][idx].set_title(title)
-        plot_topomap(data, pos, axis=axarr[0][idx], show=False)
+        plot_topomap(data, pos, axes=axarr[0][idx], show=False)
 
     fig.suptitle('Average over %.2fs - %.2fs' % (xmin, xmax), fontsize=15,
                  y=0.1)

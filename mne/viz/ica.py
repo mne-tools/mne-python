@@ -814,7 +814,7 @@ def _label_clicked(pos, params):
         for ii, data_ in zip(ic_idx, this_data):
             ax.set_title('IC #%03d ' % ii + ch_type, fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
-            plot_topomap(data_.flatten(), pos, axis=ax, show=False)
+            plot_topomap(data_.flatten(), pos, axes=ax, show=False)
             _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
