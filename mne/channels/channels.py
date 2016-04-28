@@ -16,7 +16,7 @@ from ..externals.six import string_types
 
 from ..utils import verbose, logger, warn
 from ..io.pick import (channel_type, pick_info, pick_types,
-                       _check_excludes_includes)
+                       _check_excludes_includes, _PICK_TYPES_KEYS)
 from ..io.constants import FIFF
 
 
@@ -69,10 +69,9 @@ def _contains_ch_type(info, ch_type):
         raise ValueError('`ch_type` is of class {actual_class}. It must be '
                          '`str`'.format(actual_class=type(ch_type)))
 
-    valid_channel_types = ['grad', 'mag', 'planar1', 'planar2', 'eeg', 'stim',
-                           'eog', 'emg', 'ecg', 'ref_meg', 'resp', 'exci',
-                           'ias', 'syst', 'seeg', 'misc', 'bio']
-
+    meg_extras = ['mag', 'grad', 'planar1', 'planar2']
+    valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
+                                  if key != 'meg'] + meg_extras)
     if ch_type not in valid_channel_types:
         raise ValueError('ch_type must be one of %s, not "%s"'
                          % (valid_channel_types, ch_type))
@@ -153,7 +152,7 @@ class ContainsMixin(object):
             has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
 
-
+# XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
 _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'eeg': FIFF.FIFFV_EEG_CH,
                'emg': FIFF.FIFFV_EMG_CH,
@@ -165,7 +164,8 @@ _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'seeg': FIFF.FIFFV_SEEG_CH,
                'stim': FIFF.FIFFV_STIM_CH,
                'syst': FIFF.FIFFV_SYST_CH,
-               'bio': FIFF.FIFFV_BIO_CH}
+               'bio': FIFF.FIFFV_BIO_CH,
+               'ecog': FIFF.FIFFV_ECOG_CH}
 _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'eeg': FIFF.FIFF_UNIT_V,
                'emg': FIFF.FIFF_UNIT_V,
@@ -177,7 +177,8 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'seeg': FIFF.FIFF_UNIT_V,
                'stim': FIFF.FIFF_UNIT_NONE,
                'syst': FIFF.FIFF_UNIT_NONE,
-               'bio': FIFF.FIFF_UNIT_V}
+               'bio': FIFF.FIFF_UNIT_V,
+               'ecog': FIFF.FIFF_UNIT_V}
 _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T: 'T',
                FIFF.FIFF_UNIT_T_M: 'T/m',
@@ -257,7 +258,7 @@ class SetChannelsMixin(object):
         """Define the sensor type of channels.
 
         Note: The following sensor types are accepted:
-            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst
+            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog
 
         Parameters
         ----------
@@ -296,7 +297,7 @@ class SetChannelsMixin(object):
                 warn("The unit for channel %s has changed from %s to %s."
                      % (ch_name, _unit2human[unit_old], _unit2human[unit_new]))
             self.info['chs'][c_ind]['unit'] = _human2unit[ch_type]
-            if ch_type in ['eeg', 'seeg']:
+            if ch_type in ['eeg', 'seeg', 'ecog']:
                 self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
             else:
                 self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_NONE
@@ -347,7 +348,7 @@ class SetChannelsMixin(object):
         kind : str
             Whether to plot the sensors as 3d or as topomap. Available options
             'topomap', '3d'. Defaults to 'topomap'.
-        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
+        ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | 'ecog' | None
             The channel type to plot. If None, then channels are chosen in the
             order given above.
         title : str | None
@@ -387,8 +388,8 @@ class UpdateChannelsMixin(object):
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
-                   seeg=False, bio=False, include=[], exclude='bads',
-                   selection=None, copy=False):
+                   seeg=False, bio=False, ecog=False, include=[],
+                   exclude='bads', selection=None, copy=False):
         """Pick some channels by type and names
 
         Parameters
@@ -428,6 +429,8 @@ class UpdateChannelsMixin(object):
             Stereotactic EEG channels.
         bio : bool
             Bio channels.
+        ecog : bool
+            Electrocorticography channels.
         include : list of string
             List of additional channels to include. If empty do not include
             any.
@@ -448,7 +451,7 @@ class UpdateChannelsMixin(object):
         idx = pick_types(
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
-            ias=ias, syst=syst, seeg=seeg, bio=bio, include=include,
+            ias=ias, syst=syst, seeg=seeg, bio=bio, ecog=ecog, include=include,
             exclude=exclude, selection=selection)
         inst._pick_drop_channels(idx)
         return inst

@@ -13,7 +13,8 @@ from functools import partial
 import numpy as np
 
 from ..externals.six import string_types
-from ..io.pick import pick_types, _pick_data_channels, pick_info
+from ..io.pick import (pick_types, _pick_data_channels, pick_info,
+                       _PICK_TYPES_KEYS)
 from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
@@ -238,12 +239,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-    for t in ['eeg', 'seeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
-              'misc', 'chpi', 'syst', 'ias', 'exci', 'bio']:
-        pick_kwargs[t] = True
-        inds += [pick_types(raw.info, **pick_kwargs)]
-        types += [t] * len(inds[-1])
-        pick_kwargs[t] = False
+    for key in _PICK_TYPES_KEYS:
+        if key != 'meg':
+            pick_kwargs[key] = True
+            inds += [pick_types(raw.info, **pick_kwargs)]
+            types += [key] * len(inds[-1])
+            pick_kwargs[key] = False
     inds = np.concatenate(inds).astype(int)
     if not len(inds) == len(info['ch_names']):
         raise RuntimeError('Some channels not classified, please report '

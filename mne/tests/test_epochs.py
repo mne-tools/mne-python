@@ -2043,16 +2043,19 @@ def test_add_channels():
     assert_raises(AssertionError, epoch_meg.add_channels, epoch_badsf)
 
 
-def test_seeg():
-    """Test the compatibility of the Epoch object with SEEG data."""
+def test_seeg_ecog():
+    """Test the compatibility of the Epoch object with SEEG and ECoG data."""
     n_epochs, n_channels, n_times, sfreq = 5, 10, 20, 1000.
     data = np.ones((n_epochs, n_channels, n_times))
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
-    info = create_info(n_channels, sfreq, 'seeg')
-    epochs = EpochsArray(data, info, events)
-    picks = pick_types(epochs.info, meg=False, eeg=False, stim=False,
-                       eog=False, ecg=False, seeg=True, emg=False, exclude=[])
-    assert_equal(len(picks), n_channels)
+    pick_dict = dict(meg=False, exclude=[])
+    for key in ('seeg', 'ecog'):
+        info = create_info(n_channels, sfreq, key)
+        epochs = EpochsArray(data, info, events)
+        pick_dict.update({key: True})
+        picks = pick_types(epochs.info, **pick_dict)
+        del pick_dict[key]
+        assert_equal(len(picks), n_channels)
 
 
 def test_default_values():

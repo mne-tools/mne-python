@@ -32,6 +32,7 @@ def test_csp():
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     picks = picks[2:9:3]  # subselect channels -> disable proj!
+    raw.add_proj([], remove_existing=True)
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True, proj=False)
     epochs_data = epochs.get_data()
