@@ -258,7 +258,7 @@ class FieldTripClient(object):
         # create epoch from data
         info = self.info
         if picks is not None:
-            info = pick_info(info, picks, copy=True)
+            info = pick_info(info, picks)
         epoch = EpochsArray(data[picks][np.newaxis], info, events)
 
         return epoch

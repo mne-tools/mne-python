@@ -44,7 +44,7 @@ raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 # but here we use raw.pick_types() to save memory.
 left_temporal_channels = mne.read_selection('Left-temporal')
 raw.pick_types(meg='mag', eeg=False, eog=False, stim=False, exclude='bads',
-               selection=left_temporal_channels, copy=False)
+               selection=left_temporal_channels)
 reject = dict(mag=4e-12)
 # Re-normalize our empty-room projectors, which should be fine after
 # subselection

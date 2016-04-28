@@ -98,7 +98,6 @@ def test_pick_seeg_ecog():
     types = 'mag mag eeg eeg seeg seeg ecog seeg ecog ecog'.split()
     info = create_info(names, 1024., types)
     idx = channel_indices_by_type(info)
-    print(idx)
     assert_array_equal(idx['mag'], [0, 1])
     assert_array_equal(idx['eeg'], [2, 3])
     assert_array_equal(idx['seeg'], [4, 5, 7])
@@ -110,7 +109,7 @@ def test_pick_seeg_ecog():
     events = np.array([[1, 0, 0], [2, 0, 0]])
     epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
-    e_seeg = evoked.pick_types(meg=False, seeg=True, copy=True)
+    e_seeg = evoked.copy().pick_types(meg=False, seeg=True)
     for l, r in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
         assert_equal(l, r)
     # Deal with constant debacle
@@ -185,9 +184,6 @@ def test_pick_forward_seeg_ecog():
     fwd_seeg = pick_types_forward(fwd, meg=False, seeg=True)
     assert_equal(fwd_seeg['sol']['row_names'], [seeg_name])
     assert_equal(fwd_seeg['info']['ch_names'], [seeg_name])
-    fwd_ecog = pick_types_forward(fwd, meg=False, ecog=True)
-    assert_equal(fwd_ecog['sol']['row_names'], [ecog_name])
-    assert_equal(fwd_ecog['info']['ch_names'], [ecog_name])
     # should work fine
     fwd_ = pick_types_forward(fwd, meg=True)
     _check_fwd_n_chan_consistent(fwd_, counts['meg'])

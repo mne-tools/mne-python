@@ -135,7 +135,7 @@ def test_plot_trans():
     plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
     # EEG only with strange options
     with warnings.catch_warnings(record=True) as w:
-        plot_trans(evoked.pick_types(meg=False, eeg=True, copy=True).info,
+        plot_trans(evoked.copy().pick_types(meg=False, eeg=True).info,
                    trans=trans_fname, meg_sensors=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
 

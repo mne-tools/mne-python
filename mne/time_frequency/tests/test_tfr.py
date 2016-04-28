@@ -350,14 +350,14 @@ def test_add_channels():
         1000., ['mag', 'mag', 'mag', 'eeg', 'eeg', 'stim'])
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
-    tfr_eeg = tfr.pick_types(meg=False, eeg=True, copy=True)
-    tfr_meg = tfr.pick_types(meg=True, copy=True)
-    tfr_stim = tfr.pick_types(meg=False, stim=True, copy=True)
-    tfr_eeg_meg = tfr.pick_types(meg=True, eeg=True, copy=True)
-    tfr_new = tfr_meg.add_channels([tfr_eeg, tfr_stim], copy=True)
+    tfr_eeg = tfr.copy().pick_types(meg=False, eeg=True)
+    tfr_meg = tfr.copy().pick_types(meg=True)
+    tfr_stim = tfr.copy().pick_types(meg=False, stim=True)
+    tfr_eeg_meg = tfr.copy().pick_types(meg=True, eeg=True)
+    tfr_new = tfr_meg.copy().add_channels([tfr_eeg, tfr_stim])
     assert_true(all(ch in tfr_new.ch_names
                     for ch in tfr_stim.ch_names + tfr_meg.ch_names))
-    tfr_new = tfr_meg.add_channels([tfr_eeg], copy=True)
+    tfr_new = tfr_meg.copy().add_channels([tfr_eeg])
 
     assert_true(ch in tfr_new.ch_names for ch in tfr.ch_names)
     assert_array_equal(tfr_new.data, tfr_eeg_meg.data)

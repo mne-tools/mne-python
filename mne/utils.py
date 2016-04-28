@@ -62,6 +62,24 @@ def nottest(f):
 ###############################################################################
 # RANDOM UTILITIES
 
+
+def _check_copy_dep(inst, copy, kind='inst', default=False):
+    """Check for copy deprecation for 0.13 and 0.14"""
+    # For methods with copy=False default, we only need one release cycle
+    # for deprecation (0.13). For copy=True, we first need to go to copy=False
+    # (one cycle; 0.13) then remove copy altogether (one cycle; 0.14).
+    if copy or (copy is None and default is True):
+        remove_version = '0.14' if default is True else '0.13'
+        warn('The copy parameter is deprecated and will be removed in %s. '
+             'In 0.13 the behavior will be to operate in-place '
+             '(like copy=False). In 0.12 the default is copy=%s. '
+             'Use %s.copy() if necessary.'
+             % (remove_version, default, kind), DeprecationWarning)
+    if copy is None:
+        copy = default
+    return inst.copy() if copy else inst
+
+
 def _get_call_line(in_verbose=False):
     """Helper to get the call line from within a function"""
     # XXX Eventually we could auto-triage whether in a `verbose` decorated
@@ -353,7 +371,7 @@ class _TempDir(str):
 
 
 def estimate_rank(data, tol='auto', return_singular=False,
-                  norm=True, copy=True):
+                  norm=True, copy=None):
     """Helper to estimate the rank of data
 
     This function will normalize the rows of the data (typically
@@ -377,8 +395,8 @@ def estimate_rank(data, tol='auto', return_singular=False,
         If True, data will be scaled by their estimated row-wise norm.
         Else data are assumed to be scaled. Defaults to True.
     copy : bool
-        If False, values in data will be modified in-place during
-        rank estimation (saves memory).
+        This parameter has been deprecated and will be removed in 0.13.
+        It is ignored in 0.12.
 
     Returns
     -------
@@ -388,8 +406,9 @@ def estimate_rank(data, tol='auto', return_singular=False,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    if copy is True:
-        data = data.copy()
+    if copy is not None:
+        warn('copy is deprecated and ignored. It will be removed in 0.13.')
+    data = data.copy()  # operate on a copy
     if norm is True:
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
@@ -2093,7 +2112,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
         bads = list(set((b for inst in all_inst for b in inst.info['bads'])))
         if bads:
             for inst in all_inst:
-                inst.drop_channels(bads, copy=False)
+                inst.drop_channels(bads)
 
     # make grand_average object using combine_[evoked/tfr]
     grand_average = combine(all_inst, weights='equal')

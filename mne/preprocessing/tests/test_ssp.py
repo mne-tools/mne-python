@@ -20,7 +20,7 @@ eog_times = np.array([0.5, 2.3, 3.6, 14.5])
 
 def test_compute_proj_ecg():
     """Test computation of ECG SSP projectors"""
-    raw = Raw(raw_fname).crop(0, 10, False)
+    raw = Raw(raw_fname).crop(0, 10, copy=False)
     raw.load_data()
     for average in [False, True]:
         # For speed, let's not filter here (must also not reject then)
@@ -61,7 +61,7 @@ def test_compute_proj_ecg():
 
 def test_compute_proj_eog():
     """Test computation of EOG SSP projectors"""
-    raw = Raw(raw_fname).crop(0, 10, False)
+    raw = Raw(raw_fname).crop(0, 10, copy=False)
     raw.load_data()
     for average in [False, True]:
         n_projs_init = len(raw.info['projs'])
@@ -100,7 +100,7 @@ def test_compute_proj_eog():
 
 def test_compute_proj_parallel():
     """Test computation of ExG projectors using parallelization"""
-    raw_0 = Raw(raw_fname).crop(0, 10, False)
+    raw_0 = Raw(raw_fname).crop(0, 10, copy=False)
     raw_0.load_data()
     raw = raw_0.copy()
     projs, _ = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,

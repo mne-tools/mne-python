@@ -281,7 +281,7 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1):
     there for an explanation of parameters and output."""
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
-    info = pick_info(raw.info, picks, copy=True)
+    info = pick_info(raw.info, picks)
     decim = int(decim)
     info["sfreq"] /= decim
     data, times = raw[:]

@@ -54,7 +54,7 @@ raw = io.read_raw_ctf(raw_fname % 1)  # Take first run
 # To save time and memory for this demo, we'll just use the first
 # 2.5 minutes (all we need to get 30 total events) and heavily
 # resample 480->60 Hz (usually you wouldn't do either of these!)
-raw.crop(0, 150., copy=False).load_data().resample(60, npad='auto')
+raw = raw.crop(0, 150.).load_data().resample(60, npad='auto')
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, None, method='iir', n_jobs=1)

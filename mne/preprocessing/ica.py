@@ -44,7 +44,7 @@ from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-                     _get_fast_dot, compute_corr)
+                     _get_fast_dot, compute_corr, _check_copy_dep)
 from ..fixes import _get_args
 from ..filter import band_pass_filter
 from .bads import find_outliers
@@ -668,7 +668,7 @@ class ICA(ContainsMixin):
         # populate copied raw.
         start, stop = _check_start_stop(raw, start, stop)
         if add_channels is not None:
-            raw_picked = raw.pick_channels(add_channels, copy=True)
+            raw_picked = raw.copy().pick_channels(add_channels)
             data_, times_ = raw_picked[:, start:stop]
             data_ = np.r_[sources, data_]
         else:
@@ -935,7 +935,7 @@ class ICA(ContainsMixin):
             extra_picks = pick_types(inst.info, meg=False, ecg=True)
             ch_names_to_pick = (self.ch_names +
                                 [inst.ch_names[k] for k in extra_picks])
-            inst = inst.pick_channels(ch_names_to_pick, copy=True)
+            inst = inst.copy().pick_channels(ch_names_to_pick)
 
         if method == 'ctps':
             if threshold is None:
@@ -1031,7 +1031,7 @@ class ICA(ContainsMixin):
         targets = [self._check_target(k, inst, start, stop) for k in eog_chs]
 
         if inst.ch_names != self.ch_names:
-            inst = inst.pick_channels(self.ch_names, copy=True)
+            inst = inst.copy().pick_channels(self.ch_names)
 
         if not hasattr(self, 'labels_'):
             self.labels_ = dict()
@@ -1067,7 +1067,7 @@ class ICA(ContainsMixin):
 
     def apply(self, inst, include=None, exclude=None,
               n_pca_components=None, start=None, stop=None,
-              copy=False):
+              copy=None):
         """Remove selected components from the signal.
 
         Given the unmixing matrix, transform data,
@@ -1096,31 +1096,30 @@ class ICA(ContainsMixin):
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
         copy : bool
-            Whether to return a copy or whether to apply the solution in place.
-            Defaults to False.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
         """
+        inst = _check_copy_dep(inst, copy)
         if isinstance(inst, _BaseRaw):
             out = self._apply_raw(raw=inst, include=include,
                                   exclude=exclude,
                                   n_pca_components=n_pca_components,
-                                  start=start, stop=stop, copy=copy)
+                                  start=start, stop=stop)
         elif isinstance(inst, _BaseEpochs):
             out = self._apply_epochs(epochs=inst, include=include,
                                      exclude=exclude,
-                                     n_pca_components=n_pca_components,
-                                     copy=copy)
+                                     n_pca_components=n_pca_components)
         elif isinstance(inst, Evoked):
             out = self._apply_evoked(evoked=inst, include=include,
                                      exclude=exclude,
-                                     n_pca_components=n_pca_components,
-                                     copy=copy)
+                                     n_pca_components=n_pca_components)
         else:
             raise ValueError('Data input must be of Raw, Epochs or Evoked '
                              'type')
         return out
 
-    def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop,
-                   copy=True):
+    def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):
         """Aux method"""
         if not raw.preload:
             raise ValueError('Raw data must be preloaded to apply ICA')
@@ -1143,14 +1142,10 @@ class ICA(ContainsMixin):
 
         data = self._pick_sources(data, include, exclude)
 
-        if copy is True:
-            raw = raw.copy()
-
         raw[picks, start:stop] = data
         return raw
 
-    def _apply_epochs(self, epochs, include, exclude,
-                      n_pca_components, copy):
+    def _apply_epochs(self, epochs, include, exclude, n_pca_components):
 
         if not epochs.preload:
             raise ValueError('Epochs must be preloaded to apply ICA')
@@ -1174,9 +1169,6 @@ class ICA(ContainsMixin):
         data, _ = self._pre_whiten(data, epochs.info, picks)
         data = self._pick_sources(data, include=include, exclude=exclude)
 
-        if copy is True:
-            epochs = epochs.copy()
-
         # restore epochs, channels, tsl order
         epochs._data[:, picks] = np.array(np.split(data,
                                           len(epochs.events), 1))
@@ -1184,8 +1176,7 @@ class ICA(ContainsMixin):
 
         return epochs
 
-    def _apply_evoked(self, evoked, include, exclude,
-                      n_pca_components, copy):
+    def _apply_evoked(self, evoked, include, exclude, n_pca_components):
 
         picks = pick_types(evoked.info, meg=False, ref_meg=False,
                            include=self.ch_names,
@@ -1206,9 +1197,6 @@ class ICA(ContainsMixin):
         data, _ = self._pre_whiten(data, evoked.info, picks)
         data = self._pick_sources(data, include=include,
                                   exclude=exclude)
-
-        if copy is True:
-            evoked = evoked.copy()
 
         # restore evoked
         evoked.data[picks] = data

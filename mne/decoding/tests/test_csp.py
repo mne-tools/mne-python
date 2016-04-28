@@ -60,7 +60,7 @@ def test_csp():
     sources = csp.transform(epochs_data)
     assert_true(sources.shape[1] == n_components)
 
-    epochs.pick_types(meg='mag', copy=False)
+    epochs.pick_types(meg='mag')
 
     # test plot patterns
     components = np.arange(n_components)

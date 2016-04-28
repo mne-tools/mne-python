@@ -166,7 +166,7 @@ def test_dipole_fitting_fixed():
     evoked = read_evokeds(fname_evo, baseline=(None, 0))[0]
     evoked.pick_types(meg=True, copy=False)
     t_idx = np.argmin(np.abs(tpeak - evoked.times))
-    evoked_crop = evoked.crop(tpeak, tpeak, copy=True)
+    evoked_crop = evoked.copy().crop(tpeak, tpeak, copy=False)
     assert_equal(len(evoked_crop.times), 1)
     cov = read_cov(fname_cov)
     dip_seq, resid = fit_dipole(evoked_crop, cov, sphere)
