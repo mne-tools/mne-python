@@ -171,6 +171,25 @@ def test_generalization_across_time():
     assert_true(len(gat.test_times_['slices'][0]) == 15 ==
                 np.shape(gat.scores_)[1])
 
+    # Test score_mode
+    gat.score_mode = 'foo'
+    assert_raises(ValueError, gat.score, epochs)
+    gat.score_mode = 'per-fold'
+    scores = gat.score(epochs)
+    assert_array_equal(np.shape(scores), [15, 15, 5])
+    gat.score_mode = 'no-cv'
+    scores = gat.score(epochs)
+    assert_array_equal(np.shape(scores), [15, 15])
+    gat.score_mode = 'mean-across-folds'
+    scores = gat.score(epochs)
+    assert_array_equal(np.shape(scores), [15, 15])
+    gat.predict_mode = 'mean-prediction'
+    with warnings.catch_warnings(record=True) as w:
+        gat.score(epochs)
+        assert_true(len(w) > 0)
+        assert_true(any("`score_mode` changed from " in str(ww.message)
+                        for ww in w))
+
     # Test longer time window
     gat = GeneralizationAcrossTime(train_times={'length': .100})
     with warnings.catch_warnings(record=True):
@@ -350,7 +369,7 @@ def test_generalization_across_time():
     reg = KernelRidge()
 
     def scorer_proba(y_true, y_pred):
-        roc_auc_score(y_true, y_pred[:, 0])
+        return roc_auc_score(y_true, y_pred[:, 0])
 
     # We re testing 3 scenario: default, classifier + predict_proba, regressor
     scorers = [None, scorer_proba, scorer_regress]
