@@ -761,7 +761,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1., first_sam
     if stop is not None:
         stop = raw.time_as_index(stop)
     else:
-        stop = raw.last_samp + 1    
+        stop = [raw.last_samp + 1]    
     if first_samp:
         start = start[0] + raw.first_samp
         stop = min([stop[0] + raw.first_samp, raw.last_samp + 1])  
