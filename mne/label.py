@@ -622,16 +622,19 @@ class Label(object):
 
         Notes
         -----
-        The spatial split Works by finding the label's principal eigen-axis on
+        The spatial split works by finding the label's principal eigen-axis on
         the spherical surface, projecting all label vertex coordinates onto
         this axis and dividing them at regular spatial intervals. The
         'contiguous' split works by finding all connections (edges) and
         assigning cooresponding nodes to sets.
         """
-        if parts == 'contiguous':
-            return split_label_contig(self, subject, subjects_dir)
-        else:
+        if isinstance(parts, string_types) and parts == 'contiguous':
+            return _split_label_contig(self, subject, subjects_dir)
+        elif isinstance(parts, (tuple, int)):
             return split_label(self, parts, subject, subjects_dir, freesurfer)
+        else:
+            raise ValueError("Need integer, tuple of strings, or string "
+                             "('contiguous'). Got %s)" % type(parts))
 
     def get_vertices_used(self, vertices=None):
         """Get the source space's vertices inside the label
@@ -934,7 +937,8 @@ def _assign_split_membership(label_divs, neighbors):
     # Find overlap between new node neighbors and existing label divisions
     membership = []
     for di, div in enumerate(label_divs):
-        if len(neighbors.intersection(div)) > 0: membership.append(di)
+        if len(neighbors.intersection(div)) > 0:
+            membership.append(di)
 
     # If node connects to an existing div, assign it to that div
     if len(membership) > 0:
@@ -951,7 +955,7 @@ def _assign_split_membership(label_divs, neighbors):
         label_divs.append(neighbors)
 
 
-def split_label_contig(label_to_split, subject=None, subjects_dir=None):
+def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     """Split label into contiguous regions (i.e., connected components)
 
     Parameters
@@ -976,7 +980,7 @@ def split_label_contig(label_to_split, subject=None, subjects_dir=None):
 
     # Find the spherical surface to get vertices and tris
     surf_fname = '.'.join((label_to_split.hemi, 'sphere'))
-    surf_path = os.path.join(subjects_dir, subject, 'surf', surf_fname)
+    surf_path = op.join(subjects_dir, subject, 'surf', surf_fname)
     surface_points, surface_tris = read_surface(surf_path)
 
     label_divs = []  # List of contiguous sets of dipoles/nodes
@@ -1094,7 +1098,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
 
     # find the spherical surface
     surf_fname = '.'.join((label.hemi, 'sphere'))
-    surf_path = os.path.join(subjects_dir, subject, "surf", surf_fname)
+    surf_path = op.join(subjects_dir, subject, "surf", surf_fname)
     surface_points, surface_tris = read_surface(surf_path)
     # find the label coordinates on the surface
     points = surface_points[label.vertices]
@@ -1975,8 +1979,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
 
         # find number of vertices in surface
         if subject is not None and subjects_dir is not None:
-            fpath = os.path.join(subjects_dir, subject, 'surf',
-                                 '%s.white' % hemi)
+            fpath = op.join(subjects_dir, subject, 'surf', '%s.white' % hemi)
             points, _ = read_surface(fpath)
             n_vertices = len(points)
         else:
