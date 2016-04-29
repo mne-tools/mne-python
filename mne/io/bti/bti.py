@@ -1172,8 +1172,13 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     # Note that 'name' and 'chan_label' are not the same.
     # We want the configured label if out IO parsed it
     # except for the MEG channels for which we keep the config name
-    bti_ch_names = [c.get('chan_label' if c['yaxis_label'] != 'T' else 'name',
-                          c['name']) for c in bti_info['chs']]
+    bti_ch_names = list()
+    for ch in bti_info['chs']:
+        # we have always relied on 'A' as indicator of MEG data channels.
+        ch_name = ch['name']
+        if not ch_name.startswith('A'):
+            ch_name = ch.get('chan_label', ch_name)
+        bti_ch_names.append(ch_name)
 
     neuromag_ch_names = _rename_channels(
         bti_ch_names, ecg_ch=ecg_ch, eog_ch=eog_ch)
