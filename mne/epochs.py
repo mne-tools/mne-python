@@ -2167,8 +2167,9 @@ class EpochsArray(_BaseEpochs):
             raise ValueError('Info and data must have same number of '
                              'channels.')
         if events is None:
-            n_trial = len(data)
-            events = np.c_[range(n_trial), [0] * n_trial, [1] * n_trial]
+            n_epochs = len(data)
+            events = np.c_[np.arange(n_epochs), np.zeros(n_epochs),
+                           np.zeros(n_epochs)]
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
