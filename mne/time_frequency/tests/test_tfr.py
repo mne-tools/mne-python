@@ -145,6 +145,10 @@ def test_time_frequency():
                                       n_cycles=2)
     single_power2 = single_trial_power(data, Fs, freqs, use_fft=False,
                                        n_cycles=2, decim=slice(0, 2))
+    single_power3 = single_trial_power(data, Fs, freqs, use_fft=False,
+                                       n_cycles=2, decim=slice(1, 3))
+    single_power4 = single_trial_power(data, Fs, freqs, use_fft=False,
+                                       n_cycles=2, decim=slice(2, 4))
 
     assert_array_almost_equal(np.mean(single_power), power.data)
     # XXX cmoutard: does it make any sense to average single_power across
@@ -153,6 +157,10 @@ def test_time_frequency():
     # Below is a less conservative test for the decim argument.
     assert_array_almost_equal(np.mean(single_power2, axis=0),
                               power.data[:, :, :2])
+    assert_array_almost_equal(np.mean(single_power3, axis=0),
+                              power.data[:, :, 1:3])
+    assert_array_almost_equal(np.mean(single_power4, axis=0),
+                              power.data[:, :, 2:4])
 
     power_pick = power.pick_channels(power.ch_names[:10:2])
     assert_equal(len(power_pick.ch_names), len(power.ch_names[:10:2]))
@@ -278,9 +286,12 @@ def test_tfr_multitaper():
     assert_true(power2.data.shape == (len(picks), len(freqs), 2))
     assert_true(power2.data.shape == itc2.data.shape)
 
-    # Test decim parameter checks
+    # Test decim parameter checks and compatibility between wavelets length
+    # and instance length in the time dimension.
     assert_raises(TypeError, tfr_multitaper, epochs, freqs=freqs,
                   n_cycles=freqs / 2., time_bandwidth=4.0, decim=(1,))
+    assert_raises(ValueError, tfr_multitaper, epochs, freqs=freqs,
+                  n_cycles=1000, time_bandwidth=4.0)
 
 
 def test_crop():
