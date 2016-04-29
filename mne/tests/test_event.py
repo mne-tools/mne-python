@@ -66,8 +66,7 @@ def test_add_events():
 
 
 def test_merge_events():
-    """Test event merging
-    """
+    """Test event merging"""
     events_orig = [[1, 0, 1], [3, 0, 2], [10, 0, 3], [20, 0, 4]]
 
     events_replacement = \
@@ -99,8 +98,7 @@ def test_merge_events():
 
 
 def test_io_events():
-    """Test IO for events
-    """
+    """Test IO for events"""
     tempdir = _TempDir()
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
@@ -161,8 +159,7 @@ def test_io_events():
 
 
 def test_find_events():
-    """Test find events in raw file
-    """
+    """Test find events in raw file"""
     events = read_events(fname)
     raw = io.read_raw_fif(raw_fname, preload=True)
     # let's test the defaulting behavior while we're at it
@@ -308,8 +305,7 @@ def test_find_events():
 
 
 def test_pick_events():
-    """Test pick events in a events ndarray
-    """
+    """Test pick events in a events ndarray"""
     events = np.array([[1, 0, 1],
                        [2, 1, 0],
                        [3, 0, 4],
@@ -329,20 +325,25 @@ def test_pick_events():
 
 
 def test_make_fixed_length_events():
-    """Test making events of a fixed length
-    """
+    """Test making events of a fixed length"""
     raw = io.read_raw_fif(raw_fname)
     events = make_fixed_length_events(raw, id=1)
     assert_true(events.shape[1], 3)
+    events_zero = make_fixed_length_events(raw, 1, first_samp=False)
+    assert_equal(events_zero[0, 0], 0)
+    assert_array_equal(events_zero[:, 0], events[:, 0] - raw.first_samp)
+    # With limits
     tmin, tmax = raw.times[[0, -1]]
     duration = tmax - tmin
     events = make_fixed_length_events(raw, 1, tmin, tmax, duration)
     assert_equal(events.shape[0], 1)
+    # With bad limits (no resulting events)
+    assert_raises(ValueError, make_fixed_length_events, raw, 1,
+                  tmin, tmax - 1e-3, duration)
 
 
 def test_define_events():
-    """Test defining response events
-    """
+    """Test defining response events"""
     events = read_events(fname)
     raw = io.read_raw_fif(raw_fname)
     events_, _ = define_target_events(events, 5, 32, raw.info['sfreq'],

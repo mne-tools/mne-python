@@ -64,6 +64,8 @@ Changelog
 
     - Add support for electrocorticography (ECoG) channel type by `Eric Larson`_
 
+    - Add option for ``first_samp`` in :func:`mne.make_fixed_length_events` by `Jon Houck`_
+
 BUG
 ~~~
 
@@ -1488,3 +1490,5 @@ of commits):
 .. _Asish Panda: https://github.com/kaichogami
 
 .. _Natalie Klein: http://www.stat.cmu.edu/people/students/neklein
+
+.. _Jon Houck: http://www.unm.edu/~jhouck/
