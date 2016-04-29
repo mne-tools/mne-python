@@ -33,6 +33,7 @@ from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask, warn,
                     _check_copy_dep)
+from .fixes import in1d
 
 from .externals.six.moves import zip
 from .externals.six import string_types
@@ -465,22 +466,22 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     if picks is None:
         # Need to include all channels e.g. if eog rejection is to be used
         picks = np.arange(raw.info['nchan'])
-        data_mask = np.in1d(
+        pick_mask = in1d(
             picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
-        data_mask = slice(None)
+        pick_mask = slice(None)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
                     preload=False, proj=False)
     if isinstance(method, string_types) and method == 'empirical':
         # potentially *much* more memory efficient to do it the iterative way
-        picks = picks[data_mask]
+        picks = picks[pick_mask]
         data = 0
         n_samples = 0
         mu = 0
         # Read data in chunks
         for raw_segment in epochs:
-            raw_segment = raw_segment[data_mask]
+            raw_segment = raw_segment[pick_mask]
             mu += raw_segment.sum(axis=1)
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
@@ -494,7 +495,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         bads = [b for b in raw.info['bads'] if b in ch_names]
         projs = cp.deepcopy(raw.info['projs'])
         return Covariance(data, ch_names, bads, projs, nfree=n_samples)
-    del picks, data_mask
+    del picks, pick_mask
 
     # This makes it equivalent to what we used to do (and do above for
     # empirical mode), treating all epochs as if they were a single long one
