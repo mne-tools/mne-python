@@ -173,6 +173,7 @@ reference_ica = ica
 reference_ica.plot_components()
 
 ###############################################################################
+# Which one is the bad EOG component?
 # Well we cannot say this across computers and operating systems because
 # ICA solutions are not deterministic. Fixing the random seed will only work
 # for sure within the same Python session, so watch out.
