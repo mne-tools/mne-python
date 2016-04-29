@@ -23,14 +23,12 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 proj_fname = data_path + '/MEG/sample/sample_audvis_eog_proj.fif'
 
-tmin, tmax = 0, 20  # use the first 60s of data
+tmin, tmax = 0, 20  # use the first 20s of data
 
-# Setup for reading the raw data
-raw = mne.io.read_raw_fif(raw_fname)
+# Setup for reading the raw data (save memory by cropping the raw data
+# before loading it)
+raw = mne.io.read_raw_fif(raw_fname).crop(tmin, tmax).load_data()
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # bads + 2 more
-
-# To save memory, crop the raw data before loading data
-raw.crop(tmin, tmax, copy=False).load_data()
 
 fmin, fmax = 2, 300  # look at frequencies between 2 and 300Hz
 n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
@@ -97,4 +95,4 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 ###############################################################################
 # Since down-sampling reduces the timing precision of events, you might want to
 # first extract epochs and down-sampling the Epochs object. You can do this
-# using the func:`mne.Epochs.resample` method.
+# using the :func:`mne.Epochs.resample` method.

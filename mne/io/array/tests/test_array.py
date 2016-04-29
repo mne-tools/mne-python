@@ -32,7 +32,7 @@ def test_array_raw():
     """
     import matplotlib.pyplot as plt
     # creating
-    raw = Raw(fif_fname).crop(2, 5, copy=False)
+    raw = Raw(fif_fname).crop(2, 5)
     data, times = raw[:, :]
     sfreq = raw.info['sfreq']
     ch_names = [(ch[4:] if 'STI' not in ch else ch)

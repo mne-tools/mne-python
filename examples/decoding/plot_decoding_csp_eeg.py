@@ -68,7 +68,7 @@ picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
 # Testing will be done with a running classifier
 epochs = Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
                 baseline=None, preload=True, add_eeg_ref=False)
-epochs_train = epochs.crop(tmin=1., tmax=2., copy=True)
+epochs_train = epochs.copy().crop(tmin=1., tmax=2.)
 labels = epochs.events[:, -1] - 2
 
 ###############################################################################

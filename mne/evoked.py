@@ -15,7 +15,8 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
-from .utils import check_fname, logger, verbose, object_hash, _time_mask, warn
+from .utils import (check_fname, logger, verbose, object_hash, _time_mask,
+                    warn, _check_copy_dep)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
@@ -27,7 +28,7 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
-from .io.pick import channel_type, pick_types
+from .io.pick import channel_type, pick_types, _pick_data_channels
 from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
@@ -142,7 +143,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Channel names"""
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None, copy=False):
+    def crop(self, tmin=None, tmax=None, copy=None):
         """Crop data to a given time interval
 
         Parameters
@@ -152,9 +153,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         tmax : float | None
             End time of selection in seconds.
         copy : bool
-            If False epochs is cropped in place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
         """
-        inst = self if not copy else self.copy()
+        inst = _check_copy_dep(self, copy)
         mask = _time_mask(inst.times, tmin, tmax, sfreq=self.info['sfreq'])
         inst.times = inst.times[mask]
         inst.first = int(inst.times[0] * inst.info['sfreq'])
@@ -758,7 +761,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Either 0 or 1, the order of the detrending. 0 is a constant
             (DC) detrend, 1 is a linear detrend.
         picks : array-like of int | None
-            If None only MEG, EEG and SEEG channels are detrended.
+            If None only MEG, EEG, SEEG, and ECoG channels are detrended.
 
         Returns
         -------
@@ -766,9 +769,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The evoked instance.
         """
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
-                               stim=False, eog=False, ecg=False, emg=False,
-                               seeg=True, bio=True, exclude='bads')
+            picks = _pick_data_channels(self.info)
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
         return self
 
@@ -825,7 +826,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        ch_type : {'mag', 'grad', 'eeg', 'seeg', 'misc', None}
+        ch_type : {'mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', None}
             The channel type to use. Defaults to None. If more than one sensor
             Type is present in the data the channel type has to be explicitly
             set.
@@ -851,10 +852,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The time point of the maximum response, either latency in seconds
             or index.
         """
-        supported = ('mag', 'grad', 'eeg', 'seeg', 'misc', 'None')
-
-        data_picks = pick_types(self.info, meg=True, eeg=True, seeg=True,
-                                ref_meg=False)
+        supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'None')
+        data_picks = _pick_data_channels(self.info, with_ref_meg=False)
         types_used = set([channel_type(self.info, idx) for idx in data_picks])
 
         if str(ch_type) not in supported:
@@ -872,8 +871,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                'must not be `None`, pass a sensor type '
                                'value instead')
 
-        meg, eeg, misc, seeg, picks = False, False, False, False, None
-
+        meg = eeg = misc = seeg = ecog = False
+        picks = None
         if ch_type == 'mag':
             meg = ch_type
         elif ch_type == 'grad':
@@ -884,10 +883,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             misc = True
         elif ch_type == 'seeg':
             seeg = True
+        elif ch_type == 'ecog':
+            ecog = True
 
         if ch_type is not None:
             picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
-                               seeg=seeg, ref_meg=False)
+                               seeg=seeg, ecog=ecog, ref_meg=False)
 
         data = self.data
         ch_names = self.ch_names

@@ -74,8 +74,8 @@ mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp, color=color,
 raw.plot(events=events, n_channels=10, order=order)
 
 ###############################################################################
-# In this tutorial we are only interested in triggers 1 and 2. These triggers
-# correspond to auditory stimuli to left and right ear. The ``event_id`` here
+# In this tutorial we are only interested in triggers 1, 2, 3 and 4. These
+# triggers correspond to auditory and visual stimuli. The ``event_id`` here
 # can be an int, a list of ints or a dict. With dicts it is possible to assign
 # these ids to distinct categories. When using ints or lists this information
 # is lost. First we shall define some parameters to feed to the

@@ -32,6 +32,7 @@ def test_csp():
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     picks = picks[2:9:3]  # subselect channels -> disable proj!
+    raw.add_proj([], remove_existing=True)
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True, proj=False)
     epochs_data = epochs.get_data()
@@ -59,7 +60,7 @@ def test_csp():
     sources = csp.transform(epochs_data)
     assert_true(sources.shape[1] == n_components)
 
-    epochs.pick_types(meg='mag', copy=False)
+    epochs.pick_types(meg='mag')
 
     # test plot patterns
     components = np.arange(n_components)

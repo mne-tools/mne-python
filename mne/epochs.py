@@ -28,7 +28,7 @@ from .io.tag import read_tag, read_tag_info
 from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
-                      _pick_aux_channels)
+                      _pick_aux_channels, _DATA_CH_TYPES_SPLIT)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, ToDataFrameMixin, TimeMixin
 from .bem import _check_origin
@@ -42,7 +42,8 @@ from .fixes import in1d, _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, check_random_state, object_hash, warn)
+                    _time_mask, check_random_state, object_hash, warn,
+                    _check_copy_dep)
 from .utils import deprecated
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
@@ -349,7 +350,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         assert self._data.shape[-1] == len(self.times)
         return self
 
-    def decimate(self, decim, copy=False, offset=0):
+    def decimate(self, decim, copy=None, offset=0):
         """Decimate the epochs
 
         Parameters
@@ -357,7 +358,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         decim : int
             The amount to decimate data.
         copy : bool
-            If True, operate on and return a copy of the Epochs object.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
         offset : int
             Apply an offset to where the decimation starts relative to the
             sample corresponding to t=0. The offset is in samples at the
@@ -381,7 +384,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if decim < 1 or decim != int(decim):
             raise ValueError('decim must be an integer > 0')
         decim = int(decim)
-        epochs = self.copy() if copy else self
+        epochs = _check_copy_dep(self, copy)
         del self
 
         new_sfreq = epochs.info['sfreq'] / float(decim)
@@ -419,7 +422,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return epochs
 
     @verbose
-    def apply_baseline(self, baseline, copy=False, verbose=None):
+    def apply_baseline(self, baseline, copy=None, verbose=None):
         """Baseline correct epochs
 
         Parameters
@@ -431,8 +434,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             the interval. If baseline is equal to (None, None) all the time
             interval is used.
         copy : bool
-            Should the object be modified, or a copy? If ``False``, modify
-            in place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -451,7 +455,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('`baseline=%s` is an invalid argument.'
                              % str(baseline))
 
-        epochs = self if not copy else self.copy()
+        epochs = _check_copy_dep(self, copy)
         picks = _pick_data_channels(epochs.info, exclude=[], with_ref_meg=True)
         picks_aux = _pick_aux_channels(epochs.info, exclude=[])
         picks = np.sort(np.concatenate((picks, picks_aux)))
@@ -573,7 +577,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # Baseline correct
         picks = pick_types(self.info, meg=True, eeg=True, stim=False,
                            ref_meg=True, eog=True, ecg=True, seeg=True,
-                           emg=True, bio=True, exclude=[])
+                           emg=True, bio=True, ecog=True, exclude=[])
         epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
                                copy=False, verbose=False)
 
@@ -627,9 +631,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         logger.info('Subtracting Evoked from Epochs')
         if evoked is None:
-            picks = pick_types(self.info, meg=True, eeg=True,
-                               stim=False, eog=False, ecg=False, seeg=True,
-                               emg=False, bio=False, exclude=[])
+            picks = _pick_data_channels(self.info, exclude=[])
             evoked = self.average(picks)
 
         # find the indices of the channels to use
@@ -642,7 +644,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             diff_idx = [self.ch_names.index(ch) for ch in diff_ch]
             diff_types = [channel_type(self.info, idx) for idx in diff_idx]
             bad_idx = [diff_types.index(t) for t in diff_types if t in
-                       ['grad', 'mag', 'eeg', 'seeg']]
+                       _DATA_CH_TYPES_SPLIT]
             if len(bad_idx) > 0:
                 bad_str = ', '.join([diff_ch[ii] for ii in bad_idx])
                 raise ValueError('The following data channels are missing '
@@ -692,7 +694,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         picks : array-like of int | None
-            If None only MEG, EEG and SEEG channels are kept
+            If None only MEG, EEG, SEEG, and ECoG channels are kept
             otherwise the channels indices in picks are kept.
 
         Returns
@@ -714,7 +716,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         picks : array-like of int | None
-            If None only MEG, EEG and SEEG channels are kept
+            If None only MEG, EEG, SEEG, and ECoG channels are kept
             otherwise the channels indices in picks are kept.
 
         Returns
@@ -1570,7 +1572,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                if v in epochs.events[:, 2])
         return epochs
 
-    def crop(self, tmin=None, tmax=None, copy=False):
+    def crop(self, tmin=None, tmax=None, copy=None):
         """Crops a time interval from epochs object.
 
         Parameters
@@ -1580,7 +1582,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         tmax : float | None
             End time of selection in seconds.
         copy : bool
-            If False epochs is cropped in place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -1613,7 +1617,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             tmax = self.tmax
 
         tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
-        this_epochs = self if not copy else self.copy()
+        this_epochs = _check_copy_dep(self, copy)
         this_epochs.times = this_epochs.times[tmask]
         this_epochs._raw_times = this_epochs._raw_times[tmask]
         this_epochs._data = this_epochs._data[:, :, tmask]
@@ -1621,7 +1625,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @verbose
     def resample(self, sfreq, npad=None, window='boxcar', n_jobs=1,
-                 copy=False, verbose=None):
+                 copy=None, verbose=None):
         """Resample preloaded data
 
         Parameters
@@ -1637,8 +1641,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         n_jobs : int
             Number of jobs to run in parallel.
         copy : bool
-            Whether to operate on a copy of the data (True) or modify data
-            in-place (False). Defaults to False.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -1666,9 +1671,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             warn('npad is currently taken to be 100, but will be changed to '
                  '"auto" in 0.13. Please set the value explicitly.',
                  DeprecationWarning)
-
-        inst = self.copy() if copy else self
-
+        inst = _check_copy_dep(self, copy)
         o_sfreq = inst.info['sfreq']
         inst._data = resample(inst._data, sfreq, o_sfreq, npad, window=window,
                               n_jobs=n_jobs)
@@ -1724,7 +1727,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             this_epochs.event_id = self.event_id
             _save_split(this_epochs, fname, part_idx, n_parts)
 
-    def equalize_event_counts(self, event_ids, method='mintime', copy=True):
+    def equalize_event_counts(self, event_ids, method='mintime', copy=None):
         """Equalize the number of trials in each condition
 
         It tries to make the remaining epochs occurring as close as possible in
@@ -1755,8 +1758,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             list. If 'mintime', timing differences between each event list
             will be minimized.
         copy : bool
-            If True, a copy of epochs will be returned. Otherwise, the
-            function will operate in-place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -1780,10 +1784,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         conditions will contribute evenly. E.g., it is possible to end up
         with 70 'Nonspatial' trials, 69 'Left' and 1 'Right'.
         """
-        if copy is True:
-            epochs = self.copy()
-        else:
-            epochs = self
+        epochs = _check_copy_dep(self, copy, default=True)
         if len(event_ids) == 0:
             raise ValueError('event_ids must have at least one element')
         if not epochs._bad_dropped:
@@ -2199,8 +2200,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
         condition. Note that for safety, this cannot be any
         existing id (in epochs.event_id.values()).
     copy : bool
-        If True, a copy of epochs will be returned. Otherwise, the
-        function will operate in-place.
+        Whether to return a new instance or modify in place.
 
     Notes
     -----
@@ -2211,8 +2211,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     would create a 'Directional' entry in epochs.event_id replacing
     'Left' and 'Right' (combining their trials).
     """
-    if copy:
-        epochs = epochs.copy()
+    epochs = epochs.copy() if copy else epochs
     old_event_ids = np.asanyarray(old_event_ids)
     if isinstance(new_event_id, int):
         new_event_id = {str(new_event_id): new_event_id}
@@ -2883,7 +2882,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         event sample numbers in ``epochs.events``). Can be ``None``
         if data have not been decimated or resampled.
     picks : array-like of int | None
-        If None only MEG, EEG and SEEG channels are kept
+        If None only MEG, EEG, SEEG, and ECoG channels are kept
         otherwise the channels indices in picks are kept.
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head

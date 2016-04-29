@@ -37,8 +37,9 @@ _kind_dict = dict(
     stim=(FIFF.FIFFV_STIM_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     eog=(FIFF.FIFFV_EOG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     ecg=(FIFF.FIFFV_ECG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
-    seeg=(FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
-    bio=(FIFF.FIFFV_BIO_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V)
+    seeg=(FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
+    bio=(FIFF.FIFFV_BIO_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+    ecog=(FIFF.FIFFV_ECOG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
 )
 
 
@@ -159,7 +160,7 @@ class Info(dict):
         info : instance of Info
             The copied info.
         """
-        return Info(super(Info, self).copy())
+        return Info(deepcopy(self))
 
     def normalize_proj(self):
         """(Re-)Normalize projection vectors after subselection
@@ -1195,8 +1196,13 @@ def _is_equal_dict(dicts):
     is_equal = []
     for d in tests:
         k0, v0 = d[0]
-        is_equal.append(all(np.all(k == k0) and
-                        np.all(v == v0) for k, v in d))
+        if (isinstance(v0, (list, np.ndarray)) and len(v0) > 0 and
+                isinstance(v0[0], dict)):
+            for k, v in d:
+                is_equal.append((k0 == k) and _is_equal_dict(v))
+        else:
+            is_equal.append(all(np.all(k == k0) and
+                            np.all(v == v0) for k, v in d))
     return all(is_equal)
 
 

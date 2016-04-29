@@ -52,6 +52,7 @@ def _get_picks(raw):
 
 def _get_epochs():
     raw = _get_raw()
+    raw.add_proj([], remove_existing=True)
     events = _get_events()
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed

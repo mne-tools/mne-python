@@ -103,7 +103,7 @@ def _butterfly_onselect(xmin, xmax, ch_types, evoked, text=None):
             title = ch_type
         data = np.average(data, axis=1)
         axarr[0][idx].set_title(title)
-        plot_topomap(data, pos, axis=axarr[0][idx], show=False)
+        plot_topomap(data, pos, axes=axarr[0][idx], show=False)
 
     fig.suptitle('Average over %.2fs - %.2fs' % (xmin, xmax), fontsize=15,
                  y=0.1)
@@ -187,7 +187,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     units = _handle_default('units', units)
     # Valid data types ordered for consistency
     valid_channel_types = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
-                           'dipole', 'gof', 'bio']
+                           'dipole', 'gof', 'bio', 'ecog']
 
     if picks is None:
         picks = list(range(info['nchan']))
@@ -772,7 +772,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
-    evoked.pick_channels([evoked.ch_names[k] for k in picks], copy=False)
+    evoked.pick_channels([evoked.ch_names[k] for k in picks])
     # important to re-pick. will otherwise crash on systems with ref channels
     # as first sensor block
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
@@ -1041,17 +1041,16 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         evoked.drop_channels(exclude)
 
     info = evoked.info
-    data_types = ['eeg', 'grad', 'mag', 'seeg']
+    data_types = ['eeg', 'grad', 'mag', 'seeg', 'ecog']
     ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
         figs = list()
         for t in ch_types:  # pick only the corresponding channel type
-            ev_ = evoked.pick_channels([info['ch_names'][idx]
-                                        for idx in range(info['nchan'])
-                                        if channel_type(info, idx) == t],
-                                       copy=True)
+            ev_ = evoked.copy().pick_channels(
+                [info['ch_names'][idx] for idx in range(info['nchan'])
+                 if channel_type(info, idx) == t])
             if len(set([channel_type(ev_.info, idx)
                         for idx in range(ev_.info['nchan'])
                         if channel_type(ev_.info, idx) in data_types])) > 1:

@@ -22,7 +22,7 @@ from .infomax_ import infomax
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
 from ..io.pick import (pick_types, pick_channels, pick_info,
-                       _pick_data_channels)
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
 from ..io.write import (write_double_matrix, write_string,
                         write_name_list, write_int, start_block,
                         end_block)
@@ -44,7 +44,7 @@ from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-                     _get_fast_dot, compute_corr)
+                     _get_fast_dot, compute_corr, _check_copy_dep)
 from ..fixes import _get_args
 from ..filter import band_pass_filter
 from .bads import find_outliers
@@ -263,7 +263,7 @@ class ICA(ContainsMixin):
               hasattr(self, 'n_components_') else
               'no dimension reduction')
         if self.info is not None:
-            ch_fit = ['"%s"' % c for c in ['mag', 'grad', 'eeg'] if c in self]
+            ch_fit = ['"%s"' % c for c in _DATA_CH_TYPES_SPLIT if c in self]
             s += ', channels used: {0}'.format('; '.join(ch_fit))
         if self.exclude:
             s += ', %i sources marked for exclusion' % len(self.exclude)
@@ -298,7 +298,7 @@ class ICA(ContainsMixin):
             within ``start`` and ``stop`` are used.
         reject : dict | None
             Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg'.
             If reject is None then no rejection is done. Example::
 
                 reject = dict(grad=4000e-13, # T / m (gradiometers)
@@ -310,9 +310,9 @@ class ICA(ContainsMixin):
             It only applies if `inst` is of type Raw.
         flat : dict | None
             Rejection parameters based on flatness of signal.
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-            are floats that set the minimum acceptable peak-to-peak amplitude.
-            If flat is None then no rejection is done.
+            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg'.
+            Values are floats that set the minimum acceptable peak-to-peak
+            amplitude. If flat is None then no rejection is done.
             It only applies if `inst` is of type Raw.
         tstep : float
             Length of data chunks for artifact rejection in seconds.
@@ -386,8 +386,7 @@ class ICA(ContainsMixin):
 
         self.n_samples_ = data.shape[1]
         # this may operate inplace or make a copy
-        data, self._pre_whitener = self._pre_whiten(data,
-                                                    raw.info, picks)
+        data, self._pre_whitener = self._pre_whiten(data, raw.info, picks)
 
         self._fit(data, self.max_pca_components, 'raw')
 
@@ -441,12 +440,16 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = pick_info(info, picks)
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in ['mag', 'grad', 'eeg']:
+            for ch_type in _DATA_CH_TYPES_SPLIT:
                 if _contains_ch_type(info, ch_type):
-                    if ch_type == 'eeg':
+                    if ch_type == 'seeg':
+                        this_picks = pick_types(info, meg=False, seeg=True)
+                    elif ch_type == 'ecog':
+                        this_picks = pick_types(info, meg=False, ecog=True)
+                    elif ch_type == 'eeg':
                         this_picks = pick_types(info, meg=False, eeg=True)
                     else:
-                        this_picks = pick_types(info, meg=ch_type, eeg=False)
+                        this_picks = pick_types(info, meg=ch_type)
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
         elif not has_pre_whitener and self.noise_cov is not None:
@@ -665,7 +668,7 @@ class ICA(ContainsMixin):
         # populate copied raw.
         start, stop = _check_start_stop(raw, start, stop)
         if add_channels is not None:
-            raw_picked = raw.pick_channels(add_channels, copy=True)
+            raw_picked = raw.copy().pick_channels(add_channels)
             data_, times_ = raw_picked[:, start:stop]
             data_ = np.r_[sources, data_]
         else:
@@ -932,7 +935,7 @@ class ICA(ContainsMixin):
             extra_picks = pick_types(inst.info, meg=False, ecg=True)
             ch_names_to_pick = (self.ch_names +
                                 [inst.ch_names[k] for k in extra_picks])
-            inst = inst.pick_channels(ch_names_to_pick, copy=True)
+            inst = inst.copy().pick_channels(ch_names_to_pick)
 
         if method == 'ctps':
             if threshold is None:
@@ -1028,7 +1031,7 @@ class ICA(ContainsMixin):
         targets = [self._check_target(k, inst, start, stop) for k in eog_chs]
 
         if inst.ch_names != self.ch_names:
-            inst = inst.pick_channels(self.ch_names, copy=True)
+            inst = inst.copy().pick_channels(self.ch_names)
 
         if not hasattr(self, 'labels_'):
             self.labels_ = dict()
@@ -1064,7 +1067,7 @@ class ICA(ContainsMixin):
 
     def apply(self, inst, include=None, exclude=None,
               n_pca_components=None, start=None, stop=None,
-              copy=False):
+              copy=None):
         """Remove selected components from the signal.
 
         Given the unmixing matrix, transform data,
@@ -1093,31 +1096,30 @@ class ICA(ContainsMixin):
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
         copy : bool
-            Whether to return a copy or whether to apply the solution in place.
-            Defaults to False.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
         """
+        inst = _check_copy_dep(inst, copy)
         if isinstance(inst, _BaseRaw):
             out = self._apply_raw(raw=inst, include=include,
                                   exclude=exclude,
                                   n_pca_components=n_pca_components,
-                                  start=start, stop=stop, copy=copy)
+                                  start=start, stop=stop)
         elif isinstance(inst, _BaseEpochs):
             out = self._apply_epochs(epochs=inst, include=include,
                                      exclude=exclude,
-                                     n_pca_components=n_pca_components,
-                                     copy=copy)
+                                     n_pca_components=n_pca_components)
         elif isinstance(inst, Evoked):
             out = self._apply_evoked(evoked=inst, include=include,
                                      exclude=exclude,
-                                     n_pca_components=n_pca_components,
-                                     copy=copy)
+                                     n_pca_components=n_pca_components)
         else:
             raise ValueError('Data input must be of Raw, Epochs or Evoked '
                              'type')
         return out
 
-    def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop,
-                   copy=True):
+    def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):
         """Aux method"""
         if not raw.preload:
             raise ValueError('Raw data must be preloaded to apply ICA')
@@ -1140,14 +1142,10 @@ class ICA(ContainsMixin):
 
         data = self._pick_sources(data, include, exclude)
 
-        if copy is True:
-            raw = raw.copy()
-
         raw[picks, start:stop] = data
         return raw
 
-    def _apply_epochs(self, epochs, include, exclude,
-                      n_pca_components, copy):
+    def _apply_epochs(self, epochs, include, exclude, n_pca_components):
 
         if not epochs.preload:
             raise ValueError('Epochs must be preloaded to apply ICA')
@@ -1171,9 +1169,6 @@ class ICA(ContainsMixin):
         data, _ = self._pre_whiten(data, epochs.info, picks)
         data = self._pick_sources(data, include=include, exclude=exclude)
 
-        if copy is True:
-            epochs = epochs.copy()
-
         # restore epochs, channels, tsl order
         epochs._data[:, picks] = np.array(np.split(data,
                                           len(epochs.events), 1))
@@ -1181,8 +1176,7 @@ class ICA(ContainsMixin):
 
         return epochs
 
-    def _apply_evoked(self, evoked, include, exclude,
-                      n_pca_components, copy):
+    def _apply_evoked(self, evoked, include, exclude, n_pca_components):
 
         picks = pick_types(evoked.info, meg=False, ref_meg=False,
                            include=self.ch_names,
@@ -1203,9 +1197,6 @@ class ICA(ContainsMixin):
         data, _ = self._pre_whiten(data, evoked.info, picks)
         data = self._pick_sources(data, include=include,
                                   exclude=exclude)
-
-        if copy is True:
-            evoked = evoked.copy()
 
         # restore evoked
         evoked.data[picks] = data
@@ -2310,7 +2301,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
         plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
-                     res=64, axis=ax, cmap=cmap, outlines=outlines,
+                     res=64, axes=ax, cmap=cmap, outlines=outlines,
                      image_mask=None, contours=contours, show=False,
                      image_interp='bilinear')[0]
         _hide_frame(ax)

@@ -59,7 +59,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 evoked = epochs.average()
 
 # remove physiological artifacts (eyeblinks, heartbeats) using SSP on baseline
-evoked.add_proj(mne.compute_proj_evoked(evoked.crop(tmax=0, copy=True)))
+evoked.add_proj(mne.compute_proj_evoked(evoked.copy().crop(tmax=0)))
 evoked.apply_proj()
 
 # fix stim artifact

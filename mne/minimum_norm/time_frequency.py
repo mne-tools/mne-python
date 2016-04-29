@@ -368,7 +368,6 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     # Run baseline correction
     power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
                     copy=False)
-
     return power, plv
 
 

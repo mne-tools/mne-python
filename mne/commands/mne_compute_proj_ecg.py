@@ -182,12 +182,11 @@ def run():
         raw_event = raw
 
     flat = None  # XXX : not exposed to the user
-    cpe = mne.preprocessing.compute_proj_ecg
-    projs, events = cpe(raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
-                        l_freq, h_freq, average, filter_length, n_jobs,
-                        ch_name, reject, flat, bads, avg_ref, no_proj,
-                        event_id, ecg_l_freq, ecg_h_freq, tstart,
-                        qrs_threshold, copy=False)
+    projs, events = mne.preprocessing.compute_proj_ecg(
+        raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg, l_freq, h_freq,
+        average, filter_length, n_jobs, ch_name, reject, flat, bads, avg_ref,
+        no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart, qrs_threshold,
+        copy=False)
 
     raw.close()
 

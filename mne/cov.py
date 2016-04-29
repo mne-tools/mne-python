@@ -18,7 +18,7 @@ from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _needs_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
-                      _picks_by_type)
+                      _picks_by_type, _pick_data_channels)
 
 from .io.constants import FIFF
 from .io.meas_info import read_bad_channels
@@ -31,7 +31,9 @@ from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, check_version, _time_mask, warn)
+                    _compute_row_norms, check_version, _time_mask, warn,
+                    _check_copy_dep)
+from .fixes import in1d
 
 from .externals.six.moves import zip
 from .externals.six import string_types
@@ -161,14 +163,15 @@ class Covariance(dict):
         """
         return cp.deepcopy(self)
 
-    def as_diag(self, copy=True):
+    def as_diag(self, copy=None):
         """Set covariance to be processed as being diagonal.
 
         Parameters
         ----------
         copy : bool
-            If True, return a modified copy of the covarince. If False,
-            the covariance is modified in place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -180,12 +183,9 @@ class Covariance(dict):
         This function allows creation of inverse operators
         equivalent to using the old "--diagnoise" mne option.
         """
-        if self['diag'] is True:
-            return self.copy() if copy is True else self
-        if copy is True:
-            cov = cp.deepcopy(self)
-        else:
-            cov = self
+        cov = _check_copy_dep(self, copy, default=True)
+        if cov['diag']:
+            return cov
         cov['diag'] = True
         cov['data'] = np.diag(cov['data'])
         cov['eig'] = None
@@ -402,8 +402,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     picks : array-like of int | None (default None)
-        Indices of channels to include (if None, all channels
-        except bad channels are used).
+        Indices of channels to include (if None, data channels are used).
     method : str | list | None (default 'empirical')
         The method used for covariance estimation.
         See :func:`mne.compute_covariance`.
@@ -465,18 +464,24 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
-        picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
-                           ref_meg=False, exclude=[])
+        # Need to include all channels e.g. if eog rejection is to be used
+        picks = np.arange(raw.info['nchan'])
+        pick_mask = in1d(
+            picks, _pick_data_channels(raw.info, with_ref_meg=False))
+    else:
+        pick_mask = slice(None)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
                     preload=False, proj=False)
     if isinstance(method, string_types) and method == 'empirical':
         # potentially *much* more memory efficient to do it the iterative way
+        picks = picks[pick_mask]
         data = 0
         n_samples = 0
         mu = 0
         # Read data in chunks
         for raw_segment in epochs:
+            raw_segment = raw_segment[pick_mask]
             mu += raw_segment.sum(axis=1)
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
@@ -490,6 +495,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         bads = [b for b in raw.info['bads'] if b in ch_names]
         projs = cp.deepcopy(raw.info['projs'])
         return Covariance(data, ch_names, bads, projs, nfree=n_samples)
+    del picks, pick_mask
 
     # This makes it equivalent to what we used to do (and do above for
     # empirical mode), treating all epochs as if they were a single long one
@@ -1879,7 +1885,7 @@ def _check_scaling_inputs(data, picks_list, scalings):
 
 
 def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
-                                return_singular=False, copy=True):
+                                return_singular=False):
     """Estimate rank for M/EEG data.
 
     Parameters
@@ -1919,7 +1925,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
         ValueError("You've got fewer samples than channels, your "
                    "rank estimate might be inaccurate.")
     out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular, copy=copy)
+                        return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
     logger.info('estimated rank (%s): %d' % (ch_type, rank))
@@ -1928,7 +1934,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
 
 
 def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
-                            return_singular=False, copy=True):
+                            return_singular=False):
     """Estimate rank for M/EEG data.
 
     Parameters
@@ -1950,9 +1956,6 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
-    copy : bool
-        If False, values in data will be modified in-place during
-        rank estimation (saves memory).
 
     Returns
     -------
@@ -1969,7 +1972,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
         ValueError("You've got fewer samples than channels, your "
                    "rank estimate might be inaccurate.")
     out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular, copy=copy)
+                        return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
     logger.info('estimated rank (%s): %d' % (ch_type, rank))

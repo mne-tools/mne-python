@@ -380,9 +380,9 @@ def test_make_inverse_operator_diag():
     """Test MNE inverse computation with diagonal noise cov
     """
     evoked = _get_evoked()
-    noise_cov = read_cov(fname_cov)
+    noise_cov = read_cov(fname_cov).as_diag(copy=False)
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
-    inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov.as_diag(),
+    inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                    loose=0.2, depth=0.8)
     _compare_io(inv_op)
     inverse_operator_diag = read_inverse_operator(fname_inv_meeg_diag)

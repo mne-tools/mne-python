@@ -15,7 +15,8 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .fixes import digitize, in1d
-from .utils import get_subjects_dir, _check_subject, logger, verbose, warn
+from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
+                    _check_copy_dep)
 from .source_estimate import (morph_data, SourceEstimate,
                               spatial_src_connectivity)
 from .source_space import add_source_space_distances
@@ -452,7 +453,7 @@ class Label(object):
 
     @verbose
     def smooth(self, subject=None, smooth=2, grade=None,
-               subjects_dir=None, n_jobs=1, copy=True, verbose=None):
+               subjects_dir=None, n_jobs=1, copy=None, verbose=None):
         """Smooth the label
 
         Useful for filling in labels made in a
@@ -484,7 +485,9 @@ class Label(object):
         n_jobs : int
             Number of jobs to run in parallel
         copy : bool
-            If False, smoothing is done in-place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -502,11 +505,11 @@ class Label(object):
         """
         subject = _check_subject(self.subject, subject)
         return self.morph(subject, subject, smooth, grade, subjects_dir,
-                          n_jobs, copy)
+                          n_jobs, copy=copy)
 
     @verbose
     def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
-              subjects_dir=None, n_jobs=1, copy=True, verbose=None):
+              subjects_dir=None, n_jobs=1, copy=None, verbose=None):
         """Morph the label
 
         Useful for transforming a label from one subject to another.
@@ -538,7 +541,9 @@ class Label(object):
         n_jobs : int
             Number of jobs to run in parallel.
         copy : bool
-            If False, the morphing is done in-place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -578,10 +583,7 @@ class Label(object):
                          smooth=smooth, subjects_dir=subjects_dir,
                          warn=False, n_jobs=n_jobs)
         inds = np.nonzero(stc.data)[0]
-        if copy is True:
-            label = self.copy()
-        else:
-            label = self
+        label = _check_copy_dep(self, copy, default=True)
         label.values = stc.data[inds, :].ravel()
         label.pos = np.zeros((len(inds), 3))
         if label.hemi == 'lh':
