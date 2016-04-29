@@ -66,7 +66,11 @@ print(ica)
 
 ica.plot_components()  # can you see some potential bad guys?
 
+
 ###############################################################################
+# Advanced artifact detection
+# ---------------------------
+#
 # Let's use a more efficient way to find artefacts
 
 eog_average = create_eog_epochs(raw, reject=dict(mag=5e-12, grad=4000e-13),
@@ -136,52 +140,57 @@ from mne.preprocessing.ica import corrmap  # noqa
 # semi-automatic. Corrmap hence takes at least a list of ICA solutions and a
 # template, that can be an index or an array. As we don't have different
 # subjects or runs available today, here we will fit ICA models to different
-# parts of the recording and then use a user-defined template from the first
-# part for detecting corresponding components in the other parts. The following
-# block of code in addresses this point and should not be copied, ok?
-#
+# parts of the recording and then use as a user-defined template the ICA
+# that we just fitted for detecting corresponding components in the three "new"
+# ICAs. The following block of code in addresses this point and should not be
+# copied, ok?
 # We'll start by simulating a group of subjects or runs from a subject
-
 start, stop = [0, len(raw.times) - 1]
 intervals = np.linspace(start, stop, 4, dtype=int)
-icas = list()
-seed = 42  # for reproducible results
+icas_from_other_data = list()
 raw.pick_types(meg=True, eeg=False)  # take only MEG channels
 for ii, start in enumerate(intervals):
     if ii + 1 < len(intervals):
         stop = intervals[ii + 1]
-        print('fitting ICA from {} to {} seconds'.format(start, stop))
-        this_ica = ICA(n_components=n_components, method=method,
-                       random_state=seed).fit(raw, start=start, stop=stop,
-                                              reject=reject)
-        icas.append(this_ica)
+        print('fitting ICA from {0} to {1} seconds'.format(start, stop))
+        this_ica = ICA(n_components=n_components, method=method).fit(
+            raw, start=start, stop=stop, reject=reject)
+        icas_from_other_data.append(this_ica)
 
 ###############################################################################
 # Do not copy this at home! You start by reading in a collections of ICA
 # solutions, something like
 #
 # ``icas = [mne.preprocessing.read_ica(fname) for fname in ica_fnames]``
-print(icas)
+print(icas_from_other_data)
+
+###############################################################################
+# use our previous ICA as reference.
+reference_ica = ica  
 
 ###############################################################################
 # Investigate our reference ICA, here we arbitrarily say it's the first.
-reference_ica = icas[0]
 reference_ica.plot_components()
 
 ###############################################################################
-# With random seed = 42 we see that IC number 13 from run 1 looks like an EOG.
-reference_ica.plot_sources(eog_average, exclude=[12])
+# Well we cannot say this across computers and operating systems because
+# ICA solutions are not deterministic. Fixing the random seed will only work
+# for sure within the same Python session, so watch out.
+# But we can for now rely on our previous detection algorithm.
+
+reference_ica.plot_sources(eog_average, exclude=eog_inds)
 
 ###############################################################################
 # Indeed it looks like an EOG, also in the average time course.
 #
 # So our template shall be a tuple like (reference_run_index, component_index):
-template = (0, 12)
+template = (0, eog_inds[0])
 
 ###############################################################################
 # Now we can do the corrmap.
-fig_template, fig_detected = corrmap(icas, template=template, label="blinks",
-                                     show=True, threshold=.8, ch_type='mag')
+fig_template, fig_detected = corrmap(
+    icas_from_other_data, template=template, label="blinks", show=True,
+    threshold=.8, ch_type='mag')
 
 ###############################################################################
 # Nice, we have found similar ICs from the other runs!
