@@ -67,7 +67,7 @@ class _GeneralizationAcrossTime(object):
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_method='predict',
                  predict_mode='cross-validation', scorer=None,
-                 score_mode='mean-across-folds', n_jobs=1):
+                 score_mode='mean-fold-wise', n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
         from sklearn.linear_model import LogisticRegression
@@ -318,7 +318,7 @@ class _GeneralizationAcrossTime(object):
         ``y_true_`` attributes.
 
         .. note:: If ``predict_mode`` is 'mean-prediction', ``score_mode`` is
-        automatically set to 'no-cv'.
+        automatically set to 'sample-wise'.
 
         Parameters
         ----------
@@ -338,7 +338,7 @@ class _GeneralizationAcrossTime(object):
             testing time (e.g. mean accuracy of ``predict(X)``). Note that the
             number of testing times per training time need not be regular;
             else, np.shape(scores) = (n_train_time, n_test_time). If
-            ``score_mode`` is 'complete', np.shape(scores) = (n_train_time,
+            ``score_mode`` is 'fold-wise', np.shape(scores) = (n_train_time,
             n_test_time, n_folds).
         """
         import sklearn.metrics
@@ -359,18 +359,17 @@ class _GeneralizationAcrossTime(object):
                                    'epochs to score()')
 
         # Check scorer
-        if self.score_mode not in ('per-fold', 'mean-across-folds', 'no-cv'):
-            raise ValueError("`score_mode` must be 'per-fold', "
-                             "'mean-across-folds' or 'no-cv'. "
+        if self.score_mode not in ('fold-wise', 'mean-fold-wise',
+                                   'sample-wise'):
+            raise ValueError("`score_mode` must be 'fold-wise', "
+                             "'mean-fold-wise' or 'sample-wise'. "
                              "Got %s instead'" % self.score_mode)
         score_mode = self.score_mode
-        if (
-            (self.predict_mode == 'mean-prediction') and
-            (self.score_mode != 'no-cv')
-        ):
-            warn("`score_mode` changed from %s set to 'no-cv' because "
+        if (self.predict_mode == 'mean-prediction' and
+                self.score_mode != 'sample-wise'):
+            warn("`score_mode` changed from %s set to 'sample-wise' because "
                  "`predict_mode` is 'mean-prediction'." % self.score_mode)
-            score_mode = 'no-cv'
+            score_mode = 'sample-wise'
         self.scorer_ = self.scorer
         if self.scorer_ is None:
             # Try to guess which scoring metrics should be used
@@ -599,16 +598,16 @@ def _score_slices(y_true, list_y_pred, scorer, score_mode, cv):
     for y_pred in list_y_pred:
         scores = list()
         for t, this_y_pred in enumerate(y_pred):
-            if score_mode in ['mean-across-folds', 'per-fold']:
+            if score_mode in ['mean-fold-wise', 'fold-wise']:
                 # Estimate score within each fold
                 scores_ = list()
                 for train, test in cv:
                     scores_.append(scorer(y_true[test], this_y_pred[test]))
                 # Summarize score as average across folds
-                if score_mode == 'mean-across-folds':
+                if score_mode == 'mean-fold-wise':
                     # Note that np.mean automatically squeezes the dimensions
                     scores_ = np.mean(scores_, axis=0, keepdims=True)[0]
-            elif score_mode == 'no-cv':
+            elif score_mode == 'sample-wise':
                 # Estimate score across all y_pred without cross-validation.
                 scores_ = scorer(y_true, this_y_pred)
             scores.append(scores_)
@@ -939,20 +938,19 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     scorer : object | None | str
         scikit-learn Scorer instance or str type indicating the name of the
         scorer such as ``accuracy``, ``roc_auc``. If None, set to ``accuracy``.
-    score_mode : {'per-fold', 'mean-across-folds', 'no-cv'}
+    score_mode : {'fold-wise', 'mean-fold-wise', 'sample-wise'}
         Determines how the scorer is estimated:
 
-            * ``per-fold`` : returns the score obtained in each fold.
+            * ``fold-wise`` : returns the score obtained in each fold.
 
-            * ``mean-across-folds`` : returns the average of the per-fold
-                scores.
+            * ``mean-fold-wise`` : returns the average of the fold-wise scores.
 
-            * ``no-cv`` : returns score estimated across across all y_pred
-                independently of the cross-validation. This method is faster
-                than ``mean-across-folds`` but less conventional, use at your
-                own risk.
+            * ``sample-wise`` : returns score estimated across across all
+                y_pred independently of the cross-validation. This method is
+                faster than ``mean-fold-wise`` but less conventional, use at
+                your own risk.
 
-        Defaults to 'mean-across-folds'.
+        Defaults to 'mean-fold-wise'.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
@@ -1019,7 +1017,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_method='predict',
                  predict_mode='cross-validation', scorer=None,
-                 score_mode='mean-across-folds', n_jobs=1):
+                 score_mode='mean-fold-wise', n_jobs=1):
         super(GeneralizationAcrossTime, self).__init__(
             picks=picks, cv=cv, clf=clf, train_times=train_times,
             test_times=test_times, predict_method=predict_method,
@@ -1260,20 +1258,19 @@ class TimeDecoding(_GeneralizationAcrossTime):
     scorer : object | None | str
         scikit-learn Scorer instance or str type indicating the name of the
         scorer such as ``accuracy``, ``roc_auc``. If None, set to ``accuracy``.
-    score_mode : {'per-fold', 'mean-across-folds', 'no-cv'}
+    score_mode : {'fold-wise', 'mean-fold-wise', 'sample-wise'}
         Determines how the scorer is estimated:
 
-            * ``per-fold`` : returns the score obtained in each fold.
+            * ``fold-wise`` : returns the score obtained in each fold.
 
-            * ``mean-across-folds`` : returns the average of the per-fold
-                scores.
+            * ``mean-fold-wise`` : returns the average of the fold-wise scores.
 
-            * ``no-cv`` : returns score estimated across across all y_pred
-                independently of the cross-validation. This method is faster
-                than ``mean-across-folds`` but less conventional, use at your
-                own risk.
+            * ``sample-wise`` : returns score estimated across across all
+                y_pred independently of the cross-validation. This method is
+                faster than ``mean-fold-wise`` but less conventional, use at
+                your own risk.
 
-        Defaults to 'mean-across-folds'.
+        Defaults to 'mean-fold-wise'.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
@@ -1321,7 +1318,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
     def __init__(self, picks=None, cv=5, clf=None, times=None,
                  predict_method='predict', predict_mode='cross-validation',
-                 scorer=None, score_mode='mean-across-folds', n_jobs=1):
+                 scorer=None, score_mode='mean-fold-wise', n_jobs=1):
         super(TimeDecoding, self).__init__(picks=picks, cv=cv, clf=clf,
                                            train_times=times,
                                            test_times='diagonal',
@@ -1422,7 +1419,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         ``y_true_`` attributes.
 
         .. note:: If ``predict_mode`` is 'mean-prediction', ``score_mode`` is
-        automatically set to 'no-cv'.
+        automatically set to 'sample-wise'.
 
         Parameters
         ----------

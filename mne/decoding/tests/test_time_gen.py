@@ -174,13 +174,13 @@ def test_generalization_across_time():
     # Test score_mode
     gat.score_mode = 'foo'
     assert_raises(ValueError, gat.score, epochs)
-    gat.score_mode = 'per-fold'
+    gat.score_mode = 'fold-wise'
     scores = gat.score(epochs)
     assert_array_equal(np.shape(scores), [15, 15, 5])
-    gat.score_mode = 'no-cv'
+    gat.score_mode = 'sample-wise'
     scores = gat.score(epochs)
     assert_array_equal(np.shape(scores), [15, 15])
-    gat.score_mode = 'mean-across-folds'
+    gat.score_mode = 'mean-fold-wise'
     scores = gat.score(epochs)
     assert_array_equal(np.shape(scores), [15, 15])
     gat.predict_mode = 'mean-prediction'
