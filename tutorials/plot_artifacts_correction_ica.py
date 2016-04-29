@@ -142,7 +142,7 @@ from mne.preprocessing.ica import corrmap  # noqa
 # subjects or runs available today, here we will fit ICA models to different
 # parts of the recording and then use as a user-defined template the ICA
 # that we just fitted for detecting corresponding components in the three "new"
-# ICAs. The following block of code in addresses this point and should not be
+# ICAs. The following block of code addresses this point and should not be
 # copied, ok?
 # We'll start by simulating a group of subjects or runs from a subject
 start, stop = [0, len(raw.times) - 1]
@@ -169,15 +169,13 @@ print(icas_from_other_data)
 reference_ica = ica  
 
 ###############################################################################
-# Investigate our reference ICA, here we arbitrarily say it's the first.
+# Investigate our reference ICA, here we use the previous fit from above.
 reference_ica.plot_components()
 
 ###############################################################################
 # Which one is the bad EOG component?
-# Well we cannot say this across computers and operating systems because
-# ICA solutions are not deterministic. Fixing the random seed will only work
-# for sure within the same Python session, so watch out.
-# But we can for now rely on our previous detection algorithm.
+# Here we rely on our previous detection algorithm. You will need to decide
+# yourself in that situation where no other detection is available.
 
 reference_ica.plot_sources(eog_average, exclude=eog_inds)
 
