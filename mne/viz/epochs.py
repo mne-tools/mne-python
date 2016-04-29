@@ -21,7 +21,8 @@ from ..fixes import Counter, _in1d
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
-                    _plot_raw_onscroll, _onclick_help, plt_show)
+                    _plot_raw_onscroll, _onclick_help, plt_show,
+                    compute_scalings)
 from ..defaults import _handle_default
 
 
@@ -400,6 +401,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     with ``b`` key. Right mouse click adds a vertical line to the plot.
     """
     epochs.drop_bad()
+    scalings = compute_scalings(scalings, epochs)
     scalings = _handle_default('scalings_plot_raw', scalings)
 
     projs = epochs.info['projs']

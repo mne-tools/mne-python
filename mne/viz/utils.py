@@ -30,6 +30,10 @@ from ..fixes import _get_argrelmax
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
+_channel_types = ['eeg', 'seeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim',
+                  'resp', 'misc', 'chpi', 'syst', 'ias', 'exci', 'bio']
+_meg_types = ['mag', 'grad']
+
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     """Aux function to handle vmin and vmax parameters"""
@@ -1032,3 +1036,102 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, show):
     fig.suptitle(title)
     plt_show(show)
     return fig
+
+
+def compute_scalings(scalings, inst):
+    """Compute scalings for each channel type automatically.
+
+    Parameters
+    ----------
+    scalings : dict
+        The scalings for each channel type. If any values are
+        'auto', this will automatically compute a reasonable
+        scaling for that channel type.
+    inst : instance of Raw or Epochs
+        The data you wish to compute scalings for. If Epochs,
+        data will be preloaded. If Raw, a window of max 20
+        seconds will be loaded from the middle of the data for
+        estimating scaling.
+
+    Returns
+    -------
+    scalings : dict
+        A scalings dictionary with updated scalings
+    """
+    from copy import deepcopy
+    from mne.io.base import _BaseRaw
+    from mne.epochs import _BaseEpochs
+    if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        raise ValueError('Must supply either Raw or Epochs')
+
+    if scalings == 'auto':
+        # If we want to auto-compute everything
+        scalings = {i_type: 'auto' for i_type in _channel_types + _meg_types}
+    if not isinstance(scalings, dict):
+        raise ValueError('scalings must be a dictionary of ch_type: val pairs')
+    scalings = deepcopy(scalings)
+    ixs_types = _get_channel_types(inst)[1]
+
+    if inst.preload is False:
+        if isinstance(inst, _BaseRaw):
+            # Load a sample of data
+            n_secs = 20.
+            time_middle = np.mean(inst.times)
+            tmin = np.clip(time_middle - n_secs / 2., inst.times.min(), None)
+            tmax = np.clip(time_middle + n_secs / 2., None, inst.times.max())
+            data = inst._read_segment(tmin, tmax)
+        elif isinstance(inst, _BaseEpochs):
+            inst.load_data()
+    else:
+        data = inst._data
+    if isinstance(inst, _BaseEpochs):
+        data = np.hstack(inst._data)
+
+    # Arbitrary compression factor for scaling
+    scale_factor = 5. if isinstance(inst, _BaseRaw) else 10.
+
+    # Iterate through ch types and update scaling if 'auto'
+    for key, value in scalings.items():
+        if value != 'auto':
+            continue
+        this_ixs = [iix for iix in ixs_types[key]
+                    if iix not in inst.info['bads']]
+        if len(this_ixs) == 0:
+            scalings[key] = None
+            continue
+        this_data = data[this_ixs]
+        this_mad = _mad(this_data)
+        scalings[key] = this_mad * scale_factor  # Arbitrary compression factor
+    return scalings
+
+
+def _get_channel_types(inst):
+    """Return some objects that reveal channel types."""
+    from mne import pick_types
+    types = list()
+    inds = {}
+
+    # First MEG because there are special kws for it
+    for t in _meg_types:
+        this_inds = pick_types(inst.info, meg=t, ref_meg=False, exclude=[])
+        inds[t] = this_inds
+        types += [t] * len(this_inds)
+
+    # Now the rest
+    pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
+    for t in _channel_types:
+        pick_kwargs[t] = True
+        this_inds = pick_types(inst.info, **pick_kwargs)
+        inds[t] = this_inds
+        types += [t] * len(this_inds)
+        pick_kwargs[t] = False
+    return types, inds
+
+
+def _mad(x):
+    """Calculate the median absolute deviation of an array."""
+    x = x.astype(float)
+    grand_median = np.median(x)
+    deviation = x - grand_median
+    mad = np.median(np.abs(deviation))
+    return mad
