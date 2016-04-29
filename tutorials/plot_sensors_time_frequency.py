@@ -92,6 +92,38 @@ n_cycles = freqs / 2.  # different number of cycle per frequency
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
                         return_itc=True, decim=3, n_jobs=1)
 
+
+###############################################################################
+# Quick Summary of induced and phase locked frequency resolved dynamics
+# ---------------------------------------------------------------------
+#
+# To get an idea what's going in in one shot we compute a global field
+# power on our spectral estimates to get an idea about time-varying spatial
+# patterns across frequencies. This can be very useful to detect issues with
+# the time-frequency trade-off or windowing problems of the convolution method
+# as these may be more easily spotted when mapped on conventional time-series
+# plots instead of hue.  
+#
+# .. note::
+#     You can also plot the single time course when not asking for a summary.
+#     This gives you a better view on the actual time courses of each wavelet
+#     convolution.
+# .. note::
+#     These methods are available for other time-frequency methods, i.e.,
+#     the Stockwell transform and multi-taper convolution.
+#
+power.plot_gfp(baseline=(-0.5, 0), mode='percent', title='GFP average Power',
+               summarize=[(8, 12, 'Alpha'), (12, 30, 'Beta')])
+
+itc.plot_gfp(baseline=(-0.5, 0), mode='percent', title='GFP average ITC',
+             summarize=[(8, 12, 'Alpha'), (12, 30, 'Beta')])
+###############################################################################
+# We see different field powers between frequency bands and most importantly
+# a late induced beta component that is not present for the phase locking
+# analysis. This is nurturing our hope to detect oscillations and motivating
+# an deeper analysis that follows below.
+#
+
 ###############################################################################
 # Inspect power
 # -------------
