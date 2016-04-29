@@ -2168,8 +2168,8 @@ class EpochsArray(_BaseEpochs):
                              'channels.')
         if events is None:
             n_epochs = len(data)
-            events = np.c_[np.arange(n_epochs), np.zeros(n_epochs),
-                           np.zeros(n_epochs)]
+            events = np.c_[np.arange(n_epochs), np.zeros(n_epochs, int),
+                           np.ones(n_epochs, int)]
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
