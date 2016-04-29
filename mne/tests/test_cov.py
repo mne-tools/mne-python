@@ -137,6 +137,13 @@ def test_cov_estimation_on_raw():
             warnings.simplefilter('always')
             cov = compute_raw_covariance(raw_2, method=method)
         assert_true(any('Too few samples' in str(ww.message) for ww in w))
+        # no epochs found due to rejection
+        assert_raises(ValueError, compute_raw_covariance, raw, tstep=None,
+                      method='empirical', reject=dict(eog=200e-6))
+        # but this should work
+        cov = compute_raw_covariance(raw.copy().crop(0, 10., copy=False),
+                                     tstep=None, method=method,
+                                     reject=dict(eog=1000e-6))
 
 
 @slow_test

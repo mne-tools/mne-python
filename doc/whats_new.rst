@@ -121,6 +121,8 @@ BUG
 
     - Fix bug when merging info that has a field with list of dicts by `Jaakko Leppakangas`_
 
+    - Fix bug in :func:`mne.compute_raw_covariance` where rejection by non-data channels (e.g. EOG) was not done properly by `Eric Larson`_.
+
 API
 ~~~
 
