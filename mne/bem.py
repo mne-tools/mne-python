@@ -980,7 +980,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       verbose=None):
+                       show=False, verbose=None):
     """
     Create BEM surfaces using the watershed algorithm included with FreeSurfer
 
@@ -1001,6 +1001,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         Use the subcortical atlas
     preflood : int
         Change the preflood height
+    show : bool
+        Show surfaces to visually inspect all three BEM surfaces (recommended).
+
+        .. versionadded:: 0.12
+
     verbose : bool, str or None
         If not None, override default verbose level
 
@@ -1009,6 +1014,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     .. versionadded:: 0.10
     """
     from .surface import read_surface
+    from .viz.misc import plot_bem
     env, mri_dir = _prepare_env(subject, subjects_dir,
                                 requires_freesurfer=True,
                                 requires_mne=True)[:2]
@@ -1055,15 +1061,39 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 'Results dir = %s\n' % (subjects_dir, subject, ws_dir))
     os.makedirs(op.join(ws_dir, 'ws'))
     run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
-    #
+
     if op.isfile(T1_mgz):
         # XXX : do this with python code
         surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
         for s in surfs:
-            s = op.join(ws_dir, '%s_%s_surface' % (subject, s))
-            cmd = ['mne_convert_surface', '--surf', s, '--mghmri', T1_mgz,
-                   '--surfout', s, "--replacegeom"]
+            surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
+            cmd = ['mne_convert_surface', '--surf', surf_ws_out, '--mghmri',
+                   T1_mgz, '--surfout', s, "--replacegeom"]
             run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+
+            # Create symbolic links
+            surf_out = op.join(bem_dir, '%s.surf' % s)
+            if not overwrite and op.exists(surf_out):
+                skip_symlink = True
+            else:
+                if op.exists(surf_out):
+                    os.remove(surf_out)
+                os.symlink(surf_ws_out, surf_out)
+                skip_symlink = False
+
+        if skip_symlink:
+            logger.info("Unable to create all symbolic links to .surf files "
+                        "in bem folder. Use --overwrite option to recreate "
+                        "them.")
+            dest = op.join(bem_dir, 'watershed')
+        else:
+            logger.info("Symbolic links to .surf files created in bem folder")
+            dest = bem_dir
+
+    logger.info("\nThank you for waiting.\nThe BEM triangulations for this "
+                "subject are now available at:\n%s." % dest)
+
+    # Write a head file for coregistration
     fname_head = op.join(bem_dir, subject + '-head.fif')
     if op.isfile(fname_head):
         os.remove(fname_head)
@@ -1075,6 +1105,12 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     surf = dict(coord_frame=5, id=4, nn=None, np=len(points),
                 ntri=len(tris), rr=points, sigma=1, tris=tris)
     write_bem_surfaces(fname_head, surf)
+
+    # Show computed BEM surfaces
+    if show:
+        plot_bem(subject=subject, subjects_dir=subjects_dir,
+                 orientation='coronal', slices=None, show=True)
+
     logger.info('Created %s\n\nComplete.' % (fname_head,))
 
 
