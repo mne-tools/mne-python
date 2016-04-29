@@ -572,7 +572,6 @@ def test_write_labels_to_annot():
                   annot_fname=fnames[0])
 
 
-@slow_test
 @testing.requires_testing_data
 def test_split_label():
     """Test splitting labels"""

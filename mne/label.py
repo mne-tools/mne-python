@@ -13,6 +13,7 @@ import re
 
 import numpy as np
 from scipy import linalg, sparse
+from scipy.sparse.csgraph import connected_components
 
 from .fixes import digitize, in1d
 from .utils import get_subjects_dir, _check_subject, logger, verbose, warn
@@ -983,23 +984,19 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     surf_path = op.join(subjects_dir, subject, 'surf', surf_fname)
     surface_points, surface_tris = read_surface(surf_path)
 
-    label_divs = []  # List of contiguous sets of dipoles/nodes
-    verts = set(label_to_split.vertices)
-    # Compute edges from `tris` and take upper triangle to avoid repeat edges
-    edges = sparse.triu(mesh_edges(surface_tris), format='csr')
+    # Get vertices we want to keep
+    verts_arr = label_to_split.vertices
+    # Compute edges on only upper triangle (since edges are binary)
+    edges_all = sparse.triu(mesh_edges(surface_tris), format='csr')
 
-    # Throw out edges if both verts don't belong to the label
-    coo_edges = edges.tocoo()
-    for (e_x, e_y) in zip(coo_edges.row, coo_edges.col):
-        if len(verts.intersection(set([e_x, e_y]))) < 2:
-            edges[e_x, e_y] = 0
-    edges.eliminate_zeros()
+    # Subselect rows and cols of vertices that belong to the label
+    select_edges = edges_all[verts_arr].tocsc()[:, verts_arr].tocsr()
 
-    # Loop over each node, get its neighbors, and assign membership to all
-    for vi in verts:
-        # Make set of node and it's neighbors
-        neighbor_set = set([vi] + list(edges.getrow(vi).indices))
-        _assign_split_membership(label_divs, neighbor_set)
+    # Compute connected components and store as lists of vertex numbers
+    n_comp, comp_labels = connected_components(select_edges, directed=False)
+    label_divs = []
+    for label_id in range(n_comp):
+        label_divs.append(verts_arr[comp_labels == label_id])
 
     # Construct label division names
     n_parts = len(label_divs)
