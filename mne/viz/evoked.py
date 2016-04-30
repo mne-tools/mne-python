@@ -311,10 +311,18 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                         for i in bad_ch_idx:
                             if i in idx:
                                 colors[idx.index(i)] = 'r'
-                    for ch_idx in range(len(D)):
+
+                    # find the channels with the least activity,
+                    # and map them in front of the more active ones
+                    auc = np.trapz((np.abs(D - D.mean(1).reshape(-1, 1))))
+                    z_ord = auc.argsort()
+
+                    # plot channels
+                    for ch_idx, zorder in enumerate(z_ord):
                         line_list.append(ax.plot(times, D[ch_idx], picker=3.,
-                                                 zorder=1,
+                                                 zorder=zorder,
                                                  color=colors[ch_idx])[0])
+
                 if gfp:  # 'only' or boolean True
                     gfp_color = 3 * (0.,) if spatial_colors else (0., 1., 0.)
                     this_gfp = np.sqrt((D * D).mean(axis=0))
