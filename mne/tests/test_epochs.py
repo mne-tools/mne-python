@@ -1970,8 +1970,8 @@ def test_array_epochs():
     # default events
     epochs = EpochsArray(data_1, info)
     assert_array_equal(epochs.events[:, 0], np.arange(len(data_1)))
-    assert_array_equal(epochs.events[:, 1], np.zeros(len(data_1)))
-    assert_array_equal(epochs.events[:, 2], np.ones(len(data_1)))
+    assert_array_equal(epochs.events[:, 1], np.zeros(len(data_1), int))
+    assert_array_equal(epochs.events[:, 2], np.ones(len(data_1), int))
 
 
 def test_concatenate_epochs():
