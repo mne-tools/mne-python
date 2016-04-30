@@ -188,7 +188,7 @@ class _GeneralizationAcrossTime(object):
         # Check that classifier has predict_method (e.g. predict_proba is not
         # always available):
         if not hasattr(self.clf, self.predict_method):
-            raise NotImplementedError('%s does not have `%s`' % (
+            raise NotImplementedError('%s does not have "%s"' % (
                 self.clf, self.predict_method))
 
         # Check that at least one classifier has been trained
@@ -197,7 +197,7 @@ class _GeneralizationAcrossTime(object):
 
         # Check predict mode
         if self.predict_mode not in ['cross-validation', 'mean-prediction']:
-            raise ValueError('`predict_mode` must be a str, "mean-prediction" '
+            raise ValueError('predict_mode must be a str, "mean-prediction" '
                              'or "cross-validation"')
 
         # Check that training cv and predicting cv match
@@ -208,7 +208,7 @@ class _GeneralizationAcrossTime(object):
             mismatch_y = len(self.y_train_) != len(epochs)
             if heterogeneous_cv or mismatch_cv or mismatch_y:
                 raise ValueError(
-                    'When `predict_mode = "cross-validation"`, the training '
+                    'When predict_mode = "cross-validation", the training '
                     'and predicting cv schemes must be identical.')
 
         # Clean attributes
@@ -230,7 +230,7 @@ class _GeneralizationAcrossTime(object):
         elif isinstance(self.test_times, dict):
             test_times = copy.deepcopy(self.test_times)
         else:
-            raise ValueError('`test_times` must be a dict or "diagonal"')
+            raise ValueError('test_times must be a dict or "diagonal"')
 
         if 'slices' not in test_times:
             if 'length' not in self.train_times_.keys():
@@ -256,7 +256,7 @@ class _GeneralizationAcrossTime(object):
             # that the dimensionality of each estimator (i.e. training
             # time) corresponds to the dimensionality of each testing time)
             if not np.all([len(test) == len(train) for test in tests]):
-                raise ValueError('`train_times` and `test_times` must '
+                raise ValueError('train_times and test_times must '
                                  'have identical lengths')
 
         # Store all testing times parameters
@@ -364,14 +364,14 @@ class _GeneralizationAcrossTime(object):
         # Check scorer
         if self.score_mode not in ('fold-wise', 'mean-fold-wise',
                                    'sample-wise'):
-            raise ValueError("`score_mode` must be 'fold-wise', "
+            raise ValueError("score_mode must be 'fold-wise', "
                              "'mean-fold-wise' or 'sample-wise'. "
                              "Got %s instead'" % self.score_mode)
         score_mode = self.score_mode
         if (self.predict_mode == 'mean-prediction' and
                 self.score_mode != 'sample-wise'):
-            warn("`score_mode` changed from %s set to 'sample-wise' because "
-                 "`predict_mode` is 'mean-prediction'." % self.score_mode)
+            warn("score_mode changed from %s set to 'sample-wise' because "
+                 "predict_mode is 'mean-prediction'." % self.score_mode)
             score_mode = 'sample-wise'
         self.scorer_ = self.scorer
         if self.scorer_ is None:
@@ -387,11 +387,11 @@ class _GeneralizationAcrossTime(object):
                 self.scorer_ = getattr(sklearn.metrics, '%s_score' %
                                        self.scorer_)
             else:
-                raise KeyError("`{0} scorer` Doesn't appear to be valid a "
+                raise KeyError("{0} scorer Doesn't appear to be valid a "
                                "scikit-learn scorer.".format(self.scorer_))
         if not self.scorer_:
-            raise ValueError('Could not find a scoring metric for `clf=%s` '
-                             ' and `predict_method=%s`. Manually define scorer'
+            raise ValueError('Could not find a scoring metric for clf=%s '
+                             ' and predict_method=%s. Manually define scorer'
                              '.' % (self.clf, self.predict_method))
 
         # If no regressor is passed, use default epochs events
@@ -756,18 +756,18 @@ def _sliding_window(times, window, sfreq):
 
         if not (times[0] <= window['start'] <= times[-1]):
             raise ValueError(
-                '`start` (%.2f s) outside time range [%.2f, %.2f].' % (
+                'start (%.2f s) outside time range [%.2f, %.2f].' % (
                     window['start'], times[0], times[-1]))
         if not (times[0] <= window['stop'] <= times[-1]):
             raise ValueError(
-                '`stop` (%.2f s) outside time range [%.2f, %.2f].' % (
+                'stop (%.2f s) outside time range [%.2f, %.2f].' % (
                     window['stop'], times[0], times[-1]))
         if window['step'] < 1. / sfreq:
-            raise ValueError('`step` must be >= 1 / sampling_frequency')
+            raise ValueError('step must be >= 1 / sampling_frequency')
         if window['length'] < 1. / sfreq:
-            raise ValueError('`length` must be >= 1 / sampling_frequency')
+            raise ValueError('length must be >= 1 / sampling_frequency')
         if window['length'] > np.ptp(times):
-            raise ValueError('`length` must be <= time range')
+            raise ValueError('length must be <= time range')
 
         # Convert seconds to index
 
