@@ -2096,10 +2096,12 @@ class EpochsArray(_BaseEpochs):
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
-    events : array of int, shape (n_events, 3)
+    events : None | array of int, shape (n_events, 3)
         The events typically returned by the read_events function.
         If some events don't match the events of interest as specified
         by event_id, they will be marked as 'IGNORED' in the drop log.
+        If None (default), all event values are set to 1 and event time-samples
+        are set to range(n_epochs).
     tmin : float
         Start time before event. If nothing provided, defaults to -0.2.
     event_id : int | list of int | dict | None
@@ -2152,7 +2154,7 @@ class EpochsArray(_BaseEpochs):
     """
 
     @verbose
-    def __init__(self, data, info, events, tmin=0, event_id=None,
+    def __init__(self, data, info, events=None, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, baseline=None, proj=True, verbose=None):
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
@@ -2164,6 +2166,10 @@ class EpochsArray(_BaseEpochs):
         if len(info['ch_names']) != data.shape[1]:
             raise ValueError('Info and data must have same number of '
                              'channels.')
+        if events is None:
+            n_epochs = len(data)
+            events = np.c_[np.arange(n_epochs), np.zeros(n_epochs, int),
+                           np.ones(n_epochs, int)]
         if data.shape[0] != len(events):
             raise ValueError('The number of epochs and the number of events'
                              'must match')
