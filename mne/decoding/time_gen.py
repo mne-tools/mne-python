@@ -606,10 +606,10 @@ def _score_slices(y_true, list_y_pred, scorer, score_mode, cv):
                 scores_ = list()
                 for train, test in cv:
                     scores_.append(scorer(y_true[test], this_y_pred[test]))
+                scores_ = np.array(scores_)
                 # Summarize score as average across folds
                 if score_mode == 'mean-fold-wise':
-                    # Note that np.mean automatically squeezes the dimensions
-                    scores_ = np.mean(scores_, axis=0, keepdims=True)[0]
+                    scores_ = np.mean(scores_, axis=0)
             elif score_mode == 'sample-wise':
                 # Estimate score across all y_pred without cross-validation.
                 scores_ = scorer(y_true, this_y_pred)
