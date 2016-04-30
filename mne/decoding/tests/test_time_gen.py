@@ -186,7 +186,7 @@ def test_generalization_across_time():
     gat.predict_mode = 'mean-prediction'
     with warnings.catch_warnings(record=True) as w:
         gat.score(epochs)
-        assert_true(w > 0)
+        assert_true(len(w) > 0)
         assert_true(any("score_mode changed from " in str(ww.message)
                         for ww in w))
 
