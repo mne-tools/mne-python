@@ -102,8 +102,9 @@ class _GeneralizationAcrossTime(object):
     def fit(self, epochs, y=None):
         """Train a classifier on each specified time slice.
 
-        .. note:: This function sets the ``picks_``, ``ch_names``, ``cv_``,
-        ``y_train``, ``train_times_`` and ``estimators_`` attributes.
+        .. note::
+            This function sets the ``picks_``, ``ch_names``, ``cv_``,
+            ``y_train``, ``train_times_`` and ``estimators_`` attributes.
 
         Parameters
         ----------
@@ -166,8 +167,8 @@ class _GeneralizationAcrossTime(object):
     def predict(self, epochs):
         """Classifiers' predictions on each specified testing time slice.
 
-        .. note:: This function sets the ``y_pred_`` and ``test_times_``
-                  attributes.
+        .. note::
+            This function sets the ``y_pred_`` and ``test_times_`` attributes.
 
         Parameters
         ----------
@@ -314,11 +315,13 @@ class _GeneralizationAcrossTime(object):
 
         Calls ``predict()`` if it has not been already.
 
-        .. note:: The function updates the ``scorer_``, ``scores_``, and
-        ``y_true_`` attributes.
+        .. note::
+            The function updates the ``scorer_``, ``scores_``, and
+            ``y_true_`` attributes.
 
-        .. note:: If ``predict_mode`` is 'mean-prediction', ``score_mode`` is
-        automatically set to 'sample-wise'.
+        .. note::
+            If ``predict_mode`` is 'mean-prediction', ``score_mode`` is
+            automatically set to 'sample-wise'.
 
         Parameters
         ----------
@@ -1357,8 +1360,9 @@ class TimeDecoding(_GeneralizationAcrossTime):
     def fit(self, epochs, y=None):
         """Train a classifier on each specified time slice.
 
-        .. note:: This function sets the ``picks_``, ``ch_names``, ``cv_``,
-        ``y_train``, ``train_times_`` and ``estimators_`` attributes.
+        .. note::
+            This function sets the ``picks_``, ``ch_names``, ``cv_``,
+            ``y_train``, ``train_times_`` and ``estimators_`` attributes.
 
         Parameters
         ----------
@@ -1388,8 +1392,8 @@ class TimeDecoding(_GeneralizationAcrossTime):
     def predict(self, epochs):
         """Test each classifier on each specified testing time slice.
 
-        .. note:: This function sets the ``y_pred_`` and ``test_times_``
-                  attributes.
+        .. note::
+            This function sets the ``y_pred_`` and ``test_times_`` attributes.
 
         Parameters
         ----------
@@ -1415,11 +1419,13 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
         Calls ``predict()`` if it has not been already.
 
-        .. note:: The function updates the ``scorer_``, ``scores_``, and
-        ``y_true_`` attributes.
+        .. note::
+            The function updates the ``scorer_``, ``scores_``, and
+            ``y_true_`` attributes.
 
-        .. note:: If ``predict_mode`` is 'mean-prediction', ``score_mode`` is
-        automatically set to 'sample-wise'.
+        .. note::
+            If ``predict_mode`` is 'mean-prediction', ``score_mode`` is
+            automatically set to 'sample-wise'.
 
         Parameters
         ----------
