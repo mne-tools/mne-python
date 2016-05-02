@@ -1051,6 +1051,15 @@ def test_add_channels():
     )
     raw_new = raw_meg.copy().add_channels([raw_eeg])
 
+    # Testing force updates
+    raw_eeg_conf = deepcopy(raw_eeg)
+    raw_eeg_conf.info['sfreq'] = 1.
+    assert_raises(RuntimeError, raw_meg.copy().add_channels, [raw_eeg_conf])
+    raw_new = raw_meg.copy().add_channels([raw_eeg_conf],
+                                          force_update_info=True)
+    assert_true(raw_eeg_conf.info['sfreq'] == 1.)
+    assert_true(raw_new.info['sfreq'] == raw_meg.info['sfreq'])
+
     assert_true(ch in raw_new.ch_names for ch in raw.ch_names)
     assert_array_equal(raw_new[:, :][0], raw_eeg_meg[:, :][0])
     assert_array_equal(raw_new[:, :][1], raw[:, :][1])

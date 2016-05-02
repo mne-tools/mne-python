@@ -12,7 +12,7 @@ from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
 from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _read_dig_points, _make_dig_points, _merge_info,
-                              RAW_INFO_FIELDS)
+                              _force_update_info, RAW_INFO_FIELDS)
 from mne.utils import _TempDir, run_tests_if_main
 from mne.channels.montage import read_montage, read_dig_montage
 
@@ -266,6 +266,18 @@ def test_merge_info():
     assert_equal(info_merged['nchan'], 6)
     assert_equal(info_merged['ch_names'], ['a', 'b', 'c', 'd', 'e', 'f'])
     assert_raises(ValueError, _merge_info, [info_a, info_a])
+
+    # Testing for force updates before merging
+    info_c = create_info(ch_names=['g', 'h', 'i'], sfreq=500., ch_types=None)
+    assert_raises(RuntimeError, _merge_info, [info_a, info_c])
+    _force_update_info(info_a, info_c)
+    assert_true(info_c['sfreq'] == info_a['sfreq'])
+    assert_true(info_c['ch_names'][0] != info_a['ch_names'][0])
+    # Make sure it works now
+    _merge_info([info_a, info_c])
+    # Check that you must supply Info
+    assert_raises(ValueError, _force_update_info, info_a,
+                  dict([('sfreq', 1000.)]))
 
 
 def test_check_consistency():

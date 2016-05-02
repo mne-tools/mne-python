@@ -1477,3 +1477,18 @@ def _empty_info(sfreq):
     info._update_redundant()
     info._check_consistency()
     return info
+
+
+def _force_update_info(info_base, info_target):
+    """Update target info objects with values from info base."""
+    exclude_keys = ['chs', 'ch_names', 'nchan']
+    info_target = np.atleast_1d(info_target)
+    if not isinstance(info_base, Info):
+        raise ValueError('info_base must be of type Info')
+    if not all([isinstance(ii, Info) for ii in info_target]):
+        raise ValueError('all target infos must both Info objects')
+    for key, val in info_base.items():
+        if key in exclude_keys:
+            continue
+        for i_targ in info_target:
+            i_targ[key] = val

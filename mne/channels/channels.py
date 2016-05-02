@@ -560,7 +560,7 @@ class UpdateChannelsMixin(object):
         elif isinstance(self, Evoked):
             self.data = self.data.take(idx, axis=0)
 
-    def add_channels(self, add_list, copy=None):
+    def add_channels(self, add_list, force_update_info=False, copy=None):
         """Append new channels to the instance.
 
         Parameters
@@ -568,6 +568,10 @@ class UpdateChannelsMixin(object):
         add_list : list
             A list of objects to append to self. Must contain all the same
             type as the current object
+        force_update_info : bool
+            If True, force the info for objects to be appended to match the
+            values in `self`. This should generally only be used when adding
+            stim channels for which important metadata won't be overwritten.
         copy : bool
             This parameter has been deprecated and will be removed in 0.13.
             Use inst.copy() instead.
@@ -580,8 +584,9 @@ class UpdateChannelsMixin(object):
         """
         out = _check_copy_dep(self, copy)
         # avoid circular imports
-        from ..io import _BaseRaw, _merge_info
+        from ..io import _BaseRaw, _merge_info, _force_update_info
         from ..epochs import _BaseEpochs
+        from copy import deepcopy
 
         if not isinstance(add_list, (list, tuple)):
             raise AssertionError('Input must be a list or tuple of objs')
@@ -613,7 +618,10 @@ class UpdateChannelsMixin(object):
 
         # Create final data / info objects
         data = np.concatenate(data, axis=con_axis)
-        infos = [self.info] + [inst.info for inst in add_list]
+        infos_to_add = deepcopy([inst.info for inst in add_list])
+        if force_update_info is True:
+            _force_update_info(self.info, infos_to_add)
+        infos = [self.info] + infos_to_add
         new_info = _merge_info(infos)
 
         # Now update the attributes
