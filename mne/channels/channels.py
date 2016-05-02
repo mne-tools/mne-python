@@ -584,9 +584,8 @@ class UpdateChannelsMixin(object):
         """
         out = _check_copy_dep(self, copy)
         # avoid circular imports
-        from ..io import _BaseRaw, _merge_info, _force_update_info
+        from ..io import _BaseRaw, _merge_info
         from ..epochs import _BaseEpochs
-        from copy import deepcopy
 
         if not isinstance(add_list, (list, tuple)):
             raise AssertionError('Input must be a list or tuple of objs')
@@ -618,11 +617,8 @@ class UpdateChannelsMixin(object):
 
         # Create final data / info objects
         data = np.concatenate(data, axis=con_axis)
-        infos_to_add = deepcopy([inst.info for inst in add_list])
-        if force_update_info is True:
-            _force_update_info(self.info, infos_to_add)
-        infos = [self.info] + infos_to_add
-        new_info = _merge_info(infos)
+        infos = [self.info] + [inst.info for inst in add_list]
+        new_info = _merge_info(infos, force_update_to_first=force_update_info)
 
         # Now update the attributes
         setattr(out, data_name, data)

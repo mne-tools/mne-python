@@ -1052,7 +1052,7 @@ def test_add_channels():
     raw_new = raw_meg.copy().add_channels([raw_eeg])
 
     # Testing force updates
-    raw_eeg_conf = deepcopy(raw_eeg)
+    raw_eeg_conf = raw_eeg.copy()
     raw_eeg_conf.info['sfreq'] = 1.
     assert_raises(RuntimeError, raw_meg.copy().add_channels, [raw_eeg_conf])
     raw_new = raw_meg.copy().add_channels([raw_eeg_conf],
