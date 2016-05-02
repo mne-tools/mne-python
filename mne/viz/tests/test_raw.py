@@ -121,9 +121,14 @@ def test_plot_raw_psd():
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(picks=picks, area_mode='range')
     ax = plt.axes()
-    # if ax is supplied, picks must be, too:
+    # if ax is supplied:
     assert_raises(ValueError, raw.plot_psd, ax=ax)
     raw.plot_psd(picks=picks, ax=ax)
+    plt.close('all')
+    ax = plt.axes()
+    assert_raises(ValueError, raw.plot_psd, ax=ax)
+    ax = [ax, plt.axes()]
+    raw.plot_psd(ax=ax)
     plt.close('all')
     # topo psd
     raw.plot_psd_topo()
