@@ -623,11 +623,16 @@ class Label(object):
 
         Notes
         -----
+        If using 'contiguous' split, some small fringe labels may be returned
+        that are close (but not connected) to the large components.  Also,
+        ensure that the label being split is the same resolution as the surface
+        files in `subjects_dir`.
+
         The spatial split works by finding the label's principal eigen-axis on
         the spherical surface, projecting all label vertex coordinates onto
         this axis and dividing them at regular spatial intervals. The
-        'contiguous' split works by finding all connections (edges) and
-        assigning cooresponding nodes to sets.
+        'contiguous' split works by finding all connected components with
+        scipy's `connected_components` algorithm.
         """
         if isinstance(parts, string_types) and parts == 'contiguous':
             return _split_label_contig(self, subject, subjects_dir)
@@ -930,30 +935,6 @@ def _prep_label_split(label, subject=None, subjects_dir=None):
                          % label.subject, subject)
 
     return label, subject, subjects_dir
-
-
-def _assign_split_membership(label_divs, neighbors):
-    """Helper to assign membership of a list of nodes to label components"""
-
-    # Find overlap between new node neighbors and existing label divisions
-    membership = []
-    for di, div in enumerate(label_divs):
-        if len(neighbors.intersection(div)) > 0:
-            membership.append(di)
-
-    # If node connects to an existing div, assign it to that div
-    if len(membership) > 0:
-        label_divs[membership[0]].update(neighbors)
-
-        # If node connects to 2+ divs, combine them all into one division
-        # (Could also do this once after all nodes memberships are compiled)
-        if membership > 1:
-            for mi in sorted(membership[1:], reverse=True):
-                label_divs[membership[0]].update(label_divs.pop(mi))
-
-    # If edge doesn't connect to existing div, create a new one
-    else:
-        label_divs.append(neighbors)
 
 
 def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
