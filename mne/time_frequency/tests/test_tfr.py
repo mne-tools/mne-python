@@ -150,11 +150,7 @@ def test_time_frequency():
     single_power4 = single_trial_power(data, Fs, freqs, use_fft=False,
                                        n_cycles=2, decim=slice(2, 4))
 
-    assert_array_almost_equal(np.mean(single_power), power.data)
-    # XXX cmoutard: does it make any sense to average single_power across
-    # all the dimensions and not just across epochs ? Because here we
-    # compare a numpy.float64 and a numpy.ndarray
-    # Below is a less conservative test for the decim argument.
+    assert_array_almost_equal(np.mean(single_power, axis=0), power.data)
     assert_array_almost_equal(np.mean(single_power2, axis=0),
                               power.data[:, :, :2])
     assert_array_almost_equal(np.mean(single_power3, axis=0),
