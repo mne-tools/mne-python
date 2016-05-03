@@ -96,9 +96,8 @@ def test_io_set():
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     op.join(temp_dir, 'test_one_event.fdt'))
     event_id = {eeg.event[0].type: 1}
-    raw5 = read_raw_eeglab(input_fname=one_event_fname, montage=montage,
-                               event_id=event_id, preload=True)
-
+    read_raw_eeglab(input_fname=one_event_fname, montage=montage,
+                    event_id=event_id, preload=True)
 
     # test if .dat file raises an error
     eeg = io.loadmat(epochs_fname, struct_as_record=False,
