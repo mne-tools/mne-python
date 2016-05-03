@@ -13,7 +13,6 @@ import re
 
 import numpy as np
 from scipy import linalg, sparse
-from scipy.sparse.csgraph import connected_components
 
 from .fixes import digitize, in1d
 from .utils import get_subjects_dir, _check_subject, logger, verbose, warn
@@ -23,7 +22,7 @@ from .source_space import add_source_space_distances
 from .surface import read_surface, fast_cross_3d, mesh_edges, mesh_dist
 from .source_space import SourceSpaces
 from .parallel import parallel_func, check_n_jobs
-from .stats.cluster_level import _find_clusters
+from .stats.cluster_level import _find_clusters, _get_components
 from .externals.six import b, string_types
 from .externals.six.moves import zip, xrange
 
@@ -969,13 +968,15 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     edges_all = sparse.triu(mesh_edges(surface_tris), format='csr')
 
     # Subselect rows and cols of vertices that belong to the label
-    select_edges = edges_all[verts_arr].tocsc()[:, verts_arr].tocsr()
+    select_edges = edges_all[verts_arr].tocsc()[:, verts_arr].tocoo()
 
     # Compute connected components and store as lists of vertex numbers
-    n_comp, comp_labels = connected_components(select_edges, directed=False)
+    comp_labels = _get_components(verts_arr, select_edges)
+
+    # Convert to indices in the original surface space
     label_divs = []
-    for label_id in range(n_comp):
-        label_divs.append(verts_arr[comp_labels == label_id])
+    for comp in comp_labels:
+        label_divs.append(verts_arr[comp])
 
     # Construct label division names
     n_parts = len(label_divs)
@@ -1000,7 +1001,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     for div, name, color in zip(label_divs, names, colors):
         # Get indices of dipoles within this division of the label
         verts = np.array(sorted(list(div)))
-        vert_indices = in1d(label_to_split.vertices, verts, assume_unique=True)
+        vert_indices = in1d(verts_arr, verts, assume_unique=True)
 
         # Set label attributes
         pos = label_to_split.pos[vert_indices]
