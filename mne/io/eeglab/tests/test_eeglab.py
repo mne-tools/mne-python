@@ -90,9 +90,9 @@ def test_io_set():
     one_event_fname = op.join(temp_dir, 'test_one_event.set')
     io.savemat(one_event_fname, {'EEG':
                {'trials': eeg.trials, 'srate': eeg.srate,
-                'nbchan': eeg.nbchan, 'data': eeg.data,
+                'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                 'epoch': eeg.epoch, 'event': eeg.event[0],
-                'chanlocs': eeg.chanlocs}})
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     op.join(temp_dir, 'test_one_event.fdt'))
     event_id = {eeg.event[0].type: 1}
