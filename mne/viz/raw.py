@@ -401,21 +401,29 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     if area_mode not in [None, 'std', 'range']:
         raise ValueError('"area_mode" must be "std", "range", or None')
     if picks is None:
-        if ax is not None:
-            raise ValueError('If "ax" is not supplied (None), then "picks" '
-                             'must also be supplied')
-        megs = ['mag', 'grad', False]
-        eegs = [False, False, True]
-        names = ['Magnetometers', 'Gradiometers', 'EEG']
+        megs = ['mag', 'grad', False, False, False]
+        eegs = [False, False, True, False, False]
+        seegs = [False, False, False, True, False]
+        ecogs = [False, False, False, False, True]
+        names = ['Magnetometers', 'Gradiometers', 'EEG', 'SEEG', 'ECoG']
         picks_list = list()
         titles_list = list()
-        for meg, eeg, name in zip(megs, eegs, names):
-            picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False)
+        for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs, names):
+            picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
+                               ref_meg=False)
             if len(picks) > 0:
                 picks_list.append(picks)
                 titles_list.append(name)
         if len(picks_list) == 0:
-            raise RuntimeError('No MEG or EEG channels found')
+            raise RuntimeError('No data channels found')
+        if ax is not None:
+            if isinstance(ax, plt.Axes):
+                ax = [ax]
+            if len(ax) != len(picks_list):
+                raise ValueError('For this dataset with picks=None %s axes '
+                                 'must be supplied, got %s'
+                                 % (len(picks_list), len(ax)))
+            ax_list = ax
     else:
         picks_list = [picks]
         titles_list = ['Selected channels']
