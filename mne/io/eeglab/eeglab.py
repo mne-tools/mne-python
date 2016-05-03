@@ -525,8 +525,13 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
     if event_id is None:
         event_id = dict()
 
-    types = [event.type for event in eeg.event]
-    latencies = [event.latency for event in eeg.event]
+    try:
+        types = [event.type for event in eeg.event]
+        latencies = [event.latency for event in eeg.event]
+    except TypeError:
+        # only one event - TypeError: 'mat_struct' object is not iterable
+        types = [eeg.event.type]
+        latencies = [eeg.event.latency]
     if "boundary" in types and "boundary" not in event_id:
         warn("The data contains 'boundary' events, indicating data "
              "discontinuities. Be cautious of filtering and epoching around "
