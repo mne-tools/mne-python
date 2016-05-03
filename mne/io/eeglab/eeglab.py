@@ -525,10 +525,10 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
     if event_id is None:
         event_id = dict()
 
-    try:
+    if isinstance(eeg.event, np.ndarray):
         types = [event.type for event in eeg.event]
         latencies = [event.latency for event in eeg.event]
-    except TypeError:
+    else:
         # only one event - TypeError: 'mat_struct' object is not iterable
         types = [eeg.event.type]
         latencies = [eeg.event.latency]
