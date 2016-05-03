@@ -269,6 +269,7 @@ def test_merge_info():
 
     # Testing for force updates before merging
     info_c = create_info(ch_names=['g', 'h', 'i'], sfreq=500., ch_types=None)
+    # This will break because sfreq is not equal
     assert_raises(RuntimeError, _merge_info, [info_a, info_c])
     _force_update_info(info_a, info_c)
     assert_true(info_c['sfreq'] == info_a['sfreq'])

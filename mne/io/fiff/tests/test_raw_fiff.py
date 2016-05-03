@@ -1051,19 +1051,21 @@ def test_add_channels():
     )
     raw_new = raw_meg.copy().add_channels([raw_eeg])
 
-    # Testing force updates
-    raw_eeg_conf = raw_eeg.copy()
-    raw_eeg_conf.info['sfreq'] = 1.
-    assert_raises(RuntimeError, raw_meg.copy().add_channels, [raw_eeg_conf])
-    raw_new = raw_meg.copy().add_channels([raw_eeg_conf],
-                                          force_update_info=True)
-    assert_true(raw_eeg_conf.info['sfreq'] == 1.)
-    assert_true(raw_new.info['sfreq'] == raw_meg.info['sfreq'])
-
     assert_true(ch in raw_new.ch_names for ch in raw.ch_names)
     assert_array_equal(raw_new[:, :][0], raw_eeg_meg[:, :][0])
     assert_array_equal(raw_new[:, :][1], raw[:, :][1])
     assert_true(all(ch not in raw_new.ch_names for ch in raw_stim.ch_names))
+
+    # Testing force updates
+    raw_arr_info = create_info(['1', '2'], raw_meg.info['sfreq'], 'eeg')
+    orig_head_t = raw_arr_info['dev_head_t']
+    raw_arr = np.random.randn(2, raw_eeg.n_times)
+    raw_arr = RawArray(raw_arr, raw_arr_info)
+    # This should error because of conflicts in Info
+    assert_raises(ValueError, raw_meg.copy().add_channels, [raw_arr])
+    raw_meg.copy().add_channels([raw_arr], force_update_info=True)
+    # Make sure that values didn't get overwritten
+    assert_true(raw_arr.info['dev_head_t'] is orig_head_t)
 
     # Now test errors
     raw_badsf = raw_eeg.copy()

@@ -1504,9 +1504,10 @@ def _force_update_info(info_base, info_target):
     exclude_keys = ['chs', 'ch_names', 'nchan']
     info_target = np.atleast_1d(info_target).ravel()
     all_infos = np.hstack([info_base, info_target])
-    msg = 'Inputs must be of type Info. Found type {0}'
-    if not all([isinstance(ii, Info) for ii in all_infos]):
-        raise ValueError(msg.format(type(ii)))
+    for ii in all_infos:
+        if not isinstance(ii, Info):
+            raise ValueError('Inputs must be of type Info. '
+                             'Found type %s' % type(ii))
     for key, val in info_base.items():
         if key in exclude_keys:
             continue
