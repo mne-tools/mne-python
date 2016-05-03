@@ -1487,13 +1487,26 @@ def _empty_info(sfreq):
 
 
 def _force_update_info(info_base, info_target):
-    """Update target info objects with values from info base."""
+    """Update target info objects with values from info base.
+
+    Note that values in info_target will be overwritten by those in info_base.
+    This will overwrite all fields except for: 'chs', 'ch_names', 'nchan'.
+
+    Parameters
+    ----------
+    info_base : mne.Info
+        The Info object you want to use for overwriting values
+        in target Info objects.
+    info_target : mne.Info | list of mne.Info
+        The Info object(s) you wish to overwrite using info_base. These objects
+        will be modified in-place.
+    """
     exclude_keys = ['chs', 'ch_names', 'nchan']
-    info_target = np.atleast_1d(info_target)
-    if not isinstance(info_base, Info):
-        raise ValueError('info_base must be of type Info')
-    if not all([isinstance(ii, Info) for ii in info_target]):
-        raise ValueError('all target infos must both Info objects')
+    info_target = np.atleast_1d(info_target).ravel()
+    all_infos = np.hstack([info_base, info_target])
+    msg = 'Inputs must be of type Info. Found type {0}'
+    if not all([isinstance(ii, Info) for ii in all_infos]):
+        raise ValueError(msg.format(type(ii)))
     for key, val in info_base.items():
         if key in exclude_keys:
             continue
