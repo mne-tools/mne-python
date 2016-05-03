@@ -84,6 +84,22 @@ def test_io_set():
     assert_raises(ValueError, read_epochs_eeglab, epochs_fname,
                   epochs.events, None)
 
+    # test reading file with one event
+    eeg = io.loadmat(raw_fname, struct_as_record=False,
+                     squeeze_me=True)['EEG']
+    one_event_fname = op.join(temp_dir, 'test_one_event.set')
+    io.savemat(one_event_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': eeg.nbchan, 'data': eeg.data,
+                'epoch': eeg.epoch, 'event': eeg.event[0],
+                'chanlocs': eeg.chanlocs}})
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    op.join(temp_dir, 'test_one_event.fdt'))
+    event_id = {eeg.event[0].type: 1}
+    raw5 = read_raw_eeglab(input_fname=one_event_fname, montage=montage,
+                               event_id=event_id, preload=True)
+
+
     # test if .dat file raises an error
     eeg = io.loadmat(epochs_fname, struct_as_record=False,
                      squeeze_me=True)['EEG']
