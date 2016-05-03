@@ -8,9 +8,12 @@ import numpy as np
 from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_allclose
 
-from mne.viz.utils import compare_fiff, _fake_click
+from mne.viz.utils import compare_fiff, _fake_click, _compute_scalings
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.utils import run_tests_if_main
+from mne.io import read_raw_fif
+from mne.event import read_events
+from mne.epochs import Epochs
 
 # Set our plotters to test mode
 import matplotlib
@@ -88,10 +91,6 @@ def test_add_background_image():
 
 def test_auto_scale():
     """Test auto-scaling of channels for quick plotting."""
-    from mne.io import read_raw_fif
-    from mne.event import read_events
-    from mne.epochs import Epochs
-    from ..utils import compute_scalings
     raw = read_raw_fif(raw_fname, preload=False)
     ev = read_events(ev_fname)
     epochs = Epochs(raw, ev)
@@ -103,16 +102,16 @@ def test_auto_scale():
 
         # Test for wrong inputs
         assert_raises(ValueError, inst.plot, scalings='foo')
-        assert_raises(ValueError, compute_scalings, 'foo', inst)
+        assert_raises(ValueError, _compute_scalings, 'foo', inst)
 
         # Make sure compute_scalings doesn't change anything not auto
-        scalings_new = compute_scalings(scalings_def, inst)
+        scalings_new = _compute_scalings(scalings_def, inst)
         assert_true(scale_grad == scalings_new['grad'])
         assert_true(scalings_new['eeg'] != 'auto')
 
-    assert_raises(ValueError, compute_scalings, scalings_def, rand_data)
+    assert_raises(ValueError, _compute_scalings, scalings_def, rand_data)
     epochs.pick_types(eeg=True, meg=False, copy=False)
-    assert_raises(ValueError, compute_scalings,
+    assert_raises(ValueError, _compute_scalings,
                   dict([('grad', 'auto')]), epochs)
 
 

@@ -16,6 +16,7 @@ import difflib
 import webbrowser
 import tempfile
 import numpy as np
+from copy import deepcopy
 
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
@@ -797,7 +798,7 @@ class ClickableImage(object):
         **kwargs : dict
             Arguments are passed to generate_2d_layout
         """
-        from mne.channels.layout import generate_2d_layout
+        from ..channels.layout import generate_2d_layout
         coords = np.array(self.coords)
         lt = generate_2d_layout(coords, bg_image=self.imdata, **kwargs)
         return lt
@@ -1034,7 +1035,7 @@ def _plot_sensors(pos, colors, ch_names, title, show_names, show):
     return fig
 
 
-def compute_scalings(scalings, inst):
+def _compute_scalings(scalings, inst):
     """Compute scalings for each channel type automatically.
 
     Parameters
@@ -1055,10 +1056,9 @@ def compute_scalings(scalings, inst):
     scalings : dict
         A scalings dictionary with updated values
     """
-    from copy import deepcopy
-    from mne.io.base import _BaseRaw
-    from mne.io.pick import _picks_by_type
-    from mne.epochs import _BaseEpochs
+    from ..io.base import _BaseRaw
+    from ..io.pick import _picks_by_type
+    from ..epochs import _BaseEpochs
     if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
         raise ValueError('Must supply either Raw or Epochs')
     if scalings is None:
@@ -1071,7 +1071,8 @@ def compute_scalings(scalings, inst):
         # If we want to auto-compute everything
         scalings = dict((i_type, 'auto') for i_type in unique_ch_types)
     if not isinstance(scalings, dict):
-        raise ValueError('scalings must be a dictionary of ch_type: val pairs')
+        raise ValueError('scalings must be a dictionary of ch_type: val pairs,'
+                         ' not type %s ' % type(scalings))
     scalings = deepcopy(scalings)
 
     if inst.preload is False:
@@ -1087,7 +1088,7 @@ def compute_scalings(scalings, inst):
     else:
         data = inst._data
     if isinstance(inst, _BaseEpochs):
-        data = np.hstack(inst._data)
+        data = inst._data.reshape([len(inst.ch_names), -1])
 
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():
@@ -1097,6 +1098,7 @@ def compute_scalings(scalings, inst):
             raise ValueError("Sensor {0} doesn't exist in data".format(key))
         this_ixs = [i_type[1] for i_type in ch_types if i_type[0] == key][0]
         this_data = data[this_ixs]
-        scale_factor = np.percentile(np.abs(this_data.ravel()), 99.5)
+        scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
+        scale_factor = np.max(np.abs(scale_factor))
         scalings[key] = scale_factor
     return scalings
