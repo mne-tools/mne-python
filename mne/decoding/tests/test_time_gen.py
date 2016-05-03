@@ -177,7 +177,7 @@ def test_generalization_across_time():
     gat.score_mode = 'fold-wise'
     scores = gat.score(epochs)
     assert_array_equal(np.shape(scores), [15, 15, 5])
-    gat.score_mode = 'sample-wise'
+    gat.score_mode = 'mean-sample-wise'
     scores = gat.score(epochs)
     assert_array_equal(np.shape(scores), [15, 15])
     gat.score_mode = 'mean-fold-wise'

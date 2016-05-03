@@ -321,7 +321,7 @@ class _GeneralizationAcrossTime(object):
 
         .. note::
             If ``predict_mode`` is 'mean-prediction', ``score_mode`` is
-            automatically set to 'sample-wise'.
+            automatically set to 'mean-sample-wise'.
 
         Parameters
         ----------
@@ -363,16 +363,16 @@ class _GeneralizationAcrossTime(object):
 
         # Check scorer
         if self.score_mode not in ('fold-wise', 'mean-fold-wise',
-                                   'sample-wise'):
+                                   'mean-sample-wise'):
             raise ValueError("score_mode must be 'fold-wise', "
-                             "'mean-fold-wise' or 'sample-wise'. "
+                             "'mean-fold-wise' or 'mean-sample-wise'. "
                              "Got %s instead'" % self.score_mode)
         score_mode = self.score_mode
         if (self.predict_mode == 'mean-prediction' and
-                self.score_mode != 'sample-wise'):
-            warn("score_mode changed from %s set to 'sample-wise' because "
-                 "predict_mode is 'mean-prediction'." % self.score_mode)
-            score_mode = 'sample-wise'
+                self.score_mode != 'mean-sample-wise'):
+            warn("score_mode changed from %s set to 'mean-sample-wise' because"
+                 " predict_mode is 'mean-prediction'." % self.score_mode)
+            score_mode = 'mean-sample-wise'
         self.scorer_ = self.scorer
         if self.scorer_ is None:
             # Try to guess which scoring metrics should be used
@@ -610,7 +610,7 @@ def _score_slices(y_true, list_y_pred, scorer, score_mode, cv):
                 # Summarize score as average across folds
                 if score_mode == 'mean-fold-wise':
                     scores_ = np.mean(scores_, axis=0)
-            elif score_mode == 'sample-wise':
+            elif score_mode == 'mean-sample-wise':
                 # Estimate score across all y_pred without cross-validation.
                 scores_ = scorer(y_true, this_y_pred)
             scores.append(scores_)
@@ -941,14 +941,14 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     scorer : object | None | str
         scikit-learn Scorer instance or str type indicating the name of the
         scorer such as ``accuracy``, ``roc_auc``. If None, set to ``accuracy``.
-    score_mode : {'fold-wise', 'mean-fold-wise', 'sample-wise'}
+    score_mode : {'fold-wise', 'mean-fold-wise', 'mean-sample-wise'}
         Determines how the scorer is estimated:
 
             * ``fold-wise`` : returns the score obtained in each fold.
 
             * ``mean-fold-wise`` : returns the average of the fold-wise scores.
 
-            * ``sample-wise`` : returns score estimated across across all
+            * ``mean-sample-wise`` : returns score estimated across across all
                 y_pred independently of the cross-validation. This method is
                 faster than ``mean-fold-wise`` but less conventional, use at
                 your own risk.
@@ -1261,14 +1261,14 @@ class TimeDecoding(_GeneralizationAcrossTime):
     scorer : object | None | str
         scikit-learn Scorer instance or str type indicating the name of the
         scorer such as ``accuracy``, ``roc_auc``. If None, set to ``accuracy``.
-    score_mode : {'fold-wise', 'mean-fold-wise', 'sample-wise'}
+    score_mode : {'fold-wise', 'mean-fold-wise', 'mean-sample-wise'}
         Determines how the scorer is estimated:
 
             * ``fold-wise`` : returns the score obtained in each fold.
 
             * ``mean-fold-wise`` : returns the average of the fold-wise scores.
 
-            * ``sample-wise`` : returns score estimated across across all
+            * ``mean-sample-wise`` : returns score estimated across across all
                 y_pred independently of the cross-validation. This method is
                 faster than ``mean-fold-wise`` but less conventional, use at
                 your own risk.
@@ -1425,7 +1425,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
         .. note::
             If ``predict_mode`` is 'mean-prediction', ``score_mode`` is
-            automatically set to 'sample-wise'.
+            automatically set to 'mean-sample-wise'.
 
         Parameters
         ----------
