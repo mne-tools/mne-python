@@ -345,8 +345,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -------
         data : array, [channels x samples]
            the data matrix (channels x samples).
-        times : array, [samples]
-            returns the time values corresponding to the samples.
         """
         #  Initial checks
         start = int(start)
