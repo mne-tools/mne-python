@@ -23,7 +23,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar,
                     _plot_raw_onscroll, _mouse_click, plt_show,
                     _helper_raw_resize, _select_bads, _onclick_help,
-                    _setup_browser_offsets, compute_scalings)
+                    _setup_browser_offsets, _compute_scalings)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
 
@@ -177,7 +177,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     import matplotlib as mpl
     from scipy.signal import butter
     color = _handle_default('color', color)
-    scalings = compute_scalings(scalings, raw)
+    scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
 
     if clipping is not None and clipping not in ('clamp', 'transparent'):
