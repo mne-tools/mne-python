@@ -623,16 +623,14 @@ class Label(object):
 
         Notes
         -----
-        If using 'contiguous' split, some small fringe labels may be returned
-        that are close (but not connected) to the large components.  Also,
-        ensure that the label being split is the same resolution as the surface
-        files in `subjects_dir`.
+        If using 'contiguous' split, you must ensure that the label being split
+        uses the same triangular resolution as the surface mesh files in
+        ``subjects_dir`` Also, some small fringe labels may be returned that
+        are close (but not connected) to the large components.
 
-        The spatial split works by finding the label's principal eigen-axis on
-        the spherical surface, projecting all label vertex coordinates onto
-        this axis and dividing them at regular spatial intervals. The
-        'contiguous' split works by finding all connected components with
-        scipy's `connected_components` algorithm.
+        The spatial split finds the label's principal eigen-axis on the
+        spherical surface, projects all label vertex coordinates onto this
+        axis, and divides them at regular spatial intervals.
         """
         if isinstance(parts, string_types) and parts == 'contiguous':
             return _split_label_contig(self, subject, subjects_dir)
