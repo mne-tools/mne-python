@@ -1046,10 +1046,9 @@ def _compute_scalings(scalings, inst):
         scaling for that channel type. Any values that aren't
         'auto' will not be changed.
     inst : instance of Raw or Epochs
-        The data for which you want to compute scalings. If Epochs,
-        data will be preloaded. If Raw, a window of max 20
-        seconds will be loaded from the middle of the data for
-        estimating scaling.
+        The data for which you want to compute scalings. If data
+        is not preloaded, this will read a subset of times / epochs
+        up to 100mb in size in order to compute scalings.
 
     Returns
     -------
@@ -1077,14 +1076,20 @@ def _compute_scalings(scalings, inst):
 
     if inst.preload is False:
         if isinstance(inst, _BaseRaw):
-            # Load a sample of data
-            n_secs = 20.
+            # Load a window of data from the center up to 100mb in size
+            n_times = 1e8 // (len(inst.ch_names) * 8)
+            n_times = np.clip(n_times, 1, inst.n_times)
+            n_secs = n_times / float(inst.info['sfreq'])
             time_middle = np.mean(inst.times)
             tmin = np.clip(time_middle - n_secs / 2., inst.times.min(), None)
             tmax = np.clip(time_middle + n_secs / 2., None, inst.times.max())
             data = inst._read_segment(tmin, tmax)
         elif isinstance(inst, _BaseEpochs):
-            inst.load_data()
+            # Load a random subset of epochs up to 100mb in size
+            n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
+            n_epochs = int(np.clip(n_epochs, 1, len(inst)))
+            ixs_epochs = np.random.choice(range(len(inst)), n_epochs, False)
+            inst = inst.copy()[ixs_epochs].load_data()
     else:
         data = inst._data
     if isinstance(inst, _BaseEpochs):
@@ -1096,7 +1101,7 @@ def _compute_scalings(scalings, inst):
             continue
         if key not in unique_ch_types:
             raise ValueError("Sensor {0} doesn't exist in data".format(key))
-        this_ixs = [i_type[1] for i_type in ch_types if i_type[0] == key][0]
+        this_ixs = [i_ixs for key_, i_ixs in ch_types if key_ == key]
         this_data = data[this_ixs]
         scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
         scale_factor = np.max(np.abs(scale_factor))
