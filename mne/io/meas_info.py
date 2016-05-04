@@ -1289,7 +1289,7 @@ def _merge_dict_values(dicts, key, verbose=None):
 
 
 @verbose
-def _merge_info(infos, verbose=None):
+def _merge_info(infos, force_update_to_first=False, verbose=None):
     """Merge multiple measurement info dictionaries.
 
      - Fields that are present in only one info object will be used in the
@@ -1305,6 +1305,10 @@ def _merge_info(infos, verbose=None):
     ----------
     infos | list of instance of Info
         Info objects to merge into one info object.
+    force_update_to_first : bool
+        If True, force the fields for objects in `info` will be updated
+        to match those in the first item. Use at your own risk, as this
+        may overwrite important metadata.
     verbose : bool, str, int, or NonIe
         If not None, override default verbose level (see mne.verbose).
 
@@ -1315,6 +1319,9 @@ def _merge_info(infos, verbose=None):
     """
     for info in infos:
         info._check_consistency()
+    if force_update_to_first is True:
+        infos = deepcopy(infos)
+        _force_update_info(infos[0], infos[1:])
     info = Info()
     info['chs'] = []
     for this_info in infos:
@@ -1477,3 +1484,32 @@ def _empty_info(sfreq):
     info._update_redundant()
     info._check_consistency()
     return info
+
+
+def _force_update_info(info_base, info_target):
+    """Update target info objects with values from info base.
+
+    Note that values in info_target will be overwritten by those in info_base.
+    This will overwrite all fields except for: 'chs', 'ch_names', 'nchan'.
+
+    Parameters
+    ----------
+    info_base : mne.Info
+        The Info object you want to use for overwriting values
+        in target Info objects.
+    info_target : mne.Info | list of mne.Info
+        The Info object(s) you wish to overwrite using info_base. These objects
+        will be modified in-place.
+    """
+    exclude_keys = ['chs', 'ch_names', 'nchan']
+    info_target = np.atleast_1d(info_target).ravel()
+    all_infos = np.hstack([info_base, info_target])
+    for ii in all_infos:
+        if not isinstance(ii, Info):
+            raise ValueError('Inputs must be of type Info. '
+                             'Found type %s' % type(ii))
+    for key, val in info_base.items():
+        if key in exclude_keys:
+            continue
+        for i_targ in info_target:
+            i_targ[key] = val

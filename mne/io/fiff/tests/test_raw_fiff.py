@@ -1056,6 +1056,17 @@ def test_add_channels():
     assert_array_equal(raw_new[:, :][1], raw[:, :][1])
     assert_true(all(ch not in raw_new.ch_names for ch in raw_stim.ch_names))
 
+    # Testing force updates
+    raw_arr_info = create_info(['1', '2'], raw_meg.info['sfreq'], 'eeg')
+    orig_head_t = raw_arr_info['dev_head_t']
+    raw_arr = np.random.randn(2, raw_eeg.n_times)
+    raw_arr = RawArray(raw_arr, raw_arr_info)
+    # This should error because of conflicts in Info
+    assert_raises(ValueError, raw_meg.copy().add_channels, [raw_arr])
+    raw_meg.copy().add_channels([raw_arr], force_update_info=True)
+    # Make sure that values didn't get overwritten
+    assert_true(raw_arr.info['dev_head_t'] is orig_head_t)
+
     # Now test errors
     raw_badsf = raw_eeg.copy()
     raw_badsf.info['sfreq'] = 3.1415927

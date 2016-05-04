@@ -560,7 +560,7 @@ class UpdateChannelsMixin(object):
         elif isinstance(self, Evoked):
             self.data = self.data.take(idx, axis=0)
 
-    def add_channels(self, add_list, copy=None):
+    def add_channels(self, add_list, copy=None, force_update_info=False):
         """Append new channels to the instance.
 
         Parameters
@@ -572,6 +572,12 @@ class UpdateChannelsMixin(object):
             This parameter has been deprecated and will be removed in 0.13.
             Use inst.copy() instead.
             Whether to return a new instance or modify in place.
+        force_update_info : bool
+            If True, force the info for objects to be appended to match the
+            values in `self`. This should generally only be used when adding
+            stim channels for which important metadata won't be overwritten.
+
+            .. versionadded:: 0.12
 
         Returns
         -------
@@ -614,7 +620,7 @@ class UpdateChannelsMixin(object):
         # Create final data / info objects
         data = np.concatenate(data, axis=con_axis)
         infos = [self.info] + [inst.info for inst in add_list]
-        new_info = _merge_info(infos)
+        new_info = _merge_info(infos, force_update_to_first=force_update_info)
 
         # Now update the attributes
         setattr(out, data_name, data)
