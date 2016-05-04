@@ -69,6 +69,10 @@ You can also install the latest release version with easy_install::
 
 or with pip::
 
+    pip install mne
+    
+for an update of an already installed version use::
+
     pip install mne --upgrade
 
 or for the latest development version (the most up to date)::
