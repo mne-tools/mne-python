@@ -11,7 +11,7 @@
 import numpy as np
 from os.path import splitext
 
-from . import Epochs
+
 from .utils import check_fname, logger, verbose, _get_stim_channel, warn
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
@@ -888,6 +888,8 @@ def concatenate_events(events, first_samps, last_samps):
     return events_out
 
 
+
+
 class Elekta_event(object):
     """ Represents a trigger event in Elekta/Neuromag system.  """
     
@@ -955,7 +957,7 @@ class Elekta_averager(object):
     def __init__(self, acq_pars):
         """ acq_pars usually is obtained as data.info['acq_pars'], where data can be 
         instance of Raw, Epochs or Evoked. """
-        self.acq_dict = Elekta_averager._acqpars_dict(acq_pars)
+        self.acq_dict = _acqpars_dict(acq_pars)
         # sets instance variables (lowercase versions of dacq variable names), to avoid a lot of boilerplate code
         for var in Elekta_averager.vars:
             val = self.acq_dict['ERF'+var]
@@ -981,22 +983,6 @@ class Elekta_averager(object):
         return '<Elekta_averager | Version: {} Categories: {} Events: {} Stim source: {}>'.format(
         self.version, self.ncateg, self.nevent, self.stimsource)
 
-    @staticmethod
-    def _acqpars_gen(acq_pars):
-        """ Yields key/value pairs from a string of acquisition parameters. """
-        for line in acq_pars.split():
-            if any([line.startswith(x) for x in Elekta_averager.acq_var_magic]):
-                key = line
-                val = ''
-            else:
-                val += ' ' + line if val else line  # DACQ splits items with spaces into multiple lines
-            yield key, val
-
-    @staticmethod
-    def _acqpars_dict(acq_pars):
-        """ Makes a dict from a string of acquisition parameters, which is info['acq_pars'] 
-        for Elekta Vectorview/TRIUX systems. """
-        return dict(Elekta_averager._acqpars_gen(acq_pars))
 
     def _events_from_acq_pars(self):
         """ Collects DACQ defined events into a dict. """
@@ -1066,7 +1052,7 @@ class Elekta_averager(object):
             refEvents_inds = refEvents_inds[np.where(req_acc)]
             refEvents_t = times[refEvents_inds]            
         # adjust for trigger-stimulus delay by delaying the ref. event
-        refEvents_t += np.round(self.events[cat.event].delay * sfreq)
+        refEvents_t += int(np.round(self.events[cat.event].delay * sfreq))
         return refEvents_t
 
     def get_mne_rejection_dict(self):
@@ -1077,6 +1063,7 @@ class Elekta_averager(object):
 
     def get_epochs(self, raw, catname, picks=None, reject=None, stim_channel=None, mask=0):
         """ Get mne.Epochs instance corresponding to the given category. """
+        from .epochs import Epochs
         cat = self.categories[catname]
         mne_events = find_events(raw, stim_channel=stim_channel, mask=mask, consecutive=True)
         sfreq = raw.info['sfreq']
@@ -1086,5 +1073,20 @@ class Elekta_averager(object):
         id = {cat.comment: 1}
         return Epochs(raw, catev, event_id=id, reject=reject, tmin=cat.start, tmax=cat.end, baseline=None,
                           picks=picks, preload=True)
+
+def _acqpars_dict(acq_pars):
+    """ Makes a dict from a string of acquisition parameters, which is info['acq_pars'] 
+    for Elekta Vectorview/TRIUX systems. """
+    return dict(_acqpars_gen(acq_pars))
+
+def _acqpars_gen(acq_pars):
+    """ Yields key/value pairs from a string of acquisition parameters. """
+    for line in acq_pars.split():
+        if any([line.startswith(x) for x in Elekta_averager.acq_var_magic]):
+            key = line
+            val = ''
+        else:
+            val += ' ' + line if val else line  # DACQ splits items with spaces into multiple lines
+        yield key, val
 
 
