@@ -572,7 +572,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
 
 
 def plot_tfr_gfp(tfr, baseline=None, mode='mean', colors='auto',
-                 summarize=False, title=None, show=True):
+                 summarize=False, title=None, axis=None, show=True):
     """ Show time and frequency resolved global field power
 
     Parameters
@@ -612,11 +612,45 @@ def plot_tfr_gfp(tfr, baseline=None, mode='mean', colors='auto',
     fig : instance of matplotlib figure
         The figure.
     """
+    import matplotlib.pyplot as plt
+    ch_types_tfr = [ch for ch in ['mag', 'grad', 'eeg', 'ecog'] if ch in tfr]
+    n_axis = len(ch_types_tfr)
+    fig, axes = plt.subplots(
+        n_axis, 1, figsize=(12, 8.0 / n_axis), sharex=True, sharey=True)
+    if isinstance(axes, np.ndarray):
+        axes = axes.ravel()
+    else:
+        axes = [axes]
+
+    if title is not None:
+        plt.title(title)
+
+    for ii, (ch_type, ax) in enumerate(zip(ch_types_tfr, axes)):
+
+        ch_type_sel = dict(
+            meg=(False if ch_type not in ('grad', 'mag') else ch_type),
+            eeg=(True if ch_type == 'eeg' else False),
+            ecog=(True if ch_type == 'eeg' else False))
+    
+        this_tfr = tfr.copy().pick_types(**ch_type_sel)
+        _plot_tfr_gfp(this_tfr, baseline=baseline, mode=mode, colors=colors,
+                      summarize=summarize, axis=ax,
+                      ax_title=ch_type, ii_axis=ii)
+    
+    if show:
+        plt.show()
+    return fig
+
+
+def _plot_tfr_gfp(tfr, baseline, mode, colors, ax_title, summarize, axis,
+                  ii_axis):
+    """ Helper to plot gfp on one axis """
     default_bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
                      (12, 30, 'Beta'), (30, 45, 'Gamma')]
     band_names = list()
-    import matplotlib.pyplot as plt
     from mne.utils import _time_mask as _freq_mask
+    import matplotlib.pyplot as plt
+
     freqs = tfr.freqs
 
     X = tfr.copy().apply_baseline(
@@ -655,18 +689,16 @@ def plot_tfr_gfp(tfr, baseline=None, mode='mean', colors='auto',
 
     my_iter = enumerate(zip(band_names, X_new, colors))
     times = tfr.times * 1000
-    fig = plt.figure()
-    if title is not None:
-        plt.title(title)
+    ax = axis
     for ii, (band_name, signal, color) in my_iter:
-        plt.plot(times, signal, color=color, label=band_name)
+        ax.plot(times, signal, color=color, label=band_name)
         if X_new_std is not None:
             this_std = X_new_std[ii]
-            plt.fill_between(times, signal + this_std, signal - this_std,
-                             color=color, alpha=0.3)
-    plt.legend(loc='best')
-    plt.xlabel('Time [ms]')
-    plt.ylabel('%s %s' % (tfr.method, '[' + mode + ']' if baseline else ''))
-    if show:
-        plt.show()
-    return fig
+            ax.fill_between(times, signal + this_std, signal - this_std,
+                            color=color, alpha=0.3)
+
+    ax.set_ylabel('%s %s' % (tfr.method, '[' + mode + ']' if baseline else ''))
+    ax.set_title(ax_title)
+    if ii_axis == 0:
+        ax.legend(loc='best')
+        ax.set_xlabel('Time [ms]')
