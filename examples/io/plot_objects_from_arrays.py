@@ -51,6 +51,11 @@ scalings = {'mag': 2, 'grad': 2}
 raw.plot(n_channels=4, scalings=scalings, title='Data from arrays',
          show=True, block=True)
 
+# It is also possible to auto-compute scalings
+scalings = 'auto'  # Could also pass a dictionary with some value == 'auto'
+raw.plot(n_channels=4, scalings=scalings, title='Auto-scaled Data from arrays',
+         show=True, block=True)
+
 
 ###############################################################################
 # EpochsArray
@@ -66,7 +71,6 @@ events = np.array([[200, 0, event_id],
 epochs_data = np.array([[sin[:700], cos[:700]],
                         [sin[1000:1700], cos[1000:1700]],
                         [sin[1800:2500], cos[1800:2500]]])
-epochs_data *= 1e-12  # Scale to match usual magnetometer amplitudes.
 
 ch_names = ['sin', 'cos']
 ch_types = ['mag', 'mag']
@@ -77,7 +81,7 @@ epochs = mne.EpochsArray(epochs_data, info=info, events=events,
 
 picks = mne.pick_types(info, meg=True, eeg=False, misc=False)
 
-epochs.plot(picks=picks, show=True, block=True)
+epochs.plot(picks=picks, scalings='auto', show=True, block=True)
 
 
 ###############################################################################
