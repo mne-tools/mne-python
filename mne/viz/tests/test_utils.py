@@ -110,9 +110,10 @@ def test_auto_scale():
         assert_true(scalings_new['eeg'] != 'auto')
 
     assert_raises(ValueError, _compute_scalings, scalings_def, rand_data)
+    epochs = epochs[0].load_data()
     epochs.pick_types(eeg=True, meg=False, copy=False)
     assert_raises(ValueError, _compute_scalings,
-                  dict([('grad', 'auto')]), epochs)
+                  dict(grad='auto'), epochs)
 
 
 run_tests_if_main()
