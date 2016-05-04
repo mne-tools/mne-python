@@ -962,13 +962,12 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     surf_path = op.join(subjects_dir, subject, 'surf', surf_fname)
     surface_points, surface_tris = read_surface(surf_path)
 
-    # Get vertices we want to keep
+    # Get vertices we want to keep and compute mesh edges
     verts_arr = label_to_split.vertices
-    # Compute edges on only upper triangle (since edges are binary)
-    edges_all = sparse.triu(mesh_edges(surface_tris), format='csr')
+    edges_all = mesh_edges(surface_tris)
 
     # Subselect rows and cols of vertices that belong to the label
-    select_edges = edges_all[verts_arr].tocsc()[:, verts_arr].tocoo()
+    select_edges = edges_all[verts_arr][:, verts_arr].tocoo()
 
     # Compute connected components and store as lists of vertex numbers
     comp_labels = _get_components(verts_arr, select_edges)
