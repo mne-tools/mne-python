@@ -41,8 +41,11 @@ print('Number of events:', len(events))
 # Show all unique event codes (3rd column)
 print('Unique event codes:', np.unique(events[:, 2]))
 
-# Specify event codes of interest with descriptive labels
-event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
+# Specify event codes of interest with descriptive labels.
+# This dataset also has visual left (3) and right (4) events, but
+# to save time and memory we'll just look at the auditory conditions
+# for now.
+event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
 
 ###############################################################################
 # Now, we can create an :class:`mne.Epochs` object with the events we've
@@ -71,7 +74,7 @@ print(epochs.events[:3], epochs.event_id, sep='\n\n')
 # `event_id` then you may index with strings instead.
 
 print(epochs[1:5])
-print(epochs['aud_r'])
+print(epochs['Auditory/Right'])
 
 ###############################################################################
 # It is also possible to iterate through :class:`Epochs <mne.Epochs>` objects
@@ -114,8 +117,9 @@ epochs.save(epochs_fname)
 
 ###############################################################################
 # Later on you can read the epochs with :func:`mne.read_epochs`. For reading
-# EEGLAB epochs files see :func:`mne.read_epochs_eeglab`.
-epochs = mne.read_epochs(epochs_fname)
+# EEGLAB epochs files see :func:`mne.read_epochs_eeglab`. We can also use
+# ``preload=False`` to save memory, loading the epochs from disk on demand.
+epochs = mne.read_epochs(epochs_fname, preload=False)
 
 ###############################################################################
 # If you wish to look at the average across trial types, then you may do so,
@@ -124,8 +128,8 @@ epochs = mne.read_epochs(epochs_fname)
 # creating `Evoked` from other data structures see :class:`mne.EvokedArray` and
 # :ref:`tut_creating_data_structures`.
 
-ev_left = epochs['aud_l'].average()
-ev_right = epochs['aud_r'].average()
+ev_left = epochs['Auditory/Left'].average()
+ev_right = epochs['Auditory/Right'].average()
 
 f, axs = plt.subplots(3, 2, figsize=(10, 5))
 _ = f.suptitle('Left / Right auditory', fontsize=20)
