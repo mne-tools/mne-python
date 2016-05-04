@@ -35,10 +35,12 @@ raw.plot(block=True, events=events)
 # color coded gray. By clicking the lines or channel names on the left, you can
 # mark or unmark a bad channel interactively. You can use +/- keys to adjust
 # the scale (also = works for magnifying the data). Note that the initial
-# scaling factors can be set with parameter ``scalings``. With
-# ``pageup/pagedown`` and ``home/end`` keys you can adjust the amount of data
-# viewed at once. To see all the interactive features, hit ``?`` or click
-# ``help`` in the lower left corner of the browser window.
+# scaling factors can be set with parameter ``scalings``. If you don't know the
+# scaling factor for channels, you can automatically set them by passing
+# scalings='auto'. With ``pageup/pagedown`` and ``home/end`` keys you can
+# adjust the amount of data viewed at once. To see all the interactive
+# features, hit ``?`` or click ``help`` in the lower left corner of the
+# browser window.
 #
 # We read the events from a file and passed it as a parameter when calling the
 # method. The events are plotted as vertical lines so you can see how they
