@@ -368,6 +368,7 @@ def _download_all_example_data(verbose=True):
     sys.argv += ['--accept-brainstorm-license']
     try:
         brainstorm.bst_raw.data_path()
+        brainstorm.bst_auditory.data_path()
     finally:
         sys.argv.pop(-1)
     sys.argv += ['--update-dataset-path']
