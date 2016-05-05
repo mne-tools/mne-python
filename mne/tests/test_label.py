@@ -572,12 +572,16 @@ def test_write_labels_to_annot():
                   annot_fname=fnames[0])
 
 
+@requires_sklearn
 @testing.requires_testing_data
 def test_split_label():
     """Test splitting labels"""
     aparc = read_labels_from_annot('fsaverage', 'aparc', 'lh',
                                    regexp='lingual', subjects_dir=subjects_dir)
     lingual = aparc[0]
+
+    # Test input error
+    assert_raises(ValueError, lingual.split, 'bad_input_string')
 
     # split with names
     parts = ('lingual_post', 'lingual_ant')
@@ -610,6 +614,15 @@ def test_split_label():
 
     # check default label name
     assert_equal(antmost.name, "lingual_div40-lh")
+
+    # Apply contiguous splitting to DMN label from parcellation in Yeo, 2011
+    label_default_mode = read_label(op.join(subjects_dir, 'fsaverage', 'label',
+                                            'lh.7Networks_7.label'))
+    DMN_sublabels = label_default_mode.split(parts='contiguous',
+                                             subject='fsaverage',
+                                             subjects_dir=subjects_dir)
+    assert_equal([len(label.vertices) for label in DMN_sublabels],
+                 [16181, 7022, 5965, 5300, 823] + [1] * 23)
 
 
 @slow_test
