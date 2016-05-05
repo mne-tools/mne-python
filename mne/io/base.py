@@ -1362,10 +1362,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         #   Convert to samples
         start = int(np.floor(tmin * self.info['sfreq']))
 
+        # "stop" is the first sample *not* to save, so we need +1's here
         if tmax is None:
-            stop = self.last_samp + 1 - self.first_samp
+            stop = np.inf
         else:
-            stop = int(np.floor(tmax * self.info['sfreq']))
+            stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
+        stop = min(stop, self.last_samp - self.first_samp + 1)
         buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
@@ -1989,9 +1991,11 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                split_size, part_idx, prev_fname):
     """Write raw file with splitting
     """
-    if start >= stop:  # we've done something wrong if we hit this
+    # we've done something wrong if we hit this
+    n_times_max = len(raw.times)
+    if start >= stop or stop > n_times_max:
         raise RuntimeError('Cannot write raw file with no data: %s -> %s '
-                           'requested' % (start, stop))
+                           '(max: %s) requested' % (start, stop, n_times_max))
 
     if part_idx > 0:
         # insert index in filename
@@ -2003,6 +2007,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
     fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
                                    reset_range, raw.annotations)
+    use_picks = slice(None) if picks is None else picks
 
     first_samp = raw.first_samp + start
     if first_samp != 0:
@@ -2026,11 +2031,10 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                          'the chosen buffer_size' % pos_prev)
     next_file_buffer = 2 ** 20  # extra cushion for last few post-data tags
     for first in range(start, stop, buffer_size):
-        last = first + buffer_size
-        if picks is None:
-            data, times = raw[:, first:last]
-        else:
-            data, times = raw[picks, first:last]
+        # Write blocks <= buffer_size in size
+        last = min(first + buffer_size, stop)
+        data, times = raw[use_picks, first:last]
+        assert len(times) == last - first
 
         if projector is not None:
             data = np.dot(projector, data)
