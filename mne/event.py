@@ -257,7 +257,8 @@ def read_events(filename, include=None, exclude=None, mask=0):
             raise ValueError('Unknown number of columns in event text file')
 
         event_list = lines[:, goods]
-        if event_list.shape[0] > 0 and event_list[0, 2] == 0:
+        if (mask is not None and event_list.shape[0] > 0 and
+                event_list[0, 2] == 0):
             event_list = event_list[1:]
             warn('first row of event file discarded (zero-valued)')
 
