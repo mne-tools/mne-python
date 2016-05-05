@@ -383,6 +383,30 @@ def test_split_files():
     assert_array_equal(data_1, data_2)
     assert_array_equal(times_1, times_2)
 
+    # test the case where we only end up with one buffer to write
+    # (GH#3210). These tests rely on writing meas info and annotations
+    # taking up a certain number of bytes, so if we change those functions
+    # somehow, the numbers below for e.g. split_size might need to be
+    # adjusted.
+    raw_crop = raw_1.copy().crop(0, 5, copy=False)
+    try:
+        raw_crop.save(split_fname, split_size='1MB',  # too small a size
+                      buffer_size_sec=1., overwrite=True)
+    except ValueError as exp:
+        assert_true('after writing measurement information' in str(exp), exp)
+    try:
+        raw_crop.save(split_fname,
+                      split_size=3002276,  # still too small, now after Info
+                      buffer_size_sec=1., overwrite=True)
+    except ValueError as exp:
+        assert_true('too large for the given split size' in str(exp), exp)
+    # just barely big enough here; the right size to write exactly one buffer
+    # at a time so we hit GH#3210 if we aren't careful
+    raw_crop.save(split_fname, split_size='4.5MB',
+                  buffer_size_sec=1., overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_allclose(raw_crop[:][0], raw_read[:][0], atol=1e-20)
+
 
 def test_load_bad_channels():
     """Test reading/writing of bad channels
