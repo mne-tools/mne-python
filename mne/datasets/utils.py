@@ -12,7 +12,7 @@ import stat
 import sys
 
 from .. import __version__ as mne_version
-from ..utils import get_config, set_config, _fetch_file, logger, warn
+from ..utils import get_config, set_config, _fetch_file, logger, warn, verbose
 from ..externals.six import string_types
 from ..externals.six.moves import input
 
@@ -351,3 +351,36 @@ def has_dataset(name):
     dp = _data_path(download=False, name=name, check_version=False,
                     archive_name=archive_name)
     return dp.endswith(endswith)
+
+
+@verbose
+def _download_all_example_data(verbose=True):
+    """Helper to download all datasets used in examples and tutorials"""
+    # This function is designed primarily to be used by CircleCI. It has
+    # verbose=True by default so we get nice status messages
+    from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
+                   eegbci)
+    sample.data_path()
+    testing.data_path()
+    misc.data_path()
+    spm_face.data_path()
+    somato.data_path()
+    sys.argv += ['--accept-brainstorm-license']
+    try:
+        brainstorm.bst_raw.data_path()
+    finally:
+        sys.argv.pop(-1)
+    sys.argv += ['--update-dataset-path']
+    try:
+        megsim.load_data(condition='visual', data_format='single-trial',
+                         data_type='simulation')
+        megsim.load_data(condition='visual', data_format='raw',
+                         data_type='experimental')
+        megsim.load_data(condition='visual', data_format='evoked',
+                         data_type='simulation')
+    finally:
+        sys.argv.pop(-1)
+    url_root = 'http://www.physionet.org/physiobank/database/eegmmidb/'
+    eegbci.data_path(url_root + 'S001/S001R06.edf', update_path=True)
+    eegbci.data_path(url_root + 'S001/S001R10.edf', update_path=True)
+    eegbci.data_path(url_root + 'S001/S001R14.edf', update_path=True)
