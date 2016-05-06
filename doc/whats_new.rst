@@ -67,7 +67,7 @@ Changelog
 
     - Add option for ``first_samp`` in :func:`mne.make_fixed_length_events` by `Jon Houck`_
 
-    - Add ability to auto-scale channel types for `mne.viz.plot_raw` and `mne.viz.plot_epochs` and corresponding object plotting methods by `Chris Holdgraf`_
+    - Add ability to auto-scale channel types for :func:`mne.viz.plot_raw` and :func:`mne.viz.plot_epochs` and corresponding object plotting methods by `Chris Holdgraf`_
 
 BUG
 ~~~
