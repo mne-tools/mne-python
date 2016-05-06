@@ -1362,10 +1362,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         #   Convert to samples
         start = int(np.floor(tmin * self.info['sfreq']))
 
+        # "stop" is the first sample *not* to save, so we need +1's here
         if tmax is None:
-            stop = self.last_samp + 1 - self.first_samp
+            stop = np.inf
         else:
-            stop = int(np.floor(tmax * self.info['sfreq']))
+            stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
+        stop = min(stop, self.last_samp - self.first_samp + 1)
         buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
@@ -1989,6 +1991,11 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                split_size, part_idx, prev_fname):
     """Write raw file with splitting
     """
+    # we've done something wrong if we hit this
+    n_times_max = len(raw.times)
+    if start >= stop or stop > n_times_max:
+        raise RuntimeError('Cannot write raw file with no data: %s -> %s '
+                           '(max: %s) requested' % (start, stop, n_times_max))
 
     if part_idx > 0:
         # insert index in filename
@@ -1999,7 +2006,8 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
     logger.info('Writing %s' % use_fname)
 
     fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
-                                   reset_range)
+                                   reset_range, raw.annotations)
+    use_picks = slice(None) if picks is None else picks
 
     first_samp = raw.first_samp + start
     if first_samp != 0:
@@ -2015,16 +2023,18 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
         end_block(fid, FIFF.FIFFB_REF)
 
-    pos_prev = None
+    pos_prev = fid.tell()
+    if pos_prev > split_size:
+        raise ValueError('file is larger than "split_size" after writing '
+                         'measurement information, you must use a larger '
+                         'value for split size: %s plus enough bytes for '
+                         'the chosen buffer_size' % pos_prev)
+    next_file_buffer = 2 ** 20  # extra cushion for last few post-data tags
     for first in range(start, stop, buffer_size):
-        last = first + buffer_size
-        if last >= stop:
-            last = stop + 1
-
-        if picks is None:
-            data, times = raw[:, first:last]
-        else:
-            data, times = raw[picks, first:last]
+        # Write blocks <= buffer_size in size
+        last = min(first + buffer_size, stop)
+        data, times = raw[use_picks, first:last]
+        assert len(times) == last - first
 
         if projector is not None:
             data = np.dot(projector, data)
@@ -2035,23 +2045,26 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                         '[done]')
             break
         logger.info('Writing ...')
-
-        if pos_prev is None:
-            pos_prev = fid.tell()
-
         _write_raw_buffer(fid, data, cals, fmt, inv_comp)
 
         pos = fid.tell()
         this_buff_size_bytes = pos - pos_prev
-        if this_buff_size_bytes > split_size / 2:
-            raise ValueError('buffer size is too large for the given split'
-                             'size: decrease "buffer_size_sec" or increase'
-                             '"split_size".')
-        if pos > split_size:
-            warn('file is larger than "split_size"')
+        overage = pos - split_size + next_file_buffer
+        if overage > 0:
+            # This should occur on the first buffer write of the file, so
+            # we should mention the space required for the meas info
+            raise ValueError(
+                'buffer size (%s) is too large for the given split size (%s) '
+                'by %s bytes after writing info (%s) and leaving enough space '
+                'for end tags (%s): decrease "buffer_size_sec" or increase '
+                '"split_size".' % (this_buff_size_bytes, split_size, overage,
+                                   pos_prev, next_file_buffer))
 
         # Split files if necessary, leave some space for next file info
-        if pos >= split_size - this_buff_size_bytes - 2 ** 20:
+        # make sure we check to make sure we actually *need* another buffer
+        # with the "and" check
+        if pos >= split_size - this_buff_size_bytes - next_file_buffer and \
+                first + buffer_size < stop:
             next_fname, next_idx = _write_raw(
                 fname, raw, info, picks, fmt,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
@@ -2069,18 +2082,6 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
         pos_prev = pos
 
-    if raw.annotations is not None:
-        start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
-        write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, raw.annotations.onset)
-        write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
-                    raw.annotations.duration + raw.annotations.onset)
-        # To allow : in description, they need to be replaced for serialization
-        write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
-                                                 raw.annotations.description])
-        if raw.annotations.orig_time is not None:
-            write_double(fid, FIFF.FIFF_MEAS_DATE, raw.annotations.orig_time)
-        end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
-
     logger.info('Closing %s [done]' % use_fname)
     if info.get('maxshield', False):
         end_block(fid, FIFF.FIFFB_SMSH_RAW_DATA)
@@ -2092,7 +2093,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
 
 def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
-                       reset_range=True):
+                       reset_range=True, annotations=None):
     """Start write raw data in file
 
     Data will be written in float
@@ -2110,6 +2111,8 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
         5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
     reset_range : bool
         If True, the info['chs'][k]['range'] parameter will be set to unity.
+    annotations : instance of Annotations or None
+        The annotations to write.
 
     Returns
     -------
@@ -2119,12 +2122,12 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
         calibration factors.
     """
     #
-    #    Measurement info
+    # Measurement info
     #
     info = pick_info(info, sel)
 
     #
-    #  Create the file and save the essentials
+    # Create the file and save the essentials
     #
     fid = start_file(name)
     start_block(fid, FIFF.FIFFB_MEAS)
@@ -2143,6 +2146,21 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
         cals.append(info['chs'][k]['cal'] * info['chs'][k]['range'])
 
     write_meas_info(fid, info, data_type=data_type, reset_range=reset_range)
+
+    #
+    # Annotations
+    #
+    if annotations is not None:
+        start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, annotations.onset)
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
+                    annotations.duration + annotations.onset)
+        # To allow : in description, they need to be replaced for serialization
+        write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
+                                                 annotations.description])
+        if annotations.orig_time is not None:
+            write_double(fid, FIFF.FIFF_MEAS_DATE, annotations.orig_time)
+        end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
     #
     # Start the raw data

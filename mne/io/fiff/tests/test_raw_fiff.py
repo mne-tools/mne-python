@@ -243,7 +243,7 @@ def test_multiple_files():
     """
     # split file
     tempdir = _TempDir()
-    raw = Raw(fif_fname).crop(0, 10)
+    raw = Raw(fif_fname).crop(0, 10, copy=False)
     raw.load_data()
     raw.load_data()  # test no operation
     split_size = 3.  # in seconds
@@ -261,6 +261,9 @@ def test_multiple_files():
         fname = op.join(tempdir, 'test_raw_split-%d_raw.fif' % ri)
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = Raw(fname)
+        assert_equal(len(raws[ri].times),
+                     int(round((tmaxs[ri] - tmins[ri]) *
+                               raw.info['sfreq'])) + 1)  # + 1 b/c inclusive
     events = [find_events(r, stim_channel='STI 014') for r in raws]
     last_samps = [r.last_samp for r in raws]
     first_samps = [r.first_samp for r in raws]
@@ -269,6 +272,7 @@ def test_multiple_files():
     assert_raises(ValueError, concatenate_raws, raws, True, events[1:])
     all_raw_1, events1 = concatenate_raws(raws, preload=False,
                                           events_list=events)
+    assert_allclose(all_raw_1.times, raw.times)
     assert_equal(raw.first_samp, all_raw_1.first_samp)
     assert_equal(raw.last_samp, all_raw_1.last_samp)
     assert_allclose(raw[:, :][0], all_raw_1[:, :][0])
@@ -362,6 +366,9 @@ def test_split_files():
     """
     tempdir = _TempDir()
     raw_1 = Raw(fif_fname, preload=True)
+    # Test a very close corner case
+    raw_crop = raw_1.copy().crop(0, 1., copy=False)
+
     assert_allclose(raw_1.info['buffer_size_sec'], 10., atol=1e-2)  # samp rate
     split_fname = op.join(tempdir, 'split_raw.fif')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
@@ -382,6 +389,64 @@ def test_split_files():
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
     assert_array_equal(times_1, times_2)
+
+    # test the case where we only end up with one buffer to write
+    # (GH#3210). These tests rely on writing meas info and annotations
+    # taking up a certain number of bytes, so if we change those functions
+    # somehow, the numbers below for e.g. split_size might need to be
+    # adjusted.
+    raw_crop = raw_1.copy().crop(0, 5, copy=False)
+    try:
+        raw_crop.save(split_fname, split_size='1MB',  # too small a size
+                      buffer_size_sec=1., overwrite=True)
+    except ValueError as exp:
+        assert_true('after writing measurement information' in str(exp), exp)
+    try:
+        raw_crop.save(split_fname,
+                      split_size=3002276,  # still too small, now after Info
+                      buffer_size_sec=1., overwrite=True)
+    except ValueError as exp:
+        assert_true('too large for the given split size' in str(exp), exp)
+    # just barely big enough here; the right size to write exactly one buffer
+    # at a time so we hit GH#3210 if we aren't careful
+    raw_crop.save(split_fname, split_size='4.5MB',
+                  buffer_size_sec=1., overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_allclose(raw_crop[:][0], raw_read[:][0], atol=1e-20)
+
+    # Check our buffer arithmetic
+
+    # 1 buffer required
+    raw_crop = raw_1.copy().crop(0, 1, copy=False)
+    raw_crop.save(split_fname, buffer_size_sec=1., overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_equal(len(raw_read._raw_extras[0]), 1)
+    assert_equal(raw_read._raw_extras[0][0]['nsamp'], 301)
+    assert_allclose(raw_crop[:][0], raw_read[:][0])
+    # 2 buffers required
+    raw_crop.save(split_fname, buffer_size_sec=0.5, overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_equal(len(raw_read._raw_extras[0]), 2)
+    assert_equal(raw_read._raw_extras[0][0]['nsamp'], 151)
+    assert_equal(raw_read._raw_extras[0][1]['nsamp'], 150)
+    assert_allclose(raw_crop[:][0], raw_read[:][0])
+    # 2 buffers required
+    raw_crop.save(split_fname,
+                  buffer_size_sec=1. - 1.01 / raw_crop.info['sfreq'],
+                  overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_equal(len(raw_read._raw_extras[0]), 2)
+    assert_equal(raw_read._raw_extras[0][0]['nsamp'], 300)
+    assert_equal(raw_read._raw_extras[0][1]['nsamp'], 1)
+    assert_allclose(raw_crop[:][0], raw_read[:][0])
+    raw_crop.save(split_fname,
+                  buffer_size_sec=1. - 2.01 / raw_crop.info['sfreq'],
+                  overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_equal(len(raw_read._raw_extras[0]), 2)
+    assert_equal(raw_read._raw_extras[0][0]['nsamp'], 299)
+    assert_equal(raw_read._raw_extras[0][1]['nsamp'], 2)
+    assert_allclose(raw_crop[:][0], raw_read[:][0])
 
 
 def test_load_bad_channels():
@@ -444,7 +509,7 @@ def test_io_raw():
             assert_equal(desc1, desc2)
 
     # Let's construct a simple test for IO first
-    raw = Raw(fif_fname).crop(0, 3.5)
+    raw = Raw(fif_fname).crop(0, 3.5, copy=False)
     raw.load_data()
     # put in some data that we know the values of
     data = rng.randn(raw._data.shape[0], raw._data.shape[1])
@@ -473,7 +538,7 @@ def test_io_raw():
                             if ch_names[k][0] == 'M']
         n_channels = 100
         meg_channels_idx = meg_channels_idx[:n_channels]
-        start, stop = raw.time_as_index([0, 5])
+        start, stop = raw.time_as_index([0, 5], use_rounding=True)
         data, times = raw[meg_channels_idx, start:(stop + 1)]
         meg_ch_names = [ch_names[k] for k in meg_channels_idx]
 
@@ -710,7 +775,7 @@ def test_preload_modify():
 def test_filter():
     """Test filtering (FIR and IIR) and Raw.apply_function interface
     """
-    raw = Raw(fif_fname).crop(0, 7)
+    raw = Raw(fif_fname).crop(0, 7, copy=False)
     raw.load_data()
     sig_dec = 11
     sig_dec_notch = 12

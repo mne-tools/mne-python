@@ -169,6 +169,28 @@ class Raw(_BaseRaw):
 
             info, meas = read_meas_info(fid, tree, clean_bads=True)
 
+            annotations = None
+            annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
+            if len(annot_data) > 0:
+                annot_data = annot_data[0]
+                for k in range(annot_data['nent']):
+                    kind = annot_data['directory'][k].kind
+                    pos = annot_data['directory'][k].pos
+                    orig_time = None
+                    tag = read_tag(fid, pos)
+                    if kind == FIFF.FIFF_MNE_BASELINE_MIN:
+                        onset = tag.data
+                    elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
+                        duration = tag.data - onset
+                    elif kind == FIFF.FIFF_COMMENT:
+                        description = tag.data.split(':')
+                        description = [d.replace(';', ':') for d in
+                                       description]
+                    elif kind == FIFF.FIFF_MEAS_DATE:
+                        orig_time = float(tag.data)
+                annotations = Annotations(onset, duration, description,
+                                          orig_time)
+
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
             if len(raw_node) == 0:
@@ -211,6 +233,7 @@ class Raw(_BaseRaw):
                 tag = read_tag(fid, directory[first].pos)
                 first_samp = int(tag.data)
                 first += 1
+                _check_entry(first, nent)
 
             #   Omit initial skip
             if directory[first].kind == FIFF.FIFF_DATA_SKIP:
@@ -218,38 +241,17 @@ class Raw(_BaseRaw):
                 tag = read_tag(fid, directory[first].pos)
                 first_skip = int(tag.data)
                 first += 1
+                _check_entry(first, nent)
 
             raw = _RawShell()
             raw.filename = fname
             raw.first_samp = first_samp
+            raw.annotations = annotations
 
             #   Go through the remaining tags in the directory
             raw_extras = list()
             nskip = 0
             orig_format = None
-            annotations = None
-
-            annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
-            if len(annot_data) > 0:
-                annot_data = annot_data[0]
-                for k in range(annot_data['nent']):
-                    kind = annot_data['directory'][k].kind
-                    pos = annot_data['directory'][k].pos
-                    orig_time = None
-                    tag = read_tag(fid, pos)
-                    if kind == FIFF.FIFF_MNE_BASELINE_MIN:
-                        onset = tag.data
-                    elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
-                        duration = tag.data - onset
-                    elif kind == FIFF.FIFF_COMMENT:
-                        description = tag.data.split(':')
-                        description = [d.replace(';', ':') for d in
-                                       description]
-                    elif kind == FIFF.FIFF_MEAS_DATE:
-                        orig_time = float(tag.data)
-                annotations = Annotations(onset, duration, description,
-                                          orig_time)
-            raw.annotations = annotations
 
             for k in range(first, nent):
                 ent = directory[k]
@@ -463,6 +465,12 @@ class Raw(_BaseRaw):
         from ...channels import fix_mag_coil_types
         fix_mag_coil_types(self.info)
         return self
+
+
+def _check_entry(first, nent):
+    """Helper to sanity check entries"""
+    if first >= nent:
+        raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
 def read_raw_fif(fnames, allow_maxshield=False, preload=False,

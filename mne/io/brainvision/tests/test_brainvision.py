@@ -37,9 +37,11 @@ warnings.simplefilter('always')
 def test_brainvision_data_filters():
     """Test reading raw Brain Vision files
     """
-    raw = _test_raw_reader(read_raw_brainvision,
-                           vhdr_fname=vhdr_highpass_path, montage=montage,
-                           eog=eog)
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_highpass_path,
+            montage=montage, eog=eog)
+    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
 
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
@@ -51,9 +53,11 @@ def test_brainvision_data():
     assert_raises(IOError, read_raw_brainvision, vmrk_path)
     assert_raises(ValueError, read_raw_brainvision, vhdr_path, montage,
                   preload=True, scale="foo")
-    raw_py = _test_raw_reader(read_raw_brainvision,
-                              vhdr_fname=vhdr_path, montage=montage, eog=eog)
-
+    with warnings.catch_warnings(record=True) as w:  # event parsing
+        raw_py = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_path, montage=montage,
+            eog=eog)
+    assert_true(all('parse triggers that' in str(ww.message) for ww in w))
     assert_true('RawBrainVision' in repr(raw_py))
 
     assert_equal(raw_py.info['highpass'], 0.)
