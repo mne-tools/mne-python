@@ -23,7 +23,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar,
                     _plot_raw_onscroll, _mouse_click, plt_show,
                     _helper_raw_resize, _select_bads, _onclick_help,
-                    _setup_browser_offsets)
+                    _setup_browser_offsets, _compute_scalings)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
 
@@ -117,7 +117,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         ``{event_number: color}`` pairings. Use ``event_number==-1`` for
         any event numbers in the events list that are not in the dictionary.
     scalings : dict | None
-        Scale factors for the traces. If None, defaults to::
+        Scaling factors for the traces. If any fields in scalings are 'auto',
+        the scaling factor is set to match the 99.5th percentile of a subset of
+        the corresponding data. If scalings == 'auto', all scalings fields are
+        set to 'auto'. If any fields are 'auto' and data is not preloaded, a
+        subset of times up to 100mb will be loaded. If None, defaults to::
 
             dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
@@ -177,6 +181,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     import matplotlib as mpl
     from scipy.signal import butter
     color = _handle_default('color', color)
+    scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
 
     if clipping is not None and clipping not in ('clamp', 'transparent'):

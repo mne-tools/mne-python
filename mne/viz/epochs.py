@@ -21,7 +21,8 @@ from ..fixes import Counter, _in1d
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
-                    _plot_raw_onscroll, _onclick_help, plt_show)
+                    _plot_raw_onscroll, _onclick_help, plt_show,
+                    _compute_scalings)
 from ..defaults import _handle_default
 
 
@@ -364,8 +365,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     picks : array-like of int | None
         Channels to be included. If None only good data channels are used.
         Defaults to None
-    scalings : dict | None
-        Scale factors for the traces. If None, defaults to::
+    scalings : dict | 'auto' | None
+        Scaling factors for the traces. If any fields in scalings are 'auto',
+        the scaling factor is set to match the 99.5th percentile of a subset of
+        the corresponding data. If scalings == 'auto', all scalings fields are
+        set to 'auto'. If any fields are 'auto' and data is not preloaded,
+        a subset of epochs up to 100mb will be loaded. If None, defaults to::
 
             dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)
@@ -400,6 +405,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     with ``b`` key. Right mouse click adds a vertical line to the plot.
     """
     epochs.drop_bad()
+    scalings = _compute_scalings(scalings, epochs)
     scalings = _handle_default('scalings_plot_raw', scalings)
 
     projs = epochs.info['projs']
