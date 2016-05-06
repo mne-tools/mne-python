@@ -21,7 +21,7 @@ from copy import deepcopy
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
-from ..io import show_fiff
+from ..io import show_fiff, Info
 from ..io.pick import channel_type, channel_indices_by_type
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
@@ -952,6 +952,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     """
     if kind not in ['topomap', '3d']:
         raise ValueError("Kind must be 'topomap' or '3d'.")
+    if not isinstance(info, Info):
+        raise TypeError('info must be an instance of Info not %s' % type(info))
     ch_indices = channel_indices_by_type(info)
     allowed_types = ['mag', 'grad', 'eeg', 'seeg']
     if ch_type is None:

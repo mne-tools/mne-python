@@ -183,6 +183,10 @@ def test_simulate_raw_sphere():
     head_pos_sim_err[-1.] = head_pos_sim_err[1.]  # negative time
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
                   head_pos=head_pos_sim_err)
+    raw_bad = raw.copy()
+    raw_bad.info['dig'] = None
+    assert_raises(RuntimeError, simulate_raw, raw_bad, stc, trans, src, sphere,
+                  blink=True)
 
 
 @testing.requires_testing_data

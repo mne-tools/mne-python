@@ -10,7 +10,7 @@ from numpy.testing import assert_raises
 from mne import io, read_events, pick_types, Annotations
 from mne.utils import requires_version, run_tests_if_main
 from mne.viz.utils import _fake_click
-from mne.viz import plot_raw
+from mne.viz import plot_raw, plot_sensors
 
 # Set our plotters to test mode
 import matplotlib
@@ -142,6 +142,7 @@ def test_plot_sensors():
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
     raw.plot_sensors('topomap')
+    assert_raises(TypeError, plot_sensors, raw)  # needs to be info
     plt.close('all')
 
 run_tests_if_main()

@@ -17,6 +17,7 @@ from scipy import linalg
 from .fixes import partial
 from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
 from .transforms import _ensure_trans, apply_trans
+from .io import Info
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
@@ -853,6 +854,11 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
         units = 'mm'
     if not isinstance(units, string_types) or units not in ('m', 'mm'):
         raise ValueError('units must be a "m" or "mm"')
+    if not isinstance(info, Info):
+        raise TypeError('info must be an instance of Info not %s' % type(info))
+    if info['dig'] is None:
+        raise RuntimeError('Cannot fit headshape without digitization '
+                           ', info["dig"] is None')
     if isinstance(dig_kinds, string_types):
         if dig_kinds == 'auto':
             # try "extra" first
