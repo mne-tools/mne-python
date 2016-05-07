@@ -12,7 +12,7 @@ from numpy.testing import assert_equal, assert_allclose
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
-                 make_sphere_model, Transform)
+                 make_sphere_model, Transform, Info)
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
@@ -234,7 +234,7 @@ def test_fit_sphere_to_headshape():
 
     # Device to head transformation (rotate .2 rad over X-axis)
     dev_head_t = Transform('meg', 'head', translation(*(dev_trans)))
-    info = {'dig': dig, 'dev_head_t': dev_head_t}
+    info = Info(dig=dig, dev_head_t=dev_head_t)
 
     # Degenerate conditions
     with warnings.catch_warnings(record=True) as w:
@@ -327,12 +327,13 @@ def test_fit_sphere_to_headshape():
     assert_allclose(oh, oh2, atol=1e-7)
     assert_allclose(od, od2, atol=1e-7)
     # this one should pass, 1 EXTRA point and 3 EEG (but the fit is terrible)
-    info = {'dig': dig[:7], 'dev_head_t': dev_head_t}
+    info = Info(dig=dig[:7], dev_head_t=dev_head_t)
     with warnings.catch_warnings(record=True):  # bad fit
         r, oh, od = fit_sphere_to_headshape(info, units='m')
     # this one should fail, 1 EXTRA point and 3 EEG (but the fit is terrible)
-    info = {'dig': dig[:6], 'dev_head_t': dev_head_t}
+    info = Info(dig=dig[:6], dev_head_t=dev_head_t)
     assert_raises(ValueError, fit_sphere_to_headshape, info, units='m')
+    assert_raises(TypeError, fit_sphere_to_headshape, 1, units='m')
 
 
 run_tests_if_main()

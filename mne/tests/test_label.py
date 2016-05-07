@@ -166,6 +166,14 @@ def assert_labels_equal(l0, l1, decimal=5, comment=True, color=True):
         assert_array_almost_equal(a0, a1, decimal)
 
 
+def test_copy():
+    """Test label copying"""
+    label = read_label(label_fname)
+    label_2 = label.copy()
+    label_2.pos += 1
+    assert_array_equal(label.pos, label_2.pos - 1)
+
+
 def test_label_subject():
     """Test label subject name extraction
     """
