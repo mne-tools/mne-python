@@ -117,7 +117,10 @@ def test_io_events():
     write_events(op.join(tempdir, 'events.eve'), events)
     events2 = read_events(op.join(tempdir, 'events.eve'))
     assert_array_almost_equal(events, events2)
-    events2 = read_events(fname_txt_mpr)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        events2 = read_events(fname_txt_mpr)
+        assert_true(sum('first row of' in str(ww.message) for ww in w) == 1)
     assert_array_almost_equal(events, events2)
 
     # Test old format text file IO
@@ -137,6 +140,13 @@ def test_io_events():
     assert_array_equal(a, b)
     assert_array_equal(a, c)
     assert_array_equal(a, d)
+
+    # test reading file with mask=None
+    events2 = events.copy()
+    events2[:, -1] = range(events2.shape[0])
+    write_events(op.join(tempdir, 'events-eve.fif'), events2)
+    events3 = read_events(op.join(tempdir, 'events-eve.fif'), mask=None)
+    assert_array_almost_equal(events2, events3)
 
     # Test binary file IO for 1 event
     events = read_events(fname_1)  # Use as the new gold standard
@@ -172,7 +182,10 @@ def test_find_events():
     assert_array_almost_equal(events, events2)
     # now test with mask
     events11 = find_events(raw, mask=3)
-    events22 = read_events(fname, mask=3)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        events22 = read_events(fname, mask=3)
+        assert_true(sum('events masked' in str(ww.message) for ww in w) == 1)
     assert_array_equal(events11, events22)
 
     # Reset some data for ease of comparison

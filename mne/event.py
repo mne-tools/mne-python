@@ -207,9 +207,9 @@ def read_events(filename, include=None, exclude=None, mask=0):
         A event id to exclude or a list of them.
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.
-    mask : int
+    mask : int | None
         The value of the digital mask to apply to the stim channel values.
-        The default value is 0.
+        The default value is 0. ``None`` skips masking.
 
     Returns
     -------
@@ -257,12 +257,19 @@ def read_events(filename, include=None, exclude=None, mask=0):
             raise ValueError('Unknown number of columns in event text file')
 
         event_list = lines[:, goods]
-        if event_list.shape[0] > 0 and event_list[0, 2] == 0:
+        if (mask is not None and event_list.shape[0] > 0 and
+                event_list[0, 2] == 0):
             event_list = event_list[1:]
+            warn('first row of event file discarded (zero-valued)')
 
     event_list = pick_events(event_list, include, exclude)
-    event_list = _mask_trigs(event_list, mask)
-
+    unmasked_len = event_list.shape[0]
+    if mask is not None:
+        event_list = _mask_trigs(event_list, mask)
+        masked_len = event_list.shape[0]
+        if masked_len < unmasked_len:
+            warn('{0} of {1} events masked'.format(unmasked_len - masked_len,
+                                                   unmasked_len))
     return event_list
 
 
