@@ -98,7 +98,8 @@ def test_auto_scale():
 
     for inst in [raw, epochs]:
         scale_grad = 1e10
-        scalings_def = dict([('eeg', 'auto'), ('grad', scale_grad)])
+        scalings_def = dict([('eeg', 'auto'), ('grad', scale_grad),
+                             ('stim', 'auto')])
 
         # Test for wrong inputs
         assert_raises(ValueError, inst.plot, scalings='foo')
