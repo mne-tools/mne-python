@@ -908,8 +908,8 @@ class Elekta_event(object):
         self.in_use = False  # whether event is referred to by a category
 
     def __repr__(self):
-        return '<Elekta_event | name: {} comment: {} new bits: {} '
-        'old bits: {} new mask: {} old mask: {} delay: {}>'.format(
+        return ('<Elekta_event | name: {} comment: {} new bits: {} '
+                'old bits: {} new mask: {} old mask: {} delay: {}>').format(
             self.name, self.comment, self.newbits, self.oldbits, self.newmask,
             self.oldmask, self.delay)
 
@@ -941,8 +941,8 @@ class Elekta_category(object):
         self.times = None
 
     def __repr__(self):
-        return '<Elekta_category | comment: \'{}\' event: {} reqevent: {} '
-        'reqwhen: {} reqwithin: {} start: {} end: {}>'.format(
+        return ('<Elekta_category | comment: \'{}\' event: {} reqevent: {} '
+                'reqwhen: {} reqwithin: {} start: {} end: {}>').format(
             self.comment, self.event, self.reqevent, self.reqwhen,
             self.reqwithin, self.start, self.end)
 
@@ -986,8 +986,8 @@ class Elekta_averager(object):
                 self.events[cat.reqevent].in_use = True
 
     def __repr__(self):
-        return '<Elekta_averager | Version: {} Categories: {} Events: {} '
-        'Stim source: {}>'.format(
+        return ('<Elekta_averager | Version: {} Categories: {} Events: {} '
+                'Stim source: {}>').format(
             self.version, self.ncateg, self.nevent, self.stimsource)
 
     def _events_from_acq_pars(self):
@@ -1035,13 +1035,7 @@ class Elekta_averager(object):
                 post_ok = (
                     np.bitwise_and(ev.newbits, mne_events[:, 2]) == ev.newbits)
                 ok_ind = np.where(pre_ok & post_ok)
-                if np.all(events_[ok_ind, 2] == 0):
-                    # switch on the bit corresponding to event number
-                    events_[ok_ind, 2] |= 1 << (n - 1)
-                else:
-                    # TODO: is this ok?
-                    raise Exception('Multiple dacq events'
-                                    'match trigger transition')
+                events_[ok_ind, 2] |= 1 << (n - 1)
         return events_
 
     def _mne_events_to_category_times(self, cat, mne_events, sfreq):
@@ -1087,7 +1081,7 @@ class Elekta_averager(object):
         from .epochs import Epochs
         cat = self.categories[catname]
         mne_events = find_events(raw, stim_channel=stim_channel,
-                                 mask=mask, consecutive=True)
+                                 mask=mask, output='step', consecutive=True)
         sfreq = raw.info['sfreq']
         # create array of category averaging times (t0)
         # and corresponding event_id for mne.Epochs
