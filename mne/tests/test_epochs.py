@@ -1361,6 +1361,13 @@ def test_epoch_eq():
         assert_raises(ValueError, epochs.equalize_event_counts, c, copy=False)
     assert_raises(KeyError, epochs.equalize_event_counts,
                   ["a/no_match", "b"], copy=False)
+    # test equalization with no events of one type
+    epochs.drop(np.arange(10))
+    assert_equal(len(epochs['a/x']), 0)
+    assert_true(len(epochs['a/y']) > 0)
+    epochs.equalize_event_counts(['a/x', 'a/y'], copy=False)
+    assert_equal(len(epochs['a/x']), 0)
+    assert_equal(len(epochs['a/y']), 0)
 
 
 def test_access_by_name():
