@@ -966,7 +966,7 @@ class Elekta_averager(object):
         self.acq_dict = _acqpars_dict(acq_pars)
         # sets instance variables (lowercase versions of dacq variable names)
         for var in Elekta_averager.vars:
-            val = self.acq_dict['ERF'+var]
+            val = self.acq_dict['ERF' + var]
             if var[:3] in ['mag', 'meg', 'eeg', 'eog', 'ecg']:
                 val = float(val)
             elif var in ['ncateg', 'nevent']:
@@ -988,17 +988,17 @@ class Elekta_averager(object):
     def __repr__(self):
         return '<Elekta_averager | Version: {} Categories: {} Events: {} '
         'Stim source: {}>'.format(
-                self.version, self.ncateg, self.nevent, self.stimsource)
+            self.version, self.ncateg, self.nevent, self.stimsource)
 
     def _events_from_acq_pars(self):
         """ Collects DACQ defined events into a dict. """
         events = {}
         # evnum = '01', '02' etc.
-        for evnum in [str(x).zfill(2) for x in range(1, self.ncateg+1)]:
+        for evnum in [str(x).zfill(2) for x in range(1, self.ncateg + 1)]:
             evdi = {}
             for var in Elekta_event.vars:
                 # name of dacq variable, e.g. 'ERFeventNewBits01'
-                acq_key = 'ERFevent'+var+evnum
+                acq_key = 'ERFevent' + var + evnum
                 # corresponding instance variable, e.g. 'newbits'
                 class_key = var.lower()
                 evdi[class_key] = self.acq_dict[acq_key]
@@ -1009,10 +1009,10 @@ class Elekta_averager(object):
     def _categories_from_acq_pars(self, all_categories=False):
         """ Collects DACQ averaging categories into a dict. """
         cats = {}
-        for catnum in [str(x).zfill(2) for x in range(1, self.nevent+1)]:
+        for catnum in [str(x).zfill(2) for x in range(1, self.nevent + 1)]:
             catdi = {}
             for var in Elekta_category.vars:
-                acq_key = 'ERFcat'+var+catnum
+                acq_key = 'ERFcat' + var + catnum
                 class_key = var.lower()
                 catdi[class_key] = self.acq_dict[acq_key]
             if int(catdi['state']) == 1 or all_categories:  # category enabled
@@ -1050,11 +1050,12 @@ class Elekta_averager(object):
         events = self._mne_events_to_dacq(mne_events)
         times = events[:, 0]
         # indices of times where ref. event occurs
-        refEvents_inds = np.where(events[:, 2] & (1 << cat.event-1))[0]
+        refEvents_inds = np.where(events[:, 2] & (1 << cat.event - 1))[0]
         refEvents_t = times[refEvents_inds]
         if cat.reqevent:
             # indices of times where req. event occurs
-            reqEvents_inds = np.where(events[:, 2] & (1 << cat.reqevent-1))[0]
+            reqEvents_inds = np.where(events[:, 2] & (
+                1 << cat.reqevent - 1))[0]
             reqEvents_t = times[reqEvents_inds]
             # relative (to refevent) time window (in samples) where req. event
             # must occur (e.g. [0 200])
