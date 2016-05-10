@@ -812,7 +812,7 @@ _dig_kind_ints = tuple(_dig_kind_dict.values())
 
 
 @verbose
-def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
+def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     """Fit a sphere to the headshape points to determine head center
 
     Parameters
@@ -825,8 +825,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
         be 'auto' (default), which will use only the 'extra' points if
         enough are available, and if not, uses 'extra' and 'eeg' points.
     units : str
-        Can be "m" or "mm". The default in 0.12 is "mm" but will be changed
-        to "m" in 0.13.
+        Can be "m" (default) or "mm".
 
         .. versionadded:: 0.12
 
@@ -847,11 +846,6 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
     This function excludes any points that are low and frontal
     (``z < 0 and y > 0``) to improve the fit.
     """
-    if units is None:
-        warn('Please explicitly set the units. In 0.12 units="mm" will '
-             'be used, but this will change to units="m" in 0.13.',
-             DeprecationWarning)
-        units = 'mm'
     if not isinstance(units, string_types) or units not in ('m', 'mm'):
         raise ValueError('units must be a "m" or "mm"')
     if not isinstance(info, Info):

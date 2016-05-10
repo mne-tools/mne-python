@@ -106,11 +106,8 @@ def test_average_movements():
 
     # SSS-based
     assert_raises(TypeError, average_movements, epochs, None)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')  # deprecated param, pos -> head_pos
-        evoked_move_non = average_movements(epochs, pos=head_pos,
-                                            weight_all=False, origin=origin)
-    assert_equal(len(w), 1)
+    evoked_move_non = average_movements(epochs, head_pos=head_pos,
+                                        weight_all=False, origin=origin)
     evoked_move_all = average_movements(epochs, head_pos=head_pos,
                                         weight_all=True, origin=origin)
     evoked_stat_all = average_movements(epochs, head_pos=head_pos_stat,

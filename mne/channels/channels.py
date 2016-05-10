@@ -14,7 +14,7 @@ from scipy import sparse
 
 from ..externals.six import string_types
 
-from ..utils import verbose, logger, warn, _check_copy_dep
+from ..utils import verbose, logger, warn
 from ..io.pick import (channel_type, pick_info, pick_types,
                        _check_excludes_includes, _PICK_TYPES_KEYS)
 from ..io.constants import FIFF
@@ -389,7 +389,7 @@ class UpdateChannelsMixin(object):
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, bio=False, ecog=False, include=[],
-                   exclude='bads', selection=None, copy=None):
+                   exclude='bads', selection=None):
         """Pick some channels by type and names
 
         Parameters
@@ -439,10 +439,6 @@ class UpdateChannelsMixin(object):
             in ``info['bads']``.
         selection : list of string
             Restrict sensor channels (MEG, EEG) to this list of channel names.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -453,26 +449,21 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        inst = _check_copy_dep(self, copy)
         idx = pick_types(
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, bio=bio, ecog=ecog, include=include,
             exclude=exclude, selection=selection)
-        inst._pick_drop_channels(idx)
-        return inst
+        self._pick_drop_channels(idx)
+        return self
 
-    def pick_channels(self, ch_names, copy=None):
+    def pick_channels(self, ch_names):
         """Pick some channels
 
         Parameters
         ----------
         ch_names : list
             The list of channels to select.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -487,23 +478,18 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        inst = _check_copy_dep(self, copy)
         _check_excludes_includes(ch_names)
-        idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
-        inst._pick_drop_channels(idx)
-        return inst
+        idx = [self.ch_names.index(c) for c in ch_names if c in self.ch_names]
+        self._pick_drop_channels(idx)
+        return self
 
-    def drop_channels(self, ch_names, copy=None):
+    def drop_channels(self, ch_names):
         """Drop some channels
 
         Parameters
         ----------
         ch_names : list
             The list of channels to remove.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -518,12 +504,11 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        inst = _check_copy_dep(self, copy)
-        bad_idx = [inst.ch_names.index(c) for c in ch_names
-                   if c in inst.ch_names]
-        idx = np.setdiff1d(np.arange(len(inst.ch_names)), bad_idx)
-        inst._pick_drop_channels(idx)
-        return inst
+        bad_idx = [self.ch_names.index(c) for c in ch_names
+                   if c in self.ch_names]
+        idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
+        self._pick_drop_channels(idx)
+        return self
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
@@ -560,7 +545,7 @@ class UpdateChannelsMixin(object):
         elif isinstance(self, Evoked):
             self.data = self.data.take(idx, axis=0)
 
-    def add_channels(self, add_list, copy=None, force_update_info=False):
+    def add_channels(self, add_list, force_update_info=False):
         """Append new channels to the instance.
 
         Parameters
@@ -568,10 +553,6 @@ class UpdateChannelsMixin(object):
         add_list : list
             A list of objects to append to self. Must contain all the same
             type as the current object
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
         force_update_info : bool
             If True, force the info for objects to be appended to match the
             values in `self`. This should generally only be used when adding
@@ -584,7 +565,6 @@ class UpdateChannelsMixin(object):
         inst : instance of Raw, Epochs, or Evoked
             The modified instance.
         """
-        out = _check_copy_dep(self, copy)
         # avoid circular imports
         from ..io import _BaseRaw, _merge_info
         from ..epochs import _BaseEpochs
@@ -623,12 +603,12 @@ class UpdateChannelsMixin(object):
         new_info = _merge_info(infos, force_update_to_first=force_update_info)
 
         # Now update the attributes
-        setattr(out, data_name, data)
-        out.info = new_info
+        setattr(self, data_name, data)
+        self.info = new_info
         if isinstance(self, _BaseRaw):
-            out._cals = np.concatenate([getattr(inst, '_cals')
-                                        for inst in [self] + add_list])
-        return out
+            self._cals = np.concatenate([getattr(inst, '_cals')
+                                         for inst in [self] + add_list])
+        return self
 
 
 class InterpolationMixin(object):

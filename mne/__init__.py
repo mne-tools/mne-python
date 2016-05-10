@@ -28,7 +28,6 @@ from .io.pick import (pick_types, pick_channels,
                       pick_types_forward, pick_channels_cov,
                       pick_channels_evoked, pick_info)
 from .io.base import concatenate_raws
-from .chpi import get_chpi_positions
 from .io.meas_info import create_info, Info
 from .io.proj import Projection
 from .io.kit import read_epochs_kit
@@ -42,7 +41,7 @@ from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
                     find_stim_steps)
 from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
-                      do_forward_solution, average_forward_solutions,
+                      average_forward_solutions,
                       write_forward_solution, make_forward_solution,
                       convert_forward_solution, make_field_map,
                       make_forward_dipole)

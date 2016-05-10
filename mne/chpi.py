@@ -6,17 +6,15 @@ import numpy as np
 from scipy import linalg, fftpack
 
 from .io.pick import pick_types, pick_channels
-from .io.base import _BaseRaw
 from .io.constants import FIFF
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils, _read_coil_defs)
 from .cov import make_ad_hoc_cov, _get_whitener_data
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
-from .utils import (verbose, logger, check_version, use_log_level, deprecated,
+from .utils import (verbose, logger, check_version, use_log_level,
                     _check_fname, warn)
 from .fixes import partial
-from .externals.six import string_types
 
 # Eventually we should add:
 #   hpicons
@@ -25,81 +23,6 @@ from .externals.six import string_types
 
 # ############################################################################
 # Reading from text or FIF file
-
-@deprecated('get_chpi_positions will be removed in v0.13, use '
-            'read_head_pos(fname) or raw[pick_types(meg=False, chpi=True), :] '
-            'instead')
-@verbose
-def get_chpi_positions(raw, t_step=None, return_quat=False, verbose=None):
-    """Extract head positions
-
-    Note that the raw instance must have CHPI channels recorded.
-
-    Parameters
-    ----------
-    raw : instance of Raw | str
-        Raw instance to extract the head positions from. Can also be a
-        path to a Maxfilter head position estimation log file (str).
-    t_step : float | None
-        Sampling interval to use when converting data. If None, it will
-        be automatically determined. By default, a sampling interval of
-        1 second is used if processing a raw data. If processing a
-        Maxfilter log file, this must be None because the log file
-        itself will determine the sampling interval.
-    return_quat : bool
-        If True, also return the quaternions.
-
-        .. versionadded:: 0.11
-
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    translation : ndarray, shape (N, 3)
-        Translations at each time point.
-    rotation : ndarray, shape (N, 3, 3)
-        Rotations at each time point.
-    t : ndarray, shape (N,)
-        The time points.
-    quat : ndarray, shape (N, 3)
-        The quaternions. Only returned if ``return_quat`` is True.
-
-    Notes
-    -----
-    The digitized HPI head frame y is related to the frame position X as:
-
-        Y = np.dot(rotation, X) + translation
-
-    Note that if a Maxfilter log file is being processed, the start time
-    may not use the same reference point as the rest of mne-python (i.e.,
-    it could be referenced relative to raw.first_samp or something else).
-    """
-    if isinstance(raw, _BaseRaw):
-        # for simplicity, we'll sample at 1 sec intervals like maxfilter
-        if t_step is None:
-            t_step = 1.0
-        t_step = float(t_step)
-        picks = pick_types(raw.info, meg=False, ref_meg=False,
-                           chpi=True, exclude=[])
-        if len(picks) == 0:
-            raise RuntimeError('raw file has no CHPI channels')
-        time_idx = raw.time_as_index(np.arange(0, raw.times[-1], t_step))
-        data = [raw[picks, ti] for ti in time_idx]
-        t = np.array([d[1] for d in data])
-        data = np.array([d[0][:, 0] for d in data])
-        data = np.c_[t, data]
-    else:
-        if not isinstance(raw, string_types):
-            raise TypeError('raw must be an instance of Raw or string')
-        if t_step is not None:
-            raise ValueError('t_step must be None if processing a log')
-        data = read_head_pos(raw)
-    out = head_pos_to_trans_rot_t(data)
-    if return_quat:
-        out = out + (data[:, 1:4],)
-    return out
-
 
 def read_head_pos(fname):
     """Read MaxFilter-formatted head position parameters

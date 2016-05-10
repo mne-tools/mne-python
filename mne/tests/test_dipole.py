@@ -164,9 +164,9 @@ def test_dipole_fitting_fixed():
     tpeak = 0.073
     sphere = make_sphere_model(head_radius=0.1)
     evoked = read_evokeds(fname_evo, baseline=(None, 0))[0]
-    evoked.pick_types(meg=True, copy=False)
+    evoked.pick_types(meg=True)
     t_idx = np.argmin(np.abs(tpeak - evoked.times))
-    evoked_crop = evoked.copy().crop(tpeak, tpeak, copy=False)
+    evoked_crop = evoked.copy().crop(tpeak, tpeak)
     assert_equal(len(evoked_crop.times), 1)
     cov = read_cov(fname_cov)
     dip_seq, resid = fit_dipole(evoked_crop, cov, sphere)

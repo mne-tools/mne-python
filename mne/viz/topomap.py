@@ -381,7 +381,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  res=64, axes=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
                  contours=6, image_interp='bilinear', show=True,
-                 head_pos=None, onselect=None, axis=None):
+                 head_pos=None, onselect=None):
     """Plot a topographic map as image
 
     Parameters
@@ -462,8 +462,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
-    axis : instance of Axes | None
-        Deprecated. Will be removed in 0.13. Use ``axes`` instead.
 
     Returns
     -------
@@ -540,10 +538,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
 
-    if axis is not None:
-        axes = axis
-        warn('axis parameter is deprecated and will be removed in 0.13. '
-             'Use axes instead.', DeprecationWarning)
     ax = axes if axes else plt.gca()
     pos_x, pos_y = _prepare_topomap(pos, ax)
     if outlines is None:

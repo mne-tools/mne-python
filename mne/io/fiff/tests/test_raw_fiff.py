@@ -1145,15 +1145,6 @@ def test_add_channels():
 
 
 @testing.requires_testing_data
-def test_raw_time_as_index():
-    """ Test time as index conversion"""
-    raw = Raw(fif_fname, preload=True)
-    with warnings.catch_warnings(record=True):  # deprecation
-        first_samp = raw.time_as_index([0], True)[0]
-    assert_equal(raw.first_samp, -first_samp)
-
-
-@testing.requires_testing_data
 def test_save():
     """ Test saving raw"""
     tempdir = _TempDir()

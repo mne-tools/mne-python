@@ -37,7 +37,7 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments, _check_copy_dep,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose, _time_mask, warn, deprecated)
+                     logger, verbose, _time_mask, warn)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -1028,7 +1028,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     @verbose
-    def resample(self, sfreq, npad=None, window='boxcar', stim_picks=None,
+    def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
                  n_jobs=1, events=None, copy=None, verbose=None):
         """Resample all channels.
 
@@ -1095,11 +1095,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         For some data, it may be more accurate to use ``npad=0`` to reduce
         artifacts. This is dataset dependent -- check your data!
         """  # noqa
-        if npad is None:
-            npad = 100
-            warn('npad is currently taken to be 100, but will be changed to '
-                 '"auto" in 0.13. Please set the value explicitly.',
-                 DeprecationWarning)
         _check_preload(self, 'raw.resample')
         inst = _check_copy_dep(self, copy)
 
@@ -1193,7 +1188,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         tmax : float | None
             New end time in seconds of the data (cannot exceed data duration).
         copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
+            This parameter has been deprecated and will be removed in 0.14.
             Use inst.copy() instead.
             Whether to return a new instance or modify in place.
 
@@ -1202,7 +1197,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         raw : instance of Raw
             The cropped raw object.
         """
-        raw = _check_copy_dep(self, copy, default=True)
+        raw = _check_copy_dep(self, copy)
         max_time = (raw.n_times - 1) / raw.info['sfreq']
         if tmax is None:
             tmax = max_time
@@ -1590,60 +1585,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  color=color, fig_facecolor=fig_facecolor,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, n_jobs=n_jobs, verbose=verbose)
-
-    def time_as_index(self, times, use_first_samp=None, use_rounding=False):
-        """Convert time to indices
-
-        Parameters
-        ----------
-        times : list-like | float | int
-            List of numbers or a number representing points in time.
-        use_first_samp : boolean
-            This is deprecated and will be removed in 0.13.
-            If True, time is treated as relative to the session onset, else
-            as relative to the recording onset. Default is False.
-        use_rounding : boolean
-            If True, use rounding (instead of truncation) when converting
-            times to indices. This can help avoid non-unique indices.
-
-        Returns
-        -------
-        index : ndarray
-            Indices corresponding to the times supplied.
-        """
-        # Note: this entire class can be removed in 0.13 (proper method
-        # will be inherited from TimeMixin)
-        if use_first_samp is None:
-            use_first_samp = False
-        else:
-            warn('use_first_samp is deprecated, add raw.first_samp manually '
-                 'if first sample offset is required', DeprecationWarning)
-        index = super(_BaseRaw, self).time_as_index(times, use_rounding)
-        if use_first_samp:
-            index -= self.first_samp
-        return index
-
-    @deprecated('index_as_time is deprecated and will be removed in 0.13, '
-                'use raw.times[idx] (or raw.times[idx + raw.first_samp] '
-                'instead')
-    def index_as_time(self, index, use_first_samp=False):
-        """Convert indices to time
-
-        Parameters
-        ----------
-        index : list-like | int
-            List of ints or int representing points in time.
-        use_first_samp : boolean
-            If True, the time returned is relative to the session onset, else
-            relative to the recording onset.
-
-        Returns
-        -------
-        times : ndarray
-            Times corresponding to the index supplied.
-        """
-        return _index_as_time(index, self.info['sfreq'], self.first_samp,
-                              use_first_samp)
 
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
                       return_singular=False, picks=None, scalings='norm'):
