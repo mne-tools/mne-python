@@ -7,8 +7,10 @@ What's new
     Note, we are now using links to highlight new functions and classes.
     Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
 
-Current
--------
+.. _changes_0_12:
+
+Version 0.12
+------------
 
 Changelog
 ~~~~~~~~~
@@ -170,6 +172,46 @@ API
     - The C wrapper :func:`mne.do_forward_solution` has been deprecated in favor of the native Python version :func:`mne.make_forward_solution` by `Eric Larson`_
 
     - The ``events`` parameter of :func:`mne.epochs.EpochsArray` is set by default to chronological time-samples and event values to 1, by `Jean-Remi King`_
+
+Authors
+~~~~~~~
+
+The committer list for this release is the following (preceded by number of commits):
+
+    * 348	Eric Larson
+    * 347	Jaakko Leppakangas
+    * 157	Alexandre Gramfort
+    * 139	Jona Sassenhagen
+    * 67	Jean-Remi King
+    * 32	Chris Holdgraf
+    * 31	Denis A. Engemann
+    * 30	Mainak Jas
+    * 16	Christopher J. Bailey
+    * 13	Marijn van Vliet
+    * 10	Mark Wronkiewicz
+    * 9	Teon Brooks
+    * 9	kaichogami
+    * 8	Clément Moutard
+    * 5	Camilo Lamus
+    * 5	mmagnuski
+    * 4	Christian Brodbeck
+    * 4	Daniel McCloy
+    * 4	Yousra Bekhti
+    * 3	Fede Raimondo
+    * 1	Jussi Nurminen
+    * 1	MartinBaBer
+    * 1	Mikolaj Magnuski
+    * 1	Natalie Klein
+    * 1	Niklas Wilming
+    * 1	Richard Höchenberger
+    * 1	Sagun Pai
+    * 1	Sourav Singh
+    * 1	Tom Dupré la Tour
+    * 1	jona-sassenhagen@
+    * 1	kambysese
+    * 1	pbnsilva
+    * 1	sviter
+    * 1	zuxfoucault
 
 .. _changes_0_11:
 
