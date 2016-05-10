@@ -908,10 +908,15 @@ class Elekta_event(object):
         self.in_use = False  # whether event is referred to by a category
 
     def __repr__(self):
-        return ('<Elekta_event | name: {} comment: {} new bits: {} '
-                'old bits: {} new mask: {} old mask: {} delay: {}>').format(
-            self.name, self.comment, self.newbits, self.oldbits, self.newmask,
-            self.oldmask, self.delay)
+        s = '<Elekta_event | '
+        s += 'name: %s, ' % self.name
+        s += 'comment: %s, ' % self.comment
+        s += 'pre-state: %d, ' % self.oldbits
+        s += 'pre-mask: %d, ' % self.oldmask
+        s += 'post-state: %d, ' % self.newbits
+        s += 'post-mask: %d, ' % self.newmask
+        s += 'delay: %.3f (s)>' % self.delay
+        return s
 
 
 class Elekta_category(object):
@@ -931,8 +936,7 @@ class Elekta_category(object):
         self.nave = int(nave)  # desired n of averages
         self.event = int(event)  # the reference event (index to event list)
         self.reqevent = int(reqevent)  # required event (index to event list)
-        # TODO: check reqwhen
-        self.reqwhen = int(reqwhen)  # 1=before, 0=after ref. event
+        self.reqwhen = int(reqwhen)  # 1=before, 2=after ref. event
         # time window before or after ref. event (s)
         self.reqwithin = float(reqwithin)
         self.subave = int(subave)  # subaverage size
@@ -941,14 +945,21 @@ class Elekta_category(object):
         self.times = None
 
     def __repr__(self):
-        return ('<Elekta_category | comment: \'{}\' event: {} reqevent: {} '
-                'reqwhen: {} reqwithin: {} start: {} end: {}>').format(
-            self.comment, self.event, self.reqevent, self.reqwhen,
-            self.reqwithin, self.start, self.end)
+        s = '<Elekta_category | '
+        s += 'comment: "%s", ' % self.comment
+        s += 'ref. event: %d, ' % self.event
+        if self.reqevent:
+            s += 'req. event: %d ' % self.reqevent
+            s += 'within: %.3f (s) ' % self.reqwithin
+            s += 'before ' if self.reqwhen == 1 else 'after '
+            s += 'ref. event, '
+        s += 'start: %.3f (s), ' % self.start
+        s += 'end: %.3f (s)>' % self.end
+        return s
 
 
 class Elekta_averager(object):
-    """ Represents averager settings of Elekta TRIUX/Vectorview systems """
+    """ Represents averager settings of Elekta TRIUX/Vectorview systems. """
 
     # these are DACQ averager related variable names without preceding 'ERF'
     vars = ['magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
@@ -963,6 +974,7 @@ class Elekta_averager(object):
     def __init__(self, acq_pars):
         """ acq_pars usually is obtained as data.info['acq_pars'], where data
         can be instance of Raw, Epochs or Evoked. """
+        self._events_in_use = set()
         self.acq_dict = _acqpars_dict(acq_pars)
         # sets instance variables (lowercase versions of dacq variable names)
         for var in Elekta_averager.vars:
@@ -972,7 +984,6 @@ class Elekta_averager(object):
             elif var in ['ncateg', 'nevent']:
                 val = int(val)
             setattr(self, var.lower(), val)
-        # TODO: check
         self.stimsource = (
             u'Internal' if self.stimsource == u'1' else u'External')
         # collect events and categories as instance dicts
@@ -982,13 +993,21 @@ class Elekta_averager(object):
         for cat in self.categories.values():
             if cat.event:
                 self.events[cat.event].in_use = True
+                self._events_in_use.add(cat.event)
             if cat.reqevent:
                 self.events[cat.reqevent].in_use = True
+                self._events_in_use.add(cat.reqevent)
 
     def __repr__(self):
-        return ('<Elekta_averager | Version: {} Categories: {} Events: {} '
-                'Stim source: {}>').format(
-            self.version, self.ncateg, self.nevent, self.stimsource)
+        s = '<Elekta_averager | '
+        s += 'categories: %d ' % self.ncateg
+        cats_in_use = len([c for c in self.categories.values() if c.state])
+        s += '(%d in use), ' % cats_in_use
+        s += 'events: %d ' % self.nevent
+        evs_in_use = len(self._events_in_use)
+        s += '(%d in use), ' % evs_in_use
+        s += 'stim source: %s>' % self.stimsource
+        return s
 
     def _events_from_acq_pars(self):
         """ Collects DACQ defined events into a dict. """
@@ -1038,9 +1057,9 @@ class Elekta_averager(object):
                 events_[ok_ind, 2] |= 1 << (n - 1)
         return events_
 
-    def _mne_events_to_category_times(self, cat, mne_events, sfreq):
-        """ Translate mne events to times when epochs for a given category should
-        be collected. """
+    def _mne_events_to_category_t0(self, cat, mne_events, sfreq):
+        """ Translate mne_events to reference times (t0) for epochs in a given
+        DACQ averaging category cat. """
         events = self._mne_events_to_dacq(mne_events)
         times = events[:, 0]
         # indices of times where ref. event occurs
@@ -1083,14 +1102,15 @@ class Elekta_averager(object):
         mne_events = find_events(raw, stim_channel=stim_channel,
                                  mask=mask, output='step', consecutive=True)
         sfreq = raw.info['sfreq']
-        # create array of category averaging times (t0)
-        # and corresponding event_id for mne.Epochs
-        cat_t = self._mne_events_to_category_times(cat, mne_events, sfreq)
+        # create array of category reference times (t0),
+        # and corresponding (fake) event_id for mne.Epochs
+        cat_t = self._mne_events_to_category_t0(cat, mne_events, sfreq)
         catev = np.c_[cat_t, np.zeros(cat_t.shape),
                       np.ones(cat_t.shape)].astype(np.uint32)
         id = {cat.comment: 1}
         return Epochs(raw, catev, event_id=id, reject=reject, tmin=cat.start,
-                      tmax=cat.end, baseline=None, picks=picks, preload=True)
+                      tmax=cat.end, baseline=None, detrend=None, picks=picks,
+                      preload=True)
 
 
 def _acqpars_dict(acq_pars):
