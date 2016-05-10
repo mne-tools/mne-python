@@ -34,6 +34,7 @@ dependencies:
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
+    - echo $CIRCLE_BRANCH
     - which python;
     - which pip;
     - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
@@ -43,7 +44,7 @@ dependencies:
 
   override:
     - cd /home/ubuntu/mne-python && python setup.py develop;
-    - if [ "$CIRCLE_BRANCH" == "master" ]; then
+    - if [ "$CIRCLE_BRANCH" == "master"] || [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then
         mkdir -p ~/mne_data;
         python -c "import mne; mne.datasets._download_all_example_data()";
       fi
@@ -56,12 +57,14 @@ dependencies:
 
 test:
   override:
-    - if [ "$CIRCLE_BRANCH" == "master" ]; then
+    - if [ "$CIRCLE_BRANCH" == "master" ] || [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then
         make test-doc;
       else
         cd doc && make html_dev-noplot;
       fi
     - if [ "$CIRCLE_BRANCH" == "master" ]; then cd doc && make html_dev; fi:
+          timeout: 1500
+    - if [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then cd doc && make html_stable; fi:
           timeout: 1500
 
 general:
@@ -81,3 +84,10 @@ deployment:
       - cd ../mne-tools.github.io && git checkout master && git pull origin master
       - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
+    branch: maint/0.12
+    commands:
+      - git config --global user.email "circle@mne.com"
+      - git config --global user.name "Circle Ci"
+      - cd ../mne-tools.github.io && git checkout master && git pull origin master
+      - cd doc/_build/html_stable && cp -rf * ~/mne-tools.github.io/stable
+      - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of stable docs.' && git push origin master
