@@ -12,7 +12,7 @@ from mne import (read_events, write_events, make_fixed_length_events,
 from mne.io import read_raw_fif
 from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
-from mne.event import define_target_events, merge_events
+from mne.event import define_target_events, merge_events, Elekta_averager
 
 warnings.simplefilter('always')
 
@@ -22,6 +22,10 @@ fname_gz = op.join(base_dir, 'test-eve.fif.gz')
 fname_1 = op.join(base_dir, 'test-1-eve.fif')
 fname_txt = op.join(base_dir, 'test-eve.eve')
 fname_txt_1 = op.join(base_dir, 'test-eve-1.eve')
+
+# for testing Elekta averager
+fname_raw_elekta = op.join(base_dir, 'test_elekta_raw.fif')
+fname_ave_elekta = op.join(base_dir, 'test_elekta_ave.fif')
 
 # using mne_process_raw --raw test_raw.fif --eventsout test-mpr-eve.eve:
 fname_txt_mpr = op.join(base_dir, 'test-mpr-eve.eve')
@@ -409,5 +413,17 @@ def test_define_events():
 
     assert_array_equal(true_lag_fill, lag_fill)
     assert_array_equal(true_lag_nofill, lag_nofill)
+
+
+def test_elekta_averager():
+    """Test averaging according to Elekta DACQ parameters"""
+    raw = read_raw_fif(fname_raw_elekta)
+    eav = Elekta_averager(raw.info['acq_pars'])
+    for cat in eav.categories:
+        eps = cat.epochs(raw)
+        ev = eps.average()
+        ev_ref = read_evokeds(fname_ave_elekta, cat.comment, baseline=None,
+                              proj=False)
+        assert_array_almost_equal(ev.data, ev_ref.data)
 
 run_tests_if_main()

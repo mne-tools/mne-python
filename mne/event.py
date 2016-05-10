@@ -910,7 +910,7 @@ class Elekta_event(object):
     def __repr__(self):
         s = '<Elekta_event | '
         s += 'name: %s, ' % self.name
-        s += 'comment: %s, ' % self.comment
+        s += 'comment: "%s", ' % self.comment
         s += 'pre-state: %d, ' % self.oldbits
         s += 'pre-mask: %d, ' % self.oldmask
         s += 'post-state: %d, ' % self.newbits
@@ -943,10 +943,12 @@ class Elekta_category(object):
         # non-DACQ vars
         # list of t=0 times (in samples) for corresponding epochs
         self.times = None
+        # index of category in DACQ list
+        self.index = None
 
     def __repr__(self):
         s = '<Elekta_category | '
-        s += 'comment: "%s", ' % self.comment
+        s += '"%s", ' % self.comment
         s += 'ref. event: %d, ' % self.event
         if self.reqevent:
             s += 'req. event: %d ' % self.reqevent
@@ -957,9 +959,18 @@ class Elekta_category(object):
         s += 'end: %.3f (s)>' % self.end
         return s
 
+    def epochs(self, raw, picks=None, reject=None,
+               baseline=(None, 0), stim_channel=None, mask=0):
+        """ Get mne.Epochs instance corresponding to the category. """
+        return self._parent._get_epochs(raw, self, picks=picks,
+                                        reject=reject, baseline=baseline,
+                                        stim_channel=stim_channel,
+                                        mask=mask)
+
 
 class Elekta_averager(object):
-    """ Represents averager settings of Elekta TRIUX/Vectorview systems. """
+    """ Represents averager settings of Elekta TRIUX/Vectorview systems.
+    """
 
     # these are DACQ averager related variable names without preceding 'ERF'
     vars = ['magMax', 'magMin', 'magNoise', 'magSlope', 'magSpike', 'megMax',
@@ -974,7 +985,6 @@ class Elekta_averager(object):
     def __init__(self, acq_pars):
         """ acq_pars usually is obtained as data.info['acq_pars'], where data
         can be instance of Raw, Epochs or Evoked. """
-        self._events_in_use = set()
         self.acq_dict = _acqpars_dict(acq_pars)
         # sets instance variables (lowercase versions of DACQ variable names)
         for var in Elekta_averager.vars:
@@ -986,28 +996,33 @@ class Elekta_averager(object):
             setattr(self, var.lower(), val)
         self.stimsource = (
             u'Internal' if self.stimsource == u'1' else u'External')
-        # collect events and categories as instance dicts
-        self.events = self._events_from_acq_pars()
-        self.categories = self._categories_from_acq_pars()
-        # tag the events that are actually in use
-        for cat in self.categories.values():
+        # collect all events and categories as instance dicts
+        self._events = self._events_from_acq_pars()
+        self._categories = self._categories_from_acq_pars()
+        # collect events and categories that are used by this setup
+        for cat in self._categories.values():
             if cat.event:
-                self.events[cat.event].in_use = True
-                self._events_in_use.add(cat.event)
+                self._events[cat.event].in_use = True
             if cat.reqevent:
-                self.events[cat.reqevent].in_use = True
-                self._events_in_use.add(cat.reqevent)
+                self._events[cat.reqevent].in_use = True
+        self._categories_in_use = (
+            [cat for cat in self._categories.values() if cat.state])
+        self._events_in_use = (
+            [ev for ev in self._events.values() if ev.in_use])
 
     def __repr__(self):
         s = '<Elekta_averager | '
         s += 'categories: %d ' % self.ncateg
-        cats_in_use = len([c for c in self.categories.values() if c.state])
+        cats_in_use = len(self._categories_in_use)
         s += '(%d in use), ' % cats_in_use
         s += 'events: %d ' % self.nevent
         evs_in_use = len(self._events_in_use)
         s += '(%d in use), ' % evs_in_use
         s += 'stim source: %s>' % self.stimsource
         return s
+
+    def __getitem__(self, items):
+        return self._categories[items]
 
     def _events_from_acq_pars(self):
         """ Collects DACQ defined events into a dict. """
@@ -1035,10 +1050,13 @@ class Elekta_averager(object):
                 class_key = var.lower()
                 catdi[class_key] = self.acq_dict[acq_key]
             if int(catdi['state']) == 1 or all_categories:  # category enabled
-                cats[catdi['comment']] = Elekta_category(**catdi)
+                cat = Elekta_category(**catdi)
+                cat.index = int(catnum)
+                cat._parent = self
+                cats[catdi['comment']] = cat
         return cats
 
-    def _mne_events_to_dacq(self, mne_events):
+    def _events_mne_to_dacq(self, mne_events):
         """ Creates list of DACQ events based on mne trigger transitions list.
         mne_events is typically given by mne.find_events (use consecutive=True
         to get all transitions). Output consists of rows in the form
@@ -1049,7 +1067,7 @@ class Elekta_averager(object):
         events_ = mne_events.copy()
         events_[:, 1] = 0
         events_[:, 2] = 0
-        for n, ev in self.events.iteritems():
+        for n, ev in self._events.iteritems():
             if ev.in_use:
                 pre_ok = (
                     np.bitwise_and(ev.oldmask, mne_events[:, 1]) == ev.oldbits)
@@ -1062,7 +1080,7 @@ class Elekta_averager(object):
     def _mne_events_to_category_t0(self, cat, mne_events, sfreq):
         """ Translate mne_events to reference times (t0) for epochs in a given
         DACQ averaging category cat. """
-        events = self._mne_events_to_dacq(mne_events)
+        events = self._events_mne_to_dacq(mne_events)
         times = events[:, 0]
         # indices of times where ref. event occurs
         refEvents_inds = np.where(events[:, 2] & (1 << cat.event - 1))[0]
@@ -1087,8 +1105,22 @@ class Elekta_averager(object):
             refEvents_inds = refEvents_inds[np.where(req_acc)]
             refEvents_t = times[refEvents_inds]
         # adjust for trigger-stimulus delay by delaying the ref. event
-        refEvents_t += int(np.round(self.events[cat.event].delay * sfreq))
+        refEvents_t += int(np.round(self._events[cat.event].delay * sfreq))
         return refEvents_t
+
+    @property
+    def categories(self):
+        """ Return list of categories in DACQ defined order. Only returns
+        categories marked active in DACQ. """
+        return sorted(self._categories_in_use,
+                      key=lambda cat: getattr(cat, 'index'))
+
+    @property
+    def events(self):
+        """ Return list of events in DACQ order. Only returns events that
+        are referred to by a DACQ category. """
+        return sorted(self._events_in_use,
+                      key=lambda ev: int(getattr(ev, 'name')))
 
     def get_mne_rejection_dict(self):
         """ Makes a mne rejection dict based on the averager parameters. Result
@@ -1096,23 +1128,24 @@ class Elekta_averager(object):
         return {'grad': self.megmax, 'mag': self.magmax, 'eeg': self.eegmax,
                 'eog': self.eogmax, 'ecg': self.ecgmax}
 
-    def get_epochs(self, raw, catname, picks=None, reject=None,
-                   stim_channel=None, mask=0):
+    def _get_epochs(self, raw, category, picks=None, reject=None,
+                    baseline=(None, 0), stim_channel=None, mask=0):
         """ Get mne.Epochs instance corresponding to the given category. """
         from .epochs import Epochs
-        cat = self.categories[catname]
         mne_events = find_events(raw, stim_channel=stim_channel,
-                                 mask=mask, output='step', consecutive=True)
+                                 mask=mask, output='step', consecutive=True,
+                                 verbose=False)
         sfreq = raw.info['sfreq']
         # create array of category reference times (t0),
         # and corresponding (fake) event_id for mne.Epochs
-        cat_t = self._mne_events_to_category_t0(cat, mne_events, sfreq)
+        cat_t = self._mne_events_to_category_t0(category, mne_events, sfreq)
         catev = np.c_[cat_t, np.zeros(cat_t.shape),
                       np.ones(cat_t.shape)].astype(np.uint32)
-        id = {cat.comment: 1}
-        return Epochs(raw, catev, event_id=id, reject=reject, tmin=cat.start,
-                      tmax=cat.end, baseline=None, detrend=None, picks=picks,
-                      preload=True)
+        id = {category.comment: 1}
+        return Epochs(raw, catev, event_id=id, reject=reject,
+                      tmin=category.start, tmax=category.end,
+                      baseline=baseline, detrend=None, picks=picks,
+                      preload=True, verbose=False)
 
 
 def _acqpars_dict(acq_pars):
