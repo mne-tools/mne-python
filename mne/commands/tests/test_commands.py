@@ -13,6 +13,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_report, mne_surf2bem, mne_watershed_bem,
                           mne_compare_fiff, mne_flash_bem, mne_show_fiff,
                           mne_show_info)
+from mne import concatenate_raws
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        ArgvSetter, slow_test, ultra_slow_test)
@@ -67,7 +68,7 @@ def test_clean_eog_ecg():
     """Test mne clean_eog_ecg"""
     check_usage(mne_clean_eog_ecg)
     tempdir = _TempDir()
-    raw = Raw([raw_fname, raw_fname, raw_fname])
+    raw = concatenate_raws([Raw(f) for f in [raw_fname, raw_fname, raw_fname]])
     raw.info['bads'] = ['MEG 2443']
     use_fname = op.join(tempdir, op.basename(raw_fname))
     raw.save(use_fname)

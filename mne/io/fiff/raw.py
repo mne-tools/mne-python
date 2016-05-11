@@ -32,10 +32,9 @@ class Raw(_BaseRaw):
 
     Parameters
     ----------
-    fnames : list, or string
-        A list of the raw files to treat as a Raw instance, or a single
-        raw file. For files that have automatically been split, only the
-        name of the first file has to be specified. Filenames should end
+    fname : str
+        The raw file to load. For files that have automatically been split,
+        the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
         raw_tsss.fif or raw_tsss.fif.gz.
     allow_maxshield : bool | str (default False)
@@ -63,6 +62,8 @@ class Raw(_BaseRaw):
     add_eeg_ref : bool
         If True, add average EEG reference projector (if it's not already
         present).
+    fnames : list or str
+        Deprecated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -80,12 +81,22 @@ class Raw(_BaseRaw):
         See above.
     """
     @verbose
-    def __init__(self, fnames, allow_maxshield=False, preload=False,
+    def __init__(self, fname, allow_maxshield=False, preload=False,
                  proj=False, compensation=None, add_eeg_ref=True,
-                 verbose=None):
-
+                 fnames=None, verbose=None):
+        dep = ('Supplying a list of filenames with "fnames" to the Raw class '
+               'has been deprecated and will be removed in 0.13. Use multiple '
+               'calls to read_raw_fif with the "fname" argument followed by '
+               'and concatenate_raws instead.')
+        if fnames is not None:
+            warn(dep, DeprecationWarning)
+        else:
+            fnames = fname
+        del fname
         if not isinstance(fnames, list):
             fnames = [fnames]
+        else:
+            warn(dep, DeprecationWarning)
         fnames = [op.realpath(f) for f in fnames]
         split_fnames = []
 
@@ -473,17 +484,16 @@ def _check_entry(first, nent):
         raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
-def read_raw_fif(fnames, allow_maxshield=False, preload=False,
+def read_raw_fif(fname, allow_maxshield=False, preload=False,
                  proj=False, compensation=None, add_eeg_ref=True,
-                 verbose=None):
+                 fnames=None, verbose=None):
     """Reader function for Raw FIF data
 
     Parameters
     ----------
-    fnames : list, or string
-        A list of the raw files to treat as a Raw instance, or a single
-        raw file. For files that have automatically been split, only the
-        name of the first file has to be specified. Filenames should end
+    fname : str
+        The raw file to load. For files that have automatically been split,
+        the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
         raw_tsss.fif or raw_tsss.fif.gz.
     allow_maxshield : bool, (default False)
@@ -510,6 +520,8 @@ def read_raw_fif(fnames, allow_maxshield=False, preload=False,
     add_eeg_ref : bool
         If True, add average EEG reference projector (if it's not already
         present).
+    fnames : list or str
+        Deprecated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -522,6 +534,6 @@ def read_raw_fif(fnames, allow_maxshield=False, preload=False,
     -----
     .. versionadded:: 0.9.0
     """
-    return Raw(fnames=fnames, allow_maxshield=allow_maxshield,
+    return Raw(fname=fname, allow_maxshield=allow_maxshield,
                preload=preload, proj=proj, compensation=compensation,
-               add_eeg_ref=add_eeg_ref, verbose=verbose)
+               add_eeg_ref=add_eeg_ref, fnames=fnames, verbose=verbose)
