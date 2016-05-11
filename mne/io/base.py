@@ -612,7 +612,41 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return sel, start, stop
 
     def __getitem__(self, item):
-        """getting raw data content with python slicing"""
+        """Get raw data and times
+
+        Parameters
+        ----------
+        item : tuple or array-like
+            See below for use cases.
+
+        Returns
+        -------
+        data : ndarray, shape (n_channels, n_times)
+            The raw data.
+        times : ndarray, shape (n_times,)
+            The times associated with the data.
+
+        Examples
+        --------
+        Generally raw data is accessed as::
+
+            >>> data, times = raw[picks, time_slice]  # doctest: +SKIP
+
+        To get all data, you can thus do either of::
+
+            >>> data, times = raw[:]  # doctest: +SKIP
+
+        Which will be equivalent to:
+
+            >>> data, times = raw[:, :]  # doctest: +SKIP
+
+        To get only the good MEG data from 10-20 seconds, you could do::
+
+            >>> picks = mne.pick_types(raw.info, meg=True, exclude='bads')  # doctest: +SKIP
+            >>> t_idx = raw.time_as_index([10., 20.])  # doctest: +SKIP
+            >>> data, times = raw[picks, t_idx[0]:t_idx[1]]  # doctest: +SKIP
+
+        """  # noqa
         sel, start, stop = self._parse_get_set_params(item)
         if self.preload:
             data = self._data[sel, start:stop]
@@ -1739,6 +1773,21 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self.last_samp - self.first_samp + 1
 
     def __len__(self):
+        """The number of time points
+
+        Returns
+        -------
+        len : int
+            The number of time points.
+
+        Examples
+        --------
+        This can be used as::
+
+            >>> len(raw)  # doctest: +SKIP
+            1000
+
+        """
         return self.n_times
 
     def load_bad_channels(self, bad_file=None, force=False):

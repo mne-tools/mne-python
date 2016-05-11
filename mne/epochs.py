@@ -1443,7 +1443,27 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self._get_data()
 
     def __len__(self):
-        """Number of epochs.
+        """The number of epochs
+
+        Returns
+        -------
+        n_epochs : int
+            The number of remaining epochs.
+
+        Notes
+        -----
+        This function only works if bad epochs have been dropped.
+
+        Examples
+        --------
+        This can be used as::
+
+            >>> epochs.drop_bad()  # doctest: +SKIP
+            >>> len(epochs)  # doctest: +SKIP
+            43
+            >>> len(epochs.events)  # doctest: +SKIP
+            43
+
         """
         if not self._bad_dropped:
             raise RuntimeError('Since bad epochs have not been dropped, the '
@@ -1455,7 +1475,17 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return len(self.events)
 
     def __iter__(self):
-        """To make iteration over epochs easy.
+        """Function to make iteration over epochs easy
+
+        Notes
+        -----
+        This enables the use of this Python pattern::
+
+            >>> for epoch in epochs:  # doctest: +SKIP
+            >>>     print(epoch)  # doctest: +SKIP
+
+        Where ``epoch`` is given by successive outputs of
+        :func:`mne.Epochs.next`.
         """
         self._current = 0
         while True:
@@ -1514,8 +1544,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self.times[-1]
 
     def __repr__(self):
-        """ Build string representation
-        """
+        """ Build string representation"""
         s = 'n_events : %s ' % len(self.events)
         s += '(all good)' if self._bad_dropped else '(good & bad)'
         s += ', tmin : %s (s)' % self.tmin
@@ -1536,8 +1565,46 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise KeyError('Event "%s" is not in Epochs.' % key)
         return self.events[:, 2] == self.event_id[key]
 
-    def __getitem__(self, key):
-        """Return an Epochs object with a subset of epochs
+    def __getitem__(self, item):
+        """Return an Epochs object with a copied subset of epochs
+
+        Parameters
+        ----------
+        item : slice, array-like, str, or list
+            See below for use cases.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            See below for use cases.
+
+        Notes
+        -----
+        Epochs can be accessed as ``epochs[...]`` in several ways:
+
+        1. ``epochs[idx]``: Return ``Epochs`` object with a subset of
+           epochs (supports single index and python-style slicing).
+
+        2. ``epochs['name']``: Return ``Epochs`` object with a copy of the
+           subset of epochs corresponding to an experimental condition as
+           specified by 'name'.
+
+            If conditions are tagged by names separated by '/' (e.g.
+            'audio/left', 'audio/right'), and 'name' is not in itself an
+            event key, this selects every event whose condition contains
+            the 'name' tag (e.g., 'left' matches 'audio/left' and
+            'visual/left'; but not 'audio_left'). Note that tags like
+            'auditory/left' and 'left/auditory' will be treated the
+            same way when accessed using tags.
+
+        3. ``epochs[['name_1', 'name_2', ... ]]``: Return ``Epochs`` object
+           with a copy of the subset of epochs corresponding to multiple
+            experimental conditions as specified by
+            ``'name_1', 'name_2', ...`` .
+
+            If conditions are separated by '/', selects every item containing
+            every list tag (e.g. ['audio', 'left'] selects 'audio/left' and
+            'audio/center/left', but not 'audio/right').
         """
         data = self._data
         del self._data
@@ -1545,6 +1612,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._data, epochs._data = data, data
         del self
 
+        key = item
+        del item
         if isinstance(key, string_types):
             key = [key]
 
@@ -2008,42 +2077,18 @@ class Epochs(_BaseEpochs):
     verbose : bool, str, int, or None
         See above.
 
+    See Also
+    --------
+    mne.epochs.combine_event_ids
+    mne.Epochs.equalize_event_counts
+
     Notes
     -----
     When accessing data, Epochs are detrended, baseline-corrected, and
     decimated, then projectors are (optionally) applied.
 
-    For indexing and slicing:
-
-    epochs[idx] : Epochs
-        Return Epochs object with a subset of epochs (supports single
-        index and python-style slicing)
-
-    For subset selection using categorial labels:
-
-    epochs['name'] : Epochs
-        Return Epochs object with a subset of epochs corresponding to an
-        experimental condition as specified by 'name'.
-
-        If conditions are tagged by names separated by '/' (e.g. 'audio/left',
-        'audio/right'), and 'name' is not in itself an event key, this selects
-        every event whose condition contains the 'name' tag (e.g., 'left'
-        matches 'audio/left' and 'visual/left'; but not 'audio_left'). Note
-        that tags like 'auditory/left' and 'left/auditory' will be treated the
-        same way when accessed using tags.
-
-    epochs[['name_1', 'name_2', ... ]] : Epochs
-        Return Epochs object with a subset of epochs corresponding to multiple
-        experimental conditions as specified by 'name_1', 'name_2', ... .
-
-        If conditions are separated by '/', selects every item containing every
-        list tag (e.g. ['audio', 'left'] selects 'audio/left' and
-        'audio/center/left', but not 'audio/right').
-
-    See Also
-    --------
-    mne.epochs.combine_event_ids
-    mne.Epochs.equalize_event_counts
+    For indexing and slicing using ``epochs[...]``, see
+    :func:`mne.Epochs.__getitem__`.
     """
     @verbose
     def __init__(self, raw, events, event_id=None, tmin=-0.2, tmax=0.5,

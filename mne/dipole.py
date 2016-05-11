@@ -210,25 +210,48 @@ class Dipole(object):
         from .viz import plot_dipole_amplitudes
         return plot_dipole_amplitudes([self], [color], show)
 
-    def __getitem__(self, idx_slice):
-        """Handle indexing"""
-        if isinstance(idx_slice, int):  # make sure attributes stay 2d
-            idx_slice = [idx_slice]
+    def __getitem__(self, item):
+        """Get a time slice
 
-        selected_times = self.times[idx_slice].copy()
-        selected_pos = self.pos[idx_slice, :].copy()
-        selected_amplitude = self.amplitude[idx_slice].copy()
-        selected_ori = self.ori[idx_slice, :].copy()
-        selected_gof = self.gof[idx_slice].copy()
+        Parameters
+        ----------
+        item : array-like or slice
+            The slice of time points to use.
+
+        Returns
+        -------
+        dip : instance of Dipole
+            The sliced dipole.
+        """
+        if isinstance(item, int):  # make sure attributes stay 2d
+            item = [item]
+
+        selected_times = self.times[item].copy()
+        selected_pos = self.pos[item, :].copy()
+        selected_amplitude = self.amplitude[item].copy()
+        selected_ori = self.ori[item, :].copy()
+        selected_gof = self.gof[item].copy()
         selected_name = self.name
-
-        new_dipole = Dipole(selected_times, selected_pos,
-                            selected_amplitude, selected_ori,
-                            selected_gof, selected_name)
-        return new_dipole
+        return Dipole(
+            selected_times, selected_pos, selected_amplitude, selected_ori,
+            selected_gof, selected_name)
 
     def __len__(self):
-        """Handle len function"""
+        """The number of dipoles
+
+        Returns
+        -------
+        len : int
+            The number of dipoles.
+
+        Examples
+        --------
+        This can be used as::
+
+            >>> len(dipoles)  # doctest: +SKIP
+            10
+
+        """
         return self.pos.shape[0]
 
 
