@@ -294,14 +294,18 @@ def test_multiple_files():
     # add potentially problematic points
     times.extend([n_times - 1, n_times, 2 * n_times - 1])
 
-    raw_combo0 = Raw([fif_fname, fif_fname], preload=True)
+    raw_combo0 = concatenate_raws([Raw(f) for f in [fif_fname, fif_fname]],
+                                  preload=True)
     _compare_combo(raw, raw_combo0, times, n_times)
-    raw_combo = Raw([fif_fname, fif_fname], preload=False)
+    raw_combo = concatenate_raws([Raw(f) for f in [fif_fname, fif_fname]],
+                                 preload=False)
     _compare_combo(raw, raw_combo, times, n_times)
-    raw_combo = Raw([fif_fname, fif_fname], preload='memmap8.dat')
+    raw_combo = concatenate_raws([Raw(f) for f in [fif_fname, fif_fname]],
+                                 preload='memmap8.dat')
     _compare_combo(raw, raw_combo, times, n_times)
-    assert_raises(ValueError, Raw, [fif_fname, ctf_fname])
-    assert_raises(ValueError, Raw, [fif_fname, fif_bad_marked_fname])
+    with warnings.catch_warnings(record=True):  # deprecated
+        assert_raises(ValueError, Raw, [fif_fname, ctf_fname])
+        assert_raises(ValueError, Raw, [fif_fname, fif_bad_marked_fname])
     assert_equal(raw[:, :][0].shape[1] * 2, raw_combo0[:, :][0].shape[1])
     assert_equal(raw_combo0[:, :][0].shape[1], raw_combo0.n_times)
 
@@ -385,7 +389,7 @@ def test_split_files():
     fnames.extend(sorted(glob.glob(op.join(tempdir, 'split_raw-*.fif'))))
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        raw_2 = Raw(fnames)
+        raw_2 = Raw(fnames)  # uses deprecated list pattern
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
     assert_array_equal(times_1, times_2)
@@ -614,7 +618,7 @@ def test_io_complex():
     tempdir = _TempDir()
     dtypes = [np.complex64, np.complex128]
 
-    raw = _test_raw_reader(Raw, fnames=fif_fname)
+    raw = _test_raw_reader(Raw, fname=fif_fname)
     picks = np.arange(5)
     start, stop = raw.time_as_index([0, 5])
 
@@ -875,7 +879,7 @@ def test_crop():
     """Test cropping raw files
     """
     # split a concatenated file to test a difficult case
-    raw = Raw([fif_fname, fif_fname], preload=False)
+    raw = concatenate_raws([Raw(f) for f in [fif_fname, fif_fname]])
     split_size = 10.  # in seconds
     sfreq = raw.info['sfreq']
     nsamp = (raw.last_samp - raw.first_samp + 1)
