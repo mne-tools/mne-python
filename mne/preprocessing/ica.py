@@ -44,7 +44,7 @@ from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-                     _get_fast_dot, compute_corr)
+                     _get_fast_dot, compute_corr, warn)
 from ..fixes import _get_args
 from ..filter import band_pass_filter
 from .bads import find_outliers
@@ -923,7 +923,6 @@ class ICA(ContainsMixin):
             if verbose is not None:
                 verbose = self.verbose
             ecg, times = _make_ecg(inst, start, stop, verbose)
-            ch_name = 'ECG-MAG'
         else:
             ecg = inst.ch_names[idx_ecg]
 
@@ -940,6 +939,9 @@ class ICA(ContainsMixin):
             if isinstance(inst, _BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(
                     inst, ch_name, keep_ecg=True)).get_data()
+                if sources.shape[0] == 0:
+                    warn('No ECG activity detected. Consider changing '
+                         'the input parameters.')
             elif isinstance(inst, _BaseEpochs):
                 sources = self.get_sources(inst).get_data()
             else:
@@ -964,6 +966,8 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'labels_'):
             self.labels_ = dict()
         self.labels_['ecg'] = list(ecg_idx)
+        if ch_name == None:
+            ch_name = 'ECG-MAG'
         self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
 
