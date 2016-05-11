@@ -68,11 +68,22 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     if bmin is None:
         imin = 0
     else:
-        imin = int(np.where(times >= bmin)[0][0])
+        imin = np.where(times >= bmin)[0]
+        if len(imin) == 0:
+            raise ValueError('bmin is too large (%s), it exceeds the smallest '
+                             'time value' % (bmin,))
+        imin = int(imin[0])
     if bmax is None:
         imax = len(times)
     else:
-        imax = int(np.where(times <= bmax)[0][-1]) + 1
+        imax = np.where(times <= bmax)[0]
+        if len(imax) == 0:
+            raise ValueError('bmax is too small (%s), it is smaller than the '
+                             'biggest time value' % (bmax,))
+        imax = int(imax[-1]) + 1
+    if imin >= imax:
+        raise ValueError('Bad rescaling slice (%s:%s) from time values %s, %s'
+                         % (imin, imax, bmin, bmax))
 
     # avoid potential "empty slice" warning
     if data.shape[-1] > 0:

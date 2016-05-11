@@ -1245,6 +1245,13 @@ def test_compensation_raw_mne():
         raw_py = Raw(ctf_comp_fname, preload=True, compensation=grad)
         raw_c = compensate_mne(ctf_comp_fname, grad)
         assert_allclose(raw_py._data, raw_c._data, rtol=1e-6, atol=1e-17)
+        assert_equal(raw_py.info['nchan'], raw_c.info['nchan'])
+        for ch_py, ch_c in zip(raw_py.info['chs'], raw_c.info['chs']):
+            for key in ('ch_name', 'coil_type', 'scanno', 'logno', 'unit',
+                        'coord_frame', 'kind'):
+                assert_equal(ch_py[key], ch_c[key])
+            for key in ('loc', 'unit_mul', 'range', 'cal'):
+                assert_allclose(ch_py[key], ch_c[key])
 
 
 @testing.requires_testing_data
