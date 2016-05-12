@@ -966,7 +966,7 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'labels_'):
             self.labels_ = dict()
         self.labels_['ecg'] = list(ecg_idx)
-        if ch_name == None:
+        if ch_name is None:
             ch_name = 'ECG-MAG'
         self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
