@@ -42,9 +42,9 @@ from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
 
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
-from ..utils import (check_version, logger, check_fname, verbose,
-                     _reject_data_segments, check_random_state, warn,
-                     _get_fast_dot, compute_corr)
+from ..utils import (check_version, logger, check_fname, verbose, warn,
+                     _reject_data_segments, check_random_state,
+                     _get_fast_dot, compute_corr, _check_copy_dep)
 from ..fixes import _get_args
 from ..filter import band_pass_filter
 from .bads import find_outliers
