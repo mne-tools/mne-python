@@ -74,7 +74,7 @@ install:
         rm v1.8.tar.gz;
         rm -r codespell-1.8;
       fi;
-    - pip install -q coveralls nose-timer
+    - pip install -q codecov nose-timer
     # check our versions for the major packages
     - NP_VERSION=`python -c 'import numpy; print(numpy.__version__)'`
     - if [ -n "$NUMPY" ] && [ "${NUMPY:(-3)}" != "${NP_VERSION::3}" ]; then
@@ -148,7 +148,7 @@ after_success:
     # Need to run from source dir to exectue "git" commands
     # Coverage not collected for 3.5, so don't report it
     - if [ "${TEST_LOCATION}" == "src" ] && [ "${PYTHON}" != "3.5" ]; then
-        echo "Running coveralls";
+        echo "Running codecov";
         cd ${SRC_DIR};
-        coveralls;
+        codecov;
       fi;
