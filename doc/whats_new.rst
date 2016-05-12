@@ -18,7 +18,7 @@ Changelog
 BUG
 ~~~
 
-    - 
+    - Fixed channel selection order when MEG channels do not come first in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
 API
 ~~~

@@ -76,6 +76,20 @@ ctc_mgh_fname = op.join(sss_path, 'ct_sparse_mgh.fif')
 sample_fname = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc_raw.fif')
 
+triux_path = op.join(data_path, 'SSS', 'TRIUX')
+tri_fname = op.join(triux_path, 'triux_bmlhus_erm_raw.fif')
+tri_sss_fname = op.join(triux_path, 'triux_bmlhus_erm_raw_sss.fif')
+tri_sss_reg_fname = op.join(triux_path, 'triux_bmlhus_erm_regIn_raw_sss.fif')
+tri_sss_st4_fname = op.join(triux_path, 'triux_bmlhus_erm_st4_raw_sss.fif')
+tri_sss_ctc_fname = op.join(triux_path, 'triux_bmlhus_erm_ctc_raw_sss.fif')
+tri_sss_cal_fname = op.join(triux_path, 'triux_bmlhus_erm_cal_raw_sss.fif')
+tri_sss_ctc_cal_fname = op.join(
+    triux_path, 'triux_bmlhus_erm_ctc_cal_raw_sss.fif')
+tri_sss_ctc_cal_reg_in_fname = op.join(
+    triux_path, 'triux_bmlhus_erm_ctc_cal_regIn_raw_sss.fif')
+tri_ctc_fname = op.join(triux_path, 'ct_sparse_BMLHUS.fif')
+tri_cal_fname = op.join(triux_path, 'sss_cal_BMLHUS.dat')
+
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
 
@@ -629,19 +643,24 @@ def test_regularization():
         assert_meg_snr(raw_sss, sss_reg_in, min_tols[ii], med_tols[ii], msg=rf)
 
         # check components match
-        py_info = raw_sss.info['proc_history'][0]['max_info']['sss_info']
-        assert_true(py_info is not None)
-        assert_true(len(py_info) > 0)
-        mf_info = sss_reg_in.info['proc_history'][0]['max_info']['sss_info']
-        n_in = None
-        for inf in py_info, mf_info:
-            if n_in is None:
-                n_in = _get_n_moments(inf['in_order'])
-            else:
-                assert_equal(n_in, _get_n_moments(inf['in_order']))
-            assert_equal(inf['components'][:n_in].sum(), inf['nfree'])
-        assert_allclose(py_info['nfree'], mf_info['nfree'],
-                        atol=comp_tols[ii], err_msg=rf)
+        _check_reg_match(raw_sss, sss_reg_in, comp_tols[ii])
+
+
+def _check_reg_match(sss_py, sss_mf, comp_tol):
+    """Helper to check regularization"""
+    info_py = sss_py.info['proc_history'][0]['max_info']['sss_info']
+    assert_true(info_py is not None)
+    assert_true(len(info_py) > 0)
+    info_mf = sss_mf.info['proc_history'][0]['max_info']['sss_info']
+    n_in = None
+    for inf in (info_py, info_mf):
+        if n_in is None:
+            n_in = _get_n_moments(inf['in_order'])
+        else:
+            assert_equal(n_in, _get_n_moments(inf['in_order']))
+        assert_equal(inf['components'][:n_in].sum(), inf['nfree'])
+    assert_allclose(info_py['nfree'], info_mf['nfree'],
+                    atol=comp_tol, err_msg=sss_py._filenames[0])
 
 
 @testing.requires_testing_data
@@ -840,7 +859,7 @@ def test_all():
     coord_frames = ('head', 'head', 'meg', 'head')
     ctcs = (ctc_fname, ctc_fname, ctc_fname, ctc_mgh_fname)
     mins = (3.5, 3.5, 1.2, 0.9)
-    meds = (10.9, 10.4, 3.2, 6.)
+    meds = (10.8, 10.4, 3.2, 6.)
     st_durs = (1., 1., 1., None)
     destinations = (None, sample_fname, None, None)
     origins = (mf_head_origin,
@@ -856,5 +875,47 @@ def test_all():
                 destination=destinations[ii], origin=origins[ii])
         sss_mf = Raw(sss_fnames[ii])
         assert_meg_snr(sss_py, sss_mf, mins[ii], meds[ii], msg=rf)
+
+
+@slow_test
+@requires_svd_convergence
+@testing.requires_testing_data
+def test_triux():
+    """Test TRIUX system support"""
+    raw = Raw(tri_fname).crop(0, 0.999)
+    raw.fix_mag_coil_types()
+    # standard
+    sss_py = maxwell_filter(raw, coord_frame='meg', regularize=None)
+    assert_meg_snr(sss_py, Raw(tri_sss_fname), 37, 700)
+    # cross-talk
+    sss_py = maxwell_filter(raw, coord_frame='meg', regularize=None,
+                            cross_talk=tri_ctc_fname)
+    assert_meg_snr(sss_py, Raw(tri_sss_ctc_fname), 35, 700)
+    # fine cal
+    sss_py = maxwell_filter(raw, coord_frame='meg', regularize=None,
+                            calibration=tri_cal_fname)
+    assert_meg_snr(sss_py, Raw(tri_sss_cal_fname), 31, 360)
+    # ctc+cal
+    sss_py = maxwell_filter(raw, coord_frame='meg', regularize=None,
+                            calibration=tri_cal_fname,
+                            cross_talk=tri_ctc_fname)
+    assert_meg_snr(sss_py, Raw(tri_sss_ctc_cal_fname), 31, 350)
+    # regularization
+    sss_py = maxwell_filter(raw, coord_frame='meg', regularize='in')
+    sss_mf = Raw(tri_sss_reg_fname)
+    assert_meg_snr(sss_py, sss_mf, 0.6, 9)
+    _check_reg_match(sss_py, sss_mf, 1)
+    # all three
+    sss_py = maxwell_filter(raw, coord_frame='meg', regularize='in',
+                            calibration=tri_cal_fname,
+                            cross_talk=tri_ctc_fname)
+    sss_mf = Raw(tri_sss_ctc_cal_reg_in_fname)
+    assert_meg_snr(sss_py, sss_mf, 0.6, 9)
+    _check_reg_match(sss_py, sss_mf, 1)
+    # tSSS
+    raw = Raw(tri_fname).fix_mag_coil_types()
+    sss_py = maxwell_filter(raw, coord_frame='meg', regularize=None,
+                            st_duration=4., verbose=True)
+    assert_meg_snr(sss_py, Raw(tri_sss_st4_fname), 700., 1600)
 
 run_tests_if_main()
