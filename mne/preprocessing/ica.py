@@ -44,7 +44,7 @@ from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-                     _get_fast_dot, compute_corr, _check_copy_dep)
+                     _get_fast_dot, compute_corr)
 from ..fixes import _get_args
 from ..filter import band_pass_filter
 from .bads import find_outliers
@@ -1065,9 +1065,8 @@ class ICA(ContainsMixin):
 
         return self.labels_['eog'], scores
 
-    def apply(self, inst, include=None, exclude=None,
-              n_pca_components=None, start=None, stop=None,
-              copy=None):
+    def apply(self, inst, include=None, exclude=None, n_pca_components=None,
+              start=None, stop=None):
         """Remove selected components from the signal.
 
         Given the unmixing matrix, transform data,
@@ -1095,12 +1094,7 @@ class ICA(ContainsMixin):
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
         """
-        inst = _check_copy_dep(inst, copy)
         if isinstance(inst, _BaseRaw):
             out = self._apply_raw(raw=inst, include=include,
                                   exclude=exclude,

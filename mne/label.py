@@ -485,7 +485,7 @@ class Label(object):
         n_jobs : int
             Number of jobs to run in parallel
         copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
+            This parameter has been deprecated and will be removed in 0.14.
             Use inst.copy() instead.
             Whether to return a new instance or modify in place.
         verbose : bool, str, int, or None
@@ -541,7 +541,7 @@ class Label(object):
         n_jobs : int
             Number of jobs to run in parallel.
         copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
+            This parameter has been deprecated and will be removed in 0.14.
             Use inst.copy() instead.
             Whether to return a new instance or modify in place.
         verbose : bool, str, int, or None
@@ -583,7 +583,7 @@ class Label(object):
                          smooth=smooth, subjects_dir=subjects_dir,
                          warn=False, n_jobs=n_jobs)
         inds = np.nonzero(stc.data)[0]
-        label = _check_copy_dep(self, copy, default=True)
+        label = _check_copy_dep(self, copy)
         label.values = stc.data[inds, :].ravel()
         label.pos = np.zeros((len(inds), 3))
         if label.hemi == 'lh':

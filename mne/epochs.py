@@ -44,7 +44,6 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, object_hash, warn,
                     _check_copy_dep)
-from .utils import deprecated
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
@@ -350,17 +349,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         assert self._data.shape[-1] == len(self.times)
         return self
 
-    def decimate(self, decim, copy=None, offset=0):
+    def decimate(self, decim, offset=0):
         """Decimate the epochs
 
         Parameters
         ----------
         decim : int
             The amount to decimate data.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
         offset : int
             Apply an offset to where the decimation starts relative to the
             sample corresponding to t=0. The offset is in samples at the
@@ -384,11 +379,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if decim < 1 or decim != int(decim):
             raise ValueError('decim must be an integer > 0')
         decim = int(decim)
-        epochs = _check_copy_dep(self, copy)
-        del self
-
-        new_sfreq = epochs.info['sfreq'] / float(decim)
-        lowpass = epochs.info['lowpass']
+        new_sfreq = self.info['sfreq'] / float(decim)
+        lowpass = self.info['lowpass']
         if decim > 1 and lowpass is None:
             warn('The measurement information indicates data is not low-pass '
                  'filtered. The decim=%i parameter will result in a sampling '
@@ -403,26 +395,26 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if not 0 <= offset < decim:
             raise ValueError('decim must be at least 0 and less than %s, got '
                              '%s' % (decim, offset))
-        epochs._decim *= decim
-        start_idx = int(round(epochs._raw_times[0] * (epochs.info['sfreq'] *
-                                                      epochs._decim)))
-        i_start = start_idx % epochs._decim
-        decim_slice = slice(i_start + offset, len(epochs._raw_times),
-                            epochs._decim)
-        epochs.info['sfreq'] = new_sfreq
-        if epochs.preload:
-            epochs._data = epochs._data[:, :, decim_slice].copy()
-            epochs._raw_times = epochs._raw_times[decim_slice].copy()
-            epochs._decim_slice = slice(None, None, None)
-            epochs._decim = 1
-            epochs.times = epochs._raw_times
+        self._decim *= decim
+        start_idx = int(round(self._raw_times[0] * (self.info['sfreq'] *
+                                                    self._decim)))
+        i_start = start_idx % self._decim
+        decim_slice = slice(i_start + offset, len(self._raw_times),
+                            self._decim)
+        self.info['sfreq'] = new_sfreq
+        if self.preload:
+            self._data = self._data[:, :, decim_slice].copy()
+            self._raw_times = self._raw_times[decim_slice].copy()
+            self._decim_slice = slice(None, None, None)
+            self._decim = 1
+            self.times = self._raw_times
         else:
-            epochs._decim_slice = decim_slice
-            epochs.times = epochs._raw_times[epochs._decim_slice]
-        return epochs
+            self._decim_slice = decim_slice
+            self.times = self._raw_times[self._decim_slice]
+        return self
 
     @verbose
-    def apply_baseline(self, baseline, copy=None, verbose=None):
+    def apply_baseline(self, baseline, verbose=None):
         """Baseline correct epochs
 
         Parameters
@@ -433,10 +425,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             of the data is used and if b is None then b is set to the end of
             the interval. If baseline is equal to (None, None) all the time
             interval is used.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -455,17 +443,16 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('`baseline=%s` is an invalid argument.'
                              % str(baseline))
 
-        epochs = _check_copy_dep(self, copy)
-        picks = _pick_data_channels(epochs.info, exclude=[], with_ref_meg=True)
-        picks_aux = _pick_aux_channels(epochs.info, exclude=[])
+        picks = _pick_data_channels(self.info, exclude=[], with_ref_meg=True)
+        picks_aux = _pick_aux_channels(self.info, exclude=[])
         picks = np.sort(np.concatenate((picks, picks_aux)))
 
-        data = epochs._data
+        data = self._data
         data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline,
                                     copy=False)
-        epochs.baseline = baseline
+        self.baseline = baseline
 
-        return epochs
+        return self
 
     def _reject_setup(self, reject, flat):
         """Sets self._reject_time and self._channel_type_idx"""
@@ -1081,12 +1068,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             border=border, fig_facecolor=fig_facecolor, font_color=font_color,
             show=show)
 
-    @deprecated('drop_bad_epochs method has been renamed drop_bad. '
-                'drop_bad_epochs method will be removed in 0.13')
-    def drop_bad_epochs(self, reject='existing', flat='existing'):
-        """Drop bad epochs without retaining the epochs data"""
-        return self.drop_bad(reject, flat)
-
     @verbose
     def drop_bad(self, reject='existing', flat='existing', verbose=None):
         """Drop bad epochs without retaining the epochs data.
@@ -1259,12 +1240,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  show=show, units=units, scalings=scalings,
                                  cmap=cmap, fig=fig,
                                  overlay_times=overlay_times)
-
-    @deprecated('drop_epochs method has been renamed drop. '
-                'drop_epochs method will be removed in 0.13')
-    def drop_epochs(self, indices, reason='USER', verbose=None):
-        """Drop epochs based on indices or boolean mask"""
-        return self.drop(indices, reason, verbose)
 
     @verbose
     def drop(self, indices, reason='USER', verbose=None):
@@ -1580,7 +1555,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                if v in epochs.events[:, 2])
         return epochs
 
-    def crop(self, tmin=None, tmax=None, copy=None):
+    def crop(self, tmin=None, tmax=None):
         """Crops a time interval from epochs object.
 
         Parameters
@@ -1589,10 +1564,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -1625,15 +1596,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             tmax = self.tmax
 
         tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
-        this_epochs = _check_copy_dep(self, copy)
-        this_epochs.times = this_epochs.times[tmask]
-        this_epochs._raw_times = this_epochs._raw_times[tmask]
-        this_epochs._data = this_epochs._data[:, :, tmask]
-        return this_epochs
+        self.times = self.times[tmask]
+        self._raw_times = self._raw_times[tmask]
+        self._data = self._data[:, :, tmask]
+        return self
 
     @verbose
-    def resample(self, sfreq, npad=None, window='boxcar', n_jobs=1,
-                 copy=None, verbose=None):
+    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
+                 verbose=None):
         """Resample preloaded data
 
         Parameters
@@ -1648,10 +1618,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Window to use in resampling. See scipy.signal.resample.
         n_jobs : int
             Number of jobs to run in parallel.
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -1674,20 +1640,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # XXX this could operate on non-preloaded data, too
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
-        if npad is None:
-            npad = 100
-            warn('npad is currently taken to be 100, but will be changed to '
-                 '"auto" in 0.13. Please set the value explicitly.',
-                 DeprecationWarning)
-        inst = _check_copy_dep(self, copy)
-        o_sfreq = inst.info['sfreq']
-        inst._data = resample(inst._data, sfreq, o_sfreq, npad, window=window,
+        o_sfreq = self.info['sfreq']
+        self._data = resample(self._data, sfreq, o_sfreq, npad, window=window,
                               n_jobs=n_jobs)
         # adjust indirectly affected variables
-        inst.info['sfreq'] = float(sfreq)
-        inst.times = (np.arange(inst._data.shape[2], dtype=np.float) /
-                      sfreq + inst.times[0])
-        return inst
+        self.info['sfreq'] = float(sfreq)
+        self.times = (np.arange(self._data.shape[2], dtype=np.float) /
+                      sfreq + self.times[0])
+        return self
 
     def copy(self):
         """Return copy of Epochs instance"""
@@ -1766,7 +1726,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             list. If 'mintime', timing differences between each event list
             will be minimized.
         copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
+            This parameter has been deprecated and will be removed in 0.14.
             Use inst.copy() instead.
             Whether to return a new instance or modify in place.
 
@@ -1792,7 +1752,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         conditions will contribute evenly. E.g., it is possible to end up
         with 70 'Nonspatial' trials, 69 'Left' and 1 'Right'.
         """
-        epochs = _check_copy_dep(self, copy, default=True)
+        epochs = _check_copy_dep(self, copy)
         if len(event_ids) == 0:
             raise ValueError('event_ids must have at least one element')
         if not epochs._bad_dropped:
@@ -2882,7 +2842,7 @@ def concatenate_epochs(epochs_list):
 def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                       origin='auto', weight_all=True, int_order=8, ext_order=3,
                       destination=None, ignore_ref=False, return_mapping=False,
-                      pos=None, verbose=None):
+                      verbose=None):
     """Average data using Maxwell filtering, transforming using head positions
 
     Parameters
@@ -2975,10 +2935,6 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                                         _get_n_moments, _get_mf_picks,
                                         _prep_mf_coils, _check_destination,
                                         _remove_meg_projs)
-    if pos is not None:
-        head_pos = pos
-        warn('pos has been replaced by head_pos and will be removed in 0.13',
-             DeprecationWarning)
     if head_pos is None:
         raise TypeError('head_pos must be provided and cannot be None')
     from .chpi import head_pos_to_trans_rot_t

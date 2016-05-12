@@ -237,11 +237,8 @@ def test_fit_sphere_to_headshape():
     info = Info(dig=dig, dev_head_t=dev_head_t)
 
     # Degenerate conditions
-    with warnings.catch_warnings(record=True) as w:
-        assert_raises(ValueError, fit_sphere_to_headshape, info,
-                      dig_kinds=(FIFF.FIFFV_POINT_HPI,))
-    assert_equal(len(w), 1)
-    assert_true(w[0].category == DeprecationWarning)
+    assert_raises(ValueError, fit_sphere_to_headshape, info,
+                  dig_kinds=(FIFF.FIFFV_POINT_HPI,))
     assert_raises(ValueError, fit_sphere_to_headshape, info,
                   dig_kinds='foo', units='m')
     info['dig'][0]['coord_frame'] = FIFF.FIFFV_COORD_DEVICE

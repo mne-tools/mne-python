@@ -31,8 +31,7 @@ from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, check_version, _time_mask, warn,
-                    _check_copy_dep)
+                    _compute_row_norms, check_version, _time_mask, warn)
 from .fixes import in1d
 
 from .externals.six.moves import zip
@@ -163,15 +162,8 @@ class Covariance(dict):
         """
         return cp.deepcopy(self)
 
-    def as_diag(self, copy=None):
+    def as_diag(self):
         """Set covariance to be processed as being diagonal.
-
-        Parameters
-        ----------
-        copy : bool
-            This parameter has been deprecated and will be removed in 0.13.
-            Use inst.copy() instead.
-            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -183,14 +175,13 @@ class Covariance(dict):
         This function allows creation of inverse operators
         equivalent to using the old "--diagnoise" mne option.
         """
-        cov = _check_copy_dep(self, copy, default=True)
-        if cov['diag']:
-            return cov
-        cov['diag'] = True
-        cov['data'] = np.diag(cov['data'])
-        cov['eig'] = None
-        cov['eigvec'] = None
-        return cov
+        if self['diag']:
+            return self
+        self['diag'] = True
+        self['data'] = np.diag(self['data'])
+        self['eig'] = None
+        self['eigvec'] = None
+        return self
 
     def __repr__(self):
         if self.data.ndim == 2:

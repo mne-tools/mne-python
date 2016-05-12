@@ -10,11 +10,11 @@ import warnings
 
 from mne.io import Raw
 from mne.io.constants import FIFF
-from mne.chpi import (get_chpi_positions, _calculate_chpi_positions,
+from mne.chpi import (_calculate_chpi_positions,
                       head_pos_to_trans_rot_t, read_head_pos,
                       write_head_pos, filter_chpi)
 from mne.fixes import assert_raises_regex
-from mne.transforms import rot_to_quat, quat_to_rot, _angle_between_quats
+from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, catch_logging,
                        requires_version)
 from mne.datasets import testing
@@ -54,31 +54,6 @@ def test_read_write_head_pos():
     assert_raises(ValueError, write_head_pos, temp_name, head_pos_read[:, :9])
     assert_raises(TypeError, read_head_pos, 0)
     assert_raises(IOError, read_head_pos, temp_name + 'foo')
-
-
-def test_get_chpi():
-    """Test CHPI position computation
-    """
-    with warnings.catch_warnings(record=True):  # deprecation
-        trans0, rot0, _, quat0 = get_chpi_positions(hp_fname, return_quat=True)
-    assert_allclose(rot0[0], quat_to_rot(quat0[0]))
-    trans0, rot0 = trans0[:-1], rot0[:-1]
-    raw = Raw(hp_fif_fname)
-    with warnings.catch_warnings(record=True):  # deprecation
-        out = get_chpi_positions(raw)
-    trans1, rot1, t1 = out
-    trans1, rot1 = trans1[2:], rot1[2:]
-    # these will not be exact because they don't use equiv. time points
-    assert_allclose(trans0, trans1, atol=1e-5, rtol=1e-1)
-    assert_allclose(rot0, rot1, atol=1e-6, rtol=1e-1)
-    # run through input checking
-    raw_no_chpi = Raw(test_fif_fname)
-    with warnings.catch_warnings(record=True):  # deprecation
-        assert_raises(TypeError, get_chpi_positions, 1)
-        assert_raises(ValueError, get_chpi_positions, hp_fname, [1])
-        assert_raises(RuntimeError, get_chpi_positions, raw_no_chpi)
-        assert_raises(ValueError, get_chpi_positions, raw, t_step='foo')
-        assert_raises(IOError, get_chpi_positions, 'foo')
 
 
 @testing.requires_testing_data

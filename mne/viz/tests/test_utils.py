@@ -112,7 +112,7 @@ def test_auto_scale():
 
     assert_raises(ValueError, _compute_scalings, scalings_def, rand_data)
     epochs = epochs[0].load_data()
-    epochs.pick_types(eeg=True, meg=False, copy=False)
+    epochs.pick_types(eeg=True, meg=False)
     assert_raises(ValueError, _compute_scalings,
                   dict(grad='auto'), epochs)
 

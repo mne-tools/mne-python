@@ -505,7 +505,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self  # return self for chaining methods
 
     @verbose
-    def resample(self, sfreq, npad=None, window='boxcar', n_jobs=1,
+    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
                  verbose=None):
         """Resample data
 
@@ -532,11 +532,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
         Note that the sample rate of the original data is inferred from tstep.
         """
-        if npad is None:
-            npad = 100
-            warn_('npad is currently taken to be 100, but will be changed to '
-                  '"auto" in 0.12. Please set the value explicitly.',
-                  DeprecationWarning)
         # resampling in sensor instead of source space gives a somewhat
         # different result, so we don't allow it
         self._remove_kernel_sens_data_()

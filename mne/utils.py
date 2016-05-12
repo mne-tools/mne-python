@@ -63,20 +63,17 @@ def nottest(f):
 # RANDOM UTILITIES
 
 
-def _check_copy_dep(inst, copy, kind='inst', default=False):
-    """Check for copy deprecation for 0.13 and 0.14"""
+def _check_copy_dep(inst, copy, kind='inst'):
+    """Check for copy deprecation for 0.14"""
     # For methods with copy=False default, we only need one release cycle
     # for deprecation (0.13). For copy=True, we first need to go to copy=False
     # (one cycle; 0.13) then remove copy altogether (one cycle; 0.14).
-    if copy or (copy is None and default is True):
-        remove_version = '0.14' if default is True else '0.13'
-        warn('The copy parameter is deprecated and will be removed in %s. '
-             'In 0.13 the behavior will be to operate in-place '
-             '(like copy=False). In 0.12 the default is copy=%s. '
-             'Use %s.copy() if necessary.'
-             % (remove_version, default, kind), DeprecationWarning)
-    if copy is None:
-        copy = default
+    if copy:
+        warn('The copy parameter is deprecated and will be removed in 0.14. '
+             'In 0.13 the default is copy=False. Use %s.copy() if necessary.'
+             % (kind,), DeprecationWarning)
+    elif copy is None:
+        copy = False
     return inst.copy() if copy else inst
 
 
