@@ -497,11 +497,20 @@ def test_ica_additional():
         assert_equal(len(scores), ica.n_components_)
 
         idx, scores = ica.find_bads_ecg(epochs, method='ctps')
+
         assert_equal(len(scores), ica.n_components_)
         assert_raises(ValueError, ica.find_bads_ecg, epochs.average(),
                       method='ctps')
         assert_raises(ValueError, ica.find_bads_ecg, raw,
                       method='crazy-coupling')
+
+        # check that nonsense ecg ch_name means bad output -
+        # i.e., that find_bads_ecg recognizes the ch_name arg
+        idx2, _ = ica.find_bads_ecg(epochs, raw.ch_names[0], method='ctps')
+        assert_true(set(idx2) != set(idx))
+
+        idx, scores = ica.find_bads_eog(raw)
+        assert_equal(len(scores), ica.n_components_)
 
         raw.info['chs'][raw.ch_names.index('EOG 061') - 1]['kind'] = 202
         idx, scores = ica.find_bads_eog(raw)
