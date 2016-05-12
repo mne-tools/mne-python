@@ -241,9 +241,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('detrend must be None, 0, or 1')
 
         # check that baseline is in available data
-        _check_baseline(baseline, tmin, tmax, info['sfreq'])
         if tmin > tmax:
             raise ValueError('tmin has to be less than or equal to tmax')
+        _check_baseline(baseline, tmin, tmax, info['sfreq'])
         _log_rescale(baseline)
         self.baseline = baseline
         self.reject_tmin = reject_tmin
