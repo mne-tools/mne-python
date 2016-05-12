@@ -20,6 +20,7 @@ import matplotlib
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
                  write_evokeds, create_info, make_fixed_length_events)
+from mne.baseline import rescale
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
@@ -440,6 +441,20 @@ def test_epochs_bad_baseline():
     raw, events = _get_data()[:2]
     assert_raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (-0.2, 0))
     assert_raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (0, 0.4))
+    assert_raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (0.1, 0))
+    assert_raises(ValueError, Epochs, raw, events, None, 0.1, 0.3, (None, 0))
+    assert_raises(ValueError, Epochs, raw, events, None, -0.3, -0.1, (0, None))
+    epochs = Epochs(raw, events, None, 0.1, 0.3, baseline=None)
+    assert_raises(RuntimeError, epochs.apply_baseline, (0.1, 0.2))
+    epochs.load_data()
+    assert_raises(ValueError, epochs.apply_baseline, (None, 0))
+    assert_raises(ValueError, epochs.apply_baseline, (0, None))
+    # put some rescale options here, too
+    data = np.arange(100, dtype=float)
+    assert_raises(ValueError, rescale, data, times=data, baseline=(-2, -1))
+    rescale(data.copy(), times=data, baseline=(2, 2))  # ok
+    assert_raises(ValueError, rescale, data, times=data, baseline=(2, 1))
+    assert_raises(ValueError, rescale, data, times=data, baseline=(100, 101))
 
 
 def test_epoch_combine_ids():

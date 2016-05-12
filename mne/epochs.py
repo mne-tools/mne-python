@@ -240,21 +240,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('detrend must be None, 0, or 1')
 
         # check that baseline is in available data
-        if baseline is not None:
-            baseline_tmin, baseline_tmax = baseline
-            tstep = 1. / info['sfreq']
-            if baseline_tmin is not None:
-                if baseline_tmin < tmin - tstep:
-                    err = ("Baseline interval (tmin = %s) is outside of epoch "
-                           "data (tmin = %s)" % (baseline_tmin, tmin))
-                    raise ValueError(err)
-            if baseline_tmax is not None:
-                if baseline_tmax > tmax + tstep:
-                    err = ("Baseline interval (tmax = %s) is outside of epoch "
-                           "data (tmax = %s)" % (baseline_tmax, tmax))
-                    raise ValueError(err)
         if tmin > tmax:
             raise ValueError('tmin has to be less than or equal to tmax')
+        _check_baseline(baseline, tmin, tmax, info['sfreq'])
         _log_rescale(baseline)
         self.baseline = baseline
         self.reject_tmin = reject_tmin
@@ -439,9 +427,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         .. versionadded:: 0.10.0
         """
-        if not isinstance(baseline, tuple) or len(baseline) != 2:
-            raise ValueError('`baseline=%s` is an invalid argument.'
-                             % str(baseline))
+        if not self.preload:
+            # Eventually we can relax this restriction, but it will require
+            # more careful checking of baseline (e.g., refactor with the
+            # _BaseEpochs.__init__ checks)
+            raise RuntimeError('Data must be loaded to apply a new baseline')
+        _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
 
         picks = _pick_data_channels(self.info, exclude=[], with_ref_meg=True)
         picks_aux = _pick_aux_channels(self.info, exclude=[])
@@ -1882,6 +1873,35 @@ class _BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         epochs.drop(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices
+
+
+def _check_baseline(baseline, tmin, tmax, sfreq):
+    """Helper to check for a valid baseline"""
+    if baseline is not None:
+        if not isinstance(baseline, tuple) or len(baseline) != 2:
+            raise ValueError('`baseline=%s` is an invalid argument.'
+                             % str(baseline))
+        baseline_tmin, baseline_tmax = baseline
+        tstep = 1. / float(sfreq)
+        if baseline_tmin is None:
+            baseline_tmin = tmin
+        baseline_tmin = float(baseline_tmin)
+        if baseline_tmax is None:
+            baseline_tmax = tmax
+        baseline_tmax = float(baseline_tmax)
+        if baseline_tmin < tmin - tstep:
+            raise ValueError(
+                "Baseline interval (tmin = %s) is outside of epoch "
+                "data (tmin = %s)" % (baseline_tmin, tmin))
+        if baseline_tmax > tmax + tstep:
+            raise ValueError(
+                "Baseline interval (tmax = %s) is outside of epoch "
+                "data (tmax = %s)" % (baseline_tmax, tmax))
+        if baseline_tmin > baseline_tmax:
+            raise ValueError(
+                "Baseline min (%s) must be less than baseline max (%s)"
+                % (baseline_tmin, baseline_tmax))
+        del baseline_tmin, baseline_tmax
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):
