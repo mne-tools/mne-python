@@ -46,7 +46,8 @@ from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
                      _get_fast_dot, compute_corr, _get_inst_data,
-                     copy_function_doc_to_method_doc, _pl)
+                     copy_function_doc_to_method_doc, _pl, warn)
+
 from ..fixes import _get_args
 from ..filter import filter_data
 from .bads import find_outliers
@@ -1021,7 +1022,6 @@ class ICA(ContainsMixin):
             ecg, times = _make_ecg(inst, start, stop,
                                    reject_by_annotation=reject_by_annotation,
                                    verbose=verbose)
-            ch_name = 'ECG-MAG'
         else:
             ecg = inst.ch_names[idx_ecg]
 
@@ -1030,8 +1030,11 @@ class ICA(ContainsMixin):
                 threshold = 0.25
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(
-                    inst,
+                    inst, ch_name, keep_ecg=False,
                     reject_by_annotation=reject_by_annotation)).get_data()
+                if sources.shape[0] == 0:
+                    warn('No ECG activity detected. Consider changing '
+                         'the input parameters.')
             elif isinstance(inst, BaseEpochs):
                 sources = self.get_sources(inst).get_data()
             else:
@@ -1054,6 +1057,8 @@ class ICA(ContainsMixin):
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
 
         self.labels_['ecg'] = list(ecg_idx)
+        if ch_name is None:
+            ch_name = 'ECG-MAG'
         self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
 
