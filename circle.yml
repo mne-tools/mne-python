@@ -44,7 +44,7 @@ dependencies:
 
   override:
     - cd /home/ubuntu/mne-python && python setup.py develop;
-    - if [ "$CIRCLE_BRANCH" == "master"] || [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then
+    - if [ "$CIRCLE_BRANCH" == "master" ] || [ "$CIRCLE_BRANCH" == "maint/0.12" ]; then
         mkdir -p ~/mne_data;
         python -c "import mne; mne.datasets._download_all_example_data()";
       fi
