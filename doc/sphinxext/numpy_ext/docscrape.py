@@ -501,8 +501,10 @@ class ClassDoc(NumpyDocString):
     def methods(self):
         if self._cls is None:
             return []
+        import mne  # we do something special here...
         return [name for name, func in inspect.getmembers(self._cls)
-                if not name.startswith('_') and callable(func)]
+                if callable(func) and (not name.startswith('_') or
+                                       name in mne.utils._doc_special_members)]
 
     @property
     def properties(self):

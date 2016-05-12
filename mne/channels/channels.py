@@ -144,7 +144,28 @@ class ContainsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
     def __contains__(self, ch_type):
-        """Check channel type membership"""
+        """Check channel type membership
+
+        Parameters
+        ----------
+        ch_type : str
+            Channel type to check for. Can be e.g. 'meg', 'eeg', 'stim', etc.
+
+        Returns
+        -------
+        in : bool
+            Whether or not the instance contains the given channel type.
+
+        Examples
+        --------
+        Channel type membership can be tested as::
+
+            >>> 'meg' in inst  # doctest: +SKIP
+            True
+            >>> 'seeg' in inst  # doctest: +SKIP
+            False
+
+        """
         if ch_type == 'meg':
             has_ch_type = (_contains_ch_type(self.info, 'mag') or
                            _contains_ch_type(self.info, 'grad'))

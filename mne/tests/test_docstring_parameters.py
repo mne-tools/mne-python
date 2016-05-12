@@ -13,7 +13,7 @@ from pkgutil import walk_packages
 from inspect import getsource
 
 import mne
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, _doc_special_members
 from mne.fixes import _get_args
 
 public_modules = [
@@ -121,7 +121,7 @@ def test_docstring_parameters():
             module = getattr(module, submod)
         classes = inspect.getmembers(module, inspect.isclass)
         for cname, cls in classes:
-            if cname.startswith('_'):
+            if cname.startswith('_') and cname not in _doc_special_members:
                 continue
             with warnings.catch_warnings(record=True) as w:
                 cdoc = docscrape.ClassDoc(cls)
