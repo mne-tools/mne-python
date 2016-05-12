@@ -23,7 +23,7 @@ BUG
 API
 ~~~
 
-    - 
+    - Deprecated support for passing a lits of filenames to :class:`mne.io.Raw` constructor, use :func:`mne.io.read_raw_fif` and :func:`mne.concatenate_raws` instead by `Eric Larson`_
 
 .. _changes_0_12:
 
