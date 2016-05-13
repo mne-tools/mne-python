@@ -6,9 +6,9 @@ coverage:
     project:
       default:
         target: auto
-        threshold: 0
-        branches: "!foo"
+        threshold: 0.01
+    patch: false
+    changes: false
 comment:
-  layout: "header, diff, changes, sunburst, uncovered"
-  branches: "!foo"
+  layout: "header, diff, sunburst, uncovered"
   behavior: default
