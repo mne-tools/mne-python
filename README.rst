@@ -1,7 +1,7 @@
 .. -*- mode: rst -*-
 
 
-|Travis|_ |Appveyor|_ |Coveralls|_ |Zenodo|_
+|Travis|_ |Appveyor|_ |Codecov|_ |Zenodo|_
 
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python
@@ -9,8 +9,8 @@
 .. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/reccwk3filrasumg/branch/master?svg=true
 .. _Appveyor: https://ci.appveyor.com/project/Eric89GXL/mne-python/branch/master
 
-.. |Coveralls| image:: https://coveralls.io/repos/mne-tools/mne-python/badge.png?branch=master
-.. _Coveralls: https://coveralls.io/r/mne-tools/mne-python?branch=master
+.. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/master/graph/badge.svg
+.. _Codecov: https://codecov.io/gh/mne-tools/mne-python
 
 .. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
 .. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
