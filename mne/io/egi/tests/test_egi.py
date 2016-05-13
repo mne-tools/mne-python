@@ -36,11 +36,10 @@ def test_io_egi():
         warnings.simplefilter('always')
         raw = read_raw_egi(egi_fname, include=None)
         assert_true('RawEGI' in repr(raw))
-        assert_equal(len(w), 2)
-        assert_true(w[0].category == DeprecationWarning)  # preload=None
-        assert_true(w[1].category == RuntimeWarning)
+        assert_equal(len(w), 1)
+        assert_true(w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
-        assert_true(msg in '%s' % w[1].message)
+        assert_true(msg in '%s' % w[0].message)
     data_read, t_read = raw[:256]
     assert_allclose(t_read, t)
     assert_allclose(data_read, data, atol=1e-10)

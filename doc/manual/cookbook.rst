@@ -134,6 +134,20 @@ constructed using::
     >>>                     proj=True, picks=picks, baseline=(None, 0),
     >>>                     preload=True, reject=reject)
 
+.. note:: The rejection thresholds (set with argument ``reject``) are defined
+          in T / m for gradiometers, T for magnetometers and V for EEG and EOG
+          channels.
+
+
+Rejection using annotations
+---------------------------
+
+The reject keyword of :class:`mne.Epochs` is used for rejecting bad epochs
+based on peak-to-peak thresholds. Bad segments of data can also be rejected
+by marking segments of raw data with annotations. See
+:ref:`tut_artifacts_reject` and :class:`mne.Annotations` for more
+information.
+
 Once the :class:`mne.Epochs` are constructed, they can be averaged to obtain
 :class:`mne.Evoked` data as::
 
@@ -162,7 +176,7 @@ The first processing stage is the creation of various surface
 reconstructions with FreeSurfer. The recommended FreeSurfer workflow
 is summarized on the `FreeSurfer wiki pages <https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction>`_.
 
-.. _CIHCHDAE:
+.. _setting_up_source_space:
 
 Setting up the source space
 ###########################
@@ -274,7 +288,7 @@ segmentation.
           e.g. ``conductivities=[0.3]``.
 
 Using this model, the BEM solution can be computed using
-:func:`mne.make_bem_solution`` as::
+:func:`mne.make_bem_solution` as::
 
     >>> bem_sol = make_bem_solution(model)
     >>> write_bem_solution('sample-5120-5120-5120-bem-sol.fif', bem_sol)

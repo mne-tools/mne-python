@@ -20,8 +20,9 @@ from mne import Epochs, read_events, pick_types
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
-from mne.preprocessing.ica import get_score_funcs, corrmap
+from mne.preprocessing.ica import get_score_funcs, corrmap, _get_ica_map
 from mne.io import Raw, Info
+from mne.tests.common import assert_naming
 from mne.utils import (catch_logging, _TempDir, requires_sklearn, slow_test,
                        run_tests_if_main)
 
@@ -53,13 +54,14 @@ except:
 def test_ica_full_data_recovery():
     """Test recovery of full data when no source is rejected"""
     # Most basic recovery
-    raw = Raw(raw_fname).crop(0.5, stop, False)
+    raw = Raw(raw_fname).crop(0.5, stop, copy=False)
     raw.load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
-    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+    with warnings.catch_warnings(record=True):  # bad proj
+        epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0), preload=True)
     evoked = epochs.average()
     n_channels = 5
     data = raw._data[:n_channels].copy()
@@ -74,7 +76,7 @@ def test_ica_full_data_recovery():
                       method=method, max_iter=1)
             with warnings.catch_warnings(record=True):
                 ica.fit(raw, picks=list(range(n_channels)))
-            raw2 = ica.apply(raw, exclude=[], copy=True)
+            raw2 = ica.apply(raw.copy(), exclude=[])
             if ok:
                 assert_allclose(data[:n_channels], raw2._data[:n_channels],
                                 rtol=1e-10, atol=1e-15)
@@ -87,7 +89,7 @@ def test_ica_full_data_recovery():
                       n_pca_components=n_pca_components)
             with warnings.catch_warnings(record=True):
                 ica.fit(epochs, picks=list(range(n_channels)))
-            epochs2 = ica.apply(epochs, exclude=[], copy=True)
+            epochs2 = ica.apply(epochs.copy(), exclude=[])
             data2 = epochs2.get_data()[:, :n_channels]
             if ok:
                 assert_allclose(data_epochs[:, :n_channels], data2,
@@ -96,7 +98,7 @@ def test_ica_full_data_recovery():
                 diff = np.abs(data_epochs[:, :n_channels] - data2)
                 assert_true(np.max(diff) > 1e-14)
 
-            evoked2 = ica.apply(evoked, exclude=[], copy=True)
+            evoked2 = ica.apply(evoked.copy(), exclude=[])
             data2 = evoked2.data[:n_channels]
             if ok:
                 assert_allclose(data_evoked[:n_channels], data2,
@@ -109,9 +111,9 @@ def test_ica_full_data_recovery():
 
 @requires_sklearn
 def test_ica_rank_reduction():
-    """Test recovery of full data when no source is rejected"""
+    """Test recovery ICA rank reduction"""
     # Most basic recovery
-    raw = Raw(raw_fname).crop(0.5, stop, False)
+    raw = Raw(raw_fname).crop(0.5, stop, copy=False)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
@@ -127,7 +129,7 @@ def test_ica_rank_reduction():
 
         rank_before = raw.estimate_rank(picks=picks)
         assert_equal(rank_before, len(picks))
-        raw_clean = ica.apply(raw, copy=True)
+        raw_clean = ica.apply(raw.copy())
         rank_after = raw_clean.estimate_rank(picks=picks)
         # interaction between ICA rejection and PCA components difficult
         # to preduct. Rank_after often seems to be 1 higher then
@@ -139,7 +141,7 @@ def test_ica_rank_reduction():
 @requires_sklearn
 def test_ica_reset():
     """Test ICA resetting"""
-    raw = Raw(raw_fname).crop(0.5, stop, False)
+    raw = Raw(raw_fname).crop(0.5, stop, copy=False)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
@@ -167,7 +169,7 @@ def test_ica_reset():
 @requires_sklearn
 def test_ica_core():
     """Test ICA on raw and epochs"""
-    raw = Raw(raw_fname).crop(1.5, stop, False)
+    raw = Raw(raw_fname).crop(1.5, stop, copy=False)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -253,7 +255,7 @@ def test_ica_core():
     # test for bug with whitener updating
     _pre_whitener = ica._pre_whitener.copy()
     epochs._data[:, 0, 10:15] *= 1e12
-    ica.apply(epochs, copy=True)
+    ica.apply(epochs.copy())
     assert_array_equal(_pre_whitener, ica._pre_whitener)
 
     # test expl. var threshold leading to empty sel
@@ -272,7 +274,7 @@ def test_ica_additional():
     """Test additional ICA functionality"""
     tempdir = _TempDir()
     stop2 = 500
-    raw = Raw(raw_fname).crop(1.5, stop, False)
+    raw = Raw(raw_fname).crop(1.5, stop, copy=False)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -311,11 +313,16 @@ def test_ica_additional():
 
     # test corrmap
     ica2 = ica.copy()
+    ica3 = ica.copy()
     corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks', plot=True,
             ch_type="mag")
     corrmap([ica, ica2], (0, 0), threshold=2, plot=False, show=False)
     assert_true(ica.labels_["blinks"] == ica2.labels_["blinks"])
     assert_true(0 in ica.labels_["blinks"])
+    template = _get_ica_map(ica)[0]
+    corrmap([ica, ica3], template, threshold='auto', label='blinks', plot=True,
+            ch_type="mag")
+    assert_true(ica2.labels_["blinks"] == ica3.labels_["blinks"])
     plt.close('all')
 
     # test warnings on bad filenames
@@ -324,7 +331,7 @@ def test_ica_additional():
         ica_badname = op.join(op.dirname(tempdir), 'test-bad-name.fif.gz')
         ica.save(ica_badname)
         read_ica(ica_badname)
-    assert_true(len(w) == 2)
+    assert_naming(w, 'test_ica.py', 2)
 
     # test decim
     ica = ICA(n_components=3, max_pca_components=4,
@@ -535,7 +542,7 @@ def test_ica_additional():
 @requires_sklearn
 def test_run_ica():
     """Test run_ica function"""
-    raw = Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = Raw(raw_fname, preload=True).crop(1.5, stop, copy=False)
     params = []
     params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
@@ -550,7 +557,7 @@ def test_run_ica():
 @requires_sklearn
 def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection"""
-    raw = Raw(raw_fname).crop(1.5, stop, False)
+    raw = Raw(raw_fname).crop(1.5, stop, copy=False)
     raw.load_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -568,7 +575,7 @@ def test_ica_reject_buffer():
 @requires_sklearn
 def test_ica_twice():
     """Test running ICA twice"""
-    raw = Raw(raw_fname).crop(1.5, stop, False)
+    raw = Raw(raw_fname).crop(1.5, stop, copy=False)
     raw.load_data()
     picks = pick_types(raw.info, meg='grad', exclude='bads')
     n_components = 0.9
@@ -586,5 +593,14 @@ def test_ica_twice():
                    n_pca_components=1.0, random_state=0)
         ica2.fit(raw_new, picks=picks, decim=3)
         assert_equal(ica1.n_components_, ica2.n_components_)
+
+
+@requires_sklearn
+def test_fit_params():
+    """Test fit_params for ICA"""
+    assert_raises(ValueError, ICA, fit_params=dict(extended=True))
+    fit_params = {}
+    ICA(fit_params=fit_params)  # test no side effects
+    assert_equal(fit_params, {})
 
 run_tests_if_main()

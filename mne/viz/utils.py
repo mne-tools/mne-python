@@ -14,12 +14,18 @@ import math
 from functools import partial
 import difflib
 import webbrowser
-from warnings import warn
 import tempfile
 import numpy as np
+from copy import deepcopy
 
-from ..io import show_fiff
-from ..utils import verbose, set_config
+from ..channels.layout import _auto_topomap_coords
+from ..channels.channels import _contains_ch_type
+from ..defaults import _handle_default
+from ..io import show_fiff, Info
+from ..io.pick import channel_type, channel_indices_by_type
+from ..utils import verbose, set_config, warn
+from ..externals.six import string_types
+from ..fixes import _get_argrelmax
 
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -83,13 +89,11 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
     except Exception:
-        warn('Matplotlib function \'tight_layout\' is not supported.'
-             ' Skipping subplot adjusment.')
-    else:
         try:
             fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
         except Exception:
-            pass
+            warn('Matplotlib function "tight_layout" is not supported.'
+                 ' Skipping subplot adjustment.')
 
 
 def _check_delayed_ssp(container):
@@ -330,7 +334,10 @@ def _prepare_trellis(n_cells, max_col):
     fig, axes = plt.subplots(nrow, ncol, figsize=(7.4, 1.5 * nrow + 1))
     axes = [axes] if ncol == nrow == 1 else axes.flatten()
     for ax in axes[n_cells:]:  # hide unused axes
-        ax.set_visible(False)
+        # XXX: Previously done by ax.set_visible(False), but because of mpl
+        # bug, we just hide the frame.
+        from .topomap import _hide_frame
+        _hide_frame(ax)
     return fig, axes
 
 
@@ -565,21 +572,13 @@ def _plot_raw_onkey(event, params):
         params['plot_fun']()
     elif event.key == 'pageup':
         n_channels = params['n_channels'] + 1
-        offset = params['ax'].get_ylim()[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        params['ax'].set_yticks(params['offsets'])
-        params['vsel_patch'].set_height(n_channels)
+        _setup_browser_offsets(params, n_channels)
         _channels_changed(params, len(params['info']['ch_names']))
     elif event.key == 'pagedown':
         n_channels = params['n_channels'] - 1
         if n_channels == 0:
             return
-        offset = params['ax'].get_ylim()[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        params['ax'].set_yticks(params['offsets'])
-        params['vsel_patch'].set_height(n_channels)
+        _setup_browser_offsets(params, n_channels)
         if len(params['lines']) > n_channels:  # remove line from view
             params['lines'][n_channels].set_xdata([])
             params['lines'][n_channels].set_ydata([])
@@ -704,6 +703,17 @@ def _onclick_help(event, params):
         pass
 
 
+def _setup_browser_offsets(params, n_channels):
+    """Aux function for computing viewport height and adjusting offsets."""
+    ylim = [n_channels * 2 + 1, 0]
+    offset = ylim[0] / n_channels
+    params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+    params['n_channels'] = n_channels
+    params['ax'].set_yticks(params['offsets'])
+    params['ax'].set_ylim(ylim)
+    params['vsel_patch'].set_height(n_channels)
+
+
 class ClickableImage(object):
 
     """
@@ -788,7 +798,7 @@ class ClickableImage(object):
         **kwargs : dict
             Arguments are passed to generate_2d_layout
         """
-        from mne.channels.layout import generate_2d_layout
+        from ..channels.layout import generate_2d_layout
         coords = np.array(self.coords)
         lt = generate_2d_layout(coords, bg_image=self.imdata, **kwargs)
         return lt
@@ -850,3 +860,250 @@ def add_background_image(fig, im, set_ratios=None):
     ax_im.imshow(im, aspect='auto')
     ax_im.set_zorder(-1)
     return ax_im
+
+
+def _find_peaks(evoked, npeaks):
+    """Helper function for finding peaks from evoked data
+    Returns ``npeaks`` biggest peaks as a list of time points.
+    """
+    argrelmax = _get_argrelmax()
+    gfp = evoked.data.std(axis=0)
+    order = len(evoked.times) // 30
+    if order < 1:
+        order = 1
+    peaks = argrelmax(gfp, order=order, axis=0)[0]
+    if len(peaks) > npeaks:
+        max_indices = np.argsort(gfp[peaks])[-npeaks:]
+        peaks = np.sort(peaks[max_indices])
+    times = evoked.times[peaks]
+    if len(times) == 0:
+        times = [evoked.times[gfp.argmax()]]
+    return times
+
+
+def _process_times(inst, times, n_peaks=None, few=False):
+    """Helper to return a list of times for topomaps"""
+    if isinstance(times, string_types):
+        if times == "peaks":
+            if n_peaks is None:
+                n_peaks = 3 if few else 7
+            times = _find_peaks(inst, n_peaks)
+        elif times == "auto":
+            if n_peaks is None:
+                n_peaks = 5 if few else 10
+            times = np.linspace(inst.times[0], inst.times[-1], n_peaks)
+        else:
+            raise ValueError("Got an unrecognized method for `times`. Only "
+                             "'peaks' and 'auto' are supported (or directly "
+                             "passing numbers).")
+    elif np.isscalar(times):
+        times = [times]
+
+    times = np.array(times)
+
+    if times.ndim != 1:
+        raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
+    if len(times) > 20:
+        raise RuntimeError('Too many plots requested. Please pass fewer '
+                           'than 20 time instants.')
+
+    return times
+
+
+def plot_sensors(info, kind='topomap', ch_type=None, title=None,
+                 show_names=False, show=True):
+    """Plot sensors positions.
+
+    Parameters
+    ----------
+    info : Instance of Info
+        Info structure containing the channel locations.
+    kind : str
+        Whether to plot the sensors as 3d or as topomap. Available options
+        'topomap', '3d'. Defaults to 'topomap'.
+    ch_type : 'mag' | 'grad' | 'eeg' | 'seeg' | None
+        The channel type to plot. If None, then channels are chosen in the
+        order given above.
+    title : str | None
+        Title for the figure. If None (default), equals to
+        ``'Sensor positions (%s)' % ch_type``.
+    show_names : bool
+        Whether to display all channel names. Defaults to False.
+    show : bool
+        Show figure if True. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure containing the sensor topography.
+
+    See Also
+    --------
+    mne.viz.plot_layout
+
+    Notes
+    -----
+    This function plots the sensor locations from the info structure using
+    matplotlib. For drawing the sensors using mayavi see
+    :func:`mne.viz.plot_trans`.
+
+    .. versionadded:: 0.12.0
+
+    """
+    if kind not in ['topomap', '3d']:
+        raise ValueError("Kind must be 'topomap' or '3d'.")
+    if not isinstance(info, Info):
+        raise TypeError('info must be an instance of Info not %s' % type(info))
+    ch_indices = channel_indices_by_type(info)
+    allowed_types = ['mag', 'grad', 'eeg', 'seeg']
+    if ch_type is None:
+        for this_type in allowed_types:
+            if _contains_ch_type(info, this_type):
+                ch_type = this_type
+                break
+    elif ch_type not in allowed_types:
+        raise ValueError("ch_type must be one of %s not %s!" % (allowed_types,
+                                                                ch_type))
+    picks = ch_indices[ch_type]
+    if kind == 'topomap':
+        pos = _auto_topomap_coords(info, picks, True)
+    else:
+        pos = np.asarray([ch['loc'][:3] for ch in info['chs']])[picks]
+    def_colors = _handle_default('color')
+    ch_names = np.array(info['ch_names'])[picks]
+    bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
+    colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
+              for i, pick in enumerate(picks)]
+    title = 'Sensor positions (%s)' % ch_type if title is None else title
+    fig = _plot_sensors(pos, colors, ch_names, title, show_names, show)
+
+    return fig
+
+
+def _onpick_sensor(event, fig, ax, pos, ch_names):
+    """Callback for picked channel in plot_sensors."""
+    ind = event.ind[0]  # Just take the first sensor.
+    ch_name = ch_names[ind]
+    this_pos = pos[ind]
+
+    # XXX: Bug in matplotlib won't allow setting the position of existing
+    # text item, so we create a new one.
+    ax.texts.pop(0)
+    if len(this_pos) == 3:
+        ax.text(this_pos[0], this_pos[1], this_pos[2], ch_name)
+    else:
+        ax.text(this_pos[0], this_pos[1], ch_name)
+    fig.canvas.draw()
+
+
+def _plot_sensors(pos, colors, ch_names, title, show_names, show):
+    """Helper function for plotting sensors."""
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from .topomap import _check_outlines, _draw_outlines
+    fig = plt.figure()
+
+    if pos.shape[1] == 3:
+        ax = Axes3D(fig)
+        ax = fig.gca(projection='3d')
+        ax.text(0, 0, 0, '', zorder=1)
+        ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors)
+        ax.azim = 90
+        ax.elev = 0
+    else:
+        ax = fig.add_subplot(111)
+        ax.text(0, 0, '', zorder=1)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
+                            hspace=None)
+        pos, outlines = _check_outlines(pos, 'head')
+        _draw_outlines(ax, outlines)
+        ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors)
+
+    if show_names:
+        for idx in range(len(pos)):
+            this_pos = pos[idx]
+            if pos.shape[1] == 3:
+                ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
+            else:
+                ax.text(this_pos[0], this_pos[1], ch_names[idx])
+    else:
+        picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
+                         ch_names=ch_names)
+        fig.canvas.mpl_connect('pick_event', picker)
+    fig.suptitle(title)
+    plt_show(show)
+    return fig
+
+
+def _compute_scalings(scalings, inst):
+    """Compute scalings for each channel type automatically.
+
+    Parameters
+    ----------
+    scalings : dict
+        The scalings for each channel type. If any values are
+        'auto', this will automatically compute a reasonable
+        scaling for that channel type. Any values that aren't
+        'auto' will not be changed.
+    inst : instance of Raw or Epochs
+        The data for which you want to compute scalings. If data
+        is not preloaded, this will read a subset of times / epochs
+        up to 100mb in size in order to compute scalings.
+
+    Returns
+    -------
+    scalings : dict
+        A scalings dictionary with updated values
+    """
+    from ..io.base import _BaseRaw
+    from ..epochs import _BaseEpochs
+    if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        raise ValueError('Must supply either Raw or Epochs')
+    if scalings is None:
+        # If scalings is None just return it and do nothing
+        return scalings
+
+    ch_types = channel_indices_by_type(inst.info)
+    ch_types = dict([(i_type, i_ixs)
+                     for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0])
+    if scalings == 'auto':
+        # If we want to auto-compute everything
+        scalings = dict((i_type, 'auto') for i_type in ch_types.keys())
+    if not isinstance(scalings, dict):
+        raise ValueError('scalings must be a dictionary of ch_type: val pairs,'
+                         ' not type %s ' % type(scalings))
+    scalings = deepcopy(scalings)
+
+    if inst.preload is False:
+        if isinstance(inst, _BaseRaw):
+            # Load a window of data from the center up to 100mb in size
+            n_times = 1e8 // (len(inst.ch_names) * 8)
+            n_times = np.clip(n_times, 1, inst.n_times)
+            n_secs = n_times / float(inst.info['sfreq'])
+            time_middle = np.mean(inst.times)
+            tmin = np.clip(time_middle - n_secs / 2., inst.times.min(), None)
+            tmax = np.clip(time_middle + n_secs / 2., None, inst.times.max())
+            data = inst._read_segment(tmin, tmax)
+        elif isinstance(inst, _BaseEpochs):
+            # Load a random subset of epochs up to 100mb in size
+            n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
+            n_epochs = int(np.clip(n_epochs, 1, len(inst)))
+            ixs_epochs = np.random.choice(range(len(inst)), n_epochs, False)
+            inst = inst.copy()[ixs_epochs].load_data()
+    else:
+        data = inst._data
+    if isinstance(inst, _BaseEpochs):
+        data = inst._data.reshape([len(inst.ch_names), -1])
+    # Iterate through ch types and update scaling if ' auto'
+    for key, value in scalings.items():
+        if value != 'auto':
+            continue
+        if key not in ch_types.keys():
+            raise ValueError("Sensor {0} doesn't exist in data".format(key))
+        this_data = data[ch_types[key]]
+        scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
+        scale_factor = np.max(np.abs(scale_factor))
+        scalings[key] = scale_factor
+    return scalings

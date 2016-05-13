@@ -6,12 +6,11 @@
 
 from ..externals.six import string_types
 import os
-from warnings import warn
 
 
 from ..bem import fit_sphere_to_headshape
 from ..io import Raw
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..externals.six.moves import map
 
 
@@ -138,7 +137,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     if origin is None:
         logger.info('Estimating head origin from headshape points..')
         raw = Raw(in_fname)
-        r, o_head, o_dev = fit_sphere_to_headshape(raw.info)
+        r, o_head, o_dev = fit_sphere_to_headshape(raw.info, units='mm')
         raw.close()
         logger.info('[done]')
         if frame == 'head':

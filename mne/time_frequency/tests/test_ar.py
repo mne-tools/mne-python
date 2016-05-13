@@ -28,7 +28,7 @@ def test_yule_walker():
 def test_ar_raw():
     """Test fitting AR model on raw data
     """
-    raw = io.Raw(raw_fname)
+    raw = io.read_raw_fif(raw_fname)
     # pick MEG gradiometers
     picks = pick_types(raw.info, meg='grad', exclude='bads')
     picks = picks[:2]

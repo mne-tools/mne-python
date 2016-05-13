@@ -9,14 +9,14 @@
 #
 # License: Simplified BSD
 
-import numpy as np
-import warnings
 import logging
+
+import numpy as np
 from scipy import sparse
 
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import split_list, logger, verbose, ProgressBar
+from ..utils import split_list, logger, verbose, ProgressBar, warn
 from ..fixes import in1d, unravel_index
 from ..source_estimate import SourceEstimate
 
@@ -325,11 +325,9 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         e_power = threshold.get('e_power', 0.5)
         if show_info is True:
             if len(thresholds) == 0:
-                txt = ('threshold["start"] (%s) is more extreme than '
-                       'data statistics with most extreme value %s'
-                       % (threshold['start'], stop))
-                logger.warning(txt)
-                warnings.warn(txt)
+                warn('threshold["start"] (%s) is more extreme than data '
+                     'statistics with most extreme value %s'
+                     % (threshold['start'], stop))
             else:
                 logger.info('Using %d thresholds from %0.2f to %0.2f for TFCE '
                             'computation (h_power=%0.2f, e_power=%0.2f)'
@@ -723,8 +721,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                 stat_fun(*[x[:, pos: pos + buffer_size] for x in X])
 
         if not np.alltrue(T_obs == T_obs_buffer):
-            logger.warning('Provided stat_fun does not treat variables '
-                           'independently. Setting buffer_size to None.')
+            warn('Provided stat_fun does not treat variables independently. '
+                 'Setting buffer_size to None.')
             buffer_size = None
 
     # The stat should have the same shape as the samples for no conn.
@@ -741,7 +739,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         partitions = _get_partitions_from_connectivity(connectivity, n_times)
     else:
         partitions = None
-    logger.info('Running intial clustering')
+    logger.info('Running initial clustering')
     out = _find_clusters(T_obs, threshold, tail, connectivity,
                          max_step=max_step, include=include,
                          partitions=partitions, t_power=t_power,

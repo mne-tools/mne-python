@@ -9,12 +9,16 @@ import warnings
 
 from mne.datasets import testing
 from mne import read_trans, write_trans
+from mne.io import read_info
 from mne.utils import _TempDir, run_tests_if_main
+from mne.tests.common import assert_naming
 from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
                             get_ras_to_neuromag_trans, _sphere_to_cartesian,
-                            _polar_to_cartesian, _cartesian_to_sphere)
+                            _polar_to_cartesian, _cartesian_to_sphere,
+                            quat_to_rot, rot_to_quat, _angle_between_quats,
+                            _find_vector_rotation)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -22,8 +26,12 @@ data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
 fname_eve = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc_raw-eve.fif')
-fname_trans = op.join(op.split(__file__)[0], '..', 'io', 'tests',
-                      'data', 'sample-audvis-raw-trans.txt')
+
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
+fname_trans = op.join(base_dir, 'sample-audvis-raw-trans.txt')
+test_fif_fname = op.join(base_dir, 'test_raw.fif')
+ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
 @testing.requires_testing_data
@@ -62,7 +70,7 @@ def test_io_trans():
     with warnings.catch_warnings(record=True) as w:
         fname2 = op.join(tempdir, 'trans-test-bad-name.fif')
         write_trans(fname2, trans0)
-    assert_true(len(w) >= 1)
+    assert_naming(w, 'test_transforms.py', 1)
 
 
 def test_get_ras_to_neuromag_trans():
@@ -159,5 +167,57 @@ def test_combine():
     assert_raises(RuntimeError, combine_transforms, trans, trans,
                   trans['from'], trans['to'])
 
+
+def test_quaternions():
+    """Test quaternion calculations
+    """
+    rots = [np.eye(3)]
+    for fname in [test_fif_fname, ctf_fname, hp_fif_fname]:
+        rots += [read_info(fname)['dev_head_t']['trans'][:3, :3]]
+    # nasty numerical cases
+    rots += [np.array([
+        [-0.99978541, -0.01873462, -0.00898756],
+        [-0.01873462, 0.62565561, 0.77987608],
+        [-0.00898756, 0.77987608, -0.62587152],
+    ])]
+    rots += [np.array([
+        [0.62565561, -0.01873462, 0.77987608],
+        [-0.01873462, -0.99978541, -0.00898756],
+        [0.77987608, -0.00898756, -0.62587152],
+    ])]
+    rots += [np.array([
+        [-0.99978541, -0.00898756, -0.01873462],
+        [-0.00898756, -0.62587152, 0.77987608],
+        [-0.01873462, 0.77987608, 0.62565561],
+    ])]
+    for rot in rots:
+        assert_allclose(rot, quat_to_rot(rot_to_quat(rot)),
+                        rtol=1e-5, atol=1e-5)
+        rot = rot[np.newaxis, np.newaxis, :, :]
+        assert_allclose(rot, quat_to_rot(rot_to_quat(rot)),
+                        rtol=1e-5, atol=1e-5)
+
+    # let's make sure our angle function works in some reasonable way
+    for ii in range(3):
+        for jj in range(3):
+            a = np.zeros(3)
+            b = np.zeros(3)
+            a[ii] = 1.
+            b[jj] = 1.
+            expected = np.pi if ii != jj else 0.
+            assert_allclose(_angle_between_quats(a, b), expected, atol=1e-5)
+
+
+def test_vector_rotation():
+    """Test basic rotation matrix math
+    """
+    x = np.array([1., 0., 0.])
+    y = np.array([0., 1., 0.])
+    rot = _find_vector_rotation(x, y)
+    assert_array_equal(rot,
+                       [[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+    quat_1 = rot_to_quat(rot)
+    quat_2 = rot_to_quat(np.eye(3))
+    assert_allclose(_angle_between_quats(quat_1, quat_2), np.pi / 2.)
 
 run_tests_if_main()

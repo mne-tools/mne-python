@@ -50,7 +50,7 @@ print(__doc__)
 # Load fiff file to simulate data
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.io.Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 # Instantiating stimulation server
 

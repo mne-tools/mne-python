@@ -19,9 +19,9 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  grand_average, combine_evoked, create_info)
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.epochs import EpochsArray
-
-from mne.utils import _TempDir, requires_pandas, slow_test, requires_version
-
+from mne.tests.common import assert_naming
+from mne.utils import (_TempDir, requires_pandas, slow_test, requires_version,
+                       run_tests_if_main)
 from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')
@@ -43,8 +43,8 @@ def test_savgol_filter():
     match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
     mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
     assert_raises(ValueError, evoked.savgol_filter, evoked.info['sfreq'])
-    evoked.savgol_filter(h_freq)
-    data_filt = np.abs(fftpack.fft(evoked.data))
+    evoked_sg = evoked.copy().savgol_filter(h_freq)
+    data_filt = np.abs(fftpack.fft(evoked_sg.data))
     # decent in pass-band
     assert_allclose(np.mean(data[:, match_mask], 0),
                     np.mean(data_filt[:, match_mask], 0),
@@ -52,6 +52,8 @@ def test_savgol_filter():
     # suppression in stop-band
     assert_true(np.mean(data[:, mismatch_mask]) >
                 np.mean(data_filt[:, mismatch_mask]) * 5)
+    # original preserved
+    assert_allclose(data, np.abs(fftpack.fft(evoked.data)), atol=1e-16)
 
 
 def test_hash_evoked():
@@ -122,7 +124,7 @@ def test_io_evoked():
         fname2 = op.join(tempdir, 'test-bad-name.fif')
         write_evokeds(fname2, ave)
         read_evokeds(fname2)
-    assert_true(len(w) == 2)
+    assert_naming(w, 'test_evoked.py', 2)
 
     # constructor
     assert_raises(TypeError, Evoked, fname)
@@ -176,7 +178,7 @@ def test_evoked_resample():
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
     sfreq_normal = ave.info['sfreq']
-    ave.resample(2 * sfreq_normal)
+    ave.resample(2 * sfreq_normal, npad=100)
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
     ave_up = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
@@ -185,7 +187,7 @@ def test_evoked_resample():
 
     # and compare the original to the downsampled upsampled version
     ave_new = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
-    ave_new.resample(sfreq_normal)
+    ave_new.resample(sfreq_normal, npad=100)
 
     assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
     assert_array_almost_equal(ave_normal.times, ave_new.times)
@@ -243,10 +245,11 @@ def test_evoked_proj():
             n_proj = len(ave.info['projs'])
             ave.del_proj(0)
             assert_true(len(ave.info['projs']) == n_proj - 1)
+            # Test that already existing projections are not added.
             ave.add_proj(projs, remove_existing=False)
-            assert_true(len(ave.info['projs']) == 2 * n_proj - 1)
-            ave.add_proj(projs, remove_existing=True)
             assert_true(len(ave.info['projs']) == n_proj)
+            ave.add_proj(projs[:-1], remove_existing=True)
+            assert_true(len(ave.info['projs']) == n_proj - 1)
 
     ave = read_evokeds(fname, condition=0, proj=False)
     data = ave.data.copy()
@@ -305,7 +308,7 @@ def test_drop_channels_mixin():
     ch_names = evoked.ch_names[3:]
 
     ch_names_orig = evoked.ch_names
-    dummy = evoked.drop_channels(drop_ch, copy=True)
+    dummy = evoked.copy().drop_channels(drop_ch)
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, evoked.ch_names)
     assert_equal(len(ch_names_orig), len(evoked.data))
@@ -322,7 +325,7 @@ def test_pick_channels_mixin():
     ch_names = evoked.ch_names[:3]
 
     ch_names_orig = evoked.ch_names
-    dummy = evoked.pick_channels(ch_names, copy=True)
+    dummy = evoked.copy().pick_channels(ch_names)
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, evoked.ch_names)
     assert_equal(len(ch_names_orig), len(evoked.data))
@@ -448,6 +451,10 @@ def test_array_epochs():
     assert_equal(evoked1.kind, evoked3.kind)
     assert_equal(evoked1.nave, evoked3.nave)
 
+    # test kind check
+    assert_raises(TypeError, EvokedArray, data1, info, tmin=0, kind=1)
+    assert_raises(ValueError, EvokedArray, data1, info, tmin=0, kind='mean')
+
     # test match between channels info and data
     ch_names = ['EEG %03d' % (i + 1) for i in range(19)]
     types = ['eeg'] * 19
@@ -455,19 +462,29 @@ def test_array_epochs():
     assert_raises(ValueError, EvokedArray, data1, info, tmin=-0.01)
 
 
+def test_time_as_index():
+    """Test time as index"""
+    evoked = read_evokeds(fname, condition=0).crop(-.1, .1)
+    assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
+                       [0, len(evoked.times) - 1])
+
+
 def test_add_channels():
-    """Test evoked splitting / re-appending channel types
-    """
+    """Test evoked splitting / re-appending channel types"""
     evoked = read_evokeds(fname, condition=0)
     evoked.info['buffer_size_sec'] = None
-    evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
-    evoked_meg = evoked.pick_types(meg=True, copy=True)
-    evoked_stim = evoked.pick_types(meg=False, stim=True, copy=True)
-    evoked_eeg_meg = evoked.pick_types(meg=True, eeg=True, copy=True)
-    evoked_new = evoked_meg.add_channels([evoked_eeg, evoked_stim], copy=True)
+    hpi_coils = [{'event_bits': []},
+                 {'event_bits': np.array([256,   0, 256, 256])},
+                 {'event_bits': np.array([512,   0, 512, 512])}]
+    evoked.info['hpi_subsystem'] = dict(hpi_coils=hpi_coils, ncoil=2)
+    evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_meg = evoked.copy().pick_types(meg=True)
+    evoked_stim = evoked.copy().pick_types(meg=False, stim=True)
+    evoked_eeg_meg = evoked.copy().pick_types(meg=True, eeg=True)
+    evoked_new = evoked_meg.copy().add_channels([evoked_eeg, evoked_stim])
     assert_true(all(ch in evoked_new.ch_names
                     for ch in evoked_stim.ch_names + evoked_meg.ch_names))
-    evoked_new = evoked_meg.add_channels([evoked_eeg], copy=True)
+    evoked_new = evoked_meg.copy().add_channels([evoked_eeg])
 
     assert_true(ch in evoked_new.ch_names for ch in evoked.ch_names)
     assert_array_equal(evoked_new.data, evoked_eeg_meg.data)
@@ -483,3 +500,6 @@ def test_add_channels():
     assert_raises(AssertionError, evoked_meg.add_channels, [evoked_eeg])
     assert_raises(ValueError, evoked_meg.add_channels, [evoked_meg])
     assert_raises(AssertionError, evoked_meg.add_channels, evoked_badsf)
+
+
+run_tests_if_main()

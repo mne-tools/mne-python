@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 from ..externals.six import string_types
-from warnings import warn
 from inspect import getmembers
 
 import numpy as np
@@ -13,12 +12,12 @@ from .utils import check_indices
 from ..fixes import tril_indices, partial, _get_args
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
-from .. import Epochs
+from ..epochs import _BaseEpochs
 from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, warn
 
 ########################################################################
 # Various connectivity estimators
@@ -755,7 +754,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     # if none of the comp_con functions needs the PSD, we don't estimate it
     accumulate_psd = any(n == 5 for n in n_comp_args)
 
-    if isinstance(data, Epochs):
+    if isinstance(data, _BaseEpochs):
         times_in = data.times  # input times for Epochs input type
         sfreq = data.info['sfreq']
 
@@ -779,7 +778,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                                        endpoint=False)
 
             n_times_in = len(times_in)
-            mask = _time_mask(times_in, tmin, tmax)
+            mask = _time_mask(times_in, tmin, tmax, sfreq=sfreq)
             tmin_idx, tmax_idx = np.where(mask)[0][[0, -1]]
             tmax_idx += 1
             tmin_true = times_in[tmin_idx]

@@ -5,15 +5,14 @@
 
 import datetime
 import time
-import warnings
 
 import numpy as np
 
 from ..base import _BaseRaw, _check_update_montage
-from ..utils import _mult_cal_one
+from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
-from ...utils import verbose, logger
+from ...utils import verbose, logger, warn
 
 
 def _read_header(fid):
@@ -65,7 +64,7 @@ def _read_header(fid):
             info['event_codes'].append(event_codes)
         info['event_codes'] = np.array(info['event_codes'])
     else:
-        raise NotImplementedError('Only continous files are supported')
+        raise NotImplementedError('Only continuous files are supported')
     info['unsegmented'] = unsegmented
     info['dtype'], info['orig_format'] = {2: ('>i2', 'short'),
                                           4: ('>f4', 'float'),
@@ -105,7 +104,7 @@ def _combine_triggers(data, remapping=None):
 
 @verbose
 def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, preload=None, verbose=None):
+                 include=None, exclude=None, preload=False, verbose=None):
     """Read EGI simple binary as raw object
 
     .. note:: The trigger channel names are based on the
@@ -177,12 +176,7 @@ class RawEGI(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, preload=None, verbose=None):
-        if preload is None:
-            warnings.warn('preload is True by default but will be changed to '
-                          'False in v0.12. Please explicitly set preload.',
-                          DeprecationWarning)
-            preload = True
+                 include=None, exclude=None, preload=False, verbose=None):
         if eog is None:
             eog = []
         if misc is None:
@@ -211,8 +205,8 @@ class RawEGI(_BaseRaw):
                         if event.sum() <= 1 and event_codes[ii]:
                             more_excludes.append(ii)
                 if len(exclude_inds) + len(more_excludes) == len(event_codes):
-                    warnings.warn('Did not find any event code with more '
-                                  'than one event.', RuntimeWarning)
+                    warn('Did not find any event code with more than one '
+                         'event.', RuntimeWarning)
                 else:
                     exclude_inds.extend(more_excludes)
 
@@ -260,27 +254,20 @@ class RawEGI(_BaseRaw):
         ch_names.extend(list(egi_info['event_codes']))
         if self._new_trigger is not None:
             ch_names.append('STI 014')  # our new_trigger
-        info['nchan'] = nchan = len(ch_names)
-        info['ch_names'] = ch_names
-        for ii, ch_name in enumerate(ch_names):
-            ch_info = {
-                'cal': cal, 'logno': ii + 1, 'scanno': ii + 1, 'range': 1.0,
-                'unit_mul': 0, 'ch_name': ch_name, 'unit': FIFF.FIFF_UNIT_V,
-                'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                'coil_type': FIFF.FIFFV_COIL_EEG, 'kind': FIFF.FIFFV_EEG_CH,
-                'loc': np.array([0, 0, 0, 1] * 3, dtype='f4')}
-            if ch_name in eog or ii in eog or ii - nchan in eog:
-                ch_info.update(coil_type=FIFF.FIFFV_COIL_NONE,
-                               kind=FIFF.FIFFV_EOG_CH)
-            if ch_name in misc or ii in misc or ii - nchan in misc:
-                ch_info.update(coil_type=FIFF.FIFFV_COIL_NONE,
-                               kind=FIFF.FIFFV_MISC_CH)
-            if len(ch_name) == 4 or ch_name.startswith('STI'):
-                ch_info.update(
-                    {'unit_mul': 0, 'cal': 1, 'kind': FIFF.FIFFV_STIM_CH,
-                     'coil_type': FIFF.FIFFV_COIL_NONE,
-                     'unit': FIFF.FIFF_UNIT_NONE})
-            info['chs'].append(ch_info)
+        nchan = len(ch_names)
+        cals = np.repeat(cal, nchan)
+        ch_coil = FIFF.FIFFV_COIL_EEG
+        ch_kind = FIFF.FIFFV_EEG_CH
+        chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
+        sti_ch_idx = [i for i, name in enumerate(ch_names) if
+                      name.startswith('STI') or len(name) == 4]
+        for idx in sti_ch_idx:
+            chs[idx].update({'unit_mul': 0, 'cal': 1,
+                             'kind': FIFF.FIFFV_STIM_CH,
+                             'coil_type': FIFF.FIFFV_COIL_NONE,
+                             'unit': FIFF.FIFF_UNIT_NONE})
+        info['chs'] = chs
+        info._update_redundant()
         _check_update_montage(info, montage)
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],
@@ -290,18 +277,9 @@ class RawEGI(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file"""
         egi_info = self._raw_extras[fi]
+        dtype = egi_info['dtype']
         n_chan_read = egi_info['n_channels'] + egi_info['n_events']
-        data_start = (36 + egi_info['n_events'] * 4 +
-                      start * n_chan_read * egi_info['dtype'].itemsize)
-        n_chan_out = n_chan_read + (1 if self._new_trigger is not None else 0)
-        one = np.empty((n_chan_out, stop - start))
-        with open(self._filenames[fi], 'rb') as fid:
-            fid.seek(data_start, 0)  # skip header
-            final_shape = (stop - start, n_chan_read)
-            one_ = np.fromfile(fid, egi_info['dtype'], np.prod(final_shape))
-            one_.shape = final_shape
-            one[:n_chan_read] = one_.T
-        # reads events as well
-        if self._new_trigger is not None:
-            one[-1] = self._new_trigger[start:stop]
-        _mult_cal_one(data, one, idx, cals, mult)
+        offset = 36 + egi_info['n_events'] * 4
+        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
+                            dtype=dtype, n_channels=n_chan_read, offset=offset,
+                            trigger_ch=self._new_trigger)

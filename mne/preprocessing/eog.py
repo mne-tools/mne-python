@@ -11,6 +11,7 @@ from .. import pick_types, pick_channels
 from ..utils import logger, verbose
 from ..filter import band_pass_filter
 from ..epochs import Epochs
+from ..externals.six import string_types
 
 
 @verbose
@@ -102,7 +103,7 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
 
 
 def _get_eog_channel_index(ch_name, inst):
-    if isinstance(ch_name, str):
+    if isinstance(ch_name, string_types):
         # Check if multiple EOG Channels
         if ',' in ch_name:
             ch_name = ch_name.split(',')
@@ -170,8 +171,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # uV (EEG channels)
-                          eog=250e-6 # uV (EOG channels)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
                           )
 
     flat : dict | None

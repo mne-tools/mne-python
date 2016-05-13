@@ -37,7 +37,7 @@ def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
     raw.filter(1, 45, n_jobs=2)
     X = raw[picks, :][0][:, ::20]
 
-    # Substract the mean
+    # Subtract the mean
     mean_X = X.mean(axis=1)
     X -= mean_X[:, None]
 
@@ -86,7 +86,7 @@ def test_mne_python_vs_eeglab():
         N = Y.shape[0]
         T = Y.shape[1]
 
-        # For comparasion against eeglab, make sure the folowing
+        # For comparasion against eeglab, make sure the following
         # parameters have the same value in mne_python and eeglab:
         #
         # - starting point

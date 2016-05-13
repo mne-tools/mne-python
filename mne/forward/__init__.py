@@ -8,10 +8,13 @@ from .forward import (Forward, read_forward_solution, write_forward_solution,
                       _restrict_gain_matrix, _stc_src_sel,
                       _fill_measurement_info, _apply_forward,
                       _subject_from_forward, convert_forward_solution,
-                      _to_fixed_ori, prepare_bem_model, _merge_meg_eeg_fwds)
+                      _to_fixed_ori, prepare_bem_model, _merge_meg_eeg_fwds,
+                      _do_forward_solution)
 from ._make_forward import (make_forward_solution, _prepare_for_forward,
                             _prep_meg_channels, _prep_eeg_channels,
-                            _to_forward_dict, _create_meg_coils)
+                            _to_forward_dict, _create_meg_coils,
+                            _read_coil_defs, _transform_orig_meg_coils,
+                            make_forward_dipole)
 from ._compute_forward import (_magnetic_dipole_field_vec, _compute_forwards,
                                _concatenate_coils)
 from ._field_interpolation import (_make_surface_mapping, make_field_map,

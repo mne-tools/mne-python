@@ -8,9 +8,12 @@ import numpy as np
 from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_allclose
 
-from mne.viz.utils import compare_fiff, _fake_click
+from mne.viz.utils import compare_fiff, _fake_click, _compute_scalings
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.utils import run_tests_if_main
+from mne.io import read_raw_fif
+from mne.event import read_events
+from mne.epochs import Epochs
 
 # Set our plotters to test mode
 import matplotlib
@@ -21,6 +24,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
+ev_fname = op.join(base_dir, 'test_raw-eve.fif')
 
 
 def test_mne_analyze_colormap():
@@ -83,6 +87,34 @@ def test_add_background_image():
     assert_true(ax_im_asp.get_aspect() == 'auto')
     for ax in axs:
         assert_true(ax.get_aspect() == 'auto')
+
+
+def test_auto_scale():
+    """Test auto-scaling of channels for quick plotting."""
+    raw = read_raw_fif(raw_fname, preload=False)
+    ev = read_events(ev_fname)
+    epochs = Epochs(raw, ev)
+    rand_data = np.random.randn(10, 100)
+
+    for inst in [raw, epochs]:
+        scale_grad = 1e10
+        scalings_def = dict([('eeg', 'auto'), ('grad', scale_grad),
+                             ('stim', 'auto')])
+
+        # Test for wrong inputs
+        assert_raises(ValueError, inst.plot, scalings='foo')
+        assert_raises(ValueError, _compute_scalings, 'foo', inst)
+
+        # Make sure compute_scalings doesn't change anything not auto
+        scalings_new = _compute_scalings(scalings_def, inst)
+        assert_true(scale_grad == scalings_new['grad'])
+        assert_true(scalings_new['eeg'] != 'auto')
+
+    assert_raises(ValueError, _compute_scalings, scalings_def, rand_data)
+    epochs = epochs[0].load_data()
+    epochs.pick_types(eeg=True, meg=False, copy=False)
+    assert_raises(ValueError, _compute_scalings,
+                  dict(grad='auto'), epochs)
 
 
 run_tests_if_main()

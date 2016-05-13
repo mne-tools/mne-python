@@ -8,17 +8,16 @@
 # License: BSD (3-clause)
 
 import os
-import time
 import re
-import warnings
+import time
 
 import numpy as np
 
-from ...utils import verbose, logger
+from ...utils import verbose, logger, warn, deprecated
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
-from ..utils import _mult_cal_one
+from ..utils import _read_segments_file, _synthesize_stim_channel
 
 from ...externals.six import StringIO
 from ...externals.six.moves import configparser
@@ -56,11 +55,12 @@ class RawBrainVision(_BaseRaw):
         triggers will be ignored. Default is 0 for backwards compatibility, but
         typically another value or None will be necessary.
     event_id : dict | None
-        The id of the event to consider. If None (default),
-        only stimulus events are added to the stimulus channel. If dict,
-        the keys will be mapped to trigger values on the stimulus channel
-        in addition to the stimulus events. Keys are case-sensitive.
-        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
+        The id of special events to consider in addition to those that
+        follow the normal Brainvision trigger format ('SXXX').
+        If dict, the keys will be mapped to trigger values on the stimulus
+        channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
+        or an empty dict (default), only stimulus events are added to the
+        stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -94,25 +94,27 @@ class RawBrainVision(_BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
         # read data
+        dtype = _fmt_dtype_dict[self.orig_format]
         n_data_ch = len(self.ch_names) - 1
-        n_times = stop - start
-        pointer = start * n_data_ch * _fmt_byte_dict[self.orig_format]
-        with open(self._filenames[fi], 'rb') as f:
-            f.seek(pointer)
-            # extract data
-            data_buffer = np.fromfile(
-                f, dtype=_fmt_dtype_dict[self.orig_format],
-                count=n_times * n_data_ch)
-        data_buffer = data_buffer.reshape((n_data_ch, n_times),
-                                          order=self._order)
+        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
+                            dtype=dtype, n_channels=n_data_ch,
+                            trigger_ch=self._event_ch)
 
-        data_ = np.empty((n_data_ch + 1, n_times), dtype=np.float64)
-        data_[:-1] = data_buffer  # cast to float64
-        del data_buffer
-        data_[-1] = self._event_ch[start:stop]
-        _mult_cal_one(data, data_, idx, cals, mult)
-
+    @deprecated('get_brainvision_events is deprecated and will be removed '
+                'in 0.13, use mne.find_events(raw, "STI014") to get properly '
+                'formatted events instead')
     def get_brainvision_events(self):
+        """Retrieve the events associated with the Brain Vision Raw object
+
+        Returns
+        -------
+        events : array, shape (n_events, 3)
+            Events, each row consisting of an (onset, duration, trigger)
+            sequence.
+        """
+        return self._get_brainvision_events()
+
+    def _get_brainvision_events(self):
         """Retrieve the events associated with the Brain Vision Raw object
 
         Returns
@@ -123,7 +125,20 @@ class RawBrainVision(_BaseRaw):
         """
         return self._events.copy()
 
+    @deprecated('set_brainvision_events is deprecated and will be removed '
+                'in 0.13')
     def set_brainvision_events(self, events):
+        """Set the events and update the synthesized stim channel
+
+        Parameters
+        ----------
+        events : array, shape (n_events, 3)
+            Events, each row consisting of an (onset, duration, trigger)
+            sequence.
+        """
+        return self._set_brainvision_events(events)
+
+    def _set_brainvision_events(self, events):
         """Set the events and update the synthesized stim channel
 
         Parameters
@@ -156,10 +171,12 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     fname : str
         vmrk file to be read.
     event_id : dict | None
-        The id of the event to consider. If dict, the keys will be mapped to
-        trigger values on the stimulus channel. Example:
-        {'SyncStatus': 1; 'Pulse Artifact': 3}. If empty dict (default),
-        only stimulus events are added to the stimulus channel.
+        The id of special events to consider in addition to those that
+        follow the normal Brainvision trigger format ('SXXX').
+        If dict, the keys will be mapped to trigger values on the stimulus
+        channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
+        or an empty dict (default), only stimulus events are added to the
+        stimulus channel. Keys are case sensitive.
     response_trig_shift : int | None
         Integer to shift response triggers by. None ignores response triggers.
 
@@ -192,53 +209,41 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
 
     # extract event information
     items = re.findall("^Mk\d+=(.*)", mk_txt, re.MULTILINE)
-    events = []
+    events, dropped = list(), list()
     for info in items:
         mtype, mdesc, onset, duration = info.split(',')[:4]
         onset = int(onset)
         duration = (int(duration) if duration.isdigit() else 1)
-        try:
-            trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
-        except IndexError:
-            trigger = None
-
-        if mtype.lower().startswith('response'):
-            if response_trig_shift is not None:
-                trigger += response_trig_shift
-            else:
-                trigger = None
         if mdesc in event_id:
             trigger = event_id[mdesc]
+        else:
+            try:
+                trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
+            except IndexError:
+                trigger = None
+            if mtype.lower().startswith('response'):
+                if response_trig_shift is not None:
+                    trigger += response_trig_shift
+                else:
+                    trigger = None
         if trigger:
             events.append((onset, duration, trigger))
+        else:
+            if len(mdesc) > 0:
+                dropped.append(mdesc)
+
+    if len(dropped) > 0:
+        dropped = list(set(dropped))
+        examples = ", ".join(dropped[:5])
+        if len(dropped) > 5:
+            examples += ", ..."
+        warn("Currently, {0} trigger(s) will be dropped, such as [{1}]. "
+             "Consider using ``event_id`` to parse triggers that "
+             "do not follow the 'SXXX' pattern.".format(
+                 len(dropped), examples))
 
     events = np.array(events).reshape(-1, 3)
     return events
-
-
-def _synthesize_stim_channel(events, n_samp):
-    """Synthesize a stim channel from events read from a vmrk file
-
-    Parameters
-    ----------
-    events : array, shape (n_events, 3)
-        Each row representing an event as (onset, duration, trigger) sequence
-        (the format returned by _read_vmrk_events).
-    n_samp : int
-        The number of samples.
-
-    Returns
-    -------
-    stim_channel : array, shape (n_samples,)
-        An array containing the whole recording's event marking
-    """
-    # select events overlapping buffer
-    onset = events[:, 0]
-    # create output buffer
-    stim_channel = np.zeros(n_samp, int)
-    for onset, duration, trigger in events:
-        stim_channel[onset:onset + duration] = trigger
-    return stim_channel
 
 
 def _check_hdr_version(header):
@@ -263,7 +268,7 @@ _orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
 _fmt_dict = dict(INT_16='short', INT_32='int', IEEE_FLOAT_32='single')
 _fmt_byte_dict = dict(short=2, int=4, single=4)
 _fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
-_unit_dict = {'V': 1., u'µV': 1e-6}
+_unit_dict = {'V': 1., u'µV': 1e-6, 'uV': 1e-6}
 
 
 def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
@@ -340,10 +345,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     fmt = _fmt_dict[fmt]
 
     # load channel labels
-    info['nchan'] = cfg.getint('Common Infos', 'NumberOfChannels') + 1
-    ch_names = [''] * info['nchan']
-    cals = np.empty(info['nchan'])
-    ranges = np.empty(info['nchan'])
+    nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
+    ch_names = [''] * nchan
+    cals = np.empty(nchan)
+    ranges = np.empty(nchan)
     cals.fill(np.nan)
     ch_dict = dict()
     for chan, props in cfg.items('Channel Infos'):
@@ -417,9 +422,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 info['highpass'] = float(highpass[0])
         else:
             info['highpass'] = np.min(np.array(highpass, dtype=np.float))
-            warnings.warn('%s' % ('Channels contain different highpass '
-                                  'filters. Highest filter setting will '
-                                  'be stored.'))
+            warn('Channels contain different highpass filters. Highest filter '
+                 'setting will be stored.')
         if len(lowpass) == 0:
             pass
         elif all(lowpass):
@@ -429,8 +433,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 info['lowpass'] = float(lowpass[0])
         else:
             info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
-            warnings.warn('%s' % ('Channels contain different lowpass filters.'
-                                  ' Lowest filter setting will be stored.'))
+            warn('Channels contain different lowpass filters. Lowest filter '
+                 'setting will be stored.')
 
         # Post process highpass and lowpass to take into account units
         header = settings[idx].split('  ')
@@ -449,13 +453,12 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
-    info['ch_names'] = ch_names
     for idx, ch_name in enumerate(ch_names):
-        if ch_name in eog or idx in eog or idx - info['nchan'] in eog:
+        if ch_name in eog or idx in eog or idx - nchan in eog:
             kind = FIFF.FIFFV_EOG_CH
             coil_type = FIFF.FIFFV_COIL_NONE
             unit = FIFF.FIFF_UNIT_V
-        elif ch_name in misc or idx in misc or idx - info['nchan'] in misc:
+        elif ch_name in misc or idx in misc or idx - nchan in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
             unit = FIFF.FIFF_UNIT_V
@@ -475,6 +478,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     # for stim channel
     mrk_fname = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
+    info._update_redundant()
     info._check_consistency()
     return info, fmt, order, mrk_fname, montage
 
@@ -514,11 +518,12 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         triggers will be ignored. Default is 0 for backwards compatibility, but
         typically another value or None will be necessary.
     event_id : dict | None
-        The id of the event to consider. If None (default),
-        only stimulus events are added to the stimulus channel. If dict,
-        the keys will be mapped to trigger values on the stimulus channel
-        in addition to the stimulus events. Keys are case-sensitive.
-        Example: {'SyncStatus': 1; 'Pulse Artifact': 3}.
+        The id of special events to consider in addition to those that
+        follow the normal Brainvision trigger format ('SXXX').
+        If dict, the keys will be mapped to trigger values on the stimulus
+        channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
+        or an empty dict (default), only stimulus events are added to the
+        stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

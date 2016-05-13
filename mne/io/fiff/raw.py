@@ -7,7 +7,6 @@
 # License: BSD (3-clause)
 
 import copy
-import warnings
 import os
 import os.path as op
 
@@ -23,11 +22,13 @@ from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 from ..utils import _mult_cal_one
 
-from ...utils import check_fname, logger, verbose
+from ...annotations import Annotations, _combine_annotations
+from ...externals.six import string_types
+from ...utils import check_fname, logger, verbose, warn
 
 
-class RawFIF(_BaseRaw):
-    """Raw data
+class Raw(_BaseRaw):
+    """Raw data in FIF format
 
     Parameters
     ----------
@@ -37,10 +38,11 @@ class RawFIF(_BaseRaw):
         name of the first file has to be specified. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
         raw_tsss.fif or raw_tsss.fif.gz.
-    allow_maxshield : bool, (default False)
+    allow_maxshield : bool | str (default False)
         allow_maxshield if True, allow loading of data that has been
         processed with Maxshield. Maxshield-processed data should generally
         not be loaded directly, but should be processed using SSS first.
+        Can also be "yes" to load without eliciting a warning.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -96,8 +98,8 @@ class RawFIF(_BaseRaw):
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
-                    logger.warning('Split raw file detected but next file %s '
-                                   'does not exist.' % next_fname)
+                    warn('Split raw file detected but next file %s does not '
+                         'exist.' % next_fname)
                     continue
                 if next_fname in fnames:
                     # the user manually specified the split files
@@ -113,7 +115,7 @@ class RawFIF(_BaseRaw):
 
         _check_raw_compatibility(raws)
 
-        super(RawFIF, self).__init__(
+        super(Raw, self).__init__(
             copy.deepcopy(raws[0].info), False,
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
@@ -125,6 +127,19 @@ class RawFIF(_BaseRaw):
             eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
             self.add_proj(eeg_ref)
 
+        # combine annotations
+        self.annotations = raws[0].annotations
+        if any([r.annotations for r in raws[1:]]):
+            first_samps = list()
+            last_samps = list()
+            for r in raws:
+                first_samps = np.r_[first_samps, r.first_samp]
+                last_samps = np.r_[last_samps, r.last_samp]
+                self.annotations = _combine_annotations((self.annotations,
+                                                         r.annotations),
+                                                        last_samps,
+                                                        first_samps,
+                                                        r.info['sfreq'])
         if preload:
             self._preload_data(preload)
         else:
@@ -154,6 +169,28 @@ class RawFIF(_BaseRaw):
 
             info, meas = read_meas_info(fid, tree, clean_bads=True)
 
+            annotations = None
+            annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
+            if len(annot_data) > 0:
+                annot_data = annot_data[0]
+                for k in range(annot_data['nent']):
+                    kind = annot_data['directory'][k].kind
+                    pos = annot_data['directory'][k].pos
+                    orig_time = None
+                    tag = read_tag(fid, pos)
+                    if kind == FIFF.FIFF_MNE_BASELINE_MIN:
+                        onset = tag.data
+                    elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
+                        duration = tag.data - onset
+                    elif kind == FIFF.FIFF_COMMENT:
+                        description = tag.data.split(':')
+                        description = [d.replace(';', ':') for d in
+                                       description]
+                    elif kind == FIFF.FIFF_MEAS_DATE:
+                        orig_time = float(tag.data)
+                annotations = Annotations(onset, duration, description,
+                                          orig_time)
+
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
             if len(raw_node) == 0:
@@ -169,7 +206,9 @@ class RawFIF(_BaseRaw):
                         raise ValueError('No raw data in %s' % fname)
                     elif allow_maxshield:
                         info['maxshield'] = True
-                        warnings.warn(msg)
+                        if not (isinstance(allow_maxshield, string_types) and
+                                allow_maxshield == 'yes'):
+                            warn(msg)
                     else:
                         msg += (' Use allow_maxshield=True if you are sure you'
                                 ' want to load the data despite this warning.')
@@ -194,6 +233,7 @@ class RawFIF(_BaseRaw):
                 tag = read_tag(fid, directory[first].pos)
                 first_samp = int(tag.data)
                 first += 1
+                _check_entry(first, nent)
 
             #   Omit initial skip
             if directory[first].kind == FIFF.FIFF_DATA_SKIP:
@@ -201,15 +241,18 @@ class RawFIF(_BaseRaw):
                 tag = read_tag(fid, directory[first].pos)
                 first_skip = int(tag.data)
                 first += 1
+                _check_entry(first, nent)
 
             raw = _RawShell()
             raw.filename = fname
             raw.first_samp = first_samp
+            raw.annotations = annotations
 
             #   Go through the remaining tags in the directory
             raw_extras = list()
             nskip = 0
             orig_format = None
+
             for k in range(first, nent):
                 ent = directory[k]
                 if ent.kind == FIFF.FIFF_DATA_SKIP:
@@ -417,11 +460,17 @@ class RawFIF(_BaseRaw):
 
         .. note:: The effect of the difference between the coil sizes on the
                   current estimates computed by the MNE software is very small.
-                  Therefore the use of mne_fix_mag_coil_types is not mandatory.
+                  Therefore the use of this function is not mandatory.
         """
         from ...channels import fix_mag_coil_types
         fix_mag_coil_types(self.info)
         return self
+
+
+def _check_entry(first, nent):
+    """Helper to sanity check entries"""
+    if first >= nent:
+        raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
 def read_raw_fif(fnames, allow_maxshield=False, preload=False,
@@ -466,13 +515,13 @@ def read_raw_fif(fnames, allow_maxshield=False, preload=False,
 
     Returns
     -------
-    raw : Instance of RawFIF
+    raw : instance of Raw
         A Raw object containing FIF data.
 
     Notes
     -----
     .. versionadded:: 0.9.0
     """
-    return RawFIF(fnames=fnames, allow_maxshield=allow_maxshield,
-                  preload=preload, proj=proj, compensation=compensation,
-                  add_eeg_ref=add_eeg_ref, verbose=verbose)
+    return Raw(fnames=fnames, allow_maxshield=allow_maxshield,
+               preload=preload, proj=proj, compensation=compensation,
+               add_eeg_ref=add_eeg_ref, verbose=verbose)

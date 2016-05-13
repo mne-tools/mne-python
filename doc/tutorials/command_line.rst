@@ -1,11 +1,22 @@
 .. _command_line_tutorial:
 
-=====================================
-Getting started with MNE command line
-=====================================
+Getting started with MNE Unix command line tools
+================================================
+
+This tutorial is a really short step by step presentation
+of an analysis pipeline using the MNE-C command line tools.
+These tools are UNIX commands and therefore only run on
+Mac OS or Linux.
+
+See :ref:`install_mne_c` to setup your system for using the
+MNE-C tools.
 
 The quick start guide shows how to run a standard processing of the
-sample data set provided with MNE. XXX add link to data set download
+sample data set provided with MNE. The sample dataset is further
+described in :ref:`datasets`.
+
+All the following lines are to be run in a terminal and not in a Python
+interpreter.
 
 First define your subject::
 
@@ -21,10 +32,10 @@ Build your source space::
 
 Prepare for forward computation::
 
-    # For homogeneous volume conductor
+    # For homogeneous volume conductor (just inner skull)
     mne_setup_forward_model --homog --surf --ico 4
 
-    # or for XXX
+    # or for a three compartment model (inner and outer skull and skin)
     mne_setup_forward_model --surf --ico 4
 
 List your bad channels in a file. Example sample_bads.bad contains::
@@ -97,4 +108,5 @@ Produce stc files (activation files)::
 
 And, we're done!
 
-You can now get started with the Python :ref:`examples-index`
+See also :ref:`python_commands` for more command line tools
+using MNE-Python.

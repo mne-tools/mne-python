@@ -11,8 +11,9 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 from mne.datasets import testing
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
-                 convert_forward_solution)
-from mne import SourceEstimate, pick_types_forward, read_evokeds
+                 convert_forward_solution, SourceEstimate, pick_types_forward,
+                 read_evokeds)
+from mne.tests.common import assert_naming
 from mne.label import read_label
 from mne.utils import (requires_mne, run_subprocess, _TempDir,
                        run_tests_if_main, slow_test)
@@ -133,7 +134,7 @@ def test_io_forward():
         fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
         write_forward_solution(fwd_badname, fwd)
         read_forward_solution(fwd_badname)
-    assert_true(len(w) == 2)
+    assert_naming(w, 'test_forward.py', 2)
 
     fwd = read_forward_solution(fname_meeg)
     write_forward_solution(fname_temp, fwd, overwrite=True)
@@ -248,16 +249,19 @@ def test_restrict_forward_to_label():
 
     src_sel_lh = np.intersect1d(fwd['src'][0]['vertno'], label_lh.vertices)
     src_sel_lh = np.searchsorted(fwd['src'][0]['vertno'], src_sel_lh)
+    vertno_lh = fwd['src'][0]['vertno'][src_sel_lh]
 
+    nuse_lh = fwd['src'][0]['nuse']
     src_sel_rh = np.intersect1d(fwd['src'][1]['vertno'], label_rh.vertices)
-    src_sel_rh = (np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh) +
-                  len(fwd['src'][0]['vertno']))
+    src_sel_rh = np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh)
+    vertno_rh = fwd['src'][1]['vertno'][src_sel_rh]
+    src_sel_rh += nuse_lh
 
     assert_equal(fwd_out['sol']['ncol'], len(src_sel_lh) + len(src_sel_rh))
     assert_equal(fwd_out['src'][0]['nuse'], len(src_sel_lh))
     assert_equal(fwd_out['src'][1]['nuse'], len(src_sel_rh))
-    assert_equal(fwd_out['src'][0]['vertno'], src_sel_lh)
-    assert_equal(fwd_out['src'][1]['vertno'], src_sel_rh)
+    assert_equal(fwd_out['src'][0]['vertno'], vertno_lh)
+    assert_equal(fwd_out['src'][1]['vertno'], vertno_rh)
 
     fwd = read_forward_solution(fname_meeg, force_fixed=False)
     fwd = pick_types_forward(fwd, meg=True)
@@ -271,17 +275,20 @@ def test_restrict_forward_to_label():
 
     src_sel_lh = np.intersect1d(fwd['src'][0]['vertno'], label_lh.vertices)
     src_sel_lh = np.searchsorted(fwd['src'][0]['vertno'], src_sel_lh)
+    vertno_lh = fwd['src'][0]['vertno'][src_sel_lh]
 
+    nuse_lh = fwd['src'][0]['nuse']
     src_sel_rh = np.intersect1d(fwd['src'][1]['vertno'], label_rh.vertices)
-    src_sel_rh = (np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh) +
-                  len(fwd['src'][0]['vertno']))
+    src_sel_rh = np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh)
+    vertno_rh = fwd['src'][1]['vertno'][src_sel_rh]
+    src_sel_rh += nuse_lh
 
     assert_equal(fwd_out['sol']['ncol'],
                  3 * (len(src_sel_lh) + len(src_sel_rh)))
     assert_equal(fwd_out['src'][0]['nuse'], len(src_sel_lh))
     assert_equal(fwd_out['src'][1]['nuse'], len(src_sel_rh))
-    assert_equal(fwd_out['src'][0]['vertno'], src_sel_lh)
-    assert_equal(fwd_out['src'][1]['vertno'], src_sel_rh)
+    assert_equal(fwd_out['src'][0]['vertno'], vertno_lh)
+    assert_equal(fwd_out['src'][1]['vertno'], vertno_rh)
 
 
 @testing.requires_testing_data

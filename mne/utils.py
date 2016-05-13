@@ -6,26 +6,26 @@ from __future__ import print_function
 #
 # License: BSD (3-clause)
 
-import warnings
-import logging
-import time
+import atexit
 from distutils.version import LooseVersion
+from functools import wraps
+import hashlib
+import inspect
+import json
+import logging
+from math import log, ceil
 import os
 import os.path as op
-from functools import wraps
-import inspect
+import platform
+import shutil
+from shutil import rmtree
 from string import Formatter
 import subprocess
 import sys
 import tempfile
-import shutil
-from shutil import rmtree
-from math import log, ceil
-import json
+import time
+import warnings
 import ftplib
-import hashlib
-from functools import partial
-import atexit
 
 import numpy as np
 from scipy import linalg, sparse
@@ -34,7 +34,7 @@ from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
-from .fixes import isclose, _get_args
+from .fixes import _get_args, partial
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -61,6 +61,24 @@ def nottest(f):
 
 ###############################################################################
 # RANDOM UTILITIES
+
+
+def _check_copy_dep(inst, copy, kind='inst', default=False):
+    """Check for copy deprecation for 0.13 and 0.14"""
+    # For methods with copy=False default, we only need one release cycle
+    # for deprecation (0.13). For copy=True, we first need to go to copy=False
+    # (one cycle; 0.13) then remove copy altogether (one cycle; 0.14).
+    if copy or (copy is None and default is True):
+        remove_version = '0.14' if default is True else '0.13'
+        warn('The copy parameter is deprecated and will be removed in %s. '
+             'In 0.13 the behavior will be to operate in-place '
+             '(like copy=False). In 0.12 the default is copy=%s. '
+             'Use %s.copy() if necessary.'
+             % (remove_version, default, kind), DeprecationWarning)
+    if copy is None:
+        copy = default
+    return inst.copy() if copy else inst
+
 
 def _get_call_line(in_verbose=False):
     """Helper to get the call line from within a function"""
@@ -101,15 +119,12 @@ def object_hash(x, h=None):
     """
     if h is None:
         h = hashlib.md5()
-    if isinstance(x, dict):
+    if hasattr(x, 'keys'):
+        # dict-like types
         keys = _sort_keys(x)
         for key in keys:
             object_hash(key, h)
             object_hash(x[key], h)
-    elif isinstance(x, (list, tuple)):
-        h.update(str(type(x)).encode('utf-8'))
-        for xx in x:
-            object_hash(xx, h)
     elif isinstance(x, bytes):
         # must come before "str" below
         h.update(x)
@@ -121,6 +136,11 @@ def object_hash(x, h=None):
         h.update(str(x.shape).encode('utf-8'))
         h.update(str(x.dtype).encode('utf-8'))
         h.update(x.tostring())
+    elif hasattr(x, '__len__'):
+        # all other list-like types
+        h.update(str(type(x)).encode('utf-8'))
+        for xx in x:
+            object_hash(xx, h)
     else:
         raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
     return int(h.hexdigest(), 16)
@@ -249,7 +269,46 @@ def sum_squared(X):
     return np.dot(X_flat, X_flat)
 
 
-def check_fname(fname, filetype, endings):
+def warn(message, category=RuntimeWarning):
+    """Emit a warning with trace outside the mne namespace
+
+    This function takes arguments like warnings.warn, and sends messages
+    using both ``warnings.warn`` and ``logger.warn``. Warnings can be
+    generated deep within nested function calls. In order to provide a
+    more helpful warning, this function traverses the stack until it
+    reaches a frame outside the ``mne`` namespace that caused the error.
+
+    Parameters
+    ----------
+    message : str
+        Warning message.
+    category : instance of Warning
+        The warning class. Defaults to ``RuntimeWarning``.
+    """
+    import mne
+    root_dir = op.dirname(mne.__file__)
+    stacklevel = 1
+    frame = None
+    stack = inspect.stack()
+    last_fname = ''
+    for fi, frame in enumerate(stack):
+        fname = frame[1]
+        del frame
+        if fname == '<string>' and last_fname == 'utils.py':  # in verbose dec
+            last_fname = fname
+            continue
+        # treat tests as scripts
+        if not fname.startswith(root_dir) or \
+                op.basename(op.dirname(fname)) == 'tests':
+            stacklevel = fi + 1
+            break
+        last_fname = op.basename(fname)
+    del stack
+    warnings.warn(message, category, stacklevel=stacklevel)
+    logger.warning(message)
+
+
+def check_fname(fname, filetype, endings, endings_err=()):
     """Enforce MNE filename conventions
 
     Parameters
@@ -260,20 +319,33 @@ def check_fname(fname, filetype, endings):
         Type of file. e.g., ICA, Epochs etc.
     endings : tuple
         Acceptable endings for the filename.
+    endings_err : tuple
+        Obligatory possible endings for the filename.
     """
+    if len(endings_err) > 0 and not fname.endswith(endings_err):
+        print_endings = ' or '.join([', '.join(endings_err[:-1]),
+                                     endings_err[-1]])
+        raise IOError('The filename (%s) for file type %s must end with %s'
+                      % (fname, filetype, print_endings))
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
-        warnings.warn('This filename (%s) does not conform to MNE naming '
-                      'conventions. All %s files should end with '
-                      '%s' % (fname, filetype, print_endings))
+        warn('This filename (%s) does not conform to MNE naming conventions. '
+             'All %s files should end with %s'
+             % (fname, filetype, print_endings))
 
 
 class WrapStdOut(object):
-    """Ridiculous class to work around how doctest captures stdout"""
+    """Dynamically wrap to sys.stdout
+
+    This makes packages that monkey-patch sys.stdout (e.g.doctest,
+    sphinx-gallery) work properly."""
     def __getattr__(self, name):
         # Even more ridiculous than this class, this must be sys.stdout (not
         # just stdout) in order for this to work (tested on OSX and Linux)
-        return getattr(sys.stdout, name)
+        if hasattr(sys.stdout, name):
+            return getattr(sys.stdout, name)
+        else:
+            raise AttributeError("'file' object has not attribute '%s'" % name)
 
 
 class _TempDir(str):
@@ -298,8 +370,8 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def estimate_rank(data, tol=1e-4, return_singular=False,
-                  norm=True, copy=True):
+def estimate_rank(data, tol='auto', return_singular=False,
+                  norm=True, copy=None):
     """Helper to estimate the rank of data
 
     This function will normalize the rows of the data (typically
@@ -310,11 +382,12 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
     ----------
     data : array
         Data to estimate the rank of (should be 2-dimensional).
-    tol : float
+    tol : float | str
         Tolerance for singular values to consider non-zero in
         calculating the rank. The singular values are calculated
         in this method such that independent data are expected to
-        have singular value around one.
+        have singular value around one. Can be 'auto' to use the
+        same thresholding as ``scipy.linalg.orth``.
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
@@ -322,8 +395,8 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
         If True, data will be scaled by their estimated row-wise norm.
         Else data are assumed to be scaled. Defaults to True.
     copy : bool
-        If False, values in data will be modified in-place during
-        rank estimation (saves memory).
+        This parameter has been deprecated and will be removed in 0.13.
+        It is ignored in 0.12.
 
     Returns
     -------
@@ -333,13 +406,20 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    if copy is True:
-        data = data.copy()
+    if copy is not None:
+        warn('copy is deprecated and ignored. It will be removed in 0.13.')
+    data = data.copy()  # operate on a copy
     if norm is True:
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
     s = linalg.svd(data, compute_uv=False, overwrite_a=True)
-    rank = np.sum(s >= tol)
+    if isinstance(tol, string_types):
+        if tol != 'auto':
+            raise ValueError('tol must be "auto" or float')
+        eps = np.finfo(float).eps
+        tol = np.max(data.shape) * np.amax(s) * eps
+    tol = float(tol)
+    rank = np.sum(s > tol)
     if return_singular is True:
         return rank, s
     else:
@@ -419,7 +499,7 @@ def trait_wraith(*args, **kwargs):
 # Following deprecated class copied from scikit-learn
 
 # force show of DeprecationWarning even on python 2.7
-warnings.simplefilter('default')
+warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
 class deprecated(object):
@@ -504,7 +584,7 @@ class deprecated(object):
         return deprecation_wrapped
 
     def _update_doc(self, olddoc):
-        newdoc = "DEPRECATED"
+        newdoc = ".. warning:: DEPRECATED"
         if self.extra:
             newdoc = "%s: %s" % (newdoc, self.extra)
         if olddoc:
@@ -542,13 +622,28 @@ def verbose(function, *args, **kwargs):
     verbose_level = default_level if verbose_level is None else verbose_level
 
     if verbose_level is not None:
-        old_level = set_log_level(verbose_level, True)
         # set it back if we get an exception
-        try:
+        with use_log_level(verbose_level):
             return function(*args, **kwargs)
-        finally:
-            set_log_level(old_level)
     return function(*args, **kwargs)
+
+
+class use_log_level(object):
+    """Context handler for logging level
+
+    Parameters
+    ----------
+    level : int
+        The level to use.
+    """
+    def __init__(self, level):
+        self.level = level
+
+    def __enter__(self):
+        self.old_level = set_log_level(self.level, True)
+
+    def __exit__(self, *args):
+        set_log_level(self.old_level)
 
 
 @nottest
@@ -711,6 +806,10 @@ requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
          '    raise ImportError')
+requires_ftp = partial(
+    requires_module, name='ftp downloading capability',
+    call='if int(os.environ.get("MNE_SKIP_FTP_TESTS", 0)):\n'
+         '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime',
                           call='import nitime')
 requires_traits = partial(requires_module, name='traits',
@@ -750,6 +849,35 @@ def _check_mayavi_version(min_version='4.3.0'):
     """Helper for mayavi"""
     if not check_version('mayavi', min_version):
         raise RuntimeError("Need mayavi >= %s" % min_version)
+
+
+def _check_pyface_backend():
+    """Check the currently selected Pyface backend
+
+    Returns
+    -------
+    backend : str
+        Name of the backend.
+    result : 0 | 1 | 2
+        0: the backend has been tested and works.
+        1: the backend has not been tested.
+        2: the backend not been tested.
+
+    Notes
+    -----
+    See also: http://docs.enthought.com/pyface/
+    """
+    try:
+        from traits.trait_base import ETSConfig
+    except ImportError:
+        return None, 2
+
+    backend = ETSConfig.toolkit
+    if backend == 'qt4':
+        status = 0
+    else:
+        status = 1
+    return backend, status
 
 
 @verbose
@@ -793,11 +921,10 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     # frequently this should be refactored so as to only check the path once.
     env = kwargs.get('env', os.environ)
     if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
-        msg = ("Your PATH environment variable contains at least one path "
-               "starting with a tilde ('~') character. Such paths are not "
-               "interpreted correctly from within Python. It is recommended "
-               "that you use '$HOME' instead of '~'.")
-        warnings.warn(msg)
+        warn('Your PATH environment variable contains at least one path '
+             'starting with a tilde ("~") character. Such paths are not '
+             'interpreted correctly from within Python. It is recommended '
+             'that you use "$HOME" instead of "~".')
 
     logger.info("Running subprocess: %s" % ' '.join(command))
     try:
@@ -879,7 +1006,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
             https://docs.python.org/dev/howto/logging.html
 
         e.g., "%(asctime)s - %(levelname)s - %(message)s".
-    overwrite : bool, or None
+    overwrite : bool | None
         Overwrite the log file (if it exists). Otherwise, statements
         will be appended to the log (default). None is the same as False,
         but additionally raises a warning to notify the user that log
@@ -888,15 +1015,20 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger = logging.getLogger('mne')
     handlers = logger.handlers
     for h in handlers:
-        if isinstance(h, logging.FileHandler):
-            h.close()
-        logger.removeHandler(h)
+        # only remove our handlers (get along nicely with nose)
+        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
+            if isinstance(h, logging.FileHandler):
+                h.close()
+            logger.removeHandler(h)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
+            # Don't use warn() here because we just want to
+            # emit a warnings.warn here (not logger.warn)
             warnings.warn('Log entries will be appended to the file. Use '
                           'overwrite=False to avoid this message in the '
-                          'future.')
-        mode = 'w' if overwrite is True else 'a'
+                          'future.', RuntimeWarning, stacklevel=2)
+            overwrite = False
+        mode = 'w' if overwrite else 'a'
         lh = logging.FileHandler(fname, mode=mode)
     else:
         """ we should just be able to do:
@@ -1050,30 +1182,35 @@ def set_memmap_min_size(memmap_min_size):
 
 
 # List the known configuration values
-known_config_types = [
+known_config_types = (
     'MNE_BROWSE_RAW_SIZE',
+    'MNE_CACHE_DIR',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',
+    'MNE_DATASETS_BRAINSTORM_PATH',
+    'MNE_DATASETS_EEGBCI_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
+    'MNE_DATASETS_MISC_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
+    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS',
     'MNE_DATASETS_SPM_FACE_PATH',
-    'MNE_DATASETS_EEGBCI_PATH',
-    'MNE_DATASETS_BRAINSTORM_PATH',
     'MNE_DATASETS_TESTING_PATH',
+    'MNE_FORCE_SERIAL',
     'MNE_LOGGING_LEVEL',
+    'MNE_MEMMAP_MIN_SIZE',
+    'MNE_SKIP_FTP_TESTS',
+    'MNE_SKIP_NETWORK_TESTS',
+    'MNE_SKIP_TESTING_DATASET_TESTS',
+    'MNE_STIM_CHANNEL',
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
-    'MNE_CACHE_DIR',
-    'MNE_MEMMAP_MIN_SIZE',
-    'MNE_SKIP_TESTING_DATASET_TESTS',
-    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
-]
+)
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
-known_config_wildcards = [
+known_config_wildcards = (
     'MNE_STIM_CHANNEL',
-]
+)
 
 
 def get_config(key=None, default=None, raise_error=False, home_dir=None):
@@ -1143,8 +1280,9 @@ def set_config(key, value, home_dir=None):
 
     Parameters
     ----------
-    key : str
-        The preference key to set.
+    key : str | None
+        The preference key to set. If None, a tuple of the valid
+        keys is returned, and ``value`` and ``home_dir`` are ignored.
     value : str |  None
         The value to assign to the preference key. If None, the key is
         deleted.
@@ -1156,6 +1294,8 @@ def set_config(key, value, home_dir=None):
     --------
     get_config
     """
+    if key is None:
+        return known_config_types
     if not isinstance(key, string_types):
         raise TypeError('key must be a string')
     # While JSON allow non-string types, we allow users to override config
@@ -1164,7 +1304,7 @@ def set_config(key, value, home_dir=None):
         raise TypeError('value must be a string or None')
     if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
-        warnings.warn('Setting non-standard config type: "%s"' % key)
+        warn('Setting non-standard config type: "%s"' % key)
 
     # Read all previous values
     config_path = get_config_path(home_dir=home_dir)
@@ -1458,7 +1598,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         else:
             initial_size = 0
         # This should never happen if our functions work properly
-        if initial_size >= file_size:
+        if initial_size > file_size:
             raise RuntimeError('Local file (%s) is larger than remote '
                                'file (%s), cannot resume download'
                                % (sizeof_fmt(initial_size),
@@ -1565,10 +1705,12 @@ def _get_stim_channel(stim_channel, info):
                      "manually using the 'stim_channel' parameter.")
 
 
-def _check_fname(fname, overwrite):
+def _check_fname(fname, overwrite=False, must_exist=False):
     """Helper to check for file existence"""
     if not isinstance(fname, string_types):
         raise TypeError('file name is not a string')
+    if must_exist and not op.isfile(fname):
+        raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
         if not overwrite:
             raise IOError('Destination file exists. Please use option '
@@ -1775,7 +1917,7 @@ def md5sum(fname, block_size=1048576):  # 2 ** 20
     Returns
     -------
     hash_ : str
-        The hexidecimal digest of the hash.
+        The hexadecimal digest of the hash.
     """
     md5 = hashlib.md5()
     with open(fname, 'rb') as fid:
@@ -1785,15 +1927,6 @@ def md5sum(fname, block_size=1048576):  # 2 ** 20
                 break
             md5.update(data)
     return md5.hexdigest()
-
-
-def _sphere_to_cartesian(theta, phi, r):
-    """Transform spherical coordinates to cartesian"""
-    z = r * np.sin(phi)
-    rcos_phi = r * np.cos(phi)
-    x = rcos_phi * np.cos(theta)
-    y = rcos_phi * np.sin(theta)
-    return x, y, z
 
 
 def create_slices(start, stop, step=None, length=1):
@@ -1827,15 +1960,30 @@ def create_slices(start, stop, step=None, length=1):
     return slices
 
 
-def _time_mask(times, tmin=None, tmax=None, strict=False):
+def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
     """Helper to safely find sample boundaries"""
+    orig_tmin = tmin
+    orig_tmax = tmax
     tmin = -np.inf if tmin is None else tmin
     tmax = np.inf if tmax is None else tmax
+    if not np.isfinite(tmin):
+        tmin = times[0]
+    if not np.isfinite(tmax):
+        tmax = times[-1]
+    if sfreq is not None:
+        # Push to a bit past the nearest sample boundary first
+        sfreq = float(sfreq)
+        tmin = int(round(tmin * sfreq)) / sfreq - 0.5 / sfreq
+        tmax = int(round(tmax * sfreq)) / sfreq + 0.5 / sfreq
+    if raise_error and tmin > tmax:
+        raise ValueError('tmin (%s) must be less than or equal to tmax (%s)'
+                         % (orig_tmin, orig_tmax))
     mask = (times >= tmin)
     mask &= (times <= tmax)
-    if not strict:
-        mask |= isclose(times, tmin)
-        mask |= isclose(times, tmax)
+    if raise_error and not mask.any():
+        raise ValueError('No samples remain when using tmin=%s and tmax=%s '
+                         '(original time bounds are [%s, %s])'
+                         % (orig_tmin, orig_tmax, times[0], times[-1]))
     return mask
 
 
@@ -1964,7 +2112,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
         bads = list(set((b for inst in all_inst for b in inst.info['bads'])))
         if bads:
             for inst in all_inst:
-                inst.drop_channels(bads, copy=False)
+                inst.drop_channels(bads)
 
     # make grand_average object using combine_[evoked/tfr]
     grand_average = combine(all_inst, weights='equal')
@@ -1983,3 +2131,83 @@ def _get_root_dir():
             op.isdir(op.join(up_dir, x)) for x in ('mne', 'examples', 'doc')):
         root_dir = op.abspath(up_dir)
     return root_dir
+
+
+def sys_info(fid=None, show_paths=False):
+    """Print the system information for debugging
+
+    This function is useful for printing system information
+    to help triage bugs.
+
+    Parameters
+    ----------
+    fid : file-like | None
+        The file to write to. Will be passed to :func:`print()`.
+        Can be None to use :data:`sys.stdout`.
+    show_paths : bool
+        If True, print paths for each module.
+
+    Examples
+    --------
+    Running this function with no arguments prints an output that is
+    useful when submitting bug reports::
+
+        >>> import mne
+        >>> mne.sys_info() # doctest: +SKIP
+        Platform:      Linux-4.2.0-27-generic-x86_64-with-Ubuntu-15.10-wily
+        Python:        2.7.10 (default, Oct 14 2015, 16:09:02)  [GCC 5.2.1 20151010]
+        Executable:    /usr/bin/python
+
+        mne:           0.12.dev0
+        numpy:         1.12.0.dev0+ec5bd81 {lapack=mkl_rt, blas=mkl_rt}
+        scipy:         0.18.0.dev0+3deede3
+        matplotlib:    1.5.1+1107.g1fa2697
+
+        sklearn:       0.18.dev0
+        nibabel:       2.1.0dev
+        nitime:        0.6
+        mayavi:        4.3.1
+        nose:          1.3.7
+        pandas:        0.17.1+25.g547750a
+        pycuda:        2015.1.3
+        skcuda:        0.5.2
+
+    """  # noqa
+    ljust = 15
+    out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
+    out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
+    out += 'Executable:'.ljust(ljust) + sys.executable + '\n\n'
+    old_stdout = sys.stdout
+    capture = StringIO()
+    try:
+        sys.stdout = capture
+        np.show_config()
+    finally:
+        sys.stdout = old_stdout
+    lines = capture.getvalue().split('\n')
+    libs = []
+    for li, line in enumerate(lines):
+        for key in ('lapack', 'blas'):
+            if line.startswith('%s_opt_info' % key):
+                libs += ['%s=' % key +
+                         lines[li + 1].split('[')[1].split("'")[1]]
+    libs = ', '.join(libs)
+    version_texts = dict(pycuda='VERSION_TEXT')
+    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
+                     'sklearn', 'nibabel', 'nitime', 'mayavi', 'nose',
+                     'pandas', 'pycuda', 'skcuda'):
+        if mod_name == '':
+            out += '\n'
+            continue
+        out += ('%s:' % mod_name).ljust(ljust)
+        try:
+            mod = __import__(mod_name)
+        except Exception:
+            out += 'Not found\n'
+        else:
+            version = getattr(mod, version_texts.get(mod_name, '__version__'))
+            extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
+            if mod_name == 'numpy':
+                extra = ' {%s}%s' % (libs, extra)
+            out += '%s%s\n' % (version, extra)
+    print(out, end='', file=fid)

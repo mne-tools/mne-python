@@ -4,12 +4,11 @@
 #
 # License: BSD (3-clause)
 
-import warnings
-from ..externals.six import string_types
 import numpy as np
 
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose, sum_squared
+from ..externals.six import string_types
+from ..utils import logger, verbose, sum_squared, warn
 from ..filter import band_pass_filter
 from ..epochs import Epochs, _BaseEpochs
 from ..io.base import _BaseRaw
@@ -117,7 +116,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     rates = np.array([60. * len(cev) / (len(ecg) / float(sfreq))
                       for cev in clean_events])
 
-    # now find heart rates that seem reasonable (infant thru adult athlete)
+    # now find heart rates that seem reasonable (infant through adult athlete)
     idx = np.where(np.logical_and(rates <= 160., rates >= 40.))[0]
     if len(idx) > 0:
         ideal_rate = np.median(rates[idx])  # get close to the median
@@ -218,8 +217,8 @@ def _get_ecg_channel_index(ch_name, inst):
         #                    'parameter e.g. MEG 1531')
 
     if len(ecg_idx) > 1:
-        warnings.warn('More than one ECG channel found. Using only %s.'
-                      % inst.ch_names[ecg_idx[0]])
+        warn('More than one ECG channel found. Using only %s.'
+             % inst.ch_names[ecg_idx[0]])
 
     return ecg_idx[0]
 
@@ -260,8 +259,8 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # uV (EEG channels)
-                          eog=250e-6 # uV (EOG channels)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
                           )
 
     flat : dict | None
@@ -290,7 +289,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
     ecg_epochs : instance of Epochs
         Data epoched around ECG r-peaks.
     """
-    not_has_ecg = 'ecg' not in raw
+    not_has_ecg = 'ecg' not in raw and ch_name is None
     if not_has_ecg:
         ecg, times = _make_ecg(raw, None, None, verbose)
 
@@ -337,7 +336,7 @@ def _make_ecg(inst, start, stop, verbose=None):
     """Create ECG signal from cross channel average
     """
     if not any(c in inst for c in ['mag', 'grad']):
-        raise ValueError('Unable to generate artifical ECG channel')
+        raise ValueError('Unable to generate artificial ECG channel')
     for ch in ['mag', 'grad']:
         if ch in inst:
             break
@@ -348,7 +347,7 @@ def _make_ecg(inst, start, stop, verbose=None):
     if isinstance(inst, _BaseRaw):
         ecg, times = inst[picks, start:stop]
     elif isinstance(inst, _BaseEpochs):
-        ecg = np.hstack(inst.crop(start, stop, copy=True).get_data())
+        ecg = np.hstack(inst.copy().crop(start, stop).get_data())
         times = inst.times
     elif isinstance(inst, Evoked):
         ecg = inst.data

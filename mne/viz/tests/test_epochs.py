@@ -11,14 +11,14 @@ import warnings
 from nose.tools import assert_raises
 
 import numpy as np
-
+from numpy.testing import assert_equal
 
 from mne import io, read_events, Epochs
 from mne import pick_types
 from mne.utils import run_tests_if_main, requires_version
 from mne.channels import read_layout
 
-from mne.viz import plot_drop_log, plot_epochs_image
+from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
@@ -39,7 +39,7 @@ layout = read_layout('Vectorview-all')
 
 
 def _get_raw():
-    return io.Raw(raw_fname, preload=False)
+    return io.read_raw_fif(raw_fname, preload=False)
 
 
 def _get_events():
@@ -57,8 +57,9 @@ def _get_epochs():
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
-    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0))
+    with warnings.catch_warnings(record=True):  # bad proj
+        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
     return epochs
 
 
@@ -77,6 +78,7 @@ def test_plot_epochs():
     """Test epoch plotting"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
+    epochs.info.normalize_proj()  # avoid warnings
     epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
@@ -123,6 +125,8 @@ def test_plot_epochs():
         fig.canvas.close_event()  # closing and epoch dropping
         assert(n_epochs - 1 == len(epochs))
         plt.close('all')
+    epochs.plot_sensors()  # Test plot_sensors
+    plt.close('all')
 
 
 def test_plot_epochs_image():
@@ -130,7 +134,19 @@ def test_plot_epochs_image():
     """
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    plot_epochs_image(epochs, picks=[1, 2])
+    epochs.plot_image(picks=[1, 2])
+    overlay_times = [0.1]
+    epochs.plot_image(order=[0], overlay_times=overlay_times)
+    epochs.plot_image(overlay_times=overlay_times)
+    assert_raises(ValueError, epochs.plot_image,
+                  overlay_times=[0.1, 0.2])
+    assert_raises(ValueError, epochs.plot_image,
+                  order=[0, 1])
+    with warnings.catch_warnings(record=True) as w:
+        epochs.plot_image(overlay_times=[1.1])
+        warnings.simplefilter('always')
+    assert_equal(len(w), 1)
+
     plt.close('all')
 
 
@@ -140,7 +156,7 @@ def test_plot_drop_log():
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     assert_raises(ValueError, epochs.plot_drop_log)
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
 
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):

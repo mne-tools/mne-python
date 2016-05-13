@@ -24,7 +24,7 @@ print(__doc__)
 sfreq = 1000  # Sampling frequency
 times = np.arange(0, 10, 0.001)  # Use 10000 samples (10s)
 
-sin = np.sin(times * 10)  # Multiplied by 10 for shorter phase
+sin = np.sin(times * 10)  # Multiplied by 10 for shorter cycles
 cos = np.cos(times * 10)
 sinX2 = sin * 2
 cosX2 = cos * 2
@@ -51,6 +51,11 @@ scalings = {'mag': 2, 'grad': 2}
 raw.plot(n_channels=4, scalings=scalings, title='Data from arrays',
          show=True, block=True)
 
+# It is also possible to auto-compute scalings
+scalings = 'auto'  # Could also pass a dictionary with some value == 'auto'
+raw.plot(n_channels=4, scalings=scalings, title='Auto-scaled Data from arrays',
+         show=True, block=True)
+
 
 ###############################################################################
 # EpochsArray
@@ -63,9 +68,9 @@ events = np.array([[200, 0, event_id],
 # Here a data set of 700 ms epochs from 2 channels is
 # created from sin and cos data.
 # Any data in shape (n_epochs, n_channels, n_times) can be used.
-epochs_data = [[sin[:700], cos[:700]],
-               [sin[1000:1700], cos[1000:1700]],
-               [sin[1800:2500], cos[1800:2500]]]
+epochs_data = np.array([[sin[:700], cos[:700]],
+                        [sin[1000:1700], cos[1000:1700]],
+                        [sin[1800:2500], cos[1800:2500]]])
 
 ch_names = ['sin', 'cos']
 ch_types = ['mag', 'mag']
@@ -76,7 +81,7 @@ epochs = mne.EpochsArray(epochs_data, info=info, events=events,
 
 picks = mne.pick_types(info, meg=True, eeg=False, misc=False)
 
-epochs.plot(picks=picks, show=True, block=True)
+epochs.plot(picks=picks, scalings='auto', show=True, block=True)
 
 
 ###############################################################################

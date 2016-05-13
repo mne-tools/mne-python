@@ -4,12 +4,13 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
 # Authors : Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #           Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
+#           Clement Moutard <clement.moutard@polytechnique.org>
 #
 # License : BSD (3-clause)
 
-import warnings
-from math import sqrt
 from copy import deepcopy
+from math import sqrt
+
 import numpy as np
 from scipy import linalg
 from scipy.fftpack import fftn, ifftn
@@ -17,11 +18,11 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask
+from ..utils import (logger, verbose, _time_mask, warn, check_fname,
+                     _check_copy_dep)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
-from ..utils import check_fname
 from .multitaper import dpss_windows
 from ..viz.utils import figure_nobar, plt_show
 from ..externals.h5io import write_hdf5, read_hdf5
@@ -181,14 +182,23 @@ def _centered(arr, newsize):
     return arr[tuple(myslice)]
 
 
-def _cwt_fft(X, Ws, mode="same"):
-    """Compute cwt with fft based convolutions
+def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
+    """Compute cwt with fft based convolutions or temporal convolutions.
     Return a generator over signals.
     """
+    if mode not in ['same', 'valid', 'full']:
+        raise ValueError("`mode` must be 'same', 'valid' or 'full', "
+                         "got %s instead." % mode)
+    if mode == 'full' and (not use_fft):
+        # XXX JRK: full wavelet decomposition needs to be implemented
+        raise ValueError('`full` decomposition with convolution is currently' +
+                         ' not supported.')
+    decim = _check_decim(decim)
     X = np.asarray(X)
 
     # Precompute wavelets for given frequency range to save time
     n_signals, n_times = X.shape
+    n_times_out = X[:, decim].shape[1]
     n_freqs = len(Ws)
 
     Ws_max_size = max(W.size for W in Ws)
@@ -197,58 +207,46 @@ def _cwt_fft(X, Ws, mode="same"):
     fsize = 2 ** int(np.ceil(np.log2(size)))
 
     # precompute FFTs of Ws
-    fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
+    if use_fft:
+        fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
     for i, W in enumerate(Ws):
         if len(W) > n_times:
             raise ValueError('Wavelet is too long for such a short signal. '
                              'Reduce the number of cycles.')
-        fft_Ws[i] = fftn(W, [fsize])
+        if use_fft:
+            fft_Ws[i] = fftn(W, [fsize])
 
-    for k, x in enumerate(X):
-        if mode == "full":
-            tfr = np.zeros((n_freqs, fsize), dtype=np.complex128)
-        elif mode == "same" or mode == "valid":
-            tfr = np.zeros((n_freqs, n_times), dtype=np.complex128)
-
-        fft_x = fftn(x, [fsize])
-        for i, W in enumerate(Ws):
-            ret = ifftn(fft_x * fft_Ws[i])[:n_times + W.size - 1]
-            if mode == "valid":
-                sz = abs(W.size - n_times) + 1
-                offset = (n_times - sz) / 2
-                tfr[i, offset:(offset + sz)] = _centered(ret, sz)
-            else:
-                tfr[i, :] = _centered(ret, n_times)
-        yield tfr
-
-
-def _cwt_convolve(X, Ws, mode='same'):
-    """Compute time freq decomposition with temporal convolutions
-    Return a generator over signals.
-    """
-    X = np.asarray(X)
-
-    n_signals, n_times = X.shape
-    n_freqs = len(Ws)
-
-    # Compute convolutions
+    # Make generator looping across signals
+    tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
     for x in X:
-        tfr = np.zeros((n_freqs, n_times), dtype=np.complex128)
-        for i, W in enumerate(Ws):
-            ret = np.convolve(x, W, mode=mode)
-            if len(W) > len(x):
-                raise ValueError('Wavelet is too long for such a short '
-                                 'signal. Reduce the number of cycles.')
+        if use_fft:
+            fft_x = fftn(x, [fsize])
+
+        # Loop across wavelets
+        for ii, W in enumerate(Ws):
+            if use_fft:
+                ret = ifftn(fft_x * fft_Ws[ii])[:n_times + W.size - 1]
+            else:
+                ret = np.convolve(x, W, mode=mode)
+
+            # Center and decimate decomposition
             if mode == "valid":
                 sz = abs(W.size - n_times) + 1
                 offset = (n_times - sz) / 2
-                tfr[i, offset:(offset + sz)] = ret
+                this_slice = slice(offset // decim.step,
+                                   (offset + sz) // decim.step)
+                if use_fft:
+                    ret = _centered(ret, sz)
+                tfr[ii, this_slice] = ret[decim]
             else:
-                tfr[i] = ret
+                if use_fft:
+                    ret = _centered(ret, n_times)
+                tfr[ii, :] = ret[decim]
         yield tfr
 
 
-def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
+def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
+               decim=1):
     """Compute time freq decomposition with Morlet wavelets
 
     This function operates directly on numpy arrays. Consider using
@@ -256,10 +254,10 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
 
     Parameters
     ----------
-    X : array of shape [n_signals, n_times]
-        signals (one per line)
+    X : array, shape (n_signals, n_times)
+        Signals (one per line)
     sfreq : float
-        sampling Frequency
+        Sampling frequency.
     freqs : array
         Array of frequencies of interest
     use_fft : bool
@@ -268,6 +266,13 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
         Number of cycles. Fixed number or one per frequency.
     zero_mean : bool
         Make sure the wavelets are zero mean.
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice` returns tfr[..., decim].
+        Note that decimation may create aliasing artifacts.
+        Defaults to 1.
 
     Returns
     -------
@@ -280,18 +285,15 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
     """
     mode = 'same'
     # mode = "valid"
-    n_signals, n_times = X.shape
-    n_frequencies = len(freqs)
+    decim = _check_decim(decim)
+    n_signals, n_times = X[:, decim].shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
-    if use_fft:
-        coefs = _cwt_fft(X, Ws, mode)
-    else:
-        coefs = _cwt_convolve(X, Ws, mode)
+    coefs = cwt(X, Ws, use_fft=use_fft, mode=mode, decim=decim)
 
-    tfrs = np.empty((n_signals, n_frequencies, n_times), dtype=np.complex)
+    tfrs = np.empty((n_signals, len(freqs), n_times), dtype=np.complex)
     for k, tfr in enumerate(coefs):
         tfrs[k] = tfr
 
@@ -303,38 +305,41 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
     Parameters
     ----------
-    X : array of shape [n_signals, n_times]
-        signals (one per line)
+    X : array, shape (n_signals, n_times)
+        The signals.
     Ws : list of array
-        Wavelets time series
+        Wavelets time series.
     use_fft : bool
-        Use FFT for convolutions
+        Use FFT for convolutions. Defaults to True.
     mode : 'same' | 'valid' | 'full'
-        Convention for convolution
-    decim : int
-        Temporal decimation factor
+        Convention for convolution. 'full' is currently not implemented with
+        `use_fft=False`. Defaults to 'same'.
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice` returns tfr[..., decim].
+        Note that decimation may create aliasing artifacts.
+        Defaults to 1.
 
     Returns
     -------
-    tfr : 3D array
-        Time Frequency Decompositions (n_signals x n_frequencies x n_times)
+    tfr : array, shape (n_signals, n_frequencies, n_times)
+        The time frequency decompositions.
 
     See Also
     --------
     mne.time_frequency.cwt_morlet : Compute time-frequency decomposition
                                     with Morlet wavelets
     """
-    n_signals, n_times = X[:, ::decim].shape
-    n_frequencies = len(Ws)
+    decim = _check_decim(decim)
+    n_signals, n_times = X[:, decim].shape
 
-    if use_fft:
-        coefs = _cwt_fft(X, Ws, mode)
-    else:
-        coefs = _cwt_convolve(X, Ws, mode)
+    coefs = _cwt(X, Ws, mode, decim=decim, use_fft=use_fft)
 
-    tfrs = np.empty((n_signals, n_frequencies, n_times), dtype=np.complex)
+    tfrs = np.empty((n_signals, len(Ws), n_times), dtype=np.complex)
     for k, tfr in enumerate(coefs):
-        tfrs[k] = tfr[..., ::decim]
+        tfrs[k] = tfr
 
     return tfrs
 
@@ -342,20 +347,16 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 def _time_frequency(X, Ws, use_fft, decim):
     """Aux of time_frequency for parallel computing over channels
     """
-    n_epochs, n_times = X.shape
-    n_times = n_times // decim + bool(n_times % decim)
+    decim = _check_decim(decim)
+    n_epochs, n_times = X[:, decim].shape
     n_frequencies = len(Ws)
     psd = np.zeros((n_frequencies, n_times))  # PSD
     plf = np.zeros((n_frequencies, n_times), np.complex)  # phase lock
 
     mode = 'same'
-    if use_fft:
-        tfrs = _cwt_fft(X, Ws, mode)
-    else:
-        tfrs = _cwt_convolve(X, Ws, mode)
+    tfrs = _cwt(X, Ws, mode, decim=decim, use_fft=use_fft)
 
     for tfr in tfrs:
-        tfr = tfr[:, ::decim]
         tfr_abs = np.abs(tfr)
         psd += tfr_abs ** 2
         plf += tfr / tfr_abs
@@ -398,8 +399,13 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
         power = [power - mean(power_baseline)] / std(power_baseline))
     times : array
         Required to define baseline
-    decim : int
-        Temporal decimation factor
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice` returns tfr[..., decim].
+        Note that decimation may create aliasing artifacts.
+        Defaults to 1.
     n_jobs : int
         The number of epochs to process at the same time
     zero_mean : bool
@@ -412,9 +418,10 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     power : 4D array
         Power estimate (Epochs x Channels x Frequencies x Timepoints).
     """
+    decim = _check_decim(decim)
     mode = 'same'
     n_frequencies = len(frequencies)
-    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
+    n_epochs, n_channels, n_times = data[:, :, decim].shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
@@ -442,7 +449,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     # Run baseline correction.  Be sure to decimate the times array as well if
     # needed.
     if times is not None:
-        times = times[::decim]
+        times = times[decim]
     power = rescale(power, times, baseline, baseline_mode, copy=False)
     return power
 
@@ -458,7 +465,7 @@ def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     data : array
         3D array of shape [n_epochs, n_channels, n_times]
     sfreq : float
-        sampling Frequency
+        Sampling frequency.
     frequencies : array
         Array of frequencies of interest
     use_fft : bool
@@ -466,8 +473,13 @@ def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
         convolutions.
     n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency.
-    decim: int
-        Temporal decimation factor
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice` returns tfr[..., decim].
+        Note that decimation may create aliasing artifacts.
+        Defaults to 1.
     n_jobs : int
         The number of CPUs used in parallel. All CPUs are used in -1.
         Requires joblib package.
@@ -482,8 +494,9 @@ def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     phase_lock : 2D array
         Phase locking factor in [0, 1] (Channels x Frequencies x Timepoints)
     """
+    decim = _check_decim(decim)
     n_frequencies = len(frequencies)
-    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
+    n_epochs, n_channels, n_times = data[:, :, decim].shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
@@ -500,18 +513,16 @@ def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
 
 def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
-                 baseline, vmin, vmax, dB):
+                 baseline, vmin, vmax, dB, sfreq):
     """Aux Function to prepare tfr computation"""
     from ..viz.utils import _setup_vmin_vmax
 
-    if mode is not None and baseline is not None:
-        logger.info("Applying baseline correction '%s' during %s" %
-                    (mode, baseline))
-        data = rescale(data.copy(), times, baseline, mode)
+    copy = baseline is not None
+    data = rescale(data, times, baseline, mode, copy=copy)
 
     # crop time
     itmin, itmax = None, None
-    idx = np.where(_time_mask(times, tmin, tmax))[0]
+    idx = np.where(_time_mask(times, tmin, tmax, sfreq=sfreq))[0]
     if tmin is not None:
         itmin = idx[0]
     if tmax is not None:
@@ -521,7 +532,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
     # crop freqs
     ifmin, ifmax = None, None
-    idx = np.where(_time_mask(freqs, fmin, fmax))[0]
+    idx = np.where(_time_mask(freqs, fmin, fmax, sfreq=sfreq))[0]
     if fmin is not None:
         ifmin = idx[0]
     if fmax is not None:
@@ -589,8 +600,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             raise ValueError("Number of times and data size don't match"
                              " (%d != %d)." % (n_times, len(times)))
         self.data = data
-        self.times = times
-        self.freqs = freqs
+        self.times = np.asarray(times)
+        self.freqs = np.asarray(freqs)
         self.nave = nave
         self.comment = comment
         self.method = method
@@ -599,7 +610,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
     def ch_names(self):
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None, copy=False):
+    def crop(self, tmin=None, tmax=None, copy=None):
         """Crop data to a given time interval
 
         Parameters
@@ -609,12 +620,19 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         tmax : float | None
             End time of selection in seconds.
         copy : bool
-            If False epochs is cropped in place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
+
+        Returns
+        -------
+        inst : instance of AverageTFR
+            The modified instance.
         """
-        inst = self if not copy else self.copy()
-        mask = _time_mask(inst.times, tmin, tmax)
+        inst = _check_copy_dep(self, copy)
+        mask = _time_mask(inst.times, tmin, tmax, sfreq=self.info['sfreq'])
         inst.times = inst.times[mask]
-        inst.data = inst.data[..., mask]
+        inst.data = inst.data[:, :, mask]
         return inst
 
     @verbose
@@ -699,7 +717,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
-                         baseline, vmin, vmax, dB)
+                         baseline, vmin, vmax, dB, info['sfreq'])
 
         tmin, tmax = times[0], times[-1]
         if isinstance(axes, plt.Axes):
@@ -841,7 +859,7 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         fig : matplotlib.figure.Figure
             The figure containing the topography.
         """
-        from ..viz.topo import _imshow_tfr, _plot_topo
+        from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
         times = self.times.copy()
         freqs = self.freqs
         data = self.data
@@ -852,22 +870,26 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax,
-                         mode, baseline, vmin, vmax, dB)
+                         mode, baseline, vmin, vmax, dB, info['sfreq'])
 
         if layout is None:
             from mne import find_layout
             layout = find_layout(self.info)
         onselect_callback = partial(self._onselect, baseline=baseline,
                                     mode=mode, layout=layout)
-        imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap,
+
+        click_fun = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap,
+                            onselect=onselect_callback)
+        imshow = partial(_imshow_tfr_unified, tfr=data, freq=freqs, cmap=cmap,
                          onselect=onselect_callback)
 
         fig = _plot_topo(info=info, times=times, show_func=imshow,
-                         layout=layout, colorbar=colorbar, vmin=vmin,
-                         vmax=vmax, cmap=cmap, layout_scale=layout_scale,
-                         title=title, border=border, x_label='Time (ms)',
-                         y_label='Frequency (Hz)', fig_facecolor=fig_facecolor,
-                         font_color=font_color)
+                         click_func=click_fun, layout=layout,
+                         colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
+                         layout_scale=layout_scale, title=title, border=border,
+                         x_label='Time (ms)', y_label='Frequency (Hz)',
+                         fig_facecolor=fig_facecolor, font_color=font_color,
+                         unified=True, img=True)
         plt_show(show)
         return fig
 
@@ -909,7 +931,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         s += ', channels : %d' % self.data.shape[0]
         return "<AverageTFR  |  %s>" % s
 
-    def apply_baseline(self, baseline, mode='mean'):
+    @verbose
+    def apply_baseline(self, baseline, mode='mean', verbose=None):
         """Baseline correct the data
 
         Parameters
@@ -928,8 +951,11 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
             deviation of power during baseline after subtracting the mean,
             power = [power - mean(power_baseline)] / std(power_baseline))
             If None, baseline no correction will be performed.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
         """
-        self.data = rescale(self.data, self.times, baseline, mode, copy=False)
+        self.data = rescale(self.data, self.times, baseline, mode,
+                            copy=False)
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean',
@@ -956,7 +982,8 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
-            If None, then channels are chosen in the order given above.
+            If None, then first available channel type from order given
+            above is used. Defaults to None.
         baseline : tuple or list of length 2
             The time interval to apply rescaling / baseline correction.
             If None do not apply it. If baseline is (a, b)
@@ -1065,8 +1092,9 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
 def _prepare_write_tfr(tfr, condition):
     """Aux function"""
     return (condition, dict(times=tfr.times, freqs=tfr.freqs,
-                            data=tfr.data, info=tfr.info, nave=tfr.nave,
-                            comment=tfr.comment, method=tfr.method))
+                            data=tfr.data, info=tfr.info,
+                            nave=tfr.nave, comment=tfr.comment,
+                            method=tfr.method))
 
 
 def write_tfrs(fname, tfr, overwrite=False):
@@ -1148,8 +1176,8 @@ def read_tfrs(fname, condition=None):
 
 
 @verbose
-def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
-               return_itc=True, decim=1, n_jobs=1, picks=None, verbose=None):
+def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
+               n_jobs=1, picks=None, verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets
 
     Parameters
@@ -1165,8 +1193,13 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
         Must be ``False`` for evoked data.
-    decim : int
-        The decimation factor on the time axis. To reduce memory usage.
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice` returns tfr[..., decim].
+        Note that decimation may create aliasing artifacts.
+        Defaults to 1.
     n_jobs : int
         The number of jobs to run in parallel.
     picks : array-like of int | None
@@ -1187,18 +1220,19 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     --------
     tfr_multitaper, tfr_stockwell
     """
+    decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
     info = inst.info
 
     info, data, picks = _prepare_picks(info, data, picks)
-    data = data = data[:, picks, :]
+    data = data[:, picks, :]
 
     power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
                                     frequencies=freqs,
                                     n_cycles=n_cycles, n_jobs=n_jobs,
                                     use_fft=use_fft, decim=decim,
                                     zero_mean=True)
-    times = inst.times[::decim].copy()
+    times = inst.times[decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
     if return_itc:
@@ -1232,7 +1266,7 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     data : np.ndarray, shape (n_epochs, n_channels, n_times)
         The input data.
     sfreq : float
-        sampling Frequency
+        Sampling frequency.
     frequencies : np.ndarray, shape (n_frequencies,)
         Array of frequencies of interest
     time_bandwidth : float
@@ -1244,8 +1278,13 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
         convolutions. Defaults to True.
     n_cycles : float | np.ndarray shape (n_frequencies,)
         Number of cycles. Fixed number or one per frequency. Defaults to 7.
-    decim: int
-        Temporal decimation factor. Defaults to 1.
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice` returns tfr[..., decim].
+        Note that decimation may create aliasing artifacts.
+        Defaults to 1.
     n_jobs : int
         The number of CPUs used in parallel. All CPUs are used in -1.
         Requires joblib package. Defaults to 1.
@@ -1261,7 +1300,8 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     itc : np.ndarray, shape (n_channels, n_frequencies, n_times)
         Phase locking value.
     """
-    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
+    decim = _check_decim(decim)
+    n_epochs, n_channels, n_times = data[:, :, decim].shape
     logger.info('Data is %d trials and %d channels', n_epochs, n_channels)
     n_frequencies = len(frequencies)
     logger.info('Multitaper time-frequency analysis for %d frequencies',
@@ -1273,16 +1313,16 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     n_taps = len(Ws)
     logger.info('Using %d tapers', n_taps)
     n_times_wavelets = Ws[0][0].shape[0]
-    if n_times <= n_times_wavelets:
-        warnings.warn("Time windows are as long or longer than the epoch. "
-                      "Consider reducing n_cycles.")
+    if data.shape[2] <= n_times_wavelets:
+        warn('Time windows are as long or longer than the epoch. Consider '
+             'reducing n_cycles.')
     psd = np.zeros((n_channels, n_frequencies, n_times))
     itc = np.zeros((n_channels, n_frequencies, n_times))
     parallel, my_time_frequency, _ = parallel_func(_time_frequency,
                                                    n_jobs)
     for m in range(n_taps):
-        psd_itc = parallel(my_time_frequency(data[:, c, :],
-                                             Ws[m], use_fft, decim)
+        psd_itc = parallel(my_time_frequency(data[:, c, :], Ws[m], use_fft,
+                                             decim)
                            for c in range(n_channels))
         for c, (psd_c, itc_c) in enumerate(psd_itc):
             psd[c, :, :] += psd_c
@@ -1294,8 +1334,8 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
 
 @verbose
 def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
-                   use_fft=True, return_itc=True, decim=1, n_jobs=1,
-                   picks=None, verbose=None):
+                   use_fft=True, return_itc=True, decim=1,
+                   n_jobs=1, picks=None, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS wavelets
 
     Parameters
@@ -1321,9 +1361,12 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
         Defaults to True.
-    decim : int
-        The decimation factor on the time axis. To reduce memory usage.
-        Note than this is brute force decimation, no anti-aliasing is done.
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice` returns tfr[..., decim].
+        Note that decimation may create aliasing artifacts.
         Defaults to 1.
     n_jobs : int
         The number of jobs to run in parallel. Defaults to 1.
@@ -1349,7 +1392,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     -----
     .. versionadded:: 0.9.0
     """
-
+    decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
     info = inst.info
 
@@ -1362,7 +1405,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                                     use_fft=use_fft, decim=decim,
                                     n_jobs=n_jobs, zero_mean=True,
                                     verbose='INFO')
-    times = inst.times[::decim].copy()
+    times = inst.times[decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave,
                      method='mutlitaper-power')
@@ -1430,3 +1473,13 @@ def combine_tfr(all_tfr, weights='nave'):
     tfr.nave = max(int(1. / sum(w ** 2 / e.nave
                                 for w, e in zip(weights, all_tfr))), 1)
     return tfr
+
+
+def _check_decim(decim):
+    """ aux function checking the decim parameter """
+    if isinstance(decim, int):
+        decim = slice(None, None, decim)
+    elif not isinstance(decim, slice):
+        raise(TypeError, '`decim` must be int or slice, got %s instead'
+                         % type(decim))
+    return decim

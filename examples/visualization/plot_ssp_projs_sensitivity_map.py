@@ -21,11 +21,12 @@ data_path = sample.data_path()
 
 subjects_dir = data_path + '/subjects'
 fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
+ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg-proj.fif'
 
 fwd = read_forward_solution(fname, surf_ori=True)
 projs = read_proj(ecg_fname)
-projs = projs[3:][::2]  # take only one projection per channel type
+# take only one projection per channel type
+projs = projs[::2]
 
 # Compute sensitivity map
 ssp_ecg_map = sensitivity_map(fwd, ch_type='grad', projs=projs, mode='angle')

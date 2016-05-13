@@ -68,7 +68,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
     else:
         epochs = epochs[conditions]
 
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
 
     if len(conditions) != 2:
         raise ValueError('Currently this function expects exactly 2 '
@@ -76,7 +76,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
                          len(conditions))
 
     ev = epochs.events[:, 2]
-    # special care to avoid path dependant mappings and orders
+    # special care to avoid path dependent mappings and orders
     conditions = list(sorted(conditions))
     cond_idx = [np.where(ev == epochs.event_id[k])[0] for k in conditions]
 
@@ -92,11 +92,22 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
                 this_picks = pick_types(info, meg=ch_type, eeg=False)
             data[:, this_picks] /= np.std(data[:, this_picks])
 
-    from sklearn.cross_validation import LeaveOneOut
+    try:
+        from sklearn.model_selection import LeaveOneOut
+    except:  # XXX support sklearn < 0.18
+        from sklearn.cross_validation import LeaveOneOut
+
+    def _iter_cv(n):  # XXX support sklearn < 0.18
+        if hasattr(LeaveOneOut, 'split'):
+            cv = LeaveOneOut()
+            return cv.split(np.zeros((n, 1)))
+        else:
+            cv = LeaveOneOut(len(data))
+            return cv
 
     parallel, p_func, _ = parallel_func(_run_ems, n_jobs=n_jobs)
     out = parallel(p_func(_ems_diff, data, cond_idx, train, test)
-                   for train, test in LeaveOneOut(len(data)))
+                   for train, test in _iter_cv(len(data)))
 
     surrogate_trials, spatial_filter = zip(*out)
     surrogate_trials = np.array(surrogate_trials)

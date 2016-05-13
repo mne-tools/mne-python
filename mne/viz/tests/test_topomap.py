@@ -22,8 +22,8 @@ from mne.time_frequency.tfr import AverageTFR
 from mne.utils import slow_test
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
-from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap,
-                             _find_peaks)
+from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap)
+from mne.viz.utils import _find_peaks
 
 # Set our plotters to test mode
 import matplotlib
@@ -34,7 +34,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
-ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
+ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg-proj.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -45,7 +45,7 @@ layout = read_layout('Vectorview-all')
 
 
 def _get_raw():
-    return io.Raw(raw_fname, preload=False)
+    return io.read_raw_fif(raw_fname, preload=False)
 
 
 @slow_test
@@ -60,9 +60,16 @@ def test_plot_topomap():
     res = 16
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
-    ev_bad = evoked.pick_types(meg=False, eeg=True, copy=True)
+
+    # Test animation
+    _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
+                                     butterfly=False)
+    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    plt.close('all')
+
+    ev_bad = evoked.copy().pick_types(meg=False, eeg=True)
     ev_bad.pick_channels(ev_bad.ch_names[:2])
-    ev_bad.plot_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, should plot EEG
+    ev_bad.plot_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
     assert_raises(ValueError, ev_bad.plot_topomap, ch_type='mag')
     assert_raises(TypeError, ev_bad.plot_topomap, head_pos='foo')
     assert_raises(KeyError, ev_bad.plot_topomap, head_pos=dict(foo='bar'))
@@ -102,6 +109,13 @@ def test_plot_topomap():
     assert_true(all('MEG' not in x.get_text()
                     for x in subplot.get_children()
                     if isinstance(x, matplotlib.text.Text)))
+
+    # Plot array
+    for ch_type in ('mag', 'grad'):
+        evoked_ = evoked.copy().pick_types(eeg=False, meg=ch_type)
+        plot_topomap(evoked_.data[:, 0], evoked_.info)
+    # fail with multiple channel types
+    assert_raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
 
     # Test title
     def get_texts(p):
@@ -220,7 +234,8 @@ def test_plot_topomap():
 
     # Test peak finder
     axes = [plt.subplot(131), plt.subplot(132)]
-    evoked.plot_topomap(times='peaks', axes=axes)
+    with warnings.catch_warnings(record=True):  # rightmost column
+        evoked.plot_topomap(times='peaks', axes=axes)
     plt.close('all')
     evoked.data = np.zeros(evoked.data.shape)
     evoked.data[50][1] = 1

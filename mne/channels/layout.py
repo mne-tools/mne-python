@@ -16,8 +16,10 @@ import os.path as op
 import numpy as np
 
 from ..transforms import _polar_to_cartesian, _cartesian_to_sphere
+from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types
 from ..io.constants import FIFF
+from ..io.meas_info import Info
 from ..utils import _clean_names
 from ..externals.six.moves import map
 
@@ -83,6 +85,28 @@ class Layout(object):
     def __repr__(self):
         return '<Layout | %s - Channels: %s ...>' % (self.kind,
                                                      ', '.join(self.names[:3]))
+
+    def plot(self, show=True):
+        """Plot the sensor positions.
+
+        Parameters
+        ----------
+        show : bool
+            Show figure if True. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure containing the sensor topography.
+
+        Notes
+        -----
+
+        .. versionadded:: 0.12.0
+
+        """
+        from ..viz.topomap import plot_layout
+        return plot_layout(self, show=show)
 
 
 def _read_lout(fname):
@@ -156,7 +180,6 @@ def read_layout(kind, path=None, scale=True):
     """
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'layouts')
-
     if not kind.endswith('.lout') and op.exists(op.join(path, kind + '.lout')):
         kind += '.lout'
     elif not kind.endswith('.lay') and op.exists(op.join(path, kind + '.lay')):
@@ -192,7 +215,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info (e.g., raw.info).
     radius : float
         Viewport radius as a fraction of main figure height. Defaults to 0.5.
@@ -267,7 +290,7 @@ def make_grid_layout(info, picks=None, n_col=None):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info | None
+    info : instance of Info | None
         Measurement info (e.g., raw.info). If None, default names will be
         employed.
     picks : array-like of int | None
@@ -306,7 +329,7 @@ def make_grid_layout(info, picks=None, n_col=None):
         if n_col * n_row < size:  # jump to the next full square
             n_row += 1
     else:
-        n_row = np.ceil(size / float(n_col))
+        n_row = int(np.ceil(size / float(n_col)))
 
     # setup position grid
     x, y = np.meshgrid(np.linspace(-0.5, 0.5, n_col),
@@ -342,7 +365,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
         The channel type for selecting single channel layouts.
@@ -408,10 +431,13 @@ def find_layout(info, ch_type=None, exclude='bads'):
     elif has_vv_only_mag or (has_vv_meg and ch_type == 'mag'):
         layout_name = 'Vectorview-mag'
     elif has_vv_only_grad or (has_vv_meg and ch_type == 'grad'):
-        layout_name = 'Vectorview-grad'
+        if info['ch_names'][0].endswith('X'):
+            layout_name = 'Vectorview-grad_norm'
+        else:
+            layout_name = 'Vectorview-grad'
     elif ((has_eeg_coils_only and ch_type in [None, 'eeg']) or
           (has_eeg_coils_and_meg and ch_type == 'eeg')):
-        if not isinstance(info, dict):
+        if not isinstance(info, (dict, Info)):
             raise RuntimeError('Cannot make EEG layout, no measurement info '
                                'was passed to `find_layout`')
         return make_eeg_layout(info, exclude=exclude)
@@ -419,9 +445,9 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
         layout_name = 'CTF-275'
-    elif n_kit_grads == 157:
+    elif n_kit_grads <= 157:
         layout_name = 'KIT-157'
-    elif n_kit_grads == 208:
+    elif n_kit_grads > 157:
         layout_name = 'KIT-AD'
     else:
         return None
@@ -528,7 +554,7 @@ def _find_topomap_coords(info, picks, layout=None):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info.
     picks : list of int
         Channel indices to generate topomap coords for.
@@ -555,7 +581,7 @@ def _find_topomap_coords(info, picks, layout=None):
     return pos
 
 
-def _auto_topomap_coords(info, picks):
+def _auto_topomap_coords(info, picks, ignore_overlap=False):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
     The default is to use the electrode locations. The fallback option is to
     attempt using digitization points of kind FIFFV_POINT_EEG. This only works
@@ -563,7 +589,7 @@ def _auto_topomap_coords(info, picks):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         The measurement info.
     picks : list of int
         The channel indices to generate topomap coords for.
@@ -620,9 +646,7 @@ def _auto_topomap_coords(info, picks):
         dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
                      FIFF.FIFFV_POINT_EEG,
                      FIFF.FIFFV_POINT_EXTRA)
-        from ..preprocessing.maxfilter import fit_sphere_to_headshape
-        _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds)
-        origin_head /= 1000.  # to meters
+        _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds, units='m')
         locs3d -= origin_head
 
         # Match the digitization points with the requested
@@ -632,9 +656,9 @@ def _auto_topomap_coords(info, picks):
 
     # Duplicate points cause all kinds of trouble during visualization
     dist = pdist(locs3d)
-    if np.min(dist) < 1e-10:
+    if np.min(dist) < 1e-10 and not ignore_overlap:
         problematic_electrodes = [
-            info['ch_names'][elec_i]
+            chs[elec_i]['ch_name']
             for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]
         ]
 
@@ -648,12 +672,45 @@ def _auto_topomap_coords(info, picks):
     return locs2d
 
 
+def _topo_to_sphere(pos, eegs):
+    """Helper function for transforming xy-coordinates to sphere.
+
+    Parameters
+    ----------
+    pos : array-like, shape (n_channels, 2)
+        xy-oordinates to transform.
+    eegs : list of int
+        Indices of eeg channels that are included when calculating the sphere.
+
+    Returns
+    -------
+    coords : array, shape (n_channels, 3)
+        xyz-coordinates.
+    """
+    xs, ys = np.array(pos).T
+
+    sqs = np.max(np.sqrt((xs[eegs] ** 2) + (ys[eegs] ** 2)))
+    xs /= sqs  # Shape to a sphere and normalize
+    ys /= sqs
+
+    xs += 0.5 - np.mean(xs[eegs])  # Center the points
+    ys += 0.5 - np.mean(ys[eegs])
+
+    xs = xs * 2. - 1.  # Values ranging from -1 to 1
+    ys = ys * 2. - 1.
+
+    rs = np.clip(np.sqrt(xs ** 2 + ys ** 2), 0., 1.)
+    alphas = np.arccos(rs)
+    zs = np.sin(alphas)
+    return np.column_stack([xs, ys, zs])
+
+
 def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     """Find the picks for pairing grad channels
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         An info dictionary containing channel information.
     layout : Layout | None
         The layout if available. Defaults to None.

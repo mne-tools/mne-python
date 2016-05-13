@@ -3,23 +3,20 @@
 #
 # License: BSD (3-clause)
 
-from warnings import warn
-
 import numpy as np
 from scipy import linalg, fftpack
-import warnings
 
 from ..io.constants import FIFF
 from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
 from ..time_frequency.multitaper import (dpss_windows, _psd_from_mt,
                                          _psd_from_mt_adaptive, _mt_spectra)
-from ..baseline import rescale
+from ..baseline import rescale, _log_rescale
 from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..externals import six
 
 
@@ -94,13 +91,11 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     decim : int
         Temporal decimation factor.
     baseline : None (default) or tuple of length 2
-        The time interval to apply baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal ot (None, None) all the time
-        interval is used.
+        The time interval to apply baseline correction. If None do not apply
+        it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used and if b is None then b
+        is set to the end of the interval. If baseline is equal to (None, None)
+        all the time interval is used.
     baseline_mode : None | 'logratio' | 'zscore'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
@@ -137,6 +132,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     stcs = dict()
 
     subject = _subject_from_inverse(inverse_operator)
+    _log_rescale(baseline, baseline_mode)
     for name, band in six.iteritems(bands):
         idx = [k for k, f in enumerate(frequencies) if band[0] <= f <= band[1]]
 
@@ -145,7 +141,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
 
         # Run baseline correction
         power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
-                        copy=False)
+                        copy=False, verbose=False)
 
         tmin = epochs.times[0]
         tstep = float(decim) / Fs
@@ -370,10 +366,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                                                prepared=False)
 
     # Run baseline correction
-    if baseline is not None:
-        power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
-                        copy=False)
-
+    power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
+                    copy=False)
     return power, plv
 
 
@@ -520,7 +514,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     # compute standardized half-bandwidth
     half_nbw = float(bandwidth) * n_times / (2 * sfreq)
     if half_nbw < 0.5:
-        warnings.warn('Bandwidth too small, using minimum (normalized 0.5)')
+        warn('Bandwidth too small, using minimum (normalized 0.5)')
         half_nbw = 0.5
     n_tapers_max = int(2 * half_nbw)
 

@@ -352,7 +352,8 @@ class LinearModel(BaseEstimator):
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
-            If None, then channels are chosen in the order given above.
+            If None, then first available channel type from order given
+            above is used. Defaults to None.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to be
             specified for Neuromag data). If possible, the correct layout file
@@ -408,7 +409,7 @@ class LinearModel(BaseEstimator):
             Title. If None (default), no title is displayed.
         mask : ndarray of bool, shape (n_channels, n_times) | None
             The channels to be marked as significant at a given time point.
-            Indicies set to `True` will be considered. Defaults to None.
+            Indices set to `True` will be considered. Defaults to None.
         mask_params : dict | None
             Additional plotting parameters for plotting significant sensors.
             Default (None) equals::
@@ -501,7 +502,8 @@ class LinearModel(BaseEstimator):
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
-            If None, then channels are chosen in the order given above.
+            If None, then first available channel type from order given
+            above is used. Defaults to None.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to be
             specified for Neuromag data). If possible, the correct layout file
@@ -557,7 +559,7 @@ class LinearModel(BaseEstimator):
             Title. If None (default), no title is displayed.
         mask : ndarray of bool, shape (n_channels, n_times) | None
             The channels to be marked as significant at a given time point.
-            Indicies set to `True` will be considered. Defaults to None.
+            Indices set to `True` will be considered. Defaults to None.
         mask_params : dict | None
             Additional plotting parameters for plotting significant sensors.
             Default (None) equals::

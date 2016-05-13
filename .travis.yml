@@ -24,7 +24,7 @@ env:
     #
     # Conda currently has packaging bug with mayavi/traits/numpy where 1.10 can't be used
     # but breaks sklearn on install; hopefully eventually the NUMPY=1.9 on 2.7 full can be removed
-    - PYTHON=2.7 DEPS=full TEST_LOCATION=src NUMPY="=1.9" SCIPY="=0.16"
+    - PYTHON=2.7 DEPS=full TEST_LOCATION=src NUMPY="=1.9" SCIPY="=0.17"
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1  # also runs flake8
     - PYTHON=3.5 DEPS=full TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
     - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.7" SCIPY="=0.11" MPL="=1.1" LIBPNG="=1.5" SKLEARN="=0.11" PANDAS="=0.8"
@@ -68,6 +68,11 @@ install:
       fi;
     - if [ "${DEPS}" == "nodata" ]; then
         pip install -q flake8;
+        wget -q https://github.com/lucasdemarchi/codespell/archive/v1.8.tar.gz;
+        tar xzf v1.8.tar.gz;
+        cp codespell-1.8/codespell.py ~/miniconda/envs/testenv/bin;
+        rm v1.8.tar.gz;
+        rm -r codespell-1.8;
       fi;
     - pip install -q coveralls nose-timer
     # check our versions for the major packages
@@ -134,6 +139,9 @@ script:
     - nosetests -a '!ultra_slow_test' --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE
     - if [ "${DEPS}" == "nodata" ]; then
         make flake;
+      fi;
+    - if [ "${DEPS}" == "nodata" ]; then
+        make codespell-error;
       fi;
 
 after_success:

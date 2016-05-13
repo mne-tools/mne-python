@@ -5,12 +5,10 @@
 # License: BSD (3-clause)
 
 import copy as cp
-import os
-from math import floor, ceil, log
-import itertools as itt
-import warnings
-from copy import deepcopy
 from distutils.version import LooseVersion
+import itertools as itt
+from math import log
+import os
 
 import numpy as np
 from scipy import linalg
@@ -19,8 +17,8 @@ from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _needs_eeg_average_ref_proj)
 from .io import fiff_open
-from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
-                      pick_channels, pick_info, _picks_by_type)
+from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
+                      _picks_by_type, _pick_data_channels)
 
 from .io.constants import FIFF
 from .io.meas_info import read_bad_channels
@@ -30,9 +28,12 @@ from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
 from .defaults import _handle_default
-from .epochs import _is_good
+from .epochs import Epochs
+from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, check_version, _time_mask)
+                    _compute_row_norms, check_version, _time_mask, warn,
+                    _check_copy_dep)
+from .fixes import in1d
 
 from .externals.six.moves import zip
 from .externals.six import string_types
@@ -51,8 +52,7 @@ def _check_covs_algebra(cov1, cov2):
 
 def _get_tslice(epochs, tmin, tmax):
     """get the slice."""
-    tstart, tend = None, None
-    mask = _time_mask(epochs.times, tmin, tmax)
+    mask = _time_mask(epochs.times, tmin, tmax, sfreq=epochs.info['sfreq'])
     tstart = np.where(mask)[0][0] if tmin is not None else None
     tend = np.where(mask)[0][-1] + 1 if tmax is not None else None
     tslice = slice(tstart, tend, None)
@@ -161,16 +161,17 @@ class Covariance(dict):
         cov : instance of Covariance
             The copied object.
         """
-        return deepcopy(self)
+        return cp.deepcopy(self)
 
-    def as_diag(self, copy=True):
+    def as_diag(self, copy=None):
         """Set covariance to be processed as being diagonal.
 
         Parameters
         ----------
         copy : bool
-            If True, return a modified copy of the covarince. If False,
-            the covariance is modified in place.
+            This parameter has been deprecated and will be removed in 0.13.
+            Use inst.copy() instead.
+            Whether to return a new instance or modify in place.
 
         Returns
         -------
@@ -182,12 +183,9 @@ class Covariance(dict):
         This function allows creation of inverse operators
         equivalent to using the old "--diagnoise" mne option.
         """
-        if self['diag'] is True:
-            return self.copy() if copy is True else self
-        if copy is True:
-            cov = cp.deepcopy(self)
-        else:
-            cov = self
+        cov = _check_copy_dep(self, copy, default=True)
+        if cov['diag']:
+            return cov
         cov['diag'] = True
         cov['data'] = np.diag(cov['data'])
         cov['eig'] = None
@@ -303,7 +301,7 @@ def make_ad_hoc_cov(info, verbose=None):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info.
     verbose : bool, str, int, or None (default None)
         If not None, override default verbose level (see mne.verbose).
@@ -342,35 +340,51 @@ def _check_n_samples(n_samples, n_chan):
     if n_samples <= 0:
         raise ValueError('No samples found to compute the covariance matrix')
     if n_samples < n_samples_min:
-        text = ('Too few samples (required : %d got : %d), covariance '
-                'estimate may be unreliable' % (n_samples_min, n_samples))
-        warnings.warn(text)
-        logger.warning(text)
+        warn('Too few samples (required : %d got : %d), covariance '
+             'estimate may be unreliable' % (n_samples_min, n_samples))
 
 
 @verbose
-def compute_raw_covariance(raw, tmin=None, tmax=None, tstep=0.2,
-                           reject=None, flat=None, picks=None,
-                           verbose=None):
+def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
+                           flat=None, picks=None, method='empirical',
+                           method_params=None, cv=3, scalings=None, n_jobs=1,
+                           return_estimators=False, verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
-    It is typically useful to estimate a noise covariance
-    from empty room data or time intervals before starting
-    the stimulation.
+    It is typically useful to estimate a noise covariance from empty room
+    data or time intervals before starting the stimulation.
 
-    Note: To speed up the computation you should consider preloading raw data
-    by setting preload=True when reading the Raw data.
+    .. note:: This function will:
+
+                  1. Partition the data into evenly spaced, equal-length
+                     epochs.
+                  2. Load them into memory.
+                  3. Subtract the mean across all time points and epochs
+                     for each channel.
+                  4. Process the :class:`Epochs` by
+                     :func:`compute_covariance`.
+
+              This will produce a slightly different result compared to
+              using :func:`make_fixed_length_events`, :class:`Epochs`, and
+              :func:`compute_covariance` directly, since that would (with
+              the recommended baseline correction) subtract the mean across
+              time *for each epoch* (instead of across epochs) for each
+              channel.
 
     Parameters
     ----------
     raw : instance of Raw
         Raw data
-    tmin : float | None (default None)
-        Beginning of time interval in seconds
+    tmin : float
+        Beginning of time interval in seconds. Defaults to 0.
     tmax : float | None (default None)
-        End of time interval in seconds
+        End of time interval in seconds. If None (default), use the end of the
+        recording.
     tstep : float (default 0.2)
         Length of data chunks for artefact rejection in seconds.
+        Can also be None to use a single epoch of (tmax - tmin)
+        duration. This can use a lot of memory for large ``Raw``
+        instances.
     reject : dict | None (default None)
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -378,8 +392,8 @@ def compute_raw_covariance(raw, tmin=None, tmax=None, tstep=0.2,
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # uV (EEG channels)
-                          eog=250e-6 # uV (EOG channels)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
                           )
 
     flat : dict | None (default None)
@@ -388,68 +402,112 @@ def compute_raw_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     picks : array-like of int | None (default None)
-        Indices of channels to include (if None, all channels
-        except bad channels are used).
+        Indices of channels to include (if None, data channels are used).
+    method : str | list | None (default 'empirical')
+        The method used for covariance estimation.
+        See :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.12
+
+    method_params : dict | None (default None)
+        Additional parameters to the estimation procedure.
+        See :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.12
+
+    cv : int | sklearn cross_validation object (default 3)
+        The cross validation method. Defaults to 3, which will
+        internally trigger a default 3-fold shuffle split.
+
+        .. versionadded:: 0.12
+
+    scalings : dict | None (default None)
+        Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
+        These defaults will scale magnetometers and gradiometers
+        at the same unit.
+
+        .. versionadded:: 0.12
+
+    n_jobs : int (default 1)
+        Number of jobs to run in parallel.
+
+        .. versionadded:: 0.12
+
+    return_estimators : bool (default False)
+        Whether to return all estimators or the best. Only considered if
+        method equals 'auto' or is a list of str. Defaults to False
+
+        .. versionadded:: 0.12
+
     verbose : bool | str | int | None (default None)
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    cov : instance of Covariance
-        Noise covariance matrix.
+    cov : instance of Covariance | list
+        The computed covariance. If method equals 'auto' or is a list of str
+        and return_estimators equals True, a list of covariance estimators is
+        returned (sorted by log-likelihood, from high to low, i.e. from best
+        to worst).
 
     See Also
     --------
     compute_covariance : Estimate noise covariance matrix from epochs
     """
-    sfreq = raw.info['sfreq']
-
-    # Convert to samples
-    start = 0 if tmin is None else int(floor(tmin * sfreq))
-    if tmax is None:
-        stop = int(raw.last_samp - raw.first_samp)
-    else:
-        stop = int(ceil(tmax * sfreq))
-    step = int(ceil(tstep * raw.info['sfreq']))
+    tmin = 0. if tmin is None else float(tmin)
+    tmax = raw.times[-1] if tmax is None else float(tmax)
+    tstep = tmax - tmin if tstep is None else float(tstep)
+    tstep_m1 = tstep - 1. / raw.info['sfreq']  # inclusive!
+    events = make_fixed_length_events(raw, 1, tmin, tmax, tstep)
+    pl = 's' if len(events) != 1 else ''
+    logger.info('Using up to %s segment%s' % (len(events), pl))
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
-        picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
-                           ref_meg=False, exclude=[])
-
-    data = 0
-    n_samples = 0
-    mu = 0
-
-    info = pick_info(raw.info, picks)
-    idx_by_type = channel_indices_by_type(info)
-
-    # Read data in chunks
-    for first in range(start, stop, step):
-        last = first + step
-        if last >= stop:
-            last = stop
-        raw_segment, times = raw[picks, first:last]
-        if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat,
-                    ignore_chs=info['bads']):
+        # Need to include all channels e.g. if eog rejection is to be used
+        picks = np.arange(raw.info['nchan'])
+        pick_mask = in1d(
+            picks, _pick_data_channels(raw.info, with_ref_meg=False))
+    else:
+        pick_mask = slice(None)
+    epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
+                    picks=picks, reject=reject, flat=flat, verbose=False,
+                    preload=False, proj=False)
+    if isinstance(method, string_types) and method == 'empirical':
+        # potentially *much* more memory efficient to do it the iterative way
+        picks = picks[pick_mask]
+        data = 0
+        n_samples = 0
+        mu = 0
+        # Read data in chunks
+        for raw_segment in epochs:
+            raw_segment = raw_segment[pick_mask]
             mu += raw_segment.sum(axis=1)
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
-        else:
-            logger.info("Artefact detected in [%d, %d]" % (first, last))
+        _check_n_samples(n_samples, len(picks))
+        mu /= n_samples
+        data -= n_samples * mu[:, None] * mu[None, :]
+        data /= (n_samples - 1.0)
+        logger.info("Number of samples used : %d" % n_samples)
+        logger.info('[done]')
+        ch_names = [raw.info['ch_names'][k] for k in picks]
+        bads = [b for b in raw.info['bads'] if b in ch_names]
+        projs = cp.deepcopy(raw.info['projs'])
+        return Covariance(data, ch_names, bads, projs, nfree=n_samples)
+    del picks, pick_mask
 
-    _check_n_samples(n_samples, len(picks))
-    mu /= n_samples
-    data -= n_samples * mu[:, None] * mu[None, :]
-    data /= (n_samples - 1.0)
-    logger.info("Number of samples used : %d" % n_samples)
-    logger.info('[done]')
-
-    ch_names = [raw.info['ch_names'][k] for k in picks]
-    bads = [b for b in raw.info['bads'] if b in ch_names]
-    projs = cp.deepcopy(raw.info['projs'])
-    # XXX : do not compute eig and eigvec now (think it's better...)
-    return Covariance(data, ch_names, bads, projs, nfree=n_samples)
+    # This makes it equivalent to what we used to do (and do above for
+    # empirical mode), treating all epochs as if they were a single long one
+    epochs.load_data()
+    ch_means = epochs._data.mean(axis=0).mean(axis=1)
+    epochs._data -= ch_means[np.newaxis, :, np.newaxis]
+    # fake this value so there are no complaints from compute_covariance
+    epochs.baseline = (None, None)
+    return compute_covariance(epochs, keep_sample_mean=True, method=method,
+                              method_params=method_params, cv=cv,
+                              scalings=scalings, n_jobs=n_jobs,
+                              return_estimators=return_estimators)
 
 
 @verbose
@@ -463,32 +521,34 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     when the stim onset is defined from events.
 
     If the covariance is computed for multiple event types (events
-    with different IDs), the following two options can be used and combined.
-    A) either an Epochs object for each event type is created and
-    a list of Epochs is passed to this function.
-    B) an Epochs object is created for multiple events and passed
-    to this function.
+    with different IDs), the following two options can be used and combined:
 
-    Note: Baseline correction should be used when creating the Epochs.
-          Otherwise the computed covariance matrix will be inaccurate.
+        1. either an Epochs object for each event type is created and
+           a list of Epochs is passed to this function.
+        2. an Epochs object is created for multiple events and passed
+           to this function.
 
-    Note: For multiple event types, it is also possible to create a
-          single Epochs object with events obtained using
-          merge_events(). However, the resulting covariance matrix
-          will only be correct if keep_sample_mean is True.
+    .. note:: Baseline correction should be used when creating the Epochs.
+              Otherwise the computed covariance matrix will be inaccurate.
 
-    Note: The covariance can be unstable if the number of samples is not
-          sufficient. In that case it is common to regularize a covariance
-          estimate. The ``method`` parameter of this function allows to
-          regularize the covariance in an automated way. It also allows
-          to select between different alternative estimation algorithms which
-          themselves achieve regularization. Details are described in [1].
+    .. note:: For multiple event types, it is also possible to create a
+              single Epochs object with events obtained using
+              merge_events(). However, the resulting covariance matrix
+              will only be correct if keep_sample_mean is True.
+
+    .. note:: The covariance can be unstable if the number of samples is
+              not sufficient. In that case it is common to regularize a
+              covariance estimate. The ``method`` parameter of this
+              function allows to regularize the covariance in an
+              automated way. It also allows to select between different
+              alternative estimation algorithms which themselves achieve
+              regularization. Details are described in [1]_.
 
     Parameters
     ----------
     epochs : instance of Epochs, or a list of Epochs objects
         The epochs.
-    keep_sample_mean : bool (default true)
+    keep_sample_mean : bool (default True)
         If False, the average response over epochs is computed for
         each event type and subtracted during the covariance
         computation. This is useful if the evoked response from a
@@ -508,22 +568,30 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         set of the different methods.
         If 'auto' or a list of methods, the best estimator will be determined
         based on log-likelihood and cross-validation on unseen data as
-        described in ref. [1]. Valid methods are:
-        'empirical', the empirical or sample covariance,
-        'diagonal_fixed', a diagonal regularization as in mne.cov.regularize
-        (see MNE manual), 'ledoit_wolf', the Ledoit-Wolf estimator (see [2]),
-        'shrunk' like 'ledoit_wolf' with cross-validation for optimal alpha
-        (see scikit-learn documentation on covariance estimation), 'pca',
-        probabilistic PCA with low rank
-        (see [3]), and, 'factor_analysis', Factor Analysis with low rank
-        (see [4]). If 'auto', expands to::
+        described in [1]_. Valid methods are:
+
+            * ``'empirical'``: the empirical or sample covariance
+            * ``'diagonal_fixed'``: a diagonal regularization as in
+              mne.cov.regularize (see MNE manual)
+            * ``'ledoit_wolf'``: the Ledoit-Wolf estimator [2]_
+            * ``'shrunk'``: like 'ledoit_wolf' with cross-validation for
+              optimal alpha (see scikit-learn documentation on covariance
+              estimation)
+            * ``'pca'``: probabilistic PCA with low rank [3]_
+            * ``'factor_analysis'``: Factor Analysis with low rank [4]_
+
+        If ``'auto'``, this expands to::
 
              ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
-        Note. 'ledoit_wolf' and 'pca' are similar to 'shrunk' and
-        'factor_analysis', respectively. They are not included to avoid
-        redundancy. In most cases 'shrunk' and 'factor_analysis' represent
-        more appropriate default choices.
+        .. note:: ``'ledoit_wolf'`` and ``'pca'`` are similar to
+           ``'shrunk'`` and ``'factor_analysis'``, respectively. They are not
+           included to avoid redundancy. In most cases ``'shrunk'`` and
+           ``'factor_analysis'`` represent more appropriate default
+           choices.
+
+        The ``'auto'`` mode is not recommended if there are many
+        segments of data, since computation can take a long time.
 
         .. versionadded:: 0.9.0
 
@@ -571,17 +639,17 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     References
     ----------
-    [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-        covariance estimation and spatial whitening of MEG and EEG signals,
-        vol. 108, 328-342, NeuroImage.
-    [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
-        large-dimensional covariance matrices. Journal of Multivariate
-        Analysis 88 (2), 365 - 411.
-    [3] Tipping, M. E., Bishop, C. M., (1999). Probabilistic principal
-        component analysis. Journal of the Royal Statistical Society: Series
-        B (Statistical Methodology) 61 (3), 611 - 622.
-    [4] Barber, D., (2012). Bayesian reasoning and machine learning.
-        Cambridge University Press., Algorithm 21.1
+    .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+           covariance estimation and spatial whitening of MEG and EEG
+           signals, vol. 108, 328-342, NeuroImage.
+    .. [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
+           large-dimensional covariance matrices. Journal of Multivariate
+           Analysis 88 (2), 365 - 411.
+    .. [3] Tipping, M. E., Bishop, C. M., (1999). Probabilistic principal
+           component analysis. Journal of the Royal Statistical Society:
+           Series B (Statistical Methodology) 61 (3), 611 - 622.
+    .. [4] Barber, D., (2012). Bayesian reasoning and machine learning.
+           Cambridge University Press., Algorithm 21.1
     """
     accepted_methods = ('auto', 'empirical', 'diagonal_fixed', 'ledoit_wolf',
                         'shrunk', 'pca', 'factor_analysis',)
@@ -631,9 +699,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     # check for baseline correction
     for epochs_t in epochs:
-        if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5:
-            warnings.warn('Epochs are not baseline corrected, covariance '
-                          'matrix may be inaccurate')
+        if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5 and \
+                keep_sample_mean:
+            warn('Epochs are not baseline corrected, covariance '
+                 'matrix may be inaccurate')
 
     for epoch in epochs:
         epoch.info._check_consistency()
@@ -684,7 +753,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                                  ' if `keep_sample_mean` is False')
         # prepare mean covs
         n_epoch_types = len(epochs)
-        data_mean = list(np.zeros(n_epoch_types))
+        data_mean = [0] * n_epoch_types
         n_samples = np.zeros(n_epoch_types, dtype=np.int)
         n_epochs = np.zeros(n_epoch_types, dtype=np.int)
 
@@ -785,7 +854,10 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list,
                              verbose):
     """docstring for _compute_covariance_auto."""
-    from sklearn.grid_search import GridSearchCV
+    try:
+        from sklearn.model_selection import GridSearchCV
+    except Exception:  # XXX support sklearn < 0.18
+        from sklearn.grid_search import GridSearchCV
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
                                     EmpiricalCovariance)
 
@@ -893,7 +965,9 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 def _logdet(A):
     """Compute the log det of a symmetric matrix."""
     vals = linalg.eigh(A)[0]
-    vals = np.abs(vals)  # avoid negative values (numerical errors)
+    # avoid negative (numerical errors) or zero (semi-definite matrix) values
+    tol = vals.max() * vals.size * np.finfo(np.float64).eps
+    vals = np.where(vals > tol, vals, tol)
     return np.sum(np.log(vals))
 
 
@@ -911,7 +985,11 @@ def _gaussian_loglik_scorer(est, X, y=None):
 
 def _cross_val(data, est, cv, n_jobs):
     """Helper to compute cross validation."""
-    from sklearn.cross_validation import cross_val_score
+    try:
+        from sklearn.model_selection import cross_val_score
+    except ImportError:
+        # XXX support sklearn < 0.18
+        from sklearn.cross_validation import cross_val_score
     return np.mean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs,
                                    scoring=_gaussian_loglik_scorer))
 
@@ -939,8 +1017,8 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
     # make sure we don't empty the thing if it's a generator
     max_n = max(list(cp.deepcopy(iter_n_components)))
     if max_n > data.shape[1]:
-        warnings.warn('You are trying to estimate %i components on matrix '
-                      'with %i features.' % (max_n, data.shape[1]))
+        warn('You are trying to estimate %i components on matrix '
+             'with %i features.' % (max_n, data.shape[1]))
 
     for ii, n in enumerate(iter_n_components):
         est.n_components = n
@@ -1224,10 +1302,9 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         C_eeg_eig, C_eeg_eigvec = _get_ch_whitener(C_eeg, False, 'EEG',
                                                    rank_eeg)
     if _needs_eeg_average_ref_proj(info):
-        warnings.warn('No average EEG reference present in info["projs"], '
-                      'covariance may be adversely affected. Consider '
-                      'recomputing covariance using a raw file with an '
-                      'average eeg reference projector added.')
+        warn('No average EEG reference present in info["projs"], covariance '
+             'may be adversely affected. Consider recomputing covariance using'
+             ' a raw file with an average eeg reference projector added.')
 
     n_chan = len(ch_names)
     eigvec = np.zeros((n_chan, n_chan), dtype=np.float)
@@ -1432,7 +1509,7 @@ def _regularized_covariance(data, reg=None):
                               assume_centered=True)
             else:
                 raise ValueError("regularization parameter should be "
-                                 "'lwf' or 'oas'")
+                                 "'ledoit_wolf' or 'oas'")
         else:
             raise ValueError("regularization parameter should be "
                              "of type str or int (got %s)." % type(reg))
@@ -1443,6 +1520,7 @@ def _regularized_covariance(data, reg=None):
     return cov
 
 
+@verbose
 def compute_whitener(noise_cov, info, picks=None, rank=None,
                      scalings=None, verbose=None):
     """Compute whitening matrix.
@@ -1806,15 +1884,15 @@ def _check_scaling_inputs(data, picks_list, scalings):
     return scalings_
 
 
-def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
-                                return_singular=False, copy=True):
+def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
+                                return_singular=False):
     """Estimate rank for M/EEG data.
 
     Parameters
     ----------
     data : np.ndarray of float, shape(n_channels, n_samples)
         The M/EEG signals.
-    info : mne.io.measurement_info.Info
+    info : Info
         The measurment info.
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
@@ -1824,6 +1902,8 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
 
         If 'norm' data will be scaled by channel-wise norms. If array,
         pre-specified norms will be used. If None, no scaling will be applied.
+    tol : float | str
+        Tolerance. See ``estimate_rank``.
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
@@ -1845,7 +1925,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
         ValueError("You've got fewer samples than channels, your "
                    "rank estimate might be inaccurate.")
     out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular, copy=copy)
+                        return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
     logger.info('estimated rank (%s): %d' % (ch_type, rank))
@@ -1853,15 +1933,15 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
     return out
 
 
-def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
-                            return_singular=False, copy=True):
+def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
+                            return_singular=False):
     """Estimate rank for M/EEG data.
 
     Parameters
     ----------
     data : np.ndarray of float, shape (n_channels, n_channels)
         The M/EEG covariance.
-    info : mne.io.measurement_info.Info
+    info : Info
         The measurment info.
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
@@ -1871,12 +1951,11 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
 
         If 'norm' data will be scaled by channel-wise norms. If array,
         pre-specified norms will be used. If None, no scaling will be applied.
+    tol : float | str
+        Tolerance. See ``estimate_rank``.
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
-    copy : bool
-        If False, values in data will be modified in-place during
-        rank estimation (saves memory).
 
     Returns
     -------
@@ -1893,7 +1972,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
         ValueError("You've got fewer samples than channels, your "
                    "rank estimate might be inaccurate.")
     out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular, copy=copy)
+                        return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
     logger.info('estimated rank (%s): %d' % (ch_type, rank))

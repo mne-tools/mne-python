@@ -23,7 +23,7 @@ event_id = dict(aud_l=1, vis_l=3)
 @requires_sklearn
 def test_ems():
     """Test event-matched spatial filters"""
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
 
     # create unequal number of events
     events = read_events(event_name)
@@ -34,7 +34,7 @@ def test_ems():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     assert_raises(ValueError, compute_ems, epochs, ['aud_l', 'vis_l'])
-    epochs.equalize_event_counts(epochs.event_id, copy=False)
+    epochs = epochs.equalize_event_counts(epochs.event_id, copy=False)[0]
 
     assert_raises(KeyError, compute_ems, epochs, ['blah', 'hahah'])
     surrogates, filters, conditions = compute_ems(epochs)
@@ -44,7 +44,7 @@ def test_ems():
     event_id2 = dict(aud_l=1, aud_r=2, vis_l=3)
     epochs = Epochs(raw, events, event_id2, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
-    epochs.equalize_event_counts(epochs.event_id, copy=False)
+    epochs = epochs.equalize_event_counts(epochs.event_id, copy=False)[0]
 
     n_expected = sum([len(epochs[k]) for k in ['aud_l', 'vis_l']])
 

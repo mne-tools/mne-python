@@ -98,11 +98,11 @@ def write_julian(fid, kind, data):
 
 def write_string(fid, kind, data):
     """Writes a string tag"""
-
     str_data = data.encode('utf-8')  # Use unicode or bytes depending on Py2/3
     data_size = len(str_data)  # therefore compute size here
     my_dtype = '>a'  # py2/3 compatible on writing -- don't ask me why
-    _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, my_dtype)
+    if data_size > 0:
+        _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, my_dtype)
 
 
 def write_name_list(fid, kind, data):

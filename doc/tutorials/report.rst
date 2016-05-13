@@ -1,8 +1,8 @@
 .. _mne_report_tutorial:
 
-=======================================
-Getting started with MNE report command
-=======================================
+===================================
+Getting started with MNE web report
+===================================
 
 This quick start will show you how to run the `mne report` command on the
 sample data set provided with MNE.
@@ -27,54 +27,66 @@ The command line interface
 --------------------------
 
 To generate a barebones report from all the \*.fif files in the sample dataset,
-invoke the following command::
+invoke the following command in a system (e.g., Bash) shell:
 
-    mne report --path MNE-sample-data/ --verbose
+.. code-block:: bash
+
+    $ mne report --path MNE-sample-data/ --verbose
 
 On successful creation of the report, it will open the html in a new tab in the browser.
 To disable this, use the `--no-browser` option.
 
-If the report is generated for a single subject, give the SUBJECT name and the
-SUBJECTS_DIR and this will generate the MRI slices (with BEM contours overlaid on top
-if available)::
+If the report is generated for a single subject, give the ``SUBJECT`` name and the
+``SUBJECTS_DIR`` and this will generate the MRI slices (with BEM contours overlaid on top
+if available):
 
-    mne report --path MNE-sample-data/ --subject sample --subjects-dir MNE-sample-data/subjects --verbose
+.. code-block:: bash
 
-To properly render `trans` and `covariance` files, add the measurement information::
+    $ mne report --path MNE-sample-data/ --subject sample --subjects-dir MNE-sample-data/subjects --verbose
 
-    mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
-        --subject sample --subjects-dir MNE-sample-data/subjects --verbose
+To properly render `trans` and `covariance` files, add the measurement information:
 
-To render whitened `evoked` files with baseline correction, add the noise covariance file::
+.. code-block:: bash
+
+    $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
+          --subject sample --subjects-dir MNE-sample-data/subjects --verbose
+
+To render whitened `evoked` files with baseline correction, add the noise covariance file:
     
-    mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
-        --cov MNE-sample-data/MEG/sample/sample_audvis-cov.fif --bmax 0 --subject sample \
-        --subjects-dir MNE-sample-data/subjects --verbose
+.. code-block:: bash
 
-To generate the report in parallel::
+    $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
+          --cov MNE-sample-data/MEG/sample/sample_audvis-cov.fif --bmax 0 --subject sample \
+          --subjects-dir MNE-sample-data/subjects --verbose
 
-    mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
-        --subject sample --subjects-dir MNE-sample-data/subjects --verbose --jobs 6
+To generate the report in parallel:
+
+.. code-block:: bash
+
+    $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
+          --subject sample --subjects-dir MNE-sample-data/subjects --verbose --jobs 6
 
 The report rendered on sample-data is shown below:
 
     .. image:: mne-report.png
        :align: center
 
-For help on all the available options, do::
+For help on all the available options, do:
 
-    mne report --help
+.. code-block:: bash
+
+    $ mne report --help
 
 The Python interface
 --------------------
 
 The same functionality can also be achieved using the Python interface. Import
-the required functions:
+the required functions::
 
     >>> from mne.report import Report
     >>> from mne.datasets import sample
 
-Generate the report:
+Generate the report::
 
     >>> path = sample.data_path()
     >>> report = Report(verbose=True)
@@ -84,7 +96,7 @@ Generate the report:
     Embedding : jquery-ui.min.css
     Embedding : bootstrap.min.css
 
-Only include \*audvis_raw.fif and \*-eve.fif files in the report:
+Only include \*audvis_raw.fif and \*-eve.fif files in the report::
 
     >>> report.parse_folder(data_path=path, pattern=['*audvis_raw.fif', '*-eve.fif']) # doctest: +SKIP
     Iterating over 6 potential files (this may take some time)
@@ -104,13 +116,13 @@ Only include \*audvis_raw.fif and \*-eve.fif files in the report:
     Rendering : /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis_raw-eve.fif
     Rendering : /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis_ecg-eve.fif
 
-Save the report as an html, but do not open the html in a browser:
+Save the report as an html, but do not open the html in a browser::
 
     >>> report.save('report.html', overwrite=True, open_browser=False) # doctest:+SKIP
     Rendering : Table of Contents...
 
 There is greater flexibility compared to the command line interface. 
-Custom plots can be added to the report. Let us first generate a custom plot:
+Custom plots can be added to the report. Let us first generate a custom plot::
 
     >>> from mne import read_evokeds
     >>> fname = path + '/MEG/sample/sample_audvis-ave.fif'
@@ -129,7 +141,7 @@ Custom plots can be added to the report. Let us first generate a custom plot:
     Applying baseline correction ... (mode: mean)
     >>> fig = evoked.plot() # doctest: +SKIP
 
-To add the custom plot to the report, do:
+To add the custom plot to the report, do::
 
     >>> report.add_figs_to_section(fig, captions='Left Auditory', section='evoked') # doctest: +SKIP
     >>> report.save('report.html', overwrite=True) # doctest: +SKIP

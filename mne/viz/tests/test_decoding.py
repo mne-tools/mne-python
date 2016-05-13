@@ -30,7 +30,8 @@ def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
               event_id_gen=dict(aud_l=2, vis_l=4), test_times=None):
     """Aux function for testing GAT viz"""
     gat = GeneralizationAcrossTime()
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
+    raw.add_proj([], remove_existing=True)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
                        eog=False, exclude='bads')

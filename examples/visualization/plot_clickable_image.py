@@ -24,8 +24,8 @@ print(__doc__)
 
 # Set parameters and paths
 plt.rcParams['image.cmap'] = 'gray'
-im_path = op.join(op.dirname(mne.__file__), 'data', 'image', 'mni_brain.gif')
 
+im_path = op.join(op.dirname(mne.__file__), 'data', 'image', 'mni_brain.gif')
 # We've already clicked and exported
 layout_path = op.join(op.dirname(mne.__file__), 'data', 'image')
 layout_name = 'custom_layout.lout'

@@ -17,19 +17,20 @@
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-__version__ = '0.11.dev0'
+__version__ = '0.12.0'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
                     get_config, get_config_path, set_cache_dir,
-                    set_memmap_min_size, grand_average)
+                    set_memmap_min_size, grand_average, sys_info)
 from .io.pick import (pick_types, pick_channels,
                       pick_channels_regexp, pick_channels_forward,
                       pick_types_forward, pick_channels_cov,
                       pick_channels_evoked, pick_info)
 from .io.base import concatenate_raws
 from .chpi import get_chpi_positions
-from .io.meas_info import create_info
+from .io.meas_info import create_info, Info
+from .io.proj import Projection
 from .io.kit import read_epochs_kit
 from .io.eeglab import read_epochs_eeglab
 from .bem import (make_sphere_model, make_bem_model, make_bem_solution,
@@ -43,7 +44,8 @@ from .event import (read_events, write_events, find_events, merge_events,
 from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       do_forward_solution, average_forward_solutions,
                       write_forward_solution, make_forward_solution,
-                      convert_forward_solution, make_field_map)
+                      convert_forward_solution, make_field_map,
+                      make_forward_dipole)
 from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               SourceEstimate, VolSourceEstimate, morph_data,
                               morph_data_precomputed, compute_morph_matrix,
@@ -63,7 +65,8 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
                            get_volume_labels_from_aseg)
-from .epochs import Epochs, EpochsArray, read_epochs
+from .annotations import Annotations
+from .epochs import Epochs, EpochsArray, read_epochs, concatenate_epochs
 from .evoked import Evoked, EvokedArray, read_evokeds, write_evokeds, combine_evoked
 from .label import (read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
@@ -76,8 +79,9 @@ from .transforms import (read_trans, write_trans,
 from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
 from .selection import read_selection
-from .dipole import read_dipole, Dipole, fit_dipole
+from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
 from .channels import equalize_channels, rename_channels, find_layout
+from .report import Report
 
 from . import beamformer
 from . import channels

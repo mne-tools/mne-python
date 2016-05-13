@@ -23,7 +23,7 @@ from .io.write import (write_int, start_file, end_block,
                        write_float_sparse_rcs)
 from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to
-from .utils import logger, verbose, get_subjects_dir
+from .utils import logger, verbose, get_subjects_dir, warn
 from .externals.six import string_types
 
 
@@ -59,6 +59,8 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
     """
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    if not isinstance(subject, string_types):
+        raise TypeError('subject must be a string, not %s' % (type(subject,)))
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
     if isinstance(source, string_types):
         source = [source]
@@ -103,7 +105,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
 
     Parameters
     ----------
-    info : instance of io.meas_info.Info
+    info : instance of Info
         Measurement info.
     trans : dict
         The head<->MRI transformation, usually obtained using
@@ -797,8 +799,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         try:
             os.mkdir(mmap_dir)
         except Exception:
-            logger.warning('Could not find or make morph map directory "%s"'
-                           % mmap_dir)
+            warn('Could not find or make morph map directory "%s"' % mmap_dir)
 
     # Does the file exist
     fname = op.join(mmap_dir, '%s-%s-morph.fif' % (subject_from, subject_to))
@@ -806,9 +807,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         fname = op.join(mmap_dir, '%s-%s-morph.fif'
                         % (subject_to, subject_from))
         if not op.exists(fname):
-            logger.warning('Morph map "%s" does not exist, '
-                           'creating it and saving it to disk (this may take '
-                           'a few minutes)' % fname)
+            warn('Morph map "%s" does not exist, creating it and saving it to '
+                 'disk (this may take a few minutes)' % fname)
             logger.info('Creating morph map %s -> %s'
                         % (subject_from, subject_to))
             mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir)
@@ -819,8 +819,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
                 _write_morph_map(fname, subject_from, subject_to,
                                  mmap_1, mmap_2)
             except Exception as exp:
-                logger.warning('Could not write morph-map file "%s" '
-                               '(error: %s)' % (fname, exp))
+                warn('Could not write morph-map file "%s" (error: %s)'
+                     % (fname, exp))
             return mmap_1
 
     f, tree, _ = fiff_open(fname)

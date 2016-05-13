@@ -174,20 +174,19 @@ def run():
     else:
         ecg_proj_fname = prefix + '_ecg-proj.fif'
 
-    raw = mne.io.Raw(raw_in, preload=preload)
+    raw = mne.io.read_raw_fif(raw_in, preload=preload)
 
     if raw_event_fname is not None:
-        raw_event = mne.io.Raw(raw_event_fname)
+        raw_event = mne.io.read_raw_fif(raw_event_fname)
     else:
         raw_event = raw
 
     flat = None  # XXX : not exposed to the user
-    cpe = mne.preprocessing.compute_proj_ecg
-    projs, events = cpe(raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
-                        l_freq, h_freq, average, filter_length, n_jobs,
-                        ch_name, reject, flat, bads, avg_ref, no_proj,
-                        event_id, ecg_l_freq, ecg_h_freq, tstart,
-                        qrs_threshold, copy=False)
+    projs, events = mne.preprocessing.compute_proj_ecg(
+        raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg, l_freq, h_freq,
+        average, filter_length, n_jobs, ch_name, reject, flat, bads, avg_ref,
+        no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart, qrs_threshold,
+        copy=False)
 
     raw.close()
 

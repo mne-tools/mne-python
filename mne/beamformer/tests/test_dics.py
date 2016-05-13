@@ -43,7 +43,8 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)[:10]
-    raw = mne.io.Raw(fname_raw, preload=False)
+    raw = mne.io.read_raw_fif(fname_raw, preload=False)
+    raw.add_proj([], remove_existing=True)  # we'll subselect so remove proj
     forward = mne.read_forward_solution(fname_fwd)
     if read_all_forward:
         forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
@@ -143,7 +144,7 @@ def test_dics():
     assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     # Test whether correct number of trials was returned
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
     assert_true(len(epochs.events) == len(stcs))
 
     # Average the single trial estimates

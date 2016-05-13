@@ -15,7 +15,7 @@ from mne.io import Raw
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info, _kind_dict
-from mne.utils import slow_test, requires_version
+from mne.utils import slow_test, requires_version, run_tests_if_main
 
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -55,11 +55,12 @@ def test_array_raw():
     # use real types
     info = create_info(ch_names, sfreq, types)
     raw2 = _test_raw_reader(RawArray, test_preloading=False,
-                            data=data, info=info)
+                            data=data, info=info, first_samp=2 * data.shape[1])
     data2, times2 = raw2[:, :]
     assert_allclose(data, data2)
     assert_allclose(times, times2)
     assert_true('RawArray' in repr(raw2))
+    assert_raises(TypeError, RawArray, info, data)
 
     # filtering
     picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]
@@ -96,9 +97,10 @@ def test_array_raw():
     assert_true(len(events) > 2)
     epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True)
     epochs.plot_drop_log()
-    with warnings.catch_warnings(record=True):  # deprecation
-        warnings.simplefilter('always')
-        epochs.plot()
+    epochs.plot()
     evoked = epochs.average()
     evoked.plot()
+    assert_equal(evoked.nave, len(events) - 1)
     plt.close('all')
+
+run_tests_if_main()

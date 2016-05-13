@@ -21,7 +21,7 @@ from matplotlib import pyplot as plt
 # Load an example dataset, the preload flag loads the data into memory now
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG',
                     'sample', 'sample_audvis_raw.fif')
-raw = mne.io.RawFIF(data_path, preload=True, verbose=False)
+raw = mne.io.read_raw_fif(data_path, preload=True, verbose=False)
 raw = raw.crop(0, 2)
 print(raw)
 

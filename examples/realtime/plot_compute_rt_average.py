@@ -28,7 +28,7 @@ print(__doc__)
 # Fiff file to simulate the realtime client
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.io.Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 # select gradiometers
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
@@ -51,6 +51,7 @@ rt_epochs.start()
 rt_client.send_data(rt_epochs, picks, tmin=0, tmax=150, buffer_size=1000)
 for ii, ev in enumerate(rt_epochs.iter_evoked()):
     print("Just got epoch %d" % (ii + 1))
+    ev.pick_types(meg=True, eog=False)  # leave out the eog channel
     if ii == 0:
         evoked = ev
     else:

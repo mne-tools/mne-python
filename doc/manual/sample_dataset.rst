@@ -144,7 +144,7 @@ The source space with a 5-mm grid spacing is set up by saying:
 ``mne_setup_source_space --ico -6``
 
 This command sets up the source-space related files in directory ``subjects/sample/bem`` as
-described in :ref:`CIHCHDAE`.
+described in :ref:`setting_up_source_space`.
 
 .. _CHDJDGBD:
 
@@ -409,7 +409,7 @@ Another piece of information derived from the raw data file
 is the estimate for the noise-covariance matrix, which can be computed
 with the command:
 
-``mne_process_raw --raw sample_audvis_raw.fif `` ``--lowpass 40 --projon `` ``--savecovtag -cov --cov audvis.cov``
+``mne_process_raw --raw sample_audvis_raw.fif --lowpass 40 --projon --savecovtag -cov --cov audvis.cov``
 
 Using the definitions in ``audvis.cov`` , this command
 will create the noise-covariance matrix file ``sample_audvis-cov.fif`` .
@@ -623,8 +623,9 @@ The most exciting part of this exercise is to explore the
 data and the current estimates in mne_analyze .
 This section contains some useful steps to get you started. A lot
 of information about the capabilities of mne_analyze is
-given in :ref:`ch_interactive_analysis`. Batch-mode processing with mne_make_movie is discussed
-in :ref:`CBBECEDE`. Cross-subject averaging is covered in :ref:`ch_morph`.
+given in :ref:`ch_interactive_analysis`. Batch-mode processing with
+mne_make_movie is discussed in :ref:`movies_and_snapshots`. Cross-subject
+averaging is covered in :ref:`ch_morph`.
 
 Before launching mne_analyze it
 is advisable to go to the directory ``MEG/sample`` . The

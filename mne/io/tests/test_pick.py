@@ -1,14 +1,15 @@
-import os.path as op
 import inspect
+import os.path as op
+import warnings
 
-from nose.tools import assert_equal, assert_raises
+from nose.tools import assert_equal, assert_raises, assert_true
 from numpy.testing import assert_array_equal
 import numpy as np
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
                  pick_info, pick_channels, __file__, create_info)
-from mne.io import Raw, RawArray, read_raw_bti, read_raw_kit
+from mne.io import Raw, RawArray, read_raw_bti, read_raw_kit, read_info
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type)
 from mne.io.constants import FIFF
@@ -19,6 +20,7 @@ io_dir = op.join(op.dirname(inspect.getfile(inspect.currentframe())), '..')
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fname_mc = op.join(data_path, 'SSS', 'test_move_anon_movecomp_raw_sss.fif')
 
 
 def test_pick_refs():
@@ -38,7 +40,8 @@ def test_pick_refs():
     bti_pdf = op.join(bti_dir, 'test_pdf_linux')
     bti_config = op.join(bti_dir, 'test_config_linux')
     bti_hs = op.join(bti_dir, 'test_hs_linux')
-    raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
+    with warnings.catch_warnings(record=True):  # weight tables
+        raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
     infos.append(raw_bti.info)
     # CTF
     fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
@@ -88,26 +91,53 @@ def test_pick_channels_regexp():
     assert_array_equal(pick_channels_regexp(ch_names, 'MEG *'), [0, 1, 2])
 
 
-def test_pick_seeg():
-    """Test picking with SEEG
+def test_pick_seeg_ecog():
+    """Test picking with sEEG and ECoG
     """
-    names = 'A1 A2 Fz O OTp1 OTp2 OTp3'.split()
-    types = 'mag mag eeg eeg seeg seeg seeg'.split()
+    names = 'A1 A2 Fz O OTp1 OTp2 E1 OTp3 E2 E3'.split()
+    types = 'mag mag eeg eeg seeg seeg ecog seeg ecog ecog'.split()
     info = create_info(names, 1024., types)
     idx = channel_indices_by_type(info)
     assert_array_equal(idx['mag'], [0, 1])
     assert_array_equal(idx['eeg'], [2, 3])
-    assert_array_equal(idx['seeg'], [4, 5, 6])
-    assert_array_equal(pick_types(info, meg=False, seeg=True), [4, 5, 6])
+    assert_array_equal(idx['seeg'], [4, 5, 7])
+    assert_array_equal(idx['ecog'], [6, 8, 9])
+    assert_array_equal(pick_types(info, meg=False, seeg=True), [4, 5, 7])
     for i, t in enumerate(types):
         assert_equal(channel_type(info, i), types[i])
     raw = RawArray(np.zeros((len(names), 10)), info)
     events = np.array([[1, 0, 0], [2, 0, 0]])
     epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
-    e_seeg = evoked.pick_types(meg=False, seeg=True, copy=True)
-    for l, r in zip(e_seeg.ch_names, names[4:]):
+    e_seeg = evoked.copy().pick_types(meg=False, seeg=True)
+    for l, r in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
         assert_equal(l, r)
+    # Deal with constant debacle
+    raw = Raw(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
+    assert_equal(len(pick_types(raw.info, meg=False, seeg=True, ecog=True)), 0)
+
+
+def test_pick_chpi():
+    """Test picking cHPI
+    """
+    # Make sure we don't mis-classify cHPI channels
+    info = read_info(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
+    channel_types = set([channel_type(info, idx)
+                         for idx in range(info['nchan'])])
+    assert_true('chpi' in channel_types)
+    assert_true('seeg' not in channel_types)
+    assert_true('ecog' not in channel_types)
+
+
+def test_pick_bio():
+    """Test picking BIO channels."""
+    names = 'A1 A2 Fz O BIO1 BIO2 BIO3'.split()
+    types = 'mag mag eeg eeg bio bio bio'.split()
+    info = create_info(names, 1024., types)
+    idx = channel_indices_by_type(info)
+    assert_array_equal(idx['mag'], [0, 1])
+    assert_array_equal(idx['eeg'], [2, 3])
+    assert_array_equal(idx['bio'], [4, 5, 6])
 
 
 def _check_fwd_n_chan_consistent(fwd, n_expected):
@@ -118,42 +148,51 @@ def _check_fwd_n_chan_consistent(fwd, n_expected):
 
 
 @testing.requires_testing_data
-def test_pick_forward_seeg():
-    """Test picking forward with SEEG
+def test_pick_forward_seeg_ecog():
+    """Test picking forward with SEEG and ECoG
     """
     fwd = read_forward_solution(fname_meeg)
     counts = channel_indices_by_type(fwd['info'])
     for key in counts.keys():
         counts[key] = len(counts[key])
     counts['meg'] = counts['mag'] + counts['grad']
-    fwd_ = pick_types_forward(fwd, meg=True, eeg=False, seeg=False)
+    fwd_ = pick_types_forward(fwd, meg=True)
     _check_fwd_n_chan_consistent(fwd_, counts['meg'])
-    fwd_ = pick_types_forward(fwd, meg=False, eeg=True, seeg=False)
+    fwd_ = pick_types_forward(fwd, meg=False, eeg=True)
     _check_fwd_n_chan_consistent(fwd_, counts['eeg'])
     # should raise exception related to emptiness
-    assert_raises(ValueError, pick_types_forward, fwd, meg=False, eeg=False,
-                  seeg=True)
-    # change last chan from EEG to sEEG
+    assert_raises(ValueError, pick_types_forward, fwd, meg=False, seeg=True)
+    assert_raises(ValueError, pick_types_forward, fwd, meg=False, ecog=True)
+    # change last chan from EEG to sEEG, second-to-last to ECoG
+    ecog_name = 'E1'
     seeg_name = 'OTp1'
+    rename_channels(fwd['info'], {'EEG 059': ecog_name})
     rename_channels(fwd['info'], {'EEG 060': seeg_name})
     for ch in fwd['info']['chs']:
         if ch['ch_name'] == seeg_name:
             ch['kind'] = FIFF.FIFFV_SEEG_CH
             ch['coil_type'] = FIFF.FIFFV_COIL_EEG
+        elif ch['ch_name'] == ecog_name:
+            ch['kind'] = FIFF.FIFFV_ECOG_CH
+            ch['coil_type'] = FIFF.FIFFV_COIL_EEG
     fwd['sol']['row_names'][-1] = fwd['info']['chs'][-1]['ch_name']
-    counts['eeg'] -= 1
+    fwd['sol']['row_names'][-2] = fwd['info']['chs'][-2]['ch_name']
+    counts['eeg'] -= 2
     counts['seeg'] += 1
+    counts['ecog'] += 1
     # repick & check
-    fwd_seeg = pick_types_forward(fwd, meg=False, eeg=False, seeg=True)
+    fwd_seeg = pick_types_forward(fwd, meg=False, seeg=True)
     assert_equal(fwd_seeg['sol']['row_names'], [seeg_name])
     assert_equal(fwd_seeg['info']['ch_names'], [seeg_name])
     # should work fine
-    fwd_ = pick_types_forward(fwd, meg=True, eeg=False, seeg=False)
+    fwd_ = pick_types_forward(fwd, meg=True)
     _check_fwd_n_chan_consistent(fwd_, counts['meg'])
-    fwd_ = pick_types_forward(fwd, meg=False, eeg=True, seeg=False)
+    fwd_ = pick_types_forward(fwd, meg=False, eeg=True)
     _check_fwd_n_chan_consistent(fwd_, counts['eeg'])
-    fwd_ = pick_types_forward(fwd, meg=False, eeg=False, seeg=True)
+    fwd_ = pick_types_forward(fwd, meg=False, seeg=True)
     _check_fwd_n_chan_consistent(fwd_, counts['seeg'])
+    fwd_ = pick_types_forward(fwd, meg=False, ecog=True)
+    _check_fwd_n_chan_consistent(fwd_, counts['ecog'])
 
 
 def test_picks_by_channels():
@@ -197,6 +236,9 @@ def test_picks_by_channels():
     assert_equal(len(pick_list), len(pick_list2))
     assert_equal(pick_list2[0][0], 'mag')
 
+    # pick_types type check
+    assert_raises(ValueError, raw.pick_types, eeg='string')
+
 
 def test_clean_info_bads():
     """Test cleaning info['bads'] when bad_channels are excluded """
@@ -234,14 +276,6 @@ def test_clean_info_bads():
     info = pick_info(raw.info, picks_meg)
     info._check_consistency()
     info['bads'] += ['EEG 053']
-    assert_raises(RuntimeError, info._check_consistency)
-    info = pick_info(raw.info, picks_meg)
-    info._check_consistency()
-    info['ch_names'][0] += 'f'
-    assert_raises(RuntimeError, info._check_consistency)
-    info = pick_info(raw.info, picks_meg)
-    info._check_consistency()
-    info['nchan'] += 1
     assert_raises(RuntimeError, info._check_consistency)
 
 run_tests_if_main()

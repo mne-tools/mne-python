@@ -1,11 +1,11 @@
 .. _ssp:
 
+Projections
+###########
+
 .. contents:: Contents
    :local:
    :depth: 3
-
-Projections
-###########
 
 The Signal-Space Projection (SSP) method
 ========================================
@@ -89,7 +89,7 @@ Since the signal-space projection modifies the signal vectors
 originating in the brain, it is necessary to apply the projection
 to the forward solution in the course of inverse computations. This
 is accomplished by mne_inverse_operator as
-described in :ref:`CBBDDBGF`. For more information on SSP,
+described in :ref:`inverse_operator`. For more information on SSP,
 please consult the references listed in :ref:`CEGIEEBB`.
 
 .. _CACFGIEC:
@@ -155,6 +155,11 @@ data of empty room recordings or averaged ECG or EOG artifacts.
 
 A second set of highlevel convenience functions is provided to compute projection vector for typical usecases. This includes :func:`mne.preprocessing.compute_proj_ecg` and :func:`mne.preprocessing.compute_proj_eog` for computing the ECG and EOG related artifact components, respectively. For computing the eeg reference signal, the function :func:`mne.preprocessing.ssp.make_eeg_average_ref_proj` can be used. The underlying implementation can be found in :mod:`mne.preprocessing.ssp`.
 
+.. warning:: It is best to compute projectors only on channels that will be
+             used (e.g., excluding bad channels). This ensures that
+             projection vectors will remain ortho-normalized and that they
+             properly capture the activity of interest.
+
 .. _remove_projector:
 
 Adding/removing projectors
@@ -190,7 +195,7 @@ The suggested pipeline is ``proj=True`` in epochs (it's computationally cheaper 
 
 .. topic:: Examples:
 
-	* :ref:`example_visualization_plot_evoked_delayed_ssp.py`: Interactive SSP
-	* :ref:`example_visualization_plot_evoked_topomap_delayed_ssp.py`: Interactive SSP
-	* :ref:`example_visualization_plot_ssp_projs_topomaps.py`: SSP sensitivities in sensor space
-	* :ref:`example_visualization_plot_ssp_projs_sensitivity_map.py`: SSP sensitivities in source space
+	* :ref:`sphx_glr_auto_examples_visualization_plot_evoked_delayed_ssp.py`: Interactive SSP
+	* :ref:`sphx_glr_auto_examples_visualization_plot_evoked_topomap_delayed_ssp.py`: Interactive SSP
+	* :ref:`sphx_glr_auto_examples_visualization_plot_ssp_projs_topomaps.py`: SSP sensitivities in sensor space
+	* :ref:`sphx_glr_auto_examples_visualization_plot_ssp_projs_sensitivity_map.py`: SSP sensitivities in source space

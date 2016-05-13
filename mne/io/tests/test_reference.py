@@ -12,6 +12,7 @@ from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import pick_channels, pick_types, Evoked, Epochs, read_events
+from mne.epochs import _BaseEpochs
 from mne.io.constants import FIFF
 from mne.io import (set_eeg_reference, set_bipolar_reference,
                     add_reference_channels)
@@ -59,7 +60,7 @@ def _test_reference(raw, reref, ref_data, ref_from):
     reref_other_data = _reref[..., picks_other, :]
 
     # Undo rereferencing of EEG channels
-    if isinstance(raw, Epochs):
+    if isinstance(raw, _BaseEpochs):
         unref_eeg_data = reref_eeg_data + ref_data[:, np.newaxis, :]
     else:
         unref_eeg_data = reref_eeg_data + ref_data
@@ -75,8 +76,8 @@ def test_apply_reference():
     raw = Raw(fif_fname, preload=True)
 
     # Rereference raw data by creating a copy of original data
-    reref, ref_data = _apply_reference(raw, ref_from=['EEG 001', 'EEG 002'],
-                                       copy=True)
+    reref, ref_data = _apply_reference(
+        raw.copy(), ref_from=['EEG 001', 'EEG 002'])
     assert_true(reref.info['custom_ref_applied'])
     _test_reference(raw, reref, ref_data, ['EEG 001', 'EEG 002'])
 
@@ -88,8 +89,7 @@ def test_apply_reference():
     assert_array_equal(raw._data, reref._data)
 
     # Test that data is modified in place when copy=False
-    reref, ref_data = _apply_reference(raw, ['EEG 001', 'EEG 002'],
-                                       copy=False)
+    reref, ref_data = _apply_reference(raw, ['EEG 001', 'EEG 002'])
     assert_true(raw is reref)
 
     # Test re-referencing Epochs object
@@ -98,15 +98,15 @@ def test_apply_reference():
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True)
-    reref, ref_data = _apply_reference(epochs, ref_from=['EEG 001', 'EEG 002'],
-                                       copy=True)
+    reref, ref_data = _apply_reference(
+        epochs.copy(), ref_from=['EEG 001', 'EEG 002'])
     assert_true(reref.info['custom_ref_applied'])
     _test_reference(epochs, reref, ref_data, ['EEG 001', 'EEG 002'])
 
     # Test re-referencing Evoked object
     evoked = epochs.average()
-    reref, ref_data = _apply_reference(evoked, ref_from=['EEG 001', 'EEG 002'],
-                                       copy=True)
+    reref, ref_data = _apply_reference(
+        evoked.copy(), ref_from=['EEG 001', 'EEG 002'])
     assert_true(reref.info['custom_ref_applied'])
     _test_reference(evoked, reref, ref_data, ['EEG 001', 'EEG 002'])
 
@@ -128,7 +128,8 @@ def test_set_eeg_reference():
     assert_true(ref_data is None)
 
     # Test setting an average reference when one was already present
-    reref, ref_data = set_eeg_reference(raw, copy=False)
+    with warnings.catch_warnings(record=True):  # weight tables
+        reref, ref_data = set_eeg_reference(raw, copy=False)
     assert_true(ref_data is None)
 
     # Rereference raw data by creating a copy of original data
@@ -152,9 +153,9 @@ def test_set_bipolar_reference():
     assert_true(reref.info['custom_ref_applied'])
 
     # Compare result to a manual calculation
-    a = raw.pick_channels(['EEG 001', 'EEG 002'], copy=True)
+    a = raw.copy().pick_channels(['EEG 001', 'EEG 002'])
     a = a._data[0, :] - a._data[1, :]
-    b = reref.pick_channels(['bipolar'], copy=True)._data[0, :]
+    b = reref.copy().pick_channels(['bipolar'])._data[0, :]
     assert_allclose(a, b)
 
     # Original channels should be replaced by a virtual one

@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
 from copy import deepcopy
 from math import sqrt
 import numpy as np
@@ -32,13 +31,17 @@ from ..source_space import (_read_source_spaces_from_tree,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc
-from ..utils import check_fname, logger, verbose
+from ..utils import check_fname, logger, verbose, warn
 from functools import reduce
 
 
 class InverseOperator(dict):
     """InverseOperator class to represent info from inverse operator
     """
+
+    def copy(self):
+        """Return a copy of the InverseOperator"""
+        return InverseOperator(deepcopy(self))
 
     def __repr__(self):
         """Summarize inverse info instead of printing all"""
@@ -197,18 +200,18 @@ def read_inverse_operator(fname, verbose=None):
         #   The eigenleads and eigenfields
         #
         inv['eigen_leads_weighted'] = False
-        eigen_leads = _read_named_matrix(
-            fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS)
-        if eigen_leads is None:
+        inv['eigen_leads'] = _read_named_matrix(
+            fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS, transpose=True)
+        if inv['eigen_leads'] is None:
             inv['eigen_leads_weighted'] = True
-            eigen_leads = _read_named_matrix(
-                fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
-        if eigen_leads is None:
+            inv['eigen_leads'] = _read_named_matrix(
+                fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED,
+                transpose=True)
+        if inv['eigen_leads'] is None:
             raise ValueError('Eigen leads not found in inverse operator.')
         #
         #   Having the eigenleads as cols is better for the inverse calcs
         #
-        inv['eigen_leads'] = _transpose_named_matrix(eigen_leads, copy=False)
         inv['eigen_fields'] = _read_named_matrix(fid, invs,
                                                  FIFF.FIFF_MNE_INVERSE_FIELDS)
         logger.info('    [done]')
@@ -410,11 +413,12 @@ def write_inverse_operator(fname, inv, verbose=None):
     #   The eigenleads and eigenfields
     #
     if inv['eigen_leads_weighted']:
-        write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED,
-                           _transpose_named_matrix(inv['eigen_leads']))
+        kind = FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED
     else:
-        write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS,
-                           _transpose_named_matrix(inv['eigen_leads']))
+        kind = FIFF.FIFF_MNE_INVERSE_LEADS
+    _transpose_named_matrix(inv['eigen_leads'])
+    write_named_matrix(fid, kind, inv['eigen_leads'])
+    _transpose_named_matrix(inv['eigen_leads'])
 
     #
     #   Done!
@@ -507,7 +511,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
         raise ValueError('The number of averages should be positive')
 
     logger.info('Preparing the inverse operator for use...')
-    inv = deepcopy(orig)
+    inv = orig.copy()
     #
     #   Scale some of the stuff
     #
@@ -1235,8 +1239,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     is_fixed_ori = is_fixed_orient(forward)
 
     if fixed and loose is not None:
-        warnings.warn("When invoking make_inverse_operator with fixed=True, "
-                      "the loose parameter is ignored.")
+        warn('When invoking make_inverse_operator with fixed=True, the loose '
+             'parameter is ignored.')
         loose = None
 
     if is_fixed_ori and not fixed:
@@ -1570,7 +1574,7 @@ def estimate_snr(evoked, inv, verbose=None):
             break
         lambda2_est[remaining] *= lambda_mult
     else:
-        warnings.warn('SNR estimation did not converge')
+        warn('SNR estimation did not converge')
     snr_est = 1.0 / np.sqrt(lambda2_est)
     snr = np.sqrt(snr)
     return snr, snr_est

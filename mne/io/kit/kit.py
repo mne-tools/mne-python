@@ -11,14 +11,13 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 from os import SEEK_CUR, path as op
 from struct import unpack
 import time
-from warnings import warn
 
 import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
 from ...coreg import fit_matched_points, _decimate_points
-from ...utils import verbose, logger
+from ...utils import verbose, logger, warn
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans, Transform)
 from ..base import _BaseRaw
@@ -39,17 +38,17 @@ class RawKIT(_BaseRaw):
     ----------
     input_fname : str
         Path to the sqd file.
-    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
+    mrk : None | str | array_like, shape (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
         If list, all of the markers will be averaged together.
-    elp : None | str | array_like, shape = (8, 3)
+    elp : None | str | array_like, shape (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
         file containing these points.
-    hsp : None | str | array, shape = (n_points, 3)
+    hsp : None | str | array, shape (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
-        10`000 points are in the head shape, they are automatically decimated.
+        10,000 points are in the head shape, they are automatically decimated.
     stim : list of int | '<' | '>'
         Channel-value correspondence when converting KIT trigger channels to a
         Neuromag-style stim channel. For '<', the largest values are assigned
@@ -195,12 +194,12 @@ class RawKIT(_BaseRaw):
                                  % (np.max(stim),
                                     self._raw_extras[0]['nchan']))
             # modify info
-            info['nchan'] = self._raw_extras[0]['nchan'] + 1
+            nchan = self._raw_extras[0]['nchan'] + 1
             ch_name = 'STI 014'
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
-            chan_info['logno'] = info['nchan']
-            chan_info['scanno'] = info['nchan']
+            chan_info['logno'] = nchan
+            chan_info['scanno'] = nchan
             chan_info['range'] = 1.0
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['unit_mul'] = 0
@@ -209,7 +208,7 @@ class RawKIT(_BaseRaw):
             chan_info['loc'] = np.zeros(12)
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
             info['chs'].append(chan_info)
-            info['ch_names'].append(ch_name)
+            info._update_redundant()
         if self.preload:
             err = "Can't change stim channel after preloading data"
             raise NotImplementedError(err)
@@ -220,21 +219,9 @@ class RawKIT(_BaseRaw):
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data"""
-        with open(self._filenames[fi], 'rb', buffering=0) as fid:
-            # extract data
-            data_offset = KIT.RAW_OFFSET
-            fid.seek(data_offset)
-            # data offset info
-            data_offset = unpack('i', fid.read(KIT.INT))[0]
-            nchan = self._raw_extras[fi]['nchan']
-            buffer_size = stop - start
-            count = buffer_size * nchan
-            pointer = start * nchan * KIT.SHORT
-            fid.seek(data_offset + pointer)
-            data_ = np.fromfile(fid, dtype='h', count=count)
-
+        nchan = self._raw_extras[fi]['nchan']
+        data_left = (stop - start) * nchan
         # amplifier applies only to the sensor channels
-        data_.shape = (buffer_size, nchan)
         n_sens = self._raw_extras[fi]['n_sens']
         sensor_gain = self._raw_extras[fi]['sensor_gain'].copy()
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
@@ -242,29 +229,47 @@ class RawKIT(_BaseRaw):
         conv_factor = np.array((KIT.VOLTAGE_RANGE /
                                 self._raw_extras[fi]['DYNAMIC_RANGE']) *
                                sensor_gain)
-        data_ = conv_factor[:, np.newaxis] * data_.T
+        n_bytes = 2
+        # Read up to 100 MB of data at a time.
+        blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
+        with open(self._filenames[fi], 'rb', buffering=0) as fid:
+            # extract data
+            data_offset = KIT.RAW_OFFSET
+            fid.seek(data_offset)
+            # data offset info
+            data_offset = unpack('i', fid.read(KIT.INT))[0]
+            pointer = start * nchan * KIT.SHORT
+            fid.seek(data_offset + pointer)
+            for blk_start in np.arange(0, data_left, blk_size) // nchan:
+                blk_size = min(blk_size, data_left - blk_start * nchan)
+                block = np.fromfile(fid, dtype='h', count=blk_size)
+                block = block.reshape(nchan, -1, order='F').astype(float)
+                blk_stop = blk_start + block.shape[1]
+                data_view = data[:, blk_start:blk_stop]
+                block *= conv_factor[:, np.newaxis]
 
-        # Create a synthetic channel
-        if self._raw_extras[fi]['stim'] is not None:
-            trig_chs = data_[self._raw_extras[fi]['stim'], :]
-            if self._raw_extras[fi]['slope'] == '+':
-                trig_chs = trig_chs > self._raw_extras[0]['stimthresh']
-            elif self._raw_extras[fi]['slope'] == '-':
-                trig_chs = trig_chs < self._raw_extras[0]['stimthresh']
-            else:
-                raise ValueError("slope needs to be '+' or '-'")
-
-            # trigger value
-            if self._raw_extras[0]['stim_code'] == 'binary':
-                ntrigchan = len(self._raw_extras[0]['stim'])
-                trig_vals = np.array(2 ** np.arange(ntrigchan), ndmin=2).T
-            else:
-                trig_vals = np.reshape(self._raw_extras[0]['stim'], (-1, 1))
-            trig_chs = trig_chs * trig_vals
-            stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
-            data_ = np.vstack((data_, stim_ch))
+                # Create a synthetic channel
+                if self._raw_extras[fi]['stim'] is not None:
+                    trig_chs = block[self._raw_extras[fi]['stim'], :]
+                    if self._raw_extras[fi]['slope'] == '+':
+                        trig_chs = trig_chs > self._raw_extras[0]['stimthresh']
+                    elif self._raw_extras[fi]['slope'] == '-':
+                        trig_chs = trig_chs < self._raw_extras[0]['stimthresh']
+                    else:
+                        raise ValueError("slope needs to be '+' or '-'")
+                    # trigger value
+                    if self._raw_extras[0]['stim_code'] == 'binary':
+                        ntrigchan = len(self._raw_extras[0]['stim'])
+                        trig_vals = np.array(2 ** np.arange(ntrigchan),
+                                             ndmin=2).T
+                    else:
+                        trig_vals = np.reshape(self._raw_extras[0]['stim'],
+                                               (-1, 1))
+                    trig_chs = trig_chs * trig_vals
+                    stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
+                    block = np.vstack((block, stim_ch))
+                _mult_cal_one(data_view, block, idx, None, mult)
         # cals are all unity, so can be ignored
-        _mult_cal_one(data, data_, idx, None, mult)
 
 
 class EpochsKIT(_BaseEpochs):
@@ -281,7 +286,7 @@ class EpochsKIT(_BaseEpochs):
         in the drop log.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
-        the keys can later be used to acces associated events. Example:
+        the keys can later be used to access associated events. Example:
         dict(auditory=1, visual=3). If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, all events will be used with
@@ -306,8 +311,8 @@ class EpochsKIT(_BaseEpochs):
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # uV (EEG channels)
-                          eog=250e-6 # uV (EOG channels)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
                           )
     flat : dict | None
         Rejection parameters based on flatness of signal.
@@ -481,12 +486,11 @@ def _set_dig_kit(mrk, elp, hsp):
     if n_pts > KIT.DIG_POINTS:
         hsp = _decimate_points(hsp, res=5)
         n_new = len(hsp)
-        msg = ("The selected head shape contained {n_in} points, which is "
-               "more than recommended ({n_rec}), and was automatically "
-               "downsampled to {n_new} points. The preferred way to "
-               "downsample is using FastScan."
-               ).format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
-        logger.warning(msg)
+        warn("The selected head shape contained {n_in} points, which is "
+             "more than recommended ({n_rec}), and was automatically "
+             "downsampled to {n_new} points. The preferred way to "
+             "downsample is using FastScan.".format(
+                 n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new))
 
     if isinstance(elp, string_types):
         elp_points = _read_dig_points(elp)
@@ -655,7 +659,7 @@ def get_kit_info(rawfile):
         info = _empty_info(float(sqd['sfreq']))
         info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
                     highpass=sqd['highpass'], filename=rawfile,
-                    nchan=sqd['nchan'], buffer_size_sec=1.)
+                    buffer_size_sec=1.)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
@@ -731,9 +735,7 @@ def get_kit_info(rawfile):
             chan_info['loc'] = np.zeros(12)
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             info['chs'].append(chan_info)
-
-        info['ch_names'] = ch_names['MEG'] + ch_names['MISC']
-
+    info._update_redundant()
     return info, sqd
 
 
@@ -746,17 +748,17 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     ----------
     input_fname : str
         Path to the sqd file.
-    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
+    mrk : None | str | array_like, shape (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
         If list, all of the markers will be averaged together.
-    elp : None | str | array_like, shape = (8, 3)
+    elp : None | str | array_like, shape (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
         file containing these points.
-    hsp : None | str | array, shape = (n_points, 3)
+    hsp : None | str | array, shape (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
-        10`000 points are in the head shape, they are automatically decimated.
+        10,000 points are in the head shape, they are automatically decimated.
     stim : list of int | '<' | '>'
         Channel-value correspondence when converting KIT trigger channels to a
         Neuromag-style stim channel. For '<', the largest values are assigned
@@ -808,23 +810,23 @@ def read_epochs_kit(input_fname, events, event_id=None,
         by event_id, they will be marked as 'IGNORED' in the drop log.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
-        the keys can later be used to acces associated events. Example:
+        the keys can later be used to access associated events. Example:
         dict(auditory=1, visual=3). If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, all events will be used with
         and a dict is created with string integer names corresponding
         to the event id integers.
-    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
+    mrk : None | str | array_like, shape (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
         If list, all of the markers will be averaged together.
-    elp : None | str | array_like, shape = (8, 3)
+    elp : None | str | array_like, shape (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
         file containing these points.
-    hsp : None | str | array, shape = (n_points, 3)
+    hsp : None | str | array, shape (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
-        10`000 points are in the head shape, they are automatically decimated.
+        10,000 points are in the head shape, they are automatically decimated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

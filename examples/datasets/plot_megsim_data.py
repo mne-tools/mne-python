@@ -15,8 +15,8 @@ Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
 Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
 
+import mne
 from mne import find_events, Epochs, pick_types, read_evokeds
-from mne.io import Raw
 from mne.datasets.megsim import load_data
 
 print(__doc__)
@@ -31,7 +31,7 @@ raw_fnames = load_data(condition=condition, data_format='raw',
 evoked_fnames = load_data(condition=condition, data_format='evoked',
                           data_type='simulation', verbose=True)
 
-raw = Raw(raw_fnames[0])
+raw = mne.io.read_raw_fif(raw_fnames[0])
 events = find_events(raw, stim_channel="STI 014", shortest_event=1)
 
 # Visualize raw file

@@ -7,6 +7,9 @@ from scipy import sparse
 import os
 import warnings
 
+from mne import read_evokeds
+from mne.externals.six.moves import StringIO
+from mne.io import show_fiff
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
                        sum_squared, estimate_rank,
@@ -17,10 +20,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _check_mayavi_version, requires_mayavi,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
-                       _get_call_line, compute_corr, verbose)
-from mne.io import show_fiff
-from mne import Evoked
-from mne.externals.six.moves import StringIO
+                       _get_call_line, compute_corr, sys_info, verbose,
+                       check_fname, requires_ftp)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -35,6 +36,15 @@ fname_log_2 = op.join(base_dir, 'test-ave-2.log')
 def clean_lines(lines=[]):
     # Function to scrub filenames for checking logging output (in test_logging)
     return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
+
+
+def test_sys_info():
+    """Test info-showing utility
+    """
+    out = StringIO()
+    sys_info(fid=out)
+    out = out.getvalue()
+    assert_true('numpy:' in out)
 
 
 def test_get_call_line():
@@ -69,6 +79,7 @@ def test_misc():
     assert_raises(TypeError, _get_stim_channel, 1, None)
     assert_raises(TypeError, _get_stim_channel, [1], None)
     assert_raises(TypeError, _check_fname, 1)
+    assert_raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     assert_raises(ValueError, _check_subject, None, None)
     assert_raises(ValueError, _check_subject, None, 1)
     assert_raises(ValueError, _check_subject, 1, None)
@@ -226,6 +237,7 @@ def test_estimate_rank():
                        np.ones(10))
     data[0, 0] = 0
     assert_equal(estimate_rank(data), 9)
+    assert_raises(ValueError, estimate_rank, data, 'foo')
 
 
 def test_logging():
@@ -238,6 +250,13 @@ def test_logging():
         old_lines = clean_lines(old_log_file.readlines())
     with open(fname_log_2, 'r') as old_log_file_2:
         old_lines_2 = clean_lines(old_log_file_2.readlines())
+    # we changed our logging a little bit
+    old_lines = [o.replace('No baseline correction applied...',
+                           'No baseline correction applied')
+                 for o in old_lines]
+    old_lines_2 = [o.replace('No baseline correction applied...',
+                             'No baseline correction applied')
+                   for o in old_lines_2]
 
     if op.isfile(test_name):
         os.remove(test_name)
@@ -245,19 +264,19 @@ def test_logging():
     set_log_file(test_name)
     set_log_level('WARNING')
     # should NOT print
-    evoked = Evoked(fname_evoked, condition=1)
+    evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name) as fid:
         assert_true(fid.readlines() == [])
     # should NOT print
-    evoked = Evoked(fname_evoked, condition=1, verbose=False)
+    evoked = read_evokeds(fname_evoked, condition=1, verbose=False)
     with open(test_name) as fid:
         assert_true(fid.readlines() == [])
     # should NOT print
-    evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
+    evoked = read_evokeds(fname_evoked, condition=1, verbose='WARNING')
     with open(test_name) as fid:
         assert_true(fid.readlines() == [])
     # SHOULD print
-    evoked = Evoked(fname_evoked, condition=1, verbose=True)
+    evoked = read_evokeds(fname_evoked, condition=1, verbose=True)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
@@ -268,15 +287,15 @@ def test_logging():
     set_log_file(test_name)
     set_log_level('INFO')
     # should NOT print
-    evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
+    evoked = read_evokeds(fname_evoked, condition=1, verbose='WARNING')
     with open(test_name) as fid:
         assert_true(fid.readlines() == [])
     # should NOT print
-    evoked = Evoked(fname_evoked, condition=1, verbose=False)
+    evoked = read_evokeds(fname_evoked, condition=1, verbose=False)
     with open(test_name) as fid:
         assert_true(fid.readlines() == [])
     # SHOULD print
-    evoked = Evoked(fname_evoked, condition=1)
+    evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
     with open(fname_log, 'r') as old_log_file:
@@ -285,10 +304,11 @@ def test_logging():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         set_log_file(test_name, overwrite=False)
-        assert len(w) == 0
+        assert_equal(len(w), 0)
         set_log_file(test_name)
-        assert len(w) == 1
-    evoked = Evoked(fname_evoked, condition=1)
+    assert_equal(len(w), 1)
+    assert_true('test_utils.py' in w[0].filename)
+    evoked = read_evokeds(fname_evoked, condition=1)
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines_2)
@@ -296,7 +316,7 @@ def test_logging():
     # make sure overwriting works
     set_log_file(test_name, overwrite=True)
     # this line needs to be called to actually do some logging
-    evoked = Evoked(fname_evoked, condition=1)
+    evoked = read_evokeds(fname_evoked, condition=1)
     del evoked
     with open(test_name, 'r') as new_log_file:
         new_lines = clean_lines(new_log_file.readlines())
@@ -313,6 +333,7 @@ def test_config():
     assert_true(get_config(key) == value)
     del os.environ[key]
     # catch the warning about it being a non-standard config key
+    assert_true(len(set_config(None, None)) > 10)  # tuple of valid keys
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         set_config(key, None, home_dir=tempdir)
@@ -372,30 +393,38 @@ def test_deprecated():
     assert_true(len(w) == 1)
 
 
-@requires_good_network
-def test_fetch_file():
-    """Test file downloading
-    """
+def _test_fetch(url):
+    """Helper to test URL retrieval"""
     tempdir = _TempDir()
-    urls = ['http://google.com',
-            'ftp://ftp.openbsd.org/pub/OpenBSD/README']
     with ArgvSetter(disable_stderr=False):  # to capture stdout
-        for url in urls:
-            archive_name = op.join(tempdir, "download_test")
-            _fetch_file(url, archive_name, timeout=30., verbose=False,
-                        resume=False)
-            assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
-                          op.join(tempdir, 'test'), verbose=False)
-            resume_name = op.join(tempdir, "download_resume")
-            # touch file
-            with open(resume_name + '.part', 'w'):
-                os.utime(resume_name + '.part', None)
-            _fetch_file(url, resume_name, resume=True, timeout=30.,
-                        verbose=False)
-            assert_raises(ValueError, _fetch_file, url, archive_name,
-                          hash_='a', verbose=False)
-            assert_raises(RuntimeError, _fetch_file, url, archive_name,
-                          hash_='a' * 32, verbose=False)
+        archive_name = op.join(tempdir, "download_test")
+        _fetch_file(url, archive_name, timeout=30., verbose=False,
+                    resume=False)
+        assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
+                      op.join(tempdir, 'test'), verbose=False)
+        resume_name = op.join(tempdir, "download_resume")
+        # touch file
+        with open(resume_name + '.part', 'w'):
+            os.utime(resume_name + '.part', None)
+        _fetch_file(url, resume_name, resume=True, timeout=30.,
+                    verbose=False)
+        assert_raises(ValueError, _fetch_file, url, archive_name,
+                      hash_='a', verbose=False)
+        assert_raises(RuntimeError, _fetch_file, url, archive_name,
+                      hash_='a' * 32, verbose=False)
+
+
+@requires_good_network
+def test_fetch_file_html():
+    """Test file downloading over http"""
+    _test_fetch('http://google.com')
+
+
+@requires_ftp
+@requires_good_network
+def test_fetch_file_ftp():
+    """Test file downloading over ftp"""
+    _test_fetch('ftp://speedtest.tele2.net/1KB.zip')
 
 
 def test_sum_squared():
@@ -498,8 +527,26 @@ def test_time_mask():
     N = 10
     x = np.arange(N).astype(float)
     assert_equal(_time_mask(x, 0, N - 1).sum(), N)
-    assert_equal(_time_mask(x - 1e-10, 0, N - 1).sum(), N)
-    assert_equal(_time_mask(x - 1e-10, 0, N - 1, strict=True).sum(), N - 1)
+    assert_equal(_time_mask(x - 1e-10, 0, N - 1, sfreq=1000.).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, None, N - 1, sfreq=1000.).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, None, None, sfreq=1000.).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, -np.inf, None, sfreq=1000.).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, None, np.inf, sfreq=1000.).sum(), N)
+    # non-uniformly spaced inputs
+    x = np.array([4, 10])
+    assert_equal(_time_mask(x[:1], tmin=10, sfreq=1,
+                            raise_error=False).sum(), 0)
+    assert_equal(_time_mask(x[:1], tmin=11, tmax=12, sfreq=1,
+                            raise_error=False).sum(), 0)
+    assert_equal(_time_mask(x, tmin=10, sfreq=1).sum(), 1)
+    assert_equal(_time_mask(x, tmin=6, sfreq=1).sum(), 1)
+    assert_equal(_time_mask(x, tmin=5, sfreq=1).sum(), 1)
+    assert_equal(_time_mask(x, tmin=4.5001, sfreq=1).sum(), 1)
+    assert_equal(_time_mask(x, tmin=4.4999, sfreq=1).sum(), 2)
+    assert_equal(_time_mask(x, tmin=4, sfreq=1).sum(), 2)
+    # degenerate cases
+    assert_raises(ValueError, _time_mask, x[:1], tmin=11, tmax=12)
+    assert_raises(ValueError, _time_mask, x[:1], tmin=10, sfreq=1)
 
 
 def test_random_permutation():

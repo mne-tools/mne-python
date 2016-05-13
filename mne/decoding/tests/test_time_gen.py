@@ -12,7 +12,7 @@ from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import (requires_sklearn, requires_sklearn_0_15, slow_test,
-                       run_tests_if_main)
+                       run_tests_if_main, check_version)
 from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
 
@@ -24,9 +24,11 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 event_id_gen = dict(aud_l=2, vis_l=4)
 
+warnings.simplefilter('always')
+
 
 def make_epochs():
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -46,13 +48,37 @@ def test_generalization_across_time():
     """Test time generalization decoding
     """
     from sklearn.svm import SVC
-    from sklearn.linear_model import RANSACRegressor, LinearRegression
+    from sklearn.base import is_classifier
+    # KernelRidge is used for testing 1) regression analyses 2) n-dimensional
+    # predictions.
+    from sklearn.kernel_ridge import KernelRidge
     from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import mean_squared_error
-    from sklearn.cross_validation import LeaveOneLabelOut
+    from sklearn.metrics import roc_auc_score, mean_squared_error
 
     epochs = make_epochs()
+    y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
+    if check_version('sklearn', '0.18'):
+        from sklearn.model_selection import (KFold, StratifiedKFold,
+                                             ShuffleSplit, LeaveOneLabelOut)
+        cv_shuffle = ShuffleSplit()
+        cv = LeaveOneLabelOut()
+        # XXX we cannot pass any other parameters than X and y to cv.split
+        # so we have to build it before hand
+        cv_lolo = [(train, test) for train, test in cv.split(
+                   X=y_4classes, y=y_4classes, labels=y_4classes)]
 
+        # With sklearn >= 0.17, `clf` can be identified as a regressor, and
+        # the scoring metrics can therefore be automatically assigned.
+        scorer_regress = None
+    else:
+        from sklearn.cross_validation import (KFold, StratifiedKFold,
+                                              ShuffleSplit, LeaveOneLabelOut)
+        cv_shuffle = ShuffleSplit(len(epochs))
+        cv_lolo = LeaveOneLabelOut(y_4classes)
+
+        # With sklearn < 0.17, `clf` cannot be identified as a regressor, and
+        # therefore the scoring metrics cannot be automatically assigned.
+        scorer_regress = mean_squared_error
     # Test default running
     gat = GeneralizationAcrossTime(picks='foo')
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
@@ -70,11 +96,33 @@ def test_generalization_across_time():
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), no "
                  "prediction, no score>", '%s' % gat)
     assert_equal(gat.ch_names, epochs.ch_names)
+    # test different predict function:
+    gat = GeneralizationAcrossTime(predict_method='decision_function')
+    gat.fit(epochs)
+    # With classifier, the default cv is StratifiedKFold
+    assert_true(gat.cv_.__class__ == StratifiedKFold)
     gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
+    gat.predict_method = 'predict_proba'
+    gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 2))
+    gat.predict_method = 'foo'
+    assert_raises(NotImplementedError, gat.predict, epochs)
+    gat.predict_method = 'predict'
+    gat.predict(epochs)
+    assert_array_equal(np.shape(gat.y_pred_), (15, 15, 14, 1))
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
                  "predicted 14 epochs, no score>",
                  "%s" % gat)
     gat.score(epochs)
+    assert_true(gat.scorer_.__name__ == 'accuracy_score')
+    # check clf / predict_method combinations for which the scoring metrics
+    # cannot be inferred.
+    gat.scorer = None
+    gat.predict_method = 'decision_function'
+    assert_raises(ValueError, gat.score, epochs)
+    # Check specifying y manually
+    gat.predict_method = 'predict'
     gat.score(epochs, y=epochs.events[:, 2])
     gat.score(epochs, y=epochs.events[:, 2].tolist())
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
@@ -123,6 +171,24 @@ def test_generalization_across_time():
     assert_true(len(gat.test_times_['slices'][0]) == 15 ==
                 np.shape(gat.scores_)[1])
 
+    # Test score_mode
+    gat.score_mode = 'foo'
+    assert_raises(ValueError, gat.score, epochs)
+    gat.score_mode = 'fold-wise'
+    scores = gat.score(epochs)
+    assert_array_equal(np.shape(scores), [15, 15, 5])
+    gat.score_mode = 'mean-sample-wise'
+    scores = gat.score(epochs)
+    assert_array_equal(np.shape(scores), [15, 15])
+    gat.score_mode = 'mean-fold-wise'
+    scores = gat.score(epochs)
+    assert_array_equal(np.shape(scores), [15, 15])
+    gat.predict_mode = 'mean-prediction'
+    with warnings.catch_warnings(record=True) as w:
+        gat.score(epochs)
+        assert_true(any("score_mode changed from " in str(ww.message)
+                        for ww in w))
+
     # Test longer time window
     gat = GeneralizationAcrossTime(train_times={'length': .100})
     with warnings.catch_warnings(record=True):
@@ -130,24 +196,23 @@ def test_generalization_across_time():
     assert_true(gat is gat2)  # return self
     assert_true(hasattr(gat2, 'cv_'))
     assert_true(gat2.cv_ != gat.cv)
-    scores = gat.score(epochs)
-    assert_true(isinstance(scores, list))  # type check
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        scores = gat.score(epochs)
+    assert_true(isinstance(scores, np.ndarray))  # type check
     assert_equal(len(scores[0]), len(scores))  # shape check
-
     assert_equal(len(gat.test_times_['slices'][0][0]), 2)
     # Decim training steps
     gat = GeneralizationAcrossTime(train_times={'step': .100})
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
-
     gat.score(epochs)
     assert_true(len(gat.scores_) == len(gat.estimators_) == 8)  # training time
     assert_equal(len(gat.scores_[0]), 15)  # testing time
 
     # Test start stop training & test cv without n_fold params
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
-    gat = GeneralizationAcrossTime(cv=LeaveOneLabelOut(y_4classes),
-                                   train_times={'start': 0.090, 'stop': 0.250})
+    train_times = dict(start=0.090, stop=0.250)
+    gat = GeneralizationAcrossTime(cv=cv_lolo, train_times=train_times)
     # predict without fit
     assert_raises(RuntimeError, gat.predict, epochs)
     with warnings.catch_warnings(record=True):
@@ -159,22 +224,26 @@ def test_generalization_across_time():
 
     # Test score without passing epochs & Test diagonal decoding
     gat = GeneralizationAcrossTime(test_times='diagonal')
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True):  # not vectorizing
         gat.fit(epochs)
     assert_raises(RuntimeError, gat.score)
-    gat.predict(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        gat.predict(epochs)
     scores = gat.score()
     assert_true(scores is gat.scores_)
     assert_equal(np.shape(gat.scores_), (15, 1))
     assert_array_equal([tim for ttime in gat.test_times_['times']
                         for tim in ttime], gat.train_times_['times'])
-
+    from mne.utils import set_log_level
+    set_log_level('error')
     # Test generalization across conditions
-    gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
+    gat = GeneralizationAcrossTime(predict_mode='mean-prediction', cv=2)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs[0:6])
-    gat.predict(epochs[7:])
-    gat.score(epochs[7:])
+    with warnings.catch_warnings(record=True):
+        # There are some empty test folds because of n_trials
+        gat.predict(epochs[7:])
+        gat.score(epochs[7:])
 
     # Test training time parameters
     gat_ = copy.deepcopy(gat)
@@ -194,26 +263,49 @@ def test_generalization_across_time():
     # Test testing time parameters
     # --- outside time range
     gat.test_times = dict(start=-999.)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no epochs in fold
+        assert_raises(ValueError, gat.predict, epochs)
     gat.test_times = dict(start=999.)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no test epochs
+        assert_raises(ValueError, gat.predict, epochs)
     # --- impossible slices
     gat.test_times = dict(step=.000001)
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no test epochs
+        assert_raises(ValueError, gat.predict, epochs)
     gat_ = copy.deepcopy(gat)
     gat_.train_times_['length'] = .000001
     gat_.test_times = dict(length=.000001)
-    assert_raises(ValueError, gat_.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no test epochs
+        assert_raises(ValueError, gat_.predict, epochs)
     # --- test time region of interest
     gat.test_times = dict(step=.150)
-    gat.predict(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        gat.predict(epochs)
     assert_array_equal(np.shape(gat.y_pred_), (15, 5, 14, 1))
     # --- silly value
     gat.test_times = 'foo'
-    assert_raises(ValueError, gat.predict, epochs)
+    with warnings.catch_warnings(record=True):  # no test epochs
+        assert_raises(ValueError, gat.predict, epochs)
     assert_raises(RuntimeError, gat.score)
     # --- unmatched length between training and testing time
     gat.test_times = dict(length=.150)
+    assert_raises(ValueError, gat.predict, epochs)
+    # --- irregular length training and testing times
+    # 2 estimators, the first one is trained on two successive time samples
+    # whereas the second one is trained on a single time sample.
+    train_times = dict(slices=[[0, 1], [1]])
+    # The first estimator is tested once, the second estimator is tested on
+    # two successive time samples.
+    test_times = dict(slices=[[[0, 1]], [[0], [1]]])
+    gat = GeneralizationAcrossTime(train_times=train_times,
+                                   test_times=test_times)
+    gat.fit(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        gat.score(epochs)
+    assert_array_equal(np.shape(gat.y_pred_[0]), [1, len(epochs), 1])
+    assert_array_equal(np.shape(gat.y_pred_[1]), [2, len(epochs), 1])
+    # check cannot Automatically infer testing times for adhoc training times
+    gat.test_times = None
     assert_raises(ValueError, gat.predict, epochs)
 
     svc = SVC(C=1, kernel='linear', probability=True)
@@ -226,28 +318,42 @@ def test_generalization_across_time():
     # and http://bit.ly/1u7t8UT
     assert_raises(ValueError, gat.score, epochs2)
     gat.score(epochs)
-    scores = sum(scores, [])  # flatten
     assert_true(0.0 <= np.min(scores) <= 1.0)
     assert_true(0.0 <= np.max(scores) <= 1.0)
 
     # Test that gets error if train on one dataset, test on another, and don't
     # specify appropriate cv:
-    gat = GeneralizationAcrossTime()
+    gat = GeneralizationAcrossTime(cv=cv_shuffle)
+    gat.fit(epochs)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
 
     gat.predict(epochs)
-    assert_raises(IndexError, gat.predict, epochs[:10])
+    assert_raises(ValueError, gat.predict, epochs[:10])
 
-    # TODO JRK: test GAT with non-exhaustive CV (eg. train on 80%, test on 10%)
+    # Make CV with some empty train and test folds:
+    # --- empty test fold(s) should warn when gat.predict()
+    gat._cv_splits[0] = [gat._cv_splits[0][0], np.empty(0)]
+    with warnings.catch_warnings(record=True) as w:
+        gat.predict(epochs)
+        assert_true(len(w) > 0)
+        assert_true(any('do not have any test epochs' in str(ww.message)
+                        for ww in w))
+    # --- empty train fold(s) should raise when gat.fit()
+    gat = GeneralizationAcrossTime(cv=[([0], [1]), ([], [0])])
+    assert_raises(ValueError, gat.fit, epochs[:2])
 
     # Check that still works with classifier that output y_pred with
     # shape = (n_trials, 1) instead of (n_trials,)
-    gat = GeneralizationAcrossTime(clf=RANSACRegressor(LinearRegression()),
-                                   cv=2)
-    epochs.crop(None, epochs.times[2])
-    gat.fit(epochs)
-    gat.predict(epochs)
+    if check_version('sklearn', '0.17'):  # no is_regressor before v0.17
+        gat = GeneralizationAcrossTime(clf=KernelRidge(), cv=2)
+        epochs.crop(None, epochs.times[2])
+        gat.fit(epochs)
+        # With regression the default cv is KFold and not StratifiedKFold
+        assert_true(gat.cv_.__class__ == KFold)
+        gat.score(epochs)
+        # with regression the default scoring metrics is mean squared error
+        assert_true(gat.scorer_.__name__ == 'mean_squared_error')
 
     # Test combinations of complex scenarios
     # 2 or more distinct classes
@@ -258,32 +364,52 @@ def test_generalization_across_time():
     y[len(y) // 2:] += 2
     ys = (y, y + 1000)
     # Univariate and multivariate prediction
-    svc = SVC(C=1, kernel='linear')
+    svc = SVC(C=1, kernel='linear', probability=True)
+    reg = KernelRidge()
 
-    class SVC_proba(SVC):
-        def predict(self, x):
-            probas = super(SVC_proba, self).predict_proba(x)
-            return probas[:, 0]
+    def scorer_proba(y_true, y_pred):
+        return roc_auc_score(y_true, y_pred[:, 0])
 
-    svcp = SVC_proba(C=1, kernel='linear', probability=True)
-    clfs = [svc, svcp]
-    scorers = [None, mean_squared_error]
+    # We re testing 3 scenario: default, classifier + predict_proba, regressor
+    scorers = [None, scorer_proba, scorer_regress]
+    predict_methods = [None, 'predict_proba', None]
+    clfs = [svc, svc, reg]
     # Test all combinations
-    for clf, scorer in zip(clfs, scorers):
+    for clf, predict_method, scorer in zip(clfs, predict_methods, scorers):
         for y in ys:
             for n_class in n_classes:
-                y_ = y % n_class
-                with warnings.catch_warnings(record=True):
-                    gat = GeneralizationAcrossTime(cv=2, clf=clf,
-                                                   scorer=scorer)
-                    gat.fit(epochs, y=y_)
-                    gat.score(epochs, y=y_)
+                for predict_mode in ['cross-validation', 'mean-prediction']:
+                    # Cannot use AUC for n_class > 2
+                    if (predict_method == 'predict_proba' and n_class != 2):
+                        continue
+
+                    y_ = y % n_class
+
+                    with warnings.catch_warnings(record=True):
+                        gat = GeneralizationAcrossTime(
+                            cv=2, clf=clf, scorer=scorer,
+                            predict_mode=predict_mode)
+                        gat.fit(epochs, y=y_)
+                        gat.score(epochs, y=y_)
+
+                    # Check that scorer is correctly defined manually and
+                    # automatically.
+                    scorer_name = gat.scorer_.__name__
+                    if scorer is None:
+                        if is_classifier(clf):
+                            assert_equal(scorer_name, 'accuracy_score')
+                        else:
+                            assert_equal(scorer_name, 'mean_squared_error')
+                    else:
+                        assert_equal(scorer_name, scorer.__name__)
 
 
 @requires_sklearn
 def test_decoding_time():
     """Test TimeDecoding
     """
+    from sklearn.svm import SVR
+    from sklearn.cross_validation import KFold
     epochs = make_epochs()
     tg = TimeDecoding()
     assert_equal("<TimeDecoding | no fit, no prediction, no score>", '%s' % tg)
@@ -296,16 +422,39 @@ def test_decoding_time():
     assert_true(not hasattr(tg, 'train_times_'))
     assert_true(not hasattr(tg, 'test_times_'))
     assert_raises(RuntimeError, tg.score, epochs=None)
-    tg.predict(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        tg.predict(epochs)
     assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
                  "(s), predicted 14 epochs, no score>",
                  '%s' % tg)
     assert_array_equal(np.shape(tg.y_pred_), [15, 14, 1])
-    tg.score(epochs)
+    with warnings.catch_warnings(record=True):  # not vectorizing
+        tg.score(epochs)
     tg.score()
     assert_array_equal(np.shape(tg.scores_), [15])
     assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
                  "(s), predicted 14 epochs,\n scored (accuracy_score)>",
                  '%s' % tg)
+    # Test with regressor
+    clf = SVR()
+    cv = KFold(len(epochs))
+    y = np.random.rand(len(epochs))
+    tg = TimeDecoding(clf=clf, cv=cv)
+    tg.fit(epochs, y=y)
+
+    # Test scorer parameter to accept string
+    epochs.crop(epochs.times[0], epochs.times[2])
+    td_1 = TimeDecoding(scorer='accuracy')
+    td_1.fit(epochs)
+    score_1 = td_1.score(epochs)
+
+    td_2 = TimeDecoding()
+    td_2.fit(epochs)
+    score_2 = td_2.score(epochs)
+    assert_array_equal(score_1, score_2)
+
+    td_1.scorer = 'accuracies'
+    assert_raises(KeyError, td_1.score, epochs)
+
 
 run_tests_if_main()

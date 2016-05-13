@@ -10,7 +10,7 @@ from scipy import fftpack
 # XXX explore cuda optimazation at some point.
 
 from ..io.pick import pick_types, pick_info
-from ..utils import logger, verbose
+from ..utils import verbose, warn
 from ..parallel import parallel_func, check_n_jobs
 from .tfr import AverageTFR, _get_data
 
@@ -31,9 +31,8 @@ def _check_input_st(x_in, n_fft):
                          "Got %s < %s." % (n_fft, n_times))
     zero_pad = None
     if n_times < n_fft:
-        msg = ('The input signal is shorter ({0}) than "n_fft" ({1}). '
-               'Applying zero padding.').format(x_in.shape[-1], n_fft)
-        logger.warning(msg)
+        warn('The input signal is shorter ({0}) than "n_fft" ({1}). '
+             'Applying zero padding.'.format(x_in.shape[-1], n_fft))
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)
         x_in = np.concatenate((x_in, pad_array), axis=-1)
@@ -226,7 +225,7 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     See Also
     --------
     cwt : Compute time-frequency decomposition with user-provided wavelets
-    cwt_morlet, multitaper_psd
+    cwt_morlet, psd_multitaper
 
     Notes
     -----

@@ -3,11 +3,13 @@ import os
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
 import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, io, pick_channels)
+from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
 from mne.event import define_target_events, merge_events
 
@@ -26,13 +28,27 @@ fname_old_txt = op.join(base_dir, 'test-eve-old-style.eve')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 
+def test_fix_stim():
+    """Test fixing stim STI016 for Neuromag"""
+    raw = io.read_raw_fif(raw_fname, preload=True)
+    # 32768 (016) + 3 (002+001) bits gets incorrectly coded during acquisition
+    raw._data[raw.ch_names.index('STI 014'), :3] = [0, -32765, 0]
+    with warnings.catch_warnings(record=True) as w:
+        events = find_events(raw, 'STI 014')
+    assert_true(len(w) >= 1)
+    assert_true(any('STI016' in str(ww.message) for ww in w))
+    assert_array_equal(events[0], [raw.first_samp + 1, 0, 32765])
+    events = find_events(raw, 'STI 014', uint_cast=True)
+    assert_array_equal(events[0], [raw.first_samp + 1, 0, 32771])
+
+
 def test_add_events():
     """Test adding events to a Raw file"""
     # need preload
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = np.array([[raw.first_samp, 0, 1]])
     assert_raises(RuntimeError, raw.add_events, events, 'STI 014')
-    raw = io.Raw(raw_fname, preload=True)
+    raw = io.read_raw_fif(raw_fname, preload=True)
     orig_events = find_events(raw, 'STI 014')
     # add some events
     events = np.array([raw.first_samp, 0, 1])
@@ -50,26 +66,39 @@ def test_add_events():
 
 
 def test_merge_events():
-    """Test event merging
-    """
-    events = read_events(fname)  # Use as the gold standard
-    merges = [1, 2, 3, 4]
-    events_out = merge_events(events, merges, 1234)
-    events_out2 = events.copy()
-    for m in merges:
-        assert_true(not np.any(events_out[:, 2] == m))
-        events_out2[events[:, 2] == m, 2] = 1234
-    assert_array_equal(events_out, events_out2)
-    # test non-replacement functionality, should be sorted union of orig & new
-    events_out2 = merge_events(events, merges, 1234, False)
-    events_out = np.concatenate((events_out, events))
-    events_out = events_out[np.argsort(events_out[:, 0])]
-    assert_array_equal(events_out, events_out2)
+    """Test event merging"""
+    events_orig = [[1, 0, 1], [3, 0, 2], [10, 0, 3], [20, 0, 4]]
+
+    events_replacement = \
+        [[1, 0, 12],
+         [3, 0, 12],
+         [10, 0, 34],
+         [20, 0, 34]]
+
+    events_no_replacement = \
+        [[1, 0, 1],
+         [1, 0, 12],
+         [1, 0, 1234],
+         [3, 0, 2],
+         [3, 0, 12],
+         [3, 0, 1234],
+         [10, 0, 3],
+         [10, 0, 34],
+         [10, 0, 1234],
+         [20, 0, 4],
+         [20, 0, 34],
+         [20, 0, 1234]]
+
+    for replace_events, events_good in [(True, events_replacement),
+                                        (False, events_no_replacement)]:
+        events = merge_events(events_orig, [1, 2], 12, replace_events)
+        events = merge_events(events, [3, 4], 34, replace_events)
+        events = merge_events(events, [1, 2, 3, 4], 1234, replace_events)
+        assert_array_equal(events, events_good)
 
 
 def test_io_events():
-    """Test IO for events
-    """
+    """Test IO for events"""
     tempdir = _TempDir()
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
@@ -88,7 +117,10 @@ def test_io_events():
     write_events(op.join(tempdir, 'events.eve'), events)
     events2 = read_events(op.join(tempdir, 'events.eve'))
     assert_array_almost_equal(events, events2)
-    events2 = read_events(fname_txt_mpr)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        events2 = read_events(fname_txt_mpr)
+        assert_true(sum('first row of' in str(ww.message) for ww in w) == 1)
     assert_array_almost_equal(events, events2)
 
     # Test old format text file IO
@@ -109,6 +141,13 @@ def test_io_events():
     assert_array_equal(a, c)
     assert_array_equal(a, d)
 
+    # test reading file with mask=None
+    events2 = events.copy()
+    events2[:, -1] = range(events2.shape[0])
+    write_events(op.join(tempdir, 'events-eve.fif'), events2)
+    events3 = read_events(op.join(tempdir, 'events-eve.fif'), mask=None)
+    assert_array_almost_equal(events2, events3)
+
     # Test binary file IO for 1 event
     events = read_events(fname_1)  # Use as the new gold standard
     write_events(op.join(tempdir, 'events-eve.fif'), events)
@@ -126,14 +165,13 @@ def test_io_events():
         fname2 = op.join(tempdir, 'test-bad-name.fif')
         write_events(fname2, events)
         read_events(fname2)
-    assert_true(len(w) == 2)
+    assert_naming(w, 'test_event.py', 2)
 
 
 def test_find_events():
-    """Test find events in raw file
-    """
+    """Test find events in raw file"""
     events = read_events(fname)
-    raw = io.Raw(raw_fname, preload=True)
+    raw = io.read_raw_fif(raw_fname, preload=True)
     # let's test the defaulting behavior while we're at it
     extra_ends = ['', '_1']
     orig_envs = [os.getenv('MNE_STIM_CHANNEL%s' % s) for s in extra_ends]
@@ -144,7 +182,10 @@ def test_find_events():
     assert_array_almost_equal(events, events2)
     # now test with mask
     events11 = find_events(raw, mask=3)
-    events22 = read_events(fname, mask=3)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        events22 = read_events(fname, mask=3)
+        assert_true(sum('events masked' in str(ww.message) for ww in w) == 1)
     assert_array_equal(events11, events22)
 
     # Reset some data for ease of comparison
@@ -163,13 +204,13 @@ def test_find_events():
 
     assert_raises(TypeError, find_events, raw, mask="0")
     assert_array_equal(find_events(raw, shortest_event=1, mask=1),
-                       [[2,    0,    2], [4,    2,    4]])
+                       [[2, 0, 2], [4, 2, 4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=2),
-                       [[1,    0,    1], [3,    0,    1], [4,    1,    4]])
+                       [[1, 0, 1], [3, 0, 1], [4, 1, 4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=3),
-                       [[4,    0,    4]])
+                       [[4, 0, 4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=4),
-                       [[1,    0,    1], [2,    1,    2], [3,    2,    3]])
+                       [[1, 0, 1], [2, 1, 2], [3, 2, 3]])
 
     # test empty events channel
     raw._data[stim_channel_idx, :] = 0
@@ -277,8 +318,7 @@ def test_find_events():
 
 
 def test_pick_events():
-    """Test pick events in a events ndarray
-    """
+    """Test pick events in a events ndarray"""
     events = np.array([[1, 0, 1],
                        [2, 1, 0],
                        [3, 0, 4],
@@ -298,18 +338,27 @@ def test_pick_events():
 
 
 def test_make_fixed_length_events():
-    """Test making events of a fixed length
-    """
-    raw = io.Raw(raw_fname)
+    """Test making events of a fixed length"""
+    raw = io.read_raw_fif(raw_fname)
     events = make_fixed_length_events(raw, id=1)
     assert_true(events.shape[1], 3)
+    events_zero = make_fixed_length_events(raw, 1, first_samp=False)
+    assert_equal(events_zero[0, 0], 0)
+    assert_array_equal(events_zero[:, 0], events[:, 0] - raw.first_samp)
+    # With limits
+    tmin, tmax = raw.times[[0, -1]]
+    duration = tmax - tmin
+    events = make_fixed_length_events(raw, 1, tmin, tmax, duration)
+    assert_equal(events.shape[0], 1)
+    # With bad limits (no resulting events)
+    assert_raises(ValueError, make_fixed_length_events, raw, 1,
+                  tmin, tmax - 1e-3, duration)
 
 
 def test_define_events():
-    """Test defining response events
-    """
+    """Test defining response events"""
     events = read_events(fname)
-    raw = io.Raw(raw_fname)
+    raw = io.read_raw_fif(raw_fname)
     events_, _ = define_target_events(events, 5, 32, raw.info['sfreq'],
                                       .2, 0.7, 42, 99)
     n_target = events[events[:, 2] == 5].shape[0]

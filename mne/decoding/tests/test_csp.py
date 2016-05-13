@@ -27,13 +27,14 @@ start, stop = 0, 8
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
     """
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
-    picks = picks[2:9:3]
+    picks = picks[2:9:3]  # subselect channels -> disable proj!
+    raw.add_proj([], remove_existing=True)
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True, proj=False)
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
 
@@ -59,7 +60,7 @@ def test_csp():
     sources = csp.transform(epochs_data)
     assert_true(sources.shape[1] == n_components)
 
-    epochs.pick_types(meg='mag', copy=False)
+    epochs.pick_types(meg='mag')
 
     # test plot patterns
     components = np.arange(n_components)
@@ -73,8 +74,10 @@ def test_csp():
     # test covariance estimation methods (results should be roughly equal)
     csp_epochs = CSP(cov_est="epoch")
     csp_epochs.fit(epochs_data, y)
-    assert_array_almost_equal(csp.filters_, csp_epochs.filters_, -1)
-    assert_array_almost_equal(csp.patterns_, csp_epochs.patterns_, -1)
+    for attr in ('filters_', 'patterns_'):
+        corr = np.corrcoef(getattr(csp, attr).ravel(),
+                           getattr(csp_epochs, attr).ravel())[0, 1]
+        assert_true(corr >= 0.95, msg='%s < 0.95' % corr)
 
     # make sure error is raised for undefined estimation method
     csp_fail = CSP(cov_est="undefined")
@@ -85,7 +88,7 @@ def test_csp():
 def test_regularized_csp():
     """Test Common Spatial Patterns algorithm using regularized covariance
     """
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')

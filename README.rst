@@ -18,9 +18,9 @@
 `mne-python <http://mne-tools.github.io/>`_
 =======================================================
 
-This package is designed for sensor- and source-space analysis of M-EEG
-data, including frequency-domain and time-frequency analyses and
-non-parametric statistics. This package is presently evolving quickly and
+This package is designed for sensor- and source-space analysis of [M/E]EG
+data, including frequency-domain and time-frequency analyses, MVPA/decoding
+and non-parametric statistics. This package is presently evolving quickly and
 thanks to the adopted open development environment user contributions can
 be easily incorporated.
 
@@ -47,14 +47,14 @@ To get the latest code using git, simply type::
 
     git clone git://github.com/mne-tools/mne-python.git
 
-If you don't have git installed, you can download a zip or tarball
-of the latest code: https://github.com/mne-tools/mne-python/archives/master
+If you don't have git installed, you can download a zip
+of the latest code: https://github.com/mne-tools/mne-python/archive/master.zip
 
 Install mne-python
 ^^^^^^^^^^^^^^^^^^
 
-As any Python packages, to install MNE-Python, go in the mne-python source
-code directory and do::
+As any Python packages, to install MNE-Python, after obtaining the source code
+(e.g. from git), go in the mne-python source code directory and do::
 
     python setup.py install
 
@@ -69,6 +69,10 @@ You can also install the latest release version with easy_install::
 
 or with pip::
 
+    pip install mne
+    
+for an update of an already installed version use::
+
     pip install mne --upgrade
 
 or for the latest development version (the most up to date)::
@@ -82,14 +86,15 @@ The required dependencies to build the software are python >= 2.6,
 NumPy >= 1.6, SciPy >= 0.7.2 and matplotlib >= 0.98.4.
 
 Some isolated functions require pandas >= 0.7.3.
+Decoding relies on scikit-learn >= 0.15.
 
 To run the tests you will also need nose >= 0.10.
 and the MNE sample dataset (will be downloaded automatically
-when you run an example ... but be patient)
+when you run an example ... but be patient).
 
-To use NVIDIA CUDA for FFT FIR filtering, you will also need to install
-the NVIDIA CUDA SDK, pycuda, and scikits.cuda. The difficulty of this varies
-by platform; consider reading the following site for help getting pycuda
+To use NVIDIA CUDA for resampling and FFT FIR filtering, you will also need
+to install the NVIDIA CUDA SDK, pycuda, and scikits.cuda. The difficulty of this
+varies by platform; consider reading the following site for help getting pycuda
 to work (typically the most difficult to configure):
 
 http://wiki.tiker.net/PyCuda/Installation/

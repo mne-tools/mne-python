@@ -5,13 +5,14 @@ From raw data to dSPM on SPM Faces dataset
 ==========================================
 
 Runs a full pipeline using MNE-Python:
-- artifact removal
-- averaging Epochs
-- forward model computation
-- source reconstruction using dSPM on the contrast : "faces - scrambled"
 
-Note that this example does quite a bit of processing, so even on a
-fast machine it can take about 10 minutes to complete.
+    - artifact removal
+    - averaging Epochs
+    - forward model computation
+    - source reconstruction using dSPM on the contrast : "faces - scrambled"
+
+.. note:: This example does quite a bit of processing, so even on a
+          fast machine it can take several minutes to complete.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -35,9 +36,12 @@ subjects_dir = data_path + '/subjects'
 ###############################################################################
 # Load and filter data, set up epochs
 
-raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
+raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
 
-raw = io.Raw(raw_fname % 1, preload=True)  # Take first run
+raw = io.read_raw_ctf(raw_fname % 1, preload=True)  # Take first run
+# Here to save memory and time we'll downsample heavily -- this is not
+# advised for real data as it can effectively jitter events!
+raw.resample(120., npad='auto')
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 30, method='iir')
@@ -57,7 +61,7 @@ epochs = mne.Epochs(raw, events, event_ids, tmin, tmax,  picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
 # Fit ICA, find and remove major artifacts
-ica = ICA(n_components=0.95).fit(raw, decim=6, reject=reject)
+ica = ICA(n_components=0.95, random_state=0).fit(raw, decim=1, reject=reject)
 
 # compute correlation scores, get bad indices sorted by score
 eog_epochs = create_eog_epochs(raw, ch_name='MRT31-2908', reject=reject)
@@ -66,9 +70,9 @@ ica.plot_scores(eog_scores, eog_inds)  # see scores the selection is based on
 ica.plot_components(eog_inds)  # view topographic sensitivity of components
 ica.exclude += eog_inds[:1]  # we saw the 2nd ECG component looked too dipolar
 ica.plot_overlay(eog_epochs.average())  # inspect artifact removal
-epochs_cln = ica.apply(epochs, copy=True)  # clean data, default in place
+ica.apply(epochs)  # clean data, default in place
 
-evoked = [epochs_cln[k].average() for k in event_ids]
+evoked = [epochs[k].average() for k in event_ids]
 
 contrast = evoked[1] - evoked[0]
 
@@ -80,7 +84,7 @@ for e in evoked:
 plt.show()
 
 # estimate noise covarariance
-noise_cov = mne.compute_covariance(epochs_cln, tmax=0)
+noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk')
 
 ###############################################################################
 # Visualize fields on MEG helmet

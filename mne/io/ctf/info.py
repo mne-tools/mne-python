@@ -10,7 +10,7 @@ from calendar import timegm
 
 import numpy as np
 
-from ...utils import logger
+from ...utils import logger, warn
 from ...transforms import (apply_trans, _coord_frame_name, invert_transform,
                            combine_transforms)
 
@@ -68,7 +68,12 @@ def _convert_time(date_str, time_str):
         else:
             break
     else:
-        raise RuntimeError("Illegal date: %s" % date)
+        raise RuntimeError(
+            'Illegal date: %s.\nIf the language of the date does not '
+            'correspond to your local machine\'s language try to set the '
+            'locale to the language of the date string:\n'
+            'locale.setlocale(locale.LC_ALL, "en_US")' % date_str)
+
     for fmt in ('%H:%M:%S', '%H:%M'):
         try:
             time = strptime(time_str, fmt)
@@ -77,7 +82,7 @@ def _convert_time(date_str, time_str):
         else:
             break
     else:
-        raise RuntimeError('Illegal time: %s' % time)
+        raise RuntimeError('Illegal time: %s' % time_str)
     # MNE-C uses mktime which uses local time, but here we instead decouple
     # conversion location from the process, and instead assume that the
     # acquisiton was in GMT. This will be wrong for most sites, but at least
@@ -132,6 +137,19 @@ def _convert_channel_info(res4, t, use_eeg_pos):
         if cch['sensor_type_index'] in (CTF.CTFV_REF_MAG_CH,
                                         CTF.CTFV_REF_GRAD_CH,
                                         CTF.CTFV_MEG_CH):
+            # Extra check for a valid MEG channel
+            if np.sum(cch['coil']['pos'][0] ** 2) < 1e-6 or \
+                    np.sum(cch['coil']['norm'][0] ** 2) < 1e-6:
+                nmisc += 1
+                ch.update(logno=nmisc, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                          kind=FIFF.FIFFV_MISC_CH, unit=FIFF.FIFF_UNIT_V)
+                text = 'MEG'
+                if cch['sensor_type_index'] != CTF.CTFV_MEG_CH:
+                    text += ' ref'
+                warn('%s channel %s did not have position assigned, so '
+                     'it was changed to a MISC channel'
+                     % (text, ch['ch_name']))
+                continue
             ch['unit'] = FIFF.FIFF_UNIT_T
             # Set up the local coordinate frame
             pos['r0'][:] = cch['coil']['pos'][0]
@@ -142,24 +160,28 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 pos['ez'] *= -1
             # Check how the other vectors should be defined
             off_diag = False
+            # Default: ex and ey are arbitrary in the plane normal to ez
             if cch['sensor_type_index'] == CTF.CTFV_REF_GRAD_CH:
+                # The off-diagonal gradiometers are an exception:
+                #
                 # We use the same convention for ex as for Neuromag planar
-                # gradiometers: pointing in the positive gradient direction
+                # gradiometers: ex pointing in the positive gradient direction
                 diff = cch['coil']['pos'][0] - cch['coil']['pos'][1]
                 size = np.sqrt(np.sum(diff * diff))
                 if size > 0.:
                     diff /= size
+                # Is ez normal to the line joining the coils?
                 if np.abs(np.dot(diff, pos['ez'])) < 1e-3:
                     off_diag = True
-                if off_diag:
-                    # The off-diagonal gradiometers are an exception
+                    # Handle the off-diagonal gradiometer coordinate system
                     pos['r0'] -= size * diff / 2.0
                     pos['ex'][:] = diff
                     pos['ey'][:] = np.cross(pos['ez'], pos['ex'])
+                else:
+                    pos['ex'][:], pos['ey'][:] = _get_plane_vectors(pos['ez'])
             else:
-                # ex and ey are arbitrary in the plane normal to ex
                 pos['ex'][:], pos['ey'][:] = _get_plane_vectors(pos['ez'])
-            # Transform into a Neuromag-like coordinate system
+            # Transform into a Neuromag-like device coordinate system
             pos['r0'][:] = apply_trans(t['t_ctf_dev_dev'], pos['r0'])
             for key in ('ex', 'ey', 'ez'):
                 pos[key][:] = apply_trans(t['t_ctf_dev_dev'], pos[key],
@@ -194,31 +216,24 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 pos['r0'][:] = cch['coil']['pos'][0]
                 if not _at_origin(pos['r0']):
                     if t['t_ctf_head_head'] is None:
-                        logger.warning('EEG electrode (%s) location omitted '
-                                       'because of missing HPI information'
-                                       % (ch['ch_name']))
+                        warn('EEG electrode (%s) location omitted because of '
+                             'missing HPI information' % ch['ch_name'])
                         pos['r0'][:] = np.zeros(3)
                         coord_frame = FIFF.FIFFV_COORD_CTF_HEAD
                     else:
                         pos['r0'][:] = apply_trans(t['t_ctf_head_head'],
                                                    pos['r0'])
             neeg += 1
-            ch['logno'] = neeg
-            ch['kind'] = FIFF.FIFFV_EEG_CH
-            ch['unit'] = FIFF.FIFF_UNIT_V
-            ch['coord_frame'] = coord_frame
+            ch.update(logno=neeg, kind=FIFF.FIFFV_EEG_CH,
+                      unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame)
         elif cch['sensor_type_index'] == CTF.CTFV_STIM_CH:
             nstim += 1
-            ch['logno'] = nstim
-            ch['kind'] = FIFF.FIFFV_STIM_CH
-            ch['unit'] = FIFF.FIFF_UNIT_V
-            ch['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
+            ch.update(logno=nstim, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                      kind=FIFF.FIFFV_STIM_CH, unit=FIFF.FIFF_UNIT_V)
         else:
             nmisc += 1
-            ch['logno'] = nmisc
-            ch['kind'] = FIFF.FIFFV_MISC_CH
-            ch['unit'] = FIFF.FIFF_UNIT_V
-            ch['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
+            ch.update(logno=nmisc, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                      kind=FIFF.FIFFV_MISC_CH, unit=FIFF.FIFF_UNIT_V)
     return chs
 
 
@@ -389,13 +404,11 @@ def _compose_meas_info(res4, coils, trans, eeg):
         if trans['t_ctf_head_head'] is not None:
             info['ctf_head_t'] = trans['t_ctf_head_head']
     info['chs'] = _convert_channel_info(res4, trans, eeg is None)
-    info['nchan'] = len(info['chs'])
     info['comps'] = _convert_comp_data(res4)
     if eeg is None:
         # Pick EEG locations from chan info if not read from a separate file
         eeg = _pick_eeg_pos(info)
     _add_eeg_pos(eeg, trans, info)
-    info['ch_names'] = [ch['ch_name'] for ch in info['chs']]
     logger.info('    Measurement info composed.')
-    info._check_consistency()
+    info._update_redundant()
     return info

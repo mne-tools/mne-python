@@ -66,6 +66,7 @@ def get_name(func):
 _docstring_ignores = [
     'mne.io.write',  # always ignore these
     'mne.fixes._in1d',  # fix function
+    'mne.epochs.average_movements',  # deprecated pos param
 ]
 
 _tab_ignores = [

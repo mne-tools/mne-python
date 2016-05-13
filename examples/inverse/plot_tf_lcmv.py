@@ -16,7 +16,6 @@ dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 
 import mne
 from mne import compute_covariance
-from mne.io import Raw
 from mne.datasets import sample
 from mne.event import make_fixed_length_events
 from mne.beamformer import tf_lcmv
@@ -35,17 +34,21 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 
 ###############################################################################
 # Read raw data, preload to allow filtering
-raw = Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Pick a selection of magnetometer channels. A subset of all channels was used
 # to speed up the example. For a solution based on all MEG channels use
 # meg=True, selection=None and add grad=4000e-13 to the reject dictionary.
+# We could do this with a "picks" argument to Epochs and the LCMV functions,
+# but here we use raw.pick_types() to save memory.
 left_temporal_channels = mne.read_selection('Left-temporal')
-picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
-                       stim=False, exclude='bads',
-                       selection=left_temporal_channels)
+raw.pick_types(meg='mag', eeg=False, eog=False, stim=False, exclude='bads',
+               selection=left_temporal_channels)
 reject = dict(mag=4e-12)
+# Re-normalize our empty-room projectors, which should be fine after
+# subselection
+raw.info.normalize_proj()
 
 # Setting time limits for reading epochs. Note that tmin and tmax are set so
 # that time-frequency beamforming will be performed for a wider range of time
@@ -61,24 +64,26 @@ tmin_plot, tmax_plot = -0.3, 0.5  # s
 # parameters passed here are used to create epochs from filtered data. However,
 # reading epochs without preloading means that bad epoch rejection is delayed
 # until later. To perform bad epoch rejection based on the reject parameter
-# passed here, run epochs.drop_bad_epochs(). This is done automatically in
+# passed here, run epochs.drop_bad(). This is done automatically in
 # tf_lcmv to reject bad epochs based on unfiltered data.
 event_id = 1
 events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=None, preload=False,
-                    reject=reject)
+                    baseline=None, preload=False, reject=reject)
 
-# Read empty room noise, preload to allow filtering
-raw_noise = Raw(noise_fname, preload=True)
+# Read empty room noise, preload to allow filtering, and pick subselection
+raw_noise = mne.io.read_raw_fif(noise_fname, preload=True)
 raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
+raw_noise.pick_types(meg='mag', eeg=False, eog=False, stim=False,
+                     exclude='bads', selection=left_temporal_channels)
+raw_noise.info.normalize_proj()
 
 # Create artificial events for empty room noise data
 events_noise = make_fixed_length_events(raw_noise, event_id, duration=1.)
 # Create an epochs object using preload=True to reject bad epochs based on
 # unfiltered data
 epochs_noise = mne.Epochs(raw_noise, events_noise, event_id, tmin, tmax,
-                          proj=True, picks=picks, baseline=None,
+                          proj=True, baseline=None,
                           preload=True, reject=reject)
 
 # Make sure the number of noise epochs is the same as data epochs
@@ -114,10 +119,10 @@ subtract_evoked = False
 noise_covs = []
 for (l_freq, h_freq) in freq_bins:
     raw_band = raw_noise.copy()
-    raw_band.filter(l_freq, h_freq, picks=epochs.picks, method='iir', n_jobs=1)
+    raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1)
     epochs_band = mne.Epochs(raw_band, epochs_noise.events, event_id,
                              tmin=tmin_plot, tmax=tmax_plot, baseline=None,
-                             picks=epochs.picks, proj=True)
+                             proj=True)
 
     noise_cov = compute_covariance(epochs_band, method='shrunk')
     noise_covs.append(noise_cov)

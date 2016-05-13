@@ -6,18 +6,17 @@
 #
 # License: BSD (3-clause)
 
-from collections import namedtuple
 from inspect import isgenerator
-import warnings
-from ..externals.six import string_types
+from collections import namedtuple
 
 import numpy as np
 from scipy import linalg, sparse
 
+from ..externals.six import string_types
 from ..source_estimate import SourceEstimate
 from ..epochs import _BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger, _reject_data_segments, _get_fast_dot
+from ..utils import logger, _reject_data_segments, warn
 from ..io.pick import pick_types, pick_info
 from ..fixes import in1d
 
@@ -67,8 +66,8 @@ def linear_regression(inst, design_matrix, names=None):
                            stim=False, eog=False, ecg=False,
                            emg=False, exclude=['bads'])
         if [inst.ch_names[p] for p in picks] != inst.ch_names:
-            warnings.warn('Fitting linear model to non-data or bad '
-                          'channels. Check picking', UserWarning)
+            warn('Fitting linear model to non-data or bad channels. '
+                 'Check picking')
         msg = 'Fitting linear model to epochs'
         data = inst.get_data()
         out = EvokedArray(np.zeros(data.shape[1:]), inst.info, inst.tmin)
@@ -156,7 +155,7 @@ def _fit_lm(data, design_matrix, names):
 
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
-                          decim=1, picks=None, solver='pinv'):
+                          decim=1, picks=None, solver='cholesky'):
     """Estimate regression-based evoked potentials/fields by linear modelling
 
     This models the full M/EEG time course, including correction for
@@ -208,8 +207,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
             reject = dict(grad=4000e-12, # T / m (gradiometers)
                           mag=4e-11, # T (magnetometers)
-                          eeg=40e-5, # uV (EEG channels)
-                          eog=250e-5 # uV (EOG channels))
+                          eeg=40e-5, # V (EEG channels)
+                          eog=250e-5 # V (EOG channels))
 
     flat : None | dict
         or cleaning raw data before the regression is performed: set up
@@ -229,8 +228,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     solver : str | function
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
-        matrix b; or a string (for now, only 'pinv'), in which case the
-        solver used is dot(scipy.linalg.pinv(dot(X.T, X)), dot(X.T, Y.T)).T.
+        matrix b; or a string. If str, must be ``'cholesky'``, in which case
+        the solver used is ``linalg.solve(dot(X.T, X), dot(X.T, y))``.
 
     Returns
     -------
@@ -247,44 +246,84 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     """
 
     if isinstance(solver, string_types):
-        if solver == 'pinv':
-            fast_dot = _get_fast_dot()
+        if solver == 'cholesky':
+            def solver(X, y):
+                a = (X.T * X).toarray()  # dot product of sparse matrices
+                return linalg.solve(a, X.T * y.T, sym_pos=True,
+                                    overwrite_a=True, overwrite_b=True).T
 
-            # inv is slightly (~10%) faster, but pinv seemingly more stable
-            def solver(X, Y):
-                return fast_dot(linalg.pinv(X.T.dot(X).todense()),
-                                X.T.dot(Y.T)).T
         else:
             raise ValueError("No such solver: {0}".format(solver))
 
-    # prepare raw and events
+    # build data
+    data, info, events = _prepare_rerp_data(raw, events, picks=picks,
+                                            decim=decim)
+
+    # build predictors
+    X, conds, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
+        n_samples=data.shape[1], sfreq=info["sfreq"], events=events,
+        event_id=event_id, tmin=tmin, tmax=tmax, covariates=covariates)
+
+    # remove "empty" and contaminated data points
+    X, data = _clean_rerp_input(X, data, reject, flat, decim, info, tstep)
+
+    # solve linear system
+    coefs = solver(X, data)
+
+    # construct Evoked objects to be returned from output
+    evokeds = _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info)
+
+    return evokeds
+
+
+def _prepare_rerp_data(raw, events, picks=None, decim=1):
+    """Prepare events and data, primarily for `linear_regression_raw`. See
+    there for an explanation of parameters and output."""
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
-    info = pick_info(raw.info, picks, copy=True)
+    info = pick_info(raw.info, picks)
     decim = int(decim)
     info["sfreq"] /= decim
     data, times = raw[:]
     data = data[picks, ::decim]
-    times = times[::decim]
+    if len(set(events[:, 0])) < len(events[:, 0]):
+        raise ValueError("`events` contains duplicate time points. Make "
+                         "sure all entries in the first column of `events` "
+                         "are unique.")
+
     events = events.copy()
     events[:, 0] -= raw.first_samp
     events[:, 0] //= decim
+    if len(set(events[:, 0])) < len(events[:, 0]):
+        raise ValueError("After decimating, `events` contains duplicate time "
+                         "points. This means some events are too closely "
+                         "spaced for the requested decimation factor. Choose "
+                         "different events, drop close events, or choose a "
+                         "different decimation factor.")
 
+    return data, info, events
+
+
+def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
+                        tmax=1, covariates=None):
+    """Build predictor matrix as well as metadata (e.g. condition time
+    windows), primarily for `linear_regression_raw`. See there for
+    an explanation of parameters and output."""
     conds = list(event_id)
     if covariates is not None:
         conds += list(covariates)
 
     # time windows (per event type) are converted to sample points from times
     if isinstance(tmin, (float, int)):
-        tmin_s = dict((cond, int(tmin * info["sfreq"])) for cond in conds)
+        tmin_s = dict((cond, int(tmin * sfreq)) for cond in conds)
     else:
-        tmin_s = dict((cond, int(tmin.get(cond, -.1) * info["sfreq"]))
+        tmin_s = dict((cond, int(tmin.get(cond, -.1) * sfreq))
                       for cond in conds)
     if isinstance(tmax, (float, int)):
         tmax_s = dict(
-            (cond, int((tmax * info["sfreq"]) + 1.)) for cond in conds)
+            (cond, int((tmax * sfreq) + 1.)) for cond in conds)
     else:
-        tmax_s = dict((cond, int((tmax.get(cond, 1.) * info["sfreq"]) + 1))
+        tmax_s = dict((cond, int((tmax.get(cond, 1.) * sfreq) + 1))
                       for cond in conds)
 
     # Construct predictor matrix
@@ -318,34 +357,38 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
         cond_length[cond] = len(onsets)
         xs.append(sparse.dia_matrix((values, onsets),
-                                    shape=(data.shape[1], n_lags)))
+                                    shape=(n_samples, n_lags)))
 
-    X = sparse.hstack(xs)
+    return sparse.hstack(xs), conds, cond_length, tmin_s, tmax_s
 
+
+def _clean_rerp_input(X, data, reject, flat, decim, info, tstep):
+    """Remove empty and contaminated points from data and predictor matrices,
+    for `linear_regression_raw`. See there for an explanation of parameters."""
     # find only those positions where at least one predictor isn't 0
     has_val = np.unique(X.nonzero()[0])
 
-    # additionally, reject positions based on extreme steps in the data
+    # reject positions based on extreme steps in the data
     if reject is not None:
         _, inds = _reject_data_segments(data, reject, flat, decim=None,
                                         info=info, tstep=tstep)
         for t0, t1 in inds:
             has_val = np.setdiff1d(has_val, range(t0, t1))
 
-    # solve linear system
-    X, data = X.tocsr()[has_val], data[:, has_val]
-    coefs = solver(X, data)
+    return X.tocsr()[has_val], data[:, has_val]
 
-    # construct Evoked objects to be returned from output
+
+def _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info):
+    """Create a dictionary of Evoked objects from a coefs matrix and condition
+    durations, primarily for `linear_regression_raw`. See there for an
+    explanation of parameters and output."""
     evokeds = dict()
-    cum = 0
+    cumul = 0
     for cond in conds:
         tmin_, tmax_ = tmin_s[cond], tmax_s[cond]
-        evokeds[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                    info=info, comment=cond,
-                                    tmin=tmin_ / float(info["sfreq"]),
-                                    nave=cond_length[cond],
-                                    kind='mean')  # note that nave and kind are
-        cum += tmax_ - tmin_                      # technically not correct
-
+        evokeds[cond] = EvokedArray(
+            coefs[:, cumul:cumul + tmax_ - tmin_], info=info, comment=cond,
+            tmin=tmin_ / float(info["sfreq"]), nave=cond_length[cond],
+            kind='average')  # nave and kind are technically incorrect
+        cumul += tmax_ - tmin_
     return evokeds

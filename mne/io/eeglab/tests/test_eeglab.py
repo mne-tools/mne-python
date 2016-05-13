@@ -9,7 +9,7 @@ import warnings
 from nose.tools import assert_raises, assert_equal
 from numpy.testing import assert_array_equal
 
-from mne import write_events, read_epochs_eeglab
+from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
@@ -30,17 +30,37 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 def test_io_set():
     """Test importing EEGLAB .set files"""
     from scipy import io
-
-    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname, montage=montage)
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True) as w1:
         warnings.simplefilter('always')
+        # main tests, and test missing event_id
+        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
+                         montage=montage)
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
                          montage=montage)
-        raw = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage)
-        raw2 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
-        assert_array_equal(raw[:][0], raw2[:][0])
-    # one warning per each preload=False or str with raw_fname_onefile
-    assert_equal(len(w), 3)
+        assert_equal(len(w1), 20)
+        # f3 or preload_false and a lot for dropping events
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        # test finding events in continuous data
+        event_id = {'rt': 1, 'square': 2}
+        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                               event_id=event_id, preload=True)
+        raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                               event_id=event_id, preload=False)
+        raw2 = read_raw_eeglab(input_fname=raw_fname_onefile, montage=montage,
+                               event_id=event_id)
+        raw3 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                               event_id=event_id)
+        raw4 = read_raw_eeglab(input_fname=raw_fname, montage=montage)
+        Epochs(raw0, find_events(raw0), event_id)
+        epochs = Epochs(raw1, find_events(raw1), event_id)
+        assert_equal(len(find_events(raw4)), 0)  # no events without event_id
+        assert_equal(epochs["square"].average().nave, 80)  # 80 with
+        assert_array_equal(raw0[:][0], raw1[:][0], raw2[:][0], raw3[:][0])
+        assert_array_equal(raw0[:][-1], raw1[:][-1], raw2[:][-1], raw3[:][-1])
+        assert_equal(len(w), 4)
+        # 1 for preload=False / str with fname_onefile, 3 for dropped events
+        raw0.filter(1, None)  # test that preloading works
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -63,6 +83,21 @@ def test_io_set():
                   None, event_id)
     assert_raises(ValueError, read_epochs_eeglab, epochs_fname,
                   epochs.events, None)
+
+    # test reading file with one event
+    eeg = io.loadmat(raw_fname, struct_as_record=False,
+                     squeeze_me=True)['EEG']
+    one_event_fname = op.join(temp_dir, 'test_one_event.set')
+    io.savemat(one_event_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
+                'epoch': eeg.epoch, 'event': eeg.event[0],
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    op.join(temp_dir, 'test_one_event.fdt'))
+    event_id = {eeg.event[0].type: 1}
+    read_raw_eeglab(input_fname=one_event_fname, montage=montage,
+                    event_id=event_id, preload=True)
 
     # test if .dat file raises an error
     eeg = io.loadmat(epochs_fname, struct_as_record=False,

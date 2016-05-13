@@ -6,7 +6,7 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy import linalg
 
-from ..utils import logger
+from ..utils import logger, warn
 from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
 from ..bem import _fit_sphere
@@ -33,27 +33,6 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
     """
     factors = [(2 * n + 1) / (n ** stiffness * (n + 1) ** stiffness *
                               4 * np.pi) for n in range(1, num_lterms + 1)]
-    return legval(cosang, [0] + factors)
-
-
-def _calc_h(cosang, stiffness=4, num_lterms=50):
-    """Calculate spherical spline h function between points on a sphere.
-
-    Parameters
-    ----------
-    cosang : array-like of float, shape(n_channels, n_channels)
-        cosine of angles between pairs of points on a spherical surface. This
-        is equivalent to the dot product of unit vectors.
-    stiffness : float
-        stiffness of the spline. Also referred to as `m`.
-    num_lterms : int
-        number of Legendre terms to evaluate.
-    H : np.ndrarray of float, shape(n_channels, n_channels)
-        The H matrix.
-    """
-    factors = [(2 * n + 1) /
-               (n ** (stiffness - 1) * (n + 1) ** (stiffness - 1) * 4 * np.pi)
-               for n in range(1, num_lterms + 1)]
     return legval(cosang, [0] + factors)
 
 
@@ -95,13 +74,18 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     cosang_from = pos_from.dot(pos_from.T)
     cosang_to_from = pos_to.dot(pos_from.T)
     G_from = _calc_g(cosang_from)
-    G_to_from, H_to_from = (f(cosang_to_from) for f in (_calc_g, _calc_h))
+    G_to_from = _calc_g(cosang_to_from)
 
     if alpha is not None:
         G_from.flat[::len(G_from) + 1] += alpha
 
-    C_inv = linalg.pinv(G_from)
-    interpolation = G_to_from.dot(C_inv)
+    n_channels = G_from.shape[0]  # G_from should be square matrix
+    C = np.r_[np.c_[G_from, np.ones((n_channels, 1))],
+              np.c_[np.ones((1, n_channels)), 0]]
+    C_inv = linalg.pinv(C)
+
+    interpolation = np.c_[G_to_from,
+                          np.ones((G_to_from.shape[0], 1))].dot(C_inv[:, :-1])
     return interpolation
 
 
@@ -161,8 +145,8 @@ def _interpolate_bads_eeg(inst):
     distance = np.sqrt(np.sum((pos_good - center) ** 2, 1))
     distance = np.mean(distance / radius)
     if np.abs(1. - distance) > 0.1:
-        logger.warning('Your spherical fit is poor, interpolation results are '
-                       'likely to be inaccurate.')
+        warn('Your spherical fit is poor, interpolation results are '
+             'likely to be inaccurate.')
 
     logger.info('Computing interpolation matrix from {0} sensor '
                 'positions'.format(len(pos_good)))
@@ -201,7 +185,7 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     # return without doing anything if there are no meg channels
     if len(picks_meg) == 0 or len(picks_bad) == 0:
         return
-    info_from = pick_info(inst.info, picks_good, copy=True)
-    info_to = pick_info(inst.info, picks_bad, copy=True)
+    info_from = pick_info(inst.info, picks_good)
+    info_to = pick_info(inst.info, picks_bad)
     mapping = _map_meg_channels(info_from, info_to, mode=mode)
     _do_interp_dots(inst, mapping, picks_good, picks_bad)

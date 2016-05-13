@@ -5,13 +5,12 @@
 #
 # License: BSD (3-clause)
 
-import warnings
 from copy import deepcopy
 
 import numpy as np
 from scipy import linalg
 
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc
@@ -352,9 +351,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         for i in range(len(frequencies) - 1):
             fstep.append(frequencies[i + 1] - frequencies[i])
         if not np.allclose(fstep, np.mean(fstep), 1e-5):
-            warnings.warn('Uneven frequency spacing in CSD object, '
-                          'frequencies in the resulting stc file will be '
-                          'inaccurate.')
+            warn('Uneven frequency spacing in CSD object, frequencies in the '
+                 'resulting stc file will be inaccurate.')
         fstep = fstep[0]
     elif len(frequencies) > 1:
         fstep = frequencies[1] - frequencies[0]
@@ -549,7 +547,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             # be calculated for an additional time window
             if i_time == n_time_steps - 1 and win_tmax - tstep < tmax and\
                win_tmax >= tmax + (epochs.times[-1] - epochs.times[-2]):
-                warnings.warn('Adding a time window to cover last time points')
+                warn('Adding a time window to cover last time points')
                 win_tmin = tmax - win_length
                 win_tmax = tmax
 

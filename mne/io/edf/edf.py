@@ -7,15 +7,14 @@
 #
 # License: BSD (3-clause)
 
-import os
 import calendar
 import datetime
+import os
 import re
-import warnings
 
 import numpy as np
 
-from ...utils import verbose, logger
+from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
 from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
@@ -80,8 +79,8 @@ class RawEDF(_BaseRaw):
         _check_update_montage(info, montage)
 
         if bool(annot) != bool(annotmap):
-            warnings.warn(("Stimulus Channel will not be annotated. "
-                           "Both 'annot' and 'annotmap' must be specified."))
+            warn("Stimulus Channel will not be annotated. Both 'annot' and "
+                 "'annotmap' must be specified.")
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
@@ -161,14 +160,12 @@ class RawEDF(_BaseRaw):
                             ch_data = np.hstack([ch_data, [0] * n_missing])
                             ch_data = ch_data[r_sidx:r_eidx]
                         elif ci == stim_channel:
-                            if annot and annotmap or \
-                                    tal_channel is not None:
+                            if annot and annotmap or tal_channel is not None:
                                 # don't bother with resampling the stim ch
                                 # because it gets overwritten later on.
                                 ch_data = np.zeros(n_buf_samp)
                             else:
-                                warnings.warn('Interpolating stim channel.'
-                                              ' Events may jitter.')
+                                # Stim channel will be interpolated
                                 oldrange = np.linspace(0, 1, n_samp + 1, True)
                                 newrange = np.linspace(0, 1, buf_len, False)
                                 newrange = newrange[r_sidx:r_eidx]
@@ -310,8 +307,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         record_length = float(fid.read(8).decode())
         if record_length == 0:
             edf_info['record_length'] = record_length = 1.
-            warnings.warn('Header information is incorrect for record length. '
-                          'Default record length set to 1.')
+            warn('Header information is incorrect for record length. Default '
+                 'record length set to 1.')
         else:
             edf_info['record_length'] = record_length
         nchan = int(fid.read(4).decode())
@@ -430,9 +427,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
     info = _empty_info(sfreq)
     info['filename'] = fname
     info['meas_date'] = calendar.timegm(date.utctimetuple())
-    info['nchan'] = nchan
     info['chs'] = chs
-    info['ch_names'] = ch_names
 
     if highpass.size == 0:
         pass
@@ -444,9 +439,9 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         else:
             info['highpass'] = float(highpass[0])
     else:
-        info['highpass'] = float(np.min(highpass))
-        warnings.warn('Channels contain different highpass filters. '
-                      'Highest filter setting will be stored.')
+        info['highpass'] = float(np.max(highpass))
+        warn('Channels contain different highpass filters. Highest filter '
+             'setting will be stored.')
 
     if lowpass.size == 0:
         pass
@@ -457,14 +452,19 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
             info['lowpass'] = float(lowpass[0])
     else:
         info['lowpass'] = float(np.min(lowpass))
-        warnings.warn('%s' % ('Channels contain different lowpass filters.'
-                              ' Lowest filter setting will be stored.'))
+        warn('Channels contain different lowpass filters. Lowest filter '
+             'setting will be stored.')
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None
     info['buffer_size_sec'] = 10.
     edf_info['nsamples'] = int(n_records * max_samp)
 
+    # These are the conditions under which a stim channel will be interpolated
+    if stim_channel is not None and not (annot and annotmap) and \
+            tal_channel is None and n_samps[stim_channel] != int(max_samp):
+        warn('Interpolating stim channel. Events may jitter.')
+    info._update_redundant()
     return info, edf_info
 
 

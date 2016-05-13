@@ -8,7 +8,7 @@ import datetime
 import calendar
 
 from ...utils import logger
-from ..utils import _read_segments_file, _find_channels
+from ..utils import _read_segments_file, _find_channels, _create_chs
 from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
@@ -103,10 +103,9 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     date = datetime.datetime(int(date[0]), int(date[1]), int(date[2]),
                              int(time[0]), int(time[1]), int(sec), int(msec))
     info = _empty_info(header_info['sample_freq'])
-    info.update({'filename': fname, 'nchan': header_info['num_channels'],
+    info.update({'filename': fname,
                  'meas_date': calendar.timegm(date.utctimetuple()),
-                 'ch_names': ch_names, 'description': None,
-                 'buffer_size_sec': 10.})
+                 'description': None, 'buffer_size_sec': 10.})
 
     if ch_type == 'eeg':
         ch_coil = FIFF.FIFFV_COIL_EEG
@@ -117,33 +116,12 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     else:
         raise TypeError("Channel type not recognized. Available types are "
                         "'eeg' and 'seeg'.")
-    cal = header_info['conversion_factor'] * 1e-6
-    for idx, ch_name in enumerate(ch_names):
-        if ch_name in eog or idx in eog:
-            coil_type = FIFF.FIFFV_COIL_NONE
-            kind = FIFF.FIFFV_EOG_CH
-        elif ch_name in ecg or idx in ecg:
-            coil_type = FIFF.FIFFV_COIL_NONE
-            kind = FIFF.FIFFV_ECG_CH
-        elif ch_name in emg or idx in emg:
-            coil_type = FIFF.FIFFV_COIL_NONE
-            kind = FIFF.FIFFV_EMG_CH
-        elif ch_name in misc or idx in misc:
-            coil_type = FIFF.FIFFV_COIL_NONE
-            kind = FIFF.FIFFV_MISC_CH
-        else:
-            coil_type = ch_coil
-            kind = ch_kind
-        chan_info = {'cal': cal, 'logno': idx + 1, 'scanno': idx + 1,
-                     'range': 1.0, 'unit_mul': 0., 'ch_name': ch_name,
-                     'unit': FIFF.FIFF_UNIT_V,
-                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                     'coil_type': coil_type, 'kind': kind, 'loc': np.zeros(12)}
-        info['chs'].append(chan_info)
-
+    cals = np.repeat(header_info['conversion_factor'] * 1e-6, len(ch_names))
+    info['chs'] = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg,
+                              misc)
     info['highpass'] = 0.
     info['lowpass'] = info['sfreq'] / 2.0
-
+    info._update_redundant()
     return info, header_info
 
 

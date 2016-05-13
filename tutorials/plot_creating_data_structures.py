@@ -13,14 +13,15 @@ import numpy as np
 
 ###############################################################################
 # ------------------------------------------------------
-# Creating :class:`Info <mne.io.meas_info.Info>` objects
+# Creating :class:`Info <mne.Info>` objects
 # ------------------------------------------------------
 #
 # .. note:: for full documentation on the `Info` object, see
-#           :ref:`tut_info_objects`.
+#           :ref:`tut_info_objects`. See also
+#           :ref:`sphx_glr_auto_examples_io_plot_objects_from_arrays.py`.
 #
-# Normally, :class:`mne.io.meas_info.Info` objects are created by the various
-# :ref:`data import functions` <ch_raw>`.
+# Normally, :class:`mne.Info` objects are created by the various
+# :ref:`data import functions <ch_convert>`.
 # However, if you wish to create one from scratch, you can use the
 # :func:`mne.create_info` function to initialize the minimally required
 # fields. Further fields can be assigned later as one would with a regular
@@ -62,7 +63,7 @@ print(info)
 
 ###############################################################################
 # .. note:: When assigning new values to the fields of an
-#           :class:`mne.io.meas_info.Info` object, it is important that the
+#           :class:`mne.Info` object, it is important that the
 #           fields are consistent:
 #
 #           - The length of the channel information field `chs` must be
@@ -72,13 +73,13 @@ print(info)
 #             of the channel information contained in `chs`.
 #
 # ---------------------------------------------
-# Creating :class:`Raw <mne.io.RawFIF>` objects
+# Creating :class:`Raw <mne.io.Raw>` objects
 # ---------------------------------------------
 #
 # To create a :class:`mne.io.Raw` object from scratch, you can use the
-# :class:`mne.RawArray` class, which implements raw data that is backed by a
+# :class:`mne.io.RawArray` class, which implements raw data that is backed by a
 # numpy array.  Its constructor simply takes the data matrix and
-# :class:`mne.io.meas_info.Info` object:
+# :class:`mne.Info` object:
 
 # Generate some random data
 data = np.random.randn(5, 1000)
@@ -105,7 +106,7 @@ print(custom_raw)
 
 # Generate some random data: 10 epochs, 5 channels, 2 seconds per epoch
 sfreq = 100
-data = np.random.randn(10, 5, sfreq*2)
+data = np.random.randn(10, 5, sfreq * 2)
 
 # Initialize an info structure
 info = mne.create_info(

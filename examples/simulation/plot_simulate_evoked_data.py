@@ -12,9 +12,7 @@ Generate simulated evoked data
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mne import (read_proj, read_forward_solution, read_cov, read_label,
-                 pick_types_forward, pick_types)
-from mne.io import Raw, read_info
+import mne
 from mne.datasets import sample
 from mne.time_frequency import fit_iir_model_raw
 from mne.viz import plot_sparse_source_estimates
@@ -26,8 +24,8 @@ print(__doc__)
 # Load real data as templates
 data_path = sample.data_path()
 
-raw = Raw(data_path + '/MEG/sample/sample_audvis_raw.fif')
-proj = read_proj(data_path + '/MEG/sample/sample_audvis_ecg_proj.fif')
+raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+proj = mne.read_proj(data_path + '/MEG/sample/sample_audvis_ecg-proj.fif')
 raw.info['projs'] += proj
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
 
@@ -35,13 +33,13 @@ fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
-fwd = read_forward_solution(fwd_fname, force_fixed=True, surf_ori=True)
-fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
-cov = read_cov(cov_fname)
-info = read_info(ave_fname)
+fwd = mne.read_forward_solution(fwd_fname, force_fixed=True, surf_ori=True)
+fwd = mne.pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
+cov = mne.read_cov(cov_fname)
+info = mne.io.read_info(ave_fname)
 
 label_names = ['Aud-lh', 'Aud-rh']
-labels = [read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
+labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
           for ln in label_names]
 
 ###############################################################################
@@ -61,7 +59,7 @@ stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
 
 ###############################################################################
 # Generate noisy evoked data
-picks = pick_types(raw.info, meg=True, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 iir_filter = fit_iir_model_raw(raw, order=5, picks=picks, tmin=60, tmax=180)[1]
 snr = 6.  # dB
 evoked = simulate_evoked(fwd, stc, info, cov, snr, iir_filter=iir_filter)

@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.beamformer import lcmv
 
 from nilearn.plotting import plot_stat_map
@@ -29,14 +28,13 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
 
 ###############################################################################
 # Get epochs
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
-raw = Raw(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname, preload=True, proj=True)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 events = mne.read_events(event_fname)
 
@@ -45,16 +43,22 @@ left_temporal_channels = mne.read_selection('Left-temporal')
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
                        exclude='bads', selection=left_temporal_channels)
 
+# Pick the channels of interest
+raw.pick_channels([raw.ch_names[pick] for pick in picks])
+# Re-normalize our empty-room projectors, so they are fine after subselection
+raw.info.normalize_proj()
+
 # Read epochs
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(None, 0), preload=True,
+proj = False  # already applied
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+                    baseline=(None, 0), preload=True, proj=proj,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()
 
 forward = mne.read_forward_solution(fname_fwd)
 
 # Read regularized noise covariance and compute regularized data covariance
-noise_cov = mne.read_cov(fname_cov)
+noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='shrunk')
 

@@ -37,10 +37,10 @@ def _dup_coil_set(coils, coord_frame, t):
     if t is not None:
         coord_frame = t['to']
         for coil in coils:
+            for key in ('ex', 'ey', 'ez'):
+                if key in coil:
+                    coil[key] = apply_trans(t['trans'], coil[key], False)
             coil['r0'] = apply_trans(t['trans'], coil['r0'])
-            coil['ex'] = apply_trans(t['trans'], coil['ex'], False)
-            coil['ey'] = apply_trans(t['trans'], coil['ey'], False)
-            coil['ez'] = apply_trans(t['trans'], coil['ez'], False)
             coil['rmag'] = apply_trans(t['trans'], coil['rmag'])
             coil['cosmag'] = apply_trans(t['trans'], coil['cosmag'], False)
             coil['coord_frame'] = t['to']
@@ -200,15 +200,17 @@ def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
     # Process each of the surfaces
     rmags, cosmags, ws, bins = _concatenate_coils(coils)
     lens = np.cumsum(np.r_[0, [len(s['rr']) for s in bem['surfs']]])
-    coeff = np.empty((bins[-1] + 1, lens[-1]))  # shape(n_coils, n_BEM_verts)
+    sol = np.zeros((bins[-1] + 1, bem['solution'].shape[1]))
 
+    lims = np.concatenate([np.arange(0, sol.shape[0], 100), [sol.shape[0]]])
     # Compute coeffs for each surface, one at a time
     for o1, o2, surf, mult in zip(lens[:-1], lens[1:],
                                   bem['surfs'], bem['field_mult']):
-        coeff[:, o1:o2] = _lin_field_coeff(surf, mult, rmags, cosmags, ws,
-                                           bins, n_jobs)
-    # put through the bem
-    sol = np.dot(coeff, bem['solution'])
+        coeff = _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs)
+        # put through the bem (in chunks to save memory)
+        for start, stop in zip(lims[:-1], lims[1:]):
+            sol[start:stop] += np.dot(coeff[start:stop],
+                                      bem['solution'][o1:o2])
     sol *= mults
     return sol
 
@@ -409,7 +411,7 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
     Returns
     -------
     B : ndarray, shape (n_dipoles * 3, n_sensors)
-        Foward solution for a set of sensors
+        Forward solution for a set of sensors
     """
     # Both MEG and EEG have the inifinite-medium potentials
     # This could be just vectorized, but eats too much memory, so instead we
@@ -477,7 +479,7 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
     Returns
     -------
     B : ndarray, (n_dipoles * 3, n_sensors)
-        Foward solution for sensors due to volume currents
+        Forward solution for sensors due to volume currents
     """
 
     # Doing work of 'fwd_bem_pot_calc' in MNE-C
@@ -487,7 +489,7 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
     # B = np.dot(v0s, sol)
 
     # We chunk the source mri_rr's in order to save memory
-    bounds = np.r_[np.arange(0, len(mri_rr), 1000), len(mri_rr)]
+    bounds = np.concatenate([np.arange(0, len(mri_rr), 200), [len(mri_rr)]])
     B = np.empty((len(mri_rr) * 3, sol.shape[1]))
     for bi in range(len(bounds) - 1):
         # v0 in Hamalainen et al., 1989 == v_inf in Mosher, et al., 1999
@@ -679,7 +681,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
         Boundary Element Model information
     fwd_data : dict
         Dict containing sensor information. Gets updated here with BEM and
-        sensor information for later foward calculations
+        sensor information for later forward calculations
     n_jobs : int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
@@ -799,7 +801,7 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
                     '(free orientations)...'
                     % (coil_type.upper(), len(rr),
                        '' if len(rr) == 1 else 's'))
-        # Calculate foward solution using spherical or BEM model
+        # Calculate forward solution using spherical or BEM model
         B = fun(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
                 coil_type)
 

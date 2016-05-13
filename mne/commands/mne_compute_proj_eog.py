@@ -157,10 +157,10 @@ def run():
     else:
         eog_proj_fname = prefix + '_eog-proj.fif'
 
-    raw = mne.io.Raw(raw_in, preload=preload)
+    raw = mne.io.read_raw_fif(raw_in, preload=preload)
 
     if raw_event_fname is not None:
-        raw_event = mne.io.Raw(raw_event_fname)
+        raw_event = mne.io.read_raw_fif(raw_event_fname)
     else:
         raw_event = raw
 

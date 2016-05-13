@@ -1,11 +1,11 @@
 .. _datasets:
 
+Datasets
+########
+
 .. contents:: Contents
    :local:
    :depth: 2
-
-Datasets
-########
 
 All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
 use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches dataset partially) functions.
@@ -107,13 +107,14 @@ The recordings were made using the BCI2000 system. To load a subject, do::
 
     * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_csp_eeg.py`
 
-Do not hesitate to contact MNE-Python developers on the `MNE mailing list`_ to discuss the possibility to add more publicly available datasets.
+Do not hesitate to contact MNE-Python developers on the
+`MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
+to discuss the possibility to add more publicly available datasets.
 
 .. _auditory dataset tutorial: http://neuroimage.usc.edu/brainstorm/DatasetAuditory
 .. _resting state dataset tutorial: http://neuroimage.usc.edu/brainstorm/DatasetResting
 .. _median nerve dataset tutorial: http://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
 .. _SPM faces dataset: http://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
-.. _MNE mailing list: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 
 References
 ==========

@@ -2,9 +2,9 @@
 
 .. _ch_mne:
 
-=====================
-The current estimates
-=====================
+==================================
+The minimum-norm current estimates
+==================================
 
 .. contents:: Contents
    :local:
@@ -13,12 +13,17 @@ The current estimates
 Overview
 ########
 
-This Chapter describes the computation of the minimum-norm
-estimates. This is accomplished with two programs: *mne_inverse_operator* and *mne_make_movie*.
-The chapter starts with a mathematical description of the method,
-followed by description of the two software modules. The interactive
-program for inspecting data and inverse solutions, mne_analyze ,
-is covered in :ref:`ch_interactive_analysis`.
+This page describes the mathematical concepts and the
+computation of the minimum-norm estimates.
+Using the UNIX commands this is accomplished with two programs:
+:ref:`mne_inverse_operator` and :ref:`mne_make_movie` or in Python
+using :func:`mne.minimum_norm.make_inverse_operator`
+and the ``apply`` functions. The use of these functions is
+presented in the tutorial :ref:`tut_inverse_mne_dspm`.
+
+The page starts with a mathematical description of the method.
+The interactive program for inspecting data and inverse solutions,
+:ref:`mne_analyze`, is covered in :ref:`ch_interactive_analysis`.
 
 .. _CBBDJFBJ:
 
@@ -65,7 +70,7 @@ The expected value of the current amplitudes at time *t* is
 then given by :math:`\hat{j}(t) = Mx(t)`, where :math:`x(t)` is
 a vector containing the measured MEG and EEG data values at time *t*.
 
-.. _CBBHAAJJ:
+.. _mne_regularization:
 
 Regularization
 ==============
@@ -124,9 +129,19 @@ such that :math:`\text{trace}(\tilde{G} R \tilde{G}^T) / \text{trace}(I) = 1`. W
 can approximate :math:`\lambda^2 \sim 1/SNR`, where SNR is
 the (power) signal-to-noise ratio of the whitened data.
 
-.. note:: The definition of the signal to noise-ratio/ :math:`\lambda^2` relationship    given above works nicely for the whitened forward solution. In the    un-whitened case scaling with the trace ratio :math:`\text{trace}(GRG^T) / \text{trace}(C)` does not make sense, since the diagonal elements summed have, in general,    different units of measure. For example, the MEG data are expressed    in T or T/m whereas the unit of EEG is Volts.
+.. note::
+    The definition of the signal to noise-ratio/ :math:`\lambda^2` relationship
+    given above works nicely for the whitened forward solution. In the
+    un-whitened case scaling with the trace ratio
+    :math:`\text{trace}(GRG^T) / \text{trace}(C)`
+    does not make sense, since the diagonal elements summed have, in general,
+    different units of measure. For example, the MEG data are expressed
+    in T or T/m whereas the unit of EEG is Volts.
 
-.. _CBBHEGAB:
+See :ref:`tut_compute_covariance` for example of noise covariance
+computation and whitening.
+
+.. _cov_regularization:
 
 Regularization of the noise-covariance matrix
 =============================================
@@ -137,15 +152,14 @@ the smallest eigenvalues of its estimate are usually inaccurate
 and smaller than the true eigenvalues. Depending on the seriousness
 of this problem, the following quantities can be affected:
 
-- The model data predicted by the current
-  estimate,
+- The model data predicted by the current estimate,
 
 - Estimates of signal-to-noise ratios, which lead to estimates
-  of the required regularization, see :ref:`CBBHAAJJ`,
+  of the required regularization, see :ref:`mne_regularization`,
 
 - The estimated current values, and
 
-- The noise-normalized estimates, see :ref:`CBBEAICH`.
+- The noise-normalized estimates, see :ref:`noise_normalization`.
 
 Fortunately, the latter two are least likely to be affected
 due to regularization of the estimates. However, in some cases especially
@@ -153,7 +167,7 @@ the EEG part of the noise-covariance matrix estimate can be deficient, *i.e.*,
 it may possess very small eigenvalues and thus regularization of
 the noise-covariance matrix is advisable.
 
-The MNE software accomplishes the regularization by replacing
+Historically, the MNE software accomplishes the regularization by replacing
 a noise-covariance matrix estimate :math:`C` with
 
 .. math::    C' = C + \sum_k {\varepsilon_k \bar{\sigma_k}^2 I^{(k)}}\ ,
@@ -164,15 +178,17 @@ gradiometers and magnetometers, and EEG), :math:`\varepsilon_k` are
 the corresponding regularization factors, :math:`\bar{\sigma_k}` are
 the average variances across the channel groups, and :math:`I^{(k)}` are
 diagonal matrices containing ones at the positions corresponding
-to the channels contained in each channel group. The values :math:`\varepsilon_k` can
-be adjusted with the regularization options ``--magreg`` , ``--gradreg`` ,
-and ``--eegreg`` specified at the time of the inverse operator
-decomposition, see :ref:`CBBDDBGF`. The convenience script mne_do_inverse_solution has
-the ``--magreg`` and ``--gradreg`` combined to
+to the channels contained in each channel group.
+
+Using the UNIX tools :ref:`mne_inverse_operator`, the values
+:math:`\varepsilon_k` can be adjusted with the regularization options
+``--magreg`` , ``--gradreg`` , and ``--eegreg`` specified at the time of the
+inverse operator decomposition, see :ref:`inverse_operator`. The convenience script
+:ref:`mne_do_inverse_solution` has the ``--magreg`` and ``--gradreg`` combined to
 a single option, ``--megreg`` , see :ref:`CIHCFJEI`.
 Suggested range of values for :math:`\varepsilon_k` is :math:`0.05 \dotso 0.2`.
 
-.. _CHDBEHBC:
+.. _mne_solution:
 
 Computation of the solution
 ===========================
@@ -215,7 +231,7 @@ independent of  :math:`L` and, for fixed :math:`\lambda`,
 we see directly that :math:`j(t)` is independent
 of :math:`L`.
 
-.. _CBBEAICH:
+.. _noise_normalization:
 
 Noise normalization
 ===================
@@ -248,7 +264,7 @@ see directly that
 
 .. math::    \tilde{M} \tilde{M}^T\ = \bar{V} \Gamma^2 \bar{V}^T\ .
 
-Under the conditions expressed at the end of :ref:`CHDBEHBC`, it follows that the *t*-statistic values associated
+Under the conditions expressed at the end of :ref:`mne_solution`, it follows that the *t*-statistic values associated
 with fixed-orientation sources) are thus proportional to :math:`\sqrt{L}` while
 the *F*-statistic employed with free-orientation sources is proportional
 to :math:`L`, correspondingly.
@@ -279,13 +295,13 @@ where the diagonal matrix :math:`\Pi` has
 elements :math:`\pi_k = \lambda_k \gamma_k` The predicted data is
 thus expressed as the weighted sum of the 'recolored eigenfields' in :math:`C^{^1/_2} U`.
 
-.. _CBBDBHDI:
+.. _patch_stats:
 
 Cortical patch statistics
 =========================
 
 If the ``--cps`` option was used in source space
-creation (see :ref:`CIHCHDAE`) or if mne_add_patch_info described
+creation (see :ref:`setting_up_source_space`) or if mne_add_patch_info described
 in :ref:`mne_add_patch_info` was run manually the source space file
 will contain for each vertex of the cortical surface the information
 about the source space point closest to it as well as the distance
@@ -342,7 +358,7 @@ of the surface normal data:
   to fLOC except that the value given with the ``--loosevar`` option
   will be multiplied by :math:`\sigma_d`, defined above.
 
-.. _CBBDFJIE:
+.. _depth_weighting:
 
 Depth weighting
 ===============
@@ -362,7 +378,7 @@ the order of the depth weighting, specified with the ``--weightexp`` option
 to mne_inverse_operator . The
 maximal amount of depth weighting can be adjusted ``--weightlimit`` option.
 
-.. _CBBDIJHI:
+.. _mne_fmri_estimates:
 
 fMRI-guided estimates
 =====================
@@ -433,18 +449,18 @@ we have
 
 .. math::    1 / L_{eff} = \sum_{i = 1}^n {1/{L_i}}
 
-.. _CBBDDBGF:
+.. _inverse_operator:
 
 Inverse-operator decomposition
 ##############################
 
 The program :ref:`mne_inverse_operator` calculates
 the decomposition :math:`A = \tilde{G} R^C = U \Lambda \bar{V^T}`,
-described in :ref:`CHDBEHBC`. It is normally invoked from the convenience
+described in :ref:`mne_solution`. It is normally invoked from the convenience
 script :ref:`mne_do_inverse_operator`. 
 
 
-.. _CBBECEDE:
+.. _movies_and_snapshots:
 
 Producing movies and snapshots
 ##############################
@@ -460,7 +476,7 @@ process, see :ref:`ch_morph`, and read into Matlab using the MNE
 Matlab toolbox, see :ref:`ch_matlab`.
 
 
-.. _CBBCGHAH:
+.. _computing_inverse:
 
 Computing inverse from raw and evoked data
 ##########################################
@@ -474,7 +490,7 @@ or converted to Matlab format using either :ref:`mne_convert_mne_data`,
 :ref:`mne_raw2mat`, or :ref:`mne_epochs2mat`. See
 :ref:`mne_compute_raw_inverse` for command-line options.
 
-.. _CBBHJDAI:
+.. _implementation_details:
 
 Implementation details
 ======================

@@ -1,17 +1,17 @@
 """IIR and FIR filtering functions"""
 
-from .externals.six import string_types, integer_types
-import warnings
-import numpy as np
-from scipy.fftpack import fft, ifftshift, fftfreq
 from copy import deepcopy
 
-from .fixes import get_firwin2, get_filtfilt
-from .time_frequency.multitaper import dpss_windows, _mt_spectra
-from .parallel import parallel_func, check_n_jobs
+import numpy as np
+from scipy.fftpack import fft, ifftshift, fftfreq
+
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
-from .utils import logger, verbose, sum_squared, check_version
+from .externals.six import string_types, integer_types
+from .fixes import get_firwin2, get_filtfilt
+from .parallel import parallel_func, check_n_jobs
+from .time_frequency.multitaper import dpss_windows, _mt_spectra
+from .utils import logger, verbose, sum_squared, check_version, warn
 
 
 def is_power2(num):
@@ -117,7 +117,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
                          "len(h) if zero_phase == False")
 
     if not is_power2(n_fft):
-        warnings.warn("FFT length is not a power of 2. Can be slower.")
+        warn("FFT length is not a power of 2. Can be slower.")
 
     # Filter in frequency domain
     h_fft = fft(np.concatenate([h, np.zeros(n_fft - n_h, dtype=h.dtype)]))
@@ -159,7 +159,7 @@ def _1d_overlap_filter(x, h_fft, n_h, n_edge, zero_phase, cuda_dict):
         n_fft = cuda_dict['x'].size  # account for CUDA's modification of h_fft
     else:
         n_fft = len(h_fft)
-    x_ext = _smart_pad(x, n_edge)
+    x_ext = _smart_pad(x, np.array([n_edge, n_edge]))
     n_x = len(x_ext)
     x_filtered = np.zeros_like(x_ext)
 
@@ -329,8 +329,8 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
         att_db, att_freq = _filter_attenuation(h, freq, gain)
         if att_db < min_att_db:
             att_freq *= Fs / 2
-            warnings.warn('Attenuation at stop frequency %0.1fHz is only '
-                          '%0.1fdB.' % (att_freq, att_db))
+            warn('Attenuation at stop frequency %0.1fHz is only %0.1fdB.'
+                 % (att_freq, att_db))
 
         # Make zero-phase filter function
         B = np.abs(fft(h)).ravel()
@@ -363,9 +363,9 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
         att_db += 6  # the filter is applied twice (zero phase)
         if att_db < min_att_db:
             att_freq *= Fs / 2
-            warnings.warn('Attenuation at stop frequency %0.1fHz is only '
-                          '%0.1fdB. Increase filter_length for higher '
-                          'attenuation.' % (att_freq, att_db))
+            warn('Attenuation at stop frequency %0.1fHz is only %0.1fdB. '
+                 'Increase filter_length for higher attenuation.'
+                 % (att_freq, att_db))
 
         # reconstruct filter, this time with appropriate gain for fwd-bkwd
         gain = np.sqrt(gain)
@@ -1265,8 +1265,9 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
         Factor to upsample by.
     down : float
         Factor to downsample by.
-    npad : integer
+    npad : int | str
         Number of samples to use at the beginning and end for padding.
+        Can be "auto" to pad to the next highest power of 2.
     axis : int
         Axis along which to resample (default is the last axis).
     window : string or tuple
@@ -1315,15 +1316,33 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     orig_shape = x.shape
     x_len = orig_shape[-1]
     if x_len == 0:
-        warnings.warn('x has zero length along last axis, returning a copy of '
-                      'x')
+        warn('x has zero length along last axis, returning a copy of x')
         return x.copy()
+    bad_msg = 'npad must be "auto" or an integer'
+    if isinstance(npad, string_types):
+        if npad != 'auto':
+            raise ValueError(bad_msg)
+        # Figure out reasonable pad that gets us to a power of 2
+        min_add = min(x_len // 8, 100) * 2
+        npad = 2 ** int(np.ceil(np.log2(x_len + min_add))) - x_len
+        npad, extra = divmod(npad, 2)
+        npads = np.array([npad, npad + extra], int)
+    else:
+        if npad != int(npad):
+            raise ValueError(bad_msg)
+        npads = np.array([npad, npad], int)
+    del npad
 
     # prep for resampling now
     x_flat = x.reshape((-1, x_len))
-    orig_len = x_len + 2 * npad  # length after padding
+    orig_len = x_len + npads.sum()  # length after padding
     new_len = int(round(ratio * orig_len))  # length after resampling
-    to_remove = np.round(ratio * npad).astype(int)
+    final_len = int(round(ratio * x_len))
+    to_removes = [int(round(ratio * npads[0]))]
+    to_removes.append(new_len - final_len - to_removes[0])
+    to_removes = np.array(to_removes)
+    # This should hold:
+    # assert np.abs(to_removes[1] - to_removes[0]) <= int(np.ceil(ratio))
 
     # figure out windowing function
     if window is not None:
@@ -1345,13 +1364,13 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     # do the resampling using an adaptation of scipy's FFT-based resample()
     # use of the 'flat' window is recommended for minimal ringing
     if n_jobs == 1:
-        y = np.zeros((len(x_flat), new_len - 2 * to_remove), dtype=x.dtype)
+        y = np.zeros((len(x_flat), new_len - to_removes.sum()), dtype=x.dtype)
         for xi, x_ in enumerate(x_flat):
-            y[xi] = fft_resample(x_, W, new_len, npad, to_remove,
+            y[xi] = fft_resample(x_, W, new_len, npads, to_removes,
                                  cuda_dict)
     else:
         parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
-        y = parallel(p_fun(x_, W, new_len, npad, to_remove, cuda_dict)
+        y = parallel(p_fun(x_, W, new_len, npads, to_removes, cuda_dict)
                      for x_ in x_flat)
         y = np.array(y)
 
@@ -1491,9 +1510,9 @@ def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
         # only need to check min_length if the filter is shorter than len_x
         elif filter_length < min_length:
             filter_length = min_length
-            warnings.warn('filter_length was too short, using filter of '
-                          'length %d samples ("%0.1fs")'
-                          % (filter_length, filter_length / float(sfreq)))
+            warn('filter_length was too short, using filter of length %d '
+                 'samples ("%0.1fs")'
+                 % (filter_length, filter_length / float(sfreq)))
 
     if filter_length is not None:
         if not isinstance(filter_length, integer_types):
@@ -1504,7 +1523,7 @@ def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
 class FilterMixin(object):
     """Object for Epoch/Evoked filtering"""
 
-    def savgol_filter(self, h_freq):
+    def savgol_filter(self, h_freq, copy=False):
         """Filter the data using Savitzky-Golay polynomial method
 
         Parameters
@@ -1515,6 +1534,14 @@ class FilterMixin(object):
             done using polynomial fits instead of FIR/IIR filtering.
             This parameter is thus used to determine the length of the
             window over which a 5th-order polynomial smoothing is used.
+        copy : bool
+            If True, a copy of the object, filtered, is returned.
+            If False (default), it operates on the object in place.
+
+        Returns
+        -------
+        inst : instance of Epochs or Evoked
+            The object with the filtering applied.
 
         See Also
         --------
@@ -1522,8 +1549,6 @@ class FilterMixin(object):
 
         Notes
         -----
-        Data are modified in-place.
-
         For Savitzky-Golay low-pass approximation, see:
 
             https://gist.github.com/Eric89GXL/bbac101d50176611136b
@@ -1548,24 +1573,26 @@ class FilterMixin(object):
         """  # noqa
         from .evoked import Evoked
         from .epochs import _BaseEpochs
-        if isinstance(self, Evoked):
-            data = self.data
+        inst = self.copy() if copy else self
+        if isinstance(inst, Evoked):
+            data = inst.data
             axis = 1
-        elif isinstance(self, _BaseEpochs):
-            if not self.preload:
+        elif isinstance(inst, _BaseEpochs):
+            if not inst.preload:
                 raise RuntimeError('data must be preloaded to filter')
-            data = self._data
+            data = inst._data
             axis = 2
 
         h_freq = float(h_freq)
-        if h_freq >= self.info['sfreq'] / 2.:
+        if h_freq >= inst.info['sfreq'] / 2.:
             raise ValueError('h_freq must be less than half the sample rate')
 
         # savitzky-golay filtering
         if not check_version('scipy', '0.14'):
             raise RuntimeError('scipy >= 0.14 must be installed for savgol')
         from scipy.signal import savgol_filter
-        window_length = (int(np.round(self.info['sfreq'] /
+        window_length = (int(np.round(inst.info['sfreq'] /
                                       h_freq)) // 2) * 2 + 1
         data[...] = savgol_filter(data, axis=axis, polyorder=5,
                                   window_length=window_length)
+        return inst

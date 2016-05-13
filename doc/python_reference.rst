@@ -1,8 +1,8 @@
 .. _api_reference:
 
-=============
-API Reference
-=============
+====================
+Python API Reference
+====================
 
 This is the classes and functions reference of mne-python. Functions are
 grouped thematically by analysis stage. Functions and classes that are not
@@ -25,6 +25,8 @@ Classes
 
    io.Raw
    io.RawFIF
+   io.RawArray
+   Annotations
    Epochs
    Evoked
    SourceSpaces
@@ -33,25 +35,28 @@ Classes
    MixedSourceEstimate
    Covariance
    Dipole
+   DipoleFixed
    Label
    BiHemiLabel
    Transform
-   io.Info
-   io.Projection
+   Report
+   Info
+   Projection
    preprocessing.ICA
+   preprocessing.Xdawn
    decoding.CSP
-   decoding.Scaler
-   decoding.ConcatenateChannels
+   decoding.EpochsVectorizer
    decoding.FilterEstimator
-   decoding.PSDEstimator
    decoding.GeneralizationAcrossTime
+   decoding.PSDEstimator
+   decoding.Scaler
    decoding.TimeDecoding
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
+   realtime.FieldTripClient
    realtime.StimServer
    realtime.StimClient
-   report.Report
 
 Logging and Configuration
 =========================
@@ -67,6 +72,7 @@ Logging and Configuration
    set_log_level
    set_log_file
    set_config
+   sys_info
 
 :py:mod:`mne.cuda`:
 
@@ -104,6 +110,7 @@ Functions:
   :template: function.rst
 
   read_raw_bti
+  read_raw_cnt
   read_raw_ctf
   read_raw_edf
   read_raw_kit
@@ -303,6 +310,7 @@ Functions:
 
    circular_layout
    mne_analyze_colormap
+   plot_bem
    plot_connectivity_circle
    plot_cov
    plot_dipole_amplitudes
@@ -312,7 +320,9 @@ Functions:
    plot_events
    plot_evoked
    plot_evoked_image
+   plot_evoked_topo
    plot_evoked_topomap
+   plot_evoked_joint
    plot_evoked_field
    plot_evoked_white
    plot_ica_sources
@@ -320,17 +330,19 @@ Functions:
    plot_ica_scores
    plot_ica_overlay
    plot_epochs_image
+   plot_layout
    plot_montage
    plot_projs_topomap
    plot_raw
    plot_raw_psd
+   plot_sensors
    plot_snr_estimate
    plot_source_estimates
    plot_sparse_source_estimates
    plot_tfr_topomap
-   plot_topo
    plot_topo_image_epochs
    plot_topomap
+   plot_trans
    compare_fiff
    add_background_image
 
@@ -451,7 +463,29 @@ EEG referencing:
    construct_iir_filter
    high_pass_filter
    low_pass_filter
+   notch_filter
 
+Head position estimation:
+
+.. currentmodule:: mne.chpi
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   filter_chpi
+   head_pos_to_trans_rot_t
+   read_head_pos
+   write_head_pos
+
+.. currentmodule:: mne.transforms
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   quat_to_rot
+   rot_to_quat
 
 Events
 ======
@@ -471,6 +505,7 @@ Events
    pick_events
    read_events
    write_events
+   concatenate_epochs
 
 .. currentmodule:: mne.event
 
@@ -489,7 +524,6 @@ Events
    add_channels_epochs
    average_movements
    combine_event_ids
-   concatenate_epochs
    equalize_epoch_counts
 
 Sensor Space Data
@@ -505,13 +539,13 @@ Sensor Space Data
    concatenate_raws
    equalize_channels
    grand_average
-   get_chpi_positions
    pick_channels
    pick_channels_cov
    pick_channels_forward
    pick_channels_regexp
    pick_types
    pick_types_forward
+   pick_info
    read_epochs
    read_reject_parameters
    read_selection
@@ -585,9 +619,9 @@ Functions:
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
-   do_forward_solution
    make_bem_model
    make_bem_solution
+   make_forward_dipole
    make_forward_solution
    make_field_map
    make_sphere_model
@@ -600,7 +634,7 @@ Functions:
    sensitivity_map
    setup_source_space
    setup_volume_source_space
-   write_bem_surface
+   write_bem_surfaces
    write_trans
 
 .. currentmodule:: mne.bem
@@ -621,13 +655,6 @@ Functions:
 
    restrict_forward_to_label
    restrict_forward_to_stc
-
-:py:mod:`mne.source_space`:
-
-.. automodule:: mne.source_space
-   :no-members:
-   :no-inherited-members:
-
 
 Inverse Solutions
 =================
@@ -774,8 +801,8 @@ Functions that operate on mne-python objects:
    :template: function.rst
 
    compute_epochs_csd
-   compute_epochs_psd
-   compute_raw_psd
+   psd_welch
+   psd_multitaper
    fit_iir_model_raw
    tfr_morlet
    tfr_multitaper
@@ -861,6 +888,8 @@ Statistics
    linear_regression
    linear_regression_raw
    f_mway_rm
+   f_threshold_mway_rm
+   summarize_clusters_stc
 
 Functions to compute connectivity (adjacency) matrices for cluster-level statistics
 
@@ -915,12 +944,13 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
-   Scaler
-   ConcatenateChannels
-   PSDEstimator
-   FilterEstimator
    CSP
+   EpochsVectorizer
+   FilterEstimator
    GeneralizationAcrossTime
+   PSDEstimator
+   Scaler
+   TimeDecoding
 
 Realtime
 ========
@@ -943,6 +973,7 @@ Classes:
    FieldTripClient
    StimServer
    StimClient
+
 
 MNE-Report
 ==========

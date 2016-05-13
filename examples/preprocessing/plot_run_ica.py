@@ -19,7 +19,6 @@ fast machine it can take about a minute to complete.
 # License: BSD (3-clause)
 
 import mne
-from mne.io import Raw
 from mne.preprocessing import ICA, create_ecg_epochs
 from mne.datasets import sample
 
@@ -31,7 +30,7 @@ print(__doc__)
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.filter(1, 30, method='iir')
 raw.pick_types(meg=True, eeg=False, exclude='bads', stim=True)
 

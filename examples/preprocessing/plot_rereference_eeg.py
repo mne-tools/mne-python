@@ -23,7 +23,7 @@ event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Read the raw data
-raw = mne.io.Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 events = mne.read_events(event_fname)
 
 # The EEG channels will be plotted to visualize the difference in referencing

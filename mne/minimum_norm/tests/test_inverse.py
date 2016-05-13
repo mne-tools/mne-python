@@ -16,13 +16,14 @@ from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution,
                  convert_forward_solution, Covariance)
-from mne.io import Raw
+from mne.io import Raw, Info
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
+from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.externals import six
 
@@ -81,8 +82,8 @@ def _compare(a, b):
     skip_types = ['whitener', 'proj', 'reginv', 'noisenorm', 'nchan',
                   'command_line', 'working_dir', 'mri_file', 'mri_id']
     try:
-        if isinstance(a, dict):
-            assert_true(isinstance(b, dict))
+        if isinstance(a, (dict, Info)):
+            assert_true(isinstance(b, (dict, Info)))
             for k, v in six.iteritems(a):
                 if k not in b and k not in skip_types:
                     raise ValueError('First one had one second one didn\'t:\n'
@@ -225,8 +226,9 @@ def test_inverse_operator_channel_ordering():
     randomiser = np.random.RandomState(42)
     randomiser.shuffle(new_order)
     evoked.data = evoked.data[new_order]
-    evoked.info['ch_names'] = [evoked.info['ch_names'][n] for n in new_order]
     evoked.info['chs'] = [evoked.info['chs'][n] for n in new_order]
+    evoked.info._update_redundant()
+    evoked.info._check_consistency()
 
     cov_ch_reorder = [c for c in evoked.info['ch_names']
                       if (c in noise_cov.ch_names)]
@@ -378,9 +380,9 @@ def test_make_inverse_operator_diag():
     """Test MNE inverse computation with diagonal noise cov
     """
     evoked = _get_evoked()
-    noise_cov = read_cov(fname_cov)
+    noise_cov = read_cov(fname_cov).as_diag(copy=False)
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
-    inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov.as_diag(),
+    inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                    loose=0.2, depth=0.8)
     _compare_io(inv_op)
     inverse_operator_diag = read_inverse_operator(fname_inv_meeg_diag)
@@ -445,7 +447,7 @@ def test_io_inverse_operator():
         inv_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_inverse_operator(inv_badname, inverse_operator)
         read_inverse_operator(inv_badname)
-    assert_true(len(w) == 2)
+    assert_naming(w, 'test_inverse.py', 2)
 
     # make sure we can write and read
     inv_fname = op.join(tempdir, 'test-inv.fif')

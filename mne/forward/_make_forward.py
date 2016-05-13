@@ -15,14 +15,18 @@ from ..io.constants import FIFF
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform)
-from ..utils import logger, verbose
-from ..source_space import _ensure_src, _filter_source_spaces
+from ..utils import logger, verbose, warn
+from ..source_space import (_ensure_src, _filter_source_spaces,
+                            _make_discrete_source_space, SourceSpaces)
+from ..source_estimate import VolSourceEstimate
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
 
-from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
+from .forward import (Forward, write_forward_solution, _merge_meg_eeg_fwds,
+                      convert_forward_solution)
 from ._compute_forward import _compute_forwards
+from ..fixes import in1d
 
 
 _accuracy_dict = dict(normal=FIFF.FWD_COIL_ACCURACY_NORMAL,
@@ -111,12 +115,9 @@ def _read_coil_def_file(fname):
     return coils
 
 
-def _create_meg_coil(coilset, ch, acc, t):
+def _create_meg_coil(coilset, ch, acc, do_es):
     """Create a coil definition using templates, transform if necessary"""
     # Also change the coordinate frame if so desired
-    if t is None:
-        t = Transform('meg', 'meg', np.eye(4))  # identity, no change
-
     if ch['kind'] not in [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH]:
         raise RuntimeError('%s is not a MEG channel' % ch['ch_name'])
 
@@ -130,18 +131,22 @@ def _create_meg_coil(coilset, ch, acc, t):
                            '(type = %d acc = %d)' % (ch['coil_type'], acc))
 
     # Apply a coordinate transformation if so desired
-    coil_trans = np.dot(t['trans'], _loc_to_coil_trans(ch['loc']))
+    coil_trans = _loc_to_coil_trans(ch['loc'])
 
     # Create the result
     res = dict(chname=ch['ch_name'], coil_class=coil['coil_class'],
                accuracy=coil['accuracy'], base=coil['base'], size=coil['size'],
                type=ch['coil_type'], w=coil['w'], desc=coil['desc'],
-               coord_frame=t['to'], rmag=apply_trans(coil_trans, coil['rmag']),
+               coord_frame=FIFF.FIFFV_COORD_DEVICE, rmag_orig=coil['rmag'],
+               cosmag_orig=coil['cosmag'], coil_trans_orig=coil_trans,
+               r0=coil_trans[:3, 3],
+               rmag=apply_trans(coil_trans, coil['rmag']),
                cosmag=apply_trans(coil_trans, coil['cosmag'], False))
-    r0_exey = (np.dot(coil['rmag'][:, :2], coil_trans[:3, :2].T) +
-               coil_trans[:3, 3])
-    res.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
-               ez=coil_trans[:3, 2], r0=coil_trans[:3, 3], r0_exey=r0_exey)
+    if do_es:
+        r0_exey = (np.dot(coil['rmag'][:, :2], coil_trans[:3, :2].T) +
+                   coil_trans[:3, 3])
+        res.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
+                   ez=coil_trans[:3, 2], r0_exey=r0_exey)
     return res
 
 
@@ -173,12 +178,30 @@ def _create_eeg_el(ch, t=None):
     return res
 
 
-def _create_meg_coils(chs, acc=None, t=None, coilset=None):
+def _create_meg_coils(chs, acc, t=None, coilset=None, do_es=False):
     """Create a set of MEG coils in the head coordinate frame"""
     acc = _accuracy_dict[acc] if isinstance(acc, string_types) else acc
     coilset = _read_coil_defs(verbose=False) if coilset is None else coilset
-    coils = [_create_meg_coil(coilset, ch, acc, t) for ch in chs]
+    coils = [_create_meg_coil(coilset, ch, acc, do_es) for ch in chs]
+    _transform_orig_meg_coils(coils, t, do_es=do_es)
     return coils
+
+
+def _transform_orig_meg_coils(coils, t, do_es=True):
+    """Helper to transform original (device) MEG coil positions"""
+    if t is None:
+        return
+    for coil in coils:
+        coil_trans = np.dot(t['trans'], coil['coil_trans_orig'])
+        coil.update(
+            coord_frame=t['to'], r0=coil_trans[:3, 3],
+            rmag=apply_trans(coil_trans, coil['rmag_orig']),
+            cosmag=apply_trans(coil_trans, coil['cosmag_orig'], False))
+        if do_es:
+            r0_exey = (np.dot(coil['rmag_orig'][:, :2],
+                              coil_trans[:3, :2].T) + coil_trans[:3, 3])
+            coil.update(ex=coil_trans[:3, 0], ey=coil_trans[:3, 1],
+                        ez=coil_trans[:3, 2], r0_exey=r0_exey)
 
 
 def _create_eeg_els(chs):
@@ -197,8 +220,9 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
         raise TypeError('bem must be a string or ConductorModel')
     if bem['is_sphere']:
         logger.info('Using the sphere model.\n')
-        if len(bem['layers']) == 0:
-            raise RuntimeError('Spherical model has zero layers')
+        if len(bem['layers']) == 0 and neeg > 0:
+            raise RuntimeError('Spherical model has zero shells, cannot use '
+                               'with EEG data')
         if bem['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError('Spherical model is not in head coordinates')
     else:
@@ -216,7 +240,8 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
 
 @verbose
 def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
-                       elekta_defs=False, head_frame=True, verbose=None):
+                       elekta_defs=False, head_frame=True, do_es=False,
+                       verbose=None):
     """Prepare MEG coil definitions for forward calculation
 
     Parameters
@@ -236,6 +261,8 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         point geometry. False by default.
     head_frame : bool
         If True (default), use head frame coords. Otherwise, use device frame.
+    do_es : bool
+        If True, compute and store ex, ey, ez, and r0_exey.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -248,7 +275,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         Information for each prepped MEG coil
     megnames : list of str
         Name of each prepped MEG coil
-    meginfo : Info
+    meginfo : instance of Info
         Information subselected for just the set of MEG coils
     """
 
@@ -304,12 +331,14 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     else:
         transform = None
 
-    megcoils = _create_meg_coils(megchs, accuracy, transform, templates)
+    megcoils = _create_meg_coils(megchs, accuracy, transform, templates,
+                                 do_es=do_es)
 
     if ncomp > 0:
         logger.info('%d compensation data sets in %s' % (ncomp_data,
                                                          info_extra))
-        compcoils = _create_meg_coils(compchs, 'normal', transform, templates)
+        compcoils = _create_meg_coils(compchs, 'normal', transform, templates,
+                                      do_es=do_es)
 
     # Check that coordinate frame is correct and log it
     if head_frame:
@@ -395,15 +424,16 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     _print_coord_trans(mri_head_t)
 
     # make a new dict with the relevant information
-    arg_list = [info_extra, trans, src, bem_extra, fname,  meg, eeg,
+    arg_list = [info_extra, trans, src, bem_extra, fname, meg, eeg,
                 mindist, overwrite, n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
-    info = Info(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
-                ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
-                mri_file=trans, mri_id=mri_id, meas_file=info_extra,
-                meas_id=None, working_dir=os.getcwd(),
+    info = Info(chs=info['chs'], comps=info['comps'],
+                dev_head_t=info['dev_head_t'], mri_file=trans, mri_id=mri_id,
+                meas_file=info_extra, meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'], mri_head_t=mri_head_t)
+    info._update_redundant()
+    info._check_consistency()
     logger.info('')
 
     megcoils, compcoils, megnames, meg_info = [], [], [], []
@@ -441,6 +471,9 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
         logger.info('')
 
     rr = np.concatenate([s['rr'][s['vertno']] for s in src])
+    if len(rr) < 1:
+        raise RuntimeError('No points left in source space after excluding '
+                           'points close to inner skull.')
 
     # deal with free orientations:
     source_nn = np.tile(np.eye(3), (len(rr), 1))
@@ -459,7 +492,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info | str
+    info : instance of mne.Info | str
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
@@ -502,16 +535,12 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     fwd : instance of Forward
         The forward solution.
 
-    See Also
-    --------
-    do_forward_solution
-
     Notes
     -----
     Some of the forward solution calculation options from the C code
     (e.g., `--grad`, `--fixed`) are not implemented here. For those,
-    consider using the C command line tools or the Python wrapper
-    `do_forward_solution`.
+    consider using the C command line tools, or request that they
+    be added to the MNE-Python.
     """
     # Currently not (sup)ported:
     # 1. --grad option (gradients of the field, not used much)
@@ -525,13 +554,13 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'
                       % fname)
-    if not isinstance(info, (dict, string_types)):
-        raise TypeError('info should be a dict or string')
+    if not isinstance(info, (Info, string_types)):
+        raise TypeError('info should be an instance of Info or string')
     if isinstance(info, string_types):
         info_extra = op.split(info)[1]
         info = read_info(info, verbose=False)
     else:
-        info_extra = 'info dict'
+        info_extra = 'instance of Info'
 
     # Report the setup
     logger.info('Source space                 : %s' % src)
@@ -580,6 +609,130 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     logger.info('Finished.')
     return fwd
+
+
+def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
+    """Convert dipole object to source estimate and calculate forward operator
+
+    The instance of Dipole is converted to a discrete source space,
+    which is then combined with a BEM or a sphere model and
+    the sensor information in info to form a forward operator.
+
+    The source estimate object (with the forward operator) can be projected to
+    sensor-space using :func:`mne.simulation.evoked.simulate_evoked`.
+
+    Note that if the (unique) time points of the dipole object are unevenly
+    spaced, the first output will be a list of single-timepoint source
+    estimates.
+
+    Parameters
+    ----------
+    dipole : instance of Dipole
+        Dipole object containing position, orientation and amplitude of
+        one or more dipoles. Multiple simultaneous dipoles may be defined by
+        assigning them identical times.
+    bem : str | dict
+        The BEM filename (str) or a loaded sphere model (dict).
+    info : instance of Info
+        The measurement information dictionary. It is sensor-information etc.,
+        e.g., from a real data file.
+    trans : str | None
+        The head<->MRI transform filename. Must be provided unless BEM
+        is a sphere model.
+    n_jobs : int
+        Number of jobs to run in parallel (used in making forward solution).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fwd : instance of Forward
+        The forward solution corresponding to the source estimate(s).
+    stc : instance of VolSourceEstimate | list of VolSourceEstimate
+        The dipoles converted to a discrete set of points and associated
+        time courses. If the time points of the dipole are unevenly spaced,
+        a list of single-timepoint source estimates are returned.
+
+    See Also
+    --------
+    mne.simulation.simulate_evoked
+
+    Notes
+    -----
+    .. versionadded:: 0.12.0
+    """
+    # Make copies to avoid mangling original dipole
+    times = dipole.times.copy()
+    pos = dipole.pos.copy()
+    amplitude = dipole.amplitude.copy()
+    ori = dipole.ori.copy()
+
+    # Convert positions to discrete source space (allows duplicate rr & nn)
+    # NB information about dipole orientation enters here, then no more
+    sources = dict(rr=pos, nn=ori)
+    # Dipole objects must be in the head frame
+    sp = _make_discrete_source_space(sources, coord_frame='head')
+    src = SourceSpaces([sp])  # dict with working_dir, command_line not nec
+
+    # Forward operator created for channels in info (use pick_info to restrict)
+    # Use defaults for most params, including min_dist
+    fwd = make_forward_solution(info, trans, src, bem, fname=None,
+                                n_jobs=n_jobs, verbose=verbose)
+    # Convert from free orientations to fixed (in-place)
+    convert_forward_solution(fwd, surf_ori=False, force_fixed=True,
+                             copy=False, verbose=None)
+
+    # Check for omissions due to proximity to inner skull in
+    # make_forward_solution, which will result in an exception
+    if fwd['src'][0]['nuse'] != len(pos):
+        inuse = fwd['src'][0]['inuse'].astype(np.bool)
+        head = ('The following dipoles are outside the inner skull boundary')
+        msg = len(head) * '#' + '\n' + head + '\n'
+        for (t, pos) in zip(times[np.logical_not(inuse)],
+                            pos[np.logical_not(inuse)]):
+            msg += '    t={:.0f} ms, pos=({:.0f}, {:.0f}, {:.0f}) mm\n'.\
+                format(t * 1000., pos[0] * 1000.,
+                       pos[1] * 1000., pos[2] * 1000.)
+        msg += len(head) * '#'
+        logger.error(msg)
+        raise ValueError('One or more dipoles outside the inner skull.')
+
+    # multiple dipoles (rr and nn) per time instant allowed
+    # uneven sampling in time returns list
+    timepoints = np.unique(times)
+    if len(timepoints) > 1:
+        tdiff = np.diff(timepoints)
+        if not np.allclose(tdiff, tdiff[0]):
+            warn('Unique time points of dipoles unevenly spaced: returned '
+                 'stc will be a list, one for each time point.')
+            tstep = -1.0
+        else:
+            tstep = tdiff[0]
+    elif len(timepoints) == 1:
+        tstep = 0.001
+
+    # Build the data matrix, essentially a block-diagonal with
+    # n_rows: number of dipoles in total (dipole.amplitudes)
+    # n_cols: number of unique time points in dipole.times
+    # amplitude with identical value of times go together in one col (others=0)
+    data = np.zeros((len(amplitude), len(timepoints)))  # (n_d, n_t)
+    row = 0
+    for tpind, tp in enumerate(timepoints):
+        amp = amplitude[in1d(times, tp)]
+        data[row:row + len(amp), tpind] = amp
+        row += len(amp)
+
+    if tstep > 0:
+        stc = VolSourceEstimate(data, vertices=fwd['src'][0]['vertno'],
+                                tmin=timepoints[0],
+                                tstep=tstep, subject=None)
+    else:  # Must return a list of stc, one for each time point
+        stc = []
+        for col, tp in enumerate(timepoints):
+            stc += [VolSourceEstimate(data[:, col][:, np.newaxis],
+                                      vertices=fwd['src'][0]['vertno'],
+                                      tmin=tp, tstep=0.001, subject=None)]
+    return fwd, stc
 
 
 def _to_forward_dict(fwd, names, fwd_grad=None,

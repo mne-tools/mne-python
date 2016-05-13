@@ -13,16 +13,19 @@ from functools import partial
 import numpy as np
 
 from ..externals.six import string_types
-from ..io.pick import pick_types, _pick_data_channels
+from ..io.pick import (pick_types, _pick_data_channels, pick_info,
+                       _PICK_TYPES_KEYS)
 from ..io.proj import setup_proj
-from ..utils import verbose, get_config, logger
-from ..time_frequency import compute_raw_psd
-from .topo import _plot_topo, _plot_timeseries
+from ..utils import verbose, get_config
+from ..time_frequency import psd_welch
+from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar,
                     _plot_raw_onscroll, _mouse_click, plt_show,
-                    _helper_raw_resize, _select_bads, _onclick_help)
+                    _helper_raw_resize, _select_bads, _onclick_help,
+                    _setup_browser_offsets, _compute_scalings)
 from ..defaults import _handle_default
+from ..annotations import _onset_to_seconds
 
 
 def _plot_update_raw_proj(params, bools):
@@ -59,7 +62,8 @@ def _update_raw_data(params):
         data[di] /= params['scalings'][params['types'][di]]
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
-            data[di] = np.minimum(data[di], 1.0)
+            norm = float(max(data[di]))
+            data[di] /= norm if norm > 0 else 1.
     # clip
     if params['clipping'] == 'transparent':
         data[np.logical_or(data > 1, data < -1)] = np.nan
@@ -113,7 +117,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         ``{event_number: color}`` pairings. Use ``event_number==-1`` for
         any event numbers in the events list that are not in the dictionary.
     scalings : dict | None
-        Scale factors for the traces. If None, defaults to::
+        Scaling factors for the traces. If any fields in scalings are 'auto',
+        the scaling factor is set to match the 99.5th percentile of a subset of
+        the corresponding data. If scalings == 'auto', all scalings fields are
+        set to 'auto'. If any fields are 'auto' and data is not preloaded, a
+        subset of times up to 100mb will be loaded. If None, defaults to::
 
             dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
@@ -173,6 +181,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     import matplotlib as mpl
     from scipy.signal import butter
     color = _handle_default('color', color)
+    scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
 
     if clipping is not None and clipping not in ('clamp', 'transparent'):
@@ -235,23 +244,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-    for t in ['eeg', 'seeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
-              'misc', 'chpi', 'syst', 'ias', 'exci']:
-        pick_kwargs[t] = True
-        inds += [pick_types(raw.info, **pick_kwargs)]
-        if t == 'seeg' and len(inds[-1]) > 0:
-            # XXX hack to work around fiff mess
-            new_picks = [ind for ind in inds[-1] if
-                         not raw.ch_names[ind].startswith('CHPI')]
-            if len(new_picks) != len(inds[-1]):
-                inds[-1] = new_picks
-            else:
-                logger.warning('Conflicting FIFF constants detected. SEEG '
-                               'FIFF data saved before mne version 0.11 will '
-                               'not work with mne version 0.12! Save the raw '
-                               'files again to fix the FIFF tags!')
-        types += [t] * len(inds[-1])
-        pick_kwargs[t] = False
+    for key in _PICK_TYPES_KEYS:
+        if key != 'meg':
+            pick_kwargs[key] = True
+            inds += [pick_types(raw.info, **pick_kwargs)]
+            types += [key] * len(inds[-1])
+            pick_kwargs[key] = False
     inds = np.concatenate(inds).astype(int)
     if not len(inds) == len(info['ch_names']):
         raise RuntimeError('Some channels not classified, please report '
@@ -299,10 +297,38 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # plot event_line first so it's in the back
     event_lines = [params['ax'].plot([np.nan], color=event_color[ev_num])[0]
                    for ev_num in sorted(event_color.keys())]
+
     params['plot_fun'] = partial(_plot_raw_traces, params=params, inds=inds,
                                  color=color, bad_color=bad_color,
                                  event_lines=event_lines,
                                  event_color=event_color)
+
+    if raw.annotations is not None:
+        segments = list()
+        segment_colors = dict()
+        # sort the segments by start time
+        order = raw.annotations.onset.argsort(axis=0)
+        descriptions = raw.annotations.description[order]
+        color_keys = set(descriptions)
+        color_vals = np.linspace(0, 1, len(color_keys))
+        for idx, key in enumerate(color_keys):
+            if key.lower().startswith('bad'):
+                segment_colors[key] = 'red'
+            else:
+                segment_colors[key] = plt.cm.summer(color_vals[idx])
+        params['segment_colors'] = segment_colors
+        for idx, onset in enumerate(raw.annotations.onset[order]):
+            annot_start = _onset_to_seconds(raw, onset)
+            annot_end = annot_start + raw.annotations.duration[order][idx]
+            segments.append([annot_start, annot_end])
+            ylim = params['ax_hscroll'].get_ylim()
+            dscr = descriptions[idx]
+            params['ax_hscroll'].fill_betweenx(ylim, annot_start, annot_end,
+                                               alpha=0.3,
+                                               color=segment_colors[dscr])
+        params['segments'] = np.array(segments)
+        params['annot_description'] = descriptions
+
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
@@ -380,21 +406,29 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     if area_mode not in [None, 'std', 'range']:
         raise ValueError('"area_mode" must be "std", "range", or None')
     if picks is None:
-        if ax is not None:
-            raise ValueError('If "ax" is not supplied (None), then "picks" '
-                             'must also be supplied')
-        megs = ['mag', 'grad', False]
-        eegs = [False, False, True]
-        names = ['Magnetometers', 'Gradiometers', 'EEG']
+        megs = ['mag', 'grad', False, False, False]
+        eegs = [False, False, True, False, False]
+        seegs = [False, False, False, True, False]
+        ecogs = [False, False, False, False, True]
+        names = ['Magnetometers', 'Gradiometers', 'EEG', 'SEEG', 'ECoG']
         picks_list = list()
         titles_list = list()
-        for meg, eeg, name in zip(megs, eegs, names):
-            picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False)
+        for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs, names):
+            picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
+                               ref_meg=False)
             if len(picks) > 0:
                 picks_list.append(picks)
                 titles_list.append(name)
         if len(picks_list) == 0:
-            raise RuntimeError('No MEG or EEG channels found')
+            raise RuntimeError('No data channels found')
+        if ax is not None:
+            if isinstance(ax, plt.Axes):
+                ax = [ax]
+            if len(ax) != len(picks_list):
+                raise ValueError('For this dataset with picks=None %s axes '
+                                 'must be supplied, got %s'
+                                 % (len(picks_list), len(ax)))
+            ax_list = ax
     else:
         picks_list = [picks]
         titles_list = ['Selected channels']
@@ -479,10 +513,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
-        psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                      fmin=fmin, fmax=fmax, proj=proj,
-                                      n_fft=n_fft, n_overlap=n_overlap,
-                                      n_jobs=n_jobs, verbose=verbose)
+        psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
+                                fmin=fmin, fmax=fmax, proj=proj,
+                                n_fft=n_fft, n_overlap=n_overlap,
+                                n_jobs=n_jobs)
 
         # Convert PSDs to dB
         if dB:
@@ -572,27 +606,22 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax_vscroll.set_title('Ch.')
 
     # make shells for plotting traces
-    ylim = [n_channels * 2 + 1, 0]
-    offset = ylim[0] / n_channels
-    offsets = np.arange(n_channels) * offset + (offset / 2.)
-    ax.set_yticks(offsets)
-    ax.set_ylim(ylim)
+    _setup_browser_offsets(params, n_channels)
     ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
                 False)
 
-    params['offsets'] = offsets
     params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     vertline_color = (0., 0.75, 0.)
-    params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
-                                    zorder=-1)[0]
+    params['ax_vertline'] = ax.plot([0, 0], ax.get_ylim(),
+                                    color=vertline_color, zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
     params['vertline_t'] = ax_hscroll.text(0, 1, '', color=vertline_color,
                                            va='bottom', ha='right')
     params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
                                                     color=vertline_color,
-                                                    zorder=1)[0]
+                                                    zorder=2)[0]
 
 
 def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
@@ -620,7 +649,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
             # do NOT operate in-place lest this get screwed up
             this_data = params['data'][inds[ch_ind]] * params['scale_factor']
             this_color = bad_color if ch_name in info['bads'] else color
-            this_z = -1 if ch_name in info['bads'] else 0
+            this_z = 0 if ch_name in info['bads'] else 1
             if isinstance(this_color, dict):
                 this_color = this_color[params['types'][inds[ch_ind]]]
 
@@ -668,6 +697,27 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
             else:
                 line.set_xdata([])
                 line.set_ydata([])
+
+    if 'segments' in params:
+        while len(params['ax'].collections) > 0:
+            params['ax'].collections.pop(0)
+            params['ax'].texts.pop(0)
+        segments = params['segments']
+        times = params['times']
+        ylim = params['ax'].get_ylim()
+        for idx, segment in enumerate(segments):
+            if segment[0] > times[-1]:
+                break  # Since the segments are sorted by t_start
+            if segment[1] < times[0]:
+                continue
+            start = segment[0]
+            end = segment[1]
+            dscr = params['annot_description'][idx]
+            segment_color = params['segment_colors'][dscr]
+            params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
+                                       alpha=0.3)
+            params['ax'].text((start + end) / 2., ylim[0], dscr, ha='center')
+
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
                           params['times'][0] + params['duration'], False)
@@ -681,10 +731,10 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
         params['fig_proj'].canvas.draw()
 
 
-def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
+def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, n_jobs=1, verbose=None):
+                      show=True, block=False, n_jobs=1, verbose=None):
     """Function for plotting channel wise frequency spectra as topography.
 
     Parameters
@@ -722,6 +772,9 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
         If True, transform data to decibels. Defaults to True.
     show : bool
         Show figure if True. Defaults to True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
+        May not work on all systems / platforms. Defaults to False.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
     verbose : bool, str, int, or None
@@ -736,21 +789,29 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
         from ..channels.layout import find_layout
         layout = find_layout(raw.info)
 
-    psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, fmin=fmin,
-                                  fmax=fmax, proj=proj, n_fft=n_fft,
-                                  n_overlap=n_overlap, n_jobs=n_jobs,
-                                  verbose=verbose)
+    psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
+                            fmax=fmax, proj=proj, n_fft=n_fft,
+                            n_overlap=n_overlap, n_jobs=n_jobs)
     if dB:
         psds = 10 * np.log10(psds)
         y_label = 'dB'
     else:
         y_label = 'Power'
-    plot_fun = partial(_plot_timeseries, data=[psds], color=color, times=freqs)
+    show_func = partial(_plot_timeseries_unified, data=[psds], color=color,
+                        times=freqs)
+    click_func = partial(_plot_timeseries, data=[psds], color=color,
+                         times=freqs)
+    picks = _pick_data_channels(raw.info)
+    info = pick_info(raw.info, picks)
 
-    fig = _plot_topo(raw.info, times=freqs, show_func=plot_fun, layout=layout,
+    fig = _plot_topo(info, times=freqs, show_func=show_func,
+                     click_func=click_func, layout=layout,
                      axis_facecolor=axis_facecolor,
                      fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
-                     y_label=y_label)
+                     unified=True, y_label=y_label)
 
-    plt_show(show)
+    try:
+        plt_show(show, block=block)
+    except TypeError:  # not all versions have this
+        plt_show(show)
     return fig

@@ -5,7 +5,9 @@
 PYTHON ?= python
 NOSETESTS ?= nosetests
 CTAGS ?= ctags
-
+# The *.fif had to be there twice to be properly ignored (!)
+CODESPELL_SKIPS ?= "*.fif,*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii,*.pyc,*.doctree,*.pickle,*.inv,*.png,*.edf,*.touch,*.thickness,*.nofix,*.volume,*.defect_borders,*.mgh,lh.*,rh.*,COR-*,FreeSurferColorLUT.txt,*.examples,.xdebug_mris_calc,bad.segments,BadChannels,*.hist,empty_file,*.orig"
+CODESPELL_DIRS ?= mne/ doc/ tutorials/ examples/
 all: clean inplace test test-doc
 
 clean-pyc:
@@ -39,6 +41,10 @@ testing_data:
 test: in
 	rm -f .coverage
 	$(NOSETESTS) -a '!ultra_slow_test' mne
+
+test-verbose: in
+	rm -f .coverage
+	$(NOSETESTS) -a '!ultra_slow_test' mne --verbose
 
 test-fast: in
 	rm -f .coverage
@@ -87,16 +93,18 @@ upload-pipy:
 flake:
 	@if command -v flake8 > /dev/null; then \
 		echo "Running flake8"; \
-		flake8 --count mne examples; \
+		flake8 --count mne examples tutorials; \
 	else \
 		echo "flake8 not found, please install it!"; \
 		exit 1; \
 	fi;
 	@echo "flake8 passed"
 
-codespell:
-	# The *.fif had to be there twice to be properly ignored (!)
-	codespell.py -w -i 3 -S="*.fif,*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.coverage,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii" ./dictionary.txt -r .
+codespell:  # running manually
+	@codespell.py -w -i 3 -q 3 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS)
+
+codespell-error:  # running on travis
+	@codespell.py -i 0 -q 7 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS) | tee /dev/tty | wc -l | xargs test 0 -eq
 
 manpages:
 	@echo "I: generating manpages"

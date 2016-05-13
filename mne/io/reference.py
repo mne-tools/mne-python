@@ -12,10 +12,10 @@ from .pick import pick_types
 from .base import _BaseRaw
 from ..evoked import Evoked
 from ..epochs import _BaseEpochs
-from ..utils import logger
+from ..utils import logger, warn
 
 
-def _apply_reference(inst, ref_from, ref_to=None, copy=True):
+def _apply_reference(inst, ref_from, ref_to=None):
     """Apply a custom EEG referencing scheme.
 
     Calculates a reference signal by taking the mean of a set of channels and
@@ -33,9 +33,6 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
     ref_to : list of str | None
         The names of the channels to apply the reference to. By default,
         all EEG channels are chosen.
-    copy : bool
-        Specifies whether the data will be copied (True) or modified in place
-        (False). Defaults to True.
 
     Returns
     -------
@@ -46,6 +43,8 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
     Notes
     -----
+    This function operates in-place.
+
     1. Do not use this function to apply an average reference. By default, an
        average reference projection has already been added upon loading raw
        data.
@@ -73,9 +72,6 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
     if ref_to is None:
         ref_to = [inst.ch_names[i] for i in eeg_idx]
-
-    if copy:
-        inst = inst.copy()
 
     # After referencing, existing SSPs might not be valid anymore.
     for i, proj in enumerate(inst.info['projs']):
@@ -198,11 +194,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
                      'loc': np.zeros(12)}
         inst.info['chs'].append(chan_info)
-    inst.info['ch_names'].extend(ref_channels)
-    inst.info['nchan'] = len(inst.info['ch_names'])
+        inst.info._update_redundant()
     if isinstance(inst, _BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
-
+    inst.info._check_consistency()
     return inst
 
 
@@ -254,8 +249,8 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
     if ref_channels is None:
         # CAR requested
         if _has_eeg_average_ref_proj(inst.info['projs']):
-            logger.warning('An average reference projection was already '
-                           'added. The data has been left untouched.')
+            warn('An average reference projection was already added. The data '
+                 'has been left untouched.')
             return inst, None
         else:
             inst.info['custom_ref_applied'] = False
@@ -263,7 +258,8 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
             return inst, None
     else:
         logger.info('Applying a custom EEG reference.')
-        return _apply_reference(inst, ref_channels, copy=copy)
+        inst = inst.copy() if copy else inst
+        return _apply_reference(inst, ref_channels)
 
 
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
@@ -275,7 +271,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     channels will be dropped.
 
     Multiple anodes and cathodes can be specified, in which case multiple
-    vitual channels will be created. The 1st anode will be substracted from the
+    virtual channels will be created. The 1st anode will be subtracted from the
     1st cathode, the 2nd anode from the 2nd cathode, etc.
 
     By default, the virtual channels will be annotated with channel info of
@@ -374,12 +370,12 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Perform bipolar referencing
     for an, ca, name, info in zip(anode, cathode, ch_name, new_ch_info):
-        inst, _ = _apply_reference(inst, [ca], [an], copy=False)
+        _apply_reference(inst, [ca], [an])
         an_idx = inst.ch_names.index(an)
         inst.info['chs'][an_idx] = info
         inst.info['chs'][an_idx]['ch_name'] = name
-        inst.info['ch_names'][an_idx] = name
         logger.info('Bipolar channel added as "%s".' % name)
+    inst.info._update_redundant()
 
     # Drop cathode channels
     inst.drop_channels(cathode)

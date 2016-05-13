@@ -180,7 +180,7 @@ and
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}|p{0.5\linewidth}|
 .. _CHDJDEDJ:
-.. table:: Coordinate transformations in FreeSurfer and MNE software packages. The symbols :math:`T_x` are defined in :ref:`CHDFFJIJ`. Note: mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.
+.. table:: Coordinate transformations in FreeSurfer and MNE software packages.
 
     +------------------------------+-------------------------------+--------------------------------------+
     | Transformation               | FreeSurfer                    | MNE                                  |
@@ -214,6 +214,8 @@ and
     |                              |                               | mne_make_cor_set if the input is in  |
     |                              |                               | mgz or mgh format.                   |
     +------------------------------+-------------------------------+--------------------------------------+
+
+.. note:: The symbols :math:`T_x` are defined in :ref:`CHDFFJIJ`. mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.
 
 .. _BJEBIBAI:
 
@@ -257,7 +259,7 @@ Creating a surface-based source space
 The fif format source space files containing the dipole locations
 and orientations are created with the utility :ref:`mne_make_source_space`.
 This utility is usually invoked by the convenience script :ref:`mne_setup_source_space`,
-see :ref:`CIHCHDAE`.
+see :ref:`setting_up_source_space`.
 
 
 .. _BJEFEHJI:
@@ -483,7 +485,7 @@ in Neuromag software. The coil types fall in two general categories:
 - Axial gradiometers and planar gradiometers
   and
 
-- Planar gradiometers.
+- Planar magnetometers.
 
 For axial sensors, the *z* axis of the
 local coordinate system is parallel to the field component detected, *i.e.*,
@@ -524,7 +526,7 @@ The columns of the tables contain the following data:
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _BGBBHGEC:
-.. table:: Normal coil descriptions. Note: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
+.. table:: Normal coil descriptions.
 
     +------+-------------------------+----+----------------------------------+----------------------+
     | Id   | Description             | n  | r/mm                             | w                    |
@@ -580,6 +582,8 @@ The columns of the tables contain the following data:
     |      | gradiometer measuring   |    | (+/-8.6, +/-8.6, 78.6)mm         | -1/4                 |
     |      | diagonal gradients      |    |                                  |                      |
     +------+-------------------------+----+----------------------------------+----------------------+
+
+.. note:: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.05\linewidth}|p{0.25\linewidth}|p{0.15\linewidth}|
 .. _CHDBDFJE:

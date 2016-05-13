@@ -16,7 +16,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
                  write_labels_to_annot, split_label, spatial_tris_connectivity,
                  read_surface)
-from mne.label import Label, _blend_colors
+from mne.label import Label, _blend_colors, label_sign_flip
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main, slow_test)
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
@@ -164,6 +164,14 @@ def assert_labels_equal(l0, l1, decimal=5, comment=True, color=True):
         a0 = getattr(l0, attr)
         a1 = getattr(l1, attr)
         assert_array_almost_equal(a0, a1, decimal)
+
+
+def test_copy():
+    """Test label copying"""
+    label = read_label(label_fname)
+    label_2 = label.copy()
+    label_2.pos += 1
+    assert_array_equal(label.pos, label_2.pos - 1)
 
 
 def test_label_subject():
@@ -485,9 +493,10 @@ def test_write_labels_to_annot():
                   'test4', subjects_dir=tempdir)
 
     # write left and right hemi labels with filenames:
-    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
-    for fname in fnames:
-        write_labels_to_annot(labels, annot_fname=fname)
+    fnames = [op.join(tempdir, hemi + '-myparc') for hemi in ['lh', 'rh']]
+    with warnings.catch_warnings(record=True):  # specify subject_dir param
+        for fname in fnames:
+                write_labels_to_annot(labels, annot_fname=fname)
 
     # read it back
     labels2 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
@@ -504,7 +513,8 @@ def test_write_labels_to_annot():
 
     # same with label-internal colors
     for fname in fnames:
-        write_labels_to_annot(labels, annot_fname=fname, overwrite=True)
+        write_labels_to_annot(labels, 'sample', annot_fname=fname,
+                              overwrite=True, subjects_dir=subjects_dir)
     labels3 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
                                      annot_fname=fnames[0])
     labels33 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
@@ -516,35 +526,40 @@ def test_write_labels_to_annot():
         assert_labels_equal(label, labels3[idx])
 
     # make sure we can't overwrite things
-    assert_raises(ValueError, write_labels_to_annot, labels,
-                  annot_fname=fnames[0])
+    assert_raises(ValueError, write_labels_to_annot, labels, 'sample',
+                  annot_fname=fnames[0], subjects_dir=subjects_dir)
 
     # however, this works
-    write_labels_to_annot(labels, annot_fname=fnames[0], overwrite=True)
+    write_labels_to_annot(labels, 'sample', annot_fname=fnames[0],
+                          overwrite=True, subjects_dir=subjects_dir)
 
     # label without color
     labels_ = labels[:]
     labels_[0] = labels_[0].copy()
     labels_[0].color = None
-    write_labels_to_annot(labels_, annot_fname=fnames[0], overwrite=True)
+    write_labels_to_annot(labels_, 'sample', annot_fname=fnames[0],
+                          overwrite=True, subjects_dir=subjects_dir)
 
     # duplicate color
     labels_[0].color = labels_[2].color
-    assert_raises(ValueError, write_labels_to_annot, labels_,
-                  annot_fname=fnames[0], overwrite=True)
+    assert_raises(ValueError, write_labels_to_annot, labels_, 'sample',
+                  annot_fname=fnames[0], overwrite=True,
+                  subjects_dir=subjects_dir)
 
     # invalid color inputs
     labels_[0].color = (1.1, 1., 1., 1.)
-    assert_raises(ValueError, write_labels_to_annot, labels_,
-                  annot_fname=fnames[0], overwrite=True)
+    assert_raises(ValueError, write_labels_to_annot, labels_, 'sample',
+                  annot_fname=fnames[0], overwrite=True,
+                  subjects_dir=subjects_dir)
 
     # overlapping labels
     labels_ = labels[:]
     cuneus_lh = labels[6]
     precuneus_lh = labels[50]
     labels_.append(precuneus_lh + cuneus_lh)
-    assert_raises(ValueError, write_labels_to_annot, labels_,
-                  annot_fname=fnames[0], overwrite=True)
+    assert_raises(ValueError, write_labels_to_annot, labels_, 'sample',
+                  annot_fname=fnames[0], overwrite=True,
+                  subjects_dir=subjects_dir)
 
     # unlabeled vertices
     labels_lh = [label for label in labels if label.name.endswith('lh')]
@@ -565,12 +580,16 @@ def test_write_labels_to_annot():
                   annot_fname=fnames[0])
 
 
+@requires_sklearn
 @testing.requires_testing_data
 def test_split_label():
     """Test splitting labels"""
     aparc = read_labels_from_annot('fsaverage', 'aparc', 'lh',
                                    regexp='lingual', subjects_dir=subjects_dir)
     lingual = aparc[0]
+
+    # Test input error
+    assert_raises(ValueError, lingual.split, 'bad_input_string')
 
     # split with names
     parts = ('lingual_post', 'lingual_ant')
@@ -603,6 +622,15 @@ def test_split_label():
 
     # check default label name
     assert_equal(antmost.name, "lingual_div40-lh")
+
+    # Apply contiguous splitting to DMN label from parcellation in Yeo, 2011
+    label_default_mode = read_label(op.join(subjects_dir, 'fsaverage', 'label',
+                                            'lh.7Networks_7.label'))
+    DMN_sublabels = label_default_mode.split(parts='contiguous',
+                                             subject='fsaverage',
+                                             subjects_dir=subjects_dir)
+    assert_equal([len(label.vertices) for label in DMN_sublabels],
+                 [16181, 7022, 5965, 5300, 823] + [1] * 23)
 
 
 @slow_test
@@ -683,10 +711,8 @@ def test_morph():
         # this should throw an error because the label has all zero values
         assert_raises(ValueError, label.morph, 'sample', 'fsaverage')
         label.values.fill(1)
-        label.morph(None, 'fsaverage', 5, grade, subjects_dir, 1,
-                    copy=False)
-        label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2,
-                    copy=False)
+        label = label.morph(None, 'fsaverage', 5, grade, subjects_dir, 1)
+        label = label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2)
         assert_true(np.mean(in1d(label_orig.vertices, label.vertices)) == 1.0)
         assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
         vals.append(label.vertices)
@@ -701,7 +727,8 @@ def test_morph():
                   subjects_dir, 2)
     assert_raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
                   subjects_dir, 2)
-    label.smooth(subjects_dir=subjects_dir)  # make sure this runs
+    with warnings.catch_warnings(record=True):  # morph map could be missing
+        label.smooth(subjects_dir=subjects_dir)  # make sure this runs
 
 
 @testing.requires_testing_data
@@ -744,6 +771,24 @@ def test_grow_labels():
     l0 = l01 + l02
     l1 = l11 + l12
     assert_array_equal(l1.vertices, l0.vertices)
+
+
+@testing.requires_testing_data
+def test_label_sign_flip():
+    src = read_source_spaces(src_fname)
+    label = Label(vertices=src[0]['vertno'][:5], hemi='lh')
+    src[0]['nn'][label.vertices] = np.array(
+        [[1., 0., 0.],
+         [0.,  1., 0.],
+         [0,  0, 1.],
+         [1. / np.sqrt(2), 1. / np.sqrt(2), 0.],
+         [1. / np.sqrt(2), 1. / np.sqrt(2), 0.]])
+    known_flips = np.array([1, 1, np.nan, 1, 1])
+    idx = [0, 1, 3, 4]  # indices that are usable (third row is orthognoal)
+    flip = label_sign_flip(label, src)
+    # Need the abs here because the direction is arbitrary
+    assert_array_almost_equal(np.abs(np.dot(flip[idx], known_flips[idx])),
+                              len(idx))
 
 
 run_tests_if_main()

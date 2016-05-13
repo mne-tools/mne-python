@@ -37,7 +37,7 @@ data_path = sample.data_path()
 # Load and filter data, set up epochs
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 events_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-raw = mne.io.Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')  # Pick MEG channels
 raw.filter(1, 30, method='fft')  # Band pass filtering signals
 events = mne.read_events(events_fname)

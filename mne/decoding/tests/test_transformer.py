@@ -28,7 +28,7 @@ event_name = op.join(data_dir, 'test-eve.fif')
 def test_scaler():
     """Test methods of Scaler
     """
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -61,7 +61,7 @@ def test_scaler():
 def test_filterestimator():
     """Test methods of FilterEstimator
     """
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -100,7 +100,7 @@ def test_filterestimator():
 def test_psdestimator():
     """Test methods of PSDEstimator
     """
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -123,7 +123,7 @@ def test_psdestimator():
 def test_epochs_vectorizer():
     """Test methods of EpochsVectorizer
     """
-    raw = io.Raw(raw_fname, preload=False)
+    raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')

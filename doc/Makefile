@@ -15,18 +15,19 @@ ALLSPHINXOPTS   = -d _build/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  html_stable  to make standalone HTML files (stable version)"
-	@echo "  html_dev     to make standalone HTML files (dev version)"
-	@echo "  *-noplot     to make standalone HTML files without plotting"
-	@echo "  dirhtml      to make HTML files named index.html in directories"
-	@echo "  pickle       to make pickle files"
-	@echo "  json         to make JSON files"
-	@echo "  htmlhelp     to make HTML files and a HTML help project"
-	@echo "  qthelp       to make HTML files and a qthelp project"
-	@echo "  latex        to make LaTeX files, you can set PAPER=a4 or PAPER=letter"
-	@echo "  changes      to make an overview of all changed/added/deprecated items"
-	@echo "  linkcheck    to check all external links for integrity"
-	@echo "  doctest      to run all doctests embedded in the documentation (if enabled)"
+	@echo "  html_stable      to make standalone HTML files (stable version)"
+	@echo "  html_dev         to make standalone HTML files (dev version)"
+	@echo "  html_dev-pattern to make standalone HTML files for one example dir (dev version)"
+	@echo "  *-noplot     	  to make standalone HTML files without plotting"
+	@echo "  dirhtml          to make HTML files named index.html in directories"
+	@echo "  pickle           to make pickle files"
+	@echo "  json             to make JSON files"
+	@echo "  htmlhelp         to make HTML files and a HTML help project"
+	@echo "  qthelp           to make HTML files and a qthelp project"
+	@echo "  latex            to make LaTeX files, you can set PAPER=a4 or PAPER=letter"
+	@echo "  changes          to make an overview of all changed/added/deprecated items"
+	@echo "  linkcheck        to check all external links for integrity"
+	@echo "  doctest          to run all doctests embedded in the documentation (if enabled)"
 
 clean:
 	-rm -rf _build/*
@@ -38,12 +39,17 @@ clean:
 	-rm -rf *.nii.gz
 
 html_stable:
-	$(SPHINXBUILD) -D raise_gallery=1 -b html $(ALLSPHINXOPTS) build/html_stable
+	$(SPHINXBUILD) -D raise_gallery=1 -b html $(ALLSPHINXOPTS) _build/html_stable
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html_stable."
 
 html_dev:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D raise_gallery=1 -b html $(ALLSPHINXOPTS) _build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D raise_gallery=1 -D abort_on_example_error=1 -b html $(ALLSPHINXOPTS) _build/html
+	@echo
+	@echo "Build finished. The HTML pages are in _build/html"
+
+html_dev-pattern:
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=1 -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 

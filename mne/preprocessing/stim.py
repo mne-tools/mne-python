@@ -5,10 +5,11 @@
 import numpy as np
 from ..evoked import Evoked
 from ..epochs import _BaseEpochs
-from ..io import Raw
+from ..io import _BaseRaw
 from ..event import find_events
 
 from ..io.pick import pick_channels
+from ..utils import _check_copy_dep
 
 
 def _get_window(start, end):
@@ -43,7 +44,7 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
 
 
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
-                      tmax=0.01, mode='linear', stim_channel=None, copy=False):
+                      tmax=0.01, mode='linear', stim_channel=None, copy=None):
     """Eliminate stimulation's artifacts from instance
 
     Parameters
@@ -75,9 +76,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     """
     if mode not in ('linear', 'window'):
         raise ValueError("mode has to be 'linear' or 'window' (got %s)" % mode)
-
-    if copy:
-        inst = inst.copy()
+    inst = _check_copy_dep(inst, copy)
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
     if (mode == "window") and (s_end - s_start) < 4:
@@ -89,7 +88,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     ch_names = inst.info['ch_names']
     picks = pick_channels(ch_names, ch_names)
 
-    if isinstance(inst, Raw):
+    if isinstance(inst, _BaseRaw):
         _check_preload(inst)
         if events is None:
             events = find_events(inst, stim_channel=stim_channel)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Authors: Teon Brooks  <teon.brooks@gmail.com>
 
-""" Import KIT / NYU data to fif file.
+"""Import KIT / NYU data to fif file.
 
 example usage:  $ mne kit2fiff --input input.sqd --output output.fif
 Use without arguments to invoke GUI:  $ mne kt2fiff

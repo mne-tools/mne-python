@@ -5,13 +5,13 @@ from __future__ import print_function
 # License: Simplified BSD
 
 from copy import deepcopy
-import warnings
 from math import sqrt, ceil
+
 import numpy as np
 from scipy import linalg
 
 from .mxne_debiasing import compute_bias
-from ..utils import logger, verbose, sum_squared
+from ..utils import logger, verbose, sum_squared, warn
 from ..time_frequency.stft import stft_norm2, stft, istft
 from ..externals.six.moves import xrange as range
 
@@ -392,14 +392,13 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     if solver == 'cd':
         if n_orient == 1 and not has_sklearn:
-            warnings.warn("Scikit-learn >= 0.12 cannot be found. "
-                          "Using block coordinate descent instead of "
-                          "coordinate descent.")
+            warn('Scikit-learn >= 0.12 cannot be found. Using block coordinate'
+                 ' descent instead of coordinate descent.')
             solver = 'bcd'
         if n_orient > 1:
-            warnings.warn("Coordinate descent is only available for fixed "
-                          "orientation. Using block coordinate descent "
-                          "instead of coordinate descent")
+            warn('Coordinate descent is only available for fixed orientation. '
+                 'Using block coordinate descent instead of coordinate '
+                 'descent')
             solver = 'bcd'
 
     if solver == 'cd':
@@ -474,7 +473,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                 idx = np.searchsorted(idx_active_set, idx_old_active_set)
                 X_init[idx] = X
         else:
-            logger.warning('Did NOT converge ! (gap: %s > %s)' % (gap, tol))
+            warn('Did NOT converge ! (gap: %s > %s)' % (gap, tol))
     else:
         X, active_set, E = l21_solver(M, G, alpha, lc, maxit=maxit,
                                       tol=tol, n_orient=n_orient, init=None)

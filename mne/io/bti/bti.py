@@ -9,18 +9,17 @@
 
 import os.path as op
 from itertools import count
-import warnings
 
 import numpy as np
 
-from ...utils import logger, verbose, sum_squared
+from ...utils import logger, verbose, sum_squared, warn
 from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
 from .. import _BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
-from ..utils import _mult_cal_one
+from ..utils import _mult_cal_one, read_str
 from .constants import BTI
-from .read import (read_int32, read_int16, read_str, read_float, read_double,
+from .read import (read_int32, read_int16, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix)
@@ -797,7 +796,7 @@ def _read_ch_config(fid):
         chan['transform'] = read_transform(fid)
         chan['reserved'] = read_char(fid, BTI.FILE_CONF_CH_RESERVED)
 
-    elif ch_type in [BTI.CHTYPE_TRIGGER,  BTI.CHTYPE_EXTERNAL,
+    elif ch_type in [BTI.CHTYPE_TRIGGER, BTI.CHTYPE_EXTERNAL,
                      BTI.CHTYPE_UTILITY, BTI.CHTYPE_DERIVED]:
         chan['user_space_size'] = read_int32(fid)
         if ch_type == BTI.CHTYPE_TRIGGER:
@@ -895,7 +894,8 @@ def _read_bti_header_pdf(pdf_fname):
 def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     """ Read bti PDF header
     """
-    info = _read_bti_header_pdf(pdf_fname)
+
+    info = _read_bti_header_pdf(pdf_fname) if pdf_fname is not None else dict()
     cfg = _read_config(config_fname)
     info['bti_transform'] = cfg['transforms']
 
@@ -927,10 +927,13 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
             ch['loc'] = _coil_trans_to_loc(ch_cfg['dev']['transform'])
         else:
             ch['loc'] = None
-        if info['data_format'] <= 2:  # see DTYPES, implies integer
-            ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
-        else:  # float
-            ch['cal'] = ch['scale'] * ch['gain']
+        if pdf_fname is not None:
+            if info['data_format'] <= 2:  # see DTYPES, implies integer
+                ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
+            else:  # float
+                ch['cal'] = ch['scale'] * ch['gain']
+        else:  # if we are in this mode we don't read data, only channel info.
+            ch['cal'] = ch['scale'] = 1.0  # so we put a trivial default value
 
     if sort_by_ch_name:
         by_index = [(i, d['index']) for i, d in enumerate(chans)]
@@ -950,7 +953,7 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         info['order'] = sort_by_name_idx
     else:
         info['chs'] = chans
-        info['order'] = Ellipsis
+        info['order'] = np.arange(len(chans))
 
     # finally add some important fields from the config
     info['e_table'] = cfg['user_blocks'][BTI.UB_B_E_TABLE_USED]
@@ -1016,12 +1019,7 @@ class RawBTi(_BaseRaw):
                  translation=(0.0, 0.02, 0.11), convert=True,
                  rename_channels=True, sort_by_ch_name=True,
                  ecg_ch='E31', eog_ch=('E63', 'E64'),
-                 preload=None, verbose=None):
-        if preload is None:
-            warnings.warn('preload is True by default but will be changed to '
-                          'False in v0.12. Please explicitly set preload.',
-                          DeprecationWarning)
-            preload = True
+                 preload=False, verbose=None):
         info, bti_info = _get_bti_info(
             pdf_fname=pdf_fname, config_fname=config_fname,
             head_shape_fname=head_shape_fname, rotation_x=rotation_x,
@@ -1040,33 +1038,61 @@ class RawBTi(_BaseRaw):
         """Read a segment of data from a file"""
         bti_info = self._raw_extras[fi]
         fname = bti_info['pdf_fname']
+        dtype = bti_info['dtype']
+        n_channels = self.info['nchan']
+        n_bytes = np.dtype(dtype).itemsize
+        data_left = (stop - start) * n_channels
         read_cals = np.empty((bti_info['total_chans'],))
         for ch in bti_info['chs']:
             read_cals[ch['index']] = ch['cal']
+
+        block_size = ((int(100e6) // n_bytes) // n_channels) * n_channels
+        block_size = min(data_left, block_size)
+        # extract data in chunks
         with _bti_open(fname, 'rb') as fid:
             fid.seek(bti_info['bytes_per_slice'] * start, 0)
-            shape = (stop - start, bti_info['total_chans'])
-            count = np.prod(shape)
-            dtype = bti_info['dtype']
-            if isinstance(fid, six.BytesIO):
-                one_orig = np.fromstring(fid.getvalue(), dtype, count)
-            else:
-                one_orig = np.fromfile(fid, dtype, count)
-            one_orig.shape = shape
-            one = np.empty(shape[::-1])
-            for ii, b_i_o in enumerate(bti_info['order']):
-                one[ii] = one_orig[:, b_i_o] * read_cals[b_i_o]
-        _mult_cal_one(data, one, idx, cals, mult)
+            for sample_start in np.arange(0, data_left,
+                                          block_size) // n_channels:
+                count = min(block_size, data_left - sample_start * n_channels)
+                if isinstance(fid, six.BytesIO):
+                    block = np.fromstring(fid.getvalue(), dtype, count)
+                else:
+                    block = np.fromfile(fid, dtype, count)
+                sample_stop = sample_start + count // n_channels
+                shape = (sample_stop - sample_start, bti_info['total_chans'])
+                block.shape = shape
+                data_view = data[:, sample_start:sample_stop]
+                one = np.empty(block.shape[::-1])
+
+                for ii, b_i_o in enumerate(bti_info['order']):
+                    one[ii] = block[:, b_i_o] * read_cals[b_i_o]
+                _mult_cal_one(data_view, one, idx, cals, mult)
 
 
 def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                   translation, convert, ecg_ch, eog_ch, rename_channels=True,
                   sort_by_ch_name=True):
-    """Helper to read BTI info"""
+    """Helper to read BTI info
+
+    Note. This helper supports partial construction of infos when `pdf_fname`
+    is None. Some datasets, such as the HCP, are shipped as a large collection
+    of zipped files where it can be more efficient to only read the needed
+    information. In such a situation, some information can neither be accessed
+    directly nor guessed based on the `config`.
+
+    These fields will thus be set to None:
+        - 'lowpass'
+        - 'highpass'
+        - 'sfreq'
+        - 'meas_date'
+
+    """
     if pdf_fname is None:
-        raise ValueError('pdf_fname must be a path, not None')
-    if not isinstance(pdf_fname, six.BytesIO):
-        pdf_fname = op.abspath(pdf_fname)
+        logger.info('No pdf_fname passed, trying to construct partial info '
+                    'from config')
+    if pdf_fname is not None and not isinstance(pdf_fname, six.BytesIO):
+        if not op.isabs(pdf_fname):
+            pdf_fname = op.abspath(pdf_fname)
 
     if not isinstance(config_fname, six.BytesIO):
         if not op.isabs(config_fname):
@@ -1111,13 +1137,23 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         sfreq = 1. / bti_info['sample_period']
     else:
         sfreq = None
-    info = _empty_info(sfreq)
-    info['buffer_size_sec'] = 1.  # reasonable default for writing
-    date = bti_info['processes'][0]['timestamp']
-    info['meas_date'] = [date, 0]
-    info['nchan'] = len(bti_info['chs'])
 
+    if pdf_fname is not None:
+        info = _empty_info(sfreq)
+        date = bti_info['processes'][0]['timestamp']
+        info['meas_date'] = [date, 0]
+    else:  # these cannot be guessed from config, see docstring
+        info = _empty_info(1.0)
+        info['sfreq'] = None
+        info['lowpass'] = None
+        info['highpass'] = None
+        info['meas_date'] = None
+        bti_info['processes'] = list()
+
+    info['buffer_size_sec'] = 1.  # reasonable default for writing
     # browse processing info for filter specs.
+    hp, lp = ((0.0, info['sfreq'] * 0.4) if pdf_fname is not None else
+              (None, None))
     hp, lp = info['highpass'], info['lowpass']
     for proc in bti_info['processes']:
         if 'filt' in proc['process_type']:
@@ -1133,7 +1169,17 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     info['lowpass'] = lp
     chs = []
 
-    bti_ch_names = [ch['name'] for ch in bti_info['chs']]
+    # Note that 'name' and 'chan_label' are not the same.
+    # We want the configured label if out IO parsed it
+    # except for the MEG channels for which we keep the config name
+    bti_ch_names = list()
+    for ch in bti_info['chs']:
+        # we have always relied on 'A' as indicator of MEG data channels.
+        ch_name = ch['name']
+        if not ch_name.startswith('A'):
+            ch_name = ch.get('chan_label', ch_name)
+        bti_ch_names.append(ch_name)
+
     neuromag_ch_names = _rename_channels(
         bti_ch_names, ecg_ch=ecg_ch, eog_ch=eog_ch)
     ch_mapping = zip(bti_ch_names, neuromag_ch_names)
@@ -1206,7 +1252,6 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         chs.append(chan_info)
 
     info['chs'] = chs
-    info['ch_names'] = neuromag_ch_names if rename_channels else bti_ch_names
 
     if head_shape_fname:
         logger.info('... Reading digitization points from %s' %
@@ -1258,13 +1303,13 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                        colcals=np.ones(mat.shape[1], dtype='>f4'),
                        save_calibrated=0)]
     else:
-        logger.warning('Warning. Currently direct inclusion of 4D weight t'
-                       'ables is not supported. For critical use cases '
-                       '\nplease take into account the MNE command '
-                       '\'mne_create_comp_data\' to include weights as '
-                       'printed out \nby the 4D \'print_table\' routine.')
+        warn('Currently direct inclusion of 4D weight tables is not supported.'
+             ' For critical use cases please take into account the MNE command'
+             ' "mne_create_comp_data" to include weights as printed out by '
+             'the 4D "print_table" routine.')
 
     # check that the info is complete
+    info._update_redundant()
     info._check_consistency()
     return info, bti_info
 
@@ -1274,7 +1319,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=0.,
                  translation=(0.0, 0.02, 0.11), convert=True,
                  rename_channels=True, sort_by_ch_name=True,
-                 ecg_ch='E31', eog_ch=('E63', 'E64'), preload=None,
+                 ecg_ch='E31', eog_ch=('E63', 'E64'), preload=False,
                  verbose=None):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 

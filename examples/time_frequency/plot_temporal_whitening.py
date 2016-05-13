@@ -24,9 +24,9 @@ print(__doc__)
 data_path = sample.data_path()
 
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-proj_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
+proj_fname = data_path + '/MEG/sample/sample_audvis_ecg-proj.fif'
 
-raw = mne.io.Raw(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 proj = mne.read_proj(proj_fname)
 raw.info['projs'] += proj
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels

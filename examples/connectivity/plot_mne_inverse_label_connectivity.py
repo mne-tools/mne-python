@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import spectral_connectivity
 from mne.viz import circular_layout, plot_connectivity_circle
@@ -34,7 +33,7 @@ fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
-raw = Raw(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # Add a bad channel
@@ -84,7 +83,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['pli', 'wpli2_debiased']
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     label_ts, method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
-    fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
+    fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=1)
 
 # con is a 3D array, get the connectivity for the first (and only) freq. band
 # for each method

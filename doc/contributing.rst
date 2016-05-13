@@ -1,7 +1,7 @@
 .. _contributing:
 
-Contributing to MNE project
-===========================
+Contribute to MNE
+=================
 
 .. contents:: Contents
    :local:
@@ -41,7 +41,7 @@ As always, Vim or Emacs will suffice as well.
 #. Other useful packages: pysurfer_, nitime_, pandas_, PIL_, PyDICOM_,
    joblib_, nibabel_, h5py_, and scikit-learn_
 
-#. `MNE command line utilities`_ and Freesurfer_ are optional but will allow you
+#. `MNE command line utilities`_ and FreeSurfer_ are optional but will allow you
    to make the best out of MNE. Yet they will require a Unix (Linux or Mac OS)
    system. If you are on Windows, you can install these applications inside a
    Unix virtual machine.
@@ -50,7 +50,7 @@ General code guidelines
 -----------------------
 
 * We highly recommend using a code editor that uses both `pep8`_ and
-  `pyflakes`_, such as `spyder`_. Standard python style guidelines are
+  `pyflakes`_, such as `Spyder`_. Standard python style guidelines are
   followed, with very few exceptions.
 
   You can also manually check pyflakes and pep8 warnings as::
@@ -804,6 +804,17 @@ Add the example to the correct subfolder in the ``examples/`` directory and
 prefix the file with ``plot_``. To make sure that the example renders correctly,
 run ``make html`` in the ``doc/`` folder
 
+Building a subset of examples
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To build only a subset of examples, it is possible to provide a regular expression
+which searches on the full pathname of the file. For example, you can do::
+
+  make html_dev-pattern PATTERN='/decoding/plot_'
+
+It will run only the examples in the ``decoding`` folder. Consult the `sphinx gallery documentation`_
+for more details.
+
 Editing \*.rst files
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -842,3 +853,4 @@ handler doing an exit()``, try backing up or removing .ICEauthority::
 .. include:: links.inc
 
 .. _Sphinx documentation: http://sphinx-doc.org/rest.html
+.. _sphinx gallery documentation: http://sphinx-gallery.readthedocs.org/en/latest/advanced_configuration.html

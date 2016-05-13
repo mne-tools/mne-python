@@ -164,20 +164,24 @@ FIFF.FIFFV_NEXT_NONE   = -1
 #
 # Channel types
 #
-FIFF.FIFFV_MEG_CH     =   1
-FIFF.FIFFV_REF_MEG_CH = 301
-FIFF.FIFFV_EEG_CH     =   2
-FIFF.FIFFV_MCG_CH     = 201
-FIFF.FIFFV_STIM_CH    =   3
-FIFF.FIFFV_EOG_CH     = 202
-FIFF.FIFFV_EMG_CH     = 302
-FIFF.FIFFV_ECG_CH     = 402
-FIFF.FIFFV_MISC_CH    = 502
-FIFF.FIFFV_RESP_CH    = 602  # Respiration monitoring
-FIFF.FIFFV_SEEG_CH    = 802  # stereotactic EEG
-FIFF.FIFFV_SYST_CH    = 900  # some system status information (on Triux systems only)
-FIFF.FIFFV_IAS_CH     = 910  # Internal Active Shielding data (maybe on Triux only)
-FIFF.FIFFV_EXCI_CH    = 920  # flux excitation channel used to be a stimulus channel
+FIFF.FIFFV_BIO_CH       = 102
+FIFF.FIFFV_MEG_CH       =   1
+FIFF.FIFFV_REF_MEG_CH   = 301
+FIFF.FIFFV_EEG_CH       =   2
+FIFF.FIFFV_MCG_CH       = 201
+FIFF.FIFFV_STIM_CH      =   3
+FIFF.FIFFV_EOG_CH       = 202
+FIFF.FIFFV_EMG_CH       = 302
+FIFF.FIFFV_ECG_CH       = 402
+FIFF.FIFFV_MISC_CH      = 502
+FIFF.FIFFV_RESP_CH      = 602  # Respiration monitoring
+FIFF.FIFFV_SEEG_CH      = 802  # stereotactic EEG
+FIFF.FIFFV_SYST_CH      = 900  # some system status information (on Triux systems only)
+FIFF.FIFFV_ECOG_CH      = 902
+FIFF.FIFFV_IAS_CH       = 910  # Internal Active Shielding data (maybe on Triux only)
+FIFF.FIFFV_EXCI_CH      = 920  # flux excitation channel used to be a stimulus channel
+FIFF.FIFFV_DIPOLE_WAVE  = 1000  # Dipole time curve (xplotter/xfit)
+FIFF.FIFFV_GOODNESS_FIT = 1001  # Goodness of fit (xplotter/xfit)
 
 #
 # Quaternion channels for head position monitoring
@@ -227,6 +231,13 @@ FIFF.FIFF_SUBJ_WEIGHT       = 407  # Weight of the subject
 FIFF.FIFF_SUBJ_HEIGHT       = 408  # Height of the subject
 FIFF.FIFF_SUBJ_COMMENT      = 409  # Comment about the subject
 FIFF.FIFF_SUBJ_HIS_ID       = 410  # ID used in the Hospital Information System
+
+FIFF.FIFFV_SUBJ_HAND_RIGHT  = 1    # Righthanded
+FIFF.FIFFV_SUBJ_HAND_LEFT   = 2    # Lefthanded
+
+FIFF.FIFFV_SUBJ_SEX_UNKNOWN = 0    # Unknown gender
+FIFF.FIFFV_SUBJ_SEX_MALE    = 1    # Male
+FIFF.FIFFV_SUBJ_SEX_FEMALE  = 2    # Female
 
 FIFF.FIFF_PROJ_ID           = 500
 FIFF.FIFF_PROJ_NAME         = 501
@@ -325,6 +336,8 @@ FIFF.FIFF_PROJ_ITEM_NVEC         = 3414
 FIFF.FIFF_PROJ_ITEM_VECTORS      = 3415
 FIFF.FIFF_PROJ_ITEM_DEFINITION   = 3416
 FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST = 3417
+#   XPlotter
+FIFF.FIFF_XPLOTTER_LAYOUT        = 3501  # string - "Xplotter layout tag"
 #
 #   MRIs
 #
@@ -809,3 +822,6 @@ FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 # MNE epochs bookkeeping
 FIFF.FIFFB_MNE_EPOCHS_SELECTION    = 3800  # the epochs selection
 FIFF.FIFFB_MNE_EPOCHS_DROP_LOG     = 3801  # the drop log
+
+# MNE annotations
+FIFF.FIFFB_MNE_ANNOTATIONS          = 3810  # annotations

@@ -76,7 +76,7 @@ def run():
                       help="Subjects directory", default=subjects_dir)
     parser.add_option("-m", "--method", dest="method",
                       help=("Method used to generate the BEM model. "
-                            "Can be flash or watershed."), metavar="FILE")
+                            "Can be flash or watershed."))
 
     options, args = parser.parse_args()
 

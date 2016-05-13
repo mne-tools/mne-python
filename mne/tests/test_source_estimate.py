@@ -385,8 +385,9 @@ def test_extract_label_time_course():
                   src, mode='mean')
 
     # but this works:
-    tc = extract_label_time_course(stcs, empty_label, src, mode='mean',
-                                   allow_empty=True)
+    with warnings.catch_warnings(record=True):  # empty label
+        tc = extract_label_time_course(stcs, empty_label, src, mode='mean',
+                                       allow_empty=True)
     for arr in tc:
         assert_true(arr.shape == (1, n_times))
         assert_array_equal(arr, np.zeros((1, n_times)))
@@ -433,6 +434,8 @@ def test_morph_data():
     # make sure we can specify grade
     stc_from.crop(0.09, 0.1)  # for faster computation
     stc_to.crop(0.09, 0.1)  # for faster computation
+    assert_array_equal(stc_to.time_as_index([0.09, 0.1], use_rounding=True),
+                       [0, len(stc_to.times) - 1])
     assert_raises(ValueError, stc_from.morph, subject_to, grade=3, smooth=-1,
                   subjects_dir=subjects_dir)
     stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000,

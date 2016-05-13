@@ -31,7 +31,7 @@ tmin = -0.2
 tmax = 0.5
 
 #   Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
@@ -50,7 +50,7 @@ temporal_mask = np.logical_and(0.04 <= times, times <= 0.06)
 data = np.mean(data[:, :, temporal_mask], axis=2)
 
 n_permutations = 50000
-T0, p_values, H0 = permutation_t_test(data, n_permutations, n_jobs=2)
+T0, p_values, H0 = permutation_t_test(data, n_permutations, n_jobs=1)
 
 significant_sensors = picks[p_values <= 0.05]
 significant_sensors_names = [raw.ch_names[k] for k in significant_sensors]

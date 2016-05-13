@@ -1,0 +1,83 @@
+machine:
+  environment:
+    # We need to set this variable to let Anaconda take precedence
+    PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
+    MNE_DATA: "/home/ubuntu/mne_data"
+    DISPLAY: ":99.0"
+
+dependencies:
+  cache_directories:
+    - "/home/ubuntu/miniconda"
+    - "/home/ubuntu/.mne"
+    - "/home/ubuntu/mne_data"
+    - "/home/ubuntu/mne-tools.github.io"
+  # Various dependencies
+  pre:
+    # Get a running Python
+    - cd ~;
+    # Disable pyenv (no cleaner way provided by CircleCI as it prepends pyenv version to PATH)
+    - rm -rf ~/.pyenv;
+    - rm -rf ~/virtualenvs;
+    # Get Anaconda and conda-based requirements
+    - >
+      if [ ! -d "/home/ubuntu/miniconda" ]; then
+        echo "Setting up conda";
+        wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
+        chmod +x ~/miniconda.sh;
+        ~/miniconda.sh -b -p /home/ubuntu/miniconda;
+        conda update --yes --quiet conda;
+        conda create -n circleenv --yes pip python=2.7 pip numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython pandas;
+        sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
+      else
+        echo "Conda already set up.";
+      fi
+    - ls -al /home/ubuntu/miniconda;
+    - ls -al /home/ubuntu/miniconda/bin;
+    - echo $PATH;
+    - which python;
+    - which pip;
+    - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
+    - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
+    - cd /home/ubuntu && git clone https://github.com/enthought/pyface.git && cd pyface && python setup.py develop;
+    - pip install sphinx_bootstrap_theme PySurfer nilearn neo;
+
+  override:
+    - cd /home/ubuntu/mne-python && python setup.py develop;
+    - if [ "$CIRCLE_BRANCH" == "master" ]; then
+        mkdir -p ~/mne_data;
+        python -c "import mne; mne.datasets._download_all_example_data()";
+      fi
+    - python -c "import mne; mne.sys_info()";
+    - >
+      if [ ! -d "/home/ubuntu/mne-tools.github.io" ]; then
+        cd .. && git clone https://github.com/mne-tools/mne-tools.github.io.git && cd mne-tools.github.io;
+      fi;
+    - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+
+test:
+  override:
+    - if [ "$CIRCLE_BRANCH" == "master" ]; then
+        make test-doc;
+      else
+        cd doc && make html_dev-noplot;
+      fi
+    - if [ "$CIRCLE_BRANCH" == "master" ]; then cd doc && make html_dev; fi:
+          timeout: 1500
+
+general:
+  # branches:
+  #   only:
+  #     - master
+  # Open the doc to the API
+  artifacts:
+    - "doc/_build/html"
+
+deployment:
+  production:
+    branch: master
+    commands:
+      - git config --global user.email "circle@mne.com"
+      - git config --global user.name "Circle Ci"
+      - cd ../mne-tools.github.io && git checkout master && git pull origin master
+      - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
+      - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master

@@ -1,4 +1,6 @@
 import os.path as op
+import warnings
+
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_equal)
 from nose.tools import assert_raises, assert_equal, assert_true
@@ -20,7 +22,7 @@ def _load_data():
     """Helper function to load data."""
     # It is more memory efficient to load data in a separate
     # function so it's loaded on-demand
-    raw = io.Raw(raw_fname, add_eeg_ref=False)
+    raw = io.read_raw_fif(raw_fname, add_eeg_ref=False)
     events = read_events(event_name)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude=[])
     # select every second channel for faster speed but compensate by using
@@ -28,13 +30,15 @@ def _load_data():
     picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude=[])[1::2]
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
 
-    epochs_eeg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_eeg,
-                        preload=True, reject=dict(eeg=80e-6))
-    epochs_meg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
-                        preload=True, reject=dict(grad=1000e-12, mag=4e-12))
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, reject=dict(eeg=80e-6, grad=1000e-12,
-                                              mag=4e-12))
+    with warnings.catch_warnings(record=True):  # proj
+        epochs_eeg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_eeg,
+                            preload=True, reject=dict(eeg=80e-6))
+        epochs_meg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
+                            preload=True,
+                            reject=dict(grad=1000e-12, mag=4e-12))
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        preload=True, reject=dict(eeg=80e-6, grad=1000e-12,
+                                                  mag=4e-12))
     return raw, epochs, epochs_eeg, epochs_meg
 
 
@@ -100,6 +104,7 @@ def test_interpolation():
     data1 = raw_meg[pick, :][0][0]
     # reset_bads=False here because epochs_meg appears to share the same info
     # dict with raw and we want to test the epochs functionality too
+    raw_meg.info.normalize_proj()
     data2 = raw_meg.interpolate_bads(reset_bads=False)[pick, :][0][0]
     assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
     # the same number of bads as before
@@ -107,6 +112,7 @@ def test_interpolation():
 
     # MEG -- epochs
     data1 = epochs_meg.get_data()[:, pick, :].ravel()
+    epochs_meg.info.normalize_proj()
     epochs_meg.interpolate_bads()
     data2 = epochs_meg.get_data()[:, pick, :].ravel()
     assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
@@ -114,6 +120,7 @@ def test_interpolation():
 
     # MEG -- evoked
     data1 = evoked.data[pick]
+    evoked.info.normalize_proj()
     data2 = evoked.interpolate_bads().data[pick]
     assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
 

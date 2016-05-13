@@ -28,7 +28,6 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.minimum_norm import read_inverse_operator, apply_inverse_epochs
 from mne.connectivity import seed_target_indices, phase_slope_index
 
@@ -46,7 +45,7 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
-raw = Raw(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # pick MEG channels

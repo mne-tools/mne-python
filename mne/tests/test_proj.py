@@ -18,6 +18,7 @@ from mne.io.proj import (make_projector, activate_proj,
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
+from mne.tests.common import assert_naming
 from mne.utils import (_TempDir, run_tests_if_main, clean_warning_registry,
                        slow_test)
 
@@ -35,8 +36,36 @@ fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 sensmap_fname = op.join(sample_path,
                         'sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w')
 
-# sample dataset should be updated to reflect mne conventions
-eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
+eog_fname = op.join(sample_path, 'sample_audvis_eog-proj.fif')
+ecg_fname = op.join(sample_path, 'sample_audvis_ecg-proj.fif')
+
+
+def test_bad_proj():
+    """Test dealing with bad projection application
+    """
+    raw = Raw(raw_fname, preload=True)
+    events = read_events(event_fname)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
+    picks = picks[2:9:3]
+    _check_warnings(raw, events, picks)
+    # still bad
+    raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    _check_warnings(raw, events, np.arange(len(raw.ch_names)))
+    # "fixed"
+    raw.info.normalize_proj()  # avoid projection warnings
+    _check_warnings(raw, events, np.arange(len(raw.ch_names)), count=0)
+
+
+def _check_warnings(raw, events, picks, count=3):
+    """Helper to count warnings"""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        Epochs(raw, events, dict(aud_l=1, vis_l=3),
+               -0.2, 0.5, picks=picks, preload=True, proj=True)
+    assert_equal(len(w), count)
+    for ww in w:
+        assert_true('dangerous' in str(ww.message))
 
 
 @testing.requires_testing_data
@@ -45,7 +74,8 @@ def test_sensitivity_maps():
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        proj_eog = read_proj(eog_fname)
+        projs = read_proj(eog_fname)
+        projs.extend(read_proj(ecg_fname))
     decim = 6
     for ch_type in ['eeg', 'grad', 'mag']:
         w = read_source_estimate(sensmap_fname % (ch_type, 'lh')).data
@@ -72,13 +102,16 @@ def test_sensitivity_maps():
             ends = ['4-lh', '5-lh', '6-lh', '7-lh']
             for mode, end in zip(modes, ends):
                 w = read_source_estimate(sensmap_fname % (ch_type, end)).data
-                stc = sensitivity_map(fwd, projs=proj_eog, mode=mode,
+                stc = sensitivity_map(fwd, projs=projs, mode=mode,
                                       ch_type=ch_type, exclude='bads')
                 assert_array_almost_equal(stc.data, w, decim)
 
     # test corner case for EEG
     stc = sensitivity_map(fwd, projs=[make_eeg_average_ref_proj(fwd['info'])],
                           ch_type='eeg', exclude='bads')
+    # test corner case for projs being passed but no valid ones (#3135)
+    assert_raises(ValueError, sensitivity_map, fwd, projs=None, mode='angle')
+    assert_raises(RuntimeError, sensitivity_map, fwd, projs=[], mode='angle')
     # test volume source space
     fname = op.join(sample_path, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
     fwd = mne.read_forward_solution(fname)
@@ -159,8 +192,7 @@ def test_compute_proj_epochs():
         proj_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_proj(proj_badname, projs)
         read_proj(proj_badname)
-        print([ww.message for ww in w])
-    assert_equal(len(w), 2)
+    assert_naming(w, 'test_proj.py', 2)
 
 
 @slow_test
@@ -169,7 +201,7 @@ def test_compute_proj_raw():
     tempdir = _TempDir()
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
-    raw = Raw(raw_fname).crop(0, raw_time, False)
+    raw = Raw(raw_fname).crop(0, raw_time)
     raw.load_data()
     for ii in (0.25, 0.5, 1, 2):
         with warnings.catch_warnings(record=True) as w:
@@ -210,7 +242,7 @@ def test_compute_proj_raw():
     # test resampled-data projector, upsampling instead of downsampling
     # here to save an extra filtering (raw would have to be LP'ed to be equiv)
     raw_resamp = cp.deepcopy(raw)
-    raw_resamp.resample(raw.info['sfreq'] * 2, n_jobs=2)
+    raw_resamp.resample(raw.info['sfreq'] * 2, n_jobs=2, npad='auto')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         projs = compute_proj_raw(raw_resamp, duration=None, stop=raw_time,

@@ -26,11 +26,15 @@ from mne.utils import (_TempDir, requires_pandas, slow_test,
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import _picks_by_type
+from mne.annotations import Annotations
+from mne.tests.common import assert_naming
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
+testing_path = testing.data_path(download=False)
+data_dir = op.join(testing_path, 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
+ms_fname = op.join(testing_path, 'SSS', 'test_move_anon_raw.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 test_fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -89,9 +93,9 @@ def test_hash_raw():
     """
     raw = read_raw_fif(fif_fname)
     assert_raises(RuntimeError, raw.__hash__)
-    raw = Raw(fif_fname).crop(0, 0.5, False)
+    raw = Raw(fif_fname).crop(0, 0.5, copy=False)
     raw.load_data()
-    raw_2 = Raw(fif_fname).crop(0, 0.5, False)
+    raw_2 = Raw(fif_fname).crop(0, 0.5, copy=False)
     raw_2.load_data()
     assert_equal(hash(raw), hash(raw_2))
     # do NOT use assert_equal here, failing output is terrible
@@ -102,11 +106,22 @@ def test_hash_raw():
 
 
 @testing.requires_testing_data
+def test_maxshield():
+    """Test maxshield warning
+    """
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        Raw(ms_fname, allow_maxshield=True)
+    assert_equal(len(w), 1)
+    assert_true('test_raw_fiff.py' in w[0].filename)
+
+
+@testing.requires_testing_data
 def test_subject_info():
     """Test reading subject information
     """
     tempdir = _TempDir()
-    raw = Raw(fif_fname).crop(0, 1, False)
+    raw = Raw(fif_fname).crop(0, 1, copy=False)
     assert_true(raw.info['subject_info'] is None)
     # fake some subject data
     keys = ['id', 'his_id', 'last_name', 'first_name', 'birthday', 'sex',
@@ -121,12 +136,19 @@ def test_subject_info():
     raw_read = Raw(out_fname)
     for key in keys:
         assert_equal(subject_info[key], raw_read.info['subject_info'][key])
-    raw_read.anonymize()
-    assert_true(raw_read.info.get('subject_info') is None)
-    out_fname_anon = op.join(tempdir, 'test_subj_info_anon_raw.fif')
-    raw_read.save(out_fname_anon, overwrite=True)
-    raw_read = Raw(out_fname_anon)
-    assert_true(raw_read.info.get('subject_info') is None)
+    assert_equal(raw.info['meas_date'], raw_read.info['meas_date'])
+    raw.anonymize()
+    raw.save(out_fname, overwrite=True)
+    raw_read = Raw(out_fname)
+    for this_raw in (raw, raw_read):
+        assert_true(this_raw.info.get('subject_info') is None)
+        assert_equal(this_raw.info['meas_date'], [0, 0])
+    assert_equal(raw.info['file_id']['secs'], 0)
+    assert_equal(raw.info['meas_id']['secs'], 0)
+    # When we write out with raw.save, these get overwritten with the
+    # new save time
+    assert_true(raw_read.info['file_id']['secs'] > 0)
+    assert_true(raw_read.info['meas_id']['secs'] > 0)
 
 
 @testing.requires_testing_data
@@ -221,7 +243,7 @@ def test_multiple_files():
     """
     # split file
     tempdir = _TempDir()
-    raw = Raw(fif_fname).crop(0, 10, False)
+    raw = Raw(fif_fname).crop(0, 10, copy=False)
     raw.load_data()
     raw.load_data()  # test no operation
     split_size = 3.  # in seconds
@@ -239,6 +261,9 @@ def test_multiple_files():
         fname = op.join(tempdir, 'test_raw_split-%d_raw.fif' % ri)
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = Raw(fname)
+        assert_equal(len(raws[ri].times),
+                     int(round((tmaxs[ri] - tmins[ri]) *
+                               raw.info['sfreq'])) + 1)  # + 1 b/c inclusive
     events = [find_events(r, stim_channel='STI 014') for r in raws]
     last_samps = [r.last_samp for r in raws]
     first_samps = [r.first_samp for r in raws]
@@ -247,6 +272,7 @@ def test_multiple_files():
     assert_raises(ValueError, concatenate_raws, raws, True, events[1:])
     all_raw_1, events1 = concatenate_raws(raws, preload=False,
                                           events_list=events)
+    assert_allclose(all_raw_1.times, raw.times)
     assert_equal(raw.first_samp, all_raw_1.first_samp)
     assert_equal(raw.last_samp, all_raw_1.last_samp)
     assert_allclose(raw[:, :][0], all_raw_1[:, :][0])
@@ -340,6 +366,9 @@ def test_split_files():
     """
     tempdir = _TempDir()
     raw_1 = Raw(fif_fname, preload=True)
+    # Test a very close corner case
+    raw_crop = raw_1.copy().crop(0, 1., copy=False)
+
     assert_allclose(raw_1.info['buffer_size_sec'], 10., atol=1e-2)  # samp rate
     split_fname = op.join(tempdir, 'split_raw.fif')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
@@ -360,6 +389,64 @@ def test_split_files():
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
     assert_array_equal(times_1, times_2)
+
+    # test the case where we only end up with one buffer to write
+    # (GH#3210). These tests rely on writing meas info and annotations
+    # taking up a certain number of bytes, so if we change those functions
+    # somehow, the numbers below for e.g. split_size might need to be
+    # adjusted.
+    raw_crop = raw_1.copy().crop(0, 5, copy=False)
+    try:
+        raw_crop.save(split_fname, split_size='1MB',  # too small a size
+                      buffer_size_sec=1., overwrite=True)
+    except ValueError as exp:
+        assert_true('after writing measurement information' in str(exp), exp)
+    try:
+        raw_crop.save(split_fname,
+                      split_size=3002276,  # still too small, now after Info
+                      buffer_size_sec=1., overwrite=True)
+    except ValueError as exp:
+        assert_true('too large for the given split size' in str(exp), exp)
+    # just barely big enough here; the right size to write exactly one buffer
+    # at a time so we hit GH#3210 if we aren't careful
+    raw_crop.save(split_fname, split_size='4.5MB',
+                  buffer_size_sec=1., overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_allclose(raw_crop[:][0], raw_read[:][0], atol=1e-20)
+
+    # Check our buffer arithmetic
+
+    # 1 buffer required
+    raw_crop = raw_1.copy().crop(0, 1, copy=False)
+    raw_crop.save(split_fname, buffer_size_sec=1., overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_equal(len(raw_read._raw_extras[0]), 1)
+    assert_equal(raw_read._raw_extras[0][0]['nsamp'], 301)
+    assert_allclose(raw_crop[:][0], raw_read[:][0])
+    # 2 buffers required
+    raw_crop.save(split_fname, buffer_size_sec=0.5, overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_equal(len(raw_read._raw_extras[0]), 2)
+    assert_equal(raw_read._raw_extras[0][0]['nsamp'], 151)
+    assert_equal(raw_read._raw_extras[0][1]['nsamp'], 150)
+    assert_allclose(raw_crop[:][0], raw_read[:][0])
+    # 2 buffers required
+    raw_crop.save(split_fname,
+                  buffer_size_sec=1. - 1.01 / raw_crop.info['sfreq'],
+                  overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_equal(len(raw_read._raw_extras[0]), 2)
+    assert_equal(raw_read._raw_extras[0][0]['nsamp'], 300)
+    assert_equal(raw_read._raw_extras[0][1]['nsamp'], 1)
+    assert_allclose(raw_crop[:][0], raw_read[:][0])
+    raw_crop.save(split_fname,
+                  buffer_size_sec=1. - 2.01 / raw_crop.info['sfreq'],
+                  overwrite=True)
+    raw_read = read_raw_fif(split_fname)
+    assert_equal(len(raw_read._raw_extras[0]), 2)
+    assert_equal(raw_read._raw_extras[0][0]['nsamp'], 299)
+    assert_equal(raw_read._raw_extras[0][1]['nsamp'], 2)
+    assert_allclose(raw_crop[:][0], raw_read[:][0])
 
 
 def test_load_bad_channels():
@@ -413,6 +500,7 @@ def test_io_raw():
     for chars in [b'\xc3\xa4\xc3\xb6\xc3\xa9', b'a']:
         with Raw(fif_fname) as r:
             assert_true('Raw' in repr(r))
+            assert_true(op.basename(fif_fname) in repr(r))
             desc1 = r.info['description'] = chars.decode('utf-8')
             temp_file = op.join(tempdir, 'raw.fif')
             r.save(temp_file, overwrite=True)
@@ -421,7 +509,7 @@ def test_io_raw():
             assert_equal(desc1, desc2)
 
     # Let's construct a simple test for IO first
-    raw = Raw(fif_fname).crop(0, 3.5, False)
+    raw = Raw(fif_fname).crop(0, 3.5, copy=False)
     raw.load_data()
     # put in some data that we know the values of
     data = rng.randn(raw._data.shape[0], raw._data.shape[1])
@@ -450,7 +538,7 @@ def test_io_raw():
                             if ch_names[k][0] == 'M']
         n_channels = 100
         meg_channels_idx = meg_channels_idx[:n_channels]
-        start, stop = raw.time_as_index([0, 5])
+        start, stop = raw.time_as_index([0, 5], use_rounding=True)
         data, times = raw[meg_channels_idx, start:(stop + 1)]
         meg_ch_names = [ch_names[k] for k in meg_channels_idx]
 
@@ -515,7 +603,7 @@ def test_io_raw():
         raw_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         raw.save(raw_badname)
         Raw(raw_badname)
-    assert_true(len(w) > 0)  # len(w) should be 2 but Travis sometimes has more
+    assert_naming(w, 'test_raw_fiff.py', 2)
 
 
 @testing.requires_testing_data
@@ -575,6 +663,10 @@ def test_getitem():
         data1, times1 = raw[[0, 1]]
         assert_array_equal(data, data1)
         assert_array_equal(times, times1)
+        assert_array_equal(raw[-10:, :][0],
+                           raw[len(raw.ch_names) - 10:, :][0])
+        assert_raises(ValueError, raw.__getitem__,
+                      (slice(-len(raw.ch_names) - 1), slice(None)))
 
 
 @testing.requires_testing_data
@@ -602,9 +694,10 @@ def test_proj():
             raw.del_proj(0)
             assert_equal(len(raw.info['projs']), n_proj - 1)
             raw.add_proj(projs, remove_existing=False)
-            assert_equal(len(raw.info['projs']), 2 * n_proj - 1)
-            raw.add_proj(projs, remove_existing=True)
+            # Test that already existing projections are not added.
             assert_equal(len(raw.info['projs']), n_proj)
+            raw.add_proj(projs[:-1], remove_existing=True)
+            assert_equal(len(raw.info['projs']), n_proj - 1)
 
     # test apply_proj() with and without preload
     for preload in [True, False]:
@@ -682,7 +775,7 @@ def test_preload_modify():
 def test_filter():
     """Test filtering (FIR and IIR) and Raw.apply_function interface
     """
-    raw = Raw(fif_fname).crop(0, 7, False)
+    raw = Raw(fif_fname).crop(0, 7, copy=False)
     raw.load_data()
     sig_dec = 11
     sig_dec_notch = 12
@@ -690,17 +783,11 @@ def test_filter():
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
 
-    raw_lp = raw.copy()
-    raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2)
-
-    raw_hp = raw.copy()
-    raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2)
-
-    raw_bp = raw.copy()
-    raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
-
-    raw_bs = raw.copy()
-    raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2)
+    filter_params = dict(picks=picks, n_jobs=2)
+    raw_lp = raw.copy().filter(0., 4.0 - 0.25, **filter_params)
+    raw_hp = raw.copy().filter(8.0 + 0.25, None, **filter_params)
+    raw_bp = raw.copy().filter(4.0 + 0.25, 8.0 - 0.25, **filter_params)
+    raw_bs = raw.copy().filter(8.0 + 0.25, 4.0 - 0.25, **filter_params)
 
     data, _ = raw[picks, :]
 
@@ -712,12 +799,11 @@ def test_filter():
     assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
     assert_array_almost_equal(data, bp_data + bs_data, sig_dec)
 
-    raw_lp_iir = raw.copy()
-    raw_lp_iir.filter(0., 4.0, picks=picks, n_jobs=2, method='iir')
-    raw_hp_iir = raw.copy()
-    raw_hp_iir.filter(8.0, None, picks=picks, n_jobs=2, method='iir')
-    raw_bp_iir = raw.copy()
-    raw_bp_iir.filter(4.0, 8.0, picks=picks, method='iir')
+    filter_params_iir = dict(picks=picks, n_jobs=2, method='iir')
+    raw_lp_iir = raw.copy().filter(0., 4.0, **filter_params_iir)
+    raw_hp_iir = raw.copy().filter(8.0, None, **filter_params_iir)
+    raw_bp_iir = raw.copy().filter(4.0, 8.0, **filter_params_iir)
+    del filter_params_iir
     lp_data_iir, _ = raw_lp_iir[picks, :]
     hp_data_iir, _ = raw_hp_iir[picks, :]
     bp_data_iir, _ = raw_bp_iir[picks, :]
@@ -732,23 +818,56 @@ def test_filter():
     bp_data_iir, _ = raw_bp_iir[picks_meg[4:], :]
     assert_array_equal(data, bp_data_iir)
 
+    # ... and that inplace changes are inplace
+    raw_copy = raw.copy()
+    raw_copy.filter(None, 20., picks=picks, n_jobs=2)
+    assert_true(raw._data[0, 0] != raw_copy._data[0, 0])
+    assert_equal(raw.copy().filter(None, 20., **filter_params)._data,
+                 raw_copy._data)
+
     # do a very simple check on line filtering
-    raw_bs = raw.copy()
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
+        raw_bs = raw.copy().filter(60.0 + 0.5, 60.0 - 0.5, **filter_params)
         data_bs, _ = raw_bs[picks, :]
-        raw_notch = raw.copy()
-        raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
+        raw_notch = raw.copy().notch_filter(
+            60.0, picks=picks, n_jobs=2, method='fft')
     data_notch, _ = raw_notch[picks, :]
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 
     # now use the sinusoidal fitting
-    raw_notch = raw.copy()
-    raw_notch.notch_filter(None, picks=picks, n_jobs=2, method='spectrum_fit')
+    raw_notch = raw.copy().notch_filter(
+        None, picks=picks, n_jobs=2, method='spectrum_fit')
     data_notch, _ = raw_notch[picks, :]
     data, _ = raw[picks, :]
     assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
+
+
+def test_filter_picks():
+    """Test filtering default channel picks"""
+    ch_types = ['mag', 'grad', 'eeg', 'seeg', 'misc', 'stim', 'ecog']
+    info = create_info(ch_names=ch_types, ch_types=ch_types, sfreq=256)
+    raw = RawArray(data=np.zeros((len(ch_types), 1000)), info=info)
+
+    # -- Deal with meg mag grad exception
+    ch_types = ('misc', 'stim', 'meg', 'eeg', 'seeg', 'ecog')
+
+    # -- Filter data channels
+    for ch_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog'):
+        picks = dict((ch, ch == ch_type) for ch in ch_types)
+        picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
+        raw_ = raw.copy().pick_types(**picks)
+        # Avoid RuntimeWarning due to Attenuation
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            raw_.filter(10, 30)
+        assert_true(any(['Attenuation' in str(ww.message) for ww in w]))
+
+    # -- Error if no data channel
+    for ch_type in ('misc', 'stim'):
+        picks = dict((ch, ch == ch_type) for ch in ch_types)
+        raw_ = raw.copy().pick_types(**picks)
+        assert_raises(RuntimeError, raw_.filter, 10, 30)
 
 
 @testing.requires_testing_data
@@ -769,7 +888,7 @@ def test_crop():
     tmins /= sfreq
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
-        raws[ri] = raw.crop(tmin, tmax, True)
+        raws[ri] = raw.copy().crop(tmin, tmax, copy=False)
     all_raw_2 = concatenate_raws(raws, preload=False)
     assert_equal(raw.first_samp, all_raw_2.first_samp)
     assert_equal(raw.last_samp, all_raw_2.last_samp)
@@ -783,16 +902,23 @@ def test_crop():
     # going in revere order so the last fname is the first file (need it later)
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
-        raws[ri] = raw.copy()
-        raws[ri].crop(tmin, tmax, False)
+        raws[ri] = raw.copy().crop(tmin, tmax, copy=False)
     # test concatenation of split file
     all_raw_1 = concatenate_raws(raws, preload=False)
 
-    all_raw_2 = raw.crop(0, None, True)
+    all_raw_2 = raw.copy().crop(0, None, copy=False)
     for ar in [all_raw_1, all_raw_2]:
         assert_equal(raw.first_samp, ar.first_samp)
         assert_equal(raw.last_samp, ar.last_samp)
         assert_array_equal(raw[:, :][0], ar[:, :][0])
+
+    # test shape consistency of cropped raw
+    data = np.zeros((1, 1002001))
+    info = create_info(1, 1000)
+    raw = RawArray(data, info)
+    for tmin in range(0, 1001, 100):
+        raw1 = raw.copy().crop(tmin=tmin, tmax=tmin + 2, copy=False)
+        assert_equal(raw1[:][0].shape, (1, 2001))
 
 
 @testing.requires_testing_data
@@ -800,12 +926,12 @@ def test_resample():
     """Test resample (with I/O and multiple files)
     """
     tempdir = _TempDir()
-    raw = Raw(fif_fname).crop(0, 3, False)
+    raw = Raw(fif_fname).crop(0, 3, copy=False)
     raw.load_data()
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample
-    raw_resamp.resample(sfreq * 2, n_jobs=2)
+    raw_resamp.resample(sfreq * 2, n_jobs=2, npad='auto')
     assert_equal(raw_resamp.n_times, len(raw_resamp.times))
     raw_resamp.save(op.join(tempdir, 'raw_resamp-raw.fif'))
     raw_resamp = Raw(op.join(tempdir, 'raw_resamp-raw.fif'), preload=True)
@@ -814,7 +940,7 @@ def test_resample():
     assert_equal(raw_resamp._data.shape[1], raw_resamp.n_times)
     assert_equal(raw._data.shape[0], raw_resamp._data.shape[0])
     # test non-parallel on downsample
-    raw_resamp.resample(sfreq, n_jobs=1)
+    raw_resamp.resample(sfreq, n_jobs=1, npad='auto')
     assert_equal(raw_resamp.info['sfreq'], sfreq)
     assert_equal(raw._data.shape, raw_resamp._data.shape)
     assert_equal(raw.first_samp, raw_resamp.first_samp)
@@ -837,9 +963,9 @@ def test_resample():
     raw3 = raw.copy()
     raw4 = raw.copy()
     raw1 = concatenate_raws([raw1, raw2])
-    raw1.resample(10.)
-    raw3.resample(10.)
-    raw4.resample(10.)
+    raw1.resample(10., npad='auto')
+    raw3.resample(10., npad='auto')
+    raw4.resample(10., npad='auto')
     raw3 = concatenate_raws([raw3, raw4])
     assert_array_equal(raw1._data, raw3._data)
     assert_array_equal(raw1._first_samps, raw3._first_samps)
@@ -854,12 +980,12 @@ def test_resample():
     # basic decimation
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    assert_allclose(raw.resample(8.)._data,
+    assert_allclose(raw.resample(8., npad='auto')._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0]])
 
     # decimation of multiple stim channels
     raw = RawArray(2 * [stim], create_info(2, len(stim), 2 * ['stim']))
-    assert_allclose(raw.resample(8.)._data,
+    assert_allclose(raw.resample(8., npad='auto')._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0],
                      [1, 1, 0, 0, 1, 1, 0, 0]])
 
@@ -867,7 +993,7 @@ def test_resample():
     # done naively
     stim = [0, 0, 0, 1, 1, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    assert_allclose(raw.resample(4.)._data,
+    assert_allclose(raw.resample(4., npad='auto')._data,
                     [[0, 1, 1, 0]])
 
     # two events are merged in this case (warning)
@@ -875,7 +1001,7 @@ def test_resample():
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        raw.resample(8.)
+        raw.resample(8., npad='auto')
         assert_true(len(w) == 1)
 
     # events are dropped in this case (warning)
@@ -883,28 +1009,30 @@ def test_resample():
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        raw.resample(4.)
+        raw.resample(4., npad='auto')
         assert_true(len(w) == 1)
 
     # test resampling events: this should no longer give a warning
     stim = [0, 1, 1, 0, 0, 1, 1, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     events = find_events(raw)
-    raw, events = raw.resample(4., events=events)
+    raw, events = raw.resample(4., events=events, npad='auto')
     assert_equal(events, np.array([[0, 0, 1], [2, 0, 1]]))
 
     # test copy flag
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    raw_resampled = raw.resample(4., copy=True)
+    raw_resampled = raw.copy().resample(4., npad='auto')
     assert_true(raw_resampled is not raw)
-    raw_resampled = raw.resample(4., copy=False)
+    raw_resampled = raw.resample(4., npad='auto')
     assert_true(raw_resampled is raw)
 
     # resample should still work even when no stim channel is present
     raw = RawArray(np.random.randn(1, 100), create_info(1, 100, ['eeg']))
-    raw.resample(10)
-    assert_true(len(raw) == 10)
+    raw.info['lowpass'] = 50.
+    raw.resample(10, npad='auto')
+    assert_equal(raw.info['lowpass'], 5.)
+    assert_equal(len(raw), 10)
 
 
 @testing.requires_testing_data
@@ -972,53 +1100,42 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 2], raw._data[2] * 1e15)
 
 
-@testing.requires_testing_data
-def test_raw_index_as_time():
-    """ Test index as time conversion"""
-    raw = Raw(fif_fname, preload=True)
-    t0 = raw.index_as_time([0], True)[0]
-    t1 = raw.index_as_time([100], False)[0]
-    t2 = raw.index_as_time([100], True)[0]
-    assert_equal(t2 - t1, t0)
-    # ensure we can go back and forth
-    t3 = raw.index_as_time(raw.time_as_index([0], True), True)
-    assert_array_almost_equal(t3, [0.0], 2)
-    t3 = raw.index_as_time(raw.time_as_index(raw.info['sfreq'], True), True)
-    assert_array_almost_equal(t3, [raw.info['sfreq']], 2)
-    t3 = raw.index_as_time(raw.time_as_index(raw.info['sfreq'], False), False)
-    assert_array_almost_equal(t3, [raw.info['sfreq']], 2)
-    i0 = raw.time_as_index(raw.index_as_time([0], True), True)
-    assert_equal(i0[0], 0)
-    i1 = raw.time_as_index(raw.index_as_time([100], True), True)
-    assert_equal(i1[0], 100)
-    # Have to add small amount of time because we truncate via int casting
-    i1 = raw.time_as_index(raw.index_as_time([100.0001], False), False)
-    assert_equal(i1[0], 100)
-
-
 def test_add_channels():
     """Test raw splitting / re-appending channel types
     """
-    raw = Raw(test_fif_fname).crop(0, 1).load_data()
+    raw = Raw(test_fif_fname).crop(0, 1, copy=False).load_data()
     raw_nopre = Raw(test_fif_fname, preload=False)
-    raw_eeg_meg = raw.pick_types(meg=True, eeg=True, copy=True)
-    raw_eeg = raw.pick_types(meg=False, eeg=True, copy=True)
-    raw_meg = raw.pick_types(meg=True, eeg=False, copy=True)
-    raw_stim = raw.pick_types(meg=False, eeg=False, stim=True, copy=True)
-    raw_new = raw_meg.add_channels([raw_eeg, raw_stim], copy=True)
-    assert_true(all(ch in raw_new.ch_names
-                    for ch in raw_stim.ch_names + raw_meg.ch_names))
-    raw_new = raw_meg.add_channels([raw_eeg], copy=True)
+    raw_eeg_meg = raw.copy().pick_types(meg=True, eeg=True)
+    raw_eeg = raw.copy().pick_types(meg=False, eeg=True)
+    raw_meg = raw.copy().pick_types(meg=True, eeg=False)
+    raw_stim = raw.copy().pick_types(meg=False, eeg=False, stim=True)
+    raw_new = raw_meg.copy().add_channels([raw_eeg, raw_stim])
+    assert_true(
+        all(ch in raw_new.ch_names
+            for ch in list(raw_stim.ch_names) + list(raw_meg.ch_names))
+    )
+    raw_new = raw_meg.copy().add_channels([raw_eeg])
 
     assert_true(ch in raw_new.ch_names for ch in raw.ch_names)
     assert_array_equal(raw_new[:, :][0], raw_eeg_meg[:, :][0])
     assert_array_equal(raw_new[:, :][1], raw[:, :][1])
     assert_true(all(ch not in raw_new.ch_names for ch in raw_stim.ch_names))
 
+    # Testing force updates
+    raw_arr_info = create_info(['1', '2'], raw_meg.info['sfreq'], 'eeg')
+    orig_head_t = raw_arr_info['dev_head_t']
+    raw_arr = np.random.randn(2, raw_eeg.n_times)
+    raw_arr = RawArray(raw_arr, raw_arr_info)
+    # This should error because of conflicts in Info
+    assert_raises(ValueError, raw_meg.copy().add_channels, [raw_arr])
+    raw_meg.copy().add_channels([raw_arr], force_update_info=True)
+    # Make sure that values didn't get overwritten
+    assert_true(raw_arr.info['dev_head_t'] is orig_head_t)
+
     # Now test errors
     raw_badsf = raw_eeg.copy()
     raw_badsf.info['sfreq'] = 3.1415927
-    raw_eeg = raw_eeg.crop(.5)
+    raw_eeg.crop(.5, copy=False)
 
     assert_raises(AssertionError, raw_meg.add_channels, [raw_nopre])
     assert_raises(RuntimeError, raw_meg.add_channels, [raw_badsf])
@@ -1031,7 +1148,8 @@ def test_add_channels():
 def test_raw_time_as_index():
     """ Test time as index conversion"""
     raw = Raw(fif_fname, preload=True)
-    first_samp = raw.time_as_index([0], True)[0]
+    with warnings.catch_warnings(record=True):  # deprecation
+        first_samp = raw.time_as_index([0], True)[0]
     assert_equal(raw.first_samp, -first_samp)
 
 
@@ -1046,11 +1164,17 @@ def test_save():
     # can't overwrite file without overwrite=True
     assert_raises(IOError, raw.save, fif_fname)
 
-    # test abspath support
+    # test abspath support and annotations
+    annot = Annotations([10], [10], ['test'], raw.info['meas_date'])
+    raw.annotations = annot
     new_fname = op.join(op.abspath(op.curdir), 'break-raw.fif')
     raw.save(op.join(tempdir, new_fname), overwrite=True)
     new_raw = Raw(op.join(tempdir, new_fname), preload=False)
     assert_raises(ValueError, new_raw.save, new_fname)
+    assert_array_equal(annot.onset, new_raw.annotations.onset)
+    assert_array_equal(annot.duration, new_raw.annotations.duration)
+    assert_array_equal(annot.description, new_raw.annotations.description)
+    assert_equal(annot.orig_time, new_raw.annotations.orig_time)
     # make sure we can overwrite the file we loaded when preload=True
     new_raw = Raw(op.join(tempdir, new_fname), preload=True)
     new_raw.save(op.join(tempdir, new_fname), overwrite=True)
@@ -1132,7 +1256,7 @@ def test_drop_channels_mixin():
     ch_names = raw.ch_names[3:]
 
     ch_names_orig = raw.ch_names
-    dummy = raw.drop_channels(drop_ch, copy=True)
+    dummy = raw.copy().drop_channels(drop_ch)
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, raw.ch_names)
     assert_equal(len(ch_names_orig), raw._data.shape[0])
@@ -1153,12 +1277,12 @@ def test_pick_channels_mixin():
     ch_names = raw.ch_names[:3]
 
     ch_names_orig = raw.ch_names
-    dummy = raw.pick_channels(ch_names, copy=True)  # copy is True
+    dummy = raw.copy().pick_channels(ch_names)
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, raw.ch_names)
     assert_equal(len(ch_names_orig), raw._data.shape[0])
 
-    raw.pick_channels(ch_names, copy=False)  # copy is False
+    raw.pick_channels(ch_names)  # copy is False
     assert_equal(ch_names, raw.ch_names)
     assert_equal(len(ch_names), len(raw._cals))
     assert_equal(len(ch_names), raw._data.shape[0])

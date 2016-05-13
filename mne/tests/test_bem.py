@@ -2,8 +2,9 @@
 #
 # License: BSD 3 clause
 
-import os.path as op
 from copy import deepcopy
+import os.path as op
+import warnings
 
 import numpy as np
 from nose.tools import assert_raises, assert_true
@@ -11,7 +12,7 @@ from numpy.testing import assert_equal, assert_allclose
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
-                 make_sphere_model, Transform)
+                 make_sphere_model, Transform, Info)
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
@@ -21,6 +22,8 @@ from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
                      _check_surface_size, _bem_find_surface)
 from mne.io import read_info
+
+warnings.simplefilter('always')
 
 fname_raw = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -91,6 +94,10 @@ def test_make_sphere_model():
     info = read_info(fname_raw)
     assert_raises(ValueError, make_sphere_model, 'foo', 'auto', info)
     assert_raises(ValueError, make_sphere_model, 'auto', 'auto', None)
+    assert_raises(ValueError, make_sphere_model, 'auto', 'auto', info,
+                  relative_radii=(), sigmas=())
+    assert_raises(ValueError, make_sphere_model, 'auto', 'auto', info,
+                  relative_radii=(1,))  # wrong number of radii
     # here we just make sure it works -- the functionality is actually
     # tested more extensively e.g. in the forward and dipole code
     bem = make_sphere_model('auto', 'auto', info)
@@ -172,10 +179,10 @@ def test_bem_solution():
 def test_fit_sphere_to_headshape():
     """Test fitting a sphere to digitization points"""
     # Create points of various kinds
-    rad = 90.  # mm
-    big_rad = 120.
-    center = np.array([0.5, -10., 40.])  # mm
-    dev_trans = np.array([0., -0.005, -10.])
+    rad = 0.09
+    big_rad = 0.12
+    center = np.array([0.0005, -0.01, 0.04])
+    dev_trans = np.array([0., -0.005, -0.01])
     dev_center = center - dev_trans
     dig = [
         # Left auricular
@@ -222,78 +229,111 @@ def test_fit_sphere_to_headshape():
          'r': np.array([0, -.72, .69])},
     ]
     for d in dig:
-        d['r'] *= rad / 1000.
-        d['r'] += center / 1000.
+        d['r'] *= rad
+        d['r'] += center
 
     # Device to head transformation (rotate .2 rad over X-axis)
-    dev_head_t = Transform('meg', 'head', translation(*(dev_trans / 1000.)))
-
-    info = {'dig': dig, 'dev_head_t': dev_head_t}
+    dev_head_t = Transform('meg', 'head', translation(*(dev_trans)))
+    info = Info(dig=dig, dev_head_t=dev_head_t)
 
     # Degenerate conditions
+    with warnings.catch_warnings(record=True) as w:
+        assert_raises(ValueError, fit_sphere_to_headshape, info,
+                      dig_kinds=(FIFF.FIFFV_POINT_HPI,))
+    assert_equal(len(w), 1)
+    assert_true(w[0].category == DeprecationWarning)
     assert_raises(ValueError, fit_sphere_to_headshape, info,
-                  dig_kinds=(FIFF.FIFFV_POINT_HPI,))
+                  dig_kinds='foo', units='m')
     info['dig'][0]['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-    assert_raises(RuntimeError, fit_sphere_to_headshape, info)
+    assert_raises(RuntimeError, fit_sphere_to_headshape, info, units='m')
     info['dig'][0]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     #  # Test with 4 points that match a perfect sphere
     dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA)
-    r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds)
-    kwargs = dict(rtol=1e-3, atol=1e-2)  # in mm
+    with warnings.catch_warnings(record=True):  # not enough points
+        r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds,
+                                            units='m')
+    kwargs = dict(rtol=1e-3, atol=1e-5)
     assert_allclose(r, rad, **kwargs)
     assert_allclose(oh, center, **kwargs)
     assert_allclose(od, dev_center, **kwargs)
 
     # Test with all points
-    dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA,
-                 FIFF.FIFFV_POINT_EEG)
-    kwargs = dict(rtol=1e-3, atol=1.)  # in mm
-    r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds)
+    dig_kinds = ('cardinal', FIFF.FIFFV_POINT_EXTRA, 'eeg')
+    kwargs = dict(rtol=1e-3, atol=1e-3)
+    with warnings.catch_warnings(record=True):  # not enough points
+        r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds,
+                                            units='m')
     assert_allclose(r, rad, **kwargs)
     assert_allclose(oh, center, **kwargs)
     assert_allclose(od, dev_center, **kwargs)
 
     # Test with some noisy EEG points only.
-    dig_kinds = (FIFF.FIFFV_POINT_EEG,)
-    r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds)
-    kwargs = dict(rtol=1e-3, atol=10.)  # in mm
+    dig_kinds = 'eeg'
+    with warnings.catch_warnings(record=True):  # not enough points
+        r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds,
+                                            units='m')
+    kwargs = dict(rtol=1e-3, atol=1e-2)
     assert_allclose(r, rad, **kwargs)
     assert_allclose(oh, center, **kwargs)
     assert_allclose(od, center, **kwargs)
 
     # Test big size
-    dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA)
+    dig_kinds = ('cardinal', 'extra')
     info_big = deepcopy(info)
     for d in info_big['dig']:
-        d['r'] -= center / 1000.
+        d['r'] -= center
         d['r'] *= big_rad / rad
-        d['r'] += center / 1000.
-    with catch_logging() as log_file:
-        r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds,
-                                            verbose='warning')
+        d['r'] += center
+    with warnings.catch_warnings(record=True):  # fit
+        with catch_logging() as log_file:
+            r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds,
+                                                verbose='warning', units='mm')
     log_file = log_file.getvalue().strip()
-    assert_equal(len(log_file.split('\n')), 1)
-    assert_true(log_file.startswith('Estimated head size'))
-    assert_allclose(oh, center, atol=1e-3)
-    assert_allclose(r, big_rad, atol=1e-3)
+    assert_equal(len(log_file.split('\n')), 2)
+    assert_true('Estimated head size' in log_file)
+    assert_allclose(oh, center * 1000, atol=1e-3)
+    assert_allclose(r, big_rad * 1000, atol=1e-3)
     del info_big
 
     # Test offcenter
-    dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA)
+    dig_kinds = ('cardinal', 'extra')
     info_shift = deepcopy(info)
-    shift_center = np.array([0., -30, 0.])
+    shift_center = np.array([0., -0.03, 0.])
     for d in info_shift['dig']:
-        d['r'] -= center / 1000.
-        d['r'] += shift_center / 1000.
-    with catch_logging() as log_file:
-        r, oh, od = fit_sphere_to_headshape(info_shift, dig_kinds=dig_kinds,
-                                            verbose='warning')
+        d['r'] -= center
+        d['r'] += shift_center
+    with warnings.catch_warnings(record=True):
+        with catch_logging() as log_file:
+            r, oh, od = fit_sphere_to_headshape(
+                info_shift, dig_kinds=dig_kinds, verbose='warning', units='m')
     log_file = log_file.getvalue().strip()
-    assert_equal(len(log_file.split('\n')), 1)
+    assert_equal(len(log_file.split('\n')), 2)
     assert_true('from head frame origin' in log_file)
-    assert_allclose(oh, shift_center, atol=1e-3)
-    assert_allclose(r, rad, atol=1e-3)
+    assert_allclose(oh, shift_center, atol=1e-6)
+    assert_allclose(r, rad, atol=1e-6)
+
+    # Test "auto" mode (default)
+    # Should try "extra", fail, and go on to EEG
+    with warnings.catch_warnings(record=True):  # not enough points
+        r, oh, od = fit_sphere_to_headshape(info, units='m')
+    kwargs = dict(rtol=1e-3, atol=1e-3)
+    assert_allclose(r, rad, **kwargs)
+    assert_allclose(oh, center, **kwargs)
+    assert_allclose(od, dev_center, **kwargs)
+    with warnings.catch_warnings(record=True):  # not enough points
+        r2, oh2, od2 = fit_sphere_to_headshape(info, units='m')
+    assert_allclose(r, r2, atol=1e-7)
+    assert_allclose(oh, oh2, atol=1e-7)
+    assert_allclose(od, od2, atol=1e-7)
+    # this one should pass, 1 EXTRA point and 3 EEG (but the fit is terrible)
+    info = Info(dig=dig[:7], dev_head_t=dev_head_t)
+    with warnings.catch_warnings(record=True):  # bad fit
+        r, oh, od = fit_sphere_to_headshape(info, units='m')
+    # this one should fail, 1 EXTRA point and 3 EEG (but the fit is terrible)
+    info = Info(dig=dig[:6], dev_head_t=dev_head_t)
+    assert_raises(ValueError, fit_sphere_to_headshape, info, units='m')
+    assert_raises(TypeError, fit_sphere_to_headshape, 1, units='m')
 
 
 run_tests_if_main()

@@ -11,7 +11,7 @@
 import numpy as np
 from os.path import splitext
 
-from .utils import check_fname, logger, verbose, _get_stim_channel
+from .utils import check_fname, logger, verbose, _get_stim_channel, warn
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -207,9 +207,9 @@ def read_events(filename, include=None, exclude=None, mask=0):
         A event id to exclude or a list of them.
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.
-    mask : int
+    mask : int | None
         The value of the digital mask to apply to the stim channel values.
-        The default value is 0.
+        The default value is 0. ``None`` skips masking.
 
     Returns
     -------
@@ -257,12 +257,19 @@ def read_events(filename, include=None, exclude=None, mask=0):
             raise ValueError('Unknown number of columns in event text file')
 
         event_list = lines[:, goods]
-        if event_list.shape[0] > 0 and event_list[0, 2] == 0:
+        if (mask is not None and event_list.shape[0] > 0 and
+                event_list[0, 2] == 0):
             event_list = event_list[1:]
+            warn('first row of event file discarded (zero-valued)')
 
     event_list = pick_events(event_list, include, exclude)
-    event_list = _mask_trigs(event_list, mask)
-
+    unmasked_len = event_list.shape[0]
+    if mask is not None:
+        event_list = _mask_trigs(event_list, mask)
+        masked_len = event_list.shape[0]
+        if masked_len < unmasked_len:
+            warn('{0} of {1} events masked'.format(unmasked_len - masked_len,
+                                                   unmasked_len))
     return event_list
 
 
@@ -398,8 +405,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
         raise ValueError('No stim channel found to extract event triggers.')
     data, _ = raw[picks, :]
     if np.any(data < 0):
-        logger.warning('Trigger channel contains negative values. '
-                       'Taking absolute value.')
+        warn('Trigger channel contains negative values, using absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
 
@@ -407,9 +413,9 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
                             pad_stop=pad_stop, merge=merge)
 
 
-@verbose
 def _find_events(data, first_samp, verbose=None, output='onset',
-                 consecutive='increasing', min_samples=0, mask=0):
+                 consecutive='increasing', min_samples=0, mask=0,
+                 uint_cast=False):
     """Helper function for find events"""
     if min_samples > 0:
         merge = int(min_samples // 1)
@@ -418,11 +424,15 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     else:
         merge = 0
 
-    if np.any(data < 0):
-        logger.warning('Trigger channel contains negative values. '
-                       'Taking absolute value.')
-        data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
+    if uint_cast:
+        data = data.astype(np.uint16).astype(np.int)
+    if data.min() < 0:
+        warn('Trigger channel contains negative values, using absolute '
+             'value. If data were acquired on a Neuromag system with '
+             'STI016 active, consider using uint_cast=True to work around '
+             'an acquisition bug')
+        data = np.abs(data)  # make sure trig channel is positive
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
     events = _mask_trigs(events, mask)
@@ -475,9 +485,9 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 
 
 @verbose
-def find_events(raw, stim_channel=None, verbose=None, output='onset',
+def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
-                shortest_event=2, mask=0):
+                shortest_event=2, mask=0, uint_cast=False, verbose=None):
     """Find events from raw file
 
     Parameters
@@ -491,8 +501,6 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         etc. are read. If these are not found, it will fall back to
         'STI 014' if present, then fall back to the first channel of type
         'stim', if present.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     output : 'onset' | 'offset' | 'step'
         Whether to report when events start, when events end, or both.
     consecutive : bool | 'increasing'
@@ -511,6 +519,17 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     mask : int
         The value of the digital mask to apply to the stim channel values.
         The default value is 0.
+    uint_cast : bool
+        If True (default False), do a cast to ``uint16`` on the channel
+        data. This can be used to fix a bug with STI101 and STI014 in
+        Neuromag acquisition setups that use channel STI016 (channel 16
+        turns data into e.g. -32768), similar to ``mne_fix_stim14 --32``
+        in MNE-C.
+
+        .. versionadded:: 0.12
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -518,7 +537,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         All events that were found. The first column contains the event time
         in samples and the third column contains the event id. For output =
         'onset' or 'step', the second column contains the value of the stim
-        channel immediately before the the event/step. For output = 'offset',
+        channel immediately before the event/step. For output = 'offset',
         the second column contains the value of the stim channel after the
         event offset.
 
@@ -599,7 +618,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
 
     events = _find_events(data, raw.first_samp, verbose=verbose, output=output,
                           consecutive=consecutive, min_samples=min_samples,
-                          mask=mask)
+                          mask=mask, uint_cast=uint_cast)
 
     # add safety check for spurious events (for ex. from neuromag syst.) by
     # checking the number of low sample events
@@ -635,7 +654,7 @@ def merge_events(events, ids, new_id, replace_events=True):
 
     Parameters
     ----------
-    events : array
+    events : array, shape (n_events_in, 3)
         Events.
     ids : array of int
         The ids of events to merge.
@@ -647,19 +666,47 @@ def merge_events(events, ids, new_id, replace_events=True):
 
     Returns
     -------
-    new_events: array
+    new_events: array, shape (n_events_out, 3)
         The new events
+
+    Examples
+    --------
+    Here is quick example of the behavior::
+
+        >>> events = [[134, 0, 1], [341, 0, 2], [502, 0, 3]]
+        >>> merge_events(events, [1, 2], 12, replace_events=True)
+        array([[134,   0,  12],
+               [341,   0,  12],
+               [502,   0,   3]])
+        >>> merge_events(events, [1, 2], 12, replace_events=False)
+        array([[134,   0,   1],
+               [134,   0,  12],
+               [341,   0,   2],
+               [341,   0,  12],
+               [502,   0,   3]])
+
+    Notes
+    -----
+    Rather than merging events you can use hierarchical event_id
+    in Epochs. For example, here::
+
+        >>> event_id = {'auditory/left': 1, 'auditory/right': 2}
+
+    And the condition 'auditory' would correspond to either 1 or 2.
     """
+    events = np.asarray(events)
     events_out = events.copy()
-    where = np.empty(events.shape[0], dtype=bool)
+    idx_touched = []  # to keep track of the original events we can keep
     for col in [1, 2]:
-        where.fill(False)
         for i in ids:
-            where = (events[:, col] == i)
-            events_out[where, col] = new_id
+            mask = events[:, col] == i
+            events_out[mask, col] = new_id
+            idx_touched.append(np.where(mask)[0])
     if not replace_events:
-        events_out = np.concatenate((events_out, events), axis=0)
-        events_out = events_out[np.argsort(events_out[:, 0])]
+        idx_touched = np.unique(np.concatenate(idx_touched))
+        events_out = np.concatenate((events_out, events[idx_touched]), axis=0)
+        # Now sort in lexical order
+        events_out = events_out[np.lexsort(events_out.T[::-1])]
     return events_out
 
 
@@ -689,7 +736,8 @@ def shift_time_events(events, ids, tshift, sfreq):
     return events
 
 
-def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
+def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
+                             first_samp=True):
     """Make a set of events separated by a fixed duration
 
     Parameters
@@ -705,25 +753,38 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
         of the recording.
     duration: float
         The duration to separate events by.
+    first_samp: bool
+        If True (default), times will have raw.first_samp added to them, as
+        in :func:`mne.find_events`. This behavior is not desirable if the
+        returned events will be combined with event times that already
+        have ``raw.first_samp`` added to them, e.g. event times that come
+        from :func:`mne.find_events`.
 
     Returns
     -------
     new_events : array
         The new events.
     """
-    start = raw.time_as_index(start)
-    start = start[0] + raw.first_samp
+    start = raw.time_as_index(start)[0]
     if stop is not None:
-        stop = raw.time_as_index(stop)
-        stop = min([stop[0] + raw.first_samp, raw.last_samp + 1])
+        stop = raw.time_as_index(stop)[0]
     else:
         stop = raw.last_samp + 1
+    if first_samp:
+        start = start + raw.first_samp
+        stop = min([stop + raw.first_samp, raw.last_samp + 1])
+    else:
+        stop = min([stop, len(raw.times)])
     if not isinstance(id, int):
         raise ValueError('id must be an integer')
     # Make sure we don't go out the end of the file:
     stop -= int(np.ceil(raw.info['sfreq'] * duration))
-    ts = np.arange(start, stop, raw.info['sfreq'] * duration).astype(int)
+    # This should be inclusive due to how we generally use start and stop...
+    ts = np.arange(start, stop + 1, raw.info['sfreq'] * duration).astype(int)
     n_events = len(ts)
+    if n_events == 0:
+        raise ValueError('No events produced, check the values of start, '
+                         'stop, and duration')
     events = np.c_[ts, np.zeros(n_events, dtype=int),
                    id * np.ones(n_events, dtype=int)]
     return events

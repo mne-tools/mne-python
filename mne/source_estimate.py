@@ -5,8 +5,8 @@
 #
 # License: BSD (3-clause)
 
-import os
 import copy
+import os
 from math import ceil
 import warnings
 
@@ -22,10 +22,10 @@ from .surface import (read_surface, _get_ico_surface, read_morph_map,
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
-                    _time_mask)
+                    _time_mask, warn as warn_)
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
-from .io.base import ToDataFrameMixin
+from .io.base import ToDataFrameMixin, TimeMixin
 from .externals.six.moves import zip
 from .externals.six import string_types
 from .externals.h5io import read_hdf5, write_hdf5
@@ -386,7 +386,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(ToDataFrameMixin, object):
+class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
     """Abstract base class for source estimates
 
     Parameters
@@ -470,6 +470,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         self._update_times()
         self.subject = _check_subject(None, subject, False)
 
+    @property
+    def sfreq(self):
+        """Sample rate of the data"""
+        return 1. / self.tstep
+
     def _remove_kernel_sens_data_(self):
         """Remove kernel and sensor space data and compute self._data
         """
@@ -489,7 +494,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         tmax : float | None
             The last time point in seconds. If None the last present is used.
         """
-        mask = _time_mask(self.times, tmin, tmax)
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.sfreq)
         self.tmin = self.times[np.where(mask)[0][0]]
         if self._kernel is not None and self._sens_data is not None:
             self._sens_data = self._sens_data[:, mask]
@@ -500,7 +505,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         return self  # return self for chaining methods
 
     @verbose
-    def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
+    def resample(self, sfreq, npad=None, window='boxcar', n_jobs=1,
                  verbose=None):
         """Resample data
 
@@ -508,8 +513,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         ----------
         sfreq : float
             New sample rate to use.
-        npad : int
+        npad : int | str
             Amount to pad the start and end of the data.
+            Can also be "auto" to use a padding that will result in
+            a power-of-two size (can be much faster).
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
         n_jobs : int
@@ -525,6 +532,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
 
         Note that the sample rate of the original data is inferred from tstep.
         """
+        if npad is None:
+            npad = 100
+            warn_('npad is currently taken to be 100, but will be changed to '
+                  '"auto" in 0.12. Please set the value explicitly.',
+                  DeprecationWarning)
         # resampling in sensor instead of source space gives a somewhat
         # different result, so we don't allow it
         self._remove_kernel_sens_data_()
@@ -770,8 +782,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
 
         if self._kernel is None and self._sens_data is None:
             if self._kernel_removed:
-                warnings.warn('Performance can be improved by not accessing '
-                              'the data attribute before calling this method.')
+                warn_('Performance can be improved by not accessing the data '
+                      'attribute before calling this method.')
 
             # transform source space data directly
             data_t = func(self.data[idx, tmin_idx:tmax_idx])
@@ -851,8 +863,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         """
 
         # min and max data indices to include
-        times = np.round(1000 * self.times)
-        t_idx = np.where(_time_mask(times, tmin, tmax))[0]
+        times = 1000. * self.times
+        t_idx = np.where(_time_mask(times, tmin, tmax, sfreq=self.sfreq))[0]
         if tmin is None:
             tmin_idx = None
         else:
@@ -1949,9 +1961,9 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     else:
         data[idx_use, :] /= data_sum[idx_use][:, None]
     if len(idx_use) != len(data_sum) and warn:
-        warnings.warn('%s/%s vertices not included in smoothing, consider '
-                      'increasing the number of steps'
-                      % (len(data_sum) - len(idx_use), len(data_sum)))
+        warn_('%s/%s vertices not included in smoothing, consider increasing '
+              'the number of steps'
+              % (len(data_sum) - len(idx_use), len(data_sum)))
 
     logger.info('    %d smooth iterations done.' % (k + 1))
     data_morphed = maps[nearest, :] * data
@@ -2359,11 +2371,10 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         masks = np.concatenate(masks)
         missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
         if missing:
-            warnings.warn('%0.1f%% of original source space vertices have been'
-                          ' omitted, tri-based connectivity will have holes.\n'
-                          'Consider using distance-based connectivity or '
-                          'morphing data to all source space vertices.'
-                          % missing)
+            warn_('%0.1f%% of original source space vertices have been'
+                  ' omitted, tri-based connectivity will have holes.\n'
+                  'Consider using distance-based connectivity or '
+                  'morphing data to all source space vertices.' % missing)
             masks = np.tile(masks, n_times)
             masks = np.where(masks)[0]
             connectivity = connectivity.tocsr()
@@ -2741,13 +2752,12 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
             if not allow_empty:
                 raise ValueError(msg)
             else:
-                logger.warning(msg + '. Assigning all-zero time series to '
-                               'label.')
+                warn_(msg + '. Assigning all-zero time series to label.')
             this_vertidx = None  # to later check if label is empty
 
         label_vertidx.append(this_vertidx)
 
-    # mode-dependent initalization
+    # mode-dependent initialization
     if mode == 'mean':
         pass  # we have this here to catch invalid values for mode
     elif mode == 'mean_flip':

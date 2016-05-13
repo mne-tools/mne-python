@@ -11,7 +11,8 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_coreg, mne_kit2fiff,
                           mne_make_scalp_surfaces, mne_maxfilter,
                           mne_report, mne_surf2bem, mne_watershed_bem,
-                          mne_compare_fiff, mne_flash_bem, mne_show_fiff)
+                          mne_compare_fiff, mne_flash_bem, mne_show_fiff,
+                          mne_show_info)
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        ArgvSetter, slow_test, ultra_slow_test)
@@ -209,7 +210,7 @@ def test_watershed_bem():
         mne_watershed_bem.run()
 
 
-@slow_test
+@ultra_slow_test
 @requires_mne
 @requires_freesurfer
 @sample.requires_sample_data
@@ -240,6 +241,13 @@ def test_flash_bem():
                     disable_stdout=False, disable_stderr=False):
         mne_flash_bem.run()
     os.chdir(currdir)
+
+
+def test_show_info():
+    """Test mne show_info"""
+    check_usage(mne_show_info)
+    with ArgvSetter((raw_fname,)):
+        mne_show_info.run()
 
 
 run_tests_if_main()

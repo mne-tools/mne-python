@@ -15,8 +15,9 @@ import numpy as np
 from scipy import linalg
 
 from .fixes import partial
-from .utils import verbose, logger, run_subprocess, get_subjects_dir
+from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
 from .transforms import _ensure_trans, apply_trans
+from .io import Info
 from .io.constants import FIFF
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
@@ -499,7 +500,8 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     """Create a BEM model for a subject
 
     .. note:: To get a single layer bem corresponding to the --homog flag in
-              the command line tool set the ``connectivity`` accordingly
+              the command line tool set the ``conductivity`` parameter
+              to a list/tuple with a single value (e.g. [0.3]).
 
     Parameters
     ----------
@@ -705,7 +707,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         If float, compute spherical shells for EEG using the given radius.
         If 'auto', estimate an approriate radius from the dig points in Info,
         If None, exclude shells.
-    info : instance of mne.io.meas_info.Info | None
+    info : instance of Info | None
         Measurement info. Only needed if ``r0`` or ``head_radius`` are
         ``'auto'``.
     relative_radii : array-like
@@ -735,16 +737,24 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
             if param != 'auto':
                 raise ValueError('%s, if str, must be "auto" not "%s"'
                                  % (name, param))
-
+    relative_radii = np.array(relative_radii, float).ravel()
+    sigmas = np.array(sigmas, float).ravel()
+    if len(relative_radii) != len(sigmas):
+        raise ValueError('relative_radii length (%s) must match that of '
+                         'sigmas (%s)' % (len(relative_radii),
+                                          len(sigmas)))
+    if len(sigmas) == 0 and head_radius is not None:
+            raise ValueError('sigmas must be supplied if head_radius is not '
+                             'None')
     if (isinstance(r0, string_types) and r0 == 'auto') or \
        (isinstance(head_radius, string_types) and head_radius == 'auto'):
         if info is None:
             raise ValueError('Info must not be None for auto mode')
-        head_radius_fit, r0_fit = fit_sphere_to_headshape(info)[:2]
+        head_radius_fit, r0_fit = fit_sphere_to_headshape(info, units='m')[:2]
         if isinstance(r0, string_types):
-            r0 = r0_fit / 1000.
+            r0 = r0_fit
         if isinstance(head_radius, string_types):
-            head_radius = head_radius_fit / 1000.
+            head_radius = head_radius_fit
     sphere = ConductorModel(is_sphere=True, r0=np.array(r0),
                             coord_frame=FIFF.FIFFV_COORD_HEAD)
     sphere['layers'] = list()
@@ -785,49 +795,89 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
                            sphere['lambda'][k]))
         logger.info('Set up EEG sphere model with scalp radius %7.1f mm\n'
                     % (1000 * head_radius,))
-    return ConductorModel(sphere)
+    return sphere
 
 
 # #############################################################################
 # Helpers
 
+_dig_kind_dict = {
+    'cardinal': FIFF.FIFFV_POINT_CARDINAL,
+    'hpi': FIFF.FIFFV_POINT_HPI,
+    'eeg': FIFF.FIFFV_POINT_EEG,
+    'extra': FIFF.FIFFV_POINT_EXTRA,
+}
+_dig_kind_rev = dict((val, key) for key, val in _dig_kind_dict.items())
+_dig_kind_ints = tuple(_dig_kind_dict.values())
+
+
 @verbose
-def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
-                            verbose=None):
+def fit_sphere_to_headshape(info, dig_kinds='auto', units=None, verbose=None):
     """Fit a sphere to the headshape points to determine head center
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info
+    info : instance of Info
         Measurement info.
-    dig_kinds : tuple of int
-        Kind of digitization points to use in the fitting. These can be
-        any kind defined in io.constants.FIFF::
+    dig_kinds : list of str | str
+        Kind of digitization points to use in the fitting. These can be any
+        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
+        be 'auto' (default), which will use only the 'extra' points if
+        enough are available, and if not, uses 'extra' and 'eeg' points.
+    units : str
+        Can be "m" or "mm". The default in 0.12 is "mm" but will be changed
+        to "m" in 0.13.
 
-            FIFFV_POINT_CARDINAL
-            FIFFV_POINT_HPI
-            FIFFV_POINT_EEG
-            FIFFV_POINT_EXTRA
+        .. versionadded:: 0.12
 
-        Defaults to (FIFFV_POINT_EXTRA,).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     radius : float
-        Sphere radius in mm.
+        Sphere radius.
     origin_head: ndarray, shape (3,)
-        Head center in head coordinates (mm).
+        Head center in head coordinates.
     origin_device: ndarray, shape (3,)
-        Head center in device coordinates (mm).
+        Head center in device coordinates.
 
     Notes
     -----
     This function excludes any points that are low and frontal
     (``z < 0 and y > 0``) to improve the fit.
     """
-    # get head digization points of the specified kind
+    if units is None:
+        warn('Please explicitly set the units. In 0.12 units="mm" will '
+             'be used, but this will change to units="m" in 0.13.',
+             DeprecationWarning)
+        units = 'mm'
+    if not isinstance(units, string_types) or units not in ('m', 'mm'):
+        raise ValueError('units must be a "m" or "mm"')
+    if not isinstance(info, Info):
+        raise TypeError('info must be an instance of Info not %s' % type(info))
+    if info['dig'] is None:
+        raise RuntimeError('Cannot fit headshape without digitization '
+                           ', info["dig"] is None')
+    if isinstance(dig_kinds, string_types):
+        if dig_kinds == 'auto':
+            # try "extra" first
+            try:
+                return fit_sphere_to_headshape(info, 'extra', units=units)
+            except ValueError:
+                pass
+            return fit_sphere_to_headshape(info, ('extra', 'eeg'), units=units)
+        else:
+            dig_kinds = (dig_kinds,)
+    # convert string args to ints (first make dig_kinds mutable in case tuple)
+    dig_kinds = list(dig_kinds)
+    for di, d in enumerate(dig_kinds):
+        dig_kinds[di] = _dig_kind_dict.get(d, d)
+        if dig_kinds[di] not in _dig_kind_ints:
+            raise ValueError('dig_kinds[#%d] (%s) must be one of %s'
+                             % (di, d, sorted(list(_dig_kind_dict.keys()))))
+
+    # get head digization points of the specified kind(s)
     hsp = [p['r'] for p in info['dig'] if p['kind'] in dig_kinds]
     if any(p['coord_frame'] != FIFF.FIFFV_COORD_HEAD for p in info['dig']):
         raise RuntimeError('Digitization points not in head coordinates, '
@@ -836,9 +886,15 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     # exclude some frontal points (nose etc.)
     hsp = [p for p in hsp if not (p[2] < 0 and p[1] > 0)]
 
-    if len(hsp) == 0:
-        raise ValueError('No head digitization points of the specified '
-                         'kinds (%s) found.' % dig_kinds)
+    if len(hsp) <= 10:
+        kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]
+                               for d in sorted(dig_kinds)])
+        msg = ('Only %s head digitization points of the specified kind%s (%s,)'
+               % (len(hsp), 's' if len(dig_kinds) != 1 else '', kinds_str))
+        if len(hsp) < 4:
+            raise ValueError(msg + ', at least 4 required')
+        else:
+            warn(msg + ', fitting may be inaccurate')
 
     radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
     # compute origin in device coordinates
@@ -853,16 +909,20 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     # i.e. 108mm "radius", so let's go with 110mm
     # en.wikipedia.org/wiki/Human_head#/media/File:HeadAnthropometry.JPG
     if radius > 110.:
-        logger.warning('Estimated head size (%0.1f mm) exceeded 99th '
-                       'percentile for adult head size' % (radius,))
+        warn('Estimated head size (%0.1f mm) exceeded 99th '
+             'percentile for adult head size' % (radius,))
     # > 2 cm away from head center in X or Y is strange
     if np.sqrt(np.sum(origin_head[:2] ** 2)) > 20:
-        logger.warning('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '
-                       'head frame origin' % tuple(origin_head[:2]))
+        warn('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '
+             'head frame origin' % tuple(origin_head[:2]))
     logger.info('Origin head coordinates:'.ljust(30) +
                 '%0.1f %0.1f %0.1f mm' % tuple(origin_head))
     logger.info('Origin device coordinates:'.ljust(30) +
                 '%0.1f %0.1f %0.1f mm' % tuple(origin_device))
+    if units == 'm':
+        radius /= 1e3
+        origin_head /= 1e3
+        origin_device /= 1e3
 
     return radius, origin_head, origin_device
 
@@ -903,10 +963,10 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
             raise ValueError('origin must be a numerical array, or "auto", '
                              'not %s' % (origin,))
         if coord_frame == 'head':
-            R, origin = fit_sphere_to_headshape(info, verbose=False)[:2]
-            origin /= 1000.
+            R, origin = fit_sphere_to_headshape(info, verbose=False,
+                                                units='m')[:2]
             logger.info('    Automatic origin fit: head of radius %0.1f mm'
-                        % R)
+                        % (R * 1000.,))
             del R
         else:
             origin = (0., 0., 0.)
@@ -926,7 +986,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       verbose=None):
+                       show=False, verbose=None):
     """
     Create BEM surfaces using the watershed algorithm included with FreeSurfer
 
@@ -947,26 +1007,31 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         Use the subcortical atlas
     preflood : int
         Change the preflood height
+    show : bool
+        Show surfaces to visually inspect all three BEM surfaces (recommended).
+
+        .. versionadded:: 0.12
+
     verbose : bool, str or None
         If not None, override default verbose level
 
+    Notes
+    -----
     .. versionadded:: 0.10
     """
     from .surface import read_surface
+    from .viz.misc import plot_bem
     env, mri_dir = _prepare_env(subject, subjects_dir,
                                 requires_freesurfer=True,
                                 requires_mne=True)[:2]
 
+    subjects_dir = env['SUBJECTS_DIR']
     subject_dir = op.join(subjects_dir, subject)
     mri_dir = op.join(subject_dir, 'mri')
     T1_dir = op.join(mri_dir, volume)
     T1_mgz = op.join(mri_dir, volume + '.mgz')
     bem_dir = op.join(subject_dir, 'bem')
     ws_dir = op.join(subject_dir, 'bem', 'watershed')
-
-    if not op.isdir(subject_dir):
-        raise RuntimeError('Could not find the MRI data directory "%s"'
-                           % subject_dir)
     if not op.isdir(bem_dir):
         os.makedirs(bem_dir)
     if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
@@ -974,13 +1039,13 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError('%s already exists. Use the --overwrite option'
-                               'to recreate it.' % ws_dir)
+                               ' to recreate it.' % ws_dir)
         else:
             shutil.rmtree(ws_dir)
     # put together the command
     cmd = ['mri_watershed']
     if preflood:
-        cmd += ["-h",  "%s" % int(preflood)]
+        cmd += ["-h", "%s" % int(preflood)]
 
     if gcaatlas:
         cmd += ['-atlas', '-T1', '-brain_atlas', env['FREESURFER_HOME'] +
@@ -1002,20 +1067,42 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 'Results dir = %s\n' % (subjects_dir, subject, ws_dir))
     os.makedirs(op.join(ws_dir, 'ws'))
     run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
-    #
-    os.chdir(ws_dir)
+
     if op.isfile(T1_mgz):
         # XXX : do this with python code
-        surfaces = [subject + '_brain_surface', subject +
-                    '_inner_skull_surface', subject + '_outer_skull_surface',
-                    subject + '_outer_skin_surface']
-        for s in surfaces:
-            cmd = ['mne_convert_surface', '--surf', s, '--mghmri', T1_mgz,
-                   '--surfout', s, "--replacegeom"]
+        surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
+        for s in surfs:
+            surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
+            cmd = ['mne_convert_surface', '--surf', surf_ws_out, '--mghmri',
+                   T1_mgz, '--surfout', s, "--replacegeom"]
             run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
-    os.chdir(bem_dir)
-    if op.isfile(subject + '-head.fif'):
-        os.remove(subject + '-head.fif')
+
+            # Create symbolic links
+            surf_out = op.join(bem_dir, '%s.surf' % s)
+            if not overwrite and op.exists(surf_out):
+                skip_symlink = True
+            else:
+                if op.exists(surf_out):
+                    os.remove(surf_out)
+                os.symlink(surf_ws_out, surf_out)
+                skip_symlink = False
+
+        if skip_symlink:
+            logger.info("Unable to create all symbolic links to .surf files "
+                        "in bem folder. Use --overwrite option to recreate "
+                        "them.")
+            dest = op.join(bem_dir, 'watershed')
+        else:
+            logger.info("Symbolic links to .surf files created in bem folder")
+            dest = bem_dir
+
+    logger.info("\nThank you for waiting.\nThe BEM triangulations for this "
+                "subject are now available at:\n%s." % dest)
+
+    # Write a head file for coregistration
+    fname_head = op.join(bem_dir, subject + '-head.fif')
+    if op.isfile(fname_head):
+        os.remove(fname_head)
 
     # run the equivalent of mne_surf2bem
     points, tris = read_surface(op.join(ws_dir,
@@ -1023,9 +1110,14 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     points *= 1e-3
     surf = dict(coord_frame=5, id=4, nn=None, np=len(points),
                 ntri=len(tris), rr=points, sigma=1, tris=tris)
-    write_bem_surfaces(subject + '-head.fif', surf)
+    write_bem_surfaces(fname_head, surf)
 
-    logger.info('Created %s/%s-head.fif\n\nComplete.' % (bem_dir, subject))
+    # Show computed BEM surfaces
+    if show:
+        plot_bem(subject=subject, subjects_dir=subjects_dir,
+                 orientation='coronal', slices=None, show=True)
+
+    logger.info('Created %s\n\nComplete.' % (fname_head,))
 
 
 # ############################################################################
@@ -1394,11 +1486,17 @@ def _prepare_env(subject, subjects_dir, requires_freesurfer, requires_mne):
         raise TypeError('The subject argument must be set')
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
+    if not op.isdir(subjects_dir):
+        raise RuntimeError('Could not find the MRI data directory "%s"'
+                           % subjects_dir)
+    subject_dir = op.join(subjects_dir, subject)
+    if not op.isdir(subject_dir):
+        raise RuntimeError('Could not find the subject data directory "%s"'
+                           % (subject_dir,))
     env['SUBJECT'] = subject
     env['SUBJECTS_DIR'] = subjects_dir
-    mri_dir = op.join(subjects_dir, subject, 'mri')
-    bem_dir = op.join(subjects_dir, subject, 'bem')
+    mri_dir = op.join(subject_dir, 'mri')
+    bem_dir = op.join(subject_dir, 'bem')
     return env, mri_dir, bem_dir
 
 
@@ -1584,6 +1682,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                                          requires_mne=True)
 
     curdir = os.getcwd()
+    subjects_dir = env['SUBJECTS_DIR']
 
     logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
                 'the following parameters:\n'

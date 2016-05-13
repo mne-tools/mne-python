@@ -7,7 +7,7 @@
 
 from .open import fiff_open, show_fiff, _fiff_get_fid
 from .meas_info import (read_fiducials, write_fiducials, read_info, write_info,
-                        _empty_info, _merge_info, Info)
+                        _empty_info, _merge_info, _force_update_info, Info)
 
 from .proj import make_eeg_average_ref_proj, Projection
 from .tag import _loc_to_coil_trans, _coil_trans_to_loc, _loc_to_eeg_loc
@@ -17,6 +17,7 @@ from . import array
 from . import base
 from . import brainvision
 from . import bti
+from . import cnt
 from . import ctf
 from . import constants
 from . import edf
@@ -30,6 +31,7 @@ from . import pick
 from .array import RawArray
 from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
+from .cnt import read_raw_cnt
 from .ctf import read_raw_ctf
 from .edf import read_raw_edf
 from .egi import read_raw_egi
@@ -39,8 +41,8 @@ from .nicolet import read_raw_nicolet
 from .eeglab import read_raw_eeglab, read_epochs_eeglab
 
 # for backward compatibility
-from .fiff import RawFIF
-from .fiff import RawFIF as Raw
+from .fiff import Raw
+from .fiff import Raw as RawFIF
 from .base import concatenate_raws
 from .reference import (set_eeg_reference, set_bipolar_reference,
                         add_reference_channels)

@@ -14,46 +14,48 @@ import copy
 
 import numpy as np
 
-from ..utils import verbose, get_config, set_config, logger
+from ..utils import verbose, get_config, set_config, logger, warn
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
-from ..time_frequency import compute_epochs_psd
+from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
-                    _plot_raw_onscroll, _onclick_help, plt_show)
+                    _plot_raw_onscroll, _onclick_help, plt_show,
+                    _compute_scalings)
 from ..defaults import _handle_default
 
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap='RdBu_r', fig=None):
+                      units=None, scalings=None, cmap='RdBu_r',
+                      fig=None, overlay_times=None):
     """Plot Event Related Potential / Fields image
 
     Parameters
     ----------
     epochs : instance of Epochs
-        The epochs
+        The epochs.
     picks : int | array-like of int | None
-        The indices of the channels to consider. If None, all good
-        data channels are plotted.
+        The indices of the channels to consider. If None, the first
+        five good channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
     vmin : float
         The min value in the image. The unit is uV for EEG channels,
-        fT for magnetometers and fT/cm for gradiometers
+        fT for magnetometers and fT/cm for gradiometers.
     vmax : float
         The max value in the image. The unit is uV for EEG channels,
-        fT for magnetometers and fT/cm for gradiometers
+        fT for magnetometers and fT/cm for gradiometers.
     colorbar : bool
-        Display or not a colorbar
+        Display or not a colorbar.
     order : None | array of int | callable
         If not None, order is used to reorder the epochs on the y-axis
         of the image. If it's an array of int it should be of length
         the number of good epochs. If it's a callable the arguments
         passed are the times vector and the data as 2d array
-        (data.shape[1] == len(times)
+        (data.shape[1] == len(times).
     show : bool
         Show figure if True.
     units : dict | None
@@ -62,18 +64,23 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.
         If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
-        eog=1e6)`
+        eog=1e6)`.
     cmap : matplotlib colormap
         Colormap.
     fig : matplotlib figure | None
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
+    overlay_times : array-like, shape (n_epochs,) | None
+        If not None the parameter is interpreted as time instants in seconds
+        and is added to the image. It is typically useful to display reaction
+        times. Note that it is defined with respect to the order
+        of epochs such that overlay_times[0] corresponds to epochs[0].
 
     Returns
     -------
-    figs : the list of matplotlib figures
-        One figure per channel displayed
+    figs : lists of matplotlib figures
+        One figure per channel displayed.
     """
     from scipy import ndimage
     units = _handle_default('units', units)
@@ -82,7 +89,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     import matplotlib.pyplot as plt
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+                           exclude='bads')[:5]
 
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
@@ -95,6 +102,20 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     scale_vmin = True if vmin is None else False
     scale_vmax = True if vmax is None else False
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+
+    if overlay_times is not None and len(overlay_times) != len(data):
+        raise ValueError('size of overlay_times parameter (%s) do not '
+                         'match the number of epochs (%s).'
+                         % (len(overlay_times), len(data)))
+
+    if overlay_times is not None:
+        overlay_times = np.array(overlay_times)
+        times_min = np.min(overlay_times)
+        times_max = np.max(overlay_times)
+        if ((times_min < epochs.tmin) or (times_max > epochs.tmax)):
+            warn('Some values in overlay_times fall outside of the epochs '
+                 'time interval (between %s s and %s s)'
+                 % (epochs.tmin, epochs.tmax))
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
@@ -114,8 +135,20 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if callable(order):
             this_order = order(epochs.times, this_data)
 
+        if this_order is not None and (len(this_order) != len(this_data)):
+            raise ValueError('size of order parameter (%s) does not '
+                             'match the number of epochs (%s).'
+                             % (len(this_order), len(this_data)))
+
+        this_overlay_times = None
+        if overlay_times is not None:
+            this_overlay_times = overlay_times
+
         if this_order is not None:
+            this_order = np.asarray(this_order)
             this_data = this_data[this_order]
+            if this_overlay_times is not None:
+                this_overlay_times = this_overlay_times[this_order]
 
         if sigma > 0.:
             this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma,
@@ -131,6 +164,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                                 0, len(data)],
                         aspect='auto', origin='lower', interpolation='nearest',
                         vmin=vmin, vmax=vmax, cmap=cmap)
+        if this_overlay_times is not None:
+            plt.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
+                     'k', linewidth=2)
         ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
         if colorbar:
             ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
@@ -214,6 +250,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     plt.ylabel('% of epochs rejected')
     plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
     plt.grid(True, axis='y')
+    tight_layout(pad=1, fig=fig)
     plt_show(show)
     return fig
 
@@ -265,7 +302,7 @@ def _epochs_navigation_onclick(event, params):
         here = -1
     elif event.inaxes == p['reject-quit'].ax:
         if p['reject_idx']:
-            p['epochs'].drop_epochs(p['reject_idx'])
+            p['epochs'].drop(p['reject_idx'])
         plt.close(p['fig'])
         plt.close(event.inaxes.get_figure())
 
@@ -328,8 +365,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     picks : array-like of int | None
         Channels to be included. If None only good data channels are used.
         Defaults to None
-    scalings : dict | None
-        Scale factors for the traces. If None, defaults to::
+    scalings : dict | 'auto' | None
+        Scaling factors for the traces. If any fields in scalings are 'auto',
+        the scaling factor is set to match the 99.5th percentile of a subset of
+        the corresponding data. If scalings == 'auto', all scalings fields are
+        set to 'auto'. If any fields are 'auto' and data is not preloaded,
+        a subset of epochs up to 100mb will be loaded. If None, defaults to::
 
             dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)
@@ -363,7 +404,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     with home/end and page down/page up keys. Butterfly plot can be toggled
     with ``b`` key. Right mouse click adds a vertical line to the plot.
     """
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
+    scalings = _compute_scalings(scalings, epochs)
     scalings = _handle_default('scalings_plot_raw', scalings)
 
     projs = epochs.info['projs']
@@ -391,10 +433,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
 @verbose
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
-                    proj=False, n_fft=256,
-                    picks=None, ax=None, color='black', area_mode='std',
-                    area_alpha=0.33, n_overlap=0,
-                    dB=True, n_jobs=1, show=True, verbose=None):
+                    proj=False, bandwidth=None, adaptive=False, low_bias=True,
+                    normalization='length', picks=None, ax=None, color='black',
+                    area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
+                    show=True, verbose=None):
     """Plot the power spectral density across epochs
 
     Parameters
@@ -411,8 +453,19 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         End time to consider.
     proj : bool
         Apply projection.
-    n_fft : int
-        Number of points to use in Welch FFT calculations.
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz. The default
+        value is a window half-bandwidth of 4.
+    adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth.
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
     picks : array-like of int | None
         List of channels to use.
     ax : instance of matplotlib Axes | None
@@ -426,8 +479,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         If None, no area will be plotted.
     area_alpha : float
         Alpha for the area.
-    n_overlap : int
-        The number of points of overlap between blocks.
     dB : bool
         If True, transform data to decibels.
     n_jobs : int
@@ -448,11 +499,12 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
-        psds, freqs = compute_epochs_psd(epochs, picks=picks, fmin=fmin,
-                                         fmax=fmax, tmin=tmin, tmax=tmax,
-                                         n_fft=n_fft,
-                                         n_overlap=n_overlap, proj=proj,
-                                         n_jobs=n_jobs)
+        psds, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
+                                     fmax=fmax, tmin=tmin, tmax=tmax,
+                                     bandwidth=bandwidth, adaptive=adaptive,
+                                     low_bias=low_bias,
+                                     normalization=normalization, proj=proj,
+                                     n_jobs=n_jobs)
 
         # Convert PSDs to dB
         if dB:
@@ -516,8 +568,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
     if order is None:
-        order = ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp', 'misc',
-                 'chpi', 'syst', 'ias', 'exci']
+        order = ['eeg', 'seeg', 'ecog', 'eog', 'ecg', 'emg', 'ref_meg', 'stim',
+                 'resp', 'misc', 'chpi', 'syst', 'ias', 'exci']
     for ch_type in order:
         pick_kwargs[ch_type] = True
         idxs = pick_types(params['info'], **pick_kwargs)
@@ -564,7 +616,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
     ax_vscroll.set_axis_off()
     ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
-                                               facecolor='w', zorder=2))
+                                               facecolor='w', zorder=3))
 
     ax_help_button = plt.subplot2grid((10, 15), (9, 0), colspan=1)
     help_button = mpl.widgets.Button(ax_help_button, 'Help')
@@ -579,10 +631,10 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
                                                    facecolor=this_color,
                                                    edgecolor=this_color,
-                                                   zorder=3))
+                                                   zorder=4))
 
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
-                                       edgecolor='w', facecolor='w', zorder=4)
+                                       edgecolor='w', facecolor='w', zorder=5)
     ax_vscroll.add_patch(vsel_patch)
 
     ax_vscroll.set_ylim(len(types), 0)
@@ -600,7 +652,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         if len(colors) - 1 < ch_idx:
             break
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                            zorder=2, picker=3.)
+                            zorder=3, picker=3.)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -646,7 +698,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                        facecolor=(0.75, 0.75, 0.75),
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
-    text = ax.text(0, 0, 'blank', zorder=2, verticalalignment='baseline',
+    text = ax.text(0, 0, 'blank', zorder=3, verticalalignment='baseline',
                    ha='left', fontweight='bold')
     text.set_visible(False)
 
@@ -800,10 +852,10 @@ def _plot_traces(params):
                     if bad_idx < start_idx or bad_idx > end_idx:
                         continue
                     this_color[bad_idx - start_idx] = (1., 0., 0.)
-                lines[line_idx].set_zorder(1)
+                lines[line_idx].set_zorder(2)
             else:
                 this_color = params['colors'][ch_idx][start_idx:end_idx]
-                lines[line_idx].set_zorder(2)
+                lines[line_idx].set_zorder(3)
                 if not butterfly:
                     ylabels[line_idx].set_color('black')
             lines[line_idx].set_segments(segments)
@@ -897,7 +949,7 @@ def _handle_picks(epochs):
                            exclude=[])
     else:
         picks = pick_types(epochs.info, meg=True, eeg=True, eog=True, ecg=True,
-                           ref_meg=False, exclude=[])
+                           seeg=True, ecog=True, ref_meg=False, exclude=[])
     return picks
 
 
@@ -929,10 +981,10 @@ def _plot_vert_lines(params):
             for event_idx in range(len(epochs.events)):
                 pos = [event_idx * len(epochs.times) + t_zero[0],
                        event_idx * len(epochs.times) + t_zero[0]]
-                ax.plot(pos, ax.get_ylim(), 'g', zorder=3, alpha=0.4)
+                ax.plot(pos, ax.get_ylim(), 'g', zorder=4, alpha=0.4)
     for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * len(epochs.times), epoch_idx * len(epochs.times)]
-        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
+        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=2)
 
 
 def _pick_bad_epochs(event, params):
@@ -955,13 +1007,13 @@ def _pick_bad_epochs(event, params):
         for ch_idx in range(len(params['ch_names'])):
             params['colors'][ch_idx][epoch_idx] = params['def_colors'][ch_idx]
         params['ax_hscroll'].patches[epoch_idx].set_color('w')
-        params['ax_hscroll'].patches[epoch_idx].set_zorder(1)
+        params['ax_hscroll'].patches[epoch_idx].set_zorder(2)
         params['plot_fun']()
         return
     # add bad epoch
     params['bads'] = np.append(params['bads'], epoch_idx)
     params['ax_hscroll'].patches[epoch_idx].set_color((1., 0., 0., 1.))
-    params['ax_hscroll'].patches[epoch_idx].set_zorder(2)
+    params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
     params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
     for ch_idx in range(len(params['ch_names'])):
         params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
@@ -1033,7 +1085,12 @@ def _mouse_click(event, params):
         if event.inaxes == params['ax_vscroll']:
             if params['butterfly']:
                 return
-            ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
+            # Don't let scrollbar go outside vertical scrollbar limits
+            # XXX: floating point exception on some machines if this happens.
+            ch_start = min(
+                max(int(event.ydata) - params['n_channels'] // 2, 0),
+                len(params['ch_names']) - params['n_channels'])
+
             if params['ch_start'] != ch_start:
                 params['ch_start'] = ch_start
                 params['plot_fun']()
@@ -1069,7 +1126,7 @@ def _mouse_click(event, params):
         for epoch_idx in range(params['n_epochs']):  # plot lines
             pos = [epoch_idx * n_times + xdata, epoch_idx * n_times + xdata]
             params['vert_lines'].append(params['ax'].plot(pos, ylim, 'y',
-                                                          zorder=4))
+                                                          zorder=5))
         params['vertline_t'].set_text('%0.3f' % params['epochs'].times[xdata])
         params['plot_fun']()
 
@@ -1135,7 +1192,7 @@ def _plot_onkey(event, params):
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                            zorder=2, picker=3.)
+                            zorder=3, picker=3.)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
@@ -1165,7 +1222,7 @@ def _plot_onkey(event, params):
             ax = params['ax']
             pos = params['vert_lines'][0][0].get_data()[0] + params['duration']
             params['vert_lines'].append(ax.plot(pos, ax.get_ylim(), 'y',
-                                                zorder=3))
+                                                zorder=4))
         params['duration'] += n_times
         if params['t_start'] + params['duration'] > len(params['times']):
             params['t_start'] -= n_times
@@ -1254,7 +1311,7 @@ def _prepare_butterfly(params):
 
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                                zorder=2, picker=3.)
+                                zorder=3, picker=3.)
             ax.add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
@@ -1293,7 +1350,7 @@ def _onpick(event, params):
 
 def _close_event(event, params):
     """Function to drop selected bad epochs. Called on closing of the plot."""
-    params['epochs'].drop_epochs(params['bads'])
+    params['epochs'].drop(params['bads'])
     params['epochs'].info['bads'] = params['info']['bads']
     logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
 
@@ -1317,7 +1374,7 @@ def _update_channels_epochs(event, params):
         params['lines'].pop()
     while len(params['lines']) < n_channels:
         lc = LineCollection(list(), linewidths=0.5, antialiased=False,
-                            zorder=2, picker=3.)
+                            zorder=3, picker=3.)
         params['ax'].add_collection(lc)
         params['lines'].append(lc)
     params['ax'].set_yticks(params['offsets'])

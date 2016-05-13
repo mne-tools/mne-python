@@ -29,7 +29,7 @@ event_id, tmin, tmax = 1, -0.1, 0.2
 
 
 def _get_raw(preload=False):
-    return io.Raw(raw_fname, preload=preload)
+    return io.read_raw_fif(raw_fname, preload=preload)
 
 
 def _get_events():
@@ -44,8 +44,9 @@ def _get_epochs():
     raw = _get_raw()
     events = _get_events()
     picks = _get_picks(raw)
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0))
+    with warnings.catch_warnings(record=True):  # bad proj
+        epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
     return epochs
 
 
@@ -58,7 +59,8 @@ def test_plot_ica_components():
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
     ica_picks = _get_picks(raw)
-    ica.fit(raw, picks=ica_picks)
+    with warnings.catch_warnings(record=True):
+        ica.fit(raw, picks=ica_picks)
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
         for components in [0, [0], [0, 1], [0, 1] * 2, None]:
@@ -74,9 +76,8 @@ def test_plot_ica_sources():
     """Test plotting of ICA panel
     """
     import matplotlib.pyplot as plt
-    raw = io.Raw(raw_fname, preload=False)
-    raw.crop(0, 1, copy=False)
-    raw.load_data()
+    raw = io.read_raw_fif(raw_fname,
+                          preload=False).crop(0, 1, copy=False).load_data()
     picks = _get_picks(raw)
     epochs = _get_epochs()
     raw.pick_channels([raw.ch_names[k] for k in picks])
@@ -121,11 +122,16 @@ def test_plot_ica_overlay():
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    ica.fit(raw, picks=picks)
+    # can't use info.normalize_proj here because of how and when ICA and Epochs
+    # objects do picking of Raw data
+    with warnings.catch_warnings(record=True):  # bad proj
+        ica.fit(raw, picks=picks)
     # don't test raw, needs preload ...
-    ecg_epochs = create_ecg_epochs(raw, picks=picks)
+    with warnings.catch_warnings(record=True):  # bad proj
+        ecg_epochs = create_ecg_epochs(raw, picks=picks)
     ica.plot_overlay(ecg_epochs.average())
-    eog_epochs = create_eog_epochs(raw, picks=picks)
+    with warnings.catch_warnings(record=True):  # bad proj
+        eog_epochs = create_eog_epochs(raw, picks=picks)
     ica.plot_overlay(eog_epochs.average())
     assert_raises(ValueError, ica.plot_overlay, raw[:2, :3][0])
     ica.plot_overlay(raw)
@@ -141,7 +147,8 @@ def test_plot_ica_scores():
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    ica.fit(raw, picks=picks)
+    with warnings.catch_warnings(record=True):  # bad proj
+        ica.fit(raw, picks=picks)
     ica.labels_ = dict()
     ica.labels_['eog/0/foo'] = 0
     ica.labels_['eog'] = 0
@@ -166,7 +173,8 @@ def test_plot_instance_components():
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    ica.fit(raw, picks=picks)
+    with warnings.catch_warnings(record=True):  # bad proj
+        ica.fit(raw, picks=picks)
     fig = ica.plot_sources(raw, exclude=[0], title='Components')
     fig.canvas.key_press_event('down')
     fig.canvas.key_press_event('up')

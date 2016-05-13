@@ -16,8 +16,8 @@ activation multiple times.
 import numpy as np
 import matplotlib.pyplot as plt
 
+import mne
 from mne import read_source_spaces, find_events, Epochs, compute_covariance
-from mne.io import Raw
 from mne.datasets import sample
 from mne.simulation import simulate_sparse_stc, simulate_raw
 
@@ -31,7 +31,8 @@ bem_fname = (data_path +
              '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif')
 
 # Load real data as the template
-raw = Raw(raw_fname).crop(0., 30., copy=False)  # 30 sec is enough
+raw = mne.io.read_raw_fif(raw_fname)
+raw = raw.crop(0., 30.)  # 30 sec is enough
 
 ##############################################################################
 # Generate dipole time series
@@ -67,7 +68,7 @@ fig.show()
 # Simulate raw data
 raw_sim = simulate_raw(raw, stc, trans_fname, src, bem_fname, cov='simple',
                        iir_filter=[0.2, -0.2, 0.04], ecg=True, blink=True,
-                       n_jobs=2, verbose=True)
+                       n_jobs=1, verbose=True)
 raw_sim.plot()
 
 ##############################################################################

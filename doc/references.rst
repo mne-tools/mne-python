@@ -37,8 +37,8 @@ analysis. II: Inflation, flattening, and a surface-based coordinate
 system," Neuroimage, vol. 9, pp. 195-207., 1999.
 
 B. Fischl, M. I. Sereno, R. B. Tootell, and A. M. Dale, "High-resolution intersubject
-averaging and a coordinate system for the cortical surface," Hum
-Brain Mapp, vol. 8, pp. 272-84, 1999.
+averaging and a coordinate system for the cortical surface," Human
+Brain Mapping, vol. 8, pp. 272-84, 1999.
 
 .. _CEGEGDEI:
 
@@ -104,12 +104,12 @@ mapping: combining fMRI and MEG for high-resolution imaging of cortical
 activity," Neuron, vol. 26, pp. 55-67, 2000.
 
 A. K. Liu, A. M. Dale, and J. W. Belliveau, "Monte Carlo
-simulation studies of EEG and MEG localization accuracy," Hum Brain
-Mapp, vol. 16, pp. 47-62, 2002.
+simulation studies of EEG and MEG localization accuracy," Human Brain
+Mapping, vol. 16, pp. 47-62, 2002.
 
 F. H. Lin, J. W. Belliveau, A. M. Dale, and M. S. Hamalainen,
 "Distributed current estimates using cortical orientation constraints,"
-Hum Brain Mapp, vol. 27, pp. 1-13, 2006.
+Human Brain Mapping, vol. 27, pp. 1-13, 2006.
 
 T. F. Oostendorp, J. Delbeke, and D. F. Stegeman, "The conductivity
 of the human skull: results of in vivo and in vitro measurements,"
@@ -123,8 +123,8 @@ pp. 754-67, 2003.
 
 S. Lew, C. H. Wolters, A. Anwander, S. Makeig, and R. S.
 MacLeod, "Improved EEG source analysis using low-resolution conductivity
-estimation in a four-compartment finite element head model," Hum
-Brain Mapp, vol. 30, pp. 2862-78, 2009.
+estimation in a four-compartment finite element head model," Human
+Brain Mapping, vol. 30, pp. 2862-78, 2009.
 
 fMRI-weighted estimates
 #######################

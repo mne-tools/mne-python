@@ -11,24 +11,24 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 
-from ..externals.six import string_types, advance_iterator
-
+import base64
+from itertools import cycle
 import os.path as op
 import warnings
-from itertools import cycle
-import base64
 
 import numpy as np
 from scipy import linalg
 
+from ..externals.six import string_types, advance_iterator
+from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
                        transform_surface_to)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
-                          invert_transform)
-from ..utils import get_subjects_dir, logger, _check_subject, verbose
+                          invert_transform, Transform)
+from ..utils import get_subjects_dir, logger, _check_subject, verbose, warn
 from ..fixes import _get_args
 from ..defaults import _handle_default
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS, plt_show
@@ -269,16 +269,18 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 @verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                ch_type=None, source=('bem', 'head'), coord_frame='head',
-               meg_sensors=False, dig=False, verbose=None):
+               meg_sensors=False, eeg_sensors=True, dig=False, ref_meg=False,
+               verbose=None):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
     ----------
     info : dict
         The measurement info.
-    trans : str | 'auto' | dict
+    trans : str | 'auto' | dict | None
         The full path to the head<->MRI transform ``*-trans.fif`` file
-        produced during coregistration.
+        produced during coregistration. If trans is None, no head
+        surface will be shown.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
@@ -298,8 +300,12 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         Coordinate frame to use, 'head', 'meg', or 'mri'.
     meg_sensors : bool
         If True, plot MEG sensors as points in addition to showing the helmet.
+    eeg_sensors : bool
+        If True, plot EEG sensors as points.
     dig : bool
         If True, plot the digitization points.
+    ref_meg : bool
+        If True (default False), include reference MEG sensors.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -308,26 +314,40 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
+    from ..forward import _create_meg_coils
+    if not isinstance(info, Info):
+        raise TypeError('info must be an instance of Info, got %s'
+                        % type(info))
     if coord_frame not in ['head', 'meg', 'mri']:
         raise ValueError('coord_frame must be "head" or "meg"')
     if ch_type not in [None, 'eeg', 'meg']:
         raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
                          % ch_type)
 
+    show_head = (subject is not None)
     if isinstance(trans, string_types):
         if trans == 'auto':
             # let's try to do this in MRI coordinates so they're easy to plot
+            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             trans = _find_trans(subject, subjects_dir)
         trans = read_trans(trans)
+    elif trans is None:
+        trans = Transform('head', 'mri', np.eye(4))
+        show_head = False
     elif not isinstance(trans, dict):
-        raise TypeError('trans must be str or dict')
+        raise TypeError('trans must be str, dict, or None')
     head_mri_t = _ensure_trans(trans, 'head', 'mri')
     del trans
 
     # both the head and helmet will be in MRI coordinates after this
-    surfs = [get_head_surf(subject, source=source, subjects_dir=subjects_dir)]
-    if ch_type is None or ch_type == 'meg':
-        surfs.append(get_meg_helmet_surf(info, head_mri_t))
+    meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
+    surfs = dict()
+    if show_head:
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        surfs['head'] = get_head_surf(subject, source=source,
+                                      subjects_dir=subjects_dir)
+    if (ch_type is None and len(meg_picks) > 0) or ch_type == 'meg':
+        surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
     if coord_frame == 'meg':
         surf_trans = combine_transforms(info['dev_head_t'], head_mri_t,
                                         'meg', 'mri')
@@ -335,15 +355,16 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         surf_trans = head_mri_t
     else:  # coord_frame == 'mri'
         surf_trans = None
-    surfs = [transform_surface_to(surf, coord_frame, surf_trans)
-             for surf in surfs]
+    for key in surfs.keys():
+        surfs[key] = transform_surface_to(surfs[key], coord_frame, surf_trans)
     del surf_trans
 
     # determine points
-    meg_loc = list()
+    meg_rrs, meg_tris = list(), list()
     ext_loc = list()
     car_loc = list()
-    if ch_type is None or ch_type == 'eeg':
+    eeg_loc = list()
+    if eeg_sensors and (ch_type is None or ch_type == 'eeg'):
         eeg_loc = np.array([info['chs'][k]['loc'][:3]
                            for k in pick_types(info, meg=False, eeg=True)])
         if len(eeg_loc) > 0:
@@ -352,28 +373,40 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                 eeg_loc = apply_trans(invert_transform(info['dev_head_t']),
                                       eeg_loc)
             elif coord_frame == 'mri':
-                eeg_loc = apply_trans(invert_transform(head_mri_t), eeg_loc)
+                eeg_loc = apply_trans(head_mri_t, eeg_loc)
         else:
             # only warn if EEG explicitly requested, or EEG channels exist but
             # no locations are provided
             if (ch_type is not None or
                     len(pick_types(info, meg=False, eeg=True)) > 0):
-                warnings.warn('EEG electrode locations not found. '
-                              'Cannot plot EEG electrodes.')
+                warn('EEG electrode locations not found. Cannot plot EEG '
+                     'electrodes.')
     if meg_sensors:
-        meg_loc = np.array([info['chs'][k]['loc'][:3]
-                           for k in pick_types(info)])
-        if len(meg_loc) > 0:
-            # Transform MEG coordinates from meg if necessary
-            if coord_frame == 'head':
-                meg_loc = apply_trans(info['dev_head_t'], meg_loc)
-            elif coord_frame == 'mri':
-                t = combine_transforms(info['dev_head_t'], head_mri_t,
+        coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
+                       for pick in meg_picks]
+        # Transform MEG coordinates from meg if necessary
+        trans = None
+        if coord_frame == 'head':
+            trans = info['dev_head_t']
+        elif coord_frame == 'mri':
+            trans = combine_transforms(info['dev_head_t'], head_mri_t,
                                        'meg', 'mri')
-                meg_loc = apply_trans(t, meg_loc)
+        coils = _create_meg_coils([info['chs'][pick] for pick in meg_picks],
+                                  acc='normal')
+        offset = 0
+        for coil, coil_trans in zip(coils, coil_transs):
+            rrs, tris = _sensor_shape(coil)
+            rrs = apply_trans(coil_trans, rrs)
+            if trans is not None:
+                rrs = apply_trans(trans, rrs)
+            meg_rrs.append(rrs)
+            meg_tris.append(tris + offset)
+            offset += len(meg_rrs[-1])
+        if len(meg_rrs) == 0:
+            warn('MEG electrodes not found. Cannot plot MEG locations.')
         else:
-            warnings.warn('MEG electrodes not found. '
-                          'Cannot plot MEG locations.')
+            meg_rrs = np.concatenate(meg_rrs, axis=0)
+            meg_tris = np.concatenate(meg_tris, axis=0)
     if dig:
         ext_loc = np.array([d['r'] for d in info['dig']
                            if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
@@ -387,16 +420,15 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             ext_loc = apply_trans(head_mri_t, ext_loc)
             car_loc = apply_trans(head_mri_t, car_loc)
         if len(car_loc) == len(ext_loc) == 0:
-            warnings.warn('Digitization points not found. '
-                          'Cannot plot digitization.')
+            warn('Digitization points not found. Cannot plot digitization.')
 
     # do the plotting, surfaces then points
     from mayavi import mlab
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
-    alphas = [1.0, 0.5]  # head, helmet
-    colors = [(0.6, 0.6, 0.6), (0.0, 0.0, 0.6)]
-    for surf, alpha, color in zip(surfs, alphas, colors):
+    alphas = dict(head=1.0, helmet=0.5)
+    colors = dict(head=(0.6, 0.6, 0.6), helmet=(0.0, 0.0, 0.6))
+    for key, surf in surfs.items():
         x, y, z = surf['rr'].T
         nn = surf['nn']
         # make absolutely sure these are normalized for Mayavi
@@ -407,19 +439,84 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
         mesh.data.point_data.normals = nn
         mesh.data.cell_data.normals = None
-        mlab.pipeline.surface(mesh, color=color, opacity=alpha)
+        mlab.pipeline.surface(mesh, color=colors[key], opacity=alphas[key])
 
-    datas = (eeg_loc, meg_loc, car_loc, ext_loc)
-    colors = ((1., 0., 0.), (0., 0.25, 0.5), (1., 1., 0.), (1., 0.5, 0.))
-    alphas = (1.0, 0.25, 0.5, 0.25)
-    scales = (0.005, 0.0025, 0.015, 0.0075)
+    datas = (eeg_loc, car_loc, ext_loc)
+    colors = ((1., 0., 0.), (1., 1., 0.), (1., 0.5, 0.))
+    alphas = (1.0, 0.5, 0.25)
+    scales = (0.005, 0.015, 0.0075)
     for data, color, alpha, scale in zip(datas, colors, alphas, scales):
         if len(data) > 0:
             with warnings.catch_warnings(record=True):  # traits
                 mlab.points3d(data[:, 0], data[:, 1], data[:, 2],
                               color=color, scale_factor=scale, opacity=alpha)
+    if len(meg_rrs) > 0:
+        color, alpha = (0., 0.25, 0.5), 0.25
+        mlab.triangular_mesh(meg_rrs[:, 0], meg_rrs[:, 1], meg_rrs[:, 2],
+                             meg_tris, color=color, opacity=alpha)
     mlab.view(90, 90)
     return fig
+
+
+def _make_tris_fan(n_vert):
+    """Helper to make tris given a number of vertices of a circle-like obj"""
+    tris = np.zeros((n_vert - 2, 3), int)
+    tris[:, 2] = np.arange(2, n_vert)
+    tris[:, 1] = tris[:, 2] - 1
+    return tris
+
+
+def _sensor_shape(coil):
+    """Get the sensor shape vertices"""
+    rrs = np.empty([0, 2])
+    tris = np.empty([0, 3], int)
+    id_ = coil['type'] & 0xFFFF
+    if id_ in (2, 3012, 3013, 3011):
+        # square figure eight
+        # wound by right hand rule such that +x side is "up" (+z)
+        long_side = coil['size']  # length of long side (meters)
+        offset = 0.0025  # offset of the center portion of planar grad coil
+        rrs = np.array([
+            [offset, -long_side / 2.],
+            [long_side / 2., -long_side / 2.],
+            [long_side / 2., long_side / 2.],
+            [offset, long_side / 2.],
+            [-offset, -long_side / 2.],
+            [-long_side / 2., -long_side / 2.],
+            [-long_side / 2., long_side / 2.],
+            [-offset, long_side / 2.]])
+        tris = np.concatenate((_make_tris_fan(4),
+                               _make_tris_fan(4) + 4), axis=0)
+    elif id_ in (2000, 3022, 3023, 3024):
+        # square magnetometer (potentially point-type)
+        size = 0.001 if id_ == 2000 else (coil['size'] / 2.)
+        rrs = np.array([[-1., 1.], [1., 1.], [1., -1.], [-1., -1.]]) * size
+        tris = _make_tris_fan(4)
+    elif id_ in (4001, 4003, 5002, 7002, 7003):
+        # round magnetometer
+        n_pts = 15  # number of points for circle
+        circle = np.exp(2j * np.pi * np.arange(n_pts) / float(n_pts))
+        circle = np.concatenate(([0.], circle))
+        circle *= coil['size'] / 2.  # radius of coil
+        rrs = np.array([circle.real, circle.imag]).T
+        tris = _make_tris_fan(n_pts + 1)
+    elif id_ in (4002, 5001, 5003, 5004, 4004, 4005, 6001, 7001):
+        # round coil 1st order (off-diagonal) gradiometer
+        baseline = coil['base'] if id_ in (5004, 4005) else 0.
+        n_pts = 16  # number of points for circle
+        # This time, go all the way around circle to close it fully
+        circle = np.exp(2j * np.pi * np.arange(-1, n_pts) / float(n_pts - 1))
+        circle[0] = 0  # center pt for triangulation
+        circle *= coil['size'] / 2.
+        rrs = np.array([  # first, second coil
+            np.concatenate([circle.real + baseline / 2.,
+                            circle.real - baseline / 2.]),
+            np.concatenate([circle.imag, -circle.imag])]).T
+        tris = np.concatenate([_make_tris_fan(n_pts + 1),
+                               _make_tris_fan(n_pts + 1) + n_pts + 1])
+    # Go from (x,y) -> (x,y,z)
+    rrs = np.pad(rrs, ((0, 0), (0, 1)), mode='constant')
+    return rrs, tris
 
 
 def _limits_to_control_points(clim, stc_data, colormap):
@@ -481,7 +578,7 @@ def _limits_to_control_points(clim, stc_data, colormap):
     if len(set(ctrl_pts)) != 3:
         if len(set(ctrl_pts)) == 1:  # three points match
             if ctrl_pts[0] == 0:  # all are zero
-                warnings.warn('All data were zero')
+                warn('All data were zero')
                 ctrl_pts = np.arange(3, dtype=float)
             else:
                 ctrl_pts *= [0., 0.5, 1]  # all nonzero pts == max
@@ -829,8 +926,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
                           bgcolor=(1, 1, 1), opacity=0.3,
-                          brain_color=(0.7, 0.7, 0.7), mesh_color=(1, 1, 0),
-                          fig_name=None, fig_size=(600, 600), mode='cone',
+                          brain_color=(1, 1, 0), fig_name=None,
+                          fig_size=(600, 600), mode='cone',
                           scale_factor=0.1e-1, colors=None, verbose=None):
     """Plot dipole locations
 
@@ -855,8 +952,6 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
         Opacity of brain mesh.
     brain_color : tuple of length 3
         Brain color.
-    mesh_color : tuple of length 3
-        Mesh color.
     fig_name : str
         Mayavi figure name.
     fig_size : tuple of length 2
@@ -904,7 +999,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
     with warnings.catch_warnings(record=True):  # FutureWarning in traits
         mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                             faces, color=mesh_color, opacity=opacity)
+                             faces, color=brain_color, opacity=opacity)
 
     for dip, color in zip(dipoles, colors):
         rgb_color = color_converter.to_rgb(color)

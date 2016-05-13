@@ -2,14 +2,12 @@
 # License : BSD 3-clause
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
-from warnings import warn
 
 import numpy as np
 from scipy import fftpack, linalg
-import warnings
 
 from ..parallel import parallel_func
-from ..utils import verbose, sum_squared
+from ..utils import verbose, sum_squared, deprecated, warn
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -147,7 +145,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     uncertainty V: The discrete case. Bell System Technical Journal,
     Volume 57 (1978), 1371430
     """
-    from scipy.interpolate import interp1d
+    from scipy import interpolate
     Kmax = int(Kmax)
     W = float(half_nbw) / N
     nidx = np.arange(N, dtype='d')
@@ -164,9 +162,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         d, e = dpss_windows(interp_from, half_nbw, Kmax, low_bias=False)
         for this_d in d:
             x = np.arange(this_d.shape[-1])
-            I = interp1d(x, this_d, kind=interp_kind)
-            d_temp = I(np.arange(0, this_d.shape[-1] - 1,
-                                 float(this_d.shape[-1] - 1) / N))
+            I = interpolate.interp1d(x, this_d, kind=interp_kind)
+            d_temp = I(np.linspace(0, this_d.shape[-1] - 1, N, endpoint=False))
 
             # Rescale:
             d_temp = d_temp / np.sqrt(sum_squared(d_temp))
@@ -220,9 +217,11 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     for i, f in enumerate(fix_symmetric):
         if f:
             dpss[2 * i] *= -1
-    fix_skew = (dpss[1::2, 1] < 0)
-    for i, f in enumerate(fix_skew):
-        if f:
+    # rather than test the sign of one point, test the sign of the
+    # linear slope up to the first (largest) peak
+    pk = np.argmax(np.abs(dpss[1::2, :N // 2]), axis=1)
+    for i, p in enumerate(pk):
+        if np.sum(dpss[2 * i + 1, :p]) < 0:
             dpss[2 * i + 1] *= -1
 
     # Now find the eigenvalues of the original spectral concentration problem
@@ -242,11 +241,11 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     if low_bias:
         idx = (eigvals > 0.9)
         if not idx.any():
-            warnings.warn('Could not properly use low_bias, '
-                          'keeping lowest-bias taper')
+            warn('Could not properly use low_bias, keeping lowest-bias taper')
             idx = [np.argmax(eigvals)]
         dpss, eigvals = dpss[idx], eigvals[idx]
     assert len(dpss) > 0  # should never happen
+    assert dpss.shape[1] == N  # old nitime bug
     return dpss, eigvals
 
 
@@ -350,8 +349,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
             err = d_k
 
         if n == max_iter - 1:
-            warn('Iterative multi-taper PSD computation did not converge.',
-                 RuntimeWarning)
+            warn('Iterative multi-taper PSD computation did not converge.')
 
         psd[i, :] = psd_iter
 
@@ -380,7 +378,8 @@ def _psd_from_mt(x_mt, weights):
         The computed PSD
     """
     psd = weights * x_mt
-    psd = (psd * psd.conj()).real.sum(axis=-2)
+    psd *= psd.conj()
+    psd = psd.real.sum(axis=-2)
     psd *= 2 / (weights * weights.conj()).real.sum(axis=-2)
     return psd
 
@@ -439,18 +438,130 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     # remove mean (do not use in-place subtraction as it may modify input x)
     x = x - np.mean(x, axis=-1)[:, np.newaxis]
-    x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
 
     # only keep positive frequencies
     freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
     freq_mask = (freqs >= 0)
-
-    x_mt = x_mt[:, :, freq_mask]
     freqs = freqs[freq_mask]
 
+    # The following is equivalent to this, but uses less memory:
+    # x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
+    n_tapers = dpss.shape[0] if dpss.ndim > 1 else 1
+    x_mt = np.zeros((len(x), n_tapers, freq_mask.sum()), dtype=np.complex128)
+    for idx, sig in enumerate(x):
+        x_mt[idx] = fftpack.fft(sig[np.newaxis, :] * dpss,
+                                n=n_fft)[:, freq_mask]
     return x_mt, freqs
 
 
+def _psd_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
+                    adaptive=False, low_bias=True, normalization='length',
+                    n_jobs=1):
+    """Compute power spectrum density (PSD) using a multi-taper method
+
+    Parameters
+    ----------
+    x : array, shape=(..., n_times)
+        The data to compute PSD from.
+    sfreq : float
+        The sampling frequency.
+    fmin : float
+        The lower frequency of interest.
+    fmax : float
+        The upper frequency of interest.
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz.
+    adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth.
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
+    n_jobs : int
+        Number of parallel jobs to use (only used if adaptive=True).
+
+    Returns
+    -------
+    psds : ndarray, shape (..., n_freqs) or
+        The power spectral densities. All dimensions up to the last will
+        be the same as input.
+    freqs : array
+        The frequency points in Hz of the PSD.
+
+    See Also
+    --------
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd
+
+    Notes
+    -----
+    .. versionadded:: 0.12.0
+    """
+    if normalization not in ('length', 'full'):
+        raise ValueError('Normalization must be "length" or "full", not %s'
+                         % normalization)
+
+    # Reshape data so its 2-D for parallelization
+    ndim_in = x.ndim
+    x = np.atleast_2d(x)
+    n_times = x.shape[-1]
+    dshape = x.shape[:-1]
+    x = x.reshape(-1, n_times)
+
+    # compute standardized half-bandwidth
+    if bandwidth is not None:
+        half_nbw = float(bandwidth) * n_times / (2 * sfreq)
+    else:
+        half_nbw = 4
+
+    # Create tapers and compute spectra
+    n_tapers_max = int(2 * half_nbw)
+    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
+                                 low_bias=low_bias)
+
+    # descide which frequencies to keep
+    freqs = fftpack.fftfreq(x.shape[1], 1. / sfreq)
+    freqs = freqs[(freqs >= 0)]  # what we get from _mt_spectra
+    freq_mask = (freqs >= fmin) & (freqs <= fmax)
+    freqs = freqs[freq_mask]
+
+    # combine the tapered spectra
+    if adaptive and len(eigvals) < 3:
+        warn('Not adaptively combining the spectral estimators due to a low '
+             'number of tapers.')
+        adaptive = False
+
+    psd = np.zeros((x.shape[0], freq_mask.sum()))
+    # Let's go in up to 50 MB chunks of signals to save memory
+    n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), n_jobs)
+    offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
+    for start, stop in zip(offsets[:-1], offsets[1:]):
+        x_mt = _mt_spectra(x[start:stop], dpss, sfreq)[0]
+        if not adaptive:
+            weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
+            psd[start:stop] = _psd_from_mt(x_mt[:, :, freq_mask], weights)
+        else:
+            n_splits = min(stop - start, n_jobs)
+            parallel, my_psd_from_mt_adaptive, n_jobs = \
+                parallel_func(_psd_from_mt_adaptive, n_splits)
+            out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
+                           for x in np.array_split(x_mt, n_splits))
+            psd[start:stop] = np.concatenate(out)
+
+    if normalization == 'full':
+        psd /= sfreq
+
+    # Combining/reshaping to original data shape
+    psd.shape = dshape + (-1,)
+    if ndim_in == 1:
+        psd = psd[0]
+    return psd, freqs
+
+
+@deprecated('This will be deprecated in release v0.12, see psd_multitaper.')
 @verbose
 def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
                    adaptive=False, low_bias=True, n_jobs=1,
@@ -493,62 +604,14 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd
+    mne.io.Raw.plot_psd
+    mne.Epochs.plot_psd
 
     Notes
     -----
     .. versionadded:: 0.9.0
     """
-    if normalization not in ('length', 'full'):
-        raise ValueError('Normalization must be "length" or "full", not %s'
-                         % normalization)
-    if x.ndim > 2:
-        raise ValueError('x can only be 1d or 2d')
-
-    x_in = np.atleast_2d(x)
-
-    n_times = x_in.shape[1]
-
-    # compute standardized half-bandwidth
-    if bandwidth is not None:
-        half_nbw = float(bandwidth) * n_times / (2 * sfreq)
-    else:
-        half_nbw = 4
-
-    n_tapers_max = int(2 * half_nbw)
-
-    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                 low_bias=low_bias)
-
-    # compute the tapered spectra
-    x_mt, freqs = _mt_spectra(x_in, dpss, sfreq)
-
-    # descide which frequencies to keep
-    freq_mask = (freqs >= fmin) & (freqs <= fmax)
-
-    # combine the tapered spectra
-    if adaptive and len(eigvals) < 3:
-        warn('Not adaptively combining the spectral estimators '
-             'due to a low number of tapers.')
-        adaptive = False
-
-    if not adaptive:
-        x_mt = x_mt[:, :, freq_mask]
-        weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
-        psd = _psd_from_mt(x_mt, weights)
-    else:
-        parallel, my_psd_from_mt_adaptive, n_jobs = \
-            parallel_func(_psd_from_mt_adaptive, n_jobs)
-        out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
-                       for x in np.array_split(x_mt, n_jobs))
-        psd = np.concatenate(out)
-
-    if x.ndim == 1:
-        # return a 1d array if input was 1d
-        psd = psd[0, :]
-
-    freqs = freqs[freq_mask]
-    if normalization == 'full':
-        psd /= sfreq
-
-    return psd, freqs
+    return _psd_multitaper(x=x, sfreq=sfreq, fmin=fmin, fmax=fmax,
+                           bandwidth=bandwidth, adaptive=adaptive,
+                           low_bias=low_bias,
+                           normalization=normalization, n_jobs=n_jobs)

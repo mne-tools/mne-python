@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.minimum_norm import apply_inverse
 
@@ -40,7 +39,7 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
 label = mne.read_label(fname_label)
-raw = Raw(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # Set up pick list
@@ -74,7 +73,7 @@ stc_evoked_label = stc_evoked.in_label(label)
 # Mean across trials but not across vertices in label
 mean_stc = sum(stcs) / len(stcs)
 
-# compute sign flip to avoid signal cancelation when averaging signed values
+# compute sign flip to avoid signal cancellation when averaging signed values
 flip = mne.label_sign_flip(label, inverse_operator['src'])
 
 label_mean = np.mean(mean_stc.data, axis=0)

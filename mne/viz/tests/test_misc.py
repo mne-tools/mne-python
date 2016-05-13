@@ -41,7 +41,7 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 
 def _get_raw():
-    return io.Raw(raw_fname, preload=True)
+    return io.read_raw_fif(raw_fname, preload=True)
 
 
 def _get_events():
@@ -53,7 +53,8 @@ def test_plot_cov():
     """
     raw = _get_raw()
     cov = read_cov(cov_fname)
-    fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
+    with warnings.catch_warnings(record=True):  # bad proj
+        fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
 
 
 @testing.requires_testing_data

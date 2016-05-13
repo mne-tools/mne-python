@@ -20,7 +20,6 @@ evoked responses.
 import matplotlib.pyplot as plt
 import mne
 
-from mne.io import Raw
 from mne.viz import plot_evoked_topo
 from mne.datasets import sample
 
@@ -37,7 +36,7 @@ tmin = -0.2
 tmax = 0.5
 
 #   Setup for reading the raw data
-raw = Raw(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)

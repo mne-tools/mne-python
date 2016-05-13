@@ -21,7 +21,8 @@ event_id = dict(cond2=2, cond3=3)
 
 
 def _get_data():
-    raw = io.Raw(raw_fname, add_eeg_ref=False, verbose=False, preload=True)
+    raw = io.read_raw_fif(raw_fname, add_eeg_ref=False, verbose=False,
+                          preload=True)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=False, eeg=True, stim=False,
                        ecg=False, eog=False,

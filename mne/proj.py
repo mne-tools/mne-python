@@ -319,17 +319,18 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     # check forward
     if is_fixed_orient(fwd, orig=True):
         raise ValueError('fwd should must be computed with free orientation')
-    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=False,
-                                   verbose=False)
-    if not fwd['surf_ori'] or is_fixed_orient(fwd):
-        raise RuntimeError('Error converting solution, please notify '
-                           'mne-python developers')
 
-    # limit forward
+    # limit forward (this will make a copy of the data for us)
     if ch_type == 'eeg':
         fwd = pick_types_forward(fwd, meg=False, eeg=True, exclude=exclude)
     else:
         fwd = pick_types_forward(fwd, meg=ch_type, eeg=False, exclude=exclude)
+
+    convert_forward_solution(fwd, surf_ori=True, force_fixed=False,
+                             copy=False, verbose=False)
+    if not fwd['surf_ori'] or is_fixed_orient(fwd):
+        raise RuntimeError('Error converting solution, please notify '
+                           'mne-python developers')
 
     gain = fwd['sol']['data']
 
@@ -342,15 +343,18 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         projs = eeg_ave if projs is None else projs + eeg_ave
 
     # Construct the projector
+    residual_types = ['angle', 'remaining', 'dampening']
     if projs is not None:
         proj, ncomp, U = make_projector(projs, fwd['sol']['row_names'],
                                         include_active=True)
         # do projection for most types
-        if mode not in ['angle', 'remaining', 'dampening']:
+        if mode not in residual_types:
             gain = np.dot(proj, gain)
-
+        elif ncomp == 0:
+            raise RuntimeError('No valid projectors found for channel type '
+                               '%s, cannot compute %s' % (ch_type, mode))
     # can only run the last couple methods if there are projectors
-    elif mode in ['angle', 'remaining', 'dampening']:
+    elif mode in residual_types:
         raise ValueError('No projectors used, cannot compute %s' % mode)
 
     n_sensors, n_dipoles = gain.shape

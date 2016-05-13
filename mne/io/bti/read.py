@@ -2,7 +2,6 @@
 #          simplified BSD-3 license
 
 import numpy as np
-from ...externals.six import b
 
 
 def _unpack_matrix(fid, rows, cols, dtype, out_dtype):
@@ -24,17 +23,6 @@ def _unpack_simple(fid, dtype, out_dtype):
     if len(out) > 0:
         out = out[0]
     return out
-
-
-def read_str(fid, count=1):
-    """ Read string """
-    dtype = np.dtype('>S%i' % count)
-    string = fid.read(dtype.itemsize)
-    data = np.fromstring(string, dtype=dtype)[0]
-    bytestr = b('').join([data[0:data.index(b('\x00')) if
-                          b('\x00') in data else count]])
-
-    return str(bytestr.decode('ascii'))  # Return native str type for Py2/3
 
 
 def read_char(fid, count=1):

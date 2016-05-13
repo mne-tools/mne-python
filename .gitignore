@@ -18,6 +18,7 @@
 *.egg*
 *.tmproj
 *.png
+*.dat
 .DS_Store
 events.eve
 foo-lh.label
@@ -30,11 +31,13 @@ tmp-*.w
 tmtags
 auto_examples
 MNE-eegbci-data*
+MNE-misc-data*
 MNE-sample-data*
 MNE-somato-data*
 MNE-spm-face*
 MNE-testing-data*
 MNE-brainstorm-data*
+MNE-misc-data*
 MEGSIM*
 build
 coverage
@@ -53,3 +56,9 @@ doc/samples
 cover
 
 *.orig
+
+# PyCharm
+.idea/**
+
+# sublime
+*-e

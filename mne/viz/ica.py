@@ -18,8 +18,8 @@ from .utils import (tight_layout, _prepare_trellis, _select_bads,
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from .topomap import _prepare_topo_plot, plot_topomap
-from ..utils import logger
+from .topomap import _prepare_topo_plot, plot_topomap, _hide_frame
+from ..utils import warn
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types
@@ -120,7 +120,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     elif isinstance(inst, Evoked):
         sources = ica.get_sources(inst)
         if start is not None or stop is not None:
-            inst = inst.crop(start, stop, copy=True)
+            inst = inst.copy().crop(start, stop)
         fig = _plot_ica_sources_evoked(
             evoked=sources, picks=picks, exclude=exclude, title=title,
             labels=getattr(ica, 'labels_', None), show=show)
@@ -274,10 +274,10 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
             color = label_colors[key]
             # ... but display component number too
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
-                         zorder=1, color=color, label=exc_label))
+                         zorder=2, color=color, label=exc_label))
         else:
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
-                                 color='k', zorder=0))
+                                 color='k', zorder=1))
 
     ax.set_title(title)
     ax.set_xlim(times[[0, -1]])
@@ -290,7 +290,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     # for old matplotlib, we actually need this to have a bounding
     # box (!), so we have to put some valid text here, change
     # alpha and  path effects later
-    texts.append(ax.text(0, 0, 'blank', zorder=2,
+    texts.append(ax.text(0, 0, 'blank', zorder=3,
                          verticalalignment='baseline',
                          horizontalalignment='left',
                          fontweight='bold', alpha=0))
@@ -336,7 +336,7 @@ def plot_ica_scores(ica, scores,
     labels : str | list | 'ecg' | 'eog' | None
         The labels to consider for the axes tests. Defaults to None.
         If list, should match the outer shape of `scores`.
-        If 'ecg' or 'eog', the labels_ attributes will be looked up.
+        If 'ecg' or 'eog', the ``labels_`` attributes will be looked up.
         Note that '/' is used internally for sublabels specifying ECG and
         EOG channels.
     axhline : float
@@ -473,18 +473,18 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         start_compare, stop_compare = _check_start_stop(inst, start, stop)
         data, times = inst[picks, start_compare:stop_compare]
 
-        raw_cln = ica.apply(inst, exclude=exclude, start=start, stop=stop,
-                            copy=True)
+        raw_cln = ica.apply(inst.copy(), exclude=exclude,
+                            start=start, stop=stop)
         data_cln, _ = raw_cln[picks, start_compare:stop_compare]
         fig = _plot_ica_overlay_raw(data=data, data_cln=data_cln,
                                     times=times * 1e3, title=title,
                                     ch_types_used=ch_types_used, show=show)
     elif isinstance(inst, Evoked):
         if start is not None and stop is not None:
-            inst = inst.crop(start, stop, copy=True)
+            inst = inst.copy().crop(start, stop)
         if picks is not None:
             inst.pick_channels([inst.ch_names[p] for p in picks])
-        evoked_cln = ica.apply(inst, exclude=exclude, copy=True)
+        evoked_cln = ica.apply(inst.copy(), exclude=exclude)
         fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,
                                        title=title, show=show)
 
@@ -804,7 +804,7 @@ def _label_clicked(pos, params):
                                                                     ch_type,
                                                                     None)
         except Exception as exc:
-            logger.warning(exc)
+            warn(exc)
             plt.close(fig)
             return
         this_data = data[:, data_picks]
@@ -814,10 +814,8 @@ def _label_clicked(pos, params):
         for ii, data_ in zip(ic_idx, this_data):
             ax.set_title('IC #%03d ' % ii + ch_type, fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
-            plot_topomap(data_.flatten(), pos, axis=ax, show=False)
-            ax.set_yticks([])
-            ax.set_xticks([])
-            ax.set_frame_on(False)
+            plot_topomap(data_.flatten(), pos, axes=ax, show=False)
+            _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()

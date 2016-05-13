@@ -16,7 +16,6 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.minimum_norm import (apply_inverse, apply_inverse_epochs,
                               read_inverse_operator)
 from mne.connectivity import seed_target_indices, spectral_connectivity
@@ -37,7 +36,7 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
 label_lh = mne.read_label(fname_label_lh)
-raw = Raw(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # Add a bad channel
@@ -95,7 +94,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 # get 2 frequency bins
 coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     stcs, method='coh', mode='fourier', indices=indices,
-    sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, n_jobs=2)
+    sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, n_jobs=1)
 
 print('Frequencies in Hz over which coherence was averaged for alpha: ')
 print(freqs[0])

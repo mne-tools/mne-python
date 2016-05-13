@@ -1,4 +1,4 @@
-.. title:: Home
+.. title:: MNE
 
 .. raw:: html
 
@@ -19,11 +19,12 @@
    <div class="col-md-8">
    <br>
 
-MNE is a community-driven software package designed for for **processing
+MNE is a community-driven software package designed for **processing
 electroencephalography (EEG) and magnetoencephalography (MEG) data**
-providing comprehensive tools and workflows for:
+providing comprehensive tools and workflows for
+(:ref:`among other things <what_can_you_do>`):
 
-1. Preprocessing
+1. Preprocessing and denoising
 2. Source estimation
 3. Time–frequency analysis
 4. Statistical testing
@@ -31,16 +32,16 @@ providing comprehensive tools and workflows for:
 6. Applying machine learning algorithms
 7. Visualization of sensor- and source-space data
 
-MNE includes a comprehensive Python package (provided under the simplified
-BSD license), supplemented by tools compiled from C code for the LINUX and
-Mac OSX operating systems, as well as a MATLAB toolbox.
+MNE includes a comprehensive `Python <https://www.python.org/>`_ package
+supplemented by tools compiled from C code for the LINUX and Mac OSX
+operating systems, as well as a MATLAB toolbox.
 
-**From raw data to source estimates in about 30 lines of code:**
+**From raw data to source estimates in about 30 lines of code** (:ref:`try it yourself! <getting_started>`):
 
 .. code:: python
 
     >>> import mne  # doctest: +SKIP
-    >>> raw = mne.io.Raw('raw.fif', preload=True)  # load data  # doctest: +SKIP
+    >>> raw = mne.io.read_raw_fif('raw.fif', preload=True)  # load data  # doctest: +SKIP
     >>> raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels  # doctest: +SKIP
     >>> raw.filter(l_freq=None, h_freq=40.0)  # low-pass filter data  # doctest: +SKIP
     >>> # Extract epochs and save them:
@@ -67,13 +68,20 @@ Mac OSX operating systems, as well as a MATLAB toolbox.
     >>> stc_avg = mne.morph_data('sample', 'fsaverage', stc, 5, smooth=5)  # doctest: +SKIP
     >>> stc_avg.plot()  # doctest: +SKIP
 
-The MNE development is supported by National Institute of Biomedical Imaging and Bioengineering
-grants 5R01EB009048 and P41EB015896 (Center for Functional Neuroimaging Technologies) as well as
-NSF awards 0958669 and 1042134. It has been supported by the
-NCRR *Center for Functional Neuroimaging Technologies* P41RR14075-06, the
-NIH grants 1R01EB009048-01, R01 EB006385-A101, 1R01 HD40712-A1, 1R01
-NS44319-01, and 2R01 NS37462-05, ell as by Department of Energy
-under Award Number DE-FG02-99ER62764 to The MIND Institute.
+MNE development is driven by :ref:`extensive contributions from the community <whats_new>`.
+Direct financial support for the project has been provided by:
+
+- (US) National Institute of Biomedical Imaging and Bioengineering (NIBIB)
+  grants 5R01EB009048 and P41EB015896 (Center for Functional Neuroimaging
+  Technologies)
+- (US) NSF awards 0958669 and 1042134.
+- (US) NCRR *Center for Functional Neuroimaging Technologies* P41RR14075-06
+- (US) NIH grants 1R01EB009048-01, R01 EB006385-A101, 1R01 HD40712-A1, 1R01
+  NS44319-01, and 2R01 NS37462-05
+- (US) Department of Energy Award Number DE-FG02-99ER62764 to The MIND
+  Institute.
+- (FR) IDEX Paris-Saclay, ANR-11-IDEX-0003-02, via the
+  `Center for Data Science <http://www.datascience-paris-saclay.fr/>`_.
 
 .. raw:: html
 
@@ -92,32 +100,34 @@ under Award Number DE-FG02-99ER62764 to The MIND Institute.
    :maxdepth: 1
 
    getting_started
-   whats_new
-   cite
-   references
    tutorials
    auto_examples/index
-   manual/index
-   python_reference
-   generated/commands
    faq
-   advanced_setup
-   mne_cpp
+   contributing
+
+.. toctree::
+   :maxdepth: 1
+
+   python_reference
+   manual/index
+   whats_new
+
+.. toctree::
+   :maxdepth: 1
+
+   cite
+   references
+   cited
 
 .. raw:: html
 
    <h2>Community</h2>
 
-* | Analysis talk: join the
-  | `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
+* `Analysis talk: join the MNE mailing list <MNE mailing list>`_
 
-* | Feature requests and bug reports:
-  | `GitHub issues <https://github.com/mne-tools/mne-python/issues/>`_
+* `Feature requests and bug reports on GitHub <https://github.com/mne-tools/mne-python/issues/>`_
 
-* | Chat with developers:
-  | `Gitter <https://gitter.im/mne-tools/mne-python>`_
-
-* :ref:`Contribute to MNE! <contributing>`
+* `Chat with developers on Gitter <https://gitter.im/mne-tools/mne-python>`_
 
 .. raw:: html
 

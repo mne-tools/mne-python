@@ -3,17 +3,14 @@
 Regression on continuous data (rER[P/F])
 ========================================
 
-This demonstrates how rERPs/regressing the continuous data is a
+This demonstrates how rER[P/F]s - regressing the continuous data - is a
 generalisation of traditional averaging. If all preprocessing steps
-are the same and if no overlap between epochs exists and if all
+are the same, no overlap between epochs exists, and if all
 predictors are binary, regression is virtually identical to traditional
 averaging.
 If overlap exists and/or predictors are continuous, traditional averaging
-is inapplicable, but regression can estimate, including those of
+is inapplicable, but regression can estimate effects, including those of
 continuous predictors.
-
-Note. This example is based on new code which may still not be
-memory-optimized. Be careful when working with a small computer.
 
 rERPs are described in:
 Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
@@ -27,41 +24,39 @@ considerations. Psychophysiology, 52(2), 169-189.
 import matplotlib.pyplot as plt
 
 import mne
-from mne.datasets import spm_face
+from mne.datasets import sample
 from mne.stats.regression import linear_regression_raw
 
-# Preprocess data
-data_path = spm_face.data_path()
-# Load and filter data, set up epochs
-raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw.fif'
+# Load and preprocess data
+data_path = sample.data_path()
+raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+raw = mne.io.read_raw_fif(raw_fname, preload=True).pick_types(
+    meg='grad', stim=True, eeg=False).filter(1, None, method='iir')
 
-raw = mne.io.Raw(raw_fname, preload=True)  # Take first run
-
-picks = mne.pick_types(raw.info, meg=True, exclude='bads')
-raw.filter(1, 45, method='iir')
-
-events = mne.find_events(raw, stim_channel='UPPT001')
-event_id = dict(faces=1, scrambled=2)
+# Set up events
+events = mne.find_events(raw)
+event_id = {'Aud/L': 1, 'Aud/R': 2}
 tmin, tmax = -.1, .5
 
-raw.pick_types(meg=True)
-
 # regular epoching
+picks = mne.pick_types(raw.info, meg=True)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=None,
-                    baseline=None, preload=True, verbose=False, decim=4)
+                    baseline=None, preload=True, verbose=False)
 
 # rERF
 evokeds = linear_regression_raw(raw, events=events, event_id=event_id,
-                                reject=None, tmin=tmin, tmax=tmax,
-                                decim=4)
+                                reject=None, tmin=tmin, tmax=tmax)
 # linear_regression_raw returns a dict of evokeds
 # select conditions similarly to mne.Epochs objects
 
-# plot both results
-cond = "faces"
-fig, (ax1, ax2) = plt.subplots(1, 2)
-epochs[cond].average().plot(axes=ax1, show=False)
-evokeds[cond].plot(axes=ax2, show=False)
+# plot both results, and their difference
+cond = "Aud/L"
+fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
+params = dict(spatial_colors=True, show=False, ylim=dict(grad=(-200, 200)))
+epochs[cond].average().plot(axes=ax1, **params)
+evokeds[cond].plot(axes=ax2, **params)
+(evokeds[cond] - epochs[cond].average()).plot(axes=ax3, **params)
 ax1.set_title("Traditional averaging")
 ax2.set_title("rERF")
+ax3.set_title("Difference")
 plt.show()
