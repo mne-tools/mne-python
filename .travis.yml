@@ -129,12 +129,14 @@ install:
         ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg;
         ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc;
         cd ${MNE_DIR}/../;
+        COVERAGE=;
       else
         cd ${SRC_DIR};
+        COVERAGE=--with-coverage;
       fi;
 
 script:
-    - nosetests -a '!ultra_slow_test' --with-timer --timer-top-n 30 --verbosity=2 --with-coverage
+    - nosetests -a '!ultra_slow_test' --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE
     - if [ "${DEPS}" == "nodata" ]; then
         make flake;
       fi;
