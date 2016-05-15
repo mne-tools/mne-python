@@ -245,6 +245,142 @@ class EpochsVectorizer(TransformerMixin):
         return X.reshape(-1, self.n_channels, self.n_times)
 
 
+class Vectorizer(TransformerMixin):
+    """Vectorizer transforms different object data to fit into a scikit-learn
+       pipeline.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info.
+
+    Attributes
+    ----------
+    n_channels : int
+        The number of channels.
+    n_times : int
+        The number of time points.
+
+    """
+    def __init__(self, info=None):
+        self.info = info
+        self.n_channels = None
+        self.n_times = None
+        self.two_d = False
+        self.three_d = False
+        self.four_d = False
+
+    def fit(self, data, y=None):
+        """Concatenate data from different channels into a single
+        feature vector.
+
+        Parameters
+        ----------
+        data : array, shape (n_channels, n_channels, n_times)
+            The data to concatenate channels.
+        y : array, shape (n_epochs,)
+            The label for each data vector.
+
+        Returns
+        -------
+        self : instance of Vectorizer
+            returns the modified instance
+        """
+        if not isinstance(data, np.ndarray):
+            raise ValueError("data should be of type ndarray (got %s)."
+                             % type(data))
+
+        if data.ndim == 2:
+            self.two_d = True
+
+        elif data.ndim == 3:
+            self.three_d = True
+            # For epochs or PyRiemann Covariance
+            self.n_samples, self.n_channels, self.n_third = data.shape
+
+        elif data.ndim == 4:
+            self.four_d = True
+            # for TimeFrequency
+            self.n_samples, self.n_channels, self.n_freq,
+            self.n_time = data.shape
+
+        else:
+            raise ValueError("Got unexpected data of %s dimension."
+                             % data.ndim)
+
+        return self
+
+    def transform(self, data, y=None):
+        """Concatenate data from different channels into a single
+        feature vector.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_channels) or
+                      (n_samples, n_channels, n_freq) or
+                      (n_samples, n_channels, n_freq, n_time)
+        y : None | array, shape (n_vector,)
+            The label for each vector.
+            If None not used. Defaults to None.
+
+        Returns
+        -------
+        X : array, shape (n_samples, n_channels) or
+                         (n_samples, n_channels * n_freq) or
+                         (n_samples, n_channels * n_freq * n_time)
+        """
+        if not isinstance(data, np.ndarray):
+            raise ValueError("data should be of type ndarray (got %s)."
+                             % type(data))
+
+        if self.two_d:
+            X = data
+
+        elif self.three_d:
+            X = data.reshape(self.n_samples, self.n_channels * self.n_third)
+
+        elif self.four_d:
+            X = data.reshape(self.n_samples, n_channels * self.n_freq *
+                             self.n_time)
+
+        return X
+
+    def inverse_transform(self, X, y=None):
+        """For each vector, reshape a feature vector into the original data shape
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels * n_times)
+            The feature vector concatenated over channels
+        y : None | array, shape (n_epochs,)
+            The label for each epoch.
+            If None not used. Defaults to None.
+
+        Returns
+        -------
+        data : array, shape (n_epochs, n_channels, n_times)
+            The original data
+        """
+        if not isinstance(X, np.ndarray):
+            raise ValueError("data should be of type ndarray (got %s)."
+                             % type(X))
+
+        if self.two_d:
+            data = X
+
+        elif self.three_d:
+            data = X.reshape(-1, self.n_channels, self.n_times)
+
+        elif self.four_d:
+            data = X.reshape(-1, self.n_channels, self.n_freq, self.n_time)
+
+        else:
+            raise ValueError("Please make sure to pass original object's "
+                             "data in fit method first")
+
+        return data
+
+
 class PSDEstimator(TransformerMixin):
     """Compute power spectrum density (PSD) using a multi-taper method
 
