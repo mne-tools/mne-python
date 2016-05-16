@@ -717,6 +717,7 @@ def _decimate_surface(points, triangles, reduction):
         os.environ['ETS_TOOLKIT'] = 'null'
     try:
         from tvtk.api import tvtk
+        from tvtk.common import configure_input
     except ImportError:
         raise ValueError('This function requires the TVTK package to be '
                          'installed')
@@ -724,7 +725,8 @@ def _decimate_surface(points, triangles, reduction):
         raise ValueError('The triangles refer to undefined points. '
                          'Please check your mesh.')
     src = tvtk.PolyData(points=points, polys=triangles)
-    decimate = tvtk.QuadricDecimation(input=src, target_reduction=reduction)
+    decimate = tvtk.QuadricDecimation(target_reduction=reduction)
+    configure_input(decimate, src)
     decimate.update()
     out = decimate.output
     tris = out.polys.to_array()
