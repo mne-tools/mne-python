@@ -124,7 +124,7 @@ def test_average_movements():
                       ev, evoked_std, 1., 1.)
     meg_picks = pick_types(evoked_std.info, meg=True, exclude=())
     assert_allclose(evoked_move_non.data[meg_picks],
-                    evoked_move_all.data[meg_picks])
+                    evoked_move_all.data[meg_picks], atol=1e-20)
     # compare to averaged movecomp version (should be fairly similar)
     raw_sss = Raw(fname_raw_movecomp_sss).crop(*crop, copy=False).load_data()
     raw_sss.filter(None, 20, method='iir')
@@ -153,7 +153,8 @@ def test_average_movements():
                   destination['trans'])
     evoked_miss = average_movements(epochs, head_pos=head_pos[2:],
                                     origin=origin, destination=destination)
-    assert_allclose(evoked_miss.data, evoked_move_all.data)
+    assert_allclose(evoked_miss.data, evoked_move_all.data,
+                    atol=1e-20)
     assert_allclose(evoked_miss.info['dev_head_t']['trans'],
                     destination['trans'])
 
