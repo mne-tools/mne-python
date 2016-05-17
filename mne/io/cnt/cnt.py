@@ -143,7 +143,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, n_bytes, date_format):
                     date[0], date[1] = date[1], date[0]
                 else:
                     raise ValueError("Only date formats 'mm/dd/yy' and "
-                                     "'dd/mm/yy' supported")
+                        "'dd/mm/yy' supported. Got '%s'." % date_format)
                 # Assuming mm/dd/yy
                 date = datetime.datetime(int(date[2]), int(date[0]),
                                          int(date[1]), int(time[0]),
