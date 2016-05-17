@@ -241,13 +241,14 @@ _orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
 _fmt_dict = dict(INT_16='short', INT_32='int', IEEE_FLOAT_32='single')
 _fmt_byte_dict = dict(short=2, int=4, single=4)
 _fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
-_unit_dict = {'V': 1.,
+
+_unit_dict = {'V': 1.,  # V stands for Volt
               u'µV': 1e-6,
               'uV': 1e-6,
-              'C': 1,
-              u'µS': 1e-6,
+              'C': 1,  # C stands for celsius
+              u'µS': 1e-6,  # S stands for Siemens
               u'uS': 1e-6,
-              u'ARU': 1,
+              u'ARU': 1,  # ARU is the unity for the breathing data
               'S': 1}
 
 
