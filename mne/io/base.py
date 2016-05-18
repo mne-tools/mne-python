@@ -665,9 +665,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._data[sel, start:stop] = value
 
     def anonymize(self):
-        """Anonymize data
+        """Anonymize data.
 
-        This function will remove ``raw.info['subject_info']`` if it exists.
+        This function will remove 'subject_info', 'meas_date', 'file_id',
+        'meas_id' if they exist in ``raw.info``.
 
         Returns
         -------
