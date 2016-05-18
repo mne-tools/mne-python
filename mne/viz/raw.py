@@ -26,7 +26,6 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _setup_browser_offsets, _compute_scalings)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
-from ..selection import read_selection
 
 
 def _plot_update_raw_proj(params, bools):
@@ -846,6 +845,7 @@ def _setup_browser_selection(raw):
     """Helper for organizing browser selections."""
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons
+    from ..selection import read_selection
     keys = ['Vertex', 'Left-temporal', 'Right-temporal', 'Left-parietal',
             'Right-parietal', 'Left-occipital', 'Right-occipital',
             'Left-frontal', 'Right-frontal']

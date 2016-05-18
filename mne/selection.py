@@ -6,8 +6,10 @@
 
 from os import path
 
+import numpy as np
+
 from .io.meas_info import Info
-from . import pick_types
+from .io.pick import _pick_data_channels, pick_types
 from .utils import logger, verbose
 
 
@@ -114,3 +116,34 @@ def read_selection(name, fname=None, info=None, verbose=None):
     if spacing == 'new':  # "new" or "old" by now, "old" is default
         sel = [s.replace('MEG ', 'MEG') for s in sel]
     return sel
+
+
+def _divide_to_regions(raw):
+    """Divides channels to regions by positions."""
+    picks = _pick_data_channels(raw.info, exclude=[])
+    frontal = list()
+    occipital = list()
+    lt = list()
+    rt = list()
+    chs_in_lobe = len(picks) // 5
+    x, y, z = np.array([ch['loc'][:3] for ch in raw.info['chs']]).T
+
+    for ch in range(chs_in_lobe):
+        pick = np.argmax(x[picks])
+        rt.append(picks[pick])
+        picks = np.delete(picks, pick)
+
+        pick = np.argmin(x[picks])
+        lt.append(picks[pick])
+        picks = np.delete(picks, pick)
+
+        pick = np.argmax(y[picks])
+        frontal.append(picks[pick])
+        picks = np.delete(picks, pick)
+
+        pick = np.argmin(y[picks])
+        occipital.append(picks[pick])
+        picks = np.delete(picks, pick)
+    parietal = picks
+    return {'Frontal':frontal, 'Parietal':parietal, 'Occipital':occipital,
+            'Left temporal':lt, 'Right temporal':rt}
