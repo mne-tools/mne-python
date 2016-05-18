@@ -14,7 +14,7 @@ import numpy as np
 
 from ..externals.six import string_types
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS)
+                       _PICK_TYPES_KEYS, pick_channels)
 from ..io.proj import setup_proj
 from ..utils import verbose, get_config
 from ..time_frequency import psd_welch
@@ -26,6 +26,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _setup_browser_offsets, _compute_scalings)
 from ..defaults import _handle_default
 from ..annotations import _onset_to_seconds
+from ..selection import read_selection
 
 
 def _plot_update_raw_proj(params, bools):
@@ -261,6 +262,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if isinstance(order, str):
         if order == 'original':
             inds = inds[reord]
+        elif order == 'selection':
+            selections, fig_selection = _setup_browser_selection(raw)
         elif order != 'type':
             raise ValueError('Unknown order type %s' % order)
     elif isinstance(order, np.ndarray):
@@ -288,7 +291,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
-                  n_times=n_times, event_times=event_times,
+                  n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None)
 
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
@@ -298,9 +301,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     event_lines = [params['ax'].plot([np.nan], color=event_color[ev_num])[0]
                    for ev_num in sorted(event_color.keys())]
 
-    params['plot_fun'] = partial(_plot_raw_traces, params=params, inds=inds,
-                                 color=color, bad_color=bad_color,
-                                 event_lines=event_lines,
+    params['plot_fun'] = partial(_plot_raw_traces, params=params, color=color,
+                                 bad_color=bad_color, event_lines=event_lines,
                                  event_color=event_color)
 
     if raw.annotations is not None:
@@ -332,6 +334,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
+    params['radio_clicked'] = partial(_radio_clicked, params=params)
     params['scale_factor'] = 1.0
     # set up callbacks
     opt_button = None
@@ -349,6 +352,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_raw_resize, params=params)
     params['fig'].canvas.mpl_connect('resize_event', callback_resize)
+    if order == 'selection':
+        params['selections'] = selections
+        fig_selection.radio.on_clicked(params['radio_clicked'])
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -365,6 +371,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     callback_proj('none')
     _layout_figure(params)
 
+    if order == 'selection':
+        params['ax_vscroll'].set_visible(False)
+        params['fig_selection'] = fig_selection
+        params['fig'].fig_selection = fig_selection
+        _radio_clicked('Vertex', params)  # Initialize to vertex view.
     # deal with projectors
     if show_options is True:
         _toggle_options(None, params)
@@ -624,11 +635,12 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                                                     zorder=2)[0]
 
 
-def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
+def _plot_raw_traces(params, color, bad_color, event_lines=None,
                      event_color=None):
     """Helper for plotting raw"""
     lines = params['lines']
     info = params['info']
+    inds = params['inds']
     n_channels = params['n_channels']
     params['bad_color'] = bad_color
     labels = params['ax'].yaxis.get_ticklabels()
@@ -815,3 +827,38 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     except TypeError:  # not all versions have this
         plt_show(show)
     return fig
+
+
+def _radio_clicked(label, params):
+    """Callback for selection radio buttons."""
+    channels = params['selections'][label]
+    n_channels = len(channels)
+    params['n_channels'] = n_channels
+    params['inds'] = channels
+    for line in params['lines'][n_channels:]:  # To remove lines from view.
+        line.set_xdata([])
+        line.set_ydata([])
+    _setup_browser_offsets(params, n_channels)
+    params['plot_fun']()
+
+
+def _setup_browser_selection(raw):
+    """Helper for organizing browser selections."""
+    import matplotlib.pyplot as plt
+    from matplotlib.widgets import RadioButtons
+    keys = ['Vertex', 'Left-temporal', 'Right-temporal', 'Left-parietal',
+            'Right-parietal', 'Left-occipital', 'Right-occipital',
+            'Left-frontal', 'Right-frontal']
+    order = dict()
+    for key in keys:
+        channels = read_selection(key, info=raw.info)
+        if ' ' in channels[0]:
+            channels.append('STI 014')
+        else:
+            channels.append('STI014')
+        order[key] = pick_channels(raw.ch_names, channels)
+    fig_selection = figure_nobar(figsize=(4, 10), dpi=80)
+    fig_selection.canvas.set_window_title('Selection')
+    rax = plt.axes()
+    fig_selection.radio = RadioButtons(rax, keys)
+    return order, fig_selection

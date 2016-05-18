@@ -509,6 +509,8 @@ def _helper_raw_resize(event, params):
 
 def _plot_raw_onscroll(event, params, len_channels=None):
     """Interpret scroll events"""
+    if 'fig_selection' in params:  # Not supported in selection mode.
+        return
     if len_channels is None:
         len_channels = len(params['info']['ch_names'])
     orig_start = params['ch_start']
@@ -548,10 +550,10 @@ def _plot_raw_onkey(event, params):
     import matplotlib.pyplot as plt
     if event.key == 'escape':
         plt.close(params['fig'])
-    elif event.key == 'down':
+    elif event.key == 'down' and 'fig_selection' not in params.keys():
         params['ch_start'] += params['n_channels']
         _channels_changed(params, len(params['info']['ch_names']))
-    elif event.key == 'up':
+    elif event.key == 'up' and 'fig_selection' not in params.keys():
         params['ch_start'] -= params['n_channels']
         _channels_changed(params, len(params['info']['ch_names']))
     elif event.key == 'right':
@@ -570,11 +572,11 @@ def _plot_raw_onkey(event, params):
     elif event.key == '-':
         params['scale_factor'] /= 1.1
         params['plot_fun']()
-    elif event.key == 'pageup':
+    elif event.key == 'pageup' and 'fig_selection' not in params:
         n_channels = params['n_channels'] + 1
         _setup_browser_offsets(params, n_channels)
         _channels_changed(params, len(params['info']['ch_names']))
-    elif event.key == 'pagedown':
+    elif event.key == 'pagedown' and 'fig_selection' not in params:
         n_channels = params['n_channels'] - 1
         if n_channels == 0:
             return
@@ -620,7 +622,8 @@ def _mouse_click(event, params):
             return
         params['label_click_fun'](pos)
     # vertical scrollbar changed
-    if event.inaxes == params['ax_vscroll']:
+    if (event.inaxes == params['ax_vscroll'] and
+            'fig_selection' not in params.keys()):
         ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
         if params['ch_start'] != ch_start:
             params['ch_start'] = ch_start
