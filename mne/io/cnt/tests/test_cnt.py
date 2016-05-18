@@ -26,7 +26,8 @@ def test_data():
     with warnings.catch_warnings(record=True) as w:
         raw = _test_raw_reader(read_raw_cnt, montage=None, input_fname=fname,
                                eog='auto', misc=['NA1', 'LEFT_EAR'])
-    assert_true(all('meas date' in str(ww.message) for ww in w))
+    assert_true(all('meas date' in str(ww.message) or
+                    'number of bytes' in str(ww.message) for ww in w))
     eog_chs = mne.pick_types(raw.info, eog=True, exclude=[])
     assert_equal(len(eog_chs), 2)  # test eog='auto'
     assert_equal(raw.info['bads'], ['LEFT_EAR', 'VEOGR'])  # test bads

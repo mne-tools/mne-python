@@ -20,7 +20,7 @@ from ..utils import read_str
 
 
 def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
-                 n_bytes=2, date_format='mm/dd/yy', preload=False,
+                 n_bytes=None, date_format='mm/dd/yy', preload=False,
                  verbose=None):
     """Read CNT data as raw object.
 
@@ -64,7 +64,7 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
     n_bytes : int | None
         Defines the number of bytes the data is read in (should be 2 for int16
         and 4 for int32). If None, it is determined from the file header using
-        ``numsamples`` field. Defaults to 2.
+        ``numsamples`` field. Defaults to None.
     date_format : str
         Format of date in the header. Currently supports 'mm/dd/yy' (default)
         and 'dd/mm/yy'.
@@ -183,12 +183,18 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, n_bytes, date_format):
         cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
                                                      count=1)[0]
 
+        data_size = event_offset - (900 + 75 * n_channels)
         if n_bytes is None:
-            n_bytes = (event_offset -
-                       (900 + 75 * n_channels)) // (n_samples * n_channels)
+            if (n_samples == 0 or
+                    data_size // (n_samples * n_channels) % n_samples != 0):
+                warn('Could not define the number of bytes automatically. '
+                     'Defaulting to 2.')
+                n_bytes = 2
+                n_samples = data_size // (n_bytes * n_channels)
+            else:
+                n_bytes = data_size // (n_samples * n_channels)
         else:
-            n_samples = (event_offset -
-                         (900 + 75 * n_channels)) // (n_bytes * n_channels)
+            n_samples = data_size // (n_bytes * n_channels)
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
         if cnt_info['channel_offset'] > 1:
@@ -323,7 +329,7 @@ class RawCNT(_BaseRaw):
     n_bytes : int | None
         Defines the number of bytes the data is read in (should be 2 for int16
         and 4 for int32). If None, it is determined from the file header using
-        ``numsamples`` field. Defaults to 2.
+        ``numsamples`` field. Defaults to None.
     date_format : str
         Format of date in the header. Currently supports 'mm/dd/yy' (default)
         and 'dd/mm/yy'.
@@ -341,7 +347,7 @@ class RawCNT(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     def __init__(self, input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
-                 n_bytes=2, date_format='mm/dd/yy', preload=False,
+                 n_bytes=None, date_format='mm/dd/yy', preload=False,
                  verbose=None):
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
