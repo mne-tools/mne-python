@@ -50,24 +50,25 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
         EOG channels. If 'header', VEOG and HEOG channels assigned in the file
         header are used. If 'auto', channel names containing 'EOG' are used.
         Defaults to empty tuple.
-    misc : list or tuple
+    misc : list | tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    ecg : list or tuple | 'auto'
+    ecg : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         ECG channels. If 'auto', the channel names containing 'ECG' are used.
         Defaults to empty tuple.
-    emg : list or tuple
+    emg : list | tuple
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names containing 'EMG' are used.
         Defaults to empty tuple.
-    n_bytes : int
+    n_bytes : int | None
         Defines the number of bytes the data is read in (should be 2 for int16
-        and 4 for int32). Defaults to 2.
+        and 4 for int32). If None, it is determined from the file header using
+        ``numsamples`` field. Defaults to 2.
     date_format : str
         Format of date in the header. Currently supports 'mm/dd/yy' (default)
         and 'dd/mm/yy'.
-    preload : bool or str (default False)
+    preload : bool | str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
@@ -143,7 +144,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, n_bytes, date_format):
                     date[0], date[1] = date[1], date[0]
                 else:
                     raise ValueError("Only date formats 'mm/dd/yy' and "
-                        "'dd/mm/yy' supported. Got '%s'." % date_format)
+                                     "'dd/mm/yy' supported. "
+                                     "Got '%s'." % date_format)
                 # Assuming mm/dd/yy
                 date = datetime.datetime(int(date[2]), int(date[0]),
                                          int(date[1]), int(time[0]),
@@ -169,8 +171,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, n_bytes, date_format):
 
         # Header has a field for number of samples, but it does not seem to be
         # too reliable. That's why we have option for setting n_bytes manually.
-        # fid.seek(864)
-        # n_samples = np.fromfile(fid, dtype='<i4', count=1)[0]
+        fid.seek(864)
+        n_samples = np.fromfile(fid, dtype='<i4', count=1)[0]
         fid.seek(869)
         lowcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
         fid.seek(2, 1)
@@ -181,8 +183,12 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, n_bytes, date_format):
         cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
                                                      count=1)[0]
 
-        n_samples = (event_offset - (900 + 75 * n_channels)) // (n_bytes *
-                                                                 n_channels)
+        if n_bytes is None:
+            n_bytes = (event_offset -
+                       (900 + 75 * n_channels)) // (n_samples * n_channels)
+        else:
+            n_samples = (event_offset -
+                         (900 + 75 * n_channels)) // (n_bytes * n_channels)
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
         if cnt_info['channel_offset'] > 1:
@@ -303,24 +309,25 @@ class RawCNT(_BaseRaw):
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
         ``EOG`` are used. Defaults to empty tuple.
-    misc : list or tuple
+    misc : list | tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    ecg : list or tuple
+    ecg : list | tuple
         Names of channels or list of indices that should be designated
         ECG channels. If 'auto', the channel names beginning with
         ``ECG`` are used. Defaults to empty tuple.
-    emg : list or tuple
+    emg : list | tuple
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names beginning with
         ``EMG`` are used. Defaults to empty tuple.
-    n_bytes : int
+    n_bytes : int | None
         Defines the number of bytes the data is read in (should be 2 for int16
-        and 4 for int32). Defaults to 2.
+        and 4 for int32). If None, it is determined from the file header using
+        ``numsamples`` field. Defaults to 2.
     date_format : str
         Format of date in the header. Currently supports 'mm/dd/yy' (default)
         and 'dd/mm/yy'.
-    preload : bool or str (default False)
+    preload : bool | str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
