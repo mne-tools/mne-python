@@ -276,10 +276,12 @@ class Vectorizer(TransformerMixin):
 
         Parameters
         ----------
-        data : array, shape (n_channels, n_channels, n_times)
-            The data to concatenate channels.
-        y : array, shape (n_epochs,)
-            The label for each data vector.
+        data : array, shape (n_samples, n_channels) or
+                      (n_samples, n_channels, n_freq) or
+                      (n_samples, n_channels, n_freq, n_time)
+        y : None | array, shape (n_samples,)
+            The label for each vector.
+            If None not used. Defaults to None.
 
         Returns
         -------
@@ -296,13 +298,13 @@ class Vectorizer(TransformerMixin):
         elif data.ndim == 3:
             self.three_d = True
             # For epochs or PyRiemann Covariance
-            self.n_samples, self.n_channels, self.n_third = data.shape
+            self.n_samples, self.n_channels, self.n_times = data.shape
 
         elif data.ndim == 4:
             self.four_d = True
             # for TimeFrequency
-            self.n_samples, self.n_channels, self.n_freq,
-            self.n_time = data.shape
+            self.n_samples, self.n_channels, self.n_freqs,
+            self.n_times = data.shape
 
         else:
             raise ValueError("Got unexpected data of %s dimension."
@@ -316,18 +318,18 @@ class Vectorizer(TransformerMixin):
 
         Parameters
         ----------
-        X : array, shape (n_samples, n_channels) or
+        data : array, shape (n_samples, n_channels) or
                       (n_samples, n_channels, n_freq) or
                       (n_samples, n_channels, n_freq, n_time)
-        y : None | array, shape (n_vector,)
+        y : None | array, shape (n_samples,)
             The label for each vector.
             If None not used. Defaults to None.
 
         Returns
         -------
         X : array, shape (n_samples, n_channels) or
-                         (n_samples, n_channels * n_freq) or
-                         (n_samples, n_channels * n_freq * n_time)
+                   (n_samples, n_channels * n_freq) or
+                   (n_samples, n_channels * n_freq * n_time)
         """
         if not isinstance(data, np.ndarray):
             raise ValueError("data should be of type ndarray (got %s)."
@@ -337,11 +339,11 @@ class Vectorizer(TransformerMixin):
             X = data
 
         elif self.three_d:
-            X = data.reshape(self.n_samples, self.n_channels * self.n_third)
+            X = data.reshape(self.n_samples, self.n_channels * self.n_times)
 
         elif self.four_d:
-            X = data.reshape(self.n_samples, n_channels * self.n_freq *
-                             self.n_time)
+            X = data.reshape(self.n_samples, n_channels * self.n_freqs *
+                             self.n_times)
 
         return X
 
@@ -350,16 +352,17 @@ class Vectorizer(TransformerMixin):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels * n_times)
+        X : array, shape (n_samples, n_channels * n_times)
             The feature vector concatenated over channels
-        y : None | array, shape (n_epochs,)
+        y : None | array, shape (n_samples,)
             The label for each epoch.
             If None not used. Defaults to None.
 
         Returns
         -------
-        data : array, shape (n_epochs, n_channels, n_times)
-            The original data
+        data : array, shape (n_samples, n_channels) or
+                      (n_samples, n_channels, n_freq) or
+                      (n_samples, n_channels, n_freq, n_time)
         """
         if not isinstance(X, np.ndarray):
             raise ValueError("data should be of type ndarray (got %s)."
@@ -372,7 +375,7 @@ class Vectorizer(TransformerMixin):
             data = X.reshape(-1, self.n_channels, self.n_times)
 
         elif self.four_d:
-            data = X.reshape(-1, self.n_channels, self.n_freq, self.n_time)
+            data = X.reshape(-1, self.n_channels, self.n_freqs, self.n_times)
 
         else:
             raise ValueError("Please make sure to pass original object's "
