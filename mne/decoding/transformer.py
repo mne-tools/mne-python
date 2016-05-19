@@ -266,9 +266,6 @@ class Vectorizer(TransformerMixin):
         self.info = info
         self.n_channels = None
         self.n_times = None
-        self.two_d = False
-        self.three_d = False
-        self.four_d = False
 
     def fit(self, data, y=None):
         """Concatenate data from different channels into a single
@@ -293,15 +290,15 @@ class Vectorizer(TransformerMixin):
                              % type(data))
 
         if data.ndim == 2:
-            self.two_d = True
+            self.shape = 2
 
         elif data.ndim == 3:
-            self.three_d = True
+            self.shape = 3
             # For epochs or PyRiemann Covariance
             self.n_samples, self.n_channels, self.n_times = data.shape
 
         elif data.ndim == 4:
-            self.four_d = True
+            self.shape = 4
             # for TimeFrequency
             self.n_samples, self.n_channels, self.n_freqs,
             self.n_times = data.shape
@@ -335,14 +332,14 @@ class Vectorizer(TransformerMixin):
             raise ValueError("data should be of type ndarray (got %s)."
                              % type(data))
 
-        if self.two_d:
+        if self.shape == 2:
             X = data
 
-        elif self.three_d:
+        elif self.shape == 3:
             X = data.reshape(self.n_samples, self.n_channels * self.n_times)
 
-        elif self.four_d:
-            X = data.reshape(self.n_samples, n_channels * self.n_freqs *
+        elif self.shape == 4:
+            X = data.reshape(self.n_samples, self.n_channels * self.n_freqs *
                              self.n_times)
 
         return X
@@ -368,13 +365,13 @@ class Vectorizer(TransformerMixin):
             raise ValueError("data should be of type ndarray (got %s)."
                              % type(X))
 
-        if self.two_d:
+        if self.shape == 2:
             data = X
 
-        elif self.three_d:
+        elif self.shape == 3:
             data = X.reshape(-1, self.n_channels, self.n_times)
 
-        elif self.four_d:
+        elif self.shape == 4:
             data = X.reshape(-1, self.n_channels, self.n_freqs, self.n_times)
 
         else:
