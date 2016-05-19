@@ -129,10 +129,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     remove_dc : bool
         If True remove DC component when plotting data.
-    order : 'type' | 'original' | array
+    order : 'type' | 'original' | 'selection' | 'position' | array of int
         Order in which to plot data. 'type' groups by channel type,
-        'original' plots in the order of ch_names, array gives the
-        indices to use in plotting.
+        'original' plots in the order of ch_names, 'selection' uses
+        Elekta's channel groupings (only works for Neuromag data) and
+        'positions' groups the channels by the positions of the sensors.
+        If array, the order is determined by the indices in the array.
+        Defaults to 'type'.
     show_options : bool
         If True, a dialog for options related to projection is shown.
     title : str | None
@@ -261,8 +264,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if isinstance(order, str):
         if order == 'original':
             inds = inds[reord]
-        elif order == 'selection':
-            selections, fig_selection = _setup_browser_selection(raw)
+        elif order in ['selection', 'position']:
+            selections, fig_selection = _setup_browser_selection(raw, order)
         elif order != 'type':
             raise ValueError('Unknown order type %s' % order)
     elif isinstance(order, np.ndarray):
@@ -351,7 +354,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_raw_resize, params=params)
     params['fig'].canvas.mpl_connect('resize_event', callback_resize)
-    if order == 'selection':
+    if order in ['selection', 'position']:
         params['selections'] = selections
         fig_selection.radio.on_clicked(params['radio_clicked'])
 
@@ -370,11 +373,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     callback_proj('none')
     _layout_figure(params)
 
-    if order == 'selection':
+    if order in ['selection', 'position']:
         params['ax_vscroll'].set_visible(False)
         params['fig_selection'] = fig_selection
         params['fig'].fig_selection = fig_selection
-        _radio_clicked('Vertex', params)  # Initialize to vertex view.
+        _radio_clicked(selections.keys()[0], params)
     # deal with projectors
     if show_options is True:
         _toggle_options(None, params)
@@ -841,22 +844,27 @@ def _radio_clicked(label, params):
     params['plot_fun']()
 
 
-def _setup_browser_selection(raw):
+def _setup_browser_selection(raw, kind):
     """Helper for organizing browser selections."""
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons
-    from ..selection import read_selection
-    keys = ['Vertex', 'Left-temporal', 'Right-temporal', 'Left-parietal',
-            'Right-parietal', 'Left-occipital', 'Right-occipital',
-            'Left-frontal', 'Right-frontal']
-    order = dict()
-    for key in keys:
-        channels = read_selection(key, info=raw.info)
-        if ' ' in channels[0]:
-            channels.append('STI 014')
-        else:
-            channels.append('STI014')
-        order[key] = pick_channels(raw.ch_names, channels)
+    from ..selection import read_selection, _SELECTIONS, _divide_to_regions
+    from ..utils import _get_stim_channel
+    if kind == 'position':
+        order = _divide_to_regions(raw)
+        keys = _SELECTIONS[1:]  # no 'Vertex'
+    elif 'selection':
+        order = dict()
+        try:
+            stim_ch = _get_stim_channel(None, raw.info)
+        except:
+            stim_ch = ['']
+        for key in _SELECTIONS:
+            channels = read_selection(key, info=raw.info)
+            channels.append(stim_ch[0])
+            order[key] = pick_channels(raw.ch_names, channels)
+        keys = _SELECTIONS
+
     fig_selection = figure_nobar(figsize=(4, 10), dpi=80)
     fig_selection.canvas.set_window_title('Selection')
     rax = plt.axes()

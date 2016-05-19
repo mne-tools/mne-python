@@ -7,10 +7,16 @@
 from os import path
 
 import numpy as np
+from scipy.stats import zscore
+
 
 from .io.meas_info import Info
 from .io.pick import _pick_data_channels, pick_types
-from .utils import logger, verbose
+from .utils import logger, verbose, _get_stim_channel
+
+_SELECTIONS = ['Vertex', 'Left-temporal', 'Right-temporal', 'Left-parietal',
+               'Right-parietal', 'Left-occipital', 'Right-occipital',
+               'Left-frontal', 'Right-frontal']
 
 
 @verbose
@@ -118,23 +124,23 @@ def read_selection(name, fname=None, info=None, verbose=None):
     return sel
 
 
-def _divide_to_regions(raw):
+def _divide_to_regions(raw, add_stim=True):
     """Divides channels to regions by positions."""
     picks = _pick_data_channels(raw.info, exclude=[])
     frontal = list()
     occipital = list()
-    lt = list()
-    rt = list()
-    chs_in_lobe = len(picks) // 5
-    x, y, z = np.array([ch['loc'][:3] for ch in raw.info['chs']]).T
+    chs_in_lobe = len(picks) // 4
+    pos = np.array([ch['loc'][:3] for ch in raw.info['chs']])
+    x, y, z = pos.T
 
+    lt, rt = list(), list()
     for ch in range(chs_in_lobe):
-        pick = np.argmax(x[picks])
-        rt.append(picks[pick])
-        picks = np.delete(picks, pick)
-
-        pick = np.argmin(x[picks])
-        lt.append(picks[pick])
+        if ch % 2 == 0:  # Because _divide_side might break when number is odd.
+            pick = np.argmax(x[picks])
+            rt.append(picks[pick])
+        else:
+            pick = np.argmin(x[picks])
+            lt.append(picks[pick])
         picks = np.delete(picks, pick)
 
         pick = np.argmax(y[picks])
@@ -144,6 +150,47 @@ def _divide_to_regions(raw):
         pick = np.argmin(y[picks])
         occipital.append(picks[pick])
         picks = np.delete(picks, pick)
-    parietal = picks
-    return {'Frontal':frontal, 'Parietal':parietal, 'Occipital':occipital,
-            'Left temporal':lt, 'Right temporal':rt}
+
+    lf, rf = _divide_side(frontal, x)
+    lo, ro = _divide_side(occipital, x)
+    lp, rp = _divide_side(picks, x)  # Parietal lobe from the remaining picks.
+
+    # Finally we check the parietal lobe for outliers.
+    l_outliers = np.array(lp)[(np.abs(zscore(pos[lp])) > 2.8).any(axis=1)]
+    lp = list(np.setdiff1d(lp, l_outliers))
+    r_outliers = np.array(rp)[(np.abs(zscore(pos[rp])) > 2.8).any(axis=1)]
+    rp = list(np.setdiff1d(rp, r_outliers))
+
+    regions = [lf, rf, lo, ro, lt, rt]
+    means = [np.mean(pos[r].T, axis=1) for r in regions]
+    for outlier in np.concatenate([l_outliers, r_outliers]):
+        idx = np.argmin([sum(np.abs(mean - pos[outlier])) for mean in means])
+        regions[idx].append(outlier)  # add the outlier to the nearest cluster
+
+    if add_stim:
+        try:
+            stim_ch = _get_stim_channel(None, raw.info)
+        except:
+            stim_ch = list()  # if not found
+        if len(stim_ch) > 0:
+            for region in [lf, rf, lo, ro, lp, rp, lt, rt]:
+                region.append(raw.ch_names.index(stim_ch[0]))
+    return {'Left-frontal': lf, 'Right-frontal': rf, 'Left-parietal': lp,
+            'Right-parietal': rp, 'Left-occipital': lo, 'Right-occipital': ro,
+            'Left-temporal': lt, 'Right-temporal': rt}
+
+
+def _divide_side(lobe, x):
+    """Helper for making a separation between left and right lobe evenly."""
+    left, right = list(), list()
+    lobe = np.asarray(lobe)
+    while len(lobe) > 0:
+        pick = np.argmin(x[lobe])
+        left.append(lobe[pick])
+        lobe = np.delete(lobe, pick)
+
+        if len(lobe) > 0:
+            pick = np.argmax(x[lobe])
+            right.append(lobe[pick])
+            lobe = np.delete(lobe, pick)
+    return left, right
