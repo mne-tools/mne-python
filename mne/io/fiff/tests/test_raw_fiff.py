@@ -137,18 +137,6 @@ def test_subject_info():
     for key in keys:
         assert_equal(subject_info[key], raw_read.info['subject_info'][key])
     assert_equal(raw.info['meas_date'], raw_read.info['meas_date'])
-    raw.anonymize()
-    raw.save(out_fname, overwrite=True)
-    raw_read = Raw(out_fname)
-    for this_raw in (raw, raw_read):
-        assert_true(this_raw.info.get('subject_info') is None)
-        assert_equal(this_raw.info['meas_date'], [0, 0])
-    assert_equal(raw.info['file_id']['secs'], 0)
-    assert_equal(raw.info['meas_id']['secs'], 0)
-    # When we write out with raw.save, these get overwritten with the
-    # new save time
-    assert_true(raw_read.info['file_id']['secs'] > 0)
-    assert_true(raw_read.info['meas_id']['secs'] > 0)
 
 
 @testing.requires_testing_data

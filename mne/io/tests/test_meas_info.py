@@ -6,9 +6,11 @@ from nose.tools import assert_false, assert_equal, assert_raises, assert_true
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
+from mne.datasets import testing
 from mne import Epochs, read_events
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
-                    _loc_to_coil_trans, Raw, read_info, write_info)
+                    _loc_to_coil_trans, Raw, read_info, write_info,
+                    anonymize_info)
 from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _read_dig_points, _make_dig_points, _merge_info,
@@ -24,6 +26,7 @@ event_name = op.join(base_dir, 'test-eve.fif')
 kit_data_dir = op.join(op.dirname(__file__), '..', 'kit', 'tests', 'data')
 hsp_fname = op.join(kit_data_dir, 'test_hsp.txt')
 elp_fname = op.join(kit_data_dir, 'test_elp.txt')
+out_fname = op.join(_TempDir(), 'test_subj_info_raw.fif')
 
 
 def test_coil_trans():
@@ -323,6 +326,41 @@ def test_check_consistency():
     info2 = info.copy()
     info2['chs'][2]['ch_name'] = 'b'
     assert_raises(RuntimeError, info2._check_consistency)
+
+
+@testing.requires_testing_data
+def test_anonymize():
+    # Checks that contains sensitive information
+    assert_raises(ValueError, anonymize_info, 'foo')
+
+    # Fake some subject data
+    raw = Raw(raw_fname)
+    raw.info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
+                                    first_name='bar', birthday=(1987, 4, 8),
+                                    sex=0, hand=1)
+
+    # Test instance method
+    events = read_events(event_name)
+    epochs = Epochs(raw, events[:1], 2, 0., 0.1)
+    for inst in [raw, epochs]:
+        assert_true('subject_info' in inst.info.keys())
+        assert_true(inst.info['file_id']['secs'] != 0)
+        assert_true(inst.info['meas_id']['secs'] != 0)
+        assert_true(np.any(inst.info['meas_date'] != [0, 0]))
+        inst.anonymize()
+        assert_true('subject_info' not in inst.info.keys())
+        assert_equal(inst.info['file_id']['secs'], 0)
+        assert_equal(inst.info['meas_id']['secs'], 0)
+        assert_equal(inst.info['meas_date'], [0, 0])
+
+    # When we write out with raw.save, these get overwritten with the
+    # new save time
+    raw.save(out_fname, overwrite=True)
+    raw = Raw(out_fname)
+    assert_true(raw.info.get('subject_info') is None)
+    assert_equal(raw.info['meas_date'], [0, 0])
+    assert_equal(raw.info['file_id']['secs'], 0)
+    assert_equal(raw.info['meas_id']['secs'], 0)
 
 
 run_tests_if_main()
