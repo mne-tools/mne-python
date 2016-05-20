@@ -980,7 +980,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, verbose=None):
+                       show=False, verbose=None, force_copy=False):
     """
     Create BEM surfaces using the watershed algorithm included with FreeSurfer
 
@@ -1008,6 +1008,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
     verbose : bool, str or None
         If not None, override default verbose level
+
+    force_copy : bool
+        Hard-copy files instead of making symbolic links. This parameter needs
+        to be applied on partitions, such as FAT32, that do not support
+        symbolic links.
 
     Notes
     -----
@@ -1078,7 +1083,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
             else:
                 if op.exists(surf_out):
                     os.remove(surf_out)
-                _symlink(surf_ws_out, surf_out)
+                _symlink(surf_ws_out, surf_out, force_copy)
                 skip_symlink = False
 
         if skip_symlink:
@@ -1638,7 +1643,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   verbose=None):
+                   verbose=None, force_copy=False):
     """Create 3-Layer BEM model from prepared flash MRI images
 
     Parameters
@@ -1653,6 +1658,10 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    force_copy : bool
+        Hard-copy files instead of making symbolic links. This parameter needs
+        to be applied on partitions, such as FAT32, that do not support
+        symbolic links.
 
     Notes
     -----
@@ -1768,7 +1777,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         else:
             if op.exists(surf):
                 os.remove(surf)
-            _symlink(op.join('flash', surf), op.join(surf))
+            _symlink(op.join('flash', surf), op.join(surf), force_copy)
             skip_symlink = False
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files "
@@ -1790,10 +1799,16 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     os.chdir(curdir)
 
 
-def _symlink(src, dest):
-    try:
-        os.symlink(src, dest)
-    except OSError:
+def _symlink(src, dest, force_copy):
+    if force_copy:
         shutil.copy(src, dest)
-        logger.warning('Could not create symbolic link because is not on an '
-                       'NTFS partition. Copied %f instead.' % dest)
+    else:
+        try:
+            os.symlink(src, dest)
+        except OSError as err:
+            message = ('Could not create symbolic link %s. Check that your '
+                       'partition handles symbolic links. For example, FAT32 '
+                       'do not support symbolic links. You may use the option '
+                       '``force_copy=True`` to copy the files instead of '
+                       'creating symbolic links. ' % dest)
+            raise OSError(message + err.strerror)
