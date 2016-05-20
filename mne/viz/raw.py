@@ -292,6 +292,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None)
 
+    if isinstance(order, string_types) and order in ['selection', 'position']:
+        #params['ax_vscroll'].set_visible(False)
+        params['fig_selection'] = fig_selection
+        params['selections'] = selections
+        fig_selection.radio.set_active(0)
+        params['radio_clicked'] = partial(_radio_clicked, params=params)
+        fig_selection.radio.on_clicked(params['radio_clicked'])
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels)
 
@@ -332,7 +339,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
-    params['radio_clicked'] = partial(_radio_clicked, params=params)
     params['scale_factor'] = 1.0
     # set up callbacks
     opt_button = None
@@ -350,9 +356,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_raw_resize, params=params)
     params['fig'].canvas.mpl_connect('resize_event', callback_resize)
-    if isinstance(order, string_types) and order in ['selection', 'position']:
-        params['selections'] = selections
-        fig_selection.radio.on_clicked(params['radio_clicked'])
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -369,11 +372,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     callback_proj('none')
     _layout_figure(params)
 
-    if isinstance(order, string_types) and order in ['selection', 'position']:
-        params['ax_vscroll'].set_visible(False)
-        params['fig_selection'] = fig_selection
-        params['fig'].fig_selection = fig_selection
-        fig_selection.radio.set_active(0)
     # deal with projectors
     if show_options is True:
         _toggle_options(None, params)
@@ -591,18 +589,40 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     # populate vertical and horizontal scrollbars
     info = params['info']
-    for ci in range(len(inds)):
-        this_color = (bad_color if info['ch_names'][inds[ci]] in info['bads']
-                      else color)
-        if isinstance(this_color, dict):
-            this_color = this_color[params['types'][inds[ci]]]
-        ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
-                                                   facecolor=this_color,
-                                                   edgecolor=this_color))
+    n_ch = len(inds)
+
+    if 'fig_selection' in params:
+        selections = params['selections']
+        labels = [l._text for l in params['fig_selection'].radio.labels]
+        # Flatten the selections dict to a list.
+        cis = [item for sublist in [selections[l] for l in labels] for item
+               in sublist]
+
+        for idx, ci in enumerate(cis):
+            this_color = (bad_color if info['ch_names'][ci] in
+                          info['bads'] else color)
+            if isinstance(this_color, dict):
+                this_color = this_color[params['types'][ci]]
+            ax_vscroll.add_patch(mpl.patches.Rectangle((0, idx), 1, 1,
+                                                       facecolor=this_color,
+                                                       edgecolor=this_color))
+        ax_vscroll.set_ylim(len(cis), 0)
+        n_channels = len(selections[labels[0]])
+    else:
+        for ci in range(len(inds)):
+            this_color = (bad_color if info['ch_names'][inds[ci]] in
+                          info['bads'] else color)
+            if isinstance(this_color, dict):
+                this_color = this_color[params['types'][inds[ci]]]
+            ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
+                                                       facecolor=this_color,
+                                                       edgecolor=this_color))
+        ax_vscroll.set_ylim(n_ch, 0)
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
                                        facecolor='w', edgecolor='w')
     ax_vscroll.add_patch(vsel_patch)
     params['vsel_patch'] = vsel_patch
+
     hsel_patch = mpl.patches.Rectangle((params['t_start'], 0),
                                        params['duration'], 1, edgecolor='k',
                                        facecolor=(0.75, 0.75, 0.75),
@@ -610,8 +630,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
     ax_hscroll.set_xlim(0, params['n_times'] / float(info['sfreq']))
-    n_ch = len(inds)
-    ax_vscroll.set_ylim(n_ch, 0)
+
     ax_vscroll.set_title('Ch.')
 
     # make shells for plotting traces
@@ -732,7 +751,8 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     params['ax'].set_xlim(params['times'][0],
                           params['times'][0] + params['duration'], False)
     params['ax'].set_yticklabels(tick_list)
-    params['vsel_patch'].set_y(params['ch_start'])
+    if not 'fig_selection' in params:
+        params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
     # XXX This is a hack to make sure this figure gets drawn last
     # so that when matplotlib goes to calculate bounds we don't get a
@@ -829,6 +849,10 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 
 def _radio_clicked(label, params):
     """Callback for selection radio buttons."""
+    labels = [l._text for l in params['fig_selection'].radio.labels]
+    idx = labels.index(label)
+    nchan = sum([len(params['selections'][l]) for l in labels[:idx]])
+    params['vsel_patch'].set_y(nchan)
     channels = params['selections'][label]
     n_channels = len(channels)
     params['n_channels'] = n_channels
@@ -844,7 +868,8 @@ def _setup_browser_selection(raw, kind):
     """Helper for organizing browser selections."""
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons
-    from ..selection import read_selection, _SELECTIONS, _divide_to_regions
+    from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
+                             _divide_to_regions)
     from ..utils import _get_stim_channel
     if kind == 'position':
         order = _divide_to_regions(raw)
@@ -859,11 +884,11 @@ def _setup_browser_selection(raw, kind):
             stim_ch = _get_stim_channel(None, raw.info)
         except:
             stim_ch = ['']
-        for key in _SELECTIONS:
+        keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
+        for key in keys:
             channels = read_selection(key, info=raw.info)
             channels.append(stim_ch[0])
             order[key] = pick_channels(raw.ch_names, channels)
-        keys = _SELECTIONS
 
     fig_selection = figure_nobar(figsize=(4, 10), dpi=80)
     fig_selection.canvas.set_window_title('Selection')

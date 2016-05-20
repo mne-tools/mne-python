@@ -7,8 +7,6 @@
 from os import path
 
 import numpy as np
-from scipy.stats import zscore
-
 
 from .io.meas_info import Info
 from .io.pick import _pick_data_channels, pick_types
@@ -17,6 +15,7 @@ from .utils import logger, verbose, _get_stim_channel
 _SELECTIONS = ['Vertex', 'Left-temporal', 'Right-temporal', 'Left-parietal',
                'Right-parietal', 'Left-occipital', 'Right-occipital',
                'Left-frontal', 'Right-frontal']
+_EEG_SELECTIONS = ['EEG 1-32', 'EEG 33-64', 'EEG 65-96', 'EEG 97-128']
 
 
 @verbose
@@ -126,6 +125,7 @@ def read_selection(name, fname=None, info=None, verbose=None):
 
 def _divide_to_regions(raw, add_stim=True):
     """Divides channels to regions by positions."""
+    from scipy.stats import zscore
     picks = _pick_data_channels(raw.info, exclude=[])
     frontal = list()
     occipital = list()

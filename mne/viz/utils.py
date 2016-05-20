@@ -560,6 +560,19 @@ def _change_channel_group(step, params):
             radio.set_active(idx - 1)
 
 
+def _handle_change_selection(event, params):
+    """Helper for handling clicks on vertical scrollbar using selections."""
+    radio = params['fig_selection'].radio
+    ax = event.inaxes
+    ylim = ax.get_ylim()[0]
+    ydata = event.ydata
+    labels = [label._text for label in radio.labels]
+    size = ylim / len(labels)
+    lims = np.linspace(size, ylim, len(labels))
+    idx = np.searchsorted(lims, ydata)
+    radio.set_active(idx)
+
+
 def _plot_raw_onkey(event, params):
     """Interpret key presses"""
     import matplotlib.pyplot as plt
@@ -643,12 +656,14 @@ def _mouse_click(event, params):
             return
         params['label_click_fun'](pos)
     # vertical scrollbar changed
-    if (event.inaxes == params['ax_vscroll'] and
-            'fig_selection' not in params.keys()):
-        ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
-        if params['ch_start'] != ch_start:
-            params['ch_start'] = ch_start
-            params['plot_fun']()
+    if event.inaxes == params['ax_vscroll']:
+        if 'fig_selection' in params.keys():
+            _handle_change_selection(event, params)
+        else:
+            ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
+            if params['ch_start'] != ch_start:
+                params['ch_start'] = ch_start
+                params['plot_fun']()
     # horizontal scrollbar changed
     elif event.inaxes == params['ax_hscroll']:
         _plot_raw_time(event.xdata - params['duration'] / 2, params)
@@ -673,7 +688,10 @@ def _select_bads(event, params, bads):
             if ymin <= event.ydata <= ymax:
                 this_chan = vars(line)['ch_name']
                 if this_chan in params['info']['ch_names']:
-                    ch_idx = params['ch_start'] + lines.index(line)
+                    if 'fig_selection' in params:
+                        ch_idx = params['vsel_patch'].xy[1] + lines.index(line)
+                    else:
+                        ch_idx = params['ch_start'] + lines.index(line)
                     if this_chan not in bads:
                         bads.append(this_chan)
                         color = params['bad_color']
