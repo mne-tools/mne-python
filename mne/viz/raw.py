@@ -377,7 +377,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         params['ax_vscroll'].set_visible(False)
         params['fig_selection'] = fig_selection
         params['fig'].fig_selection = fig_selection
-        _radio_clicked(selections.keys()[0], params)
+        fig_selection.radio.set_active(0)
     # deal with projectors
     if show_options is True:
         _toggle_options(None, params)
@@ -854,6 +854,10 @@ def _setup_browser_selection(raw, kind):
         order = _divide_to_regions(raw)
         keys = _SELECTIONS[1:]  # no 'Vertex'
     elif 'selection':
+        from ..io import RawFIF, RawArray
+        if not isinstance(raw, (RawFIF, RawArray)):
+            raise ValueError("order='selection' only works for Neuromag data. "
+                             "Use order='position' instead.")
         order = dict()
         try:
             stim_ch = _get_stim_channel(None, raw.info)

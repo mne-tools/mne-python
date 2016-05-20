@@ -509,7 +509,8 @@ def _helper_raw_resize(event, params):
 
 def _plot_raw_onscroll(event, params, len_channels=None):
     """Interpret scroll events"""
-    if 'fig_selection' in params:  # Not supported in selection mode.
+    if 'fig_selection' in params:
+        _change_channel_group(event.step, params)
         return
     if len_channels is None:
         len_channels = len(params['info']['ch_names'])
@@ -545,15 +546,35 @@ def _plot_raw_time(value, params):
         params['hsel_patch'].set_x(value)
 
 
+def _change_channel_group(step, params):
+    """Deal with change of channel group."""
+    radio = params['fig_selection'].radio
+    labels = [label._text for label in radio.labels]
+    selected = radio.value_selected
+    idx = labels.index(selected)
+    if step < 0:
+        if idx < len(labels) - 1:
+            radio.set_active(idx + 1)
+    else:
+        if idx > 0:
+            radio.set_active(idx - 1)
+
+
 def _plot_raw_onkey(event, params):
     """Interpret key presses"""
     import matplotlib.pyplot as plt
     if event.key == 'escape':
         plt.close(params['fig'])
-    elif event.key == 'down' and 'fig_selection' not in params.keys():
+    elif event.key == 'down':
+        if 'fig_selection' in params.keys():
+            _change_channel_group(-1, params)
+            return
         params['ch_start'] += params['n_channels']
         _channels_changed(params, len(params['info']['ch_names']))
-    elif event.key == 'up' and 'fig_selection' not in params.keys():
+    elif event.key == 'up':
+        if 'fig_selection' in params.keys():
+            _change_channel_group(1, params)
+            return
         params['ch_start'] -= params['n_channels']
         _channels_changed(params, len(params['info']['ch_names']))
     elif event.key == 'right':
