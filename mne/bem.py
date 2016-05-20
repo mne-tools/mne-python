@@ -1078,7 +1078,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
             else:
                 if op.exists(surf_out):
                     os.remove(surf_out)
-                os.symlink(surf_ws_out, surf_out)
+                _symlink(surf_ws_out, surf_out)
                 skip_symlink = False
 
         if skip_symlink:
@@ -1768,7 +1768,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         else:
             if op.exists(surf):
                 os.remove(surf)
-            os.symlink(op.join('flash', surf), op.join(surf))
+            _symlink(op.join('flash', surf), op.join(surf))
             skip_symlink = False
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files "
@@ -1788,3 +1788,12 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     # Go back to initial directory
     os.chdir(curdir)
+
+
+def _symlink(src, dest):
+    try:
+        os.symlink(src, dest)
+    except OSError:
+        shutil.copy(src, dest)
+        logger.warning('Could not create symbolic link because %f' % dest
+                       + 'is not on an NTFS partition. Copied file instead.')
