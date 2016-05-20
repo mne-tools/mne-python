@@ -1795,5 +1795,5 @@ def _symlink(src, dest):
         os.symlink(src, dest)
     except OSError:
         shutil.copy(src, dest)
-        logger.warning('Could not create symbolic link because %s' % dest
-                       + 'is not on an NTFS partition. Copied file instead.')
+        logger.warning('Could not create symbolic link because is not on an '
+                       'NTFS partition. Copied %f instead.' % dest)
