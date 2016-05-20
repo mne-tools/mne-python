@@ -20,7 +20,7 @@ from ..utils import read_str
 
 
 def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
-                 n_bytes=None, date_format='mm/dd/yy', preload=False,
+                 data_format='auto', date_format='mm/dd/yy', preload=False,
                  verbose=None):
     """Read CNT data as raw object.
 
@@ -61,10 +61,10 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names containing 'EMG' are used.
         Defaults to empty tuple.
-    n_bytes : int | None
-        Defines the number of bytes the data is read in (should be 2 for int16
-        and 4 for int32). If None, it is determined from the file header using
-        ``numsamples`` field. Defaults to None.
+    data_format : 'auto' | 'int16' | 'int32'
+        Defines the data format the data is read in. If 'auto', it is
+        determined from the file header using ``numsamples`` field.
+        Defaults to 'auto'.
     date_format : str
         Format of date in the header. Currently supports 'mm/dd/yy' (default)
         and 'dd/mm/yy'.
@@ -91,11 +91,11 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
     .. versionadded:: 0.12
     """
     return RawCNT(input_fname, montage=montage, eog=eog, misc=misc, ecg=ecg,
-                  emg=emg, n_bytes=n_bytes, date_format=date_format,
+                  emg=emg, data_format=data_format, date_format=date_format,
                   preload=preload, verbose=verbose)
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, n_bytes, date_format):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     """Helper for reading the cnt header."""
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -184,9 +184,9 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, n_bytes, date_format):
                                                      count=1)[0]
 
         data_size = event_offset - (900 + 75 * n_channels)
-        if n_bytes is None:
+        if data_format == 'auto':
             if (n_samples == 0 or
-                    data_size // (n_samples * n_channels) % n_samples != 0):
+                    data_size // (n_samples * n_channels) not in [2, 4]):
                 warn('Could not define the number of bytes automatically. '
                      'Defaulting to 2.')
                 n_bytes = 2
@@ -194,6 +194,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, n_bytes, date_format):
             else:
                 n_bytes = data_size // (n_samples * n_channels)
         else:
+            if data_format not in ['int16', 'int32']:
+                raise ValueError("data_format should be 'auto', 'int16' or "
+                                 "'int32'. Got %s." % data_format)
+            n_bytes = 2 if data_format == 'int16' else 4
             n_samples = data_size // (n_bytes * n_channels)
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
@@ -326,10 +330,10 @@ class RawCNT(_BaseRaw):
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names beginning with
         ``EMG`` are used. Defaults to empty tuple.
-    n_bytes : int | None
-        Defines the number of bytes the data is read in (should be 2 for int16
-        and 4 for int32). If None, it is determined from the file header using
-        ``numsamples`` field. Defaults to None.
+    data_format : 'auto' | 'int16' | 'int32'
+        Defines the data format the data is read in. If 'auto', it is
+        determined from the file header using ``numsamples`` field.
+        Defaults to 'auto'.
     date_format : str
         Format of date in the header. Currently supports 'mm/dd/yy' (default)
         and 'dd/mm/yy'.
@@ -347,11 +351,11 @@ class RawCNT(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     def __init__(self, input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
-                 n_bytes=None, date_format='mm/dd/yy', preload=False,
+                 data_format='auto', date_format='mm/dd/yy', preload=False,
                  verbose=None):
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
-                                       n_bytes, date_format)
+                                       data_format, date_format)
         last_samps = [cnt_info['n_samples'] - 1]
         _check_update_montage(info, montage)
         super(RawCNT, self).__init__(
